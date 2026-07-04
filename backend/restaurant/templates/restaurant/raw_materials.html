@@ -1,0 +1,642 @@
+{% extends "admin/restaurant_base.html" %}
+{% load i18n static %}
+
+{% block title %}مواد اولیه رستوران{% endblock %}
+
+{% block page_title %}مواد اولیه{% endblock %}
+{% block breadcrumb %}انبار و تأمین / مواد اولیه{% endblock %}
+
+
+{% block extra_css %}
+<style>
+    :root {
+        --rm-bg: #f6f1eb;
+        --rm-surface: #ffffff;
+        --rm-accent: #b5853a;
+        --rm-accent-hover: #96702f;
+        --rm-accent-light: #fdf6ec;
+        --rm-accent-border: #e8d5b5;
+        --rm-text: #292524;
+        --rm-text-sec: #78716c;
+        --rm-border: #e7e5e4;
+        --rm-success: #16a34a;
+        --rm-success-bg: #f0fdf4;
+        --rm-danger: #dc2626;
+        --rm-danger-bg: #fef2f2;
+        --rm-warn: #f59e0b;
+        --rm-warn-bg: #fffbeb;
+        --rm-radius: 14px;
+        --rm-radius-sm: 10px;
+        --rm-shadow: 0 1px 3px rgba(41,37,36,.06), 0 1px 2px rgba(41,37,36,.04);
+        --rm-shadow-md: 0 4px 12px rgba(41,37,36,.07);
+        --rm-shadow-lg: 0 12px 32px rgba(41,37,36,.10);
+    }
+
+    .rm-wrap {
+        background: var(--rm-bg);
+        min-height: calc(100vh - 120px);
+    }
+    .rm-container { max-width: 960px; margin: 0 auto; padding: 32px 20px 80px; }
+
+    .rm-header {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 28px; flex-wrap: wrap; gap: 16px;
+        animation: rmFadeUp .6s ease both;
+    }
+    .rm-header h1 { font-size: 1.8rem; font-weight: 800; color: var(--rm-text); }
+    .rm-header p { color: var(--rm-text-sec); font-size: .88rem; margin-top: 2px; }
+
+    .rm-stats {
+        display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px;
+        opacity: 0; animation: rmFadeUp .6s ease both;
+    }
+    .rm-stat {
+        background: var(--rm-surface); border: 1px solid var(--rm-border);
+        border-radius: var(--rm-radius-sm); padding: 14px 20px;
+        flex: 1; min-width: 140px; text-align: center;
+    }
+    .rm-stat .rm-sc-val { font-size: 1.4rem; font-weight: 800; color: var(--rm-accent); }
+    .rm-stat .rm-sc-label { font-size: .75rem; color: var(--rm-text-sec); margin-top: 2px; }
+    .rm-stat.ok { border-color: var(--rm-success); background: var(--rm-success-bg); }
+    .rm-stat.ok .rm-sc-val { color: var(--rm-success); }
+    .rm-stat.warn { border-color: var(--rm-warn); background: var(--rm-warn-bg); }
+    .rm-stat.warn .rm-sc-val { color: var(--rm-warn); }
+    .rm-stat.danger { border-color: var(--rm-danger); background: var(--rm-danger-bg); }
+    .rm-stat.danger .rm-sc-val { color: var(--rm-danger); }
+
+    .rm-toolbar {
+        display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+        opacity: 0; animation: rmFadeUp .6s ease both;
+    }
+    .rm-search { flex: 1; min-width: 200px; position: relative; }
+    .rm-search input {
+        width: 100%; padding: 11px 14px 11px 40px;
+        border: 1.5px solid var(--rm-border); border-radius: var(--rm-radius-sm);
+        font-family: inherit; font-size: .9rem; background: var(--rm-surface);
+        outline: none; transition: border-color .2s; color: var(--rm-text);
+    }
+    .rm-search input:focus { border-color: var(--rm-accent); }
+    .rm-search svg {
+        position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+        width: 18px; height: 18px; color: var(--rm-text-sec);
+    }
+
+    .rm-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 11px 22px; border: none; border-radius: var(--rm-radius-sm);
+        font-family: inherit; font-size: .88rem; font-weight: 600;
+        cursor: pointer; transition: all .2s;
+    }
+    .rm-btn-accent { background: var(--rm-accent); color: #fff; }
+    .rm-btn-accent:hover { background: var(--rm-accent-hover); }
+    .rm-btn-accent svg { width: 16px; height: 16px; }
+
+    .rm-table-wrap {
+        background: var(--rm-surface); border: 1px solid var(--rm-border);
+        border-radius: var(--rm-radius); overflow: hidden;
+        box-shadow: var(--rm-shadow); opacity: 0; animation: rmFadeUp .6s ease both;
+    }
+    .rm-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+    .rm-table thead { background: var(--rm-accent-light); }
+    .rm-table thead th {
+        padding: 14px 12px; font-weight: 600; font-size: .8rem;
+        color: var(--rm-accent-hover); text-align: center; white-space: nowrap;
+        border-bottom: 2px solid var(--rm-accent-border); cursor: pointer; user-select: none;
+    }
+    .rm-table thead th:hover { color: var(--rm-accent); }
+    .rm-table tbody td {
+        padding: 12px; text-align: center; border-bottom: 1px solid var(--rm-border);
+        vertical-align: middle; color: var(--rm-text);
+    }
+    .rm-table tbody tr { transition: background .15s; }
+    .rm-table tbody tr:hover { background: #faf8f5; }
+    .rm-table tbody tr:last-child td { border-bottom: none; }
+
+    .rm-status {
+        display: inline-block; padding: 3px 10px;
+        border-radius: 20px; font-size: .75rem; font-weight: 600;
+    }
+    .rm-status-ok { background: var(--rm-success-bg); color: var(--rm-success); }
+    .rm-status-low { background: var(--rm-warn-bg); color: var(--rm-warn); }
+    .rm-status-out { background: var(--rm-danger-bg); color: var(--rm-danger); }
+
+    .rm-actions { display: flex; gap: 4px; justify-content: center; }
+    .rm-btn-icon {
+        width: 34px; height: 34px; border: none; border-radius: 8px;
+        background: transparent; cursor: pointer; display: inline-flex;
+        align-items: center; justify-content: center; transition: all .2s; color: #aaa;
+    }
+    .rm-btn-icon:hover { background: var(--rm-accent-light); color: var(--rm-accent); }
+    .rm-btn-icon.rm-del:hover { background: var(--rm-danger-bg); color: var(--rm-danger); }
+    .rm-btn-icon svg { width: 16px; height: 16px; }
+
+    .rm-empty { text-align: center; padding: 60px 20px; color: var(--rm-text-sec); }
+    .rm-empty svg { width: 56px; height: 56px; color: var(--rm-border); margin-bottom: 14px; }
+    .rm-empty p { font-size: .95rem; }
+
+    /* ── Modal ── */
+    .rm-modal-overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,.35);
+        z-index: 9998; display: none; align-items: center; justify-content: center;
+        backdrop-filter: blur(4px);
+    }
+    .rm-modal-overlay.active { display: flex; }
+    .rm-modal {
+        background: var(--rm-surface); border-radius: var(--rm-radius);
+        padding: 32px; width: 90%; max-width: 480px;
+        box-shadow: var(--rm-shadow-lg); animation: rmModalIn .3s ease;
+    }
+    .rm-modal h3 {
+        font-size: 1.15rem; font-weight: 700; margin-bottom: 20px;
+        padding-bottom: 14px; border-bottom: 1px solid var(--rm-border); color: var(--rm-text);
+    }
+    .rm-modal .rm-field { margin-bottom: 14px; }
+    .rm-modal .rm-field label {
+        display: block; font-size: .82rem; font-weight: 500;
+        color: var(--rm-text-sec); margin-bottom: 5px;
+    }
+    .rm-modal .rm-field input, .rm-modal .rm-field select {
+        width: 100%; padding: 11px 14px; border: 1.5px solid var(--rm-border);
+        border-radius: var(--rm-radius-sm); font-family: inherit;
+        font-size: .9rem; outline: none; transition: border-color .2s;
+        color: var(--rm-text); background: var(--rm-surface);
+    }
+    .rm-modal .rm-field input:focus, .rm-modal .rm-field select:focus {
+        border-color: var(--rm-accent);
+    }
+    .rm-modal .rm-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .rm-modal .rm-btns { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-start; }
+
+    .rm-save {
+        background: var(--rm-accent); color: #fff; padding: 11px 32px;
+        border: none; border-radius: var(--rm-radius-sm); font-family: inherit;
+        font-size: .9rem; font-weight: 700; cursor: pointer; transition: background .2s;
+    }
+    .rm-save:hover { background: var(--rm-accent-hover); }
+    .rm-cancel {
+        background: transparent; color: var(--rm-text-sec); padding: 11px 24px;
+        border: 1.5px solid var(--rm-border); border-radius: var(--rm-radius-sm);
+        font-family: inherit; font-size: .9rem; font-weight: 500;
+        cursor: pointer; transition: all .2s;
+    }
+    .rm-cancel:hover { border-color: var(--rm-text-sec); color: var(--rm-text); }
+
+    /* ── Toast ── */
+    #rm-toast-box {
+        position: fixed; top: 24px; left: 24px; z-index: 9999;
+        display: flex; flex-direction: column; gap: 8px;
+    }
+    .rm-toast {
+        padding: 14px 22px; border-radius: var(--rm-radius-sm);
+        font-size: .88rem; font-weight: 500; color: #fff;
+        box-shadow: var(--rm-shadow-lg); transform: translateX(-120%);
+        transition: transform .35s ease; max-width: 360px;
+    }
+    .rm-toast.show { transform: translateX(0); }
+    .rm-toast-success { background: #16a34a; }
+    .rm-toast-error { background: #dc2626; }
+
+    @keyframes rmFadeUp {
+        from { opacity: 0; transform: translateY(18px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes rmModalIn {
+        from { opacity: 0; transform: scale(.95) translateY(10px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    @media (max-width: 600px) {
+        .rm-table { font-size: .8rem; }
+        .rm-table thead th, .rm-table tbody td { padding: 8px 6px; }
+        .rm-header { flex-direction: column; align-items: flex-start; }
+        .rm-modal .rm-form-row { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div id="rm-toast-box"></div>
+
+<!-- ═══ Modal ═══ -->
+<div class="rm-modal-overlay" id="rm-modal-overlay">
+    <div class="rm-modal">
+        <h3 id="rm-modal-title">افزودن ماده اولیه</h3>
+        <input type="hidden" id="rm-m-id">
+        <div class="rm-field">
+            <label>نام کالا *</label>
+            <input type="text" id="rm-m-name" placeholder="مثلاً برنج">
+        </div>
+        <div class="rm-field">
+            <label>برچسب / دسته‌بندی</label>
+            <input type="text" id="rm-m-label" placeholder="مثلاً غلات">
+        </div>
+        <div class="rm-form-row">
+            <div class="rm-field">
+                <label>قیمت واحد (تومان) *</label>
+                <input type="text" id="rm-m-price" placeholder="0" inputmode="numeric" autocomplete="off">
+            </div>
+            <div class="rm-field">
+                <label>مقدار *</label>
+                <input type="number" id="rm-m-qty" placeholder="0" min="0">
+            </div>
+        </div>
+        <div class="rm-field">
+            <label>واحد</label>
+            <select id="rm-m-unit">
+                <option value="kg">کیلوگرم</option>
+                <option value="g">گرم</option>
+                <option value="l">لیتر</option>
+                <option value="ml">میلی‌لیتر</option>
+                <option value="unit">عدد</option>
+                <option value="bunch">دسته</option>
+                <option value="pack">بسته</option>
+            </select>
+        </div>
+        <div class="rm-btns">
+            <button class="rm-save" id="rm-modal-save">ذخیره</button>
+            <button class="rm-cancel" id="rm-modal-cancel">انصراف</button>
+        </div>
+    </div>
+</div>
+
+<div class="rm-wrap">
+<div class="rm-container">
+
+    <!-- Header -->
+    <header class="rm-header" style="animation-delay:0s">
+        <div>
+            <h1>مواد اولیه</h1>
+            <p>مدیریت مواد اولیه رستوران — افزودن، ویرایش و حذف</p>
+        </div>
+        <button class="rm-btn rm-btn-accent" id="rm-add-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            افزودن کالا
+        </button>
+    </header>
+
+    <!-- Stats -->
+    <div class="rm-stats" style="animation-delay:.05s" id="rm-stats-bar">
+        <div class="rm-stat">
+            <div class="rm-sc-val" id="rm-stat-total">{{ materials|length }}</div>
+            <div class="rm-sc-label">کل اقلام</div>
+        </div>
+        <div class="rm-stat">
+            <div class="rm-sc-val" id="rm-stat-sum">—</div>
+            <div class="rm-sc-label">ارزش کل انبار</div>
+        </div>
+        <div class="rm-stat ok">
+            <div class="rm-sc-val" id="rm-stat-ok">—</div>
+            <div class="rm-sc-label">موجودی کافی</div>
+        </div>
+        <div class="rm-stat warn">
+            <div class="rm-sc-val" id="rm-stat-low">—</div>
+            <div class="rm-sc-label">موجودی کم</div>
+        </div>
+        <div class="rm-stat danger">
+            <div class="rm-sc-val" id="rm-stat-out">—</div>
+            <div class="rm-sc-label">ناموجود</div>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="rm-toolbar" style="animation-delay:.1s">
+        <div class="rm-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            <input type="text" id="rm-search-input" placeholder="جستجو در نام یا برچسب...">
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="rm-table-wrap" style="animation-delay:.15s">
+        <table class="rm-table">
+            <thead>
+                <tr>
+                    <th style="width:40px">#</th>
+                    <th>نام کالا</th>
+                    <th>برچسب</th>
+                    <th>قیمت واحد</th>
+                    <th>مقدار</th>
+                    <th>واحد</th>
+                    <th>قیمت کل</th>
+                    <th>وضعیت</th>
+                    <th style="width:90px">عملیات</th>
+                </tr>
+            </thead>
+            <tbody id="rm-tbody">
+                {% for m in materials %}
+                <tr data-id="{{ m.pk }}" data-name="{{ m.name }}" data-label="{{ m.label }}" data-price="{{ m.price }}" data-qty="{{ m.quantity }}" data-unit="{{ m.unit }}">
+                    <td style="font-weight:600;color:var(--rm-text-sec)">{{ forloop.counter }}</td>
+                    <td style="font-weight:600">{{ m.name }}</td>
+                    <td style="color:var(--rm-text-sec)">{{ m.label|default:"—" }}</td>
+                    <td>{{ m.price|floatformat:0 }}</td>
+                    <td style="font-weight:600">{{ m.quantity|floatformat:0 }}</td>
+                    <td>{{ m.get_unit_display }}</td>
+                    <td style="font-weight:700;color:var(--rm-accent)">{{ m.total_price|floatformat:0 }}</td>
+                    <td>
+                        {% if m.quantity <= 0 %}
+                            <span class="rm-status rm-status-out">ناموجود</span>
+                        {% elif m.quantity < 5 %}
+                            <span class="rm-status rm-status-low">کم</span>
+                        {% else %}
+                            <span class="rm-status rm-status-ok">موجود</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="rm-actions">
+                            <button class="rm-btn-icon rm-edit-btn" title="ویرایش">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                            <button class="rm-btn-icon rm-del" title="حذف">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr class="rm-empty-row">
+                    <td colspan="9">
+                        <div class="rm-empty">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                            <p>هنوز ماده اولیه‌ای ثبت نشده — روی «افزودن کالا» بزنید</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+var rmTbody = document.getElementById('rm-tbody');
+var rmOverlay = document.getElementById('rm-modal-overlay');
+var rmModalTitle = document.getElementById('rm-modal-title');
+var rmMId = document.getElementById('rm-m-id');
+var rmMName = document.getElementById('rm-m-name');
+var rmMLabel = document.getElementById('rm-m-label');
+var rmMPrice = document.getElementById('rm-m-price');
+var rmMQty = document.getElementById('rm-m-qty');
+var rmMUnit = document.getElementById('rm-m-unit');
+var rmSearch = document.getElementById('rm-search-input');
+
+function rmGetCookie(name) {
+    var v = null;
+    document.cookie.split(';').forEach(function(c) {
+        c = c.trim();
+        if (c.startsWith(name + '=')) v = decodeURIComponent(c.slice(name.length + 1));
+    });
+    return v;
+}
+
+function rmToast(msg, type) {
+    type = type || 'success';
+    var box = document.getElementById('rm-toast-box');
+    var t = document.createElement('div');
+    t.className = 'rm-toast rm-toast-' + type;
+    t.textContent = msg;
+    box.appendChild(t);
+    requestAnimationFrame(function(){ t.classList.add('show'); });
+    setTimeout(function(){ t.classList.remove('show'); setTimeout(function(){ t.remove(); }, 350); }, 3500);
+}
+
+function rmToPersian(n) {
+    var d = '۰۱۲۳۴۵۶۷۸۹';
+    return String(n).replace(/\d/g, function(c){ return d[c]; });
+}
+
+function rmFormatPrice(n) {
+    return rmToPersian(Math.round(n).toLocaleString('en'));
+}
+
+function rmAddCommas(raw) {
+    if (!raw && raw !== '0') return '';
+    var s = String(raw).replace(/,/g, '');
+    return s.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function rmStripCommas(s) {
+    return parseInt(String(s).replace(/,/g, ''), 10) || 0;
+}
+
+rmMPrice.addEventListener('input', function(e) {
+    var input = e.target, cursorPos = input.selectionStart, oldVal = input.value;
+    var raw = oldVal.replace(/[^\d]/g, '');
+    if (!raw) { input.value = ''; input.dataset.rawValue = '0'; return; }
+    var formatted = rmAddCommas(raw);
+    input.value = formatted;
+    input.dataset.rawValue = raw;
+    var diff = formatted.length - oldVal.length;
+    input.setSelectionRange(cursorPos + diff, cursorPos + diff);
+});
+
+// ── Stats ──
+function rmUpdateStats() {
+    var rows = rmTbody.querySelectorAll('tr[data-id]');
+    var totalVal = 0, ok = 0, low = 0, out = 0;
+    rows.forEach(function(r) {
+        if (r.style.display === 'none') return;
+        var qty = parseInt(r.dataset.qty) || 0;
+        var price = parseInt(r.dataset.price) || 0;
+        totalVal += qty * price;
+        if (qty <= 0) out++;
+        else if (qty < 5) low++;
+        else ok++;
+    });
+    document.getElementById('rm-stat-total').textContent = rmToPersian(rows.length);
+    document.getElementById('rm-stat-sum').textContent = rmFormatPrice(totalVal);
+    document.getElementById('rm-stat-ok').textContent = rmToPersian(ok);
+    document.getElementById('rm-stat-low').textContent = rmToPersian(low);
+    document.getElementById('rm-stat-out').textContent = rmToPersian(out);
+}
+
+// ── Modal ──
+function rmOpenModal(title, data) {
+    rmModalTitle.textContent = title;
+    rmMId.value = data ? data.id : '';
+    rmMName.value = data ? data.name : '';
+    rmMLabel.value = data ? data.label : '';
+    rmMPrice.value = data ? rmAddCommas(data.price) : '';
+    if (data) rmMPrice.dataset.rawValue = data.price;
+    rmMQty.value = data ? data.qty : '';
+    rmMUnit.value = data ? data.unit : 'unit';
+    rmOverlay.classList.add('active');
+    rmMName.focus();
+}
+
+function rmCloseModal() {
+    rmOverlay.classList.remove('active');
+}
+
+document.getElementById('rm-modal-cancel').addEventListener('click', rmCloseModal);
+rmOverlay.addEventListener('click', function(e) {
+    if (e.target === rmOverlay) rmCloseModal();
+});
+
+// ── Add ──
+document.getElementById('rm-add-btn').addEventListener('click', function() {
+    rmOpenModal('افزودن ماده اولیه', null);
+});
+
+// ── Edit / Delete ──
+rmTbody.addEventListener('click', function(e) {
+    var editBtn = e.target.closest('.rm-edit-btn');
+    var delBtn = e.target.closest('.rm-del');
+
+    if (editBtn) {
+        var tr = editBtn.closest('tr');
+        rmOpenModal('ویرایش ماده اولیه', {
+            id: tr.dataset.id, name: tr.dataset.name, label: tr.dataset.label,
+            price: tr.dataset.price, qty: tr.dataset.qty, unit: tr.dataset.unit
+        });
+    }
+
+    if (delBtn) {
+        var tr = delBtn.closest('tr');
+        if (!confirm('آیا «' + tr.dataset.name + '» حذف شود؟')) return;
+        var fd = new FormData();
+        fd.append('id', tr.dataset.id);
+        fetch('/api/raw-materials/delete/', {
+            method: 'POST', body: fd,
+            headers: { 'X-CSRFToken': rmGetCookie('csrftoken') }
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(d) {
+            if (d.success) {
+                tr.style.transition = 'opacity .3s';
+                tr.style.opacity = '0';
+                setTimeout(function(){ tr.remove(); rmRenumber(); rmUpdateStats(); }, 300);
+                rmToast(d.msg);
+            } else {
+                rmToast(d.error, 'error');
+            }
+        })
+        .catch(function(){ rmToast('خطا در ارتباط', 'error'); });
+    }
+});
+
+// ── Save ──
+document.getElementById('rm-modal-save').addEventListener('click', function() {
+    if (!rmMName.value.trim()) { rmToast('نام کالا الزامی است.', 'error'); return; }
+    var fd = new FormData();
+    fd.append('id', rmMId.value);
+    fd.append('name', rmMName.value.trim());
+    fd.append('label', rmMLabel.value.trim());
+    fd.append('price', rmMPrice.dataset.rawValue || rmStripCommas(rmMPrice.value) || 0);
+    fd.append('quantity', rmMQty.value || 0);
+    fd.append('unit', rmMUnit.value);
+    fetch('/api/raw-materials/save/', {
+        method: 'POST', body: fd,
+        headers: { 'X-CSRFToken': rmGetCookie('csrftoken') }
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d) {
+        if (d.success) {
+            rmCloseModal();
+            if (rmMId.value) {
+                var tr = rmTbody.querySelector('tr[data-id="' + rmMId.value + '"]');
+                rmUpdateRow(tr, d.item);
+                rmToast('ویرایش شد.');
+            } else {
+                var emptyRow = rmTbody.querySelector('.rm-empty-row');
+                if (emptyRow) emptyRow.remove();
+                var tr = rmCreateRow(d.item);
+                rmTbody.appendChild(tr);
+                rmToast('اضافه شد.');
+            }
+            rmRenumber();
+            rmUpdateStats();
+        } else {
+            rmToast(d.error, 'error');
+        }
+    })
+    .catch(function(){ rmToast('خطا در ارتباط', 'error'); });
+});
+
+function rmCreateRow(item) {
+    var tr = document.createElement('tr');
+    tr.dataset.id = item.id;
+    tr.dataset.name = item.name;
+    tr.dataset.label = item.label;
+    tr.dataset.price = item.price;
+    tr.dataset.qty = item.quantity;
+    tr.dataset.unit = item.unit;
+    rmBuildCells(tr, item);
+    return tr;
+}
+
+function rmUpdateRow(tr, item) {
+    tr.dataset.name = item.name;
+    tr.dataset.label = item.label;
+    tr.dataset.price = item.price;
+    tr.dataset.qty = item.quantity;
+    tr.dataset.unit = item.unit;
+    rmBuildCells(tr, item);
+}
+
+function rmBuildCells(tr, item) {
+    var statusHtml = '';
+    if (item.quantity <= 0) statusHtml = '<span class="rm-status rm-status-out">ناموجود</span>';
+    else if (item.quantity < 5) statusHtml = '<span class="rm-status rm-status-low">کم</span>';
+    else statusHtml = '<span class="rm-status rm-status-ok">موجود</span>';
+
+    tr.innerHTML =
+        '<td style="font-weight:600;color:var(--rm-text-sec)"></td>' +
+        '<td style="font-weight:600">' + item.name + '</td>' +
+        '<td style="color:var(--rm-text-sec)">' + (item.label || '—') + '</td>' +
+        '<td>' + rmFormatPrice(item.price) + '</td>' +
+        '<td style="font-weight:600">' + rmFormatPrice(item.quantity) + '</td>' +
+        '<td>' + item.unit_display + '</td>' +
+        '<td style="font-weight:700;color:var(--rm-accent)">' + rmFormatPrice(item.total) + '</td>' +
+        '<td>' + statusHtml + '</td>' +
+        '<td><div class="rm-actions">' +
+            '<button class="rm-btn-icon rm-edit-btn" title="ویرایش"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
+            '<button class="rm-btn-icon rm-del" title="حذف"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>' +
+        '</div></td>';
+}
+
+// ── Format initial table ──
+function rmFormatTable() {
+    rmTbody.querySelectorAll('tr[data-id]').forEach(function(tr) {
+        var cells = tr.querySelectorAll('td');
+        var p = parseInt(tr.dataset.price) || 0;
+        var q = parseInt(tr.dataset.qty) || 0;
+        if (p >= 1000) cells[3].textContent = rmFormatPrice(p);
+        if (q >= 1000) cells[4].textContent = rmFormatPrice(q);
+        var t = q * p;
+        if (t >= 1000) cells[6].textContent = rmFormatPrice(t);
+    });
+}
+
+function rmRenumber() {
+    rmTbody.querySelectorAll('tr[data-id]').forEach(function(tr, i) {
+        tr.querySelector('td').textContent = rmToPersian(i + 1);
+    });
+}
+
+// ── Search ──
+rmSearch.addEventListener('input', function() {
+    var q = rmSearch.value.trim().toLowerCase();
+    rmTbody.querySelectorAll('tr[data-id]').forEach(function(tr) {
+        var nm = (tr.dataset.name || '').toLowerCase();
+        var lb = (tr.dataset.label || '').toLowerCase();
+        tr.style.display = (!q || nm.indexOf(q) !== -1 || lb.indexOf(q) !== -1) ? '' : 'none';
+    });
+    rmUpdateStats();
+});
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') rmCloseModal();
+});
+
+// ── Init ──
+rmRenumber();
+rmUpdateStats();
+rmFormatTable();
+</script>
+{% endblock %}

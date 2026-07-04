@@ -1,0 +1,781 @@
+{% extends "admin/restaurant_base.html" %}
+{% load i18n static %}
+
+{% block title %}تولید مواد نیمه‌آماده{% endblock %}
+{% block page_title %}آشپزخانه — تولید نیمه‌آماده{% endblock %}
+{% block breadcrumb %}آشپزخانه / تولید نیمه‌آماده{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+    :root {
+        --k-pri: #2d6a4f;
+        --k-pri-l: #40916c;
+        --k-lt: #d8f3dc;
+        --k-acc: #667eea;
+        --k-dng: #e63946;
+        --k-wrn: #f4a261;
+        --k-bg: #f0f4f8;
+        --k-crd: #ffffff;
+        --k-tx: #1a1a2e;
+        --k-tm: #6c757d;
+        --k-bd: #e8ecf1;
+        --k-sh: 0 4px 24px rgba(0,0,0,.06);
+        --k-sh2: 0 8px 40px rgba(0,0,0,.1);
+    }
+
+    .k-hdr {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 24px; flex-wrap: wrap; gap: 16px;
+        animation: ku .5s ease both;
+    }
+    .k-hdr h1 { font-size: 1.8rem; font-weight: 800; margin: 0; }
+    .k-hdr p { color: var(--k-tm); font-size: .88rem; margin-top: 4px; }
+    .k-sts { display: flex; gap: 12px; }
+    .k-st {
+        background: var(--k-crd); border: 1px solid var(--k-bd);
+        border-radius: 14px; padding: 14px 24px; text-align: center;
+        min-width: 100px; transition: all .2s;
+    }
+    .k-st:hover { transform: translateY(-2px); box-shadow: var(--k-sh); }
+    .k-st-v { font-size: 1.5rem; font-weight: 800; display: block; }
+    .k-st-l { font-size: .72rem; color: var(--k-tm); margin-top: 2px; }
+
+    .k-srch {
+        background: var(--k-crd); border-radius: 16px;
+        box-shadow: var(--k-sh); padding: 14px 20px;
+        margin-bottom: 24px; display: flex; gap: 12px; align-items: center;
+        animation: ku .5s ease both; animation-delay: .05s;
+    }
+    .k-srch input {
+        flex: 1; border: 2px solid var(--k-bd);
+        border-radius: 12px; padding: 10px 16px;
+        font-family: inherit; font-size: .9rem;
+        outline: none; transition: all .3s; background: #fafbfc;
+        color: var(--k-tx);
+    }
+    .k-srch input:focus { border-color: var(--k-pri-l); background: #fff; }
+
+    .k-grd {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+        gap: 20px;
+    }
+    .k-c {
+        background: var(--k-crd); border-radius: 20px;
+        box-shadow: var(--k-sh); overflow: hidden;
+        transition: all .35s; border: 2px solid transparent;
+        animation: ku .5s ease forwards; opacity: 0; transform: translateY(20px);
+    }
+    .k-c:hover { transform: translateY(-4px); box-shadow: var(--k-sh2); border-color: var(--k-bd); }
+    .k-c.sel { border-color: var(--k-pri); box-shadow: 0 0 0 4px rgba(45,106,79,.12), var(--k-sh2); }
+    .k-bar { height: 5px; background: linear-gradient(90deg, var(--k-pri), #52b788); }
+    .k-ch {
+        padding: 20px 24px 10px; cursor: pointer;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .k-cn { font-size: 1.15rem; font-weight: 800; display: flex; align-items: center; gap: 10px; }
+    .k-bdg {
+        font-size: .7rem; font-weight: 600;
+        padding: 3px 12px; border-radius: 20px;
+        background: var(--k-lt); color: var(--k-pri);
+    }
+    .k-mt { display: flex; gap: 10px; flex-wrap: wrap; padding: 8px 24px 14px; }
+    .k-tg {
+        font-size: .74rem; font-weight: 600;
+        padding: 5px 14px; border-radius: 8px;
+        display: inline-flex; align-items: center; gap: 4px;
+    }
+    .tg-c { background: #fff7ed; color: #c2410c; }
+    .tg-u { background: #f0f9ff; color: #0369a1; }
+    .tg-n { background: #f0fdf4; color: #15803d; }
+    .k-dsc { padding: 0 24px 14px; font-size: .82rem; color: var(--k-tm); line-height: 1.7; }
+
+    .k-pan { display: none; padding: 0 24px 20px; }
+    .k-pan.show { display: block; animation: kx .3s ease; }
+    @keyframes kx { from { opacity:0; } to { opacity:1; } }
+    .k-pan-t {
+        font-size: .88rem; font-weight: 700;
+        margin-bottom: 12px; color: var(--k-pri);
+        display: flex; align-items: center; gap: 8px;
+        padding-top: 12px; border-top: 2px solid var(--k-bd);
+    }
+    .k-tbl { width: 100%; border-collapse: separate; border-spacing: 0 5px; }
+    .k-tbl th {
+        font-size: .74rem; font-weight: 700;
+        color: var(--k-tm); padding: 8px 12px; text-align: right;
+        border-bottom: 2px solid var(--k-bd);
+    }
+    .k-tbl td { padding: 10px 12px; font-size: .84rem; background: #f8faf9; }
+    .k-tbl tr td:first-child { border-radius: 0 10px 10px 0; }
+    .k-tbl tr td:last-child { border-radius: 10px 0 0 10px; }
+    .k-in { font-weight: 700; }
+    .k-ok { color: var(--k-pri); font-weight: 700; }
+    .k-lo { color: var(--k-dng); font-weight: 800; }
+    .k-ic { font-weight: 800; color: #c2410c; }
+
+    .k-ft {
+        display: flex; gap: 10px; padding: 16px 24px;
+        border-top: 1px solid var(--k-bd); background: #fafbfc;
+    }
+    .k-bp {
+        background: linear-gradient(135deg, var(--k-pri), var(--k-pri-l));
+        color: #fff; border: none;
+        border-radius: 12px; padding: 11px 28px;
+        font-weight: 700; font-size: .9rem;
+        cursor: pointer; font-family: inherit;
+        display: flex; align-items: center; gap: 8px;
+        transition: all .3s;
+        box-shadow: 0 3px 12px rgba(45,106,79,.25);
+    }
+    .k-bp:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(45,106,79,.35); }
+    .k-bp:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+    .k-bd2 {
+        background: #fff; color: var(--k-tm);
+        border: 2px solid var(--k-bd); border-radius: 12px;
+        padding: 11px 20px; font-weight: 600; font-size: .85rem;
+        cursor: pointer; font-family: inherit;
+        display: flex; align-items: center; gap: 6px;
+        transition: all .3s;
+    }
+    .k-bd2:hover { border-color: var(--k-acc); color: var(--k-acc); }
+
+    .k-ov {
+        position: fixed; inset: 0; background: rgba(0,0,0,.5);
+        backdrop-filter: blur(6px); display: none;
+        align-items: center; justify-content: center; z-index: 9999;
+    }
+    .k-ov.show { display: flex; }
+    .k-md {
+        background: #fff; border-radius: 24px; box-shadow: var(--k-sh2);
+        width: 92%; max-width: 520px; animation: km .3s ease; overflow: hidden;
+    }
+    @keyframes km { from { opacity:0; transform:scale(.9) translateY(20px); } to { opacity:1; transform:scale(1) translateY(0); } }
+    .k-mh {
+        background: linear-gradient(135deg, var(--k-pri), #52b788);
+        color: #fff; padding: 24px 28px;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+    .k-mh h3 { font-size: 1.15rem; font-weight: 800; margin: 0; }
+    .k-mh-x {
+        background: rgba(255,255,255,.2); border: none; color: #fff;
+        font-size: 1.3rem; cursor: pointer; line-height: 1;
+        width: 36px; height: 36px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        transition: all .2s;
+    }
+    .k-mh-x:hover { background: rgba(255,255,255,.35); }
+    .k-mb { padding: 28px; }
+    .k-mf {
+        padding: 16px 28px; border-top: 1px solid var(--k-bd);
+        display: flex; gap: 10px; justify-content: flex-end; background: #fafbfc;
+    }
+    .k-q { margin-bottom: 20px; }
+    .k-q label {
+        font-weight: 700; font-size: .92rem; margin-bottom: 10px;
+        display: flex; align-items: center; gap: 6px;
+    }
+    .k-q input {
+        width: 100%; padding: 14px 18px;
+        border: 2px solid var(--k-bd); border-radius: 14px;
+        font-family: inherit; font-size: 1.15rem;
+        font-weight: 700; text-align: center;
+        outline: none; transition: all .3s; color: var(--k-tx);
+    }
+    .k-q input:focus { border-color: var(--k-pri-l); box-shadow: 0 0 0 4px rgba(64,145,108,.12); }
+    .k-slst { display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; }
+    .k-si {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 12px 16px; background: #f8faf9; border-radius: 12px; font-size: .86rem;
+        border-right: 4px solid transparent;
+    }
+    .k-si.ok { border-right-color: var(--k-pri); background: #f0fdf4; }
+    .k-si.fail { border-right-color: var(--k-dng); background: #fff1f2; }
+    .k-mok {
+        background: linear-gradient(135deg, var(--k-pri), var(--k-pri-l));
+        color: #fff; border: none; border-radius: 12px;
+        padding: 13px 30px; font-weight: 700; font-size: .95rem;
+        cursor: pointer; font-family: inherit;
+        display: flex; align-items: center; gap: 8px; transition: all .3s;
+    }
+    .k-mok:hover { transform: translateY(-1px); }
+    .k-mok:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .k-mno {
+        background: #fff; color: var(--k-tm);
+        border: 2px solid var(--k-bd); border-radius: 12px;
+        padding: 13px 24px; font-weight: 600; font-size: .9rem;
+        cursor: pointer; font-family: inherit; transition: all .3s;
+    }
+    .k-mno:hover { border-color: var(--k-dng); color: var(--k-dng); }
+    .k-merr {
+        display: none; margin-top: 14px; padding: 12px 16px;
+        background: #fff1f2; border-radius: 12px;
+        color: var(--k-dng); font-size: .86rem; font-weight: 700;
+        border: 1px solid #fecdd3;
+    }
+    .k-msum {
+        margin-top: 16px; padding: 14px 16px;
+        background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+        border-radius: 12px; border: 1px solid #bbf7d0;
+        display: none; justify-content: space-between; align-items: center;
+    }
+    .k-msum.show { display: flex; }
+    .k-msum-l { font-size: .82rem; color: var(--k-tm); font-weight: 600; }
+    .k-msum-v { font-size: 1.1rem; font-weight: 800; color: var(--k-pri); }
+
+    .k-tw {
+        position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+        z-index: 99999; display: flex; flex-direction: column; gap: 8px;
+    }
+    .k-ts {
+        background: #fff; border-radius: 14px; box-shadow: var(--k-sh2);
+        padding: 16px 24px; display: flex; align-items: center; gap: 12px;
+        animation: kt .4s ease; min-width: 320px; max-width: 500px;
+    }
+    .k-ts.ok { border-right: 5px solid var(--k-pri); }
+    .k-ts.er { border-right: 5px solid var(--k-dng); }
+    @keyframes kt { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+
+    .k-emp { text-align: center; padding: 80px 20px; color: #b0b8c4; }
+    .k-emp i { font-size: 4rem; margin-bottom: 16px; display: block; }
+    .k-emp h3 { font-weight: 700; font-size: 1.1rem; margin-bottom: 8px; color: var(--k-tm); }
+    .k-emp p { font-size: .88rem; }
+    .k-ld { text-align: center; padding: 60px 20px; }
+    .k-sp {
+        width: 40px; height: 40px;
+        border: 4px solid var(--k-bd); border-top-color: var(--k-pri);
+        border-radius: 50%; animation: ks .8s linear infinite;
+        margin: 0 auto 16px;
+    }
+    @keyframes ks { to { transform: rotate(360deg); } }
+    @keyframes ku { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+
+    .k-warn {
+        background: #fffbeb; border: 1px solid #fde68a;
+        border-radius: 14px; padding: 16px 20px;
+        margin-bottom: 20px; display: none;
+        align-items: center; gap: 12px;
+        font-size: .88rem; font-weight: 600; color: #92400e;
+    }
+    .k-warn.show { display: flex; }
+
+    @media (max-width: 768px) {
+        .k-grd { grid-template-columns: 1fr; }
+        .k-hdr { flex-direction: column; align-items: flex-start; }
+        .k-sts { width: 100%; }
+        .k-st { flex: 1; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="k-tw" id="tw"></div>
+
+<!-- ═══ Modal ═══ -->
+<div class="k-ov" id="mOv">
+    <div class="k-md">
+        <div class="k-mh">
+            <h3><i class="bi bi-lightning-charge-fill"></i> تولید: <span id="mNm">—</span></h3>
+            <button class="k-mh-x" onclick="mCls()">&times;</button>
+        </div>
+        <div class="k-mb">
+            <div class="k-q">
+                <label><i class="bi bi-hash"></i> تعداد بچ</label>
+                <input type="number" id="mQt" min="1" value="1">
+            </div>
+
+            <div id="mLst" class="k-slst" style="margin:14px 0"></div>
+
+            <div class="k-merr" id="mEr">
+                <i class="bi bi-exclamation-triangle"></i>
+                <span id="mErMsg"></span>
+            </div>
+
+            <div class="k-msum" id="mSum">
+                <div>
+                    <div class="k-msum-l">هزینه کل مواد</div>
+                    <div class="k-msum-v" id="mCostVal">—</div>
+                </div>
+                <div style="text-align:left">
+                    <div class="k-msum-l">خروجی تولید</div>
+                    <div class="k-msum-v" id="mOutVal" style="color:var(--k-acc)">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="k-mf">
+            <button class="k-mok" id="mBtn" onclick="mOk()" disabled>
+                <i class="bi bi-lightning-charge-fill"></i> تولید و کسر از انبار
+            </button>
+            <button class="k-mno" onclick="mCls()">انصراف</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Header ═══ -->
+<header class="k-hdr">
+    <div>
+        <h1><i class="bi bi-fire" style="color:var(--k-wrn)"></i> آشپزخانه — تولید نیمه‌آماده</h1>
+        <p>رسپی‌ها رو انتخاب کن، مقدار تولید رو مشخص کن، از انبار کسر کن</p>
+    </div>
+    <div class="k-sts">
+        <div class="k-st">
+            <span class="k-st-v" style="color:var(--k-pri)" id="xTotal">—</span>
+            <div class="k-st-l">رسپی نیمه‌آماده</div>
+        </div>
+        <div class="k-st">
+            <span class="k-st-v" style="color:var(--k-acc)" id="xRaw">—</span>
+            <div class="k-st-l">ماده اولیه</div>
+        </div>
+    </div>
+</header>
+
+<!-- ═══ Warning Banner ═══ -->
+<div class="k-warn" id="kWarn">
+    <i class="bi bi-exclamation-triangle-fill" style="font-size:1.3rem"></i>
+    <span id="kWarnMsg">خطا در بارگذاری اطلاعات انبار</span>
+</div>
+
+<!-- ═══ Search ═══ -->
+<div class="k-srch">
+    <i class="bi bi-search" style="color:var(--k-tm)"></i>
+    <input type="text" id="srchIn" placeholder="جستجوی نام نیمه‌آماده..." oninput="kFilt()">
+</div>
+
+<!-- ═══ Grid ═══ -->
+<div class="k-grd" id="kGrd">
+    <div class="k-ld" id="kLd">
+        <div class="k-sp"></div>
+        <p style="font-weight:600;color:var(--k-tm)">در حال بارگذاری...</p>
+    </div>
+</div>
+
+<div class="k-emp" id="kEmp" style="display:none">
+    <i class="bi bi-inbox"></i>
+    <h3>هنوز رسپی نیمه‌آماده‌ای ثبت نشده</h3>
+    <p>از بخش <a href="/recipes/manager/" style="color:var(--k-pri);font-weight:700">مدیریت رسپی</a> مواد نیمه‌آماده بسازید</p>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* ═══════════════════════════════════════
+   CONFIG
+   ═══════════════════════════════════════ */
+var API_SEMI  = '/api/semi-finished/';
+var CSRF      = '{{ csrf_token }}';
+
+var dSemi = [], selR = null, cacheDet = {};
+
+var cats = {
+    sauce:{icon:'🥫',text:'سس'}, dough:{icon:'🫓',text:'خمیر'},
+    marinade:{icon:'🍖',text:'ماریناد'}, soup:{icon:'🍲',text:'سوپ'}, other:{icon:'📌',text:'سایر'}
+};
+var uM = {kg:'کیلوگرم',g:'گرم',l:'لیتر',ml:'میلی‌لیتر',unit:'عدد',bunch:'دسته',pack:'بسته'};
+
+function F(n){n = parseFloat(n) || 0;if(n === 0) return '۰';if(n === Math.floor(n)) return Math.round(n).toLocaleString('fa-IR');if(n < 0.01) return n.toFixed(3).toLocaleString('fa-IR');if(n < 1) return n.toFixed(2).toLocaleString('fa-IR');return n.toFixed(1).toLocaleString('fa-IR');}
+function E(s){ if(!s)return''; var d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+/* ═══════════════════════════════════════
+   محاسبه هزینه واقعی از مواد اولیه
+   ═══════════════════════════════════════ */
+function calcCost(ingredients){
+    if(!ingredients || !ingredients.length) return 0;
+    var total = 0;
+    ingredients.forEach(function(ing){
+        var p = parseIng(ing);
+        total += p.qty * p.price;
+    });
+    return total;
+}
+
+function parseIng(ing){
+    var rid   = ing.raw_material_id || (ing.raw_material && ing.raw_material.id) || null;
+    var rn    = ing.raw_material_name || (ing.raw_material && ing.raw_material.name) || '—';
+    var ru    = ing.unit || (ing.raw_material && ing.raw_material.unit) || 'kg';
+    var qty   = parseFloat(ing.quantity) || 0;
+    var pr    = parseInt(ing.price) || (ing.raw_material && parseInt(ing.raw_material.price)) || 0;
+    var stock = parseFloat(ing.stock) || 0;
+    return { id: rid, name: rn, unit: ru, qty: qty, price: pr, stock: stock };
+}
+
+/* ═══════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', function(){
+    ldSemi().then(function(){
+        document.getElementById('kLd').style.display = 'none';
+        render(dSemi);
+        updSt();
+    });
+});
+
+function ldSemi(){
+    return fetch(API_SEMI, {headers:{'Accept':'application/json'}})
+    .then(function(r){
+        if(!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    })
+    .then(function(d){
+        dSemi = Array.isArray(d) ? d : (d.results || []);
+        // برای هر نیمه‌آماده، هزینه رو از ingredients محاسبه کن
+        dSemi.forEach(function(s){
+            s._realCost = calcCost(s.ingredients || []);
+        });
+    })
+    .catch(function(e){
+        console.error('خطای بارگذاری:', e);
+        dSemi = [];
+        document.getElementById('kWarnMsg').textContent = 'خطا در بارگذاری: ' + e.message;
+        document.getElementById('kWarn').classList.add('show');
+    });
+}
+
+function updSt(){
+    document.getElementById('xTotal').textContent = F(dSemi.length);
+    var rawCount = 0;
+    dSemi.forEach(function(s){
+        (s.ingredients || []).forEach(function(){ rawCount++; });
+    });
+    document.getElementById('xRaw').textContent = F(rawCount);
+}
+
+/* ═══════════════════════════════════════
+   FETCH DETAIL
+   ═══════════════════════════════════════ */
+function fetchDetail(id){
+    if(cacheDet[id]) return Promise.resolve(cacheDet[id]);
+    return fetch('/api/semi-finished/' + id + '/produce-detail/', {headers:{'Accept':'application/json'}})
+    .then(function(r){
+        if(!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    })
+    .then(function(d){
+        // محاسبه هزینه واقعی
+        d._realCost = calcCost(d.ingredients || []);
+        cacheDet[id] = d;
+        return d;
+    });
+}
+
+/* ═══════════════════════════════════════
+   RENDER — بدون سود، با هزینه واقعی
+   ═══════════════════════════════════════ */
+function render(list){
+    var g = document.getElementById('kGrd'), e = document.getElementById('kEmp');
+    g.innerHTML = '';
+    if(!list.length){ e.style.display = ''; return; }
+    e.style.display = 'none';
+
+    list.forEach(function(s, i){
+        var c = cats[s.category] || cats.other;
+        var cost = s._realCost || calcCost(s.ingredients || []);
+        var ings = s.ingredients || [];
+        var unitLabel = uM[s.unit] || s.unit || 'واحد';
+        var qtyProduced = parseFloat(s.quantity_produced) || 1;
+        var costPerUnit = qtyProduced > 0 ? Math.round(cost / qtyProduced) : 0;
+
+        // ساخت تگ‌های مواد مصرفی
+        var ingTags = '';
+        ings.forEach(function(ing){
+            var p = parseIng(ing);
+            ingTags += '<span class="k-tg" style="background:#f0fdf4;color:#15803d;font-size:.72rem"><i class="bi bi-dot"></i> ' +
+                E(p.name) + ' (' + (uM[p.unit] || p.unit) + '): ' + F(p.qty) + '</span> ';
+        });
+
+        var card = document.createElement('div');
+        card.className = 'k-c';
+        card.style.animationDelay = (i * 0.06) + 's';
+
+        card.innerHTML =
+            '<div class="k-bar"></div>' +
+            '<div class="k-ch" onclick="tog(' + s.id + ')">' +
+                '<div class="k-cn"><span style="font-size:1.4rem">' + c.icon + '</span><span>' + E(s.name) + '</span><span class="k-bdg">' + c.text + '</span></div>' +
+                '<i class="bi bi-chevron-down" id="chev-' + s.id + '" style="font-size:1.1rem;color:var(--k-tm);transition:transform .3s"></i>' +
+            '</div>' +
+            '<div class="k-mt">' +
+                '<span class="k-tg tg-c"><i class="bi bi-cash-coin"></i> هزینه: ' + F(costPerUnit) + ' ت/' + unitLabel + '</span>' +
+                '<span class="k-tg tg-u"><i class="bi bi-box"></i> خروجی: ' + F(qtyProduced) + ' ' + unitLabel + '</span>' +
+            '</div>' +
+            (ings.length ?
+                '<div class="k-mt" style="padding-top:0">' + ingTags + '</div>'
+            :
+                '<div class="k-dsc" style="color:var(--k-dng)"><i class="bi bi-exclamation-triangle"></i> هیچ ماده اولیه‌ای تعریف نشده</div>'
+            ) +
+            (s.description ? '<div class="k-dsc">' + E(s.description) + '</div>' : '') +
+            '<div class="k-pan" id="pan-' + s.id + '"></div>' +
+            '<div class="k-ft">' +
+                '<button class="k-bp" onclick="mOpen(' + s.id + ');event.stopPropagation()"' +
+                    (ings.length ? '' : ' disabled title="ابتدا مواد اولیه تعریف کنید"') +
+                '><i class="bi bi-lightning-charge-fill"></i> تولید در آشپزخانه</button>' +
+                '<button class="k-bd2" onclick="tog(' + s.id + ')"><i class="bi bi-eye" id="eye-' + s.id + '"></i> <span id="etxt-' + s.id + '">مواد اولیه</span></button>' +
+            '</div>';
+        g.appendChild(card);
+    });
+}
+
+/* ═══════════════════════════════════════
+   TOGGLE INGREDIENTS
+   ═══════════════════════════════════════ */
+function tog(id){
+    var pan = document.getElementById('pan-' + id);
+    if(!pan) return;
+    var card = pan.closest('.k-c');
+    var chev = document.getElementById('chev-' + id);
+    var eye = document.getElementById('eye-' + id);
+    var etxt = document.getElementById('etxt-' + id);
+
+    if(pan.classList.contains('show')){
+        pan.classList.remove('show');
+        if(card) card.classList.remove('sel');
+        if(chev) chev.style.transform = '';
+        if(eye) eye.className = 'bi bi-eye';
+        if(etxt) etxt.textContent = 'مواد اولیه';
+    }else{
+        document.querySelectorAll('.k-pan').forEach(function(p){ p.classList.remove('show'); });
+        document.querySelectorAll('.k-c').forEach(function(c){ c.classList.remove('sel'); });
+        document.querySelectorAll('[id^="chev-"]').forEach(function(c){ c.style.transform = ''; });
+        document.querySelectorAll('[id^="eye-"]').forEach(function(e){ e.className = 'bi bi-eye'; });
+        document.querySelectorAll('[id^="etxt-"]').forEach(function(t){ t.textContent = 'مواد اولیه'; });
+
+        pan.classList.add('show');
+        if(card){ card.classList.add('sel'); card.scrollIntoView({behavior:'smooth',block:'center'}); }
+        if(chev) chev.style.transform = 'rotate(180deg)';
+        if(eye) eye.className = 'bi bi-eye-slash';
+        if(etxt) etxt.textContent = 'بستن';
+
+        pan.innerHTML = '<div style="text-align:center;padding:20px"><div class="k-sp" style="width:24px;height:24px;border-width:3px;margin:0 auto 8px"></div><span style="font-size:.82rem;color:var(--k-tm)">بارگذاری مواد اولیه...</span></div>';
+
+        fetchDetail(id).then(function(det){
+            var ings = det.ingredients || [];
+            if(!ings.length){
+                pan.innerHTML = '<div style="text-align:center;padding:24px;color:var(--k-dng);font-size:.88rem"><i class="bi bi-exclamation-triangle" style="font-size:2rem;display:block;margin-bottom:8px"></i>هیچ ماده اولیه‌ای تعریف نشده — ابتدا رسپی بنویسید</div>';
+                return;
+            }
+            var rows = '';
+            var totalCost = 0;
+            ings.forEach(function(ing){
+                var p = parseIng(ing);
+                var lineCost = p.qty * p.price;
+                totalCost += lineCost;
+                var ok = p.stock >= p.qty;
+                rows += '<tr>' +
+                    '<td class="k-in">' + E(p.name) + '</td>' +
+                    '<td>' + F(p.qty) + ' ' + (uM[p.unit] || p.unit) + '</td>' +
+                    '<td class="' + (ok ? 'k-ok' : 'k-lo') + '">' +
+                        (ok ? '✓ موجود: ' + F(p.stock) : '✗ کمبود ' + F(p.stock) + '/' + F(p.qty))
+                    + ' ' + (uM[p.unit] || p.unit) + '</td>' +
+                    '<td class="k-ic">' + F(lineCost) + ' ت</td>' +
+                '</tr>';
+            });
+
+            var unitLabel = uM[det.unit] || det.unit || 'واحد';
+            var qtyProduced = parseFloat(det.quantity_produced) || 1;
+            var costPerUnit = qtyProduced > 0 ? Math.round(totalCost / qtyProduced) : 0;
+
+            pan.innerHTML =
+                '<div class="k-pan-t"><i class="bi bi-list-ul"></i> مواد اولیه مصرفی (' + F(ings.length) + ' ماده)</div>' +
+                '<table class="k-tbl"><thead><tr><th>ماده</th><th>مقدار نیاز</th><th>وضعیت انبار</th><th>هزینه</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+                '<div style="margin-top:12px;padding:12px 16px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-radius:12px;border:1px solid #bbf7d0;display:flex;justify-content:space-between;align-items:center">' +
+                    '<div><div style="font-size:.78rem;color:var(--k-tm);font-weight:600">هزینه کل</div><div style="font-size:1.05rem;font-weight:800;color:var(--k-pri)">' + F(totalCost) + ' تومان</div></div>' +
+                    '<div style="text-align:center"><div style="font-size:.78rem;color:var(--k-tm);font-weight:600">هزینه هر واحد</div><div style="font-size:1.05rem;font-weight:800;color:var(--k-acc)">' + F(costPerUnit) + ' ت/' + unitLabel + '</div></div>' +
+                    '<div style="text-align:left"><div style="font-size:.78rem;color:var(--k-tm);font-weight:600">خروجی</div><div style="font-size:1.05rem;font-weight:800;color:#c2410c">' + F(qtyProduced) + ' ' + unitLabel + '</div></div>' +
+                '</div>';
+        }).catch(function(){
+            pan.innerHTML = '<div style="text-align:center;padding:24px;color:var(--k-dng);font-size:.88rem"><i class="bi bi-exclamation-triangle" style="font-size:2rem;display:block;margin-bottom:8px"></i>خطا در بارگذاری</div>';
+        });
+    }
+}
+
+/* ═══════════════════════════════════════
+   FILTER
+   ═══════════════════════════════════════ */
+function kFilt(){
+    var q = document.getElementById('srchIn').value.trim().toLowerCase();
+    if(!q){ render(dSemi); return; }
+    render(dSemi.filter(function(s){ return (s.name || '').toLowerCase().indexOf(q) !== -1; }));
+}
+
+/* ═══════════════════════════════════════
+   MODAL
+   ═══════════════════════════════════════ */
+function mOpen(id){
+    var r = dSemi.find(function(s){ return s.id === id; });
+    if(!r) return;
+    selR = r;
+    document.getElementById('mNm').textContent = r.name;
+    document.getElementById('mQt').value = 1;
+    document.getElementById('mEr').style.display = 'none';
+    document.getElementById('mSum').classList.remove('show');
+    document.getElementById('mLst').innerHTML = '<div style="text-align:center;padding:20px"><div class="k-sp" style="width:24px;height:24px;border-width:3px;margin:0 auto 8px"></div><span style="font-size:.82rem;color:var(--k-tm)">بررسی مواد...</span></div>';
+    document.getElementById('mBtn').disabled = true;
+    document.getElementById('mOv').classList.add('show');
+
+    fetchDetail(id).then(function(det){
+        selR.ingredients = det.ingredients || [];
+        selR._realCost = det._realCost || 0;
+        mChg();
+    }).catch(function(e){
+        tst('خطا: ' + e.message, 'er');
+        mCls();
+    });
+}
+
+function mCls(){
+    document.getElementById('mOv').classList.remove('show');
+    selR = null;
+}
+
+document.getElementById('mOv').addEventListener('click', function(e){
+    if(e.target === this) mCls();
+});
+
+document.getElementById('mQt').addEventListener('input', function(){
+    if(selR) mChg();
+});
+
+function mChg(){
+    if(!selR) return;
+    var b = parseInt(document.getElementById('mQt').value) || 0;
+    var lst = document.getElementById('mLst');
+    var err = document.getElementById('mEr');
+    var btn = document.getElementById('mBtn');
+    var sum = document.getElementById('mSum');
+    lst.innerHTML = '';
+
+    if(b <= 0){
+        lst.innerHTML = '<div style="text-align:center;padding:24px;color:var(--k-tm);font-size:.88rem">مقدار باید بیشتر از صفر باشد</div>';
+        btn.disabled = true;
+        sum.classList.remove('show');
+        return;
+    }
+
+    var ings = selR.ingredients || [];
+    if(!ings.length){
+        lst.innerHTML = '<div style="text-align:center;padding:24px;color:var(--k-dng);font-size:.88rem"><i class="bi bi-exclamation-triangle" style="font-size:2rem;display:block;margin-bottom:8px"></i>هیچ ماده اولیه‌ای تعریف نشده</div>';
+        btn.disabled = true;
+        sum.classList.remove('show');
+        return;
+    }
+
+    var hasErr = false;
+    var totalCost = 0;
+
+    ings.forEach(function(ing){
+        var p = parseIng(ing);
+        var nq = p.qty * b;
+        totalCost += nq * p.price;
+
+        var ok = p.stock >= nq;
+        if(!ok) hasErr = true;
+
+        var item = document.createElement('div');
+        item.className = 'k-si ' + (ok ? 'ok' : 'fail');
+        item.innerHTML =
+            '<div>' +
+                '<div style="font-weight:700;font-size:.9rem">' + E(p.name) + '</div>' +
+                '<div style="font-size:.76rem;color:var(--k-tm);margin-top:2px">نیاز: <strong>' + F(nq) + '</strong> ' + (uM[p.unit] || p.unit) + ' | قیمت: ' + F(p.price) + ' ت/' + (uM[p.unit] || p.unit) + '</div>' +
+            '</div>' +
+            '<div style="text-align:left">' +
+                '<div style="font-weight:800;font-size:.95rem;' + (ok ? 'color:var(--k-pri)' : 'color:var(--k-dng)') + '">' +
+                    (ok ? '✓ ' + F(p.stock) : '✗ ' + F(p.stock)) + ' ' + (uM[p.unit] || p.unit) +
+                '</div>' +
+                '<div style="font-size:.72rem;color:var(--k-tm)">موجودی انبار</div>' +
+            '</div>';
+        lst.appendChild(item);
+    });
+
+    // Summary
+    sum.classList.add('show');
+    var prod = parseFloat(selR.quantity_produced) || 1;
+    var unitLabel = uM[selR.unit] || selR.unit || 'واحد';
+    document.getElementById('mCostVal').textContent = F(totalCost) + ' تومان';
+    document.getElementById('mOutVal').textContent = F(prod * b) + ' ' + unitLabel;
+
+    if(hasErr){
+        err.style.display = '';
+        document.getElementById('mErMsg').textContent = 'موجودی بعضی مواد کافی نیست! امکان تولید وجود ندارد.';
+        btn.disabled = true;
+    }else{
+        err.style.display = 'none';
+        btn.disabled = false;
+    }
+}
+
+/* ═══════════════════════════════════════
+   PRODUCE
+   ═══════════════════════════════════════ */
+function mOk(){
+    if(!selR) return;
+    var b = parseInt(document.getElementById('mQt').value) || 0;
+    if(b <= 0){ tst('مقدار باید بیشتر از صفر باشد', 'er'); return; }
+
+    var btn = document.getElementById('mBtn');
+    btn.disabled = true;
+    var origHTML = btn.innerHTML;
+    btn.innerHTML = '<div style="width:18px;height:18px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:ks .6s linear infinite"></div> در حال تولید...';
+
+    fetch('/api/recipes/produce-semi/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': CSRF
+        },
+        body: JSON.stringify({
+            semi_finished_id: selR.id,
+            quantity: b
+        })
+    })
+    .then(function(r){
+        var st = r.status;
+        return r.text().then(function(text){
+            var data;
+            try { data = JSON.parse(text); }
+            catch(e){ throw new Error('سرور پاسخ نامعتبر (HTTP ' + st + '): ' + text.substring(0, 200)); }
+            if(!r.ok) throw new Error(data.error || data.detail || data.message || 'خطای سرور (HTTP ' + st + ')');
+            return data;
+        });
+    })
+    .then(function(d){
+        mCls();
+        if(d.success){
+            tst(d.msg || (selR.name + ' تولید شد'), 'ok');
+        }else{
+            tst('✗ ' + (d.error || d.message || 'خطا در تولید'), 'er');
+        }
+        cacheDet = {};
+        return ldSemi();
+    })
+    .then(function(){ render(dSemi); updSt(); })
+    .catch(function(e){
+        tst('خطا: ' + e.message, 'er');
+    })
+    .finally(function(){
+        btn.disabled = false;
+        btn.innerHTML = origHTML;
+    });
+}
+
+/* ═══════════════════════════════════════
+   TOAST
+   ═══════════════════════════════════════ */
+function tst(m, t){
+    t = t || 'ok';
+    var c = document.getElementById('tw');
+    var el = document.createElement('div');
+    el.className = 'k-ts ' + t;
+    var ic = {ok:'bi-check-circle-fill', er:'bi-exclamation-circle-fill'};
+    var cl = {ok:'color:var(--k-pri)', er:'color:var(--k-dng)'};
+    el.innerHTML = '<i class="bi ' + (ic[t] || ic.ok) + '" style="font-size:1.4rem;' + (cl[t] || '') + '"></i><span style="font-weight:600;font-size:.9rem">' + m + '</span>';
+    c.appendChild(el);
+    setTimeout(function(){
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(-20px)';
+        el.style.transition = 'all .3s ease';
+        setTimeout(function(){ el.remove(); }, 300);
+    }, 4000);
+}
+
+</script>
+{% endblock %}

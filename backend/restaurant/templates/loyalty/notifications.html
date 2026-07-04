@@ -1,0 +1,683 @@
+{% extends "base_loyalty.html" %}
+{% block title %}اعلان‌ها{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <div class="page-header-info">
+      <div class="page-header-icon" style="background:#f0f9ff;color:#0ea5e9;">&#128276;</div>
+      <div>
+        <h1 class="page-header-title">اعلان‌ها</h1>
+        <p class="page-header-sub">خوش‌آمدگویی، ارتقا سطح، تولد، کوپن و اطلاع‌رسانی</p>
+      </div>
+    </div>
+    <div class="page-header-actions">
+      <button class="btn btn-outline" id="btn-mark-all" onclick="markAllRead()">
+        &#9989; خواندن همه
+      </button>
+      <button class="btn btn-primary" onclick="loadNotifications()">
+        &#128260; بروزرسانی
+      </button>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row">
+    <div class="stat-card" style="border-top:3px solid #0ea5e9;">
+      <div class="stat-icon" style="background:#f0f9ff;color:#0ea5e9;">&#128276;</div>
+      <div>
+        <div class="stat-value" id="stat-total">—</div>
+        <div class="stat-label">کل اعلان‌ها</div>
+      </div>
+    </div>
+    <div class="stat-card" style="border-top:3px solid #f43f5e;">
+      <div class="stat-icon" style="background:#fff1f2;color:#f43f5e;">&#128680;</div>
+      <div>
+        <div class="stat-value" id="stat-unread" style="color:#f43f5e;">{{ unread_notifications|default:"0" }}</div>
+        <div class="stat-label">خوانده‌نشده</div>
+      </div>
+    </div>
+    <div class="stat-card" style="border-top:3px solid #10b981;">
+      <div class="stat-icon" style="background:#ecfdf5;color:#10b981;">&#9989;</div>
+      <div>
+        <div class="stat-value" id="stat-read" style="color:#10b981;">—</div>
+        <div class="stat-label">خوانده‌شده</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="filters-bar">
+    <div class="filter-group">
+      <label class="filter-label">وضعیت</label>
+      <select class="filter-select" id="filter-read" onchange="loadNotifications()">
+        <option value="">همه</option>
+        <option value="false" selected>خوانده‌نشده</option>
+        <option value="true">خوانده‌شده</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">نوع اعلان</label>
+      <select class="filter-select" id="filter-type" onchange="loadNotifications()">
+        <option value="">همه انواع</option>
+        <option value="welcome">خوش‌آمدگویی</option>
+        <option value="level_up">ارتقا سطح</option>
+        <option value="birthday">تولد</option>
+        <option value="coupon">کوپن</option>
+        <option value="points">امتیاز</option>
+        <option value="wallet">کیف پول</option>
+        <option value="reward">جوایز</option>
+        <option value="referral">دعوت</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="filter-label">شماره موبایل</label>
+      <input type="text" class="filter-input" id="filter-phone"
+             placeholder="09123456789" maxlength="11"
+             onkeyup="loadNotifications()">
+    </div>
+    <div class="filter-group" style="align-self:flex-end;">
+      <button class="btn btn-outline" onclick="clearFilters()">پاک کردن فیلترها</button>
+    </div>
+  </div>
+
+  <!-- NOTIFICATIONS LIST -->
+  <div class="content-card">
+    <div class="content-card-header">
+      <h3>&#128276; لیست اعلان‌ها</h3>
+      <span class="badge" id="count-badge">0</span>
+    </div>
+
+    <div id="notifications-list" class="notifications-container">
+      <!-- JS renders here -->
+    </div>
+
+    <div id="loading" class="loading-state" style="display:none;">
+      <div class="spinner"></div>
+      <p>در حال بارگذاری...</p>
+    </div>
+
+    <div id="empty-state" class="empty-state" style="display:none;">
+      <div class="empty-icon">&#128276;</div>
+      <h3>اعلانی یافت نشد</h3>
+      <p>فیلترها رو تغییر بدید یا بروزرسانی کنید</p>
+    </div>
+  </div>
+
+</div>
+
+<style>
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 32px;
+  }
+
+  /* PAGE HEADER */
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .page-header-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .page-header-icon {
+    width: 52px; height: 52px;
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+  }
+  .page-header-title {
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--text, #1e1e2d);
+  }
+  .page-header-sub {
+    font-size: 13px;
+    color: #8e8ea0;
+    margin-top: 2px;
+  }
+  .page-header-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  /* BUTTONS */
+  .btn {
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Vazirmatn', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #ff6b35, #f7931e);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(255,107,53,0.3);
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(255,107,53,0.4);
+  }
+  .btn-outline {
+    background: #fff;
+    color: #555;
+    border: 1px solid #e8e8ed;
+  }
+  .btn-outline:hover {
+    background: #f5f5f7;
+    border-color: #d0d0d5;
+  }
+
+  /* STATS */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px 22px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid #ecedf0;
+    transition: all 0.2s;
+  }
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  }
+  .stat-icon {
+    width: 48px; height: 48px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .stat-value {
+    font-size: 26px;
+    font-weight: 900;
+    color: #1e1e2d;
+    direction: ltr;
+    text-align: right;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: #8e8ea0;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+
+  /* FILTERS */
+  .filters-bar {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid #ecedf0;
+  }
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 160px;
+  }
+  .filter-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #8e8ea0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .filter-select, .filter-input {
+    padding: 10px 14px;
+    border: 2px solid #e8e8ed;
+    border-radius: 10px;
+    font-size: 13px;
+    font-family: 'Vazirmatn', sans-serif;
+    background: #fafbfc;
+    color: #1e1e2d;
+    transition: all 0.2s;
+    outline: none;
+    min-width: 160px;
+  }
+  .filter-select:focus, .filter-input:focus {
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 3px rgba(255,107,53,0.1);
+    background: #fff;
+  }
+
+  /* CONTENT CARD */
+  .content-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid #ecedf0;
+    overflow: hidden;
+  }
+  .content-card-header {
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #ecedf0;
+  }
+  .content-card-header h3 {
+    font-size: 16px;
+    font-weight: 800;
+    color: #1e1e2d;
+  }
+  .badge {
+    background: #f43f5e;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    min-width: 28px;
+    text-align: center;
+  }
+
+  /* NOTIFICATIONS */
+  .notifications-container {
+    max-height: 600px;
+    overflow-y: auto;
+  }
+  .notif-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 18px 24px;
+    border-bottom: 1px solid #f4f4f7;
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+  }
+  .notif-item:hover {
+    background: #fafbfc;
+  }
+  .notif-item.unread {
+    background: #fffbeb;
+    border-right: 4px solid #f59e0b;
+  }
+  .notif-item.unread:hover {
+    background: #fef3c7;
+  }
+  .notif-ico {
+    width: 44px; height: 44px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .notif-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .notif-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e1e2d;
+    margin-bottom: 4px;
+  }
+  .notif-msg {
+    font-size: 13px;
+    color: #555;
+    line-height: 1.9;
+    margin-bottom: 6px;
+  }
+  .notif-meta {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .notif-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .notif-time {
+    font-size: 11px;
+    color: #b4b4c6;
+    font-weight: 500;
+  }
+  .notif-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #f59e0b;
+    flex-shrink: 0;
+    align-self: center;
+    display: none;
+  }
+  .notif-item.unread .notif-dot {
+    display: block;
+  }
+
+  /* TAG COLORS */
+  .tag-welcome  { background: #ecfdf5; color: #059669; }
+  .tag-level_up { background: #f5f3ff; color: #7c3aed; }
+  .tag-birthday { background: #fdf2f8; color: #db2777; }
+  .tag-coupon   { background: #fffbeb; color: #d97706; }
+  .tag-points   { background: #eff6ff; color: #2563eb; }
+  .tag-wallet   { background: #f0fdfa; color: #0d9488; }
+  .tag-reward   { background: #fef2f2; color: #dc2626; }
+  .tag-referral { background: #ecfeff; color: #0891b2; }
+  .tag-default  { background: #f4f4f7; color: #6b7280; }
+
+  /* ICO COLORS */
+  .ico-welcome  { background: #ecfdf5; color: #059669; }
+  .ico-level_up { background: #f5f3ff; color: #7c3aed; }
+  .ico-birthday { background: #fdf2f8; color: #db2777; }
+  .ico-coupon   { background: #fffbeb; color: #d97706; }
+  .ico-points   { background: #eff6ff; color: #2563eb; }
+  .ico-wallet   { background: #f0fdfa; color: #0d9488; }
+  .ico-reward   { background: #fef2f2; color: #dc2626; }
+  .ico-referral { background: #ecfeff; color: #0891b2; }
+  .ico-default  { background: #f4f4f7; color: #6b7280; }
+
+  /* CHANNEL TAGS */
+  .channel-sms   { background: #ecfdf5; color: #059669; }
+  .channel-push  { background: #eff6ff; color: #2563eb; }
+  .channel-email { background: #f5f3ff; color: #7c3aed; }
+  .channel-inapp { background: #fffbeb; color: #d97706; }
+
+  /* LOADING */
+  .loading-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #8e8ea0;
+  }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 4px solid #ecedf0;
+    border-top-color: #ff6b35;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #8e8ea0;
+  }
+  .empty-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+  .empty-state h3 {
+    font-size: 18px;
+    font-weight: 800;
+    color: #555;
+    margin-bottom: 8px;
+  }
+
+  /* SCROLLBAR */
+  .notifications-container::-webkit-scrollbar { width: 6px; }
+  .notifications-container::-webkit-scrollbar-track { background: #f4f4f7; }
+  .notifications-container::-webkit-scrollbar-thumb { background: #d0d0d5; border-radius: 3px; }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .container { padding: 16px; }
+    .page-header { flex-direction: column; align-items: flex-start; }
+    .filters-bar { flex-direction: column; }
+    .filter-group { width: 100%; }
+    .filter-select, .filter-input { width: 100%; }
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .notif-item { flex-direction: column; gap: 10px; }
+  }
+</style>
+
+<script>
+  const API_BASE = '/api/loyalty/notifications';
+  const TYPE_LABELS = {
+    'welcome': 'خوش‌آمدگویی',
+    'level_up': 'ارتقا سطح',
+    'birthday': 'تولد',
+    'coupon': 'کوپن',
+    'points': 'امتیاز',
+    'wallet': 'کیف پول',
+    'reward': 'جوایز',
+    'referral': 'دعوت',
+  };
+  const TYPE_ICONS = {
+    'welcome': '&#128075;',
+    'level_up': '&#127942;',
+    'birthday': '&#127874;',
+    'coupon': '&#127915;',
+    'points': '&#11088;',
+    'wallet': '&#128176;',
+    'reward': '&#127873;',
+    'referral': '&#128101;',
+  };
+
+  let allNotifications = [];
+
+  document.addEventListener('DOMContentLoaded', loadNotifications);
+
+  async function loadNotifications() {
+    const container = document.getElementById('notifications-list');
+    const loading = document.getElementById('loading');
+    const empty = document.getElementById('empty-state');
+
+    container.innerHTML = '';
+    loading.style.display = 'block';
+    empty.style.display = 'none';
+
+    const params = new URLSearchParams();
+    const readFilter = document.getElementById('filter-read').value;
+    const typeFilter = document.getElementById('filter-type').value;
+    const phoneFilter = document.getElementById('filter-phone').value.trim();
+
+    if (readFilter !== '') params.append('read', readFilter);
+    if (typeFilter) params.append('type', typeFilter);
+    if (phoneFilter) params.append('phone', phoneFilter);
+
+    try {
+      const res = await fetch(API_BASE + '/?' + params.toString());
+      const data = await res.json();
+
+      loading.style.display = 'none';
+
+      let notifications = [];
+      if (Array.isArray(data)) {
+        notifications = data;
+      } else if (data.results) {
+        notifications = data.results;
+      }
+
+      allNotifications = notifications;
+      updateStats(notifications);
+
+      if (notifications.length === 0) {
+        empty.style.display = 'block';
+        return;
+      }
+
+      renderNotifications(notifications);
+
+    } catch (err) {
+      loading.style.display = 'none';
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">&#9888;</div>
+          <h3>خطا در بارگذاری</h3>
+          <p>${err.message}</p>
+        </div>`;
+    }
+  }
+
+  function updateStats(notifications) {
+    const total = notifications.length;
+    const unread = notifications.filter(n => !n.is_read).length;
+    const read = total - unread;
+
+    document.getElementById('stat-total').textContent = total;
+    document.getElementById('stat-unread').textContent = unread;
+    document.getElementById('stat-read').textContent = read;
+    document.getElementById('count-badge').textContent = total;
+  }
+
+  function renderNotifications(notifications) {
+    const container = document.getElementById('notifications-list');
+
+    container.innerHTML = notifications.map(n => {
+      const isUnread = !n.is_read;
+      const ntype = n.notification_type || 'default';
+      const icon = TYPE_ICONS[ntype] || '&#128276;';
+      const typeLabel = TYPE_LABELS[ntype] || ntype;
+      const channelLabel = n.channel_display || n.channel || 'درون‌برنامه‌ای';
+      const channelClass = 'channel-' + (n.channel || 'inapp');
+
+      return `
+        <div class="notif-item ${isUnread ? 'unread' : ''}"
+             onclick="markRead(${n.id}, this)" data-id="${n.id}">
+          <div class="notif-dot"></div>
+          <div class="notif-ico ico-${ntype}">${icon}</div>
+          <div class="notif-body">
+            <div class="notif-title">${escapeHtml(n.title || 'اعلان')}</div>
+            <div class="notif-msg">${escapeHtml(n.message || '')}</div>
+            <div class="notif-meta">
+              <span class="notif-tag tag-${ntype}">${typeLabel}</span>
+              <span class="notif-tag ${channelClass}">${channelLabel}</span>
+              ${n.customer_phone ? '<span class="notif-tag tag-default">&#128241; ' + escapeHtml(n.customer_phone) + '</span>' : ''}
+              <span class="notif-time">${formatDate(n.created_at)}</span>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  async function markRead(id, element) {
+    if (!element.classList.contains('unread')) return;
+
+    try {
+      await fetch(API_BASE + '/mark-read/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify({
+          notification_ids: [id],
+          mark_all: false,
+        }),
+      });
+
+      element.classList.remove('unread');
+      updateStatsFromDOM();
+
+    } catch (err) {
+      console.error('mark read error:', err);
+    }
+  }
+
+  async function markAllRead() {
+    const phone = document.getElementById('filter-phone').value.trim();
+
+    try {
+      const body = { mark_all: true };
+      if (phone) body.phone = phone;
+
+      await fetch(API_BASE + '/mark-read/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: JSON.stringify(body),
+      });
+
+      loadNotifications();
+
+    } catch (err) {
+      alert('خطا: ' + err.message);
+    }
+  }
+
+  function updateStatsFromDOM() {
+    const items = document.querySelectorAll('.notif-item');
+    const total = items.length;
+    const unread = document.querySelectorAll('.notif-item.unread').length;
+    const read = total - unread;
+
+    document.getElementById('stat-unread').textContent = unread;
+    document.getElementById('stat-read').textContent = read;
+  }
+
+  function clearFilters() {
+    document.getElementById('filter-read').value = 'false';
+    document.getElementById('filter-type').value = '';
+    document.getElementById('filter-phone').value = '';
+    loadNotifications();
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return '—';
+    try {
+      const d = new Date(dateStr);
+      const now = new Date();
+      const diff = Math.floor((now - d) / 1000);
+
+      if (diff < 60) return 'لحظاتی پیش';
+      if (diff < 3600) return Math.floor(diff / 60) + ' دقیقه پیش';
+      if (diff < 86400) return Math.floor(diff / 3600) + ' ساعت پیش';
+      if (diff < 604800) return Math.floor(diff / 86400) + ' روز پیش';
+
+      return d.toLocaleDateString('fa-IR');
+    } catch {
+      return dateStr;
+    }
+  }
+
+  function getCookie(name) {
+    const cookies = document.cookie.split(';');
+    for (let c of cookies) {
+      c = c.trim();
+      if (c.startsWith(name + '=')) {
+        return decodeURIComponent(c.substring(name.length + 1));
+      }
+    }
+    return '';
+  }
+</script>
+{% endblock %}

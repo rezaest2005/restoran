@@ -1,0 +1,15 @@
+services:
+  web:
+    build: .
+    container_name: django_app
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      # کد پروژه (و در نتیجه db.sqlite3) رو داخل کانتینر sync می‌کنه
+      # با تغییر کد لازم نیست rebuild کنی، و دیتابیس هم روی خود سیستمت باقی می‌مونه
+      - .:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DEBUG=1

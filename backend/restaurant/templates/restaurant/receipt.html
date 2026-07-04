@@ -1,0 +1,346 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>فاکتور سفارش #{{ order.id }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after {
+            margin: 0; padding: 0; box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #ffffff;
+            --text: #1a1a1a;
+            --text-muted: #666;
+            --border: #e0e0e0;
+            --accent: #d4a340;
+            --accent-dark: #b8892e;
+            --success: #2e7d32;
+        }
+
+        body {
+            font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+            background: #f5f5f5;
+            color: var(--text);
+            direction: rtl;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        @media print {
+            body { background: white; font-size: 11px; }
+            .no-print { display: none !important; }
+            .receipt-wrapper { box-shadow: none; border: none; margin: 0; padding: 0; width: 100%; max-width: 100%; }
+            .receipt { width: 100%; padding: 5mm; }
+            @page { size: auto; margin: 2mm; }
+        }
+
+        .page-container {
+            max-width: 420px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            font-family: 'Vazirmatn', sans-serif;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-print { background: var(--accent); color: white; }
+        .btn-print:hover { background: var(--accent-dark); }
+        .btn-back { background: #eee; color: #333; }
+        .btn-back:hover { background: #ddd; }
+        .btn-share { background: #2196F3; color: white; }
+        .btn-share:hover { background: #1976D2; }
+
+        .receipt-wrapper {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            overflow: hidden;
+            animation: slideUp 0.4s ease;
+        }
+
+        .receipt { padding: 24px 20px; }
+
+        .receipt-header {
+            text-align: center;
+            padding-bottom: 16px;
+            border-bottom: 2px dashed var(--border);
+            margin-bottom: 16px;
+        }
+
+        .restaurant-name {
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--accent-dark);
+            margin-bottom: 4px;
+        }
+
+        .restaurant-info {
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.8;
+        }
+
+        .order-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 16px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 16px;
+            font-size: 12px;
+        }
+
+        .meta-item { display: flex; justify-content: space-between; }
+        .meta-label { color: var(--text-muted); }
+        .meta-value { font-weight: 500; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 1px 8px;
+            border-radius: 10px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .status-pending { background: #fff3e0; color: #e65100; }
+        .status-preparing { background: #e3f2fd; color: #1565c0; }
+        .status-ready { background: #e8f5e9; color: #2e7d32; }
+        .status-delivered { background: #f3e5f5; color: #7b1fa2; }
+        .status-cancelled { background: #ffebee; color: #c62828; }
+
+        .items-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+
+        .items-table thead th {
+            font-size: 11px; font-weight: 700; color: var(--text-muted);
+            padding: 8px 4px; border-bottom: 2px solid var(--text); text-align: right;
+        }
+
+        .items-table thead th:last-child { text-align: left; }
+
+        .items-table tbody td {
+            padding: 10px 4px; border-bottom: 1px solid #f0f0f0; vertical-align: top;
+        }
+
+        .items-table tbody tr:last-child td { border-bottom: 2px solid var(--text); }
+
+        .item-name { font-weight: 500; }
+
+        .col-qty { text-align: center; width: 40px; }
+        .col-unit { text-align: center; width: 80px; }
+        .col-total { text-align: left; width: 90px; font-weight: 500; white-space: nowrap; }
+
+        .totals-section { padding-top: 8px; }
+        .total-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
+        .total-row.discount { color: var(--success); }
+        .total-row.grand-total {
+            border-top: 2px solid var(--text);
+            margin-top: 8px; padding-top: 10px;
+            font-size: 16px; font-weight: 900;
+        }
+        .total-row.grand-total .total-value { color: var(--accent-dark); }
+
+        .payment-section {
+            margin-top: 16px; padding-top: 12px;
+            border-top: 1px dashed var(--border);
+        }
+
+        .payment-row { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; }
+
+        .receipt-footer {
+            text-align: center; margin-top: 16px; padding-top: 12px;
+            border-top: 2px dashed var(--border);
+        }
+
+        .footer-thanks { font-size: 14px; font-weight: 700; color: var(--accent-dark); margin-bottom: 8px; }
+        .footer-info { font-size: 10px; color: var(--text-muted); line-height: 1.8; }
+        .footer-barcode { margin-top: 12px; font-family: monospace; font-size: 10px; letter-spacing: 3px; color: #999; }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="page-container no-print">
+    <div class="toolbar">
+        <button class="btn btn-print" onclick="window.print()">🖨️ چاپ فاکتور</button>
+        <button class="btn btn-share" onclick="shareReceipt()">📱 اشتراک‌گذاری</button>
+        <button class="btn btn-back" onclick="goBack()">← بازگشت</button>
+    </div>
+</div>
+
+<div class="page-container">
+    <div class="receipt-wrapper">
+        <div class="receipt">
+
+            <div class="receipt-header">
+                <div class="restaurant-name">{{ restaurant_name|default:"رستوران" }}</div>
+                <div class="restaurant-info">
+                    {% if restaurant_phone %}📞 {{ restaurant_phone }}<br>{% endif %}
+                    {% if restaurant_address %}📍 {{ restaurant_address }}{% endif %}
+                </div>
+            </div>
+
+            <div class="order-meta">
+                <div class="meta-item">
+                    <span class="meta-label">شماره سفارش:</span>
+                    <span class="meta-value">#{{ order.id }}</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">تاریخ:</span>
+                    <span class="meta-value">{{ order.created_at|date:"Y/m/d" }}</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">ساعت:</span>
+                    <span class="meta-value">{{ order.created_at|date:"H:i" }}</span>
+                </div>
+                <div class="meta-item">
+                    <span class="meta-label">وضعیت:</span>
+                    <span class="meta-value">
+                        <span class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
+                    </span>
+                </div>
+                {% if order.customer_name %}
+                <div class="meta-item">
+                    <span class="meta-label">مشتری:</span>
+                    <span class="meta-value">{{ order.customer_name }}</span>
+                </div>
+                {% endif %}
+                {% if order.phone %}
+                <div class="meta-item">
+                    <span class="meta-label">تلفن:</span>
+                    <span class="meta-value">{{ order.phone }}</span>
+                </div>
+                {% endif %}
+                {% if order.table %}
+                <div class="meta-item">
+                    <span class="meta-label">میز:</span>
+                    <span class="meta-value">{{ order.table.number }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <table class="items-table">
+                <thead>
+                    <tr>
+                        <th>کالا</th>
+                        <th class="col-qty">تعداد</th>
+                        <th class="col-unit">فی</th>
+                        <th class="col-total">جمع</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td><div class="item-name">{{ item.food_name }}</div></td>
+                        <td class="col-qty">{{ item.quantity }}</td>
+                        <td class="col-unit">{{ item.price|intcomma }} تومان</td>
+                        <td class="col-total">{{ item.line_total|intcomma }} تومان</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <div class="totals-section">
+                <div class="total-row">
+                    <span>جمع کل:</span>
+                    <span>{{ order.total_price|intcomma }} تومان</span>
+                </div>
+                {% if discount_amount %}
+                <div class="total-row discount">
+                    <span>تخفیف:</span>
+                    <span>-{{ discount_amount|intcomma }} تومان</span>
+                </div>
+                {% endif %}
+                <div class="total-row grand-total">
+                    <span>مبلغ قابل پرداخت:</span>
+                    <span class="total-value">{{ final_amount|intcomma }} تومان</span>
+                </div>
+            </div>
+
+            {% if payment_method %}
+            <div class="payment-section">
+                <div class="payment-row">
+                    <span>روش پرداخت:</span>
+                    <span>
+                        {% if payment_method == 'cash' %}💵 نقدی
+                        {% elif payment_method == 'card' %}💳 کارتخوان
+                        {% elif payment_method == 'wallet' %}👛 کیف پول
+                        {% else %}{{ payment_method }}{% endif %}
+                    </span>
+                </div>
+                {% if trace_number %}
+                <div class="payment-row">
+                    <span>پیگیری:</span>
+                    <span>{{ trace_number }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="receipt-footer">
+                <div class="footer-thanks">از انتخاب شما متشکریم 🙏</div>
+                <div class="footer-info">این فاکتور به صورت الکترونیکی صادر شده است.</div>
+                <div class="footer-barcode">||||| {{ order.id|stringformat:"06d" }} |||||</div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('print') === '1') {
+        window.addEventListener('load', () => setTimeout(() => window.print(), 500));
+    }
+
+    function shareReceipt() {
+        let text = '🧾 فاکتور سفارش #{{ order.id }}\n';
+        text += '━━━━━━━━━━━━━━━━━\n';
+        {% for item in items %}
+        text += '{{ item.food_name }} × {{ item.quantity }} = {{ item.line_total|intcomma }} تومان\n';
+        {% endfor %}
+        text += '━━━━━━━━━━━━━━━━━\n';
+        text += '💰 جمع کل: {{ final_amount|intcomma }} تومان\n';
+        text += '📅 {{ order.created_at|date:"Y/m/d H:i" }}';
+
+        if (navigator.share) {
+            navigator.share({ title: 'فاکتور #{{ order.id }}', text: text });
+        } else {
+            navigator.clipboard.writeText(text).then(() => alert('فاکتور کپی شد'));
+        }
+    }
+
+    function goBack() {
+        if (window.history.length > 1) window.history.back();
+        else window.location.href = '/pos/';
+    }
+</script>
+</body>
+</html>

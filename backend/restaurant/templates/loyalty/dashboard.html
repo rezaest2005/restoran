@@ -1,0 +1,146 @@
+{% extends "base_loyalty.html" %}
+
+{% block title %}داشبورد باشگاه مشتریان{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+{% block page_title %}داشبورد باشگاه{% endblock %}
+{% block page_subtitle %}آمار و نمای کلی باشگاه مشتریان{% endblock %}
+
+{% block content %}
+
+    <!-- Stats -->
+    <div class="stats-grid fade-in">
+        <div class="stat-card gold">
+            <div class="stat-icon">&#9823;</div>
+            <div class="stat-value" id="statCustomers">{{ stats.total_customers|default:"0" }}</div>
+            <div class="stat-label">مشتری فعال</div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-icon">&#9733;</div>
+            <div class="stat-value" id="statPoints">{{ stats.total_points_issued|default:"0" }}</div>
+            <div class="stat-label">امتیاز صادر شده</div>
+        </div>
+        <div class="stat-card blue">
+            <div class="stat-icon">&#10010;</div>
+            <div class="stat-value" id="statNew">{{ stats.new_this_month|default:"0" }}</div>
+            <div class="stat-label">مشتری جدید (ماه)</div>
+        </div>
+        <div class="stat-card purple">
+            <div class="stat-icon">&#9830;</div>
+            <div class="stat-value" id="statWallet">{{ stats.wallet_total_balance|default:"0" }}</div>
+            <div class="stat-label">موجودی کیف پول‌ها (تومان)</div>
+        </div>
+        <div class="stat-card orange">
+            <div class="stat-icon">&#8644;</div>
+            <div class="stat-value" id="statRedeemed">{{ stats.total_points_redeemed|default:"0" }}</div>
+            <div class="stat-label">امتیاز مصرف شده</div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-icon">&#9888;</div>
+            <div class="stat-value" id="statOutstanding">{{ stats.points_outstanding|default:"0" }}</div>
+            <div class="stat-label">امتیاز معوق</div>
+        </div>
+    </div>
+
+    <!-- Level Distribution -->
+    <div class="card fade-in" style="margin-bottom: 24px;">
+        <div class="card-header">
+            <div>
+                <div class="card-title">توزیع سطوح عضویت</div>
+                <div class="card-subtitle">تعداد مشتریان در هر سطح</div>
+            </div>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>سطح</th>
+                        <th>عنوان</th>
+                        <th>تعداد مشتری</th>
+                        <th>درصد</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for level in stats.level_distribution %}
+                    <tr>
+                        <td><span class="badge badge-gold">{{ level.name }}</span></td>
+                        <td>{{ level.title }}</td>
+                        <td><strong>{{ level.customer_count }}</strong></td>
+                        <td>
+                            {% if stats.total_customers > 0 %}
+                                {% widthratio level.customer_count stats.total_customers 100 %}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" style="text-align:center; color: var(--text-dim);">داده‌ای موجود نیست</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Top Customers -->
+    <div class="card fade-in">
+        <div class="card-header">
+            <div>
+                <div class="card-title">مشتریان برتر</div>
+                <div class="card-subtitle">بیشترین خرید</div>
+            </div>
+            <a href="{% url 'loyalty_customers' %}" class="btn btn-outline btn-sm">مشاهده همه</a>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>نام</th>
+                        <th>شماره</th>
+                        <th>سطح</th>
+                        <th>مجموع خرید</th>
+                        <th>امتیاز</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in stats.top_customers %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td><strong>{{ c.first_name|default:"—" }} {{ c.last_name|default:"" }}</strong></td>
+                        <td style="direction:ltr; text-align:right;">{{ c.phone }}</td>
+                        <td><span class="badge badge-gold">{{ c.membership_level__title|default:"—" }}</span></td>
+                        <td>{{ c.total_spending|floatformat:0 }} ت</td>
+                        <td><strong>{{ c.total_points|floatformat:0 }}</strong></td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" style="text-align:center; color: var(--text-dim);">هنوز مشتری‌ای ثبت نشده</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadDashboard() {
+        try {
+            const d = await apiCall('/api/loyalty/dashboard/');
+            document.getElementById('statCustomers').textContent = formatNumber(d.total_customers);
+            document.getElementById('statPoints').textContent = formatNumber(d.total_points_issued);
+            document.getElementById('statNew').textContent = formatNumber(d.new_this_month);
+            document.getElementById('statWallet').textContent = formatNumber(d.wallet_total_balance);
+            document.getElementById('statRedeemed').textContent = formatNumber(d.total_points_redeemed);
+            document.getElementById('statOutstanding').textContent = formatNumber(d.points_outstanding);
+        } catch (e) {
+            console.error('Dashboard error:', e);
+        }
+    }
+    loadDashboard();
+</script>
+{% endblock %}

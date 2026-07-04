@@ -1,0 +1,173 @@
+{% extends "base_loyalty.html" %}
+
+{% block title %}جزئیات مشتری{% endblock %}
+{% block nav_customers %}active{% endblock %}
+{% block page_title %}جزئیات مشتری{% endblock %}
+{% block page_subtitle %}اطلاعات کامل و فعالیت‌های مشتری{% endblock %}
+
+{% block content %}
+
+    <div id="customerContent">
+        <div class="card" style="text-align:center; padding:60px;">
+            <div class="empty-state">
+                <div class="icon">&#9823;</div>
+                <h3>در حال بارگذاری...</h3>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    var customerId = window.location.pathname.split('/').filter(Boolean).pop();
+
+    async function loadCustomer() {
+        try {
+            var c = await apiCall('/api/loyalty/customers/' + customerId + '/');
+            renderCustomer(c);
+        } catch (e) {
+            console.error(e);
+            showToast('خطا در بارگذاری', 'error');
+        }
+    }
+
+    function renderCustomer(c) {
+        var el = document.getElementById('customerContent');
+        var lc = { bronze: 'orange', silver: 'blue', gold: 'gold', vip: 'purple' };
+        var lvlName = c.membership_level ? c.membership_level.name : '';
+        var lvlColor = lc[lvlName] || 'gold';
+        var lvlIcon = c.membership_level ? c.membership_level.icon : '';
+        var lvlTitle = c.membership_level ? c.membership_level.title : 'برنز';
+
+        var benefits = c.membership_benefits || {};
+        var discount = benefits.discount || 0;
+        var multiplier = benefits.multiplier || 1;
+        var freeDelivery = benefits.free_delivery;
+        var cashback = ((benefits.cashback_rate || 0) * 100).toFixed(1);
+
+        var birthdayAlert = c.is_birthday_today
+            ? '<div style="margin-top:16px;padding:12px;background:var(--gold-bg-strong);border-radius:var(--radius-sm);text-align:center;font-weight:600;color:var(--gold);">&#127874; امروز تولد این مشتری است!</div>'
+            : '';
+
+        var joinDate = new Date(c.joined_at).toLocaleDateString('fa-IR');
+        var birthDate = c.birth_date ? new Date(c.birth_date).toLocaleDateString('fa-IR') : '—';
+        var statusBadge = c.is_active
+            ? '<span class="badge badge-green">فعال</span>'
+            : '<span class="badge badge-red">غیرفعال</span>';
+
+        // Transactions
+        var txnHtml = '';
+        var txns = c.recent_transactions || [];
+        if (txns.length) {
+            for (var i = 0; i < txns.length; i++) {
+                var t = txns[i];
+                var signColor = t.sign === '+' ? 'var(--green)' : 'var(--red)';
+                var badgeColor = t.sign === '+' ? 'green' : 'red';
+                var txnDate = new Date(t.created_at).toLocaleDateString('fa-IR');
+                txnHtml += '<tr>';
+                txnHtml += '<td><span class="badge badge-' + badgeColor + '">' + t.type_display + '</span></td>';
+                txnHtml += '<td style="font-weight:700;color:' + signColor + ';direction:ltr;text-align:right;">' + t.sign + formatNumber(t.points) + '</td>';
+                txnHtml += '<td>' + formatNumber(t.balance_after) + '</td>';
+                txnHtml += '<td>' + t.description + '</td>';
+                txnHtml += '<td style="font-size:12px;color:var(--text-muted);">' + txnDate + '</td>';
+                txnHtml += '</tr>';
+            }
+        } else {
+            txnHtml = '<tr><td colspan="5" style="text-align:center;color:var(--text-dim);">تراکنشی موجود نیست</td></tr>';
+        }
+
+        // Coupons
+        var couponHtml = '';
+        var coupons = c.recent_coupons || [];
+        if (coupons.length) {
+            for (var j = 0; j < coupons.length; j++) {
+                var u = coupons[j];
+                var discountText = u.discount_type === 'percentage' ? u.discount_value + '%' : formatNumber(u.discount_value) + ' ت';
+                var lastUsed = u.last_used_at ? new Date(u.last_used_at).toLocaleDateString('fa-IR') : '—';
+                couponHtml += '<tr>';
+                couponHtml += '<td><code style="background:var(--gold-bg);color:var(--gold);padding:3px 10px;border-radius:4px;font-weight:700;">' + u.coupon_code + '</code></td>';
+                couponHtml += '<td>' + u.coupon_name + '</td>';
+                couponHtml += '<td>' + discountText + '</td>';
+                couponHtml += '<td>' + u.used_count + '</td>';
+                couponHtml += '<td style="font-size:12px;color:var(--text-muted);">' + lastUsed + '</td>';
+                couponHtml += '</tr>';
+            }
+        } else {
+            couponHtml = '<tr><td colspan="5" style="text-align:center;color:var(--text-dim);">کوپنی استفاده نشده</td></tr>';
+        }
+
+        el.innerHTML =
+            // Stats
+            '<div class="stats-grid fade-in">' +
+                '<div class="stat-card gold">' +
+                    '<div class="stat-icon">&#9823;</div>' +
+                    '<div class="stat-value">' + (c.full_name || c.phone) + '</div>' +
+                    '<div class="stat-label"><span class="badge badge-' + lvlColor + '">' + lvlIcon + ' ' + lvlTitle + '</span></div>' +
+                '</div>' +
+                '<div class="stat-card green">' +
+                    '<div class="stat-icon">&#9733;</div>' +
+                    '<div class="stat-value">' + formatNumber(c.available_points) + '</div>' +
+                    '<div class="stat-label">امتیاز قابل استفاده / ' + formatNumber(c.total_points) + ' کل</div>' +
+                '</div>' +
+                '<div class="stat-card blue">' +
+                    '<div class="stat-icon">&#128176;</div>' +
+                    '<div class="stat-value">' + formatNumber(c.wallet_balance) + ' ت</div>' +
+                    '<div class="stat-label">موجودی کیف پول</div>' +
+                '</div>' +
+                '<div class="stat-card purple">' +
+                    '<div class="stat-icon">&#128230;</div>' +
+                    '<div class="stat-value">' + c.total_orders + '</div>' +
+                    '<div class="stat-label">سفارش / ' + formatNumber(c.total_spending) + ' ت خرید</div>' +
+                '</div>' +
+            '</div>' +
+
+            // Info + Benefits
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">' +
+
+                // Personal Info
+                '<div class="card fade-in">' +
+                    '<div class="card-header"><div class="card-title">اطلاعات شخصی</div></div>' +
+                    '<div class="form-grid">' +
+                        '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">موبایل</div><div style="font-weight:600;direction:ltr;text-align:right;font-family:monospace;">' + c.phone + '</div></div>' +
+                        '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">ایمیل</div><div style="font-weight:600;">' + (c.email || '—') + '</div></div>' +
+                        '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">تاریخ تولد</div><div>' + birthDate + '</div></div>' +
+                        '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">تاریخ عضویت</div><div>' + joinDate + '</div></div>' +
+                        '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">کد دعوت</div><div style="font-weight:700;color:var(--gold);font-family:monospace;font-size:16px;">' + c.referral_code + '</div></div>' +
+                        '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">وضعیت</div><div>' + statusBadge + '</div></div>' +
+                    '</div>' +
+                    birthdayAlert +
+                '</div>' +
+
+                // Benefits
+                '<div class="card fade-in">' +
+                    '<div class="card-header"><div class="card-title">مزایای سطح عضویت</div></div>' +
+                    '<div class="form-grid">' +
+                        '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">درصد تخفیف</div><div style="font-weight:700;font-size:18px;">' + discount + '%</div></div>' +
+                        '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">ضریب امتیاز</div><div style="font-weight:700;font-size:18px;">' + multiplier + 'x</div></div>' +
+                        '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">ارسال رایگان</div><div>' + (freeDelivery ? '<span class="badge badge-green">دارد</span>' : '<span class="badge badge-red">ندارد</span>') + '</div></div>' +
+                        '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">نرخ کش‌بک</div><div style="font-weight:700;">' + cashback + '%</div></div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>' +
+
+            // Transactions
+            '<div class="card fade-in" style="margin-top:24px;">' +
+                '<div class="card-header"><div class="card-title">آخرین تراکنش‌های امتیاز</div></div>' +
+                '<div class="table-wrapper"><table><thead><tr><th>نوع</th><th>امتیاز</th><th>مانده</th><th>توضیحات</th><th>تاریخ</th></tr></thead><tbody>' +
+                txnHtml +
+                '</tbody></table></div>' +
+            '</div>' +
+
+            // Coupons
+            '<div class="card fade-in" style="margin-top:24px;">' +
+                '<div class="card-header"><div class="card-title">کوپن‌های استفاده‌شده</div></div>' +
+                '<div class="table-wrapper"><table><thead><tr><th>کد</th><th>نام</th><th>تخفیف</th><th>تعداد استفاده</th><th>آخرین استفاده</th></tr></thead><tbody>' +
+                couponHtml +
+                '</tbody></table></div>' +
+            '</div>';
+    }
+
+    loadCustomer();
+</script>
+{% endblock %}

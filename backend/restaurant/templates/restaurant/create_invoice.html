@@ -1,0 +1,1358 @@
+{% extends "admin/restaurant_base.html" %}
+{% load i18n static %}
+
+{% block title %}ثبت فاکتور خرید{% endblock %}
+{% block page_title %}ثبت فاکتور خرید{% endblock %}
+{% block breadcrumb %}انبار و تأمین / ثبت فاکتور خرید{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<style>
+:root {
+    --accent: #b5853a;
+    --accent-hover: #96702f;
+    --accent-light: #fdf6ec;
+    --accent-border: #e8d5b5;
+    --text: #292524;
+    --text-sec: #78716c;
+    --border: #e7e5e4;
+    --success: #16a34a;
+    --success-bg: #f0fdf4;
+    --danger: #dc2626;
+    --danger-bg: #fef2f2;
+    --radius: 14px;
+    --radius-sm: 10px;
+    --shadow: 0 1px 3px rgba(41,37,36,.06), 0 1px 2px rgba(41,37,36,.04);
+    --shadow-md: 0 4px 12px rgba(41,37,36,.07);
+    --shadow-lg: 0 12px 32px rgba(41,37,36,.10);
+}
+
+.container { max-width: 960px; margin: 0 auto; padding: 32px 20px 80px; }
+.page-header { text-align: center; margin-bottom: 36px; animation: fadeUp .6s ease both; }
+.page-header h1 { font-size: 2rem; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+.page-header p { color: var(--text-sec); font-size: .95rem; font-weight: 300; }
+
+.card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 28px; margin-bottom: 20px;
+    box-shadow: var(--shadow); opacity: 0; animation: fadeUp .6s ease both;
+}
+.card-head {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 22px; padding-bottom: 14px; border-bottom: 1px solid var(--border);
+}
+.card-head svg { width: 22px; height: 22px; color: var(--accent); flex-shrink: 0; }
+.card-head h2 { font-size: 1.1rem; font-weight: 700; }
+.card-head .badge {
+    margin-right: auto; background: var(--accent-light); color: var(--accent);
+    font-size: .75rem; font-weight: 600; padding: 3px 10px; border-radius: 20px;
+}
+
+.form-grid { display: grid; gap: 16px; }
+.form-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+@media (max-width: 600px) { .form-grid.cols-2 { grid-template-columns: 1fr; } }
+
+.field label { display: block; font-size: .82rem; font-weight: 500; color: var(--text-sec); margin-bottom: 6px; }
+.field input, .field textarea, .field select {
+    width: 100%; padding: 11px 14px; border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); font-family: inherit; font-size: .93rem;
+    color: var(--text); background: var(--surface);
+    transition: border-color .2s, box-shadow .2s; outline: none;
+}
+.field input:focus, .field textarea:focus, .field select:focus {
+    border-color: var(--accent); box-shadow: 0 0 0 3px rgba(181,133,58,.12);
+}
+
+.btn-excel {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 7px 16px; border: 1.5px solid var(--success);
+    border-radius: 20px; background: var(--success-bg); color: var(--success);
+    font-family: inherit; font-size: .78rem; font-weight: 700;
+    cursor: pointer; transition: all .25s; white-space: nowrap; margin-right: auto;
+}
+.btn-excel:hover { background: var(--success); color: #fff; box-shadow: 0 4px 14px rgba(22,163,74,.25); transform: translateY(-1px); }
+.btn-excel:active { transform: scale(.97); }
+.btn-excel svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+.excel-modal-overlay {
+    position: fixed; inset: 0; background: rgba(41,37,36,.45);
+    z-index: 99999; display: none; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+}
+.excel-modal-overlay.active { display: flex; }
+.excel-modal {
+    background: var(--surface); border-radius: var(--radius); width: 92%;
+    max-width: 520px; box-shadow: 0 20px 60px rgba(41,37,36,.2);
+    animation: excelIn .35s ease; overflow: hidden;
+}
+.em-header { display: flex; align-items: center; gap: 10px; padding: 20px 24px; border-bottom: 1px solid var(--border); }
+.em-header svg { width: 24px; height: 24px; color: var(--success); flex-shrink: 0; }
+.em-header h3 { font-size: 1.1rem; font-weight: 700; flex: 1; }
+.em-close { width: 34px; height: 34px; border: none; border-radius: 8px; background: transparent; color: var(--text-sec); font-size: 1.4rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .2s; }
+.em-close:hover { background: var(--danger-bg); color: var(--danger); }
+.em-body { padding: 24px; }
+.em-upload-zone {
+    border: 2.5px dashed var(--border); border-radius: var(--radius);
+    padding: 48px 24px; text-align: center; cursor: pointer;
+    transition: all .3s; position: relative; background: #f5f6fa;
+}
+.em-upload-zone:hover { border-color: var(--success); background: var(--success-bg); }
+.em-upload-zone.drag-over { border-color: var(--success); background: var(--success-bg); box-shadow: 0 0 0 4px rgba(22,163,74,.12); transform: scale(1.01); }
+.em-upload-zone.has-file { border-color: var(--success); border-style: solid; background: var(--success-bg); }
+.em-upload-zone .em-icon { margin-bottom: 14px; transition: all .3s; }
+.em-upload-zone .em-icon svg { width: 52px; height: 52px; color: var(--accent); }
+.em-upload-zone.drag-over .em-icon svg { color: var(--success); transform: translateY(-4px); }
+.em-upload-zone.has-file .em-icon svg { color: var(--success); }
+.em-upload-zone .em-title { font-size: 1.05rem; font-weight: 700; color: var(--text); margin-bottom: 6px; transition: color .2s; }
+.em-upload-zone.has-file .em-title { color: var(--success); }
+.em-upload-zone .em-sub { font-size: .82rem; color: var(--text-sec); margin-bottom: 4px; }
+.em-upload-zone .em-sub span { color: var(--accent); font-weight: 600; cursor: pointer; }
+.em-upload-zone .em-formats { font-size: .72rem; color: #aaa; margin-top: 8px; }
+.em-upload-zone .em-file { display: none; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; padding: 12px 18px; background: var(--surface); border: 1px solid var(--success); border-radius: var(--radius-sm); font-size: .88rem; font-weight: 600; color: var(--success); }
+.em-upload-zone.has-file .em-file { display: inline-flex; }
+.em-upload-zone .em-file svg { width: 18px; height: 18px; }
+.em-upload-zone .spinner { width: 40px; height: 40px; border: 3.5px solid var(--border); border-top-color: var(--success); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto; display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+.em-upload-zone.loading .spinner { display: block; }
+.em-upload-zone.loading .em-icon, .em-upload-zone.loading .em-title, .em-upload-zone.loading .em-sub, .em-upload-zone.loading .em-formats { opacity: .15; }
+.em-upload-zone input[type=file] { display: none; }
+.em-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: space-between; align-items: center; }
+.em-btn-tmpl { display: inline-flex; align-items: center; gap: 5px; padding: 9px 18px; border: 1.5px solid var(--accent-border); border-radius: var(--radius-sm); background: var(--surface); color: var(--accent); font-family: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; transition: all .2s; }
+.em-btn-tmpl:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.em-btn-tmpl svg { width: 15px; height: 15px; flex-shrink: 0; }
+.em-btn-done { padding: 10px 28px; border: none; border-radius: var(--radius-sm); background: var(--success); color: #fff; font-family: inherit; font-size: .9rem; font-weight: 700; cursor: pointer; transition: all .2s; display: none; }
+.em-btn-done.show { display: inline-flex; align-items: center; gap: 6px; }
+.em-btn-done:hover { background: #15803d; }
+.em-btn-done svg { width: 16px; height: 16px; }
+
+.table-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+.btn-add { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border: none; border-radius: var(--radius-sm); background: var(--accent); color: #fff; font-family: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; transition: background .2s, transform .15s; }
+.btn-add:hover { background: var(--accent-hover); }
+.btn-add:active { transform: scale(.97); }
+.btn-add svg { width: 16px; height: 16px; }
+.table-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+.inv-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.inv-table thead { background: var(--accent-light); }
+.inv-table thead th { padding: 12px 10px; font-weight: 600; font-size: .8rem; color: var(--accent-hover); text-align: center; white-space: nowrap; border-bottom: 2px solid var(--accent-border); }
+.inv-table tbody td { padding: 6px 8px; text-align: center; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.inv-table tbody tr:hover { background: #faf8f5; }
+.inv-table tbody tr.new-row { animation: rowIn .35s ease both; }
+.inv-table tbody td input, .inv-table tbody td select { width: 100%; padding: 8px; border: 1.5px solid transparent; border-radius: 8px; font-family: inherit; font-size: .85rem; text-align: center; color: var(--text); background: transparent; transition: border-color .2s, background .2s; outline: none; }
+.inv-table tbody td input:hover, .inv-table tbody td select:hover { background: #faf8f5; }
+.inv-table tbody td input:focus, .inv-table tbody td select:focus { border-color: var(--accent); background: var(--accent-light); }
+.inv-table tbody td input::placeholder { color: #c5c0ba; font-size: .82rem; }
+.row-num { font-weight: 600; color: var(--text-sec); font-size: .82rem; width: 40px; }
+.line-total { font-weight: 700; color: var(--accent); font-size: .88rem; white-space: nowrap; min-width: 100px; }
+.btn-del { width: 32px; height: 32px; border: none; border-radius: 8px; background: transparent; color: #bbb; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all .2s; font-size: 1.2rem; }
+.btn-del:hover { background: var(--danger-bg); color: var(--danger); }
+.btn-del.hidden { visibility: hidden; pointer-events: none; }
+.empty-state { text-align: center; padding: 44px 20px; color: var(--text-sec); }
+.empty-state svg { width: 52px; height: 52px; color: var(--border); margin-bottom: 12px; }
+.empty-state p { font-size: .9rem; font-weight: 400; }
+
+.summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 500px) { .summary-grid { grid-template-columns: 1fr; } }
+.summary-box { padding: 18px; border-radius: var(--radius-sm); text-align: center; border: 1px solid var(--border); }
+.summary-box.total { background: var(--accent-light); border-color: var(--accent-border); }
+.summary-box .sb-label { font-size: .78rem; color: var(--text-sec); font-weight: 500; margin-bottom: 4px; }
+.summary-box .sb-value { font-size: 1.5rem; font-weight: 800; }
+.summary-box.total .sb-value { color: var(--accent); }
+.summary-box .sb-value.pulse { animation: pulse .4s ease; }
+
+.form-actions { display: flex; gap: 12px; justify-content: flex-start; margin-top: 24px; flex-wrap: wrap; opacity: 0; animation: fadeUp .6s ease both; }
+.btn-primary { padding: 13px 40px; border: none; border-radius: var(--radius-sm); background: var(--accent); color: #fff; font-family: inherit; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all .2s; box-shadow: var(--shadow); }
+.btn-primary:hover { background: var(--accent-hover); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.btn-secondary { padding: 13px 28px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text-sec); font-family: inherit; font-size: .95rem; font-weight: 500; cursor: pointer; transition: all .2s; }
+.btn-secondary:hover { border-color: var(--text-sec); color: var(--text); }
+.btn-preview { padding: 13px 28px; border: 1.5px solid var(--accent-border); border-radius: var(--radius-sm); background: var(--accent-light); color: var(--accent); font-family: inherit; font-size: .95rem; font-weight: 600; cursor: pointer; transition: all .2s; display: inline-flex; align-items: center; gap: 8px; }
+.btn-preview:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-preview svg { width: 18px; height: 18px; }
+
+#toast-box { position: fixed; top: 24px; left: 24px; z-index: 99999; display: flex; flex-direction: column; gap: 8px; }
+.toast { padding: 14px 22px; border-radius: var(--radius-sm); font-size: .88rem; font-weight: 500; color: #fff; box-shadow: var(--shadow-lg); transform: translateX(-120%); transition: transform .35s ease, opacity .35s ease; max-width: 360px; opacity: 0; }
+.toast.show { transform: translateX(0); opacity: 1; }
+.toast-success { background: #16a34a; }
+.toast-error { background: #dc2626; }
+
+.modal-overlay {
+    position: fixed; inset: 0; background: rgba(15,12,8,.72);
+    z-index: 99998; display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity .3s ease; backdrop-filter: blur(6px);
+}
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+.modal-box {
+    background: #fffdf9; border-radius: 18px; max-width: 660px; width: 94%;
+    box-shadow: 0 24px 64px rgba(0,0,0,.28), 0 4px 12px rgba(0,0,0,.08);
+    transform: translateY(20px) scale(.97); transition: transform .3s ease;
+    overflow: hidden; border: 1.5px solid #e8d5b5;
+}
+.modal-overlay.active .modal-box { transform: translateY(0) scale(1); }
+.modal-header {
+    padding: 22px 28px; border-bottom: 2px solid #e8d5b5;
+    display: flex; align-items: center; gap: 12px;
+    background: linear-gradient(135deg, #fdf6ec 0%, #fff7ed 100%);
+}
+.modal-header h3 { font-size: 1.25rem; font-weight: 800; color: #292524; }
+.modal-header svg { width: 24px; height: 24px; color: #b5853a; }
+.modal-close {
+    width: 36px; height: 36px; border: none; border-radius: 10px;
+    background: transparent; color: #78716c; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    margin-right: auto; font-size: 1.5rem; font-weight: 700; transition: all .2s;
+}
+.modal-close:hover { background: #fef2f2; color: #dc2626; }
+.modal-body { padding: 28px; }
+.preview-info {
+    background: #f5f0e8; border-radius: 12px; padding: 16px 20px;
+    margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 10px 24px;
+    font-size: .92rem; border: 1px solid #e8d5b5;
+}
+.preview-info .pi-item { display: flex; gap: 6px; }
+.preview-info .pi-label { color: #78716c; font-weight: 600; font-size: .85rem; }
+.preview-info .pi-value { color: #292524; font-weight: 700; font-size: .95rem; }
+.preview-table { width: 100%; border-collapse: collapse; font-size: .95rem; margin-bottom: 24px; }
+.preview-table th { padding: 12px 14px; font-weight: 700; font-size: .85rem; color: #b5853a; border-bottom: 2px solid #e8d5b5; text-align: center; background: #fdf6ec; }
+.preview-table td { padding: 12px 14px; text-align: center; border-bottom: 1px solid #e7e5e4; color: #292524; font-size: .93rem; }
+.preview-table tr:last-child td { border-bottom: none; }
+.preview-table tr:hover { background: #faf8f5; }
+.preview-table .p-name { text-align: right; font-weight: 600; font-size: .95rem; }
+.preview-table .p-cat { color: #78716c; font-size: .82rem; }
+.preview-table .p-total { color: #b5853a; font-weight: 800; font-size: 1rem; }
+.preview-summary {
+    background: linear-gradient(135deg, #fdf6ec 0%, #f5ede0 100%);
+    border: 2px solid #e8d5b5; border-radius: 14px; padding: 24px; text-align: center;
+}
+.preview-summary .ps-label { font-size: .9rem; color: #78716c; font-weight: 600; margin-bottom: 6px; }
+.preview-summary .ps-value { font-size: 2.2rem; font-weight: 900; color: #b5853a; }
+.preview-summary .ps-count { font-size: .88rem; color: #78716c; margin-top: 6px; font-weight: 500; }
+.modal-footer {
+    padding: 18px 28px; border-top: 2px solid #e8d5b5;
+    display: flex; gap: 12px; justify-content: flex-end; background: #faf8f5;
+}
+.modal-footer .btn-back { padding: 12px 28px; border: 1.5px solid #e7e5e4; border-radius: 12px; background: #fff; color: #78716c; font-family: inherit; font-size: .95rem; font-weight: 600; cursor: pointer; transition: all .2s; }
+.modal-footer .btn-back:hover { border-color: #78716c; color: #292524; }
+.modal-footer .btn-confirm { padding: 12px 32px; border: none; border-radius: 12px; background: #b5853a; color: #fff; font-family: inherit; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all .2s; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(181,133,58,.3); }
+.modal-footer .btn-confirm:hover { background: #96702f; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(181,133,58,.35); }
+.modal-footer .btn-confirm svg { width: 18px; height: 18px; }
+
+.supplier-input-wrap { display: flex; gap: 8px; align-items: stretch; }
+.supplier-input-wrap input { flex: 1; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; font-size: .93rem; color: var(--text); background: var(--surface); outline: none; transition: border-color .2s, box-shadow .2s; }
+.supplier-input-wrap input.supplier-warning { border-color: #eab308 !important; background: #fefce8 !important; box-shadow: 0 0 0 3px rgba(234,179,8,.15) !important; }
+.supplier-input-wrap input.supplier-found { border-color: var(--success) !important; background: var(--success-bg) !important; box-shadow: 0 0 0 3px rgba(22,163,74,.12) !important; }
+.supplier-input-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(181,133,58,.12); }
+.btn-add-supplier { display: inline-flex; align-items: center; gap: 6px; padding: 11px 18px; border: 1.5px solid var(--accent-border); border-radius: var(--radius-sm); background: var(--accent-light); color: var(--accent); font-family: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; transition: all .2s; white-space: nowrap; }
+.btn-add-supplier:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-add-supplier svg { width: 16px; height: 16px; flex-shrink: 0; }
+.supplier-dropdown { position: absolute; top: 100%; right: 0; left: 0; z-index: 99999; background: var(--surface); border: 1.5px solid var(--accent-border); border-radius: var(--radius-sm); box-shadow: 0 8px 24px rgba(41,37,36,.15); list-style: none; max-height: 220px; overflow-y: auto; display: none; margin: 4px 0 0; padding: 4px 0; }
+.supplier-dropdown.show { display: block; }
+.supplier-dropdown li { padding: 10px 16px; cursor: pointer; text-align: right; transition: background .15s; border-bottom: 1px solid var(--border); font-size: .88rem; }
+.supplier-dropdown li:last-child { border-bottom: none; }
+.supplier-dropdown li:hover { background: var(--accent-light); }
+.supplier-dropdown .sd-name { font-weight: 600; color: var(--text); }
+.supplier-dropdown .sd-info { font-size: .75rem; color: var(--text-sec); margin-top: 2px; }
+.supplier-dropdown .sd-empty { padding: 16px; text-align: center; color: var(--text-sec); font-size: .85rem; cursor: default; }
+.supplier-dropdown .sd-empty:hover { background: transparent; }
+.supplier-highlight { background: var(--accent-light) !important; }
+
+.supplier-modal-overlay { position: fixed; inset: 0; background: rgba(41,37,36,.45); z-index: 99998; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+.supplier-modal-overlay.active { display: flex; }
+.supplier-modal { background: var(--surface); border-radius: var(--radius); width: 92%; max-width: 520px; box-shadow: 0 20px 60px rgba(41,37,36,.2); animation: smIn .3s ease; overflow: hidden; }
+.sm-header { display: flex; align-items: center; gap: 10px; padding: 20px 24px; border-bottom: 1px solid var(--border); }
+.sm-header svg { width: 22px; height: 22px; color: var(--accent); flex-shrink: 0; }
+.sm-header h3 { font-size: 1.1rem; font-weight: 700; flex: 1; }
+.sm-close { width: 34px; height: 34px; border: none; border-radius: 8px; background: transparent; color: var(--text-sec); font-size: 1.4rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .2s; }
+.sm-close:hover { background: var(--danger-bg); color: var(--danger); }
+.sm-body { padding: 24px; }
+.sm-field { margin-bottom: 14px; }
+.sm-field label { display: block; font-size: .82rem; font-weight: 500; color: var(--text-sec); margin-bottom: 5px; }
+.sm-field input { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; font-size: .9rem; outline: none; transition: border-color .2s; }
+.sm-field input:focus { border-color: var(--accent); }
+.sm-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sm-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-start; }
+.sm-btn-save { padding: 11px 32px; border: none; border-radius: var(--radius-sm); background: var(--accent); color: #fff; font-family: inherit; font-size: .9rem; font-weight: 700; cursor: pointer; transition: background .2s; }
+.sm-btn-save:hover { background: var(--accent-hover); }
+.sm-btn-cancel { padding: 11px 24px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: transparent; color: var(--text-sec); font-family: inherit; font-size: .9rem; font-weight: 500; cursor: pointer; transition: all .2s; }
+.sm-btn-cancel:hover { border-color: var(--text-sec); color: var(--text); }
+@media (max-width: 500px) { .sm-row { grid-template-columns: 1fr; } }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes rowIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
+@keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
+@keyframes smIn { from { opacity: 0; transform: scale(.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes excelIn { from { opacity: 0; transform: scale(.92) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="toast-box"></div>
+
+<!-- ═══ مودال پیش‌نمایش ═══ -->
+<div class="modal-overlay" id="preview-modal">
+<div class="modal-box">
+    <div class="modal-header">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    <h3>بررسی و تأیید فاکتور</h3>
+    <button type="button" class="modal-close" id="modal-close-btn">&times;</button>
+    </div>
+    <div class="modal-body">
+    <div class="preview-info" id="preview-info"></div>
+    <table class="preview-table">
+        <thead><tr><th>#</th><th>نام کالا</th><th>دسته‌بندی</th><th>مقدار</th><th>واحد</th><th>قیمت کل</th></tr></thead>
+        <tbody id="preview-tbody"></tbody>
+    </table>
+    <div class="preview-summary">
+        <div class="ps-label">جمع کل فاکتور</div>
+        <div class="ps-value" id="preview-total">—</div>
+        <div class="ps-count" id="preview-count"></div>
+    </div>
+    </div>
+    <div class="modal-footer">
+    <button type="button" class="btn-back" id="modal-back-btn">بازگشت و ویرایش</button>
+    <button type="button" class="btn-confirm" id="modal-confirm-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+        تأیید و ثبت فاکتور
+    </button>
+    </div>
+</div>
+</div>
+
+<!-- ═══ مودال اکسل ═══ -->
+<div class="excel-modal-overlay" id="excel-modal">
+<div class="excel-modal">
+    <div class="em-header">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="m9 15 3-3 3 3"/></svg>
+    <h3>بارگذاری فایل اکسل</h3>
+    <button type="button" class="em-close" id="em-close">&times;</button>
+    </div>
+    <div class="em-body">
+    <div class="em-upload-zone" id="em-upload-zone">
+        <div class="spinner"></div>
+        <div class="em-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </div>
+        <div class="em-title">فایل را بکشید و اینجا رها کنید</div>
+        <div class="em-sub">یا <span>کلیک کنید</span> تا فایل انتخاب شود</div>
+        <div class="em-formats">xlsx · xls · csv</div>
+        <div class="em-file">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+        <span id="em-file-name"></span>
+        </div>
+        <input type="file" id="em-file-input" accept=".xlsx,.xls,.csv">
+    </div>
+    </div>
+    <div class="em-footer">
+    <button type="button" class="em-btn-tmpl" id="em-download-tmpl">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="m9 15 3-3 3 3"/></svg>
+        دانلود قالب اکسل
+    </button>
+    <button type="button" class="em-btn-done" id="em-done">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
+        اتمام بارگذاری
+    </button>
+    </div>
+</div>
+</div>
+
+<!-- ═══ مودال تأمین‌کننده ═══ -->
+<div class="supplier-modal-overlay" id="supplier-modal">
+<div class="supplier-modal">
+    <div class="sm-header">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+    <h3>افزودن تأمین‌کننده جدید</h3>
+    <button type="button" class="sm-close" id="sm-close">&times;</button>
+    </div>
+    <div class="sm-body">
+    <input type="hidden" id="sm-id">
+    <div class="sm-field"><label>نام شرکت / تأمین‌کننده *</label><input type="text" id="sm-name" placeholder="مثلاً شرکت پخش البرز"></div>
+    <div class="sm-row">
+        <div class="sm-field"><label>تلفن</label><input type="text" id="sm-phone" placeholder="مثلاً 021-12345678" dir="ltr"></div>
+        <div class="sm-field"><label>مسئول فروش</label><input type="text" id="sm-contact" placeholder="مثلاً آقای محمدی"></div>
+    </div>
+    <div class="sm-field"><label>آدرس</label><input type="text" id="sm-address" placeholder="مثلاً تهران، بازار بزرگ، پلاک ۱۲"></div>
+    <div class="sm-field"><label>توضیحات</label><input type="text" id="sm-desc" placeholder="یادداشت یا توضیح اضافی"></div>
+    </div>
+    <div class="sm-footer">
+    <button type="button" class="sm-btn-save" id="sm-save">ذخیره تأمین‌کننده</button>
+    <button type="button" class="sm-btn-cancel" id="sm-cancel">انصراف</button>
+    </div>
+</div>
+</div>
+
+<!-- ═══ مودال مدیریت دسته‌بندی‌ها ═══ -->
+<div class="supplier-modal-overlay" id="cat-modal">
+<div class="supplier-modal">
+    <div class="sm-header">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+    <h3>مدیریت دسته‌بندی‌ها</h3>
+    <button type="button" class="sm-close" id="cat-close">&times;</button>
+    </div>
+    <div class="sm-body">
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+        <input type="text" id="cat-new-input" placeholder="نام دسته‌بندی جدید..."
+               style="flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:.9rem;outline:none">
+        <button type="button" id="cat-add-btn"
+                style="padding:10px 20px;border:none;border-radius:10px;background:var(--accent);color:#fff;font-family:inherit;font-weight:600;cursor:pointer;font-size:.85rem">+ افزودن</button>
+    </div>
+    <div id="cat-list" style="max-height:300px;overflow-y:auto"></div>
+    </div>
+    <div class="sm-footer">
+    <button type="button" class="sm-btn-cancel" id="cat-reset-btn" style="margin-right:auto;font-size:.82rem">بازگشت به پیش‌فرض</button>
+    <button type="button" class="sm-btn-save" id="cat-close-btn">بستن</button>
+    </div>
+</div>
+</div>
+
+<!-- ═══ محتوای اصلی ═══ -->
+<div class="container">
+<header class="page-header" style="animation-delay:0s">
+    <h1>ثبت فاکتور خرید</h1>
+    <p>فاکتور خرید مواد اولیه رستوران را به‌راحتی وارد کنید</p>
+</header>
+
+<form method="post" enctype="multipart/form-data" id="invoice-form" action="{% url 'create_invoice' %}">
+    {% csrf_token %}
+
+    <!-- ═══ کارت اطلاعات فاکتور ═══ -->
+    <div class="card" style="animation-delay:.1s">
+    <div class="card-head">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <h2>اطلاعات فاکتور</h2>
+    </div>
+    <div class="form-grid cols-2">
+        <div class="field" style="position:relative">
+        <label>نام تأمین‌کننده *</label>
+        <div class="supplier-input-wrap">
+            <input type="text" name="supplier_name" id="supplier-name" required placeholder="تایپ کنید یا انتخاب کنید..." autocomplete="off" data-supplier-id="">
+            <button type="button" class="btn-add-supplier" id="btn-add-supplier" title="افزودن تأمین‌کننده جدید">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+            نام و نشانی
+            </button>
+        </div>
+        <ul class="supplier-dropdown" id="supplier-dropdown"></ul>
+        </div>
+        <div class="field"><label>شماره فاکتور</label><input type="text" name="invoice_number" placeholder="اختیاری"></div>
+        <div class="field"><label>تاریخ *</label><input type="date" name="date" required id="date-input"></div>
+        <div class="field"><label>توضیحات</label><input type="text" name="description" placeholder="یادداشت یا توضیح اضافی"></div>
+    </div>
+    </div>
+
+    <!-- ═══ کارت اقلام فاکتور ═══ -->
+    <div class="card" style="animation-delay:.3s">
+    <div class="card-head">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <h2>اقلام فاکتور</h2>
+        <span class="badge" id="badge-count">— قلم</span>
+        <button type="button" class="btn-excel" id="btn-open-excel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="m9 15 3-3 3 3"/></svg>
+        بارگذاری اکسل
+        </button>
+        <button type="button" class="btn-add" id="btn-manage-cats" style="background:transparent;border:1.5px solid var(--border);color:var(--text-sec);font-size:.78rem;padding:6px 14px" title="مدیریت دسته‌بندی‌ها">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+        دسته‌بندی‌ها
+        </button>
+    </div>
+
+    <div class="table-toolbar">
+        <button type="button" class="btn-add" id="add-row-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        افزودن ردیف
+        </button>
+    </div>
+
+    <!-- ══ جدول اقلام (tbody واحد) ══ -->
+    <div class="table-wrap" id="table-wrap" style="display:none">
+        <table class="inv-table">
+        <thead>
+            <tr>
+            <th style="width:48px">#</th>
+            <th>نام کالا</th>
+            <th style="width:130px">دسته‌بندی</th>
+            <th style="width:100px">مقدار</th>
+            <th style="width:110px">واحد</th>
+            <th style="width:150px">قیمت واحد (تومان)</th>
+            <th style="width:130px">قیمت کل</th>
+            <th style="width:48px"></th>
+            </tr>
+        </thead>
+        <tbody id="invoice-tbody"></tbody>
+        </table>
+    </div>
+
+    <div class="empty-state" id="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="2" y1="9" x2="22" y2="9"/><line x1="9" y1="3" x2="9" y2="9"/></svg>
+        <p>هنوز کالایی اضافه نشده — دکمه «افزودن ردیف» بزنید یا فایل اکسل بارگذاری کنید</p>
+    </div>
+    </div>
+
+    <!-- ═══ کارت خلاصه ═══ -->
+    <div class="card" style="animation-delay:.4s">
+    <div class="summary-grid">
+        <div class="summary-box">
+        <div class="sb-label">تعداد اقلام</div>
+        <div class="sb-value" id="sum-count">—</div>
+        </div>
+        <div class="summary-box total">
+        <div class="sb-label">جمع کل فاکتور</div>
+        <div class="sb-value" id="sum-total">— تومان</div>
+        </div>
+    </div>
+    </div>
+
+    <!-- ═══ دکمه‌های عملیات ═══ -->
+    <div class="form-actions" style="animation-delay:.5s">
+    <button type="submit" class="btn-primary" id="submit-btn">ثبت فاکتور</button>
+    <button type="button" class="btn-preview" id="preview-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        پیش‌نمایش جمع کل
+    </button>
+    <button type="button" class="btn-secondary" id="reset-btn">پاک کردن همه</button>
+    </div>
+</form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+'use strict';
+
+// ═══════════════════════════════════════════
+//  بخش ۱: ثابت‌ها و DOM
+// ═══════════════════════════════════════════
+var $ = function (id) { return document.getElementById(id); };
+
+var UNIT_OPTIONS = [
+    { value: 'kg',    label: 'کیلوگرم' },
+    { value: 'g',     label: 'گرم' },
+    { value: 'l',     label: 'لیتر' },
+    { value: 'ml',    label: 'میلی‌لیتر' },
+    { value: 'unit',  label: 'عدد' },
+    { value: 'bunch', label: 'دسته' },
+    { value: 'pack',  label: 'بسته' }
+];
+
+var DEFAULT_CATEGORIES = [
+    { value: 'protein',   label: 'پروتئینی' },
+    { value: 'dairy',     label: 'لبنیات' },
+    { value: 'grain',     label: 'غلات و حبوبات' },
+    { value: 'oil',       label: 'روغن و چربی' },
+    { value: 'spice',     label: 'ادویه و چاشنی' },
+    { value: 'vegetable', label: 'سبزیجات' },
+    { value: 'fruit',     label: 'میوه' },
+    { value: 'canned',    label: 'کنسرو و غذای آماده' },
+    { value: 'beverage',  label: 'نوشیدنی' },
+    { value: 'packaging', label: 'بسته‌بندی' },
+    { value: 'cleaning',  label: 'شستشو و بهداشت' }
+];
+
+// ══ فقط یک بار هر المان را بگیر ══
+var tbody     = $('invoice-tbody');
+var tableWrap = $('table-wrap');
+var emptySt   = $('empty-state');
+var form      = $('invoice-form');
+var badge     = $('badge-count');
+var sumCount  = $('sum-count');
+var sumTotal  = $('sum-total');
+var rowIdx    = 0;
+
+// ── دیباگ ──
+console.log('[Init] tbody:', tbody, '| add-row-btn:', $('add-row-btn'));
+if (!tbody) console.error('⛔ tbody#invoice-tbody پیدا نشد!');
+if (!$('add-row-btn')) console.error('⛔ #add-row-btn پیدا نشد!');
+
+// ═══════════════════════════════════════════
+//  بخش ۲: توابع دسته‌بندی
+// ═══════════════════════════════════════════
+function getCategories() {
+    var saved = localStorage.getItem('invoice_categories');
+    if (saved) {
+        try { return JSON.parse(saved); }
+        catch (e) { /* ignore */ }
+    }
+    return DEFAULT_CATEGORIES.slice();
+}
+
+function saveCategories(list) {
+    localStorage.setItem('invoice_categories', JSON.stringify(list));
+}
+
+function buildCategorySelect(sel) {
+    var cats = getCategories();
+    var html = '<option value="">— انتخاب —</option>';
+    cats.forEach(function (c) {
+        html += '<option value="' + c.value + '"' +
+                (c.value === sel ? ' selected' : '') + '>' +
+                c.label + '</option>';
+    });
+    html += '<option value="__other__"' +
+            (sel === '__other__' ||
+             (sel && sel !== '' && !cats.find(function (x) { return x.value === sel; }))
+             ? ' selected' : '') +
+            '>✏️ سایر (تایپ دلخواه)</option>';
+    return html;
+}
+
+function getCategoryLabel(val) {
+    if (!val) return '—';
+    var cats = getCategories();
+    var found = cats.find(function (c) { return c.value === val; });
+    return found ? found.label : val;
+}
+
+function handleCategoryChange(selectEl) {
+    var td = selectEl.parentElement;
+    var oldInput = td.querySelector('.custom-cat-input');
+    if (oldInput) oldInput.remove();
+
+    if (selectEl.value === '__other__') {
+        var inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'custom-cat-input';
+        inp.placeholder = 'نام دسته‌بندی دلخواه...';
+        inp.style.cssText = 'width:100%;padding:6px 8px;border:1.5px solid var(--accent);border-radius:8px;font-family:inherit;font-size:.82rem;margin-top:4px;text-align:center;outline:none;';
+        td.appendChild(inp);
+        inp.focus();
+        inp.addEventListener('input', function () {
+            selectEl.dataset.customValue = inp.value.trim();
+        });
+        inp.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+        });
+    } else {
+        delete selectEl.dataset.customValue;
+    }
+}
+
+function refreshAllCategorySelects() {
+    document.querySelectorAll('[name="category"]').forEach(function (sel) {
+        var currentVal = sel.value;
+        if (currentVal !== '__other__') {
+            var oldInp = sel.parentElement.querySelector('.custom-cat-input');
+            if (oldInp) oldInp.remove();
+        }
+        sel.innerHTML = buildCategorySelect(currentVal);
+        sel.onchange = function () { handleCategoryChange(this); };
+    });
+}
+
+// ═══════════════════════════════════════════
+//  بخش ۳: توابع کمکی
+// ═══════════════════════════════════════════
+function escapeHtml(str) {
+    var d = document.createElement('div');
+    d.textContent = str || '';
+    return d.innerHTML;
+}
+
+function toPersianNum(n) {
+    var d = '۰۱۲۳۴۵۶۷۸۹';
+    return String(n).replace(/\d/g, function (c) { return d[c]; });
+}
+
+function formatPrice(n) {
+    return toPersianNum(Math.round(n).toLocaleString('en'));
+}
+
+function getCookie(name) {
+    var arr = document.cookie.split(';');
+    for (var i = 0; i < arr.length; i++) {
+        var parts = arr[i].trim().split('=');
+        if (parts[0] === name) return decodeURIComponent(parts.slice(1).join('='));
+    }
+    return '';
+}
+
+function buildUnitSelect(sel) {
+    return UNIT_OPTIONS.map(function (u) {
+        return '<option value="' + u.value + '"' +
+            (u.value === sel ? ' selected' : '') + '>' +
+            u.label + '</option>';
+    }).join('');
+}
+
+function getUnitLabel(val) {
+    var u = UNIT_OPTIONS.find(function (o) { return o.value === val; });
+    return u ? u.label : val;
+}
+
+function addCommas(raw) {
+    if (!raw && raw !== '0') return '';
+    var s = String(raw).replace(/,/g, '');
+    var parts = s.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return parts.join('.');
+}
+
+function stripCommas(s) {
+    return parseFloat(String(s).replace(/,/g, '')) || 0;
+}
+
+function showToast(msg, type) {
+    type = type || 'success';
+    var box = $('toast-box'); if (!box) return;
+    var t = document.createElement('div');
+    t.className = 'toast toast-' + type;
+    t.textContent = msg;
+    box.appendChild(t);
+    requestAnimationFrame(function () { t.classList.add('show'); });
+    setTimeout(function () {
+        t.classList.remove('show');
+        setTimeout(function () { t.remove(); }, 350);
+    }, 3500);
+}
+
+function handleFormattedInput(e, allowDecimal) {
+    var input = e.target;
+    var cursorPos = input.selectionStart;
+    var oldVal = input.value;
+    var raw = allowDecimal ? oldVal.replace(/[^\d.]/g, '') : oldVal.replace(/[^\d]/g, '');
+    if (allowDecimal) {
+        var fi = raw.indexOf('.');
+        if (fi !== -1) raw = raw.substring(0, fi + 1) + raw.substring(fi + 1).replace(/\./g, '');
+    }
+    if (!raw) {
+        input.value = ''; input.dataset.rawValue = '0';
+        var tr = input.closest('tr'); if (tr) calcRow(tr); return;
+    }
+    var formatted = addCommas(raw);
+    input.value = formatted; input.dataset.rawValue = raw;
+    var diff = formatted.length - oldVal.length;
+    input.setSelectionRange(Math.max(0, cursorPos + diff), Math.max(0, cursorPos + diff));
+    var row = input.closest('tr'); if (row) calcRow(row);
+}
+
+function safeBind(id, event, fn) {
+    var el = $(id);
+    if (el) el.addEventListener(event, fn);
+    else console.warn('[safeBind] Element not found: #' + id);
+}
+
+// ═══════════════════════════════════════════
+//  بخش ۴: مودال آپلود اکسل
+// ═══════════════════════════════════════════
+var excelModal  = $('excel-modal');
+var emZone      = $('em-upload-zone');
+var emFileInput = $('em-file-input');
+var emDoneBtn   = $('em-done');
+
+safeBind('btn-open-excel', 'click', function () {
+    if (excelModal) { excelModal.classList.add('active'); resetExcelModal(); }
+});
+
+function resetExcelModal() {
+    if (!emZone) return;
+    emZone.classList.remove('has-file', 'loading', 'drag-over');
+    var fn = $('em-file-name'); if (fn) fn.textContent = '';
+    if (emFileInput) emFileInput.value = '';
+    if (emDoneBtn) emDoneBtn.classList.remove('show');
+}
+
+safeBind('em-close', 'click', function () {
+    if (excelModal) excelModal.classList.remove('active');
+});
+if (excelModal) excelModal.addEventListener('click', function (e) {
+    if (e.target === excelModal) excelModal.classList.remove('active');
+});
+
+if (emZone) {
+    emZone.addEventListener('click', function (e) {
+        if (!e.target.closest('.spinner') && !e.target.closest('.em-file')) {
+            if (emFileInput) emFileInput.click();
+        }
+    });
+    emZone.addEventListener('dragover', function (e) { e.preventDefault(); emZone.classList.add('drag-over'); });
+    emZone.addEventListener('dragleave', function () { emZone.classList.remove('drag-over'); });
+    emZone.addEventListener('drop', function (e) {
+        e.preventDefault(); emZone.classList.remove('drag-over');
+        if (e.dataTransfer.files[0]) uploadExcel(e.dataTransfer.files[0]);
+    });
+}
+if (emFileInput) emFileInput.addEventListener('change', function (e) {
+    if (e.target.files[0]) uploadExcel(e.target.files[0]);
+});
+
+function uploadExcel(file) {
+    var ext = file.name.split('.').pop().toLowerCase();
+    if (['xlsx', 'xls', 'csv'].indexOf(ext) === -1) { showToast('فرمت فایل مجاز نیست.', 'error'); return; }
+    if (emZone) emZone.classList.add('loading');
+    var fd = new FormData(); fd.append('file', file);
+    fetch('/api/invoices/parse-excel/', { method: 'POST', body: fd, headers: { 'X-CSRFToken': getCookie('csrftoken') } })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+        if (data.success) {
+            if (tbody) tbody.innerHTML = '';
+            rowIdx = 0;
+            data.items.forEach(function (item) { addRow(item); });
+            if (data.supplier_name) {
+                var _si = $('supplier-name');
+                if (_si) {
+                    _si.value = data.supplier_name;
+                    _si.classList.remove('supplier-warning', 'supplier-found');
+                    if (data.supplier_id) {
+                        _si.dataset.supplierId = String(data.supplier_id);
+                        _si.classList.add('supplier-found');
+                        showToast('تأمین‌کننده «' + data.supplier_name + '» شناسایی شد.');
+                    } else {
+                        _si.dataset.supplierId = '';
+                        _si.classList.add('supplier-warning');
+                        showToast('«' + data.supplier_name + '» در لیست نیست.', 'error');
+                    }
+                }
+            }
+            if (emZone) { emZone.classList.remove('loading'); emZone.classList.add('has-file'); }
+            var fileName = $('em-file-name');
+            if (fileName) fileName.textContent = file.name + ' (' + data.count + ' کالا)';
+            if (emDoneBtn) emDoneBtn.classList.add('show');
+            showToast(toPersianNum(data.count) + ' کالا از فایل خوانده شد.');
+        } else {
+            if (emZone) emZone.classList.remove('loading');
+            showToast(data.error || 'خطا', 'error');
+        }
+    })
+    .catch(function (err) {
+        console.error('Upload error:', err);
+        if (emZone) emZone.classList.remove('loading');
+        showToast('خطا در ارتباط با سرور.', 'error');
+    });
+}
+
+if (emDoneBtn) emDoneBtn.addEventListener('click', function () {
+    if (excelModal) excelModal.classList.remove('active');
+});
+
+// ═══════════════════════════════════════════
+//  بخش ۵: Autocomplete
+// ═══════════════════════════════════════════
+function debounce(fn, delay) {
+    var t;
+    return function () {
+        var args = arguments, ctx = this;
+        clearTimeout(t); t = setTimeout(function () { fn.apply(ctx, args); }, delay);
+    };
+}
+
+function createDropdown() {
+    var dd = document.createElement('ul');
+    dd.className = 'autocomplete-dropdown';
+    dd.style.cssText = 'position:fixed;display:none;z-index:999999;background:#fff;border:1.5px solid #e8d5b5;border-radius:10px;box-shadow:0 4px 12px rgba(41,37,36,.15);list-style:none;margin:0;padding:4px 0;max-height:200px;overflow-y:auto;font-family:Vazirmatn,sans-serif;font-size:.85rem;direction:rtl;';
+    document.body.appendChild(dd);
+    return dd;
+}
+
+function positionDropdown(dd, input) {
+    var r = input.getBoundingClientRect();
+    dd.style.top = (r.bottom + 4) + 'px';
+    dd.style.left = r.left + 'px';
+    dd.style.width = r.width + 'px';
+}
+
+function hideDropdown() {
+    document.querySelectorAll('.autocomplete-dropdown').forEach(function (dd) {
+        dd.style.display = 'none'; dd.innerHTML = '';
+    });
+}
+
+function showDropdown(dd, items, input) {
+    dd.innerHTML = '';
+    if (!items.length) { dd.style.display = 'none'; return; }
+    items.forEach(function (item) {
+        var li = document.createElement('li');
+        li.textContent = item.name;
+        li.style.cssText = 'padding:8px 14px;cursor:pointer;color:#292524;text-align:right;transition:background .15s;';
+        li.addEventListener('mouseenter', function () { li.style.background = '#fdf6ec'; });
+        li.addEventListener('mouseleave', function () { li.style.background = ''; });
+        li.addEventListener('mousedown', function (e) {
+            e.preventDefault(); input.value = item.name;
+            dd.style.display = 'none'; dd.innerHTML = '';
+        });
+        dd.appendChild(li);
+    });
+    positionDropdown(dd, input);
+    dd.style.display = 'block';
+}
+
+function attachAutocomplete(input) {
+    if (!input || input.dataset.acAttached) return;
+    input.dataset.acAttached = 'true';
+    var dd = createDropdown();
+    var doSearch = debounce(function () {
+        var q = input.value.trim();
+        if (q.length < 1) { dd.style.display = 'none'; dd.innerHTML = ''; return; }
+        fetch('/api/raw-material-suggestions/?q=' + encodeURIComponent(q))
+            .then(function (r) { return r.json(); })
+            .then(function (items) { showDropdown(dd, items, input); })
+            .catch(function () { dd.style.display = 'none'; });
+    }, 250);
+    input.addEventListener('input', doSearch);
+    input.addEventListener('blur', function () { setTimeout(function () { dd.style.display = 'none'; dd.innerHTML = ''; }, 250); });
+    input.addEventListener('keydown', function (e) { if (e.key === 'Escape') { dd.style.display = 'none'; dd.innerHTML = ''; } });
+}
+
+document.addEventListener('scroll', hideDropdown, true);
+
+// ═══════════════════════════════════════════
+//  بخش ۶: منطق جدول اقلام
+// ═══════════════════════════════════════════
+function addRow(data) {
+    if (!tbody) {
+        // fallback اگر tbody هنوز پیدا نشده
+        tbody = $('invoice-tbody');
+    }
+    if (!tbody) {
+        console.error('⛔ addRow: tbody پیدا نشد!');
+        return;
+    }
+
+    data = data || {};
+    var tr = document.createElement('tr');
+    tr.className = 'item-row new-row';
+    tr.dataset.idx = rowIdx++;
+
+    var isTotal = data.item_name && data.item_name.trim().indexOf('جمع کل') !== -1;
+    var rawQ  = data.quantity   || '';
+    var dispQ = rawQ ? addCommas(rawQ) : '';
+    var rawP  = data.unit_price || '';
+    var dispP = rawP ? addCommas(rawP) : '';
+    var safeName = escapeHtml(data.item_name || '');
+
+    var catVal = data.category || '';
+    var cats = getCategories();
+    var isCustom = false;
+    if (catVal && !cats.find(function (c) { return c.value === catVal; })) {
+        isCustom = true;
+    }
+
+    var catHtml = '<td>' +
+        '<select name="category">' + buildCategorySelect(isCustom ? '__other__' : catVal) + '</select>';
+    if (isCustom) {
+        catHtml += '<input type="text" class="custom-cat-input" ' +
+            'placeholder="نام دسته‌بندی دلخواه..." ' +
+            'value="' + escapeHtml(catVal) + '" ' +
+            'style="width:100%;padding:6px 8px;border:1.5px solid var(--accent);border-radius:8px;font-family:inherit;font-size:.82rem;margin-top:4px;text-align:center;outline:none;">';
+    }
+    catHtml += '</td>';
+
+    tr.innerHTML =
+        '<td class="row-num"></td>' +
+        '<td><input type="text" name="item_name" value="' + safeName + '" placeholder="نام کالا" required autocomplete="off"></td>' +
+        catHtml +
+        '<td><input type="text" name="quantity" value="' + dispQ + '" placeholder="—" inputmode="decimal" data-raw-value="' + rawQ + '" autocomplete="off"></td>' +
+        '<td><select name="unit">' + buildUnitSelect(data.unit || 'unit') + '</select></td>' +
+        '<td><input type="text" name="unit_price" value="' + dispP + '" placeholder="—" inputmode="numeric" data-raw-value="' + rawP + '" autocomplete="off"></td>' +
+        '<td class="line-total">—</td>' +
+        '<td><button type="button" class="btn-del' + (isTotal ? ' hidden' : '') + '" title="حذف">×</button></td>';
+
+    if (isTotal) {
+        tr.classList.add('total-row');
+        ['unit', 'category', 'quantity', 'unit_price'].forEach(function (name) {
+            var el = tr.querySelector('[name="' + name + '"]');
+            if (el && el.parentElement) el.parentElement.innerHTML = '<span style="color:var(--text-sec);font-weight:500">—</span>';
+        });
+        var nameInput = tr.querySelector('[name="item_name"]');
+        if (nameInput) nameInput.setAttribute('readonly', 'true');
+    } else {
+        tr.querySelector('.btn-del').addEventListener('click', function () {
+            tr.style.transition = 'opacity .25s, transform .25s';
+            tr.style.opacity = '0'; tr.style.transform = 'translateX(30px)';
+            setTimeout(function () { tr.remove(); refresh(); }, 250);
+        });
+        tr.querySelector('[name="quantity"]').addEventListener('input', function (e) { handleFormattedInput(e, true); });
+        tr.querySelector('[name="unit_price"]').addEventListener('input', function (e) { handleFormattedInput(e, false); });
+        attachAutocomplete(tr.querySelector('[name="item_name"]'));
+        var catSelect = tr.querySelector('[name="category"]');
+        if (catSelect) {
+            catSelect.addEventListener('change', function () { handleCategoryChange(this); });
+            if (isCustom) {
+                var customInp = tr.querySelector('.custom-cat-input');
+                if (customInp) {
+                    customInp.addEventListener('input', function () { catSelect.dataset.customValue = this.value.trim(); });
+                    customInp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); this.blur(); } });
+                }
+            }
+        }
+    }
+
+    tbody.appendChild(tr);
+    moveTotalRowToBottom();
+    if (!isTotal) calcRow(tr);
+    refresh();
+}
+
+function moveTotalRowToBottom() {
+    if (!tbody) return;
+    var tr = tbody.querySelector('tr.total-row');
+    if (tr) tbody.appendChild(tr);
+}
+
+function calcRow(tr) {
+    var qInput = tr.querySelector('[name="quantity"]');
+    var pInput = tr.querySelector('[name="unit_price"]');
+    var q = qInput ? stripCommas(qInput.value) : 0;
+    var p = pInput ? Math.round(stripCommas(pInput.value)) : 0;
+    var lt = tr.querySelector('.line-total');
+    if (lt) lt.textContent = (q * p) > 0 ? formatPrice(q * p) : '—';
+    updateSummary();
+}
+
+function refresh() {
+    var idx = 0;
+    document.querySelectorAll('.item-row').forEach(function (tr) {
+        var rn = tr.querySelector('.row-num');
+        if (!tr.classList.contains('total-row')) {
+            if (rn) rn.textContent = toPersianNum(++idx);
+        } else {
+            if (rn) rn.textContent = '';
+        }
+    });
+    updateSummary();
+    var has = tbody ? tbody.children.length > 0 : false;
+    if (tableWrap) tableWrap.style.display = has ? '' : 'none';
+    if (emptySt)   emptySt.style.display   = has ? 'none' : '';
+}
+
+function updateSummary() {
+    var total = 0;
+    document.querySelectorAll('.item-row').forEach(function (tr) {
+        if (tr.classList.contains('total-row')) return;
+        var qInput = tr.querySelector('[name="quantity"]');
+        var pInput = tr.querySelector('[name="unit_price"]');
+        if (!qInput || !pInput) return;
+        total += stripCommas(qInput.value) * Math.round(stripCommas(pInput.value));
+    });
+    var count = document.querySelectorAll('.item-row:not(.total-row)').length;
+    if (sumCount) sumCount.textContent = count > 0 ? toPersianNum(count) : '—';
+    if (sumTotal) sumTotal.textContent = total > 0 ? formatPrice(total) + ' تومان' : '— تومان';
+    if (badge)    badge.textContent    = count > 0 ? toPersianNum(count) + ' قلم' : '— قلم';
+    if (tbody) {
+        var totalRow = tbody.querySelector('tr.total-row');
+        if (totalRow) {
+            var lt = totalRow.querySelector('.line-total');
+            if (lt) { lt.textContent = total > 0 ? formatPrice(total) : '—'; lt.style.fontSize = '1rem'; lt.style.fontWeight = '800'; }
+        }
+    }
+    if (sumTotal) { sumTotal.classList.remove('pulse'); void sumTotal.offsetWidth; sumTotal.classList.add('pulse'); }
+}
+
+// ═══════════════════════════════════════════
+//  بخش ۷: Supplier Combobox
+// ═══════════════════════════════════════════
+var supInput    = $('supplier-name');
+var supDropdown = $('supplier-dropdown');
+var supModal    = $('supplier-modal');
+var btnAdd      = $('btn-add-supplier');
+var supTimer    = null;
+var supHL       = -1;
+
+if (supModal) {
+    var smClose = $('sm-close'), smCancel = $('sm-cancel'), smSave = $('sm-save');
+    if (smClose)  smClose.addEventListener('click', closeSupModal);
+    if (smCancel) smCancel.addEventListener('click', closeSupModal);
+    supModal.addEventListener('click', function (e) { if (e.target === supModal) closeSupModal(); });
+    if (smSave) smSave.addEventListener('click', function () {
+        var nameField = $('sm-name');
+        var name = nameField ? nameField.value.trim() : '';
+        if (!name) { showToast('نام شرکت الزامی است.', 'error'); if (nameField) nameField.focus(); return; }
+        smSave.disabled = true; smSave.textContent = 'در حال ذخیره...';
+        var data = new FormData();
+        data.append('name', name);
+        data.append('phone',          ($('sm-phone')   || {}).value || '');
+        data.append('contact_person', ($('sm-contact') || {}).value || '');
+        data.append('address',        ($('sm-address') || {}).value || '');
+        data.append('description',    ($('sm-desc')    || {}).value || '');
+        var csrf = getCookie('csrftoken') || '';
+        fetch('/api/suppliers/save/', { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: data })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (result) {
+            smSave.disabled = false; smSave.textContent = 'ذخیره تأمین‌کننده';
+            if (result.id) {
+                selectSupplier({ id: result.id, name: result.name, phone: result.phone || '', address: result.address || '', contact_person: result.contact_person || '' });
+                closeSupModal(); showToast('تأمین‌کننده «' + name + '» ثبت شد.');
+            } else if (result.error) { showToast('خطا: ' + result.error, 'error'); }
+            else if (result.errors) {
+                var msgs = []; for (var k in result.errors) { if (result.errors.hasOwnProperty(k)) msgs.push(result.errors[k].join('، ')); }
+                showToast('خطا: ' + msgs.join(' | '), 'error');
+            }
+        })
+        .catch(function () { smSave.disabled = false; smSave.textContent = 'ذخیره تأمین‌کننده'; showToast('خطا در ارتباط با سرور.', 'error'); });
+    });
+}
+
+if (btnAdd) btnAdd.addEventListener('click', function () { openSupModal(supInput ? supInput.value.trim() : ''); });
+
+if (supInput) {
+    supInput.addEventListener('input', function () {
+        clearTimeout(supTimer); var q = this.value.trim(); supInput.dataset.supplierId = '';
+        if (q.length < 1) { hideSupDD(); return; }
+        supTimer = setTimeout(function () {
+            fetch('/api/suppliers/suggestions/?q=' + encodeURIComponent(q))
+                .then(function (r) { return r.json(); })
+                .then(function (items) { showSupDD(items, q); })
+                .catch(function () { hideSupDD(); });
+        }, 200);
+    });
+    supInput.addEventListener('keydown', function (e) {
+        if (!supDropdown) return;
+        var items = supDropdown.querySelectorAll('li[data-id]');
+        if (!items.length) return;
+        if (e.key === 'ArrowDown') { e.preventDefault(); supHL = Math.min(supHL + 1, items.length - 1); highlightSup(items); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); supHL = Math.max(supHL - 1, 0); highlightSup(items); }
+        else if (e.key === 'Enter' && supHL >= 0) { e.preventDefault(); var li = items[supHL]; selectSupplier({ id: li.dataset.id, name: li.dataset.name, phone: li.dataset.phone, address: li.dataset.address, contact_person: li.dataset.contact }); }
+        else if (e.key === 'Escape') { hideSupDD(); }
+    });
+}
+
+function highlightSup(items) { items.forEach(function (li, i) { li.classList.toggle('supplier-highlight', i === supHL); }); if (items[supHL]) items[supHL].scrollIntoView({ block: 'nearest' }); }
+
+function showSupDD(items, q) {
+    if (!supDropdown) return;
+    supDropdown.innerHTML = ''; supHL = -1;
+    if (!items.length) {
+        var li = document.createElement('li'); li.className = 'sd-empty';
+        li.innerHTML = 'تأمین‌کننده‌ای پیدا نشد — <a href="#" style="color:var(--accent);font-weight:600;text-decoration:none">افزودن جدید</a>';
+        li.querySelector('a').addEventListener('click', function (e) { e.preventDefault(); openSupModal(q); });
+        supDropdown.appendChild(li); supDropdown.classList.add('show'); return;
+    }
+    items.forEach(function (item) {
+        var li = document.createElement('li');
+        li.dataset.id = item.id; li.dataset.name = item.name; li.dataset.phone = item.phone || ''; li.dataset.address = item.address || ''; li.dataset.contact = item.contact_person || '';
+        var safeQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        var highlighted = item.name.replace(new RegExp('(' + safeQ + ')', 'gi'), '<strong style="color:var(--accent)">$1</strong>');
+        var infoParts = [];
+        if (item.phone) infoParts.push('📞 ' + escapeHtml(item.phone));
+        if (item.contact_person) infoParts.push('👤 ' + escapeHtml(item.contact_person));
+        if (item.address) infoParts.push('📍 ' + escapeHtml(item.address));
+        li.innerHTML = '<div class="sd-name">' + highlighted + '</div>' + (infoParts.length ? '<div class="sd-info">' + infoParts.join(' — ') + '</div>' : '');
+        li.addEventListener('mousedown', function (e) { e.preventDefault(); selectSupplier(item); });
+        supDropdown.appendChild(li);
+    });
+    supDropdown.classList.add('show');
+}
+
+function selectSupplier(item) {
+    if (supInput) { supInput.value = item.name; supInput.dataset.supplierId = item.id; supInput.classList.remove('supplier-warning'); supInput.classList.add('supplier-found'); }
+    hideSupDD();
+    var d = []; if (item.phone) d.push('تلفن: ' + item.phone); if (item.contact_person) d.push('مسئول: ' + item.contact_person); if (item.address) d.push('آدرس: ' + item.address);
+    if (d.length) showToast(d.join(' | '), 'success');
+}
+
+function hideSupDD() { if (!supDropdown) return; supDropdown.classList.remove('show'); supDropdown.innerHTML = ''; supHL = -1; }
+document.addEventListener('click', function (e) { if (!e.target.closest('.field') && !e.target.closest('#supplier-dropdown')) hideSupDD(); });
+
+function openSupModal(prefillName) {
+    var modal = $('supplier-modal'); if (!modal) return;
+    var nf = $('sm-name'); if (nf) nf.value = prefillName || '';
+    ['sm-phone', 'sm-contact', 'sm-address', 'sm-desc'].forEach(function (id) { var el = $(id); if (el) el.value = ''; });
+    modal.classList.add('active');
+    setTimeout(function () { if (nf) nf.focus(); }, 100);
+}
+
+function closeSupModal() { var m = $('supplier-modal'); if (m) m.classList.remove('active'); }
+
+// ═══════════════════════════════════════════
+//  بخش ۸: مودال مدیریت دسته‌بندی‌ها
+// ═══════════════════════════════════════════
+var catModal    = $('cat-modal');
+var catList     = $('cat-list');
+var catNewInput = $('cat-new-input');
+
+safeBind('btn-manage-cats', 'click', function () { openCatModal(); });
+safeBind('cat-close',       'click', closeCatModal);
+safeBind('cat-close-btn',   'click', closeCatModal);
+safeBind('cat-reset-btn',   'click', function () {
+    if (!confirm('دسته‌بندی‌ها به حالت پیش‌فرض برمی‌گردند؟')) return;
+    localStorage.removeItem('invoice_categories');
+    renderCatList(); refreshAllCategorySelects();
+    showToast('دسته‌بندی‌ها به پیش‌فرض برگشت.');
+});
+safeBind('cat-add-btn', 'click', addNewCategory);
+
+if (catNewInput) catNewInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); addNewCategory(); } });
+if (catModal) catModal.addEventListener('click', function (e) { if (e.target === catModal) closeCatModal(); });
+
+function openCatModal() { if (!catModal) return; renderCatList(); catModal.classList.add('active'); setTimeout(function () { if (catNewInput) catNewInput.focus(); }, 100); }
+function closeCatModal() { if (catModal) catModal.classList.remove('active'); }
+
+function renderCatList() {
+    if (!catList) return;
+    catList.innerHTML = '';
+    var cats = getCategories();
+    if (!cats.length) { catList.innerHTML = '<p style="text-align:center;color:var(--text-sec);padding:20px">دسته‌بندی‌ای وجود ندارد</p>'; return; }
+    cats.forEach(function (cat, idx) {
+        var div = document.createElement('div');
+        div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)';
+        div.innerHTML = '<span style="flex:1;font-size:.9rem;font-weight:500;color:var(--text)">' + escapeHtml(cat.label) + '</span>' +
+            '<span style="font-size:.72rem;color:var(--text-sec);font-family:monospace">' + escapeHtml(cat.value) + '</span>' +
+            '<button type="button" data-idx="' + idx + '" style="border:none;background:transparent;color:#dc2626;cursor:pointer;font-size:1.2rem;padding:4px 8px;border-radius:6px" title="حذف">×</button>';
+        div.querySelector('button').addEventListener('click', function () { removeCategory(parseInt(this.dataset.idx)); });
+        catList.appendChild(div);
+    });
+}
+
+function addNewCategory() {
+    if (!catNewInput) return;
+    var label = catNewInput.value.trim();
+    if (!label) { showToast('نام دسته‌بندی را وارد کنید.', 'error'); catNewInput.focus(); return; }
+    var value = label.replace(/\s+/g, '_').toLowerCase().replace(/[^\w\u0600-\u06FF]/g, '');
+    if (!value) value = 'cat_' + Date.now();
+    var cats = getCategories();
+    if (cats.find(function (c) { return c.label === label; })) { showToast('این دسته‌بندی قبلاً وجود دارد.', 'error'); return; }
+    cats.push({ value: value, label: label });
+    saveCategories(cats); catNewInput.value = '';
+    renderCatList(); refreshAllCategorySelects();
+    showToast('دسته‌بندی «' + label + '» اضافه شد.');
+}
+
+function removeCategory(idx) {
+    var cats = getCategories();
+    if (idx < 0 || idx >= cats.length) return;
+    var removed = cats.splice(idx, 1)[0];
+    saveCategories(cats); renderCatList(); refreshAllCategorySelects();
+    showToast('«' + removed.label + '» حذف شد.');
+}
+
+// ═══════════════════════════════════════════
+//  بخش ۹: مودال پیش‌نمایش
+// ═══════════════════════════════════════════
+var previewModal = $('preview-modal');
+var previewTbody = $('preview-tbody');
+var previewSource = '';
+
+function readCategoryValue(catEl) {
+    if (!catEl) return '';
+    if (catEl.value === '__other__') {
+        var customInp = catEl.parentElement.querySelector('.custom-cat-input');
+        return customInp ? customInp.value.trim() : 'سایر';
+    }
+    return catEl.value;
+}
+
+function openPreview(source) {
+    previewSource = source || 'preview';
+    var rows = document.querySelectorAll('.item-row');
+    if (!rows.length) { showToast('حداقل یک کالا اضافه کنید.', 'error'); return false; }
+    if (previewSource === 'submit') {
+        var ok = true;
+        rows.forEach(function (tr) {
+            var nm = tr.querySelector('[name="item_name"]');
+            if (nm && nm.value.trim() === 'جمع کل') return;
+            var q = tr.querySelector('[name="quantity"]'), p = tr.querySelector('[name="unit_price"]');
+            var qv = q ? (q.dataset.rawValue || stripCommas(q.value)) : 0;
+            var pv = p ? (p.dataset.rawValue || stripCommas(p.value)) : 0;
+            if (!nm || !nm.value.trim() || !qv || !pv) ok = false;
+        });
+        if (!ok) { showToast('لطفاً همه فیلدها را کامل کنید.', 'error'); return false; }
+    }
+    var supplier = ($('supplier-name') || {}).value || '—';
+    var invNum = (document.querySelector('[name="invoice_number"]') || {}).value || '—';
+    var invDate = ($('date-input') || {}).value || '—';
+    var pi = $('preview-info');
+    if (pi) pi.innerHTML = '<div class="pi-item"><span class="pi-label">تأمین‌کننده:</span><span class="pi-value">' + escapeHtml(supplier) + '</span></div><div class="pi-item"><span class="pi-label">شماره فاکتور:</span><span class="pi-value">' + escapeHtml(invNum) + '</span></div><div class="pi-item"><span class="pi-label">تاریخ:</span><span class="pi-value">' + escapeHtml(invDate) + '</span></div>';
+    if (previewTbody) previewTbody.innerHTML = '';
+    var gt = 0, cnt = 0;
+    rows.forEach(function (tr) {
+        var nm = (tr.querySelector('[name="item_name"]') || {}).value || '';
+        if (nm === 'جمع کل') return;
+        var qty = stripCommas((tr.querySelector('[name="quantity"]') || {}).value);
+        var unit = (tr.querySelector('[name="unit"]') || {}).value || '';
+        var price = stripCommas((tr.querySelector('[name="unit_price"]') || {}).value);
+        var cat = readCategoryValue(tr.querySelector('[name="category"]'));
+        var lt = qty * price; gt += lt; cnt++;
+        var r = document.createElement('tr');
+        r.innerHTML = '<td>' + toPersianNum(cnt) + '</td><td class="p-name">' + escapeHtml(nm || '—') + '</td><td class="p-cat">' + escapeHtml(cat ? getCategoryLabel(cat) : '—') + '</td><td>' + (qty ? toPersianNum(qty) : '—') + '</td><td>' + escapeHtml(getUnitLabel(unit)) + '</td><td class="p-total">' + (lt > 0 ? formatPrice(lt) + ' تومان' : '—') + '</td>';
+        if (previewTbody) previewTbody.appendChild(r);
+    });
+    var pt = $('preview-total'); if (pt) pt.textContent = gt > 0 ? formatPrice(gt) + ' تومان' : '— تومان';
+    var pc = $('preview-count'); if (pc) pc.textContent = toPersianNum(cnt) + ' قلم کالا';
+    var backBtn = $('modal-back-btn'), confBtn = $('modal-confirm-btn');
+    if (previewSource === 'submit') { if (backBtn) backBtn.textContent = 'بازگشت و ویرایش'; if (confBtn) confBtn.style.display = ''; }
+    else { if (backBtn) backBtn.textContent = 'بستن'; if (confBtn) confBtn.style.display = 'none'; }
+    if (previewModal) previewModal.classList.add('active');
+    return true;
+}
+
+function closePreview() { if (previewModal) previewModal.classList.remove('active'); }
+
+safeBind('modal-close-btn', 'click', closePreview);
+safeBind('modal-back-btn', 'click', closePreview);
+if (previewModal) previewModal.addEventListener('click', function (e) { if (e.target === previewModal) closePreview(); });
+
+safeBind('modal-confirm-btn', 'click', function () {
+    document.querySelectorAll('.item-row').forEach(function (tr) {
+        var q = tr.querySelector('[name="quantity"]'), p = tr.querySelector('[name="unit_price"]');
+        if (q && q.dataset.rawValue) q.value = q.dataset.rawValue;
+        if (p && p.dataset.rawValue) p.value = p.dataset.rawValue;
+    });
+    closePreview(); if (form) form.submit();
+});
+
+safeBind('preview-btn', 'click', function () { openPreview('preview'); });
+
+// ═══════════════════════════════════════════
+//  بخش ۱۰: رویدادهای سراسری
+// ═══════════════════════════════════════════
+safeBind('add-row-btn', 'click', function () { addRow(); });
+
+if (form) form.addEventListener('submit', function (e) { e.preventDefault(); openPreview('submit'); });
+
+safeBind('reset-btn', 'click', function () {
+    if (!confirm('آیا مطمئن هستید؟')) return;
+    if (tbody) tbody.innerHTML = ''; rowIdx = 0; refresh(); showToast('پاک شد.');
+});
+
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { closePreview(); closeSupModal(); closeCatModal(); if (excelModal) excelModal.classList.remove('active'); }
+});
+
+// ═══════════════════════════════════════════
+//  بخش ۱۱: دانلود قالب اکسل
+// ═══════════════════════════════════════════
+safeBind('em-download-tmpl', 'click', function () {
+    if (typeof ExcelJS === 'undefined') { showToast('کتابخانه ExcelJS بارگذاری نشده.', 'error'); return; }
+    try {
+        var wb = new ExcelJS.Workbook();
+        var ws = wb.addWorksheet('اقلام فاکتور', { views: [{ rightToLeft: true }] });
+        var GOLD = 'B5853A', GL = 'FDF6EC', HB = 'F5EDE0', W = 'FFFFFF', D = '292524', GR = '78716C', GGB = 'F0FDF4', GN = '16A34A';
+        var bt = { top: { style: 'thin', color: { argb: 'FFE7E5E4' } }, bottom: { style: 'thin', color: { argb: 'FFE7E5E4' } }, right: { style: 'thin', color: { argb: 'FFE7E5E4' } }, left: { style: 'thin', color: { argb: 'FFE7E5E4' } } };
+        var ba = { top: { style: 'medium', color: { argb: 'FF' + GOLD } }, bottom: { style: 'medium', color: { argb: 'FF' + GOLD } }, right: { style: 'thin', color: { argb: 'FFE8D5B5' } }, left: { style: 'thin', color: { argb: 'FFE8D5B5' } } };
+        ws.columns = [{ width: 3 }, { width: 30 }, { width: 18 }, { width: 12 }, { width: 12 }, { width: 22 }, { width: 20 }];
+        ws.getRow(1).height = 8;
+        ws.mergeCells('B2:G2');
+        var tc = ws.getCell('B2'); tc.value = '📋 فاکتور خرید مواد اولیه'; tc.font = { name: 'Vazirmatn', size: 16, bold: true, color: { argb: 'FF' + D } }; tc.alignment = { horizontal: 'center', vertical: 'middle' }; tc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + GL } };
+        ws.getRow(2).height = 42;
+        for (var c = 2; c <= 7; c++) { ws.getRow(2).getCell(c).border = { bottom: { style: 'medium', color: { argb: 'FF' + GOLD } } }; }
+        ws.getRow(3).height = 10;
+        var hl = ['', 'نام کالا', 'دسته‌بندی', 'مقدار', 'واحد', 'قیمت واحد (ریال)', 'قیمت کل (ریال)'];
+        var hr = ws.getRow(4); hr.height = 36;
+        hl.forEach(function (l, i) { if (!l) return; var cell = hr.getCell(i + 1); cell.value = l; cell.font = { name: 'Vazirmatn', size: 11, bold: true, color: { argb: 'FF' + GOLD } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + HB } }; cell.alignment = { horizontal: 'center', vertical: 'middle' }; cell.border = ba; });
+        var sd = [{ n: 'برنج ایرانی هاشمی', cat: 'grain', q: 10, u: 'kg', p: 85000 }, { n: 'روغن مایع آفتابگردان', cat: 'oil', q: 5, u: 'l', p: 120000 }, { n: 'رب گوجه فرنگی', cat: 'canned', q: 3, u: 'pack', p: 45000 }, { n: 'پیاز زرد', cat: 'vegetable', q: 20, u: 'kg', p: 15000 }, { n: 'سینه مرغ', cat: 'protein', q: 8, u: 'kg', p: 95000 }, { n: 'تخم‌مرغ شانه‌ای', cat: 'protein', q: 6, u: 'unit', p: 78000 }, { n: 'ماکارونی رشته‌ای', cat: 'grain', q: 12, u: 'pack', p: 28000 }];
+        sd.forEach(function (it, idx) {
+            var r = 5 + idx, row = ws.getRow(r); row.height = 30; var bg = idx % 2 === 0 ? W : 'FAF8F5';
+            row.getCell(1).value = idx + 1; row.getCell(1).font = { name: 'Vazirmatn', size: 9, color: { argb: 'FF' + GR } }; row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
+            row.getCell(2).value = it.n; row.getCell(2).font = { name: 'Vazirmatn', size: 10, color: { argb: 'FF' + D } }; row.getCell(2).alignment = { horizontal: 'right', vertical: 'middle' };
+            row.getCell(3).value = it.cat; row.getCell(3).font = { name: 'Vazirmatn', size: 9, color: { argb: 'FF' + GR } }; row.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
+            row.getCell(4).value = it.q; row.getCell(4).font = { name: 'Vazirmatn', size: 10, color: { argb: 'FF' + D } }; row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
+            row.getCell(5).value = it.u; row.getCell(5).font = { name: 'Vazirmatn', size: 10, color: { argb: 'FF' + GR } }; row.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' };
+            row.getCell(6).value = it.p; row.getCell(6).font = { name: 'Vazirmatn', size: 10, color: { argb: 'FF' + D } }; row.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' }; row.getCell(6).numFmt = '#,##0';
+            row.getCell(7).value = { formula: 'D' + r + '*F' + r }; row.getCell(7).font = { name: 'Vazirmatn', size: 10, bold: true, color: { argb: 'FF' + GOLD } }; row.getCell(7).alignment = { horizontal: 'center', vertical: 'middle' }; row.getCell(7).numFmt = '#,##0';
+            for (var cc = 1; cc <= 7; cc++) { row.getCell(cc).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + bg } }; row.getCell(cc).border = bt; }
+        });
+        ws.getRow(12).height = 8; ws.mergeCells('B13:F13');
+        var sl = ws.getCell('B13'); sl.value = '💰 جمع کل فاکتور'; sl.font = { name: 'Vazirmatn', size: 13, bold: true, color: { argb: 'FF' + D } }; sl.alignment = { horizontal: 'right', vertical: 'middle' }; sl.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + GGB } }; sl.border = { top: { style: 'medium', color: { argb: 'FF' + GN } }, bottom: { style: 'medium', color: { argb: 'FF' + GN } }, right: { style: 'medium', color: { argb: 'FF' + GN } } };
+        var sv = ws.getCell('G13'); sv.value = { formula: 'SUM(G5:G11)' }; sv.font = { name: 'Vazirmatn', size: 14, bold: true, color: { argb: 'FF' + GN } }; sv.alignment = { horizontal: 'center', vertical: 'middle' }; sv.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + GGB } }; sv.border = { top: { style: 'medium', color: { argb: 'FF' + GN } }, bottom: { style: 'medium', color: { argb: 'FF' + GN } }, left: { style: 'thin', color: { argb: 'FF' + GN } } }; sv.numFmt = '#,##0';
+        ws.getRow(13).height = 40; ws.getRow(14).height = 12;
+        ws.mergeCells('B15:G15');
+        var gt2 = ws.getCell('B15'); gt2.value = '💡 راهنمای پر کردن فایل'; gt2.font = { name: 'Vazirmatn', size: 11, bold: true, color: { argb: 'FF' + GOLD } }; gt2.alignment = { horizontal: 'right', vertical: 'middle' }; ws.getRow(15).height = 30;
+        ['• ستون واحد فقط مقادیر: kg | g | l | ml | unit | bunch | pack', '• ستون دسته‌بندی: protein | dairy | grain | oil | spice | vegetable | fruit | canned | beverage | packaging | cleaning', '• فایل پر شده را در همین پنجره بارگذاری کنید', '• قیمت کل به‌صورت خودکار محاسبه می‌شود'].forEach(function (text, gi) { var rn = 16 + gi; ws.mergeCells('B' + rn + ':G' + rn); var cell = ws.getCell('B' + rn); cell.value = text; cell.font = { name: 'Vazirmatn', size: 9.5, color: { argb: 'FF' + GR } }; cell.alignment = { horizontal: 'right', vertical: 'middle' }; ws.getRow(rn).height = 24; });
+        wb.xlsx.writeBuffer().then(function (buf) {
+            var bl = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            var u = URL.createObjectURL(bl); var a = document.createElement('a'); a.href = u; a.download = 'قالب_فاکتور_خرید.xlsx'; a.click(); URL.revokeObjectURL(u);
+            showToast('فایل قالب دانلود شد.');
+        });
+    } catch (err) { console.error(err); showToast('خطا در ساخت فایل اکسل.', 'error'); }
+});
+
+console.log('✅ Invoice script loaded');
+});
+</script>
+{% endblock %}

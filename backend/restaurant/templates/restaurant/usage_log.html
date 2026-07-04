@@ -1,0 +1,821 @@
+{% extends "admin/restaurant_base.html" %}
+{% load i18n static %}
+
+{% block title %}مدیریت کاربران{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+    :root {
+        --bg: #0f1117;
+        --surface: #1a1d27;
+        --surface-2: #242834;
+        --border: #2e3340;
+        --text: #e8e8ec;
+        --text-muted: #8b8fa3;
+        --accent: #d4a340;
+        --accent-hover: #e8b84a;
+        --accent-glow: rgba(212,163,64,0.2);
+        --danger: #ef4444;
+        --success: #22c55e;
+        --warning: #f59e0b;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 36px 28px; }
+
+    /* ═══ Header ═══ */
+    .page-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 36px; padding-bottom: 24px;
+        border-bottom: 1px solid var(--border);
+        flex-wrap: wrap; gap: 16px;
+    }
+    .page-title {
+        font-size: 28px; font-weight: 900;
+        display: flex; align-items: center; gap: 12px;
+    }
+    .page-title i { color: var(--accent); font-size: 30px; }
+
+    .header-right { display: flex; align-items: center; gap: 14px; }
+    .header-stats { display: flex; gap: 14px; }
+    .stat-box {
+        text-align: center; background: var(--surface);
+        padding: 14px 22px; border-radius: 12px;
+        border: 1px solid var(--border);
+    }
+    .stat-value { font-size: 24px; font-weight: 900; color: var(--accent); }
+    .stat-label { font-size: 13px; color: var(--text-muted); margin-top: 2px; font-weight: 600; }
+
+    .btn-add {
+        display: flex; align-items: center; gap: 8px;
+        padding: 12px 24px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+        color: #fff; border: none; border-radius: 12px;
+        font-family: 'Vazirmatn', sans-serif;
+        font-size: 15px; font-weight: 800; cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 4px 16px var(--accent-glow);
+    }
+    .btn-add:hover { transform: translateY(-2px); box-shadow: 0 6px 24px var(--accent-glow); }
+    .btn-add i { font-size: 18px; }
+
+    /* ═══ Users List ═══ */
+    .users-list { display: grid; gap: 14px; }
+    .user-card {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 14px; padding: 22px 28px;
+        display: grid; grid-template-columns: 56px 1fr auto auto;
+        align-items: center; gap: 24px;
+        transition: all 0.2s;
+    }
+    .user-card:hover {
+        border-color: rgba(212,163,64,0.3);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+    .user-card.pending-approval {
+        border-color: rgba(245, 158, 11, 0.5);
+        background: linear-gradient(135deg, var(--surface), rgba(245, 158, 11, 0.05));
+        animation: pendingPulse 2s ease-in-out infinite;
+    }
+    @keyframes pendingPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+        50% { box-shadow: 0 0 16px 2px rgba(245, 158, 11, 0.15); }
+    }
+
+    .user-avatar {
+        width: 56px; height: 56px; border-radius: 50%;
+        background: linear-gradient(135deg, var(--surface-2), var(--border));
+        display: flex; align-items: center; justify-content: center;
+        font-size: 24px; font-weight: 900; color: var(--accent);
+        border: 2px solid var(--border);
+    }
+    .user-info h3 {
+        font-size: 17px; font-weight: 800; margin-bottom: 6px; color: #fff;
+        display: flex; align-items: center; gap: 10px;
+    }
+    .user-meta {
+        font-size: 14px; color: var(--text-muted);
+        display: flex; gap: 24px; font-weight: 500;
+    }
+    .user-meta span { display: flex; align-items: center; gap: 4px; }
+
+    /* ── Badge ── */
+    .role-badge {
+        padding: 8px 22px; border-radius: 22px; font-size: 14px;
+        font-weight: 800; text-align: center; min-width: 110px;
+        cursor: pointer; transition: all 0.15s;
+    }
+    .role-badge:hover { transform: scale(1.05); }
+    .role-owner { background: rgba(254,243,199,0.15); color: #fbbf24; border: 1px solid rgba(254,243,199,0.2); }
+    .role-manager { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
+    .role-cashier { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
+    .role-kitchen { background: rgba(236,72,153,0.15); color: #f472b6; border: 1px solid rgba(236,72,153,0.2); }
+    .role-waiter { background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2); }
+    .role-customer { background: rgba(156,163,175,0.15); color: #9ca3af; border: 1px solid rgba(156,163,175,0.2); }
+
+    .pending-badge {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 4px 14px; border-radius: 20px;
+        font-size: 12px; font-weight: 800;
+        background: rgba(245,158,11,0.15);
+        color: #f59e0b;
+        border: 1px solid rgba(245,158,11,0.3);
+        animation: badgePulse 1.5s ease-in-out infinite;
+    }
+    @keyframes badgePulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.6; }
+    }
+
+    /* ── Actions ── */
+    .user-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-sm {
+        font-family: 'Vazirmatn', sans-serif;
+        padding: 9px 18px; border: 1.5px solid var(--border);
+        border-radius: 10px; background: var(--surface-2);
+        color: var(--text); cursor: pointer; font-size: 14px;
+        font-weight: 700; transition: all 0.2s;
+        display: flex; align-items: center; gap: 6px;
+    }
+    .btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-sm.is-active { border-color: var(--success); color: var(--success); }
+    .btn-sm.is-inactive { border-color: var(--danger); color: var(--danger); }
+    .btn-sm.is-password { border-color: #a78bfa; color: #a78bfa; }
+    .btn-sm.is-password:hover { background: rgba(167,139,250,0.15); }
+    .btn-sm.is-delete {
+        border-color: var(--danger); color: var(--danger);
+        background: rgba(239, 68, 68, 0.08);
+    }
+    .btn-sm.is-delete:hover {
+        background: var(--danger); color: #fff;
+        border-color: var(--danger);
+        box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-approve {
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+        color: #fff; border: none;
+        padding: 10px 22px; border-radius: 10px;
+        font-family: 'Vazirmatn', sans-serif;
+        font-size: 14px; font-weight: 800;
+        cursor: pointer; transition: all 0.2s;
+        box-shadow: 0 4px 12px rgba(34,197,94,0.3);
+        display: flex; align-items: center; gap: 6px;
+    }
+    .btn-approve:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(34,197,94,0.4);
+    }
+
+    /* ═══ Modal ═══ */
+    .modal-overlay {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,0.65); backdrop-filter: blur(6px);
+        z-index: 1000; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 18px; padding: 36px; width: 520px; max-width: 92vw;
+        animation: modalIn 0.25s ease;
+        box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+    }
+    @keyframes modalIn {
+        from { opacity: 0; transform: translateY(20px) scale(0.97); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .modal h2 {
+        font-size: 24px; font-weight: 900; margin-bottom: 10px;
+        display: flex; align-items: center; gap: 10px;
+    }
+    .modal h2 i { color: var(--accent); }
+    .modal-subtitle {
+        font-size: 16px; color: var(--text-muted); margin-bottom: 28px; font-weight: 600;
+    }
+    .modal-subtitle strong { color: var(--text); font-weight: 800; }
+    .form-group { margin-bottom: 22px; }
+    .form-group label {
+        display: block; font-size: 15px; font-weight: 700;
+        color: var(--text-muted); margin-bottom: 10px;
+    }
+    .form-group select,
+    .form-group input {
+        width: 100%; padding: 14px 16px; background: var(--surface-2);
+        border: 1.5px solid var(--border); border-radius: 12px;
+        color: var(--text); font-family: 'Vazirmatn', sans-serif;
+        font-size: 16px; font-weight: 600; transition: border-color 0.2s;
+    }
+    .form-group select:focus,
+    .form-group input:focus { outline: none; border-color: var(--accent); }
+    .form-group input::placeholder { color: var(--text-muted); font-weight: 500; }
+
+    .perms-preview {
+        background: var(--bg); border-radius: 12px; padding: 18px;
+        margin-bottom: 28px; max-height: 250px; overflow-y: auto;
+        font-size: 15px; color: var(--text-muted); font-weight: 600;
+    }
+    .perm-tag {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: var(--surface-2);
+        padding: 8px 14px; border-radius: 9px; margin: 4px;
+        font-size: 14px; font-weight: 700;
+        border: 1px solid var(--border); color: var(--text);
+    }
+    .perm-tag i { color: var(--accent); font-size: 13px; }
+    .perms-empty {
+        font-size: 15px; color: var(--text-muted);
+        text-align: center; padding: 10px;
+    }
+
+    .modal-actions { display: flex; gap: 14px; justify-content: flex-end; }
+    .btn-primary {
+        font-family: 'Vazirmatn', sans-serif;
+        padding: 12px 32px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+        color: white; border: none; border-radius: 12px;
+        cursor: pointer; font-size: 16px; font-weight: 800;
+        transition: all 0.2s;
+        box-shadow: 0 4px 12px var(--accent-glow);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px var(--accent-glow); }
+    .btn-cancel {
+        font-family: 'Vazirmatn', sans-serif;
+        padding: 12px 32px; background: transparent;
+        color: var(--text-muted); border: 1.5px solid var(--border);
+        border-radius: 12px; cursor: pointer; font-size: 16px;
+        font-weight: 600; transition: all 0.2s;
+    }
+    .btn-cancel:hover { border-color: var(--text-muted); color: var(--text); }
+
+    /* ═══ Toast ═══ */
+    .toast {
+        position: fixed; bottom: 32px; left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: var(--surface); border: 1.5px solid var(--accent);
+        color: var(--text); padding: 16px 32px; border-radius: 14px;
+        font-size: 16px; font-weight: 700; z-index: 2000;
+        opacity: 0; pointer-events: none; transition: all 0.3s ease;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.error { border-color: var(--danger); }
+    .toast.success { border-color: var(--success); }
+
+    /* ═══ Loading ═══ */
+    .loading { text-align: center; padding: 80px; color: var(--text-muted); font-size: 16px; font-weight: 600; }
+    .spinner {
+        width: 40px; height: 40px; border: 4px solid var(--border);
+        border-top-color: var(--accent); border-radius: 50%;
+        animation: spin 0.8s linear infinite; margin: 0 auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty-state { text-align: center; padding: 80px; color: var(--text-muted); font-size: 17px; font-weight: 600; }
+
+    .strength-bar { height: 5px; border-radius: 3px; margin-top: 10px; background: var(--border); overflow: hidden; }
+    .strength-fill { height: 100%; border-radius: 3px; transition: all 0.3s; width: 0%; }
+    .strength-weak { width: 33%; background: var(--danger); }
+    .strength-medium { width: 66%; background: var(--accent); }
+    .strength-strong { width: 100%; background: var(--success); }
+    .strength-text { font-size: 14px; margin-top: 6px; color: var(--text-muted); font-weight: 600; }
+
+    @media (max-width: 768px) {
+        .container { padding: 20px 16px; }
+        .page-header { flex-direction: column; align-items: flex-start; }
+        .user-card { grid-template-columns: 1fr; gap: 14px; }
+        .user-avatar { display: none; }
+        .user-actions { flex-wrap: wrap; }
+        .header-stats { width: 100%; }
+        .stat-box { flex: 1; }
+        .header-right { width: 100%; flex-direction: column; }
+        .btn-add { width: 100%; justify-content: center; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <div class="page-header">
+        <h1 class="page-title">
+            <i class="bi bi-people-fill"></i>
+            مدیریت کاربران
+        </h1>
+        <div class="header-right">
+            <div class="header-stats">
+                <div class="stat-box">
+                    <div class="stat-value" id="totalCount">—</div>
+                    <div class="stat-label">کل کاربران</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="activeCount">—</div>
+                    <div class="stat-label">فعال</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="pendingCount">—</div>
+                    <div class="stat-label">در انتظار تأیید</div>
+                </div>
+            </div>
+            <button class="btn-add" onclick="openAddModal()">
+                <i class="bi bi-person-plus-fill"></i>
+                افزودن کاربر جدید
+            </button>
+        </div>
+    </div>
+
+    <div id="usersContainer">
+        <div class="loading">
+            <div class="spinner"></div>
+            در حال بارگذاری...
+        </div>
+    </div>
+</div>
+
+<!-- ═══ مودال افزودن کاربر ═══ -->
+<div class="modal-overlay" id="addModal">
+    <div class="modal">
+        <h2><i class="bi bi-person-plus-fill"></i> افزودن کاربر جدید</h2>
+        <p class="modal-subtitle">اطلاعات کاربر جدید را وارد کنید</p>
+        <div class="form-group">
+            <label>نام کاربری:</label>
+            <input type="text" id="addUsername" placeholder="مثلا: ali_rezaei" autocomplete="off">
+        </div>
+        <div class="form-group">
+            <label>شماره موبایل:</label>
+            <input type="text" id="addPhone" placeholder="مثلا: 09123456789" autocomplete="off">
+        </div>
+        <div class="form-group">
+            <label>رمز عبور:</label>
+            <input type="password" id="addPassword" placeholder="حداقل ۶ کاراکتر"
+                   oninput="checkStrength(this.value)" autocomplete="new-password">
+            <div class="strength-bar"><div class="strength-fill" id="addStrengthFill"></div></div>
+            <div class="strength-text" id="addStrengthText"></div>
+        </div>
+        <div class="form-group">
+            <label>نقش:</label>
+            <select id="addRoleSelect"></select>
+        </div>
+        <div class="perms-preview" id="addPermsPreview"></div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal('addModal')">انصراف</button>
+            <button class="btn-primary" onclick="saveAddUser()">
+                <i class="bi bi-check-lg"></i> ثبت کاربر
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ مودال تغییر نقش ═══ -->
+<div class="modal-overlay" id="roleModal">
+    <div class="modal">
+        <h2><i class="bi bi-shield-lock"></i> تغییر نقش کاربر</h2>
+        <p class="modal-subtitle">کاربر: <strong id="roleModalUser"></strong></p>
+        <div class="form-group">
+            <label>نقش جدید:</label>
+            <select id="roleSelect"></select>
+        </div>
+        <div class="perms-preview" id="permsPreview"></div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal('roleModal')">انصراف</button>
+            <button class="btn-primary" onclick="saveRole()">ذخیره نقش</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ مودال تغییر رمز ═══ -->
+<div class="modal-overlay" id="passModal">
+    <div class="modal">
+        <h2><i class="bi bi-key"></i> تغییر رمز عبور</h2>
+        <p class="modal-subtitle">کاربر: <strong id="passModalUser"></strong></p>
+        <div class="form-group">
+            <label>رمز عبور جدید:</label>
+            <input type="password" id="newPassword" placeholder="حداقل ۶ کاراکتر"
+                   oninput="checkStrengthPass(this.value)" autocomplete="new-password">
+            <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+            <div class="strength-text" id="strengthText"></div>
+        </div>
+        <div class="form-group">
+            <label>تکرار رمز جدید:</label>
+            <input type="password" id="newPassword2" placeholder="رمز را دوباره وارد کنید"
+                   autocomplete="new-password">
+        </div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal('passModal')">انصراف</button>
+            <button class="btn-primary" onclick="savePassword()">تغییر رمز</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ مودال تأیید حذف ═══ -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal">
+        <h2 style="color:var(--danger)"><i class="bi bi-exclamation-triangle-fill"></i> حذف کاربر</h2>
+        <p class="modal-subtitle">
+            آیا از حذف کاربر <strong id="deleteModalUser"></strong> مطمئنید؟
+            <br>این کاربر دیگر قادر به ورود به داشبورد نخواهد بود.
+        </p>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal('deleteModal')">انصراف</button>
+            <button class="btn-primary" onclick="confirmDelete()" style="background:linear-gradient(135deg,var(--danger),#dc2626); box-shadow:0 4px 12px rgba(239,68,68,0.3);">
+                <i class="bi bi-trash3-fill"></i> بله، حذف شود
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    var ROLES = {{ roles_json|safe }};
+    var usersData = [];
+    var selectedUserId = null;
+    var currentUserId = {{ current_user_id|default:'null' }};
+
+    var PERM_FA = {
+        'foods.view': 'مشاهده غذاها',
+        'foods.edit': 'ویرایش غذاها',
+        'foods.create': 'ایجاد غذا',
+        'foods.delete': 'حذف غذا',
+        'foods.categories': 'دسته‌بندی غذاها',
+        'inventory.view': 'مشاهده انبار',
+        'inventory.edit': 'ویرایش انبار',
+        'inventory.create': 'ایجاد موجودی',
+        'inventory.delete': 'حذف موجودی',
+        'inventory.raw_materials': 'مواد اولیه',
+        'inventory.ready_materials': 'مواد آماده',
+        'inventory.semi_finished': 'نیمه‌آماده‌ها',
+        'inventory.usages_log': 'تاریخچه مصرف',
+        'inventory.invoice': 'فاکتورهای خرید',
+        'inventory.end_of_invoice': 'بستن فاکتور',
+        'orders.view': 'مشاهده سفارشات',
+        'orders.edit': 'ویرایش سفارشات',
+        'orders.create': 'ایجاد سفارش',
+        'orders.delete': 'حذف سفارش',
+        'pos.view': 'مشاهده صندوق',
+        'pos.use': 'استفاده از صندوق',
+        'pos.close': 'بستن صندوق',
+        'pos.report': 'گزارش فروش',
+        'kitchen.view': 'مشاهده آشپزخانه',
+        'kitchen.manage': 'مدیریت آشپزخانه',
+        'loyalty.view': 'مشاهده باشگاه',
+        'loyalty.edit': 'ویرایش باشگاه',
+        'loyalty.customers': 'مشتریان باشگاه',
+        'loyalty.coupons': 'کوپن‌ها',
+        'loyalty.rewards': 'جوایز',
+        'users.view': 'مشاهده کاربران',
+        'users.edit': 'ویرایش کاربران',
+        'users.create': 'ایجاد کاربر',
+        'users.delete': 'حذف کاربر'
+    };
+
+    var PERM_ICO = {
+        'foods': 'bi-egg-fried', 'inventory': 'bi-archive', 'orders': 'bi-box-seam',
+        'pos': 'bi-credit-card', 'kitchen': 'bi-fire', 'loyalty': 'bi-trophy', 'users': 'bi-people'
+    };
+
+    function translatePerm(perm) {
+        if (PERM_FA[perm]) return PERM_FA[perm];
+        var normalized = perm.toLowerCase().replace(/[\s_\-]+/g, '.').replace(/\.+/g, '.').replace(/^\./, '').replace(/\.$/, '');
+        return PERM_FA[normalized] || perm;
+    }
+
+    function getPermIcon(perm) {
+        return PERM_ICO[perm.split('.')[0].toLowerCase()] || 'bi-check2-square';
+    }
+
+    function renderPermsHTML(perms) {
+        if (!perms || !perms.length) return '<div class="perms-empty">مجوزی تعریف نشده</div>';
+        return perms.map(function(p) {
+            return '<span class="perm-tag"><i class="bi ' + getPermIcon(p) + '"></i> ' + translatePerm(p) + '</span>';
+        }).join('');
+    }
+
+    /* ═══ بارگذاری ═══ */
+    async function loadUsers() {
+        try {
+            var resp = await fetch('/api/users/management/', {
+                headers: { 'Authorization': 'Bearer ' + getToken(), 'Accept': 'application/json' }
+            });
+            if (!resp.ok) throw new Error('خطای سرور: ' + resp.status);
+            var data = await resp.json();
+            usersData = data.users || [];
+            renderUsers();
+            updateStats();
+        } catch (err) {
+            document.getElementById('usersContainer').innerHTML =
+                '<div class="empty-state">خطا: ' + err.message + '</div>';
+        }
+    }
+
+    /* ═══ رندر ═══ */
+    function renderUsers() {
+        var container = document.getElementById('usersContainer');
+        if (!usersData.length) {
+            container.innerHTML = '<div class="empty-state">هیچ کاربری وجود ندارد</div>';
+            return;
+        }
+
+        var sorted = usersData.slice().sort(function(a, b) {
+            if (!a.is_approved && b.is_approved) return -1;
+            if (a.is_approved && !b.is_approved) return 1;
+            return 0;
+        });
+
+        var html = '<div class="users-list">';
+        sorted.forEach(function(u) {
+            var pending = !u.is_approved;
+            var isSelf = (u.id === currentUserId);
+            html += '<div class="user-card ' + (pending ? 'pending-approval' : '') + '">';
+            html += '<div class="user-avatar" style="' + (pending ? 'border-color:#f59e0b;' : '') + '">' + esc(u.username.charAt(0).toUpperCase()) + '</div>';
+            html += '<div class="user-info">';
+            html += '<h3>' + esc(u.username);
+            if (pending) html += ' <span class="pending-badge"><i class="bi bi-hourglass-split"></i> در انتظار تأیید</span>';
+            html += '</h3>';
+            html += '<div class="user-meta">';
+            html += '<span><i class="bi bi-phone"></i> ' + (u.phone_number || '—') + '</span>';
+            html += '<span><i class="bi bi-calendar3"></i> ' + (u.date_joined || '—') + '</span>';
+            html += '<span><i class="bi bi-clock"></i> ' + (u.last_login || 'هرگز') + '</span>';
+            html += '</div></div>';
+            html += '<span class="role-badge role-' + esc(u.role) + '" onclick="openRoleModal(' + u.id + ')" title="تغییر نقش">' + esc(u.role_display) + '</span>';
+            html += '<div class="user-actions">';
+            if (pending) {
+                html += '<button class="btn-approve" onclick="approveUser(' + u.id + ',\'' + esc(u.username) + '\')">';
+                html += '<i class="bi bi-check-circle-fill"></i> تأیید کاربر</button>';
+            }
+            html += '<button class="btn-sm" onclick="openRoleModal(' + u.id + ')"><i class="bi bi-shield-lock"></i> تغییر نقش</button>';
+            html += '<button class="btn-sm is-password" onclick="openPassModal(' + u.id + ')"><i class="bi bi-key"></i> رمز</button>';
+            html += '<button class="btn-sm ' + (u.is_active ? 'is-active' : 'is-inactive') + '" onclick="toggleActive(' + u.id + ',\'' + esc(u.username) + '\')">';
+            html += '<i class="bi bi-' + (u.is_active ? 'check-circle' : 'x-circle') + '"></i> ' + (u.is_active ? 'فعال' : 'غیرفعال') + '</button>';
+            if (!isSelf) {
+                html += '<button class="btn-sm is-delete" onclick="openDeleteModal(' + u.id + ',\'' + esc(u.username) + '\')">';
+                html += '<i class="bi bi-trash3"></i> حذف</button>';
+            }
+            html += '</div></div>';
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    function updateStats() {
+        document.getElementById('totalCount').textContent = toP(usersData.length);
+        document.getElementById('activeCount').textContent = toP(usersData.filter(function(u) { return u.is_active; }).length);
+        document.getElementById('pendingCount').textContent = toP(usersData.filter(function(u) { return !u.is_approved; }).length);
+    }
+
+    /* ═══ تأیید کاربر ═══ */
+    async function approveUser(userId, username) {
+        if (!confirm('آیا کاربر «' + username + '» را تأیید می‌کنید؟')) return;
+        try {
+            var resp = await fetch('/api/users/approve/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + getToken(),
+                    'X-CSRFToken': getCSRF()
+                },
+                body: JSON.stringify({ user_id: userId })
+            });
+            var data = await resp.json();
+            if (data.success) {
+                toast(data.msg || 'کاربر تأیید شد', false, 'success');
+                loadUsers();
+            } else {
+                toast(data.error || 'خطا', true);
+            }
+        } catch (err) { toast('خطای ارتباط', true); }
+    }
+
+    /* ═══ مودال افزودن ═══ */
+    function openAddModal() {
+        document.getElementById('addUsername').value = '';
+        document.getElementById('addPhone').value = '';
+        document.getElementById('addPassword').value = '';
+        document.getElementById('addStrengthFill').className = 'strength-fill';
+        document.getElementById('addStrengthText').textContent = '';
+
+        var select = document.getElementById('addRoleSelect');
+        select.innerHTML = ROLES.map(function(r) {
+            return '<option value="' + r.value + '">' + r.label + '</option>';
+        }).join('');
+
+        var roleObj = ROLES.find(function(r) { return r.value === select.value; });
+        document.getElementById('addPermsPreview').innerHTML = renderPermsHTML(roleObj ? roleObj.permissions : []);
+
+        select.onchange = function() {
+            var r = ROLES.find(function(x) { return x.value === select.value; });
+            document.getElementById('addPermsPreview').innerHTML = renderPermsHTML(r ? r.permissions : []);
+        };
+
+        document.getElementById('addModal').classList.add('open');
+        document.getElementById('addUsername').focus();
+    }
+
+    async function saveAddUser() {
+        var username = document.getElementById('addUsername').value.trim();
+        var phone = document.getElementById('addPhone').value.trim();
+        var password = document.getElementById('addPassword').value;
+        var role = document.getElementById('addRoleSelect').value;
+
+        if (!username) { toast('نام کاربری را وارد کنید', true); return; }
+        if (!password || password.length < 6) { toast('رمز باید حداقل ۶ کاراکتر باشد', true); return; }
+
+        try {
+            var resp = await fetch('/api/users/create/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + getToken(),
+                    'X-CSRFToken': getCSRF()
+                },
+                body: JSON.stringify({ username: username, phone_number: phone, password: password, role: role })
+            });
+            var data = await resp.json();
+            if (data.success) {
+                toast(data.msg || 'کاربر با موفقیت ایجاد شد', false, 'success');
+                closeModal('addModal');
+                loadUsers();
+            } else {
+                toast(data.error || 'خطا در ایجاد کاربر', true);
+            }
+        } catch (err) { toast('خطای ارتباط با سرور', true); }
+    }
+
+    /* ═══ مودال نقش ═══ */
+    function openRoleModal(userId) {
+        selectedUserId = userId;
+        var user = usersData.find(function(u) { return u.id === userId; });
+        if (!user) return;
+
+        document.getElementById('roleModalUser').textContent = user.username;
+
+        var select = document.getElementById('roleSelect');
+        select.innerHTML = ROLES.map(function(r) {
+            return '<option value="' + r.value + '"' + (r.value === user.role ? ' selected' : '') + '>' + r.label + '</option>';
+        }).join('');
+
+        var roleObj = ROLES.find(function(r) { return r.value === user.role; });
+        document.getElementById('permsPreview').innerHTML = renderPermsHTML(
+            roleObj && roleObj.permissions ? roleObj.permissions : (user.permissions || [])
+        );
+
+        select.onchange = function() {
+            var r = ROLES.find(function(x) { return x.value === select.value; });
+            document.getElementById('permsPreview').innerHTML = renderPermsHTML(r && r.permissions ? r.permissions : []);
+        };
+
+        document.getElementById('roleModal').classList.add('open');
+    }
+
+    async function saveRole() {
+        var newRole = document.getElementById('roleSelect').value;
+        try {
+            var resp = await fetch('/api/users/update-role/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + getToken(),
+                    'X-CSRFToken': getCSRF()
+                },
+                body: JSON.stringify({ user_id: selectedUserId, role: newRole })
+            });
+            var data = await resp.json();
+            if (data.success) { toast(data.msg, false, 'success'); closeModal('roleModal'); loadUsers(); }
+            else { toast(data.error || 'خطا', true); }
+        } catch (err) { toast('خطای ارتباط', true); }
+    }
+
+    /* ═══ مودال رمز عبور ═══ */
+    function openPassModal(userId) {
+        selectedUserId = userId;
+        var user = usersData.find(function(u) { return u.id === userId; });
+        if (!user) return;
+
+        document.getElementById('passModalUser').textContent = user.username;
+        document.getElementById('newPassword').value = '';
+        document.getElementById('newPassword2').value = '';
+        document.getElementById('strengthFill').className = 'strength-fill';
+        document.getElementById('strengthText').textContent = '';
+
+        document.getElementById('passModal').classList.add('open');
+        document.getElementById('newPassword').focus();
+    }
+
+    function checkStrengthPass(pass) {
+        doStrengthCheck(pass, document.getElementById('strengthFill'), document.getElementById('strengthText'));
+    }
+    function checkStrength(pass) {
+        doStrengthCheck(pass, document.getElementById('addStrengthFill'), document.getElementById('addStrengthText'));
+    }
+
+    function doStrengthCheck(pass, fill, text) {
+        if (!pass) { fill.className = 'strength-fill'; text.textContent = ''; return; }
+        var score = 0;
+        if (pass.length >= 6) score++;
+        if (pass.length >= 10) score++;
+        if (/[A-Z]/.test(pass)) score++;
+        if (/[0-9]/.test(pass)) score++;
+        if (/[^A-Za-z0-9]/.test(pass)) score++;
+        if (score <= 2) {
+            fill.className = 'strength-fill strength-weak';
+            text.textContent = 'ضعیف'; text.style.color = 'var(--danger)';
+        } else if (score <= 3) {
+            fill.className = 'strength-fill strength-medium';
+            text.textContent = 'متوسط'; text.style.color = 'var(--accent)';
+        } else {
+            fill.className = 'strength-fill strength-strong';
+            text.textContent = 'قوی'; text.style.color = 'var(--success)';
+        }
+    }
+
+    async function savePassword() {
+        var pass1 = document.getElementById('newPassword').value;
+        var pass2 = document.getElementById('newPassword2').value;
+        if (!pass1) { toast('رمز جدید را وارد کنید', true); return; }
+        if (pass1.length < 6) { toast('رمز باید حداقل ۶ کاراکتر باشد', true); return; }
+        if (pass1 !== pass2) { toast('رمزها مطابقت ندارند', true); return; }
+
+        try {
+            var resp = await fetch('/api/users/reset-password/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + getToken(),
+                    'X-CSRFToken': getCSRF()
+                },
+                body: JSON.stringify({ user_id: selectedUserId, new_password: pass1 })
+            });
+            var data = await resp.json();
+            if (data.success) { toast(data.msg, false, 'success'); closeModal('passModal'); }
+            else { toast(data.error || 'خطا', true); }
+        } catch (err) { toast('خطای ارتباط', true); }
+    }
+
+    /* ═══ فعال/غیرفعال ═══ */
+    async function toggleActive(userId, username) {
+        if (!confirm('آیا از تغییر وضعیت «' + username + '» مطمئنید؟')) return;
+        try {
+            var resp = await fetch('/api/users/toggle-active/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + getToken(),
+                    'X-CSRFToken': getCSRF()
+                },
+                body: JSON.stringify({ user_id: userId })
+            });
+            var data = await resp.json();
+            if (data.success) { toast(data.msg, false, 'success'); loadUsers(); }
+            else { toast(data.error || 'خطا', true); }
+        } catch (err) { toast('خطای ارتباط', true); }
+    }
+
+    /* ═══ حذف کاربر ═══ */
+    function openDeleteModal(userId, username) {
+        selectedUserId = userId;
+        document.getElementById('deleteModalUser').textContent = username;
+        document.getElementById('deleteModal').classList.add('open');
+    }
+
+    async function confirmDelete() {
+        try {
+            var resp = await fetch('/api/users/delete/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + getToken(),
+                    'X-CSRFToken': getCSRF()
+                },
+                body: JSON.stringify({ user_id: selectedUserId })
+            });
+            var data = await resp.json();
+            if (data.success) {
+                toast(data.msg || 'کاربر حذف شد', false, 'success');
+                closeModal('deleteModal');
+                loadUsers();
+            } else {
+                toast(data.error || 'خطا', true);
+            }
+        } catch (err) { toast('خطای ارتباط', true); }
+    }
+
+    /* ═══ ابزارها ═══ */
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); selectedUserId = null; }
+    function getToken() { return localStorage.getItem('access_token') || ''; }
+    function getCSRF() {
+        var match = document.cookie.split('; ').find(function(c) { return c.startsWith('csrftoken='); });
+        return match ? match.split('=')[1] : '';
+    }
+    function esc(text) { var d = document.createElement('div'); d.textContent = text; return d.innerHTML; }
+    var pD = '\u06F0\u06F1\u06F2\u06F3\u06F4\u06F5\u06F6\u06F7\u06F8\u06F9';
+    function toP(n) { return String(n).replace(/\d/g, function(c) { return pD[c]; }); }
+    function toast(msg, isError, type) {
+        var el = document.getElementById('toast');
+        el.textContent = msg;
+        el.className = 'toast show ' + (type || (isError ? 'error' : 'success'));
+        setTimeout(function() { el.className = 'toast'; }, 3000);
+    }
+
+    loadUsers();
+</script>
+{% endblock %}

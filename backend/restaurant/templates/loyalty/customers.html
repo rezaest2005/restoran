@@ -1,0 +1,168 @@
+{% extends "base_loyalty.html" %}
+
+{% block title %}مشتریان باشگاه{% endblock %}
+{% block nav_customers %}active{% endblock %}
+{% block page_title %}مشتریان باشگاه{% endblock %}
+{% block page_subtitle %}مدیریت اعضای باشگاه مشتریان{% endblock %}
+
+{% block content %}
+
+    <!-- Toolbar -->
+    <div class="toolbar fade-in">
+        <div class="toolbar-right">
+            <div class="search-bar">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" id="searchInput" placeholder="جستجوی نام، شماره، کد دعوت..." autocomplete="off">
+            </div>
+            <div class="filter-group">
+                <button class="filter-chip active" data-level="">همه</button>
+                <button class="filter-chip" data-level="bronze">&#129353; برنز</button>
+                <button class="filter-chip" data-level="silver">&#129352; نقره‌ای</button>
+                <button class="filter-chip" data-level="gold">&#129351; طلایی</button>
+                <button class="filter-chip" data-level="vip">&#128081; VIP</button>
+            </div>
+        </div>
+        <a href="{% url 'loyalty_register' %}" class="btn btn-gold">&#10010; مشتری جدید</a>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid fade-in" style="margin-bottom: 24px;">
+        <div class="stat-card gold">
+            <div class="stat-value" id="totalCount">—</div>
+            <div class="stat-label">کل مشتریان</div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-value" id="activeCount">—</div>
+            <div class="stat-label">فعال</div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-value" id="inactiveCount">—</div>
+            <div class="stat-label">غیرفعال</div>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card fade-in">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>نام</th>
+                        <th>شماره موبایل</th>
+                        <th>سطح</th>
+                        <th>امتیاز</th>
+                        <th>کیف پول</th>
+                        <th>مجموع خرید</th>
+                        <th>سفارش</th>
+                        <th>وضعیت</th>
+                        <th>تاریخ</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody id="customerTable">
+                    <tr>
+                        <td colspan="11" style="text-align:center; padding: 40px;">
+                            <div class="empty-state">
+                                <div class="icon">&#9823;</div>
+                                <h3>در حال بارگذاری...</h3>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let currentLevel = '';
+    let currentSearch = '';
+    let debounceTimer = null;
+
+    async function loadCustomers() {
+        let url = '/api/loyalty/customers/?format=json';
+        if (currentLevel) url += '&level=' + currentLevel;
+        if (currentSearch) url += '&search=' + encodeURIComponent(currentSearch);
+
+        try {
+            const d = await apiCall(url);
+            const customers = d.results || d;
+            renderCustomers(customers);
+        } catch (e) {
+            console.error(e);
+            showToast('خطا در بارگذاری مشتریان', 'error');
+        }
+    }
+
+    function renderCustomers(customers) {
+        const tbody = document.getElementById('customerTable');
+
+        if (!customers.length) {
+            tbody.innerHTML = '<tr><td colspan="11"><div class="empty-state"><div class="icon">&#9823;</div><h3>مشتری‌ای یافت نشد</h3><p>فیلترها را تغییر دهید یا مشتری جدید ثبت‌نام کنید</p></div></td></tr>';
+            document.getElementById('totalCount').textContent = '0';
+            document.getElementById('activeCount').textContent = '0';
+            document.getElementById('inactiveCount').textContent = '0';
+            return;
+        }
+
+        let active = 0, inactive = 0;
+        customers.forEach(function(c) { c.is_active ? active++ : inactive++; });
+
+        document.getElementById('totalCount').textContent = formatNumber(customers.length);
+        document.getElementById('activeCount').textContent = formatNumber(active);
+        document.getElementById('inactiveCount').textContent = formatNumber(inactive);
+
+        var levelColors = { bronze: 'orange', silver: 'blue', gold: 'gold', vip: 'purple' };
+
+        var html = '';
+        for (var i = 0; i < customers.length; i++) {
+            var c = customers[i];
+            var lvlName = c.membership_level ? c.membership_level.name : '';
+            var lvlColor = levelColors[lvlName] || 'gold';
+            var lvlIcon = c.membership_icon || '';
+            var lvlTitle = c.membership_title || '—';
+            var statusBadge = c.is_active
+                ? '<span class="badge badge-green">&#10004; فعال</span>'
+                : '<span class="badge badge-red">&#10008; غیرفعال</span>';
+            var joinDate = new Date(c.joined_at).toLocaleDateString('fa-IR');
+
+            html += '<tr>';
+            html += '<td>' + (i + 1) + '</td>';
+            html += '<td><strong>' + (c.full_name || '—') + '</strong></td>';
+            html += '<td style="direction:ltr; text-align:right; font-family: monospace;">' + c.phone + '</td>';
+            html += '<td><span class="badge badge-' + lvlColor + '">' + lvlIcon + ' ' + lvlTitle + '</span></td>';
+            html += '<td><strong>' + formatNumber(c.available_points) + '</strong> <small style="color:var(--text-dim)">/ ' + formatNumber(c.total_points) + '</small></td>';
+            html += '<td>' + formatNumber(c.wallet_balance) + ' ت</td>';
+            html += '<td>' + formatNumber(c.total_spending) + ' ت</td>';
+            html += '<td>' + c.total_orders + '</td>';
+            html += '<td>' + statusBadge + '</td>';
+            html += '<td style="font-size:12px; color:var(--text-muted);">' + joinDate + '</td>';
+            html += '<td><a href="/loyalty/page/customers/' + c.id + '/" class="btn btn-outline btn-sm">جزئیات</a></td>';
+            html += '</tr>';
+        }
+        tbody.innerHTML = html;
+    }
+
+    document.getElementById('searchInput').addEventListener('input', function(e) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function() {
+            currentSearch = e.target.value.trim();
+            loadCustomers();
+        }, 400);
+    });
+
+    document.querySelectorAll('.filter-chip').forEach(function(chip) {
+        chip.addEventListener('click', function() {
+            document.querySelectorAll('.filter-chip').forEach(function(c) { c.classList.remove('active'); });
+            chip.classList.add('active');
+            currentLevel = chip.dataset.level;
+            loadCustomers();
+        });
+    });
+
+    loadCustomers();
+</script>
+{% endblock %}
