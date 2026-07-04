@@ -1,0 +1,902 @@
+{% extends "admin/restaurant_base.html" %}
+{% load i18n static %}
+
+{% block title %}مدیریت غذا و منو{% endblock %}
+{% block page_title %}غذا و منو{% endblock %}
+{% block breadcrumb %}رستوران / غذا و منو{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+    :root {
+        --fd-bg: #f0ebe3;
+        --fd-surface: #ffffff;
+        --fd-accent: #b5853a;
+        --fd-accent-hover: #96702f;
+        --fd-accent-light: #fdf6ec;
+        --fd-accent-border: #e8d5b5;
+        --fd-text: #292524;
+        --fd-text-sec: #78716c;
+        --fd-border: #e7e5e4;
+        --fd-success: #16a34a;
+        --fd-success-bg: #f0fdf4;
+        --fd-danger: #dc2626;
+        --fd-danger-bg: #fef2f2;
+        --fd-info: #0ea5e9;
+        --fd-info-bg: #f0f9ff;
+        --fd-radius: 16px;
+        --fd-radius-sm: 10px;
+        --fd-shadow: 0 1px 3px rgba(41,37,36,.06);
+        --fd-shadow-md: 0 4px 16px rgba(41,37,36,.08);
+    }
+
+    body { background: var(--fd-bg); }
+    .fd-wrap { min-height: calc(100vh - 120px); color: var(--fd-text); }
+    .fd-container { max-width: 1200px; margin: 0 auto; padding: 28px 20px 80px; }
+
+    .fd-header {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        margin-bottom: 24px; flex-wrap: wrap; gap: 16px;
+        animation: fdFadeUp .5s ease both;
+    }
+    .fd-header h1 { font-size: 1.9rem; font-weight: 800; margin: 0; }
+    .fd-header p { color: var(--fd-text-sec); font-size: .88rem; margin-top: 4px; }
+    .fd-header-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .fd-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 10px 20px; border: none; border-radius: var(--fd-radius-sm);
+        font-family: inherit; font-size: .85rem; font-weight: 600;
+        cursor: pointer; transition: all .2s; text-decoration: none;
+    }
+    .fd-btn-accent { background: var(--fd-accent); color: #fff; }
+    .fd-btn-accent:hover { background: var(--fd-accent-hover); color: #fff; transform: translateY(-1px); }
+    .fd-btn-outline { background: var(--fd-surface); color: var(--fd-text-sec); border: 1.5px solid var(--fd-border); }
+    .fd-btn-outline:hover { border-color: var(--fd-text-sec); color: var(--fd-text); }
+    .fd-btn-danger { background: var(--fd-danger-bg); color: var(--fd-danger); }
+    .fd-btn-danger:hover { background: var(--fd-danger); color: #fff; }
+    .fd-btn-sm { padding: 6px 14px; font-size: .78rem; border-radius: 8px; }
+
+    .fd-stats {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+        gap: 12px; margin-bottom: 24px;
+        animation: fdFadeUp .5s ease both; animation-delay: .05s;
+    }
+    .fd-stat {
+        background: var(--fd-surface); border: 1px solid var(--fd-border);
+        border-radius: var(--fd-radius); padding: 16px; text-align: center;
+        transition: transform .2s;
+    }
+    .fd-stat:hover { transform: translateY(-2px); box-shadow: var(--fd-shadow-md); }
+    .fd-stat .fd-si {
+        width: 36px; height: 36px; border-radius: 10px;
+        display: inline-flex; align-items: center; justify-content: center;
+        margin-bottom: 6px; font-size: 1rem;
+    }
+    .fd-stat .fd-sv { font-size: 1.4rem; font-weight: 800; display: block; }
+    .fd-stat .fd-sl { font-size: .74rem; color: var(--fd-text-sec); }
+
+    .fd-toolbar {
+        display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center;
+        animation: fdFadeUp .5s ease both; animation-delay: .08s;
+    }
+    .fd-search-box { flex: 1; min-width: 200px; position: relative; }
+    .fd-search-box input {
+        width: 100%; padding: 10px 14px 10px 38px;
+        border: 1.5px solid var(--fd-border); border-radius: var(--fd-radius-sm);
+        font-family: inherit; font-size: .86rem; background: var(--fd-surface);
+        outline: none; transition: border-color .2s; color: var(--fd-text);
+    }
+    .fd-search-box input:focus { border-color: var(--fd-accent); }
+    .fd-search-box i {
+        position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+        color: var(--fd-text-sec); pointer-events: none;
+    }
+    .fd-cats { display: flex; gap: 6px; flex-wrap: wrap; }
+    .fd-cat-btn {
+        padding: 7px 15px; border: 1.5px solid var(--fd-border); border-radius: 20px;
+        background: var(--fd-surface); font-family: inherit; font-size: .78rem;
+        font-weight: 500; color: var(--fd-text-sec); cursor: pointer; transition: all .2s;
+    }
+    .fd-cat-btn:hover, .fd-cat-btn.active {
+        background: var(--fd-accent); color: #fff; border-color: var(--fd-accent);
+    }
+
+    /* ── Category Section ── */
+    .fd-cat-section {
+        background: var(--fd-surface); border: 1.5px solid var(--fd-accent-border);
+        border-radius: var(--fd-radius); padding: 20px 24px; margin-bottom: 24px;
+        animation: fdFadeUp .5s ease both; animation-delay: .06s;
+    }
+    .fd-cat-section-head {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 16px; cursor: pointer;
+    }
+    .fd-cat-section-head h3 {
+        font-size: 1rem; font-weight: 700; color: var(--fd-accent-hover);
+        margin: 0; display: flex; align-items: center; gap: 8px;
+    }
+    .fd-cat-section-head h3 i { font-size: 1.1rem; }
+    .fd-cat-section-head .fd-toggle-icon {
+        transition: transform .3s; font-size: 1.2rem; color: var(--fd-text-sec);
+    }
+    .fd-cat-section-head.open .fd-toggle-icon { transform: rotate(180deg); }
+    .fd-cat-body { display: none; }
+    .fd-cat-body.open { display: block; }
+
+    .fd-cat-list {
+        display: flex; flex-direction: column; gap: 8px;
+    }
+    .fd-cat-row {
+        display: flex; align-items: center; gap: 12px;
+        padding: 12px 16px; background: #faf8f5;
+        border: 1px solid var(--fd-border); border-radius: var(--fd-radius-sm);
+        transition: all .2s;
+    }
+    .fd-cat-row:hover { border-color: var(--fd-accent-border); background: var(--fd-accent-light); }
+    .fd-cat-order {
+        min-width: 32px; height: 32px; border-radius: 8px;
+        background: var(--fd-accent-light); color: var(--fd-accent);
+        display: flex; align-items: center; justify-content: center;
+        font-size: .85rem; font-weight: 800; flex-shrink: 0;
+    }
+    .fd-cat-img {
+        width: 40px; height: 40px; border-radius: 8px;
+        object-fit: cover; flex-shrink: 0;
+        background: var(--fd-accent-light);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--fd-accent); font-size: 1rem; overflow: hidden;
+    }
+    .fd-cat-img img { width: 100%; height: 100%; object-fit: cover; }
+    .fd-cat-name {
+        flex: 1; font-size: .9rem; font-weight: 600; color: var(--fd-text);
+    }
+    .fd-cat-count {
+        font-size: .75rem; color: var(--fd-text-sec);
+        padding: 3px 10px; background: var(--fd-surface);
+        border: 1px solid var(--fd-border); border-radius: 100px;
+    }
+    .fd-cat-actions { display: flex; gap: 4px; }
+    .fd-btn-icon {
+        width: 32px; height: 32px; border: none; border-radius: 8px;
+        background: transparent; cursor: pointer; display: inline-flex;
+        align-items: center; justify-content: center; transition: all .2s; color: #aaa;
+    }
+    .fd-btn-icon:hover { background: var(--fd-accent-light); color: var(--fd-accent); }
+    .fd-btn-icon.del:hover { background: var(--fd-danger-bg); color: var(--fd-danger); }
+    .fd-cat-empty {
+        text-align: center; padding: 24px; color: var(--fd-text-sec); font-size: .85rem;
+    }
+
+    .fd-add-cat-row {
+        display: flex; gap: 10px; margin-top: 12px; align-items: center;
+    }
+    .fd-add-cat-row input {
+        flex: 1; padding: 10px 14px; border: 1.5px solid var(--fd-border);
+        border-radius: 8px; font-family: inherit; font-size: .86rem;
+        outline: none; transition: border-color .2s; color: var(--fd-text);
+    }
+    .fd-add-cat-row input:focus { border-color: var(--fd-accent); }
+
+    /* ── Grid ── */
+    .fd-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 16px; margin-bottom: 24px;
+        animation: fdFadeUp .5s ease both; animation-delay: .1s;
+    }
+    .fd-card {
+        background: var(--fd-surface); border: 1px solid var(--fd-border);
+        border-radius: var(--fd-radius); overflow: hidden;
+        transition: all .25s; position: relative;
+    }
+    .fd-card:hover { transform: translateY(-3px); box-shadow: var(--fd-shadow-md); border-color: var(--fd-accent-border); }
+
+    .fd-discount-badge {
+        position: absolute; top: 12px; left: 12px;
+        background: var(--fd-danger); color: #fff;
+        padding: 4px 10px; border-radius: 8px;
+        font-size: .72rem; font-weight: 700; z-index: 2;
+        display: flex; align-items: center; gap: 4px;
+        box-shadow: 0 2px 8px rgba(220,38,38,.3);
+    }
+    .fd-discount-badge i { font-size: .8rem; }
+
+    .fd-card-img {
+        width: 100%; height: 160px; object-fit: cover;
+        background: linear-gradient(135deg, #f5e6d3 0%, #e8d5b5 100%);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 3rem; color: var(--fd-accent);
+    }
+    .fd-card-img img { width: 100%; height: 100%; object-fit: cover; }
+    .fd-card-body { padding: 16px 18px; }
+    .fd-card-name { font-size: 1rem; font-weight: 800; margin-bottom: 4px; }
+    .fd-card-cat {
+        display: inline-block; padding: 2px 10px; border-radius: 12px;
+        font-size: .7rem; font-weight: 600;
+        background: var(--fd-accent-light); color: var(--fd-accent);
+    }
+
+    .fd-price-wrap { margin-top: 10px; }
+    .fd-price-normal {
+        font-size: 1.1rem; font-weight: 800; color: var(--fd-accent);
+        display: flex; align-items: center; gap: 4px;
+    }
+    .fd-price-original {
+        font-size: .85rem; font-weight: 600; color: var(--fd-text-sec);
+        text-decoration: line-through; margin-bottom: 2px;
+    }
+    .fd-price-discounted {
+        font-size: 1.15rem; font-weight: 800; color: var(--fd-danger);
+        display: flex; align-items: center; gap: 4px;
+    }
+    .fd-discount-meta {
+        display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap;
+    }
+    .fd-discount-label {
+        font-size: .7rem; font-weight: 600;
+        padding: 2px 8px; border-radius: 6px;
+        background: var(--fd-danger-bg); color: var(--fd-danger);
+    }
+    .fd-discount-qty {
+        font-size: .7rem; font-weight: 700;
+        padding: 2px 8px; border-radius: 6px;
+        background: var(--fd-info-bg); color: var(--fd-info);
+    }
+    .fd-price-none {
+        font-size: .82rem; color: var(--fd-text-sec);
+        font-style: italic; margin-top: 6px;
+    }
+
+    .fd-card-actions {
+        display: flex; gap: 6px; padding: 12px 18px;
+        border-top: 1px solid var(--fd-border); background: #faf8f5;
+    }
+
+    .fd-empty {
+        text-align: center; padding: 50px 20px; color: var(--fd-text-sec);
+    }
+    .fd-empty i { font-size: 2.8rem; color: var(--fd-border); margin-bottom: 12px; display: block; }
+
+    /* ── Modal ── */
+    .fd-modal-overlay {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,.45); z-index: 9999;
+        align-items: center; justify-content: center;
+    }
+    .fd-modal-overlay.show { display: flex; }
+    .fd-modal {
+        background: var(--fd-surface); border-radius: var(--fd-radius);
+        padding: 28px; width: 90%; max-width: 500px;
+        box-shadow: 0 20px 60px rgba(0,0,0,.2);
+        animation: fdFadeUp .3s ease both;
+    }
+    .fd-modal h3 { margin: 0 0 20px; font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .fd-field { margin-bottom: 14px; }
+    .fd-field label { display: block; font-size: .78rem; font-weight: 600; color: var(--fd-text-sec); margin-bottom: 4px; }
+    .fd-field input, .fd-field select {
+        width: 100%; padding: 10px 12px;
+        border: 1.5px solid var(--fd-border); border-radius: 8px;
+        font-family: inherit; font-size: .86rem;
+        outline: none; transition: border-color .2s;
+        box-sizing: border-box; color: var(--fd-text);
+    }
+    .fd-field input:focus, .fd-field select:focus { border-color: var(--fd-accent); }
+    .fd-field input[readonly] { background: #f0efed; cursor: not-allowed; color: var(--fd-text-sec); }
+    .fd-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .fd-modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+    .fd-img-preview {
+        width: 100%; height: 120px; border-radius: 8px;
+        background: var(--fd-accent-light); border: 1.5px dashed var(--fd-border);
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden; margin-top: 6px; position: relative; cursor: pointer;
+    }
+    .fd-img-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .fd-img-preview i { font-size: 2rem; color: var(--fd-text-sec); }
+    .fd-img-preview.has-img i { display: none; }
+    .fd-img-input { display: none; }
+
+    @media print {
+        .fd-wrap { background: #fff !important; }
+        .fd-btn, .fd-toolbar, .fd-card-actions, .fd-modal-overlay, .fd-cat-section { display: none !important; }
+    }
+    @media (max-width: 700px) {
+        .fd-grid { grid-template-columns: 1fr; }
+        .fd-header h1 { font-size: 1.5rem; }
+        .fd-form-row { grid-template-columns: 1fr; }
+    }
+
+    @keyframes fdFadeUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="fd-wrap">
+<div class="fd-container">
+
+    <!-- Header -->
+    <header class="fd-header">
+        <div>
+            <h1>غذا و منو</h1>
+            <p>مدیریت آیتم‌های منو — قیمت‌گذاری از آشپزخانه</p>
+        </div>
+        <div class="fd-header-btns">
+            <button class="fd-btn fd-btn-outline" onclick="window.print()">
+                <i class="bi bi-printer"></i> چاپ
+            </button>
+            <button class="fd-btn fd-btn-accent" onclick="openAddModal()">
+                <i class="bi bi-plus-lg"></i> غذای جدید
+            </button>
+        </div>
+    </header>
+
+    <!-- Stats -->
+    <div class="fd-stats">
+        <div class="fd-stat">
+            <div class="fd-si" style="background:var(--fd-accent-light);color:var(--fd-accent);"><i class="bi bi-book"></i></div>
+            <span class="fd-sv" style="color:var(--fd-accent);" id="statTotal">—</span>
+            <div class="fd-sl">کل غذاها</div>
+        </div>
+        <div class="fd-stat">
+            <div class="fd-si" style="background:var(--fd-info-bg);color:var(--fd-info);"><i class="bi bi-grid"></i></div>
+            <span class="fd-sv" style="color:var(--fd-info);" id="statCats">—</span>
+            <div class="fd-sl">دسته‌بندی</div>
+        </div>
+        <div class="fd-stat">
+            <div class="fd-si" style="background:var(--fd-success-bg);color:var(--fd-success);"><i class="bi bi-cash-stack"></i></div>
+            <span class="fd-sv" style="color:var(--fd-success);" id="statAvgPrice">—</span>
+            <div class="fd-sl">میانگین قیمت</div>
+        </div>
+        <div class="fd-stat">
+            <div class="fd-si" style="background:var(--fd-danger-bg);color:var(--fd-danger);"><i class="bi bi-tag"></i></div>
+            <span class="fd-sv" style="color:var(--fd-danger);" id="statDiscounts">—</span>
+            <div class="fd-sl">تخفیف‌دار</div>
+        </div>
+    </div>
+
+    <!-- Category Section -->
+    <div class="fd-cat-section">
+        <div class="fd-cat-section-head" id="catToggle" onclick="toggleCatSection()">
+            <h3><i class="bi bi-collection"></i> مدیریت دسته‌بندی‌ها</h3>
+            <i class="bi bi-chevron-down fd-toggle-icon"></i>
+        </div>
+        <div class="fd-cat-body" id="catBody">
+            <div class="fd-cat-list" id="catList"></div>
+            <div class="fd-add-cat-row">
+                <input type="text" id="newCatName" placeholder="نام دسته‌بندی جدید..." onkeydown="if(event.key==='Enter')quickAddCat()">
+                <input type="number" id="newCatOrder" placeholder="ترتیب" min="0" value="0" style="max-width:80px;">
+                <button class="fd-btn fd-btn-accent fd-btn-sm" onclick="quickAddCat()">
+                    <i class="bi bi-plus-lg"></i> افزودن
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="fd-toolbar">
+        <div class="fd-search-box">
+            <i class="bi bi-search"></i>
+            <input type="text" id="foodSearch" placeholder="جستجوی نام غذا..." oninput="applyFilters()">
+        </div>
+        <div class="fd-cats" id="catFilters">
+            <button class="fd-cat-btn active" data-cat="all" onclick="selectCat(this)">همه</button>
+        </div>
+    </div>
+
+    <!-- Grid -->
+    <div class="fd-grid" id="foodGrid"></div>
+
+</div>
+</div>
+
+<!-- ═══ Modal: Food Add/Edit ═══ -->
+<div class="fd-modal-overlay" id="foodModal">
+    <div class="fd-modal">
+        <h3><i class="bi bi-pencil-square" style="color:var(--fd-accent);"></i> <span id="modalTitle">غذای جدید</span></h3>
+        <input type="hidden" id="foodId">
+        <div class="fd-field">
+            <label>نام غذا</label>
+            <input type="text" id="foodName" placeholder="مثال: پیتزا مارگاریتا">
+        </div>
+        <div class="fd-field">
+            <label>دسته‌بندی</label>
+            <select id="foodCategory"></select>
+        </div>
+        <div class="fd-field">
+            <label>قیمت (از آشپزخانه تعیین می‌شود)</label>
+            <input type="text" id="foodPrice" readonly placeholder="قیمت از آشپزخانه">
+        </div>
+        <div class="fd-field">
+            <label>تصویر</label>
+            <div class="fd-img-preview" id="imgPreview" onclick="document.getElementById('imageInput').click()">
+                <i class="bi bi-camera"></i>
+                <img id="imgPreviewImg" style="display:none;">
+            </div>
+            <input type="file" id="imageInput" accept="image/*" onchange="previewImage(this)">
+        </div>
+        <div class="fd-modal-actions">
+            <button class="fd-btn fd-btn-outline" onclick="closeModal()">انصراف</button>
+            <button class="fd-btn fd-btn-accent" onclick="saveFood()">
+                <i class="bi bi-check-lg"></i> ذخیره
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Modal: Category Edit ═══ -->
+<div class="fd-modal-overlay" id="catModal">
+    <div class="fd-modal" style="max-width:420px;">
+        <h3><i class="bi bi-pencil-square" style="color:var(--fd-accent);"></i> <span id="catModalTitle">ویرایش دسته‌بندی</span></h3>
+        <input type="hidden" id="catEditId">
+        <div class="fd-field">
+            <label>نام دسته‌بندی</label>
+            <input type="text" id="catEditName" placeholder="نام دسته‌بندی">
+        </div>
+        <div class="fd-field">
+            <label>ترتیب نمایش</label>
+            <input type="number" id="catEditOrder" min="0" value="0">
+        </div>
+        <div class="fd-field">
+            <label>تصویر</label>
+            <div class="fd-img-preview" id="catImgPreview" onclick="document.getElementById('catImageInput').click()">
+                <i class="bi bi-camera"></i>
+                <img id="catImgPreviewImg" style="display:none;">
+            </div>
+            <input type="file" id="catImageInput" class="fd-img-input" accept="image/*" onchange="previewCatImage(this)">
+        </div>
+        <div class="fd-modal-actions">
+            <button class="fd-btn fd-btn-outline" onclick="closeCatModal()">انصراف</button>
+            <button class="fd-btn fd-btn-accent" onclick="saveCat()">
+                <i class="bi bi-check-lg"></i> ذخیره
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Modal: Delete ═══ -->
+<div class="fd-modal-overlay" id="deleteModal">
+    <div class="fd-modal" style="max-width:380px;">
+        <h3 style="color:var(--fd-danger);"><i class="bi bi-exclamation-triangle"></i> حذف</h3>
+        <p id="deleteMsg" style="color:var(--fd-text-sec);font-size:.9rem;margin-bottom:20px;"></p>
+        <div class="fd-modal-actions">
+            <button class="fd-btn fd-btn-outline" onclick="closeDeleteModal()">انصراف</button>
+            <button class="fd-btn fd-btn-danger" onclick="confirmDelete()">
+                <i class="bi bi-trash3"></i> حذف
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var foods = {{ foods_json|safe }};
+var categories = {{ categories_json|safe }};
+
+var pD = '\u06F0\u06F1\u06F2\u06F3\u06F4\u06F5\u06F6\u06F7\u06F8\u06F9';
+function toP(n) { return String(n).replace(/\d/g, function(c) { return pD[c]; }); }
+function fmtPrice(v) { return toP(parseInt(v || 0).toLocaleString('en')); }
+function escHtml(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+function getCookie(name) { var v=null; document.cookie.split(';').forEach(function(c){ c=c.trim(); if(c.startsWith(name+'=')) v=decodeURIComponent(c.slice(name.length+1)); }); return v; }
+
+document.addEventListener('DOMContentLoaded', function() {
+    buildCatFilters();
+    buildCatSelect();
+    renderCatList();
+    renderFoods(foods);
+    updateStats();
+});
+
+// ══════════════════════════════════════════════════════════
+//  CATEGORY SECTION
+// ══════════════════════════════════════════════════════════
+
+function toggleCatSection() {
+    var head = document.getElementById('catToggle');
+    var body = document.getElementById('catBody');
+    head.classList.toggle('open');
+    body.classList.toggle('open');
+}
+
+function renderCatList() {
+    var list = document.getElementById('catList');
+    list.innerHTML = '';
+    if (!categories.length) {
+        list.innerHTML = '<div class="fd-cat-empty">هنوز دسته‌بندی‌ای ثبت نشده</div>';
+        return;
+    }
+    categories.forEach(function(c) {
+        var foodCount = foods.filter(function(f) { return f.category_id === c.id; }).length;
+        var row = document.createElement('div');
+        row.className = 'fd-cat-row';
+        row.innerHTML =
+            '<div class="fd-cat-order">' + toP(c.order || 0) + '</div>' +
+            '<div class="fd-cat-img">' +
+                (c.image ? '<img src="' + c.image + '" alt="">' : '<i class="bi bi-grid"></i>') +
+            '</div>' +
+            '<div class="fd-cat-name">' + escHtml(c.name) + '</div>' +
+            '<span class="fd-cat-count">' + toP(foodCount) + ' غذا</span>' +
+            '<div class="fd-cat-actions">' +
+                '<button class="fd-btn-icon" onclick=\'editCat(' + JSON.stringify(c).replace(/'/g,"\\'") + ')\' title="ویرایش"><i class="bi bi-pencil"></i></button>' +
+                '<button class="fd-btn-icon del" onclick="deleteCat(' + c.id + ',\'' + escHtml(c.name).replace(/'/g,"\\'") + ')" title="حذف"><i class="bi bi-trash3"></i></button>' +
+            '</div>';
+        list.appendChild(row);
+    });
+}
+
+function quickAddCat() {
+    var name = document.getElementById('newCatName').value.trim();
+    var order = document.getElementById('newCatOrder').value || 0;
+    if (!name) { toast('نام دسته‌بندی الزامی است', 'error'); return; }
+
+    var fd = new FormData();
+    fd.append('name', name);
+    fd.append('order', order);
+    fetch("{% url 'category_save' %}", {
+        method: 'POST', body: fd,
+        headers: {'X-CSRFToken': getCookie('csrftoken')}
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+        if (d.success) {
+            categories.push(d.item);
+            categories.sort(function(a,b){ return (a.order||0) - (b.order||0); });
+            buildCatFilters();
+            buildCatSelect();
+            renderCatList();
+            document.getElementById('newCatName').value = '';
+            document.getElementById('newCatOrder').value = '0';
+            toast(d.msg);
+        } else { toast(d.error, 'error'); }
+    })
+    .catch(function(){ toast('خطا در ارتباط', 'error'); });
+}
+
+function editCat(c) {
+    document.getElementById('catModalTitle').textContent = 'ویرایش: ' + c.name;
+    document.getElementById('catEditId').value = c.id;
+    document.getElementById('catEditName').value = c.name;
+    document.getElementById('catEditOrder').value = c.order || 0;
+    document.getElementById('catImageInput').value = '';
+    if (c.image) {
+        document.getElementById('catImgPreviewImg').src = c.image;
+        document.getElementById('catImgPreviewImg').style.display = '';
+        document.getElementById('catImgPreview').classList.add('has-img');
+    } else {
+        document.getElementById('catImgPreviewImg').style.display = 'none';
+        document.getElementById('catImgPreview').classList.remove('has-img');
+    }
+    document.getElementById('catModal').classList.add('show');
+}
+
+function closeCatModal() { document.getElementById('catModal').classList.remove('show'); }
+
+function previewCatImage(input) {
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('catImgPreviewImg').src = e.target.result;
+            document.getElementById('catImgPreviewImg').style.display = '';
+            document.getElementById('catImgPreview').classList.add('has-img');
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function saveCat() {
+    var id = document.getElementById('catEditId').value;
+    var name = document.getElementById('catEditName').value.trim();
+    var order = document.getElementById('catEditOrder').value || 0;
+    if (!name) { toast('نام دسته‌بندی الزامی است', 'error'); return; }
+
+    var fd = new FormData();
+    fd.append('id', id);
+    fd.append('name', name);
+    fd.append('order', order);
+    var imgInput = document.getElementById('catImageInput');
+    if (imgInput.files.length > 0) fd.append('image', imgInput.files[0]);
+
+    fetch("{% url 'category_save' %}", {
+        method: 'POST', body: fd,
+        headers: {'X-CSRFToken': getCookie('csrftoken')}
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+        if (d.success) {
+            for (var i=0; i<categories.length; i++) {
+                if (categories[i].id == d.item.id) {
+                    categories[i] = d.item; break;
+                }
+            }
+            categories.sort(function(a,b){ return (a.order||0) - (b.order||0); });
+            buildCatFilters();
+            buildCatSelect();
+            renderCatList();
+            closeCatModal();
+            toast(d.msg);
+        } else { toast(d.error, 'error'); }
+    })
+    .catch(function(){ toast('خطا در ارتباط', 'error'); });
+}
+
+function deleteCat(id, name) {
+    deleteTargetId = id;
+    deleteTargetType = 'category';
+    document.getElementById('deleteMsg').textContent = 'آیا از حذف دسته‌بندی «' + name + '» مطمئن هستید؟';
+    document.getElementById('deleteModal').classList.add('show');
+}
+
+// ══════════════════════════════════════════════════════════
+//  CATEGORY FILTERS
+// ══════════════════════════════════════════════════════════
+
+function buildCatFilters() {
+    var wrap = document.getElementById('catFilters');
+    wrap.innerHTML = '<button class="fd-cat-btn active" data-cat="all" onclick="selectCat(this)">همه</button>';
+    categories.forEach(function(c) {
+        var btn = document.createElement('button');
+        btn.className = 'fd-cat-btn';
+        btn.dataset.cat = c.id;
+        btn.textContent = c.name;
+        btn.onclick = function() { selectCat(btn); };
+        wrap.appendChild(btn);
+    });
+}
+
+function selectCat(btn) {
+    document.querySelectorAll('.fd-cat-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    applyFilters();
+}
+
+function buildCatSelect() {
+    var sel = document.getElementById('foodCategory');
+    sel.innerHTML = '';
+    categories.forEach(function(c) {
+        var opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.name;
+        sel.appendChild(opt);
+    });
+}
+
+// ══════════════════════════════════════════════════════════
+//  FOOD GRID
+// ══════════════════════════════════════════════════════════
+
+function renderFoods(data) {
+    var grid = document.getElementById('foodGrid');
+    grid.innerHTML = '';
+    if (!data.length) {
+        grid.innerHTML = '<div class="fd-empty"><i class="bi bi-book"></i><p>هنوز غذایی ثبت نشده</p></div>';
+        return;
+    }
+    data.forEach(function(f, i) {
+        var card = document.createElement('div');
+        card.className = 'fd-card';
+        card.style.animationDelay = (i * 0.03) + 's';
+
+        var badgeHtml = '';
+        if (f.discount) {
+            var discountLabel = f.discount.discount_type === 'percentage'
+                ? toP(f.discount.value) + '\u066D تخفیف'
+                : fmtPrice(f.discount.value) + ' تومان تخفیف';
+            badgeHtml = '<div class="fd-discount-badge"><i class="bi bi-lightning-charge-fill"></i> ' + discountLabel + '</div>';
+        }
+
+        var priceHtml = '';
+        if (f.has_kitchen) {
+            if (f.discount) {
+                priceHtml =
+                    '<div class="fd-price-wrap">' +
+                        '<div class="fd-price-original"><i class="bi bi-cash"></i> ' + fmtPrice(f.kitchen_price) + ' تومان</div>' +
+                        '<div class="fd-price-discounted"><i class="bi bi-tag-fill"></i> ' + fmtPrice(f.discount.discounted_price) + ' تومان</div>' +
+                        '<div class="fd-discount-meta">' +
+                            '<span class="fd-discount-label">' + escHtml(f.discount.name) + '</span>' +
+                            (f.discount.max_quantity ? '<span class="fd-discount-qty"><i class="bi bi-box"></i> ' + toP(f.discount.max_quantity) + ' عدد</span>' : '') +
+                        '</div>' +
+                    '</div>';
+            } else {
+                priceHtml = '<div class="fd-price-wrap"><div class="fd-price-normal"><i class="bi bi-cash"></i> ' + fmtPrice(f.kitchen_price) + ' تومان</div></div>';
+            }
+        } else {
+            priceHtml = '<div class="fd-price-none">قیمت آشپزخانه تنظیم نشده</div>';
+        }
+
+        card.innerHTML =
+            badgeHtml +
+            '<div class="fd-card-img">' +
+                (f.image ? '<img src="' + f.image + '" alt="' + escHtml(f.name) + '">' : '<i class="bi bi-image"></i>') +
+            '</div>' +
+            '<div class="fd-card-body">' +
+                '<div class="fd-card-name">' + escHtml(f.name) + '</div>' +
+                '<span class="fd-card-cat">' + escHtml(f.category_name) + '</span>' +
+                priceHtml +
+            '</div>' +
+            '<div class="fd-card-actions">' +
+                '<button class="fd-btn fd-btn-outline fd-btn-sm" onclick=\'editFood(' + JSON.stringify(f).replace(/'/g, "\\'") + ')\'>' +
+                    '<i class="bi bi-pencil"></i> ویرایش</button>' +
+                '<button class="fd-btn fd-btn-sm" style="background:var(--fd-danger-bg);color:var(--fd-danger)" ' +
+                    'onclick="openDeleteModal(' + f.id + ',\'' + escHtml(f.name).replace(/'/g, "\\'") + '\',\'food\')">' +
+                    '<i class="bi bi-trash3"></i></button>' +
+            '</div>';
+        grid.appendChild(card);
+    });
+}
+
+function updateStats() {
+    document.getElementById('statTotal').textContent = toP(foods.length);
+    document.getElementById('statCats').textContent = toP(categories.length);
+    var withKitchen = foods.filter(function(f){ return f.has_kitchen; });
+    var discountCount = foods.filter(function(f){ return f.discount; }).length;
+    document.getElementById('statDiscounts').textContent = toP(discountCount);
+    if (withKitchen.length) {
+        var total = 0;
+        withKitchen.forEach(function(f){ total += f.kitchen_price; });
+        document.getElementById('statAvgPrice').textContent = fmtPrice(Math.round(total / withKitchen.length));
+    } else {
+        document.getElementById('statAvgPrice').textContent = '—';
+    }
+}
+
+function applyFilters() {
+    var q = document.getElementById('foodSearch').value.trim().toLowerCase();
+    var activeCat = document.querySelector('.fd-cat-btn.active').dataset.cat;
+    var filtered = foods.filter(function(f) {
+        var matchSearch = !q || f.name.toLowerCase().indexOf(q) !== -1;
+        var matchCat = activeCat === 'all' || String(f.category_id) === activeCat;
+        return matchSearch && matchCat;
+    });
+    renderFoods(filtered);
+}
+
+// ══════════════════════════════════════════════════════════
+//  FOOD MODAL
+// ══════════════════════════════════════════════════════════
+
+function previewImage(input) {
+    if (input.files && input.files[0]) {
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            var img = document.getElementById('imgPreviewImg');
+            img.src = e.target.result;
+            img.style.display = '';
+            document.getElementById('imgPreview').classList.add('has-img');
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function openAddModal() {
+    document.getElementById('modalTitle').textContent = 'غذای جدید';
+    document.getElementById('foodId').value = '';
+    document.getElementById('foodName').value = '';
+    document.getElementById('foodCategory').selectedIndex = 0;
+    document.getElementById('foodPrice').value = '';
+    document.getElementById('imageInput').value = '';
+    document.getElementById('imgPreviewImg').style.display = 'none';
+    document.getElementById('imgPreview').classList.remove('has-img');
+    document.getElementById('foodModal').classList.add('show');
+}
+
+function editFood(f) {
+    document.getElementById('modalTitle').textContent = 'ویرایش: ' + f.name;
+    document.getElementById('foodId').value = f.id;
+    document.getElementById('foodName').value = f.name;
+    document.getElementById('foodCategory').value = f.category_id;
+    document.getElementById('foodPrice').value = f.has_kitchen ? fmtPrice(f.kitchen_price) + ' تومان' : 'تنظیم نشده';
+    document.getElementById('imageInput').value = '';
+    if (f.image) {
+        document.getElementById('imgPreviewImg').src = f.image;
+        document.getElementById('imgPreviewImg').style.display = '';
+        document.getElementById('imgPreview').classList.add('has-img');
+    } else {
+        document.getElementById('imgPreviewImg').style.display = 'none';
+        document.getElementById('imgPreview').classList.remove('has-img');
+    }
+    document.getElementById('foodModal').classList.add('show');
+}
+
+function closeModal() { document.getElementById('foodModal').classList.remove('show'); }
+
+function saveFood() {
+    var id = document.getElementById('foodId').value;
+    var name = document.getElementById('foodName').value.trim();
+    var category = document.getElementById('foodCategory').value;
+    if (!name) { toast('نام غذا الزامی است', 'error'); return; }
+    if (!category) { toast('دسته‌بندی الزامی است', 'error'); return; }
+
+    var fd = new FormData();
+    if (id) fd.append('id', id);
+    fd.append('name', name);
+    fd.append('category', category);
+    var imageInput = document.getElementById('imageInput');
+    if (imageInput.files.length > 0) fd.append('image', imageInput.files[0]);
+
+    fetch("{% url 'food_save' %}", {
+        method: 'POST', body: fd,
+        headers: {'X-CSRFToken': getCookie('csrftoken')}
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+        if (res.success) { toast(res.msg, 'success'); closeModal(); location.reload(); }
+        else { toast(res.error || 'خطا', 'error'); }
+    })
+    .catch(function(e){ toast('خطا: ' + e, 'error'); });
+}
+
+// ══════════════════════════════════════════════════════════
+//  DELETE
+// ══════════════════════════════════════════════════════════
+
+var deleteTargetId = null;
+var deleteTargetType = '';
+
+function openDeleteModal(id, name, type) {
+    deleteTargetId = id;
+    deleteTargetType = type || 'food';
+    document.getElementById('deleteMsg').textContent = 'آیا از حذف «' + name + '» مطمئن هستید؟';
+    document.getElementById('deleteModal').classList.add('show');
+}
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.remove('show');
+    deleteTargetId = null;
+}
+
+function confirmDelete() {
+    if (!deleteTargetId) return;
+    var url = deleteTargetType === 'category' ? "{% url 'category_delete' %}" : "{% url 'food_delete' %}";
+    var fd = new FormData();
+    fd.append('id', deleteTargetId);
+    fetch(url, {
+        method: 'POST', body: fd,
+        headers: {'X-CSRFToken': getCookie('csrftoken')}
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+        if (res.success) {
+            toast(res.msg, 'success');
+            closeDeleteModal();
+            location.reload();
+        } else { toast(res.error || 'خطا', 'error'); }
+    })
+    .catch(function(e){ toast('خطا: ' + e, 'error'); });
+}
+
+// ══════════════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════════════
+
+function toast(msg, type) {
+    var existing = document.querySelector('.fd-toast');
+    if (existing) existing.remove();
+    var el = document.createElement('div');
+    el.className = 'fd-toast';
+    el.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:10px;font-size:.86rem;font-weight:600;z-index:99999;box-shadow:0 8px 30px rgba(0,0,0,.15);font-family:inherit;';
+    el.style.background = type === 'error' ? '#dc2626' : '#16a34a';
+    el.style.color = '#fff';
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(function() { el.remove(); }, 3500);
+}
+// ═══ Auto-refresh foods + discounts every 30 seconds ═══
+// ═══ Auto-refresh foods + discounts every 30 seconds ═══
+setInterval(function(){
+    fetch("{% url 'food_management_api' %}", {
+        credentials: 'same-origin'
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+        if (data.foods) {
+            foods = data.foods;       // ← اینجا has_kitchen و kitchen_price آپدیت میشن
+            applyFilters();
+            updateStats();
+        }
+    })
+    .catch(function(){});
+}, 30000);
+</script>
+{% endblock %}

@@ -1,0 +1,1418 @@
+{% extends "admin/restaurant_base.html" %}
+{% load i18n static %}
+
+{% block title %}مدیریت سفارشات{% endblock %}
+
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+    :root {
+        --bg: #f0f4f8;
+        --surface: #ffffff;
+        --accent: #1b2a4a;
+        --success: #2ecc71;
+        --danger: #e74c3c;
+        --warning: #f39c12;
+        --blue: #3b82f6;
+        --text: #1b2a4a;
+        --text-sec: #7a8fa3;
+        --border: #d0dbe8;
+        --radius: 14px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        background: var(--bg);
+        font-family: 'Vazirmatn', Tahoma, sans-serif;
+        font-size: 14px;
+        color: var(--text);
+        min-height: 100vh;
+    }
+
+    /* ═══════════════════════════════════════════
+       HEADER
+    ═══════════════════════════════════════════ */
+    .page-header {
+        background: var(--surface);
+        border-bottom: 1.5px solid var(--border);
+        padding: 18px 28px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: 0 2px 12px rgba(27,42,74,.04);
+    }
+    .page-header-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .page-header h1 {
+        font-size: 20px;
+        font-weight: 900;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .page-header h1 i {
+        color: var(--accent);
+        font-size: 24px;
+    }
+    .header-badge {
+        background: var(--warning);
+        color: #fff;
+        padding: 3px 12px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 800;
+        display: none;
+        animation: badgePulse 2s infinite;
+    }
+    .header-badge.show { display: inline-block; }
+    @keyframes badgePulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.06); }
+    }
+    .header-actions {
+        display: flex;
+        gap: 8px;
+    }
+    .header-btn {
+        padding: 9px 18px;
+        border: 1.5px solid var(--border);
+        border-radius: 10px;
+        background: transparent;
+        color: var(--text-sec);
+        font-family: 'Vazirmatn', Tahoma, sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all .2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .header-btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: rgba(27,42,74,.04);
+    }
+    .header-btn i { font-size: 16px; }
+
+    /* ═══════════════════════════════════════════
+       STATS
+    ═══════════════════════════════════════════ */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        padding: 20px 28px 0;
+    }
+    .stat-card {
+        background: var(--surface);
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        position: relative;
+        overflow: hidden;
+        transition: all .25s;
+        box-shadow: 0 1px 4px rgba(27,42,74,.04);
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(27,42,74,.08);
+    }
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+    }
+    .stat-card.s-total::before { background: var(--accent); }
+    .stat-card.s-pending::before { background: var(--warning); }
+    .stat-card.s-cooking::before { background: var(--blue); }
+    .stat-card.s-ready::before { background: var(--success); }
+    .stat-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+        font-size: 20px;
+    }
+    .s-total .stat-icon { background: rgba(27,42,74,.08); color: var(--accent); }
+    .s-pending .stat-icon { background: rgba(243,156,18,.1); color: var(--warning); }
+    .s-cooking .stat-icon { background: rgba(59,130,246,.1); color: var(--blue); }
+    .s-ready .stat-icon { background: rgba(46,204,113,.1); color: var(--success); }
+    .stat-label {
+        font-size: 13px;
+        color: var(--text-sec);
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+    .stat-val {
+        font-size: 28px;
+        font-weight: 900;
+        color: var(--text);
+        line-height: 1;
+    }
+
+    /* ═══════════════════════════════════════════
+       TOOLBAR
+    ═══════════════════════════════════════════ */
+    .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 16px 28px;
+        flex-wrap: wrap;
+    }
+    .filter-pills {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 18px;
+        border: 1.5px solid var(--border);
+        border-radius: 24px;
+        background: var(--surface);
+        color: var(--text-sec);
+        font-family: 'Vazirmatn', Tahoma, sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all .2s;
+        white-space: nowrap;
+    }
+    .pill:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+    }
+    .pill.active {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+    }
+    .pill .pill-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 22px;
+        height: 22px;
+        padding: 0 6px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 800;
+        background: rgba(255,255,255,.2);
+        color: inherit;
+    }
+    .pill:not(.active) .pill-count {
+        background: rgba(27,42,74,.06);
+    }
+    .search-box {
+        margin-right: auto;
+        position: relative;
+    }
+    .search-box input {
+        padding: 9px 16px 9px 40px;
+        border: 1.5px solid var(--border);
+        border-radius: 24px;
+        font-family: 'Vazirmatn', Tahoma, sans-serif;
+        font-size: 14px;
+        color: var(--text);
+        background: var(--surface);
+        outline: none;
+        width: 240px;
+        transition: all .25s;
+    }
+    .search-box input:focus {
+        border-color: var(--accent);
+        width: 300px;
+        box-shadow: 0 0 0 3px rgba(27,42,74,.08);
+    }
+    .search-box input::placeholder {
+        color: var(--text-sec);
+    }
+    .search-box i {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-sec);
+        pointer-events: none;
+        font-size: 16px;
+    }
+
+    /* ═══════════════════════════════════════════
+       ORDERS CONTAINER
+    ═══════════════════════════════════════════ */
+    .orders-container {
+        padding: 0 28px 28px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    /* ═══════════════════════════════════════════
+       ORDER CARD
+    ═══════════════════════════════════════════ */
+    .order-card {
+        background: var(--surface);
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+        transition: all .3s cubic-bezier(.4,0,.2,1);
+        position: relative;
+        box-shadow: 0 1px 4px rgba(27,42,74,.04);
+    }
+    .order-card:hover {
+        box-shadow: 0 6px 24px rgba(27,42,74,.08);
+        transform: translateY(-1px);
+    }
+
+    .order-card.st-pending   { border-right: 5px solid var(--warning); }
+    .order-card.st-confirmed { border-right: 5px solid var(--blue); }
+    .order-card.st-preparing { border-right: 5px solid var(--blue); }
+    .order-card.st-ready     { border-right: 5px solid var(--success); }
+
+    .order-card.entering {
+        animation: orderSlideIn .45s cubic-bezier(.22,1,.36,1) forwards;
+    }
+    @keyframes orderSlideIn {
+        from { opacity: 0; transform: translateY(-20px) scale(.97); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .order-card.removing {
+        animation: orderSlideOut .5s cubic-bezier(.55,0,1,.45) forwards;
+    }
+    @keyframes orderSlideOut {
+        0%   { opacity: 1; transform: translateX(0) scale(1); max-height: 400px; margin-bottom: 12px; }
+        40%  { opacity: .6; transform: translateX(-60px) scale(.97); }
+        100% { opacity: 0; transform: translateX(200px) scale(.9); max-height: 0; margin-bottom: 0; padding: 0; border-width: 0; }
+    }
+
+    .oc-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border);
+        background: #fafbfc;
+        flex-wrap: wrap;
+    }
+    .oc-id {
+        font-size: 15px;
+        font-weight: 900;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .oc-id i { color: var(--accent); font-size: 18px; }
+    .oc-table-num {
+        background: var(--accent);
+        color: #fff;
+        padding: 3px 12px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .oc-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 14px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+    .oc-status .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    .oc-status.st-pending { background: rgba(243,156,18,.1); color: #b45309; }
+    .oc-status.st-pending .dot { background: var(--warning); animation: blink 1.2s infinite; }
+    .oc-status.st-confirmed { background: rgba(59,130,246,.1); color: #1d4ed8; }
+    .oc-status.st-confirmed .dot { background: var(--blue); }
+    .oc-status.st-preparing { background: rgba(59,130,246,.1); color: #1d4ed8; }
+    .oc-status.st-preparing .dot { background: var(--blue); animation: blink 1s infinite; }
+    .oc-status.st-ready { background: rgba(46,204,113,.1); color: #047857; }
+    .oc-status.st-ready .dot { background: var(--success); animation: blink .8s infinite; }
+
+    @keyframes blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .3; }
+    }
+
+    .oc-time {
+        font-size: 13px;
+        color: var(--text-sec);
+        margin-right: auto;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .oc-time i { font-size: 14px; }
+    .oc-customer {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--text);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .oc-customer i { color: var(--text-sec); }
+
+    .oc-body { padding: 14px 18px; }
+    .oc-items { display: flex; flex-wrap: wrap; gap: 8px; }
+    .oc-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 14px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 14px;
+        transition: all .15s;
+    }
+    .oc-item:hover { background: #e4ecf4; }
+    .oc-item .oi-name { font-weight: 700; color: var(--text); }
+    .oc-item .oi-qty {
+        font-size: 12px;
+        font-weight: 800;
+        color: var(--accent);
+        background: rgba(27,42,74,.07);
+        padding: 2px 8px;
+        border-radius: 8px;
+        min-width: 24px;
+        text-align: center;
+    }
+    .oc-item .oi-price { font-size: 12px; color: var(--success); font-weight: 700; }
+
+    .oc-footer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding: 12px 18px;
+        border-top: 1px solid var(--border);
+        background: #fafbfc;
+    }
+    .oc-total {
+        font-size: 16px;
+        font-weight: 900;
+        color: var(--accent);
+        margin-right: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .oc-total .toman { font-size: 12px; font-weight: 600; color: var(--text-sec); }
+    .oc-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .oc-btn {
+        padding: 8px 18px;
+        border: none;
+        border-radius: 10px;
+        font-family: 'Vazirmatn', Tahoma, sans-serif;
+        font-size: 13px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: all .2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .oc-btn:hover { transform: translateY(-1px); }
+    .oc-btn:active { transform: scale(.97); }
+
+    .oc-btn-confirm { background: rgba(59,130,246,.1); color: #1d4ed8; border: 1.5px solid rgba(59,130,246,.25); }
+    .oc-btn-confirm:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .oc-btn-prepare { background: rgba(243,156,18,.1); color: #92400e; border: 1.5px solid rgba(243,156,18,.25); }
+    .oc-btn-prepare:hover { background: var(--warning); color: #fff; border-color: var(--warning); }
+    .oc-btn-ready { background: rgba(46,204,113,.1); color: #047857; border: 1.5px solid rgba(46,204,113,.25); }
+    .oc-btn-ready:hover { background: var(--success); color: #fff; border-color: var(--success); }
+    .oc-btn-deliver { background: var(--success); color: #fff; border: 1.5px solid var(--success); padding: 8px 24px; }
+    .oc-btn-deliver:hover { background: #27ae60; box-shadow: 0 4px 16px rgba(46,204,113,.35); }
+    .oc-btn-cancel { background: rgba(231,76,60,.06); color: var(--danger); border: 1.5px solid rgba(231,76,60,.2); }
+    .oc-btn-cancel:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .oc-btn-detail { background: #f3f4f6; color: var(--text-sec); border: 1.5px solid var(--border); }
+    .oc-btn-detail:hover { background: #e5e7eb; color: var(--text); }
+
+    /* ═══════════════════════════════════════════
+       EMPTY STATE
+    ═══════════════════════════════════════════ */
+    .empty-state { text-align: center; padding: 80px 20px; color: var(--text-sec); }
+    .empty-icon {
+        width: 100px; height: 100px; border-radius: 50%;
+        background: rgba(27,42,74,.04);
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 20px; font-size: 42px; color: var(--border);
+    }
+    .empty-state h3 { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+    .empty-state p { font-size: 14px; max-width: 360px; margin: 0 auto; line-height: 1.7; }
+
+    /* ═══════════════════════════════════════════
+       TOAST
+    ═══════════════════════════════════════════ */
+    .toast-container {
+        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+        z-index: 99999; display: flex; flex-direction: column; align-items: center; gap: 8px;
+        pointer-events: none;
+    }
+    .toast {
+        padding: 14px 28px; border-radius: 14px; font-size: 14px; font-weight: 700;
+        display: flex; align-items: center; gap: 10px;
+        animation: toastIn .4s cubic-bezier(.22,1,.36,1) forwards;
+        pointer-events: auto; white-space: nowrap;
+    }
+    .toast.out { animation: toastOut .35s ease forwards; }
+    @keyframes toastIn  { from { opacity: 0; transform: translateY(20px) scale(.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    @keyframes toastOut { to { opacity: 0; transform: translateY(-10px) scale(.95); } }
+    .toast.success { background: var(--success); color: #fff; box-shadow: 0 8px 30px rgba(46,204,113,.35); }
+    .toast.info    { background: var(--blue); color: #fff; box-shadow: 0 8px 30px rgba(59,130,246,.35); }
+    .toast.warning { background: var(--accent); color: #fff; box-shadow: 0 8px 30px rgba(27,42,74,.3); }
+    .toast.error   { background: var(--danger); color: #fff; box-shadow: 0 8px 30px rgba(231,76,60,.35); }
+
+    /* ═══════════════════════════════════════════
+       CONFIRM MODAL
+    ═══════════════════════════════════════════ */
+    .modal-overlay {
+        position: fixed; inset: 0; background: rgba(27,42,74,.55);
+        z-index: 99998; display: flex; align-items: center; justify-content: center;
+        opacity: 0; pointer-events: none; transition: opacity .25s; backdrop-filter: blur(6px);
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    .modal-box {
+        background: var(--surface); border-radius: 18px; max-width: 400px; width: 92%;
+        padding: 32px; text-align: center;
+        box-shadow: 0 24px 64px rgba(0,0,0,.18);
+        transform: translateY(20px) scale(.96); transition: transform .3s ease;
+    }
+    .modal-overlay.active .modal-box { transform: translateY(0) scale(1); }
+    .modal-icon {
+        width: 64px; height: 64px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 16px; font-size: 28px;
+    }
+    .modal-icon.success { background: rgba(46,204,113,.12); color: var(--success); }
+    .modal-icon.danger  { background: rgba(231,76,60,.1); color: var(--danger); }
+    .modal-title { font-size: 18px; font-weight: 900; color: var(--text); margin-bottom: 8px; }
+    .modal-desc  { font-size: 14px; color: var(--text-sec); margin-bottom: 24px; line-height: 1.7; }
+    .modal-btns  { display: flex; gap: 10px; }
+    .modal-btn {
+        flex: 1; padding: 12px; border: none; border-radius: 12px;
+        font-family: 'Vazirmatn', Tahoma, sans-serif; font-size: 15px; font-weight: 800;
+        cursor: pointer; transition: all .2s;
+    }
+    .modal-btn-confirm       { background: var(--success); color: #fff; }
+    .modal-btn-confirm:hover { background: #27ae60; }
+    .modal-btn-deliver       { background: var(--success); color: #fff; }
+    .modal-btn-deliver:hover { background: #27ae60; }
+    .modal-btn-cancel        { background: #f3f4f6; color: var(--text-sec); }
+    .modal-btn-cancel:hover  { background: #e5e7eb; }
+    .modal-btn-cancel-action       { background: rgba(231,76,60,.08); color: var(--danger); }
+    .modal-btn-cancel-action:hover { background: var(--danger); color: #fff; }
+
+    /* ═══════════════════════════════════════════
+       FAB
+    ═══════════════════════════════════════════ */
+    .fab-new-order {
+        position: fixed; bottom: 24px; left: 24px;
+        width: 56px; height: 56px; border-radius: 16px; border: none;
+        background: var(--accent); color: #fff; font-size: 24px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; box-shadow: 0 6px 24px rgba(27,42,74,.3);
+        transition: all .2s; z-index: 50;
+    }
+    .fab-new-order:hover { transform: scale(1.08); box-shadow: 0 8px 32px rgba(27,42,74,.4); }
+
+    /* ═══════════════════════════════════════════
+       DETAIL MODAL
+    ═══════════════════════════════════════════ */
+    .detail-overlay {
+        position: fixed; inset: 0; background: rgba(27,42,74,.55);
+        z-index: 99998; display: flex; align-items: center; justify-content: center;
+        opacity: 0; pointer-events: none; transition: opacity .3s; backdrop-filter: blur(6px);
+    }
+    .detail-overlay.active { opacity: 1; pointer-events: auto; }
+    .detail-box {
+        background: var(--surface); border-radius: 18px; max-width: 520px; width: 94%;
+        box-shadow: 0 24px 64px rgba(0,0,0,.18);
+        transform: translateY(20px) scale(.97); transition: transform .3s ease; overflow: hidden;
+    }
+    .detail-overlay.active .detail-box { transform: translateY(0) scale(1); }
+    .detail-header {
+        padding: 20px 24px; border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; gap: 12px;
+    }
+    .detail-header h3 { font-size: 18px; font-weight: 900; color: var(--text); margin: 0; }
+    .detail-close {
+        margin-right: auto; width: 36px; height: 36px; border: none; border-radius: 10px;
+        background: transparent; color: var(--text-sec); cursor: pointer; font-size: 20px;
+        display: flex; align-items: center; justify-content: center; transition: all .2s;
+    }
+    .detail-close:hover { background: rgba(231,76,60,.1); color: var(--danger); }
+    .detail-body { padding: 24px; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .detail-field { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+    .detail-field-label { font-size: 11px; font-weight: 700; color: var(--text-sec); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+    .detail-field-val { font-size: 16px; font-weight: 800; color: var(--text); }
+    .detail-field-val.green { color: var(--success); }
+    .detail-items-title { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .detail-items-box { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .detail-item-row {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 10px 14px; font-size: 14px; border-bottom: 1px solid var(--border);
+    }
+    .detail-item-row:last-child { border-bottom: none; }
+    .detail-item-row:nth-child(even) { background: #f9fafb; }
+    .detail-total-box { margin-top: 16px; padding: 16px; background: rgba(27,42,74,.04); border-radius: 12px; text-align: center; }
+    .detail-total-label { font-size: 13px; color: var(--text-sec); margin-bottom: 4px; }
+    .detail-total-val { font-size: 28px; font-weight: 900; color: var(--accent); }
+
+    /* ═══════════════════════════════════════════
+       RESPONSIVE
+    ═══════════════════════════════════════════ */
+    @media (max-width: 1024px) {
+        .stats-row { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    @media (max-width: 768px) {
+        .page-header { padding: 14px 16px; }
+        .page-header h1 { font-size: 17px; }
+        .stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 12px 16px 0; }
+        .stat-card { padding: 14px; }
+        .stat-icon { width: 36px; height: 36px; font-size: 16px; margin-bottom: 8px; }
+        .stat-val { font-size: 22px; }
+        .stat-label { font-size: 12px; }
+        .toolbar { padding: 12px 16px; flex-direction: column; align-items: stretch; gap: 8px; }
+        .filter-pills { gap: 4px; }
+        .pill { padding: 7px 14px; font-size: 12px; }
+        .search-box { margin-right: 0; }
+        .search-box input { width: 100%; }
+        .search-box input:focus { width: 100%; }
+        .orders-container { padding: 0 16px 16px; gap: 10px; }
+        .oc-header { padding: 12px 14px; gap: 8px; }
+        .oc-id { font-size: 14px; }
+        .oc-status { font-size: 11px; padding: 4px 10px; }
+        .oc-time { font-size: 12px; }
+        .oc-customer { font-size: 12px; }
+        .oc-body { padding: 12px 14px; }
+        .oc-items { gap: 6px; }
+        .oc-item { padding: 6px 10px; font-size: 13px; }
+        .oc-footer { padding: 10px 14px; gap: 6px; }
+        .oc-total { font-size: 14px; }
+        .oc-btn { padding: 7px 14px; font-size: 12px; }
+        .detail-box { border-radius: 14px; }
+        .detail-header { padding: 16px; }
+        .detail-body { padding: 16px; }
+        .detail-grid { grid-template-columns: 1fr; gap: 8px; }
+        .detail-field-val { font-size: 15px; }
+    }
+
+    @media (max-width: 480px) {
+        .page-header { padding: 12px; }
+        .page-header h1 { font-size: 15px; gap: 6px; }
+        .page-header h1 i { font-size: 20px; }
+        .header-badge { font-size: 11px; padding: 2px 8px; }
+        .header-btn { padding: 7px 12px; font-size: 12px; }
+        .stats-row { gap: 6px; padding: 10px 12px 0; }
+        .stat-card { padding: 10px; border-radius: 10px; }
+        .stat-icon { width: 30px; height: 30px; font-size: 14px; margin-bottom: 6px; border-radius: 8px; }
+        .stat-val { font-size: 18px; }
+        .stat-label { font-size: 10px; }
+        .toolbar { padding: 10px 12px; gap: 6px; }
+        .pill { padding: 6px 10px; font-size: 11px; border-radius: 16px; }
+        .pill .pill-count { min-width: 18px; height: 18px; font-size: 10px; }
+        .search-box input { padding: 8px 12px 8px 34px; font-size: 13px; border-radius: 16px; }
+        .search-box i { font-size: 14px; left: 12px; }
+        .orders-container { padding: 0 12px 12px; gap: 8px; }
+        .order-card { border-radius: 10px; }
+        .oc-header { padding: 10px 12px; gap: 6px; }
+        .oc-id { font-size: 13px; }
+        .oc-table-num { font-size: 10px; padding: 2px 8px; }
+        .oc-status { font-size: 10px; padding: 3px 8px; border-radius: 14px; }
+        .oc-status .dot { width: 5px; height: 5px; }
+        .oc-time { font-size: 11px; gap: 3px; }
+        .oc-customer { font-size: 11px; }
+        .oc-body { padding: 10px 12px; }
+        .oc-items { gap: 5px; }
+        .oc-item { padding: 5px 8px; font-size: 12px; border-radius: 8px; gap: 4px; }
+        .oc-item .oi-qty { font-size: 10px; padding: 1px 6px; }
+        .oc-item .oi-price { font-size: 11px; }
+        .oc-footer { padding: 8px 12px; gap: 5px; }
+        .oc-total { font-size: 13px; gap: 4px; }
+        .oc-total .toman { font-size: 11px; }
+        .oc-actions { gap: 4px; }
+        .oc-btn { padding: 6px 10px; font-size: 11px; border-radius: 8px; gap: 4px; }
+        .oc-btn-deliver { padding: 6px 14px; }
+        .empty-state { padding: 48px 16px; }
+        .empty-icon { width: 72px; height: 72px; font-size: 32px; }
+        .empty-state h3 { font-size: 15px; }
+        .empty-state p { font-size: 13px; }
+        .toast { font-size: 13px; padding: 12px 20px; border-radius: 12px; }
+        .modal-box { padding: 24px 20px; border-radius: 14px; }
+        .modal-title { font-size: 16px; }
+        .modal-desc { font-size: 13px; }
+        .modal-btn { padding: 10px; font-size: 14px; border-radius: 10px; }
+        .fab-new-order { width: 48px; height: 48px; font-size: 20px; border-radius: 14px; bottom: 16px; left: 16px; }
+        .detail-grid { gap: 6px; }
+        .detail-field { padding: 10px; }
+        .detail-field-label { font-size: 10px; }
+        .detail-field-val { font-size: 14px; }
+        .detail-item-row { padding: 8px 10px; font-size: 13px; }
+        .detail-total-val { font-size: 22px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- HEADER -->
+<header class="page-header">
+    <div class="page-header-right">
+        <h1><i class="bi bi-receipt-cutoff"></i> مدیریت سفارشات</h1>
+        <span class="header-badge" id="headerBadge">۰ سفارش فعال</span>
+    </div>
+    <div class="header-actions">
+        <button class="header-btn" onclick="addSampleOrder()">
+            <i class="bi bi-plus-circle"></i>
+            سفارش جدید (دمو)
+        </button>
+        <button class="header-btn" onclick="clearDelivered()">
+            <i class="bi bi-trash3"></i>
+            پاک کردن تحویل‌شده‌ها
+        </button>
+    </div>
+</header>
+
+<!-- STATS -->
+<div class="stats-row">
+    <div class="stat-card s-total">
+        <div class="stat-icon"><i class="bi bi-receipt"></i></div>
+        <div class="stat-label">کل سفارشات</div>
+        <div class="stat-val" id="statTotal">۰</div>
+    </div>
+    <div class="stat-card s-pending">
+        <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+        <div class="stat-label">در انتظار تایید</div>
+        <div class="stat-val" id="statPending">۰</div>
+    </div>
+    <div class="stat-card s-cooking">
+        <div class="stat-icon"><i class="bi bi-fire"></i></div>
+        <div class="stat-label">در حال آماده‌سازی</div>
+        <div class="stat-val" id="statCooking">۰</div>
+    </div>
+    <div class="stat-card s-ready">
+        <div class="stat-icon"><i class="bi bi-check2-circle"></i></div>
+        <div class="stat-label">آماده تحویل</div>
+        <div class="stat-val" id="statReady">۰</div>
+    </div>
+</div>
+
+<!-- TOOLBAR -->
+<div class="toolbar">
+    <div class="filter-pills">
+        <button class="pill active" data-filter="active" onclick="setFilter('active', this)">
+            <i class="bi bi-grid"></i> فعال
+            <span class="pill-count" id="countActive">۰</span>
+        </button>
+        <button class="pill" data-filter="pending" onclick="setFilter('pending', this)">
+            <i class="bi bi-hourglass"></i> انتظار
+            <span class="pill-count" id="countPending">۰</span>
+        </button>
+        <button class="pill" data-filter="confirmed" onclick="setFilter('confirmed', this)">
+            <i class="bi bi-check-lg"></i> تایید شده
+            <span class="pill-count" id="countConfirmed">۰</span>
+        </button>
+        <button class="pill" data-filter="preparing" onclick="setFilter('preparing', this)">
+            <i class="bi bi-fire"></i> آماده‌سازی
+            <span class="pill-count" id="countPreparing">۰</span>
+        </button>
+        <button class="pill" data-filter="ready" onclick="setFilter('ready', this)">
+            <i class="bi bi-bag-check"></i> آماده
+            <span class="pill-count" id="countReady">۰</span>
+        </button>
+    </div>
+    <div class="search-box">
+        <i class="bi bi-search"></i>
+        <input type="text" id="searchInput" placeholder="جستجوی سفارش، مشتری، غذا..." oninput="renderOrders()">
+    </div>
+</div>
+
+<!-- ORDERS LIST -->
+<div class="orders-container" id="ordersContainer"></div>
+
+<!-- TOAST -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal-box">
+        <div class="modal-icon" id="modalIcon"><i class="bi bi-check-lg"></i></div>
+        <div class="modal-title" id="modalTitle">تایید</div>
+        <div class="modal-desc" id="modalDesc">آیا مطمئن هستید؟</div>
+        <div class="modal-btns" id="modalBtns"></div>
+    </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="detail-overlay" id="detailModal">
+    <div class="detail-box">
+        <div class="detail-header">
+            <button class="detail-close" onclick="closeDetail()"><i class="bi bi-x-lg"></i></button>
+            <h3><i class="bi bi-receipt"></i> جزئیات سفارش</h3>
+        </div>
+        <div class="detail-body" id="detailBody"></div>
+    </div>
+</div>
+
+<!-- FAB -->
+<button class="fab-new-order" onclick="addSampleOrder()" title="سفارش جدید">
+    <i class="bi bi-plus-lg"></i>
+</button>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+    /* ═══════════════════════════════════════════════════════════
+       API URLS — مطابق urls.py پروژه
+       ═══════════════════════════════════════════════════════════ */
+       const API = {
+    listOrders:    "{% url 'kitchen_orders_api' %}",
+    changeStatus:  "{% url 'order_change_status' 0 %}".replace('/0/', '/'),
+    sendToKitchen: "{% url 'order_send_to_kitchen' 0 %}".replace('/0/', '/'),
+    ordersCRUD:    "{% url 'order-list' %}",
+    createOrder:   "{% url 'pos_create_order' %}",
+};
+
+
+    /* ═══════════════════════════════════════════════════════════
+       STATE
+       ═══════════════════════════════════════════════════════════ */
+    let orders            = [];
+    let currentFilter     = 'active';
+    let orderIdCounter    = 1000;
+    let useRealAPI        = false;   // اگر سرور جواب بدهد true می‌شود
+    let refreshInterval   = null;
+
+    /* ═══════════════════════════════════════════════════════════
+       STATUS LABELS / TRANSITIONS
+       ═══════════════════════════════════════════════════════════ */
+    const STATUS_LABELS = {
+        pending:    'در انتظار تایید',
+        confirmed:  'تایید شده',
+        preparing:  'در حال آماده‌سازی',
+        ready:      'آماده تحویل',
+        delivered:  'تحویل داده شده',
+        cancelled:  'لغو شده',
+    };
+
+    const NEXT_STATUS = {
+        pending:   'confirmed',
+        confirmed: 'preparing',
+        preparing: 'ready',
+        ready:     'delivered',
+    };
+
+    const ACTION_BTN = {
+        pending:   { label: 'تایید سفارش',       icon: 'bi-check-lg',       cls: 'oc-btn-confirm' },
+        confirmed: { label: 'ارسال به آشپزخانه',  icon: 'bi-fire',           cls: 'oc-btn-prepare' },
+        preparing: { label: 'آماده شد',           icon: 'bi-check2-circle',  cls: 'oc-btn-ready'   },
+        ready:     { label: 'تحویل داده شد',      icon: 'bi-bag-check-fill', cls: 'oc-btn-deliver' },
+    };
+
+    /* ═══════════════════════════════════════════════════════════
+       DEMO DATA
+       ═══════════════════════════════════════════════════════════ */
+    const DEMO_FOODS = [
+        { name: 'چلو کباب کوبیده', price: 185000 },
+        { name: 'چلو جوجه کباب',   price: 165000 },
+        { name: 'قورمه سبزی',      price: 145000 },
+        { name: 'زرشک پلو با مرغ', price: 175000 },
+        { name: 'آبگوشت',          price: 155000 },
+        { name: 'سالاد شیرازی',    price:  45000 },
+        { name: 'نوشابه',          price:  25000 },
+        { name: 'دوغ',             price:  30000 },
+        { name: 'ماست موسیر',      price:  55000 },
+        { name: 'ته چین مرغ',     price: 195000 },
+        { name: 'میرزا قاسمی',    price: 120000 },
+        { name: 'کوکو سبزی',      price: 110000 },
+    ];
+    const DEMO_CUSTOMERS = [
+        'علی رضایی','مریم احمدی','حسن محمدی','زهرا کریمی',
+        'امیر حسینی','فاطمه نوری','رضا صادقی','سارا جعفری',
+    ];
+    const DEMO_TABLES = ['۱','۲','۳','۴','۵','۶','۷','۸','۱۲','VIP'];
+
+    /* ═══════════════════════════════════════════════════════════
+       HELPERS
+       ═══════════════════════════════════════════════════════════ */
+    function toPersianNum(n) {
+        return String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+    }
+
+    function formatPrice(n) {
+        return toPersianNum(Number(n).toLocaleString('en-US'));
+    }
+
+    function getTimeAgo(dateStr) {
+        const date = (dateStr instanceof Date) ? dateStr : new Date(dateStr);
+        const sec  = Math.floor((Date.now() - date.getTime()) / 1000);
+        if (sec < 0)    return 'همین الان';
+        if (sec < 60)   return 'لحظاتی پیش';
+        if (sec < 3600) return toPersianNum(Math.floor(sec / 60))   + ' دقیقه پیش';
+        if (sec < 86400) return toPersianNum(Math.floor(sec / 3600)) + ' ساعت پیش';
+        return toPersianNum(Math.floor(sec / 86400)) + ' روز پیش';
+    }
+
+    function randItem(a) { return a[Math.floor(Math.random() * a.length)]; }
+    function randInt(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+
+    /* CSRF Token */
+    function getCookie(name) {
+        let v = null;
+        document.cookie.split(';').forEach(c => {
+            c = c.trim();
+            if (c.startsWith(name + '=')) v = decodeURIComponent(c.substring(name.length + 1));
+        });
+        return v;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    /* ═══════════════════════════════════════════════════════════
+       API — بارگذاری سفارشات
+       ═══════════════════════════════════════════════════════════ */
+    async function loadOrders() {
+        try {
+            const res = await fetch(API.listOrders, {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin',
+            });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+
+            const data = await res.json();
+
+            // نرمال‌سازی: سرور ممکنه آرایه مستقیم یا {orders:[...]} برگرداند
+            const raw = Array.isArray(data) ? data : (data.orders || data.results || []);
+
+            orders = raw.map(normalizeOrder).filter(Boolean);
+            useRealAPI = true;
+
+            renderOrders();
+        } catch (e) {
+            console.warn('API در دسترس نیست — حالت دمو فعال شد:', e.message);
+            if (!orders.length) loadDemoOrders();
+        }
+    }
+
+    /**
+     * تبدیل ساختار سرور به فرمت مورد نیاز فرانت
+     * بسته به serializer خودتون فیلدها رو تنظیم کنید
+     */
+    function normalizeOrder(raw) {
+        if (!raw || !raw.id) return null;
+        return {
+            id:        raw.id,
+            status:    raw.status || 'pending',
+            table:     raw.table_number || raw.table || '—',
+            customer:  raw.customer_name || raw.customer || 'بدون نام',
+            items:     (raw.items || []).map(it => ({
+                name:  it.food_name || it.name || '—',
+                qty:   it.quantity  || it.qty || 1,
+                price: it.unit_price || it.price || 0,
+            })),
+            total:     raw.total_price || raw.total || 0,
+            createdAt: raw.created_at || raw.createdAt || new Date().toISOString(),
+            isNew:     false,
+        };
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       API — تغییر وضعیت
+       ═══════════════════════════════════════════════════════════ */
+    async function apiChangeStatus(orderId, newStatus) {
+        const url = API.changeStatus + orderId + '/status/';
+
+        const res = await fetch(url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type':     'application/json',
+                'X-CSRFToken':      csrftoken,
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({ status: newStatus }),
+        });
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.detail || err.error || err.message || 'خطای سرور (' + res.status + ')');
+        }
+
+        return res.json();
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       DEMO — ساخت سفارش نمونه
+       ═══════════════════════════════════════════════════════════ */
+    function loadDemoOrders() {
+        useRealAPI = false;
+        ['pending','confirmed','preparing','ready','pending','preparing'].forEach((st, i) => {
+            const o = createDemoOrder(st);
+            o.isNew      = false;
+            o.createdAt  = new Date(Date.now() - (i + 1) * randInt(300000, 1200000)).toISOString();
+            orders.push(o);
+        });
+        renderOrders();
+    }
+
+    function createDemoOrder(status) {
+        const used = new Set();
+        const items = [];
+        for (let i = 0, n = randInt(2, 5); i < n; i++) {
+            let idx;
+            do { idx = randInt(0, DEMO_FOODS.length - 1); } while (used.has(idx));
+            used.add(idx);
+            items.push({ name: DEMO_FOODS[idx].name, price: DEMO_FOODS[idx].price, qty: randInt(1, 3) });
+        }
+        orderIdCounter++;
+        return {
+            id:        orderIdCounter,
+            status:    status,
+            table:     randItem(DEMO_TABLES),
+            customer:  randItem(DEMO_CUSTOMERS),
+            items:     items,
+            total:     items.reduce((s, it) => s + it.price * it.qty, 0),
+            createdAt: new Date().toISOString(),
+            isNew:     true,
+        };
+    }
+
+    function addSampleOrder() {
+        if (useRealAPI) {
+            showToast('در حالت واقعی سفارش از صندوق ثبت می‌شود', 'info');
+            return;
+        }
+        const o = createDemoOrder('pending');
+        orders.unshift(o);
+        showToast('سفارش جدید #' + toPersianNum(o.id) + ' ثبت شد', 'info');
+        renderOrders();
+        setTimeout(() => { o.isNew = false; }, 500);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       STATUS TRANSITIONS
+       ═══════════════════════════════════════════════════════════ */
+    function advanceStatus(orderId) {
+        const order = orders.find(o => o.id === orderId);
+        if (!order) return;
+
+        const next = NEXT_STATUS[order.status];
+        if (!next) return;
+
+        if (next === 'delivered') {
+            showModal(
+                'تحویل سفارش',
+                'آیا سفارش #' + toPersianNum(orderId) + ' به مشتری تحویل داده شده؟',
+                'success',
+                [
+                    { text: 'بله، تحویل شد', cls: 'modal-btn-deliver', action: () => doDeliver(orderId) },
+                    { text: 'انصراف',         cls: 'modal-btn-cancel',  action: closeModal },
+                ]
+            );
+        } else {
+            const labels = {
+                confirmed: 'تایید',
+                preparing: 'شروع آماده‌سازی',
+                ready:     'اعلام آماده بودن',
+            };
+            const descs = {
+                confirmed: 'سفارش #' + toPersianNum(orderId) + ' تایید و به آشپزخانه ارسال شود؟',
+                preparing: 'آماده‌سازی سفارش #' + toPersianNum(orderId) + ' شروع شود؟',
+                ready:     'سفارش #' + toPersianNum(orderId) + ' آماده تحویل اعلام شود؟',
+            };
+            showModal(labels[next], descs[next], 'info', [
+                { text: 'بله',  cls: 'modal-btn-confirm', action: () => doAdvance(orderId, next) },
+                { text: 'انصراف', cls: 'modal-btn-cancel',  action: closeModal },
+            ]);
+        }
+    }
+
+    async function doAdvance(orderId, newStatus) {
+        closeModal();
+
+        // ── حالت واقعی ──
+        if (useRealAPI) {
+            try {
+                await apiChangeStatus(orderId, newStatus);
+            } catch (e) {
+                showToast('خطا: ' + e.message, 'error');
+                return;
+            }
+        }
+
+        // ── بروزرسانی UI ──
+        const order = orders.find(o => o.id === orderId);
+        if (order) order.status = newStatus;
+        renderOrders();
+        showToast('سفارش #' + toPersianNum(orderId) + ' → ' + (STATUS_LABELS[newStatus] || newStatus), 'success');
+    }
+
+    async function doDeliver(orderId) {
+        closeModal();
+
+        // ── حالت واقعی ──
+        if (useRealAPI) {
+            try {
+                await apiChangeStatus(orderId, 'delivered');
+            } catch (e) {
+                showToast('خطا: ' + e.message, 'error');
+                return;
+            }
+        }
+
+        // ── انیمیشن حذف ──
+        const el = document.querySelector('[data-order-id="' + orderId + '"]');
+        if (el) {
+            el.classList.add('removing');
+            setTimeout(() => {
+                orders = orders.filter(o => o.id !== orderId);
+                renderOrders();
+                showToast('سفارش #' + toPersianNum(orderId) + ' تحویل داده شد ✓', 'success');
+            }, 500);
+        } else {
+            orders = orders.filter(o => o.id !== orderId);
+            renderOrders();
+            showToast('سفارش #' + toPersianNum(orderId) + ' تحویل داده شد ✓', 'success');
+        }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       CANCEL ORDER
+       ═══════════════════════════════════════════════════════════ */
+    function cancelOrder(orderId) {
+        showModal(
+            'لغو سفارش',
+            'آیا از لغو سفارش #' + toPersianNum(orderId) + ' مطمئن هستید؟ این عمل قابل بازگشت نیست.',
+            'danger',
+            [
+                { text: 'بله، لغو شود', cls: 'modal-btn-cancel-action', action: () => doCancel(orderId) },
+                { text: 'انصراف',        cls: 'modal-btn-cancel',        action: closeModal },
+            ]
+        );
+    }
+
+    async function doCancel(orderId) {
+        closeModal();
+
+        if (useRealAPI) {
+            try {
+                await apiChangeStatus(orderId, 'cancelled');
+            } catch (e) {
+                showToast('خطا: ' + e.message, 'error');
+                return;
+            }
+        }
+
+        const el = document.querySelector('[data-order-id="' + orderId + '"]');
+        if (el) {
+            el.classList.add('removing');
+            setTimeout(() => {
+                orders = orders.filter(o => o.id !== orderId);
+                renderOrders();
+                showToast('سفارش #' + toPersianNum(orderId) + ' لغو شد', 'error');
+            }, 500);
+        } else {
+            orders = orders.filter(o => o.id !== orderId);
+            renderOrders();
+            showToast('سفارش #' + toPersianNum(orderId) + ' لغو شد', 'error');
+        }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       RENDER
+       ═══════════════════════════════════════════════════════════ */
+    function renderOrders() {
+        const container = document.getElementById('ordersContainer');
+        const q = document.getElementById('searchInput').value.trim().toLowerCase();
+
+        let filtered = orders.filter(o => {
+            if (currentFilter === 'active') return ['pending','confirmed','preparing','ready'].includes(o.status);
+            return o.status === currentFilter;
+        });
+
+        if (q) {
+            filtered = filtered.filter(o =>
+                String(o.id).includes(q) ||
+                (o.customer || '').toLowerCase().includes(q) ||
+                String(o.table).includes(q) ||
+                (o.items || []).some(it => (it.name || '').toLowerCase().includes(q))
+            );
+        }
+
+        updateStats();
+
+        if (!filtered.length) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon"><i class="bi bi-inbox"></i></div>
+                    <h3>سفارشی یافت نشد</h3>
+                    <p>هنوز سفارشی ثبت نشده یا با فیلترهای انتخابی مطابقت ندارد.</p>
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = filtered.map(order => {
+            const action = ACTION_BTN[order.status];
+            const itemsHtml = (order.items || []).map(it =>
+                `<div class="oc-item">
+                    <span class="oi-qty">${toPersianNum(it.qty)}×</span>
+                    <span class="oi-name">${it.name}</span>
+                </div>`
+            ).join('');
+
+            const actionBtn = action
+                ? `<button class="oc-btn ${action.cls}" onclick="advanceStatus(${order.id})">
+                       <i class="bi ${action.icon}"></i> ${action.label}
+                   </button>`
+                : '';
+
+            return `
+            <div class="order-card st-${order.status} ${order.isNew ? 'entering' : ''}" data-order-id="${order.id}">
+                <div class="oc-header">
+                    <span class="oc-id"><i class="bi bi-hash"></i>${toPersianNum(order.id)}</span>
+                    <span class="oc-table-num"><i class="bi bi-grid-3x3-gap" style="font-size:10px"></i> میز ${order.table}</span>
+                    <span class="oc-status st-${order.status}"><span class="dot"></span> ${STATUS_LABELS[order.status] || order.status}</span>
+                    <span class="oc-time"><i class="bi bi-clock"></i> ${getTimeAgo(order.createdAt)}</span>
+                    <span class="oc-customer"><i class="bi bi-person"></i> ${order.customer}</span>
+                </div>
+                <div class="oc-body"><div class="oc-items">${itemsHtml}</div></div>
+                <div class="oc-footer">
+                    <div class="oc-total">${formatPrice(order.total)} <span class="toman">تومان</span></div>
+                    <div class="oc-actions">
+                        <button class="oc-btn oc-btn-detail" onclick="showDetail(${order.id})">
+                            <i class="bi bi-eye"></i> جزئیات
+                        </button>
+                        ${action ? `<button class="oc-btn oc-btn-cancel" onclick="cancelOrder(${order.id})">
+                            <i class="bi bi-x-lg"></i> لغو
+                        </button>` : ''}
+                        ${actionBtn}
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       STATS
+       ═══════════════════════════════════════════════════════════ */
+    function updateStats() {
+        const c = {
+            total:     orders.filter(o => ['pending','confirmed','preparing','ready'].includes(o.status)).length,
+            pending:   orders.filter(o => o.status === 'pending').length,
+            confirmed: orders.filter(o => o.status === 'confirmed').length,
+            preparing: orders.filter(o => o.status === 'preparing').length,
+            ready:     orders.filter(o => o.status === 'ready').length,
+        };
+        document.getElementById('statTotal').textContent     = toPersianNum(c.total);
+        document.getElementById('statPending').textContent    = toPersianNum(c.pending);
+        document.getElementById('statCooking').textContent    = toPersianNum(c.confirmed + c.preparing);
+        document.getElementById('statReady').textContent      = toPersianNum(c.ready);
+        document.getElementById('countActive').textContent    = toPersianNum(c.total);
+        document.getElementById('countPending').textContent   = toPersianNum(c.pending);
+        document.getElementById('countConfirmed').textContent = toPersianNum(c.confirmed);
+        document.getElementById('countPreparing').textContent = toPersianNum(c.preparing);
+        document.getElementById('countReady').textContent     = toPersianNum(c.ready);
+
+        const badge = document.getElementById('headerBadge');
+        if (c.total > 0) {
+            badge.textContent = toPersianNum(c.total) + ' سفارش فعال';
+            badge.classList.add('show');
+        } else {
+            badge.classList.remove('show');
+        }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       FILTER
+       ═══════════════════════════════════════════════════════════ */
+    function setFilter(filter, el) {
+        currentFilter = filter;
+        document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+        el.classList.add('active');
+        renderOrders();
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       DETAIL MODAL
+       ═══════════════════════════════════════════════════════════ */
+    function showDetail(orderId) {
+        const order = orders.find(o => o.id === orderId);
+        if (!order) return;
+
+        const rows = (order.items || []).map(it =>
+            `<div class="detail-item-row">
+                <span>${it.name}</span>
+                <span>${toPersianNum(it.qty)}×</span>
+                <span style="color:var(--success);font-weight:700">${formatPrice(it.price * it.qty)} ت</span>
+            </div>`
+        ).join('');
+
+        document.getElementById('detailBody').innerHTML = `
+            <div class="detail-grid">
+                <div class="detail-field">
+                    <div class="detail-field-label">شماره سفارش</div>
+                    <div class="detail-field-val">#${toPersianNum(order.id)}</div>
+                </div>
+                <div class="detail-field">
+                    <div class="detail-field-label">وضعیت</div>
+                    <div class="detail-field-val">${STATUS_LABELS[order.status] || order.status}</div>
+                </div>
+                <div class="detail-field">
+                    <div class="detail-field-label">مشتری</div>
+                    <div class="detail-field-val">${order.customer}</div>
+                </div>
+                <div class="detail-field">
+                    <div class="detail-field-label">شماره میز</div>
+                    <div class="detail-field-val">${order.table}</div>
+                </div>
+            </div>
+            <div class="detail-items-title"><i class="bi bi-list-check"></i> اقلام سفارش</div>
+            <div class="detail-items-box">${rows}</div>
+            <div class="detail-total-box">
+                <div class="detail-total-label">جمع کل</div>
+                <div class="detail-total-val green">
+                    ${formatPrice(order.total)}
+                    <span style="font-size:14px;font-weight:600;color:var(--text-sec)">تومان</span>
+                </div>
+            </div>`;
+        document.getElementById('detailModal').classList.add('active');
+    }
+
+    function closeDetail() {
+        document.getElementById('detailModal').classList.remove('active');
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       CONFIRM MODAL
+       ═══════════════════════════════════════════════════════════ */
+    function showModal(title, desc, type, buttons) {
+        const icon = document.getElementById('modalIcon');
+        icon.className = 'modal-icon ' + type;
+        icon.innerHTML = type === 'success'
+            ? '<i class="bi bi-check-lg"></i>'
+            : '<i class="bi bi-exclamation-triangle"></i>';
+        document.getElementById('modalTitle').textContent = title;
+        document.getElementById('modalDesc').textContent  = desc;
+        document.getElementById('modalBtns').innerHTML = buttons.map((b, i) =>
+            '<button class="modal-btn ' + b.cls + '" id="mb' + i + '">' + b.text + '</button>'
+        ).join('');
+        buttons.forEach((b, i) => { document.getElementById('mb' + i).onclick = b.action; });
+        document.getElementById('confirmModal').classList.add('active');
+    }
+
+    function closeModal() {
+        document.getElementById('confirmModal').classList.remove('active');
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       TOAST
+       ═══════════════════════════════════════════════════════════ */
+    function showToast(msg, type) {
+        type = type || 'success';
+        const box   = document.getElementById('toastContainer');
+        const icons = {
+            success: 'bi-check-circle-fill',
+            info:    'bi-info-circle-fill',
+            error:   'bi-x-circle-fill',
+            warning: 'bi-exclamation-circle-fill',
+        };
+        const t = document.createElement('div');
+        t.className = 'toast ' + type;
+        t.innerHTML = '<i class="bi ' + (icons[type] || icons.success) + '"></i> ' + msg;
+        box.appendChild(t);
+        setTimeout(() => {
+            t.classList.add('out');
+            setTimeout(() => t.remove(), 350);
+        }, 2800);
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       REFRESH
+       ═══════════════════════════════════════════════════════════ */
+    function refreshOrders() {
+        if (useRealAPI) {
+            loadOrders();
+            showToast('بروزرسانی شد', 'info');
+        } else {
+            showToast('حالت دمو — بروزرسانی خودکار ندارد', 'warning');
+        }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       CLEAR DELIVERED (اختیاری)
+       ═══════════════════════════════════════════════════════════ */
+    function clearDelivered() {
+        const before = orders.length;
+        orders = orders.filter(o => o.status !== 'delivered');
+        const removed = before - orders.length;
+        renderOrders();
+        if (removed > 0) {
+            showToast(toPersianNum(removed) + ' سفارش تحویل‌شده پاک شد', 'success');
+        } else {
+            showToast('سفارش تحویل‌شده‌ای وجود ندارد', 'info');
+        }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       EVENT LISTENERS
+       ═══════════════════════════════════════════════════════════ */
+    document.getElementById('confirmModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+    document.getElementById('detailModal').addEventListener('click', function(e) {
+        if (e.target === this) closeDetail();
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') { closeModal(); closeDetail(); }
+    });
+
+    /* ═══════════════════════════════════════════════════════════
+       INIT
+       ═══════════════════════════════════════════════════════════ */
+    (async function init() {
+        // ۱) تلاش برای بارگذاری از API واقعی
+        await loadOrders();
+
+        // ۲) اگر موفق بود، هر ۱۵ ثانیه بروزرسانی خودکار
+        if (useRealAPI) {
+            refreshInterval = setInterval(loadOrders, 15000);
+        }
+    })();
+</script>
+{% endblock %}

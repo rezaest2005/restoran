@@ -1,0 +1,30 @@
+.submit-row input[type="submit"] {
+    padding: 12px 30px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 5px;
+    font-weight: bold;
+}
+
+input[name="_save"] {
+    background: #28a745;
+    color: white;
+}
+
+input[name="_save"]:hover {
+    background: #218838;
+    transform: scale(1.05);
+}
+
+input[name="_continue"] {
+    background: #007bff;
+    color: white;
+}
+
+input[name="_continue"]:hover {
+    background: #0069d9;
+    transform: scale(1.05);
+}

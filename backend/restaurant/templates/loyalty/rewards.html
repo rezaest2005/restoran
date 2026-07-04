@@ -1,0 +1,166 @@
+{% extends "base_loyalty.html" %}
+
+{% block title %}مدیریت کوپن‌ها{% endblock %}
+{% block nav_coupons %}active{% endblock %}
+{% block page_title %}کوپن‌های تخفیف{% endblock %}
+{% block page_subtitle %}مدیریت و نظارت بر کوپن‌های باشگاه{% endblock %}
+
+{% block content %}
+
+    <!-- Toolbar -->
+    <div class="toolbar fade-in">
+        <div class="toolbar-right">
+            <div class="search-bar">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" id="couponSearch" placeholder="جستجوی کد یا نام کوپن..." autocomplete="off">
+            </div>
+            <div class="filter-group">
+                <button class="filter-chip active" data-status="">همه</button>
+                <button class="filter-chip" data-status="active">فعال</button>
+                <button class="filter-chip" data-status="inactive">غیرفعال</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid fade-in" style="margin-bottom: 24px;">
+        <div class="stat-card gold">
+            <div class="stat-value" id="totalCoupons">—</div>
+            <div class="stat-label">کل کوپن‌ها</div>
+        </div>
+        <div class="stat-card green">
+            <div class="stat-value" id="activeCoupons">—</div>
+            <div class="stat-label">فعال</div>
+        </div>
+        <div class="stat-card red">
+            <div class="stat-value" id="expiredCoupons">—</div>
+            <div class="stat-label">منقضی / غیرفعال</div>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card fade-in">
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>کد</th>
+                        <th>نام</th>
+                        <th>نوع</th>
+                        <th>تخفیف</th>
+                        <th>حداقل سفارش</th>
+                        <th>استفاده</th>
+                        <th>اعتبار</th>
+                        <th>وضعیت</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody id="couponTable">
+                    <tr>
+                        <td colspan="9" style="text-align:center; padding:40px;">
+                            <div class="empty-state">
+                                <div class="icon">&#9733;</div>
+                                <h3>در حال بارگذاری...</h3>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    var couponStatus = '';
+    var couponTimer = null;
+
+    async function loadCoupons() {
+        var url = '/api/loyalty/coupons/?format=json';
+        if (couponStatus === 'active') url += '&active=true';
+        if (couponStatus === 'inactive') url += '&active=false';
+        var search = document.getElementById('couponSearch').value.trim();
+        if (search) url += '&search=' + encodeURIComponent(search);
+
+        try {
+            var d = await apiCall(url);
+            var coupons = d.results || d;
+            renderCoupons(coupons);
+        } catch (e) {
+            showToast('خطا در بارگذاری کوپن‌ها', 'error');
+        }
+    }
+
+    function renderCoupons(coupons) {
+        var tbody = document.getElementById('couponTable');
+        var active = 0, expired = 0;
+        coupons.forEach(function(c) { c.is_active ? active++ : expired++; });
+
+        document.getElementById('totalCoupons').textContent = formatNumber(coupons.length);
+        document.getElementById('activeCoupons').textContent = formatNumber(active);
+        document.getElementById('expiredCoupons').textContent = formatNumber(expired);
+
+        if (!coupons.length) {
+            tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><div class="icon">&#9733;</div><h3>کوپنی یافت نشد</h3></div></td></tr>';
+            return;
+        }
+
+        var typeLabels = {
+            general: 'عمومی', first_order: 'اولین سفارش', birthday: 'تولد',
+            vip: 'VIP', referral: 'دعوت', seasonal: 'مناسبتی'
+        };
+
+        var html = '';
+        for (var i = 0; i < coupons.length; i++) {
+            var c = coupons[i];
+            var fromDate = new Date(c.valid_from).toLocaleDateString('fa-IR');
+            var untilDate = new Date(c.valid_until).toLocaleDateString('fa-IR');
+            var validBadge = c.is_valid_now
+                ? '<span class="badge badge-green">&#10004; معتبر</span>'
+                : '<span class="badge badge-red">&#10008; منقضی</span>';
+            var toggleIcon = c.is_active ? '&#128683;' : '&#9989;';
+            var minOrder = c.min_order_amount > 0 ? formatNumber(c.min_order_amount) + ' ت' : '—';
+
+            html += '<tr>';
+            html += '<td><code style="background:var(--gold-bg);color:var(--gold);padding:3px 10px;border-radius:4px;font-weight:700;font-size:13px;">' + c.code + '</code></td>';
+            html += '<td><strong>' + c.name + '</strong></td>';
+            html += '<td><span class="badge badge-blue">' + (typeLabels[c.coupon_type] || c.coupon_type) + '</span></td>';
+            html += '<td style="font-weight:600;">' + c.discount_label + '</td>';
+            html += '<td>' + minOrder + '</td>';
+            html += '<td>' + c.used_count + ' / ' + c.max_uses + '</td>';
+            html += '<td style="font-size:11px;color:var(--text-muted);">' + fromDate + '<br>تا ' + untilDate + '</td>';
+            html += '<td>' + validBadge + '</td>';
+            html += '<td><button class="btn btn-outline btn-sm" onclick="toggleCoupon(' + c.id + ')" title="تغییر وضعیت">' + toggleIcon + '</button></td>';
+            html += '</tr>';
+        }
+        tbody.innerHTML = html;
+    }
+
+    async function toggleCoupon(id) {
+        try {
+            var r = await apiCall('/api/loyalty/coupons/' + id + '/toggle-active/', 'POST');
+            showToast(r.is_active ? 'کوپن فعال شد' : 'کوپن غیرفعال شد', 'success');
+            loadCoupons();
+        } catch (e) {
+            showToast('خطا در تغییر وضعیت', 'error');
+        }
+    }
+
+    document.getElementById('couponSearch').addEventListener('input', function() {
+        clearTimeout(couponTimer);
+        couponTimer = setTimeout(loadCoupons, 400);
+    });
+
+    document.querySelectorAll('.filter-chip').forEach(function(chip) {
+        chip.addEventListener('click', function() {
+            document.querySelectorAll('.filter-chip').forEach(function(c) { c.classList.remove('active'); });
+            chip.classList.add('active');
+            couponStatus = chip.dataset.status;
+            loadCoupons();
+        });
+    });
+
+    loadCoupons();
+</script>
+{% endblock %}

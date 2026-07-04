@@ -1,0 +1,874 @@
+{% extends "admin/restaurant_base.html" %}
+{% load i18n static %}
+
+{% block title %}محصولات نهایی — مدیریت رستوران{% endblock %}
+
+{% block page_title %}محصولات نهایی{% endblock %}
+{% block breadcrumb %}تولید / محصولات نهایی{% endblock %}
+
+
+{% block extra_css %}
+<style>
+    :root {
+        --fp-bg:          #08080c;
+        --fp-surface:     #12121a;
+        --fp-surface-2:   #1a1a25;
+        --fp-surface-3:   #22222f;
+        --fp-border:      #2a2a3a;
+        --fp-accent:      #f59e0b;
+        --fp-accent-dim:  rgba(245,158,11,.15);
+        --fp-accent-hover:#d97706;
+        --fp-text:        #e8e8ec;
+        --fp-text-muted:  #6b6b80;
+        --fp-success:     #22c55e;
+        --fp-success-dim: rgba(34,197,94,.12);
+        --fp-danger:      #ef4444;
+        --fp-danger-dim:  rgba(239,68,68,.12);
+        --fp-warning:     #f59e0b;
+        --fp-info:        #3b82f6;
+        --fp-info-dim:    rgba(59,130,246,.12);
+        --fp-radius:      12px;
+        --fp-radius-sm:   8px;
+        --fp-shadow:      0 4px 24px rgba(0,0,0,.4);
+    }
+
+    .fp-wrap {
+        background: var(--fp-bg);
+        min-height: calc(100vh - 120px);
+        padding: 24px;
+    }
+    .fp-wrap a { color: var(--fp-accent); text-decoration: none; }
+
+    .fp-container { max-width: 1400px; margin: 0 auto; }
+
+    /* ── Header ── */
+    .fp-header {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 32px; flex-wrap: wrap; gap: 16px;
+    }
+    .fp-header h1 {
+        font-size: 28px; font-weight: 800;
+        background: linear-gradient(135deg, var(--fp-accent), #fbbf24);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .fp-header p { color: var(--fp-text-muted); font-size: 14px; margin-top: 4px; }
+
+    /* ── Buttons ── */
+    .fp-btn {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 10px 20px; border: none; border-radius: var(--fp-radius-sm);
+        font-family: inherit; font-size: 14px; font-weight: 600;
+        cursor: pointer; transition: all .2s;
+    }
+    .fp-btn-primary { background: var(--fp-accent); color: #000; }
+    .fp-btn-primary:hover { background: var(--fp-accent-hover); transform: translateY(-1px); }
+    .fp-btn-success { background: var(--fp-success-dim); color: var(--fp-success); border: 1px solid rgba(34,197,94,.3); }
+    .fp-btn-success:hover { background: rgba(34,197,94,.25); }
+    .fp-btn-danger  { background: var(--fp-danger-dim); color: var(--fp-danger); border: 1px solid rgba(239,68,68,.3); }
+    .fp-btn-danger:hover { background: rgba(239,68,68,.25); }
+    .fp-btn-info    { background: var(--fp-info-dim); color: var(--fp-info); border: 1px solid rgba(59,130,246,.3); }
+    .fp-btn-info:hover { background: rgba(59,130,246,.25); }
+    .fp-btn-ghost   { background: transparent; color: var(--fp-text-muted); border: 1px solid var(--fp-border); }
+    .fp-btn-ghost:hover { color: var(--fp-text); border-color: var(--fp-text-muted); }
+    .fp-btn-sm { padding: 6px 14px; font-size: 12px; }
+
+    /* ── Stats ── */
+    .fp-stats {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px; margin-bottom: 32px;
+    }
+    .fp-stat {
+        background: var(--fp-surface); border: 1px solid var(--fp-border);
+        border-radius: var(--fp-radius); padding: 20px;
+    }
+    .fp-stat .fp-stat-label { font-size: 12px; color: var(--fp-text-muted); margin-bottom: 4px; }
+    .fp-stat .fp-stat-value { font-size: 24px; font-weight: 700; color: var(--fp-text); }
+    .fp-stat .fp-stat-value.gold { color: var(--fp-accent); }
+
+    /* ── Products Grid ── */
+    .fp-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+        gap: 20px;
+    }
+    .fp-card {
+        background: var(--fp-surface); border: 1px solid var(--fp-border);
+        border-radius: var(--fp-radius); overflow: hidden;
+        transition: border-color .2s, transform .2s;
+        animation: fpFadeUp .4s ease both;
+    }
+    .fp-card:hover { border-color: var(--fp-accent); transform: translateY(-2px); }
+    @keyframes fpFadeUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .fp-card:nth-child(2) { animation-delay: .05s; }
+    .fp-card:nth-child(3) { animation-delay: .1s; }
+    .fp-card:nth-child(4) { animation-delay: .15s; }
+    .fp-card:nth-child(5) { animation-delay: .2s; }
+    .fp-card:nth-child(6) { animation-delay: .25s; }
+
+    .fp-card-head {
+        padding: 20px 20px 0; display: flex;
+        justify-content: space-between; align-items: flex-start;
+    }
+    .fp-card-head h3 { font-size: 18px; font-weight: 700; color: var(--fp-text); }
+    .fp-badge {
+        display: inline-block; padding: 3px 10px;
+        border-radius: 20px; font-size: 11px; font-weight: 600;
+        background: var(--fp-accent-dim); color: var(--fp-accent);
+    }
+
+    .fp-card-costs {
+        display: grid; grid-template-columns: repeat(3, 1fr);
+        gap: 8px; padding: 16px 20px;
+    }
+    .fp-cost-box {
+        background: var(--fp-surface-2); border-radius: var(--fp-radius-sm);
+        padding: 12px; text-align: center;
+    }
+    .fp-cost-box .fp-lbl { font-size: 11px; color: var(--fp-text-muted); }
+    .fp-cost-box .fp-val { font-size: 16px; font-weight: 700; margin-top: 2px; color: var(--fp-text); }
+    .fp-cost-box .fp-val.gold { color: var(--fp-accent); }
+
+    .fp-card-ingredients { padding: 0 20px 16px; }
+    .fp-card-ingredients details summary {
+        cursor: pointer; font-size: 13px; font-weight: 600;
+        color: var(--fp-text-muted); padding: 8px 0;
+        list-style: none; display: flex; align-items: center; gap: 6px;
+    }
+    .fp-card-ingredients details summary::before {
+        content: '◀'; font-size: 10px; transition: transform .2s;
+    }
+    .fp-card-ingredients details[open] summary::before { transform: rotate(-90deg); }
+
+    .fp-ing-table { width: 100%; font-size: 12px; margin-top: 8px; border-collapse: collapse; }
+    .fp-ing-table th {
+        text-align: right; color: var(--fp-text-muted); font-weight: 500;
+        padding: 6px 8px; border-bottom: 1px solid var(--fp-border);
+    }
+    .fp-ing-table td {
+        padding: 6px 8px; border-bottom: 1px solid rgba(42,42,58,.5); color: var(--fp-text);
+    }
+    .fp-ing-label {
+        display: inline-block; padding: 1px 6px; border-radius: 4px;
+        font-size: 10px; font-weight: 600; margin-right: 4px;
+    }
+    .fp-ing-label.semi { background: var(--fp-info-dim); color: var(--fp-info); }
+    .fp-ing-label.raw  { background: var(--fp-success-dim); color: var(--fp-success); }
+
+    .fp-card-foot {
+        display: flex; gap: 8px; padding: 16px 20px;
+        border-top: 1px solid var(--fp-border); flex-wrap: wrap;
+    }
+    .fp-card-foot .fp-spacer { flex: 1; }
+    .fp-card-date { font-size: 11px; color: var(--fp-text-muted); align-self: center; }
+
+    .fp-empty {
+        grid-column: 1 / -1; text-align: center;
+        padding: 80px 20px; color: var(--fp-text-muted);
+    }
+    .fp-empty .fp-empty-icon { font-size: 48px; margin-bottom: 16px; }
+    .fp-empty h3 { font-size: 20px; margin-bottom: 8px; color: var(--fp-text); }
+
+    /* ── Modal ── */
+    .fp-modal-overlay {
+        display: none; position: fixed; inset: 0; z-index: 1000;
+        background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+        justify-content: center; align-items: flex-start;
+        padding: 40px 16px; overflow-y: auto;
+    }
+    .fp-modal-overlay.open { display: flex; }
+
+    .fp-modal {
+        background: var(--fp-surface); border: 1px solid var(--fp-border);
+        border-radius: var(--fp-radius); width: 100%; max-width: 800px;
+        box-shadow: var(--fp-shadow); animation: fpModalIn .25s ease;
+    }
+    @keyframes fpModalIn {
+        from { opacity: 0; transform: translateY(-20px) scale(.97); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .fp-modal-head {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 20px 24px; border-bottom: 1px solid var(--fp-border);
+    }
+    .fp-modal-head h2 { font-size: 20px; font-weight: 700; color: var(--fp-text); }
+    .fp-modal-close {
+        background: none; border: none; color: var(--fp-text-muted);
+        font-size: 24px; cursor: pointer; padding: 4px;
+        line-height: 1; transition: color .2s;
+    }
+    .fp-modal-close:hover { color: var(--fp-danger); }
+
+    .fp-modal-body { padding: 24px; max-height: 65vh; overflow-y: auto; }
+    .fp-modal-foot {
+        display: flex; justify-content: flex-start; gap: 12px;
+        padding: 16px 24px; border-top: 1px solid var(--fp-border);
+    }
+
+    /* ── Form ── */
+    .fp-form-grid {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px; margin-bottom: 24px;
+    }
+    .fp-form-group { display: flex; flex-direction: column; gap: 6px; }
+    .fp-form-group label { font-size: 13px; font-weight: 600; color: var(--fp-text-muted); }
+    .fp-form-group input, .fp-form-group select, .fp-form-group textarea {
+        background: var(--fp-surface-2); border: 1px solid var(--fp-border);
+        border-radius: var(--fp-radius-sm); padding: 10px 12px;
+        color: var(--fp-text); font-family: inherit; font-size: 14px;
+        transition: border-color .2s;
+    }
+    .fp-form-group input:focus, .fp-form-group select:focus, .fp-form-group textarea:focus {
+        outline: none; border-color: var(--fp-accent);
+    }
+    .fp-form-group textarea { resize: vertical; min-height: 60px; }
+
+    .fp-section-title {
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 12px; padding-bottom: 8px;
+        border-bottom: 1px solid var(--fp-border);
+    }
+    .fp-section-title h4 { font-size: 15px; font-weight: 700; color: var(--fp-text); }
+
+    .fp-ing-row {
+        display: grid; grid-template-columns: 1fr 100px 90px 40px;
+        gap: 10px; align-items: center; margin-bottom: 8px;
+    }
+    .fp-ing-row select, .fp-ing-row input {
+        background: var(--fp-surface-2); border: 1px solid var(--fp-border);
+        border-radius: var(--fp-radius-sm); padding: 8px 10px;
+        color: var(--fp-text); font-family: inherit; font-size: 13px;
+    }
+    .fp-ing-row select:focus, .fp-ing-row input:focus {
+        outline: none; border-color: var(--fp-accent);
+    }
+    .fp-ing-row .fp-ing-cost {
+        font-size: 12px; color: var(--fp-accent); text-align: center;
+        font-weight: 600;
+    }
+    .fp-ing-row .fp-remove-row {
+        background: var(--fp-danger-dim); border: none; color: var(--fp-danger);
+        border-radius: var(--fp-radius-sm); width: 36px; height: 36px;
+        cursor: pointer; font-size: 16px; transition: all .2s;
+    }
+    .fp-ing-row .fp-remove-row:hover { background: rgba(239,68,68,.3); }
+
+    .fp-ingredients-section { margin-bottom: 24px; }
+
+    .fp-cost-preview {
+        display: flex; gap: 16px; flex-wrap: wrap;
+        background: var(--fp-surface-2); border-radius: var(--fp-radius-sm);
+        padding: 16px; margin-top: 16px;
+    }
+    .fp-cost-preview .fp-cp-item { text-align: center; flex: 1; min-width: 120px; }
+    .fp-cost-preview .fp-cp-label { font-size: 11px; color: var(--fp-text-muted); }
+    .fp-cost-preview .fp-cp-value { font-size: 18px; font-weight: 700; margin-top: 2px; color: var(--fp-text); }
+    .fp-cost-preview .fp-cp-value.gold { color: var(--fp-accent); }
+
+    .fp-produce-info {
+        background: var(--fp-surface-2); border-radius: var(--fp-radius-sm);
+        padding: 16px; margin-bottom: 20px;
+    }
+    .fp-produce-info h3 { font-size: 18px; margin-bottom: 8px; color: var(--fp-text); }
+    .fp-produce-info .fp-produce-detail { font-size: 13px; color: var(--fp-text-muted); }
+
+    /* ── Toast ── */
+    .fp-toast-container {
+        position: fixed; top: 24px; left: 24px; z-index: 2000;
+        display: flex; flex-direction: column; gap: 8px;
+    }
+    .fp-toast {
+        padding: 12px 20px; border-radius: var(--fp-radius-sm);
+        font-size: 14px; font-weight: 500; animation: fpToastIn .3s ease;
+        display: flex; align-items: center; gap: 8px;
+        box-shadow: var(--fp-shadow);
+    }
+    .fp-toast.success { background: #052e16; color: var(--fp-success); border: 1px solid rgba(34,197,94,.3); }
+    .fp-toast.error   { background: #2a0a0a; color: var(--fp-danger); border: 1px solid rgba(239,68,68,.3); }
+    .fp-toast.info    { background: #0a1a2e; color: var(--fp-info); border: 1px solid rgba(59,130,246,.3); }
+    @keyframes fpToastIn {
+        from { opacity: 0; transform: translateX(-20px); }
+        to   { opacity: 1; transform: translateX(0); }
+    }
+
+    @media (max-width: 768px) {
+        .fp-grid { grid-template-columns: 1fr; }
+        .fp-card-costs { grid-template-columns: 1fr; }
+        .fp-form-grid { grid-template-columns: 1fr; }
+        .fp-ing-row { grid-template-columns: 1fr 80px 70px 36px; }
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="fp-toast-container" id="fpToastContainer"></div>
+
+<div class="fp-wrap">
+<div class="fp-container">
+
+    <!-- Header -->
+    <div class="fp-header">
+        <div>
+            <h1>محصولات نهایی</h1>
+            <p>ساخت و مدیریت محصولات آماده از مواد نیم‌آماده و اولیه</p>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <a href="/api/semi-finished-page/" class="fp-btn fp-btn-ghost fp-btn-sm">نیم‌آماده‌ها</a>
+            <a href="/api/warehouse/" class="fp-btn fp-btn-ghost fp-btn-sm">انبار</a>
+            <a href="/api/usage-log/" class="fp-btn fp-btn-ghost fp-btn-sm">تاریخچه مصرف</a>
+            <button class="fp-btn fp-btn-primary" onclick="fpOpenCreate()">+ محصول جدید</button>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="fp-stats" id="fpStats"></div>
+
+    <!-- Products Grid -->
+    <div class="fp-grid" id="fpGrid"></div>
+
+</div>
+</div>
+
+<!-- Modal: Create / Edit -->
+<div class="fp-modal-overlay" id="fpFormModal">
+    <div class="fp-modal">
+        <div class="fp-modal-head">
+            <h2 id="fpFormTitle">محصول جدید</h2>
+            <button class="fp-modal-close" onclick="fpCloseModal('fpFormModal')">&times;</button>
+        </div>
+        <div class="fp-modal-body">
+            <div class="fp-form-grid">
+                <div class="fp-form-group">
+                    <label>نام محصول</label>
+                    <input type="text" id="fpName" placeholder="مثلاً پیتزا مارگاریتا">
+                </div>
+                <div class="fp-form-group">
+                    <label>دسته‌بندی</label>
+                    <select id="fpCategory">
+                        {% for val, lbl in category_choices %}
+                        <option value="{{ val }}">{{ lbl }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="fp-form-group">
+                    <label>واحد</label>
+                    <select id="fpUnit">
+                        {% for val, lbl in unit_choices %}
+                        <option value="{{ val }}">{{ lbl }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="fp-form-group">
+                    <label>مقدار تولید</label>
+                    <input type="number" id="fpQty" value="1" min="0.01" step="0.01">
+                </div>
+                <div class="fp-form-group">
+                    <label>درصد سود</label>
+                    <input type="number" id="fpProfit" value="30" min="0" max="500">
+                </div>
+            </div>
+            <div class="fp-form-group" style="margin-bottom:24px;">
+                <label>توضیحات</label>
+                <textarea id="fpDesc" rows="2" placeholder="اختیاری..."></textarea>
+            </div>
+
+            <div class="fp-ingredients-section">
+                <div class="fp-section-title">
+                    <h4>مواد نیم‌آماده مصرفی</h4>
+                    <button class="fp-btn fp-btn-info fp-btn-sm" onclick="fpAddSemi()">+ افزودن</button>
+                </div>
+                <div id="fpSemiRows"></div>
+            </div>
+
+            <div class="fp-ingredients-section">
+                <div class="fp-section-title">
+                    <h4>مواد اولیه مصرفی</h4>
+                    <button class="fp-btn fp-btn-success fp-btn-sm" onclick="fpAddRaw()">+ افزودن</button>
+                </div>
+                <div id="fpRawRows"></div>
+            </div>
+
+            <div class="fp-cost-preview" id="fpCostPreview">
+                <div class="fp-cp-item">
+                    <div class="fp-cp-label">هزینه نیم‌آماده‌ها</div>
+                    <div class="fp-cp-value" id="fpCpSemi">۰</div>
+                </div>
+                <div class="fp-cp-item">
+                    <div class="fp-cp-label">هزینه اولیه‌ها</div>
+                    <div class="fp-cp-value" id="fpCpRaw">۰</div>
+                </div>
+                <div class="fp-cp-item">
+                    <div class="fp-cp-label">قیمت تمام‌شده کل</div>
+                    <div class="fp-cp-value" id="fpCpTotal">۰</div>
+                </div>
+                <div class="fp-cp-item">
+                    <div class="fp-cp-label">قیمت پیشنهادی هر واحد</div>
+                    <div class="fp-cp-value gold" id="fpCpSuggested">۰</div>
+                </div>
+            </div>
+        </div>
+        <div class="fp-modal-foot">
+            <button class="fp-btn fp-btn-primary" onclick="fpSave()">ذخیره</button>
+            <button class="fp-btn fp-btn-ghost" onclick="fpCloseModal('fpFormModal')">انصراف</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Produce -->
+<div class="fp-modal-overlay" id="fpProduceModal">
+    <div class="fp-modal" style="max-width:500px;">
+        <div class="fp-modal-head">
+            <h2>تولید محصول</h2>
+            <button class="fp-modal-close" onclick="fpCloseModal('fpProduceModal')">&times;</button>
+        </div>
+        <div class="fp-modal-body">
+            <div class="fp-produce-info" id="fpProduceInfo"></div>
+            <div class="fp-form-group">
+                <label>تعداد تولید</label>
+                <input type="number" id="fpProduceQty" value="1" min="0.01" step="0.01"
+                       oninput="fpUpdateProducePreview()">
+            </div>
+            <div class="fp-cost-preview" style="margin-top:12px;">
+                <div class="fp-cp-item">
+                    <div class="fp-cp-label">هزینه کل این تولید</div>
+                    <div class="fp-cp-value gold" id="fpProduceTotal">—</div>
+                </div>
+            </div>
+        </div>
+        <div class="fp-modal-foot">
+            <button class="fp-btn fp-btn-success" onclick="fpDoProduce()">تولید و کسر از انبار</button>
+            <button class="fp-btn fp-btn-ghost" onclick="fpCloseModal('fpProduceModal')">انصراف</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+// ═══════════════════════════════════════════════
+//  Data from Django
+// ═══════════════════════════════════════════════
+let fpProducts     = {{ products_json|safe }};
+let fpSemiFinished = {{ semi_finished_json|safe }};
+let fpRawMaterials = {{ raw_materials_json|safe }};
+
+let fpEditingId    = null;
+let fpProducingId  = null;
+let fpProduceUnitCost = 0;
+
+// ═══════════════════════════════════════════════
+//  CSRF
+// ═══════════════════════════════════════════════
+function fpGetCookie(name) {
+    let v = null;
+    document.cookie.split(';').forEach(c => {
+        c = c.trim();
+        if (c.startsWith(name + '=')) v = decodeURIComponent(c.slice(name.length + 1));
+    });
+    return v;
+}
+const fpCsrf = fpGetCookie('csrftoken');
+
+// ═══════════════════════════════════════════════
+//  Helpers
+// ═══════════════════════════════════════════════
+function fpFmt(n) { return Number(n).toLocaleString('fa-IR'); }
+
+function fpToast(msg, type) {
+    type = type || 'success';
+    const c = document.getElementById('fpToastContainer');
+    const t = document.createElement('div');
+    t.className = 'fp-toast ' + type;
+    t.textContent = msg;
+    c.appendChild(t);
+    setTimeout(function(){ t.style.opacity = '0'; setTimeout(function(){ t.remove(); }, 300); }, 3500);
+}
+
+// ═══════════════════════════════════════════════
+//  Render Stats
+// ═══════════════════════════════════════════════
+function fpRenderStats() {
+    var totalValue = fpProducts.reduce(function(s,p){ return s + p.total_cost; }, 0);
+    var cats = [];
+    fpProducts.forEach(function(p){ if (cats.indexOf(p.category) === -1) cats.push(p.category); });
+
+    document.getElementById('fpStats').innerHTML =
+        '<div class="fp-stat"><div class="fp-stat-label">تعداد محصولات</div><div class="fp-stat-value">' + fpProducts.length + '</div></div>' +
+        '<div class="fp-stat"><div class="fp-stat-label">ارزش کل مواد</div><div class="fp-stat-value gold">' + fpFmt(totalValue) + ' ت</div></div>' +
+        '<div class="fp-stat"><div class="fp-stat-label">دسته‌بندی‌ها</div><div class="fp-stat-value">' + cats.length + '</div></div>' +
+        '<div class="fp-stat"><div class="fp-stat-label">نیم‌آماده‌های موجود</div><div class="fp-stat-value">' + fpSemiFinished.length + '</div></div>';
+}
+
+// ═══════════════════════════════════════════════
+//  Render Products
+// ═══════════════════════════════════════════════
+function fpRenderProducts() {
+    var grid = document.getElementById('fpGrid');
+
+    if (fpProducts.length === 0) {
+        grid.innerHTML = '<div class="fp-empty"><div class="fp-empty-icon">📦</div><h3>هنوز محصولی ثبت نشده</h3><p>از دکمه «+ محصول جدید» استفاده کنید</p></div>';
+        return;
+    }
+
+    var html = '';
+    fpProducts.forEach(function(p, i) {
+        var semiHtml = '';
+        p.semi_finished_items.forEach(function(si) {
+            semiHtml += '<tr><td><span class="fp-ing-label semi">نیم‌آماده</span></td><td>' + si.semi_finished_name + '</td><td>' + fpFmt(si.quantity) + '</td><td>' + fpFmt(si.total_cost) + ' ت</td></tr>';
+        });
+        var rawHtml = '';
+        p.raw_material_items.forEach(function(ri) {
+            rawHtml += '<tr><td><span class="fp-ing-label raw">اولیه</span></td><td>' + ri.raw_material_name + '</td><td>' + fpFmt(ri.quantity) + ' ' + ri.unit + '</td><td>' + fpFmt(ri.total_cost) + ' ت</td></tr>';
+        });
+        var ingCount = p.semi_finished_items.length + p.raw_material_items.length;
+
+        html += '<div class="fp-card" style="animation-delay:' + (i * 0.05) + 's">' +
+            '<div class="fp-card-head"><h3>' + p.name + '</h3><span class="fp-badge">' + p.category_display + '</span></div>' +
+            '<div class="fp-card-costs">' +
+                '<div class="fp-cost-box"><div class="fp-lbl">تمام‌شده کل</div><div class="fp-val">' + fpFmt(p.total_cost) + ' ت</div></div>' +
+                '<div class="fp-cost-box"><div class="fp-lbl">هر واحد</div><div class="fp-val">' + fpFmt(p.cost_per_unit) + ' ت</div></div>' +
+                '<div class="fp-cost-box"><div class="fp-lbl">پیشنهادی</div><div class="fp-val gold">' + fpFmt(p.suggested_price) + ' ت</div></div>' +
+            '</div>' +
+            '<div class="fp-card-ingredients" style="padding:0 20px 12px;">' +
+                '<details><summary>مواد مصرفی (' + ingCount + ' قلم)</summary>' +
+                '<table class="fp-ing-table"><thead><tr><th>نوع</th><th>نام</th><th>مقدار</th><th>هزینه</th></tr></thead><tbody>' +
+                semiHtml + rawHtml +
+                '</tbody></table></details></div>' +
+            '<div class="fp-card-foot">' +
+                '<button class="fp-btn fp-btn-info fp-btn-sm" onclick="fpOpenEdit(' + p.id + ')">ویرایش</button>' +
+                '<button class="fp-btn fp-btn-success fp-btn-sm" onclick="fpOpenProduce(' + p.id + ')">تولید</button>' +
+                '<div class="fp-spacer"></div>' +
+                '<span class="fp-card-date">' + p.created_at + '</span>' +
+                '<button class="fp-btn fp-btn-danger fp-btn-sm" onclick="fpDelete(' + p.id + ')">حذف</button>' +
+            '</div></div>';
+    });
+    grid.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════
+//  Modal Open / Close
+// ═══════════════════════════════════════════════
+function fpOpenModal(id) { document.getElementById(id).classList.add('open'); }
+function fpCloseModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.fp-modal-overlay').forEach(function(overlay) {
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) overlay.classList.remove('open');
+    });
+});
+
+// ═══════════════════════════════════════════════
+//  Create
+// ═══════════════════════════════════════════════
+function fpOpenCreate() {
+    fpEditingId = null;
+    document.getElementById('fpFormTitle').textContent = 'محصول جدید';
+    document.getElementById('fpName').value = '';
+    document.getElementById('fpCategory').value = 'food';
+    document.getElementById('fpUnit').value = 'unit';
+    document.getElementById('fpQty').value = '1';
+    document.getElementById('fpProfit').value = '30';
+    document.getElementById('fpDesc').value = '';
+    document.getElementById('fpSemiRows').innerHTML = '';
+    document.getElementById('fpRawRows').innerHTML = '';
+    fpUpdateCostPreview();
+    fpOpenModal('fpFormModal');
+}
+
+// ═══════════════════════════════════════════════
+//  Edit
+// ═══════════════════════════════════════════════
+function fpOpenEdit(id) {
+    var p = null;
+    fpProducts.forEach(function(x){ if (x.id === id) p = x; });
+    if (!p) return;
+
+    fpEditingId = id;
+    document.getElementById('fpFormTitle').textContent = 'ویرایش: ' + p.name;
+    document.getElementById('fpName').value = p.name;
+    document.getElementById('fpCategory').value = p.category;
+    document.getElementById('fpUnit').value = p.unit;
+    document.getElementById('fpQty').value = p.quantity_produced;
+    document.getElementById('fpProfit').value = p.profit_percentage;
+    document.getElementById('fpDesc').value = p.description;
+
+    document.getElementById('fpSemiRows').innerHTML = '';
+    p.semi_finished_items.forEach(function(si){ fpAddSemi(si); });
+
+    document.getElementById('fpRawRows').innerHTML = '';
+    p.raw_material_items.forEach(function(ri){ fpAddRaw(ri); });
+
+    fpUpdateCostPreview();
+    fpOpenModal('fpFormModal');
+}
+
+// ═══════════════════════════════════════════════
+//  Ingredient Rows
+// ═══════════════════════════════════════════════
+function fpAddSemi(data) {
+    var container = document.getElementById('fpSemiRows');
+    var div = document.createElement('div');
+    div.className = 'fp-ing-row';
+
+    var options = '<option value="">انتخاب کنید...</option>';
+    fpSemiFinished.forEach(function(sf) {
+        var sel = data && data.semi_finished_id === sf.id ? 'selected' : '';
+        options += '<option value="' + sf.id + '" data-cost="' + sf.cost_per_unit + '" ' + sel + '>' + sf.name + ' (' + fpFmt(sf.cost_per_unit) + ' ت/' + sf.unit + ')</option>';
+    });
+
+    var qty = data ? data.quantity : '';
+    var costStr = data ? fpFmt(data.total_cost) + ' ت' : '—';
+    div.innerHTML = '<select onchange="fpUpdateCostPreview()">' + options + '</select>' +
+        '<input type="number" placeholder="مقدار" value="' + qty + '" min="0.01" step="0.01" oninput="fpUpdateCostPreview()">' +
+        '<span class="fp-ing-cost">' + costStr + '</span>' +
+        '<button class="fp-remove-row" onclick="this.parentElement.remove(); fpUpdateCostPreview();">&times;</button>';
+    container.appendChild(div);
+    fpUpdateCostPreview();
+}
+
+function fpAddRaw(data) {
+    var container = document.getElementById('fpRawRows');
+    var div = document.createElement('div');
+    div.className = 'fp-ing-row';
+
+    var options = '<option value="">انتخاب کنید...</option>';
+    fpRawMaterials.forEach(function(rm) {
+        var sel = data && data.raw_material_id === rm.id ? 'selected' : '';
+        options += '<option value="' + rm.id + '" data-price="' + rm.price + '" data-unit="' + rm.unit + '" ' + sel + '>' + rm.name + ' (' + fpFmt(rm.price) + ' ت/' + rm.unit + ')</option>';
+    });
+
+    var qty = data ? data.quantity : '';
+    var costStr = data ? fpFmt(data.total_cost) + ' ت' : '—';
+    div.innerHTML = '<select onchange="fpUpdateCostPreview()">' + options + '</select>' +
+        '<input type="number" placeholder="مقدار" value="' + qty + '" min="0.01" step="0.01" oninput="fpUpdateCostPreview()">' +
+        '<span class="fp-ing-cost">' + costStr + '</span>' +
+        '<button class="fp-remove-row" onclick="this.parentElement.remove(); fpUpdateCostPreview();">&times;</button>';
+    container.appendChild(div);
+    fpUpdateCostPreview();
+}
+
+// ═══════════════════════════════════════════════
+//  Cost Preview
+// ═══════════════════════════════════════════════
+function fpUpdateCostPreview() {
+    var semiTotal = 0;
+    document.querySelectorAll('#fpSemiRows .fp-ing-row').forEach(function(row) {
+        var sel = row.querySelector('select');
+        var qty = parseFloat(row.querySelector('input').value) || 0;
+        var opt = sel.options[sel.selectedIndex];
+        var cost = opt ? parseFloat(opt.dataset.cost || 0) : 0;
+        var lineCost = cost * qty;
+        semiTotal += lineCost;
+        row.querySelector('.fp-ing-cost').textContent = lineCost > 0 ? fpFmt(Math.round(lineCost)) + ' ت' : '—';
+    });
+
+    var rawTotal = 0;
+    document.querySelectorAll('#fpRawRows .fp-ing-row').forEach(function(row) {
+        var sel = row.querySelector('select');
+        var qty = parseFloat(row.querySelector('input').value) || 0;
+        var opt = sel.options[sel.selectedIndex];
+        var price = opt ? parseFloat(opt.dataset.price || 0) : 0;
+        var lineCost = price * qty;
+        rawTotal += lineCost;
+        row.querySelector('.fp-ing-cost').textContent = lineCost > 0 ? fpFmt(Math.round(lineCost)) + ' ت' : '—';
+    });
+
+    var total = semiTotal + rawTotal;
+    var prodQty = parseFloat(document.getElementById('fpQty').value) || 1;
+    var profit = parseFloat(document.getElementById('fpProfit').value) || 0;
+    var perUnit = prodQty > 0 ? total / prodQty : 0;
+    var suggested = Math.round(perUnit * (1 + profit / 100));
+
+    document.getElementById('fpCpSemi').textContent = fpFmt(Math.round(semiTotal)) + ' ت';
+    document.getElementById('fpCpRaw').textContent = fpFmt(Math.round(rawTotal)) + ' ت';
+    document.getElementById('fpCpTotal').textContent = fpFmt(Math.round(total)) + ' ت';
+    document.getElementById('fpCpSuggested').textContent = fpFmt(suggested) + ' ت';
+}
+
+document.getElementById('fpQty').addEventListener('input', fpUpdateCostPreview);
+document.getElementById('fpProfit').addEventListener('input', fpUpdateCostPreview);
+
+// ═══════════════════════════════════════════════
+//  Save
+// ═══════════════════════════════════════════════
+async function fpSave() {
+    var name = document.getElementById('fpName').value.trim();
+    if (!name) { fpToast('نام محصول الزامی است.', 'error'); return; }
+
+    var semiItems = [];
+    document.querySelectorAll('#fpSemiRows .fp-ing-row').forEach(function(row) {
+        var sel = row.querySelector('select');
+        var qty = parseFloat(row.querySelector('input').value) || 0;
+        var sfId = parseInt(sel.value);
+        if (sfId && qty > 0) semiItems.push({ semi_finished: sfId, quantity: qty });
+    });
+
+    var rawItems = [];
+    document.querySelectorAll('#fpRawRows .fp-ing-row').forEach(function(row) {
+        var sel = row.querySelector('select');
+        var qty = parseFloat(row.querySelector('input').value) || 0;
+        var rmId = parseInt(sel.value);
+        if (rmId && qty > 0) rawItems.push({ raw_material: rmId, quantity: qty });
+    });
+
+    var payload = {
+        name: name,
+        category: document.getElementById('fpCategory').value,
+        unit: document.getElementById('fpUnit').value,
+        quantity_produced: parseFloat(document.getElementById('fpQty').value) || 1,
+        profit_percentage: parseInt(document.getElementById('fpProfit').value) || 30,
+        description: document.getElementById('fpDesc').value.trim(),
+        semi_finished_items: semiItems,
+        raw_material_items: rawItems,
+    };
+
+    var url = fpEditingId ? '/api/finished-products/' + fpEditingId + '/' : '/api/finished-products/';
+    var method = fpEditingId ? 'PUT' : 'POST';
+
+    try {
+        var res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': fpCsrf },
+            body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+            var err = await res.json();
+            var msg = Object.values(err).flat().join(' | ');
+            throw new Error(msg || 'خطای سرور');
+        }
+        fpToast(fpEditingId ? 'محصول ویرایش شد.' : 'محصول جدید ثبت شد.');
+        fpCloseModal('fpFormModal');
+        await fpRefresh();
+    } catch (e) {
+        fpToast('خطا: ' + e.message, 'error');
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  Delete
+// ═══════════════════════════════════════════════
+async function fpDelete(id) {
+    var p = null;
+    fpProducts.forEach(function(x){ if (x.id === id) p = x; });
+    if (!p) return;
+    if (!confirm('آیا از حذف «' + p.name + '» مطمئن هستید؟')) return;
+
+    try {
+        var res = await fetch('/api/finished-products/' + id + '/', {
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': fpCsrf },
+        });
+        if (!res.ok && res.status !== 204) throw new Error('خطا در حذف');
+        fpToast('«' + p.name + '» حذف شد.');
+        await fpRefresh();
+    } catch (e) {
+        fpToast(e.message, 'error');
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  Produce
+// ═══════════════════════════════════════════════
+function fpOpenProduce(id) {
+    var p = null;
+    fpProducts.forEach(function(x){ if (x.id === id) p = x; });
+    if (!p) return;
+
+    fpProducingId = id;
+    fpProduceUnitCost = p.cost_per_unit;
+
+    document.getElementById('fpProduceInfo').innerHTML =
+        '<h3>' + p.name + '</h3>' +
+        '<div class="fp-produce-detail">' +
+        'قیمت تمام‌شده هر واحد: <strong>' + fpFmt(p.cost_per_unit) + ' تومان</strong><br>' +
+        'مواد نیم‌آماده: ' + p.semi_finished_items.length + ' قلم | ' +
+        'مواد اولیه: ' + p.raw_material_items.length + ' قلم</div>';
+
+    document.getElementById('fpProduceQty').value = 1;
+    fpUpdateProducePreview();
+    fpOpenModal('fpProduceModal');
+}
+
+function fpUpdateProducePreview() {
+    var qty = parseFloat(document.getElementById('fpProduceQty').value) || 0;
+    var total = Math.round(fpProduceUnitCost * qty);
+    document.getElementById('fpProduceTotal').textContent = fpFmt(total) + ' تومان';
+}
+
+async function fpDoProduce() {
+    var qty = parseFloat(document.getElementById('fpProduceQty').value);
+    if (!qty || qty <= 0) { fpToast('تعداد معتبر وارد کنید.', 'error'); return; }
+
+    try {
+        var res = await fetch('/api/finished-products/' + fpProducingId + '/produce/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': fpCsrf },
+            body: JSON.stringify({ quantity: qty }),
+        });
+        var data = await res.json();
+        if (!res.ok) {
+            var msg = data.errors ? data.errors.join(' | ') : (data.detail || 'خطا');
+            throw new Error(msg);
+        }
+        fpToast(qty + ' واحد تولید شد و از انبار کسر گردید.');
+        fpCloseModal('fpProduceModal');
+        await fpRefresh();
+    } catch (e) {
+        fpToast('خطا: ' + e.message, 'error');
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  Refresh
+// ═══════════════════════════════════════════════
+async function fpRefresh() {
+    try {
+        var res = await fetch('/api/finished-products/');
+        var data = await res.json();
+        fpProducts = Array.isArray(data) ? data : (data.results || []);
+
+        fpProducts = fpProducts.map(function(p) {
+            return {
+                id: p.id,
+                name: p.name,
+                category: p.category,
+                category_display: p.category_display || p.category,
+                description: p.description || '',
+                unit: p.unit,
+                unit_display: p.unit,
+                quantity_produced: parseFloat(p.quantity_produced),
+                profit_percentage: p.profit_percentage,
+                total_cost: p.total_cost,
+                cost_per_unit: p.cost_per_unit,
+                suggested_price: p.suggested_price,
+                semi_finished_items: (p.semi_finished_items || []).map(function(si) {
+                    return { id: si.id, semi_finished_id: si.semi_finished, semi_finished_name: si.semi_finished_name, quantity: parseFloat(si.quantity), total_cost: si.total_cost };
+                }),
+                raw_material_items: (p.raw_material_items || []).map(function(ri) {
+                    return { id: ri.id, raw_material_id: ri.raw_material, raw_material_name: ri.raw_material_name, unit: ri.unit || '', quantity: parseFloat(ri.quantity), total_cost: ri.total_cost };
+                }),
+                created_at: p.created_at ? p.created_at.split('T')[0].replace(/-/g, '/') : '',
+            };
+        });
+
+        fpRenderStats();
+        fpRenderProducts();
+    } catch (e) {
+        console.error('Refresh error:', e);
+        fpToast('خطا در بروزرسانی لیست', 'error');
+    }
+}
+
+// ═══════════════════════════════════════════════
+//  Init
+// ═══════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function() {
+    fpRenderStats();
+    fpRenderProducts();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,2275 @@
+{% extends "admin/restaurant_base.html" %}
+{% load i18n static %}
+
+{% block title %}مدیریت آشپزخانه{% endblock %}
+{% block page_title %}آشپزخانه{% endblock %}
+{% block breadcrumb %}آشپزخانه / داشبورد{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+:root{
+    --kt-primary:#c2410c;--kt-primary-hover:#9a3412;--kt-primary-light:#fff7ed;
+    --kt-accent:#f59e0b;--kt-accent-light:#fef3c7;
+    --kt-bg:#faf7f2;--kt-surface:#fff;--kt-border:#e7e5e4;
+    --kt-text:#1c1917;--kt-text-sec:#57534e;
+    --kt-success:#16a34a;--kt-success-bg:#f0fdf4;
+    --kt-danger:#dc2626;--kt-danger-bg:#fef2f2;--kt-danger-border:#fecdd3;
+    --kt-warning:#d97706;--kt-warning-bg:#fffbeb;--kt-warning-border:#fde68a;
+    --kt-info:#0ea5e9;--kt-info-bg:#f0f9ff;--kt-info-border:#bae6fd;
+    --kt-r:14px;--kt-rs:10px;
+    --kt-shadow:0 1px 3px rgba(41,37,36,.06);
+    --kt-shadow-md:0 4px 16px rgba(41,37,36,.08);
+    --kt-drink:#7c3aed;--kt-drink-light:#f5f3ff;--kt-drink-bg:#ede9fe;
+    --kt-produce:#0d9488;--kt-produce-light:#f0fdfa;--kt-produce-border:#99f6e4;
+    --kt-fs-xs:0.82rem;--kt-fs-sm:0.88rem;--kt-fs-base:0.95rem;
+    --kt-fs-md:1rem;--kt-fs-lg:1.15rem;--kt-fs-xl:1.4rem;--kt-fs-2xl:1.8rem;
+}
+.kt-wrap{background:var(--kt-bg);min-height:calc(100vh - 120px);color:var(--kt-text);direction:rtl;font-size:var(--kt-fs-base)}
+.kt-box{max-width:1280px;margin:0 auto;padding:28px 20px 80px}
+.kt-hdr{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:28px;animation:ktFade .5s ease both}
+.kt-hdr h1{font-size:var(--kt-fs-2xl);font-weight:800;display:flex;align-items:center;gap:10px;margin:0}
+.kt-hdr h1 .kt-hdr-icon{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,var(--kt-primary),var(--kt-accent));color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0}
+.kt-hdr p{color:var(--kt-text-sec);font-size:var(--kt-fs-sm);margin-top:4px;margin-right:58px}
+.kt-btn{display:inline-flex;align-items:center;gap:6px;padding:12px 22px;border:none;border-radius:var(--kt-rs);font-family:inherit;font-size:var(--kt-fs-sm);font-weight:600;cursor:pointer;transition:all .2s;text-decoration:none;line-height:1.4;white-space:nowrap;min-height:44px}
+.kt-btn:active{transform:scale(.97)}
+.kt-btn-primary{background:var(--kt-primary);color:#fff}
+.kt-btn-primary:hover{background:var(--kt-primary-hover)}
+.kt-btn-accent{background:var(--kt-accent);color:#000}
+.kt-btn-accent:hover{background:#d97706}
+.kt-btn-ghost{background:var(--kt-surface);color:var(--kt-text-sec);border:1.5px solid var(--kt-border)}
+.kt-btn-ghost:hover{border-color:var(--kt-text-sec);color:var(--kt-text)}
+.kt-btn-danger{background:var(--kt-danger-bg);color:var(--kt-danger);border:1px solid var(--kt-danger-border)}
+.kt-btn-danger:hover{background:var(--kt-danger);color:#fff}
+.kt-btn-drink{background:var(--kt-drink-light);color:var(--kt-drink);border:1px solid var(--kt-drink-bg)}
+.kt-btn-drink:hover{background:var(--kt-drink);color:#fff}
+.kt-btn-produce{background:var(--kt-produce-light);color:var(--kt-produce);border:1px solid var(--kt-produce-border)}
+.kt-btn-produce:hover{background:var(--kt-produce);color:#fff}
+.kt-btn-sm{padding:8px 16px;font-size:var(--kt-fs-xs);min-height:38px}
+.kt-btn:disabled{opacity:.5;cursor:not-allowed;pointer-events:none}
+.kt-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:24px}
+.kt-stat{background:var(--kt-surface);border:1px solid var(--kt-border);border-radius:var(--kt-r);padding:22px;text-align:center;transition:transform .2s,box-shadow .2s;opacity:0;animation:ktFade .5s ease both}
+.kt-stat:hover{transform:translateY(-2px);box-shadow:var(--kt-shadow-md)}
+.kt-stat .kt-sv{font-size:var(--kt-fs-xl);font-weight:800;display:block}
+.kt-stat .kt-sl{font-size:var(--kt-fs-sm);color:var(--kt-text-sec);margin-top:4px}
+.kt-stat.orange .kt-sv{color:var(--kt-primary)}
+.kt-stat.amber .kt-sv{color:var(--kt-accent)}
+.kt-stat.green .kt-sv{color:var(--kt-success)}
+.kt-stat.red .kt-sv{color:var(--kt-danger)}
+.kt-stat.purple .kt-sv{color:var(--kt-drink)}
+.kt-stat.teal .kt-sv{color:var(--kt-produce)}
+.kt-tabs{display:flex;gap:4px;margin-bottom:24px;border-bottom:2px solid var(--kt-border);overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.kt-tabs::-webkit-scrollbar{display:none}
+.kt-tab{padding:14px 22px;border:none;background:none;font-family:inherit;font-size:var(--kt-fs-sm);font-weight:600;color:var(--kt-text-sec);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;white-space:nowrap;position:relative}
+.kt-tab:hover{color:var(--kt-text)}
+.kt-tab.active{color:var(--kt-primary);border-bottom-color:var(--kt-primary)}
+.kt-tab-panel{display:none}
+.kt-tab-panel.active{display:block;animation:ktFade .3s ease}
+.kt-tab-badge{display:none;min-width:20px;height:20px;padding:0 6px;border-radius:10px;font-size:var(--kt-fs-xs);font-weight:700;background:var(--kt-accent);color:#fff;position:absolute;top:4px;left:4px;line-height:20px;text-align:center}
+.cp-subtabs{display:flex;gap:4px;margin:14px 0 0;background:var(--kt-bg);border-radius:10px;padding:4px}
+.cp-subtab{flex:1;padding:12px 14px;border:none;border-radius:8px;font-family:inherit;font-size:var(--kt-fs-sm);font-weight:600;cursor:pointer;background:transparent;color:var(--kt-text-sec);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.cp-subtab:hover{color:var(--kt-text);background:var(--kt-surface)}
+.cp-subtab.active{background:var(--kt-primary);color:#fff;box-shadow:0 2px 8px rgba(194,65,12,.25)}
+.kt-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.kt-card{background:var(--kt-surface);border:1.5px solid var(--kt-border);border-radius:var(--kt-r);padding:22px;transition:all .25s;position:relative;overflow:hidden;opacity:0;animation:ktFade .4s ease both}
+.kt-card:hover{border-color:var(--kt-primary);box-shadow:0 6px 24px rgba(194,65,12,.1);transform:translateY(-2px)}
+.kt-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--kt-primary),var(--kt-accent));opacity:0;transition:opacity .2s}
+.kt-card:hover::before{opacity:1}
+.kt-card.drink-card:hover{border-color:var(--kt-drink);box-shadow:0 6px 24px rgba(124,58,237,.12)}
+.kt-card.drink-card::before{background:linear-gradient(90deg,var(--kt-drink),#a78bfa)}
+.kt-card-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.kt-card-icon{width:46px;height:46px;border-radius:12px;background:var(--kt-primary-light);color:var(--kt-primary);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0}
+.kt-card-title{font-weight:800;font-size:var(--kt-fs-md)}
+.kt-card-sub{font-size:var(--kt-fs-xs);color:var(--kt-text-sec);margin-top:2px}
+.kt-card-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+.kt-cs{background:var(--kt-bg);border-radius:8px;padding:10px;text-align:center}
+.kt-cs-val{font-weight:800;font-size:var(--kt-fs-sm);display:block}
+.kt-cs-lbl{font-size:var(--kt-fs-xs);color:var(--kt-text-sec);margin-top:3px}
+.kt-chip{display:inline-flex;align-items:center;padding:4px 10px;border-radius:6px;font-size:var(--kt-fs-xs);font-weight:600;margin:2px}
+.kt-chip-ok{background:var(--kt-success-bg);color:var(--kt-success)}
+.kt-chip-warn{background:var(--kt-warning-bg);color:var(--kt-warning)}
+.kt-chip-no{background:var(--kt-danger-bg);color:var(--kt-danger)}
+.kt-tbl-wrap{background:var(--kt-surface);border:1px solid var(--kt-border);border-radius:var(--kt-r);overflow-x:auto}
+.kt-tbl{width:100%;border-collapse:collapse;font-size:var(--kt-fs-sm)}
+.kt-tbl thead{background:var(--kt-primary-light)}
+.kt-tbl th{padding:14px;font-weight:700;font-size:var(--kt-fs-sm);color:var(--kt-primary);text-align:center;border-bottom:2px solid var(--kt-border);white-space:nowrap}
+.kt-tbl td{padding:14px;text-align:center;border-bottom:1px solid rgba(231,229,228,.6);vertical-align:middle;color:var(--kt-text)}
+.kt-tbl tr{transition:background .15s}
+.kt-tbl tbody tr:hover{background:#fdf8f4}
+.kt-tbl tbody tr:last-child td{border-bottom:none}
+.kt-tbl-waste thead{background:var(--kt-danger-bg)}
+.kt-tbl-waste th{color:var(--kt-danger)}
+.kt-tbl-waste tbody tr:hover{background:#fef2f2}
+.kt-badge{display:inline-block;padding:4px 12px;border-radius:16px;font-size:var(--kt-fs-xs);font-weight:600}
+.kt-badge-ok{background:var(--kt-success-bg);color:var(--kt-success)}
+.kt-badge-low{background:var(--kt-warning-bg);color:var(--kt-warning)}
+.kt-badge-out{background:var(--kt-danger-bg);color:var(--kt-danger)}
+.kt-modal{display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);justify-content:center;align-items:flex-start;padding:60px 16px;overflow-y:auto}
+.kt-modal.open{display:flex}
+.kt-md{background:var(--kt-surface);border-radius:var(--kt-r);width:100%;max-width:560px;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:ktMdIn .25s ease;direction:rtl;margin:auto 0}
+@keyframes ktMdIn{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
+.kt-md-head{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid var(--kt-border)}
+.kt-md-head h2{font-size:var(--kt-fs-lg);font-weight:700;color:var(--kt-text);margin:0}
+.kt-md-close{background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--kt-text-sec);line-height:1;padding:4px 8px;border-radius:6px;transition:all .15s}
+.kt-md-close:hover{color:var(--kt-danger);background:var(--kt-danger-bg)}
+.kt-md-body{padding:24px}
+.kt-md-foot{display:flex;gap:10px;padding:16px 24px;border-top:1px solid var(--kt-border)}
+.kt-fg{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.kt-fg label{font-size:var(--kt-fs-sm);font-weight:600;color:var(--kt-text-sec)}
+.kt-fg input,.kt-fg select,.kt-fg textarea{padding:12px 14px;border:1.5px solid var(--kt-border);border-radius:var(--kt-rs);font-family:inherit;font-size:var(--kt-fs-base);color:var(--kt-text);background:#fafbfc;transition:border-color .2s;min-height:44px}
+.kt-fg input:focus,.kt-fg select:focus,.kt-fg textarea:focus{outline:none;border-color:var(--kt-primary);box-shadow:0 0 0 3px rgba(194,65,12,.1)}
+.kt-fg textarea{resize:vertical;min-height:70px}
+.kt-fg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kt-search-input{padding:10px 16px;border:1.5px solid var(--kt-border);border-radius:20px;font-family:inherit;font-size:var(--kt-fs-sm);background:var(--kt-surface);min-width:240px;color:var(--kt-text);transition:border-color .2s;min-height:44px}
+.kt-search-input:focus{outline:none;border-color:var(--kt-primary);box-shadow:0 0 0 3px rgba(194,65,12,.1)}
+.kt-toast-box{position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:99999;display:flex;flex-direction:column;align-items:center;pointer-events:none}
+.kt-tst{padding:14px 26px;border-radius:10px;font-weight:600;font-size:var(--kt-fs-sm);box-shadow:var(--kt-shadow-md);animation:ktTstIn .3s ease;display:flex;align-items:center;gap:8px;margin-bottom:8px;pointer-events:auto;direction:rtl}
+.kt-tst-s{background:#052e16;color:var(--kt-success);border:1px solid rgba(22,163,74,.3)}
+.kt-tst-e{background:#2a0a0a;color:var(--kt-danger);border:1px solid rgba(220,38,38,.3)}
+@keyframes ktTstIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+.kt-spinner-overlay{position:fixed;inset:0;background:rgba(250,247,242,.85);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:9999}
+.kt-spinner-overlay.show{display:flex}
+.kt-spin-box{background:var(--kt-surface);border-radius:var(--kt-r);padding:36px;text-align:center;box-shadow:var(--kt-shadow-md)}
+.kt-spin{width:36px;height:36px;border:3px solid var(--kt-border);border-top-color:var(--kt-primary);border-radius:50%;animation:ktSpin .7s linear infinite;margin:0 auto 12px}
+@keyframes ktSpin{to{transform:rotate(360deg)}}
+.kt-empty{text-align:center;padding:60px 20px;color:var(--kt-text-sec)}
+.kt-empty i{font-size:3rem;display:block;margin-bottom:12px;opacity:.4}
+.kt-empty p{font-size:var(--kt-fs-base);margin:0}
+.kt-mf-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:18px}
+.kt-mf-stat{background:var(--kt-surface);border:1px solid var(--kt-border);border-radius:var(--kt-r);padding:16px;text-align:center}
+.kt-mf-stat .kt-mf-sv{font-size:var(--kt-fs-xl);font-weight:800;display:block}
+.kt-mf-stat .kt-mf-sl{font-size:var(--kt-fs-xs);color:var(--kt-text-sec);margin-top:3px}
+.kt-mf-cat-btn{padding:8px 16px;border:1.5px solid var(--kt-border);border-radius:20px;background:var(--kt-surface);font-family:inherit;font-size:var(--kt-fs-xs);font-weight:500;color:var(--kt-text-sec);cursor:pointer;transition:all .2s;min-height:36px}
+.kt-mf-cat-btn:hover,.kt-mf-cat-btn.active{background:var(--kt-primary);color:#fff;border-color:var(--kt-primary)}
+.kt-mf-img{height:140px;overflow:hidden;border-radius:10px;margin-bottom:12px;background:linear-gradient(135deg,var(--kt-primary-light),var(--kt-accent-light));display:flex;align-items:center;justify-content:center}
+.kt-mf-img img{width:100%;height:100%;object-fit:cover}
+.kt-mf-img i{font-size:2.5rem;color:var(--kt-primary);opacity:.4}
+.kt-mf-img.drink-bg{background:linear-gradient(135deg,var(--kt-drink-light),#ede9fe)}
+.kt-mf-img.drink-bg i{color:var(--kt-drink);opacity:.5}
+.kt-waste-reason{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:16px;font-size:var(--kt-fs-xs);font-weight:600}
+.kt-waste-cost-box{background:var(--kt-danger-bg);border:1.5px solid var(--kt-danger-border);border-radius:12px;padding:16px;text-align:center;margin-top:8px}
+.kt-waste-cost-val{font-size:var(--kt-fs-lg);font-weight:800;color:var(--kt-danger)}
+.kt-waste-cost-sub{font-size:var(--kt-fs-xs);color:var(--kt-text-sec);margin-top:4px}
+.ko-card{background:var(--kt-surface);border:1.5px solid var(--kt-border);border-radius:var(--kt-r);overflow:hidden;margin-bottom:12px;transition:all .25s;animation:ktFade .35s ease both}
+.ko-card:nth-child(2){animation-delay:.05s}
+.ko-card:nth-child(3){animation-delay:.1s}
+.ko-card:nth-child(4){animation-delay:.15s}
+.ko-card:hover{box-shadow:var(--kt-shadow-md);border-color:var(--kt-accent)}
+.ko-card-header{display:flex;align-items:center;gap:12px;padding:14px 18px;background:var(--kt-accent-light);border-bottom:1px solid var(--kt-border)}
+.ko-card-id{font-weight:800;font-size:var(--kt-fs-md);color:var(--kt-text)}
+.ko-card-time{font-size:var(--kt-fs-xs);color:var(--kt-text-sec);margin-right:auto;display:flex;align-items:center;gap:4px}
+.ko-card-status{padding:5px 14px;border-radius:20px;font-size:var(--kt-fs-xs);font-weight:700;background:var(--kt-info-bg);color:var(--kt-info);border:1px solid var(--kt-info-border)}
+.ko-card-body{padding:14px 18px}
+.ko-items{display:flex;flex-wrap:wrap;gap:8px}
+.ko-item{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;background:var(--kt-bg);border:1px solid var(--kt-border);border-radius:var(--kt-rs);font-size:var(--kt-fs-base)}
+.ko-item-name{font-weight:700;color:var(--kt-text)}
+.ko-item-qty{font-size:var(--kt-fs-xs);font-weight:700;color:var(--kt-primary);background:var(--kt-primary-light);padding:3px 10px;border-radius:8px}
+.ko-card-footer{display:flex;align-items:center;gap:10px;padding:14px 18px;border-top:1px solid var(--kt-border);background:var(--kt-bg)}
+.ko-total{font-weight:800;color:var(--kt-primary);margin-right:auto;font-size:var(--kt-fs-base)}
+.ko-btn-ready{padding:10px 22px;border:none;border-radius:var(--kt-rs);background:var(--kt-success);color:#fff;font-family:inherit;font-size:var(--kt-fs-sm);font-weight:700;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px;min-height:44px}
+.ko-btn-ready:hover{background:#059669;transform:translateY(-1px)}
+.ko-btn-ready:active{transform:scale(.97)}
+.ko-empty{text-align:center;padding:60px 20px;color:var(--kt-text-sec)}
+.ko-empty svg{width:64px;height:64px;color:var(--kt-border);margin-bottom:12px}
+.ko-empty h3{font-size:var(--kt-fs-md);font-weight:700;color:var(--kt-text);margin:0 0 4px}
+.ko-empty p{font-size:var(--kt-fs-sm)}
+.kn-container{position:fixed;top:16px;left:16px;z-index:99998;display:flex;flex-direction:column;gap:12px;max-width:420px;width:calc(100% - 32px);pointer-events:none}
+.kn-container>*{pointer-events:auto}
+.kn-toast{background:var(--kt-surface);border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,.18),0 0 0 1px rgba(0,0,0,.06);overflow:hidden;position:relative;animation:knSlideIn .4s cubic-bezier(.22,1,.36,1);transition:all .35s cubic-bezier(.22,1,.36,1)}
+.kn-toast.kn-exit{opacity:0;transform:translateX(-40px) scale(.95);pointer-events:none}
+.kn-toast::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;border-radius:16px 16px 0 0}
+.kn-toast.kn-new::before{background:linear-gradient(90deg,#ef4444,#f59e0b,#ef4444);background-size:200% 100%;animation:knStripe 2s linear infinite}
+.kn-toast.kn-reminder::before{background:linear-gradient(90deg,#f59e0b,#d97706)}
+@keyframes knStripe{0%{background-position:0 0}100%{background-position:200% 0}}
+@keyframes knSlideIn{from{opacity:0;transform:translateX(-30px) scale(.95)}to{opacity:1;transform:translateX(0) scale(1)}}
+@keyframes knBounce{0%{transform:scale(.8);opacity:0}60%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}
+.kn-pulse-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;animation:knPulse 1.2s ease-in-out infinite}
+.kn-new .kn-pulse-dot{background:#ef4444;box-shadow:0 0 0 4px rgba(239,68,68,.2)}
+.kn-reminder .kn-pulse-dot{background:#f59e0b;box-shadow:0 0 0 4px rgba(245,158,11,.2)}
+@keyframes knPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.4);opacity:.6}}
+.kn-head{display:flex;align-items:center;gap:10px;padding:16px 18px 10px}
+.kn-label{font-size:var(--kt-fs-xs);font-weight:700;letter-spacing:.02em;padding:4px 12px;border-radius:8px}
+.kn-new .kn-label{background:#fef2f2;color:#dc2626}
+.kn-reminder .kn-label{background:#fffbeb;color:#d97706}
+.kn-time{font-size:var(--kt-fs-xs);color:var(--kt-text-sec);margin-right:auto}
+.kn-dismiss{background:none;border:none;cursor:pointer;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--kt-text-sec);transition:all .15s;font-size:1.1rem}
+.kn-dismiss:hover{background:rgba(0,0,0,.06);color:var(--kt-text)}
+.kn-body{padding:4px 18px 12px}
+.kn-title{font-size:var(--kt-fs-lg);font-weight:800;color:var(--kt-text);margin-bottom:6px}
+.kn-items{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.kn-item{padding:6px 14px;border-radius:8px;font-size:var(--kt-fs-sm);font-weight:600;background:var(--kt-bg);border:1px solid var(--kt-border);color:var(--kt-text)}
+.kn-item strong{color:var(--kt-primary);margin-left:2px}
+.kn-meta{display:flex;align-items:center;gap:12px;font-size:var(--kt-fs-sm);color:var(--kt-text-sec)}
+.kn-meta i{margin-left:3px}
+.kn-foot{display:flex;gap:8px;padding:10px 18px 16px}
+.kn-btn{flex:1;padding:12px;border:none;border-radius:10px;font-family:inherit;font-size:var(--kt-fs-sm);font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px}
+.kn-btn:active{transform:scale(.97)}
+.kn-btn-ack{background:var(--kt-success);color:#fff}
+.kn-btn-ack:hover{background:#15803d}
+.kn-btn-ready{background:var(--kt-primary);color:#fff}
+.kn-btn-ready:hover{background:var(--kt-primary-hover)}
+.kn-btn-snooze{background:var(--kt-bg);color:var(--kt-text-sec);border:1.5px solid var(--kt-border)}
+.kn-btn-snooze:hover{border-color:var(--kt-text-sec);color:var(--kt-text)}
+.kn-timer-bar{height:3px;background:var(--kt-border);overflow:hidden;margin:0 18px;border-radius:2px}
+.kn-timer-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--kt-accent),var(--kt-danger));transition:width 1s linear}
+.kn-counter{position:fixed;bottom:24px;left:24px;z-index:99997;background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border-radius:16px;padding:14px 22px;font-weight:800;font-size:var(--kt-fs-base);box-shadow:0 8px 30px rgba(220,38,38,.35);display:none;align-items:center;gap:8px;cursor:pointer;transition:all .2s;direction:rtl;animation:knBounce .5s cubic-bezier(.22,1,.36,1)}
+.kn-counter:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(220,38,38,.4)}
+.kn-counter .kn-counter-num{background:rgba(255,255,255,.25);border-radius:8px;padding:2px 10px;font-size:var(--kt-fs-lg);min-width:28px;text-align:center}
+.kt-produce-preview{background:var(--kt-produce-light);border:1.5px solid var(--kt-produce-border);border-radius:12px;padding:16px;margin-top:12px}
+.kt-produce-preview-title{font-weight:700;font-size:var(--kt-fs-sm);color:var(--kt-produce);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.kt-produce-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(0,0,0,.05);font-size:var(--kt-fs-sm)}
+.kt-produce-item:last-child{border-bottom:none}
+.kt-produce-item-name{font-weight:600;color:var(--kt-text)}
+.kt-produce-item-qty{font-weight:700;color:var(--kt-produce)}
+.kt-produce-badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:8px;font-size:var(--kt-fs-xs);font-weight:600;background:var(--kt-produce-light);color:var(--kt-produce);border:1px solid var(--kt-produce-border)}
+.kt-skeleton{background:linear-gradient(90deg,var(--kt-border) 25%,#f0eeec 50%,var(--kt-border) 75%);background-size:200% 100%;animation:ktShimmer 1.5s infinite;border-radius:8px}
+@keyframes ktShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@keyframes ktFade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ktPulse{0%,100%{opacity:1}50%{opacity:.5}}
+@media(max-width:768px){
+    .kt-cards{grid-template-columns:1fr}
+    .kt-fg-row{grid-template-columns:1fr}
+    .kt-stats{grid-template-columns:1fr 1fr}
+    .kt-tbl{font-size:var(--kt-fs-xs)}
+    .kt-tbl th,.kt-tbl td{padding:10px 8px}
+    .kt-hdr h1{font-size:1.4rem}
+    .kt-md-body{padding:16px}
+    .kt-hdr p{margin-right:0}
+    .ko-card-header{flex-wrap:wrap}
+}
+@media(max-width:480px){
+    .kn-container{top:8px;left:8px;max-width:calc(100% - 16px)}
+    .kn-title{font-size:var(--kt-fs-base)}
+    .kn-items{gap:4px}
+    .kn-item{font-size:var(--kt-fs-xs);padding:4px 8px}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="kt-wrap">
+
+    <div class="kt-toast-box" id="ktToastBox"></div>
+
+    <div class="kn-container" id="knContainer"></div>
+    <div class="kn-counter" id="knCounter" onclick="knShowAllPending()">
+        <i class="bi bi-bell-fill"></i>
+        <span>سفارش جدید</span>
+        <span class="kn-counter-num" id="knCounterNum">0</span>
+    </div>
+
+    <div class="kt-spinner-overlay" id="ktSpinner">
+        <div class="kt-spin-box">
+            <div class="kt-spin"></div>
+            <p style="font-weight:700;margin:0;font-size:var(--kt-fs-base)">در حال پردازش...</p>
+        </div>
+    </div>
+
+    <div class="kt-box">
+
+        <header class="kt-hdr">
+            <div>
+                <h1><span class="kt-hdr-icon"><i class="bi bi-fire"></i></span> مدیریت آشپزخانه</h1>
+                <p>تولید، موجودی، تخفیف‌ها، ضایعات و سفارشات</p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="kt-btn kt-btn-accent kt-btn-sm" onclick="ktOpenMatPlan()"><i class="bi bi-clipboard-data"></i> برنامه مواد</button>
+                <a href="/api/warehouse-inventory/" class="kt-btn kt-btn-ghost kt-btn-sm"><i class="bi bi-box-seam"></i> انبار</a>
+                <a href="/api/semi-finished-page/" class="kt-btn kt-btn-ghost kt-btn-sm"><i class="bi bi-gear"></i> نیم‌آماده</a>
+                <a href="/api/usage-log/" class="kt-btn kt-btn-ghost kt-btn-sm"><i class="bi bi-clock-history"></i> تاریخچه</a>
+            </div>
+        </header>
+
+        <div class="kt-stats" id="ktStats">
+            <div class="kt-stat"><div class="kt-skeleton" style="width:40px;height:28px;margin:0 auto 6px"></div><div class="kt-skeleton" style="width:60px;height:14px;margin:0 auto"></div></div>
+            <div class="kt-stat"><div class="kt-skeleton" style="width:40px;height:28px;margin:0 auto 6px"></div><div class="kt-skeleton" style="width:60px;height:14px;margin:0 auto"></div></div>
+            <div class="kt-stat"><div class="kt-skeleton" style="width:40px;height:28px;margin:0 auto 6px"></div><div class="kt-skeleton" style="width:60px;height:14px;margin:0 auto"></div></div>
+            <div class="kt-stat"><div class="kt-skeleton" style="width:40px;height:28px;margin:0 auto 6px"></div><div class="kt-skeleton" style="width:60px;height:14px;margin:0 auto"></div></div>
+        </div>
+
+        <div class="kt-tabs" id="ktTabs">
+            <button class="kt-tab active" data-tab="orders">
+                <i class="bi bi-receipt"></i> سفارشات
+                <span class="kt-tab-badge" id="orders-badge">0</span>
+            </button>
+            <button class="kt-tab" data-tab="menu-foods"><i class="bi bi-book"></i> غذاهای منو</button>
+            <button class="kt-tab" data-tab="produce"><i class="bi bi-gear-wide-connected"></i> تولید</button>
+            <button class="kt-tab" data-tab="discounts"><i class="bi bi-percent"></i> تخفیف‌ها</button>
+            <button class="kt-tab" data-tab="waste"><i class="bi bi-trash3"></i> ضایعات</button>
+        </div>
+
+        <div class="kt-tab-panel active" id="panel-orders">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+                <h3 style="font-size:var(--kt-fs-lg);font-weight:800;margin:0"><i class="bi bi-receipt" style="color:var(--kt-accent);margin-left:6px"></i> سفارشات در انتظار آماده‌سازی</h3>
+                <button class="kt-btn kt-btn-ghost kt-btn-sm" onclick="loadKitchenOrders()"><i class="bi bi-arrow-clockwise"></i> بروزرسانی</button>
+            </div>
+            <div id="kitchen-orders-list">
+                <div style="text-align:center;padding:40px;color:var(--kt-text-sec)"><div class="kt-spin" style="margin:0 auto 12px"></div><p style="font-size:var(--kt-fs-sm)">در حال بارگذاری...</p></div>
+            </div>
+        </div>
+
+        <div class="kt-tab-panel" id="panel-menu-foods">
+            <div class="kt-mf-stats" id="ktMfStats"></div>
+            <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+                <div style="position:relative">
+                    <i class="bi bi-search" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--kt-text-sec);pointer-events:none;font-size:var(--kt-fs-sm)"></i>
+                    <input type="text" id="ktMenuSearch" class="kt-search-input" placeholder="جستجوی غذا یا نوشیدنی..." style="padding-right:34px" oninput="ktDebouncedRenderMenu()">
+                </div>
+                <div id="ktMenuCats" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+            </div>
+            <div class="kt-cards" id="ktMenuFoodsGrid"></div>
+        </div>
+
+        <div class="kt-tab-panel" id="panel-produce">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+                <h3 style="font-size:var(--kt-fs-lg);font-weight:800;margin:0">
+                    <i class="bi bi-gear-wide-connected" style="color:var(--kt-produce);margin-left:6px"></i> تولید محصول
+                </h3>
+            </div>
+            <div style="max-width:560px">
+                <div style="background:var(--kt-produce-light);border:1.5px solid var(--kt-produce-border);border-radius:12px;padding:14px;margin-bottom:20px;text-align:center">
+                    <div style="font-size:var(--kt-fs-sm);font-weight:700;color:var(--kt-produce)">
+                        <i class="bi bi-info-circle"></i> با تولید، مواد اولیه مصرف و موجودی محصول افزایش می‌یابد
+                    </div>
+                </div>
+                <div style="background:var(--kt-surface);border:1.5px solid var(--kt-border);border-radius:var(--kt-r);padding:24px">
+                    <div class="kt-fg">
+                        <label>محصول *</label>
+                        <select id="prProduct" onchange="ktProduceUpdateInfo()">
+                            <option value="">انتخاب محصول...</option>
+                        </select>
+                    </div>
+                    <div class="kt-fg">
+                        <label>تعداد تولید *</label>
+                        <input type="number" id="prQty" min="1" value="1" oninput="ktProduceUpdateInfo()">
+                    </div>
+                    <div class="kt-fg">
+                        <label>یادداشت</label>
+                        <input type="text" id="prNotes" placeholder="اختیاری...">
+                    </div>
+                    <div id="prInfoBox"></div>
+                    <button class="kt-btn kt-btn-produce" style="width:100%;justify-content:center;margin-top:16px" onclick="ktDoProduceFromTab()">
+                        <i class="bi bi-gear-wide-connected"></i> شروع تولید
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="kt-tab-panel" id="panel-discounts">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+                <button class="kt-btn kt-btn-accent" onclick="ktOpenModal('ktModalDiscount')"><i class="bi bi-plus-lg"></i> تخفیف جدید</button>
+            </div>
+            <div class="kt-tbl-wrap">
+                <table class="kt-tbl">
+                    <thead><tr><th>#</th><th>نام</th><th>محصول</th><th>نوع</th><th>دامنه</th><th>مقدار</th><th>وضعیت</th><th>عملیات</th></tr></thead>
+                    <tbody id="ktDiscBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="kt-tab-panel" id="panel-waste">
+            <div class="kt-mf-stats" id="ktWasteStats"></div>
+            <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+                <button class="kt-btn kt-btn-danger" onclick="ktOpenWasteModal()"><i class="bi bi-plus-lg"></i> ثبت ضایعات</button>
+            </div>
+            <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+                <div style="position:relative">
+                    <i class="bi bi-search" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--kt-text-sec);pointer-events:none;font-size:var(--kt-fs-sm)"></i>
+                    <input type="text" id="ktWasteSearch" class="kt-search-input" placeholder="جستجوی ضایعات..." style="padding-right:34px" oninput="ktDebouncedRenderWaste()">
+                </div>
+                <div id="ktWasteReasonFilters" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+            </div>
+            <div class="kt-tbl-wrap">
+                <table class="kt-tbl kt-tbl-waste">
+                    <thead><tr><th>#</th><th>محصول</th><th>تعداد</th><th>دلیل</th><th>هزینه</th><th>تاریخ</th><th>ثبت‌کننده</th><th>یادداشت</th><th>عملیات</th></tr></thead>
+                    <tbody id="ktWasteBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- مودال‌ها -->
+<div class="kt-modal" id="ktModalMatPlan">
+<div class="kt-md" style="max-width:780px">
+    <div class="kt-md-head">
+        <h2><i class="bi bi-clipboard-data" style="color:var(--kt-primary);margin-left:6px"></i> برنامه‌ریزی مواد اولیه</h2>
+        <button class="kt-md-close" onclick="ktCloseModal('ktModalMatPlan')">&times;</button>
+    </div>
+    <div class="kt-md-body">
+        <div style="background:var(--kt-primary-light);border:1.5px solid #fed7aa;border-radius:12px;padding:16px;margin-bottom:18px;text-align:center">
+            <div style="font-size:var(--kt-fs-sm);font-weight:700;color:var(--kt-primary)">تعداد مورد نیاز هر محصول را مشخص کنید</div>
+            <div style="font-size:var(--kt-fs-xs);color:var(--kt-text-sec);margin-top:4px">سپس دکمه محاسبه را بزنید</div>
+        </div>
+        <div id="mpProductList" style="max-height:300px;overflow-y:auto;margin-bottom:16px"></div>
+        <button class="kt-btn kt-btn-accent" style="width:100%;justify-content:center;margin-bottom:16px" onclick="ktCalcMaterials()"><i class="bi bi-calculator"></i> محاسبه مواد مورد نیاز</button>
+        <div id="mpResultArea"></div>
+    </div>
+    <div class="kt-md-foot"><button class="kt-btn kt-btn-ghost" onclick="ktCloseModal('ktModalMatPlan')">بستن</button></div>
+</div>
+</div>
+
+<div class="kt-modal" id="ktModalCostPrice">
+<div class="kt-md" style="max-width:620px">
+    <div class="kt-md-head">
+        <h2 id="cpTitle"><i class="bi bi-calculator" style="color:var(--kt-primary);margin-left:6px"></i> هزینه و قیمت</h2>
+        <button class="kt-md-close" onclick="ktCloseModal('ktModalCostPrice')">&times;</button>
+    </div>
+    <div class="kt-md-body" style="padding-top:0">
+        <div class="cp-subtabs">
+            <button type="button" class="cp-subtab active" data-cptab="cost" onclick="ktSwitchCpTab('cost',this)"><i class="bi bi-calculator"></i> هزینه و قیمت</button>
+            <button type="button" class="cp-subtab" data-cptab="discount" onclick="ktSwitchCpTab('discount',this)"><i class="bi bi-percent"></i> تخفیف</button>
+        </div>
+        <div id="cpTabCost" style="margin-top:18px"></div>
+        <div id="cpTabDiscount" style="display:none;margin-top:18px"></div>
+    </div>
+    <div class="kt-md-foot"><button class="kt-btn kt-btn-ghost" onclick="ktCloseModal('ktModalCostPrice')">بستن</button></div>
+</div>
+</div>
+
+<div class="kt-modal" id="ktModalDiscount">
+<div class="kt-md">
+    <div class="kt-md-head"><h2>تخفیف جدید</h2><button class="kt-md-close" onclick="ktCloseModal('ktModalDiscount')">&times;</button></div>
+    <div class="kt-md-body">
+        <div class="kt-fg"><label>نام تخفیف</label><input type="text" id="mdName" placeholder="مثلاً تخفیف شبانه"></div>
+        <div class="kt-fg"><label>محصول (خالی = همه)</label><select id="mdProduct"><option value="">همه محصولات</option></select></div>
+        <div class="kt-fg-row">
+            <div class="kt-fg"><label>نوع</label><select id="mdType"><option value="percentage">درصدی</option><option value="fixed_amount">مبلغ ثابت</option></select></div>
+            <div class="kt-fg"><label>دامنه</label><select id="mdScope"><option value="all_items">همه اقلام</option><option value="first_n_items">N قلم اول</option><option value="inventory_based">بر اساس موجودی</option><option value="happy_hour">ساعت خوش</option></select></div>
+        </div>
+        <div class="kt-fg"><label>مقدار</label><input type="number" id="mdValue" min="0" placeholder="20 یا 10000"></div>
+        <div class="kt-fg-row" id="mdConditional">
+            <div class="kt-fg"><label>حداکثر تعداد (first_n)</label><input type="number" id="mdMaxQty" min="0" placeholder="اختیاری"></div>
+            <div class="kt-fg"><label>حداقل موجودی (inventory)</label><input type="number" id="mdMinStock" min="0" placeholder="اختیاری"></div>
+        </div>
+        <div class="kt-fg-row">
+            <div class="kt-fg"><label>ساعت شروع (happy_hour)</label><input type="time" id="mdStart"></div>
+            <div class="kt-fg"><label>ساعت پایان</label><input type="time" id="mdEnd"></div>
+        </div>
+    </div>
+    <div class="kt-md-foot">
+        <button class="kt-btn kt-btn-accent" onclick="ktSaveDiscount()">ذخیره</button>
+        <button class="kt-btn kt-btn-ghost" onclick="ktCloseModal('ktModalDiscount')">انصراف</button>
+    </div>
+</div>
+</div>
+
+<div class="kt-modal" id="ktModalQuickAdd">
+<div class="kt-md" style="max-width:440px">
+    <div class="kt-md-head">
+        <h2><i class="bi bi-plus-circle" style="color:var(--kt-primary);margin-left:6px"></i> ورود به چرخه تولید</h2>
+        <button class="kt-md-close" onclick="ktCloseModal('ktModalQuickAdd')">&times;</button>
+    </div>
+    <div class="kt-md-body">
+        <div style="background:var(--kt-primary-light);border:1.5px solid #fed7aa;border-radius:12px;padding:16px;margin-bottom:18px;text-align:center">
+            <div style="font-size:var(--kt-fs-lg);font-weight:800;color:var(--kt-primary)" id="qkFoodName">—</div>
+            <div style="font-size:var(--kt-fs-sm);color:var(--kt-text-sec);margin-top:4px" id="qkFoodInfo">—</div>
+        </div>
+        <div class="kt-fg"><label>دستور پخت (Recipe) *</label><select id="qkRecipe"></select></div>
+        <div class="kt-fg"><label>قیمت فروش (تومان)</label><input type="number" id="qkPrice" min="0"></div>
+    </div>
+    <div class="kt-md-foot">
+        <button class="kt-btn kt-btn-primary" onclick="ktDoQuickAdd()"><i class="bi bi-check-lg"></i> افزودن به آشپزخانه</button>
+        <button class="kt-btn kt-btn-ghost" onclick="ktCloseModal('ktModalQuickAdd')">انصراف</button>
+    </div>
+</div>
+</div>
+
+<div class="kt-modal" id="ktModalWaste">
+<div class="kt-md" style="max-width:500px">
+    <div class="kt-md-head">
+        <h2><i class="bi bi-trash3" style="color:var(--kt-danger);margin-left:6px"></i> ثبت ضایعات</h2>
+        <button class="kt-md-close" onclick="ktCloseModal('ktModalWaste')">&times;</button>
+    </div>
+    <div class="kt-md-body">
+        <div style="background:var(--kt-danger-bg);border:1.5px solid var(--kt-danger-border);border-radius:12px;padding:14px;margin-bottom:18px;text-align:center">
+            <div style="font-size:var(--kt-fs-sm);font-weight:700;color:var(--kt-danger)"><i class="bi bi-exclamation-triangle"></i> ضایعات از موجودی آشپزخانه کم می‌شود</div>
+        </div>
+        <div class="kt-fg"><label>محصول *</label><select id="mwProduct" onchange="ktUpdateWasteCostPreview()"><option value="">انتخاب محصول...</option></select></div>
+        <div class="kt-fg-row">
+            <div class="kt-fg"><label>تعداد *</label><input type="number" id="mwQty" min="1" value="1" oninput="ktUpdateWasteCostPreview()"></div>
+            <div class="kt-fg"><label>دلیل *</label><select id="mwReason">
+                <option value="expired">تاریخ گذشته</option>
+                <option value="damaged">آسیب‌دیده</option>
+                <option value="overcooked">بیش از حد پخته</option>
+                <option value="quality_issue">مشکل کیفیت</option>
+                <option value="returned">برگشتی مشتری</option>
+                <option value="other">سایر</option>
+            </select></div>
+        </div>
+        <div class="kt-fg"><label>توضیحات</label><textarea id="mwNotes" placeholder="توضیحات اختیاری..."></textarea></div>
+        <div id="mwCostPreview"></div>
+    </div>
+    <div class="kt-md-foot">
+        <button class="kt-btn kt-btn-danger" onclick="ktSaveWaste()"><i class="bi bi-check-lg"></i> ثبت ضایعات</button>
+        <button class="kt-btn kt-btn-ghost" onclick="ktCloseModal('ktModalWaste')">انصراف</button>
+    </div>
+</div>
+</div>
+
+<!-- مودال تولید سریع -->
+<div class="kt-modal" id="ktModalProduce">
+<div class="kt-md" style="max-width:500px">
+    <div class="kt-md-head">
+        <h2><i class="bi bi-gear-wide-connected" style="color:var(--kt-produce);margin-left:6px"></i> تولید محصول</h2>
+        <button class="kt-md-close" onclick="ktCloseModal('ktModalProduce')">&times;</button>
+    </div>
+    <div class="kt-md-body">
+        <div class="kt-fg">
+            <label>محصول *</label>
+            <select id="prProductModal" onchange="ktProduceUpdateInfo()">
+                <option value="">انتخاب محصول...</option>
+            </select>
+        </div>
+        <div class="kt-fg">
+            <label>تعداد تولید *</label>
+            <input type="number" id="prQtyModal" min="1" value="1" oninput="ktProduceUpdateInfo()">
+        </div>
+        <div class="kt-fg">
+            <label>یادداشت</label>
+            <input type="text" id="prNotesModal" placeholder="اختیاری...">
+        </div>
+        <div id="prInfoBoxModal"></div>
+    </div>
+    <div class="kt-md-foot">
+        <button class="kt-btn kt-btn-produce" onclick="ktDoProduce()"><i class="bi bi-gear-wide-connected"></i> شروع تولید</button>
+        <button class="kt-btn kt-btn-ghost" onclick="ktCloseModal('ktModalProduce')">انصراف</button>
+    </div>
+</div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+/* ════════════════════════════════════════════════
+   داده‌های سرور
+   ════════════════════════════════════════════════ */
+var ktD = { products: [], batches: [], discounts: [], inventory: [], logs: [], low_stock: [], waste: [], stats: {} };
+var ktRecipes  = {{ recipes_json|safe }};
+var ktCategories = {{ categories_json|safe }};
+var ktMenuFoods  = {{ foods_json|safe }};
+var ktFoodCats   = {{ food_cats_json|safe }};
+
+/* ════════════════════════════════════════════════
+   تشخیص نوشیدنی
+   ════════════════════════════════════════════════ */
+var _ktDrinkKW = [
+    'نوشیدنی','drink','beverage','آبمیوه','smoothie','اسموتی','قهوه','چای',
+    'کافه','cafe','coffee','tea','juice','لیموناد','شیرموز','دوغ','شربت',
+    'دلستر','ماءالشعیر','سودا','نوشابه','milkshake','frappe','latte',
+    'espresso','یخ','ice'
+];
+function ktIsDrink(food) {
+    if (!food) return false;
+    var cat = (food.category_name || '').toLowerCase();
+    var nm  = (food.name || '').toLowerCase();
+    for (var i = 0; i < _ktDrinkKW.length; i++) {
+        if (cat.indexOf(_ktDrinkKW[i]) !== -1 || nm.indexOf(_ktDrinkKW[i]) !== -1) return true;
+    }
+    return false;
+}
+
+/* ════════════════════════════════════════════════
+   دلایل ضایعات
+   ════════════════════════════════════════════════ */
+var _ktWasteReasons = {
+    'expired':      { label: 'تاریخ گذشته',      bg: 'var(--kt-info-bg)',      color: 'var(--kt-info)',      icon: 'bi-clock-history' },
+    'damaged':      { label: 'آسیب‌دیده',          bg: 'var(--kt-warning-bg)',   color: 'var(--kt-warning)',   icon: 'bi-exclamation-triangle' },
+    'overcooked':   { label: 'بیش‌پخت',            bg: 'var(--kt-accent-light)', color: 'var(--kt-accent)',    icon: 'bi-fire' },
+    'quality_issue':{ label: 'مشکل کیفیت',        bg: 'var(--kt-danger-bg)',    color: 'var(--kt-danger)',    icon: 'bi-shield-exclamation' },
+    'returned':     { label: 'برگشتی مشتری',      bg: 'var(--kt-drink-light)',  color: 'var(--kt-drink)',     icon: 'bi-arrow-return-left' },
+    'other':        { label: 'سایر',               bg: 'var(--kt-bg)',           color: 'var(--kt-text-sec)',  icon: 'bi-three-dots' }
+};
+
+/* ════════════════════════════════════════════════
+   متغیرهای سراسری
+   ════════════════════════════════════════════════ */
+var ktQuickAddFoodId = null, cpProductId = null;
+var _ktLoading = false, _ktMenuDebounce = null, _ktWasteDebounce = null;
+var _ktCostObserver = null, ktTimerInterval = null;
+var _ktOrdersInterval = null;
+var _ktKnownOrderIds = [];
+var _knInitDone = false;
+var _knPending = [];
+
+/* ════════════════════════════════════════════════
+   ابزارهای پایه
+   ════════════════════════════════════════════════ */
+function ktCsrf() {
+    var v = null;
+    document.cookie.split(';').forEach(function (c) {
+        c = c.trim();
+        if (c.indexOf('csrftoken=') === 0) v = decodeURIComponent(c.slice(10));
+    });
+    return v;
+}
+
+function ktFmt(n) { return Number(n || 0).toLocaleString('fa-IR'); }
+
+function ktToast(m, t) {
+    t = t || 's';
+    var c = document.getElementById('ktToastBox');
+    if (!c) { alert(m); return; }
+    var d = document.createElement('div');
+    d.className = 'kt-tst kt-tst-' + t;
+    d.innerHTML = '<i class="bi bi-' + (t === 's' ? 'check-circle-fill' : 'exclamation-circle-fill') + '"></i> ' + ktEscapeHtml(m);
+    c.appendChild(d);
+    setTimeout(function () {
+        d.style.opacity = '0';
+        d.style.transition = 'opacity .3s';
+        setTimeout(function () { d.remove(); }, 300);
+    }, 3500);
+}
+
+function ktEscapeHtml(str) {
+    if (typeof str !== 'string') return str;
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+}
+
+function ktSpin(show) {
+    var el = document.getElementById('ktSpinner');
+    if (el) el.classList.toggle('show', !!show);
+}
+
+/* ★ FIX: بهبود مدیریت خطا و پاسخ‌های 204 */
+async function ktApi(url, method, body) {
+    var opts = {
+        method: method || 'GET',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': ktCsrf() }
+    };
+    if (body) opts.body = JSON.stringify(body);
+    var r = await fetch(url, opts);
+    if (r.status === 204) return { success: true, status: 204 };
+    var text = await r.text();
+    var j;
+    try { j = JSON.parse(text); }
+    catch (e) { throw new Error('سرور پاسخ نامعتبر (status ' + r.status + ')'); }
+    if (!r.ok) {
+        var errMsg = '';
+        if (j && typeof j === 'object') {
+            if (j.error)        errMsg = (typeof j.error === 'string') ? j.error : (Array.isArray(j.error) ? j.error.join(', ') : JSON.stringify(j.error));
+            else if (j.detail)  errMsg = j.detail;
+            else if (j.message) errMsg = j.message;
+            else {
+                var parts = [];
+                for (var key in j) {
+                    if (j.hasOwnProperty(key)) {
+                        var val = Array.isArray(j[key]) ? j[key].join(', ') : j[key];
+                        parts.push(key + ': ' + val);
+                    }
+                }
+                errMsg = parts.length ? parts.join(' | ') : JSON.stringify(j);
+            }
+        }
+        throw new Error(errMsg || 'خطای سرور (' + r.status + ')');
+    }
+    return j;
+}
+
+/* ════════════════════════════════════════════════
+   توابع مشترک
+   ════════════════════════════════════════════════ */
+function ktGetId(obj) {
+    if (!obj) return null;
+    return (obj.id != null) ? obj.id : (obj.pk != null ? obj.pk : null);
+}
+
+function ktDiscountValueText(d, unitLabel) {
+    if (!d) return '';
+    unitLabel = unitLabel || 'ت';
+    return d.discount_type === 'percentage' ? (d.value + '%') : (ktFmt(d.value) + ' ' + unitLabel);
+}
+
+function ktTimerBadgeIfAny(id) {
+    /* ★ FIX: همیشه string برمی‌گرداند نه null */
+    if (!id) return '';
+    var tb = ktTimerBadge(id);
+    return tb || '';
+}
+
+function ktTierColors(value, dangerMax, warnMax) {
+    if (value <= dangerMax) return { color: 'var(--kt-danger)', bg: 'var(--kt-danger-bg)', border: 'var(--kt-danger-border)', icon: 'bi-x-circle-fill' };
+    if (value < warnMax)   return { color: 'var(--kt-warning)', bg: 'var(--kt-warning-bg)', border: 'var(--kt-warning-border)', icon: 'bi-exclamation-circle-fill' };
+    return { color: 'var(--kt-success)', bg: 'var(--kt-success-bg)', border: 'rgba(22,163,74,.2)', icon: 'bi-check-circle-fill' };
+}
+
+function ktMapFoodCategory(categoryName) {
+    var cl = (categoryName || '').trim().toLowerCase();
+    if (!cl) return 'other';
+    for (var ci = 0; ci < ktCategories.length; ci++) {
+        var cV = ktCategories[ci][0];
+        var cL = (ktCategories[ci][1] || '').trim().toLowerCase();
+        if (cL === cl || cL.indexOf(cl) !== -1 || cl.indexOf(cL) !== -1) return cV;
+    }
+    return 'other';
+}
+
+function ktFieldGroup(label, innerHtml) {
+    return '<div class="kt-fg" style="margin:0"><label>' + ktEscapeHtml(label) + '</label>' + innerHtml + '</div>';
+}
+
+function ktCsBox(value, label, color) {
+    return '<div class="kt-cs" style="padding:14px;border:1px solid var(--kt-border)"><span class="kt-cs-val" style="color:' + (color || 'var(--kt-text)') + ';font-size:1.1rem">' + value + '</span><span class="kt-cs-lbl">' + ktEscapeHtml(label) + '</span></div>';
+}
+
+/* ★ FIX: جلوگیری از race condition — فقط یک بار ktSpin */
+async function ktRunAction(actionFn, opts) {
+    opts = opts || {};
+    try {
+        ktSpin(true);
+        var result = await actionFn();
+        var msg = (result && typeof result === 'object') ? result.msg : result;
+        if (msg) ktToast(msg, 's');
+        if (opts.reload !== false) await ktLoad();
+        if (opts.onSuccess) opts.onSuccess(result);
+        return result;
+    } catch (e) {
+        ktToast((opts.errorPrefix || 'خطا: ') + e.message, 'e');
+        if (opts.onError) opts.onError(e);
+        return null;
+    } finally {
+        ktSpin(false);
+    }
+}
+
+async function ktConfirmRunAction(confirmMsg, actionFn, opts) {
+    if (!confirm(confirmMsg)) return null;
+    return ktRunAction(actionFn, opts);
+}
+
+/* ════════════════════════════════════════════════
+   Modal & Tab
+   ════════════════════════════════════════════════ */
+function ktOpenModal(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add('open');
+    document.body.style.overflow = 'hidden';
+}
+
+/* ★ FIX: پاکسازی observer هنگام بستن مودال */
+function ktCloseModal(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('open');
+    if (!document.querySelector('.kt-modal.open')) document.body.style.overflow = '';
+    /* پاکسازی observer مودال هزینه */
+    if (id === 'ktModalCostPrice' && _ktCostObserver) {
+        _ktCostObserver.disconnect();
+        _ktCostObserver = null;
+    }
+}
+
+document.querySelectorAll('.kt-modal').forEach(function (m) {
+    m.addEventListener('click', function (e) { if (e.target === m) ktCloseModal(m.id); });
+});
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+        var ms = document.querySelectorAll('.kt-modal.open');
+        if (ms.length) ktCloseModal(ms[ms.length - 1].id);
+    }
+});
+
+document.querySelectorAll('.kt-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+        document.querySelectorAll('.kt-tab').forEach(function (t) { t.classList.remove('active'); });
+        document.querySelectorAll('.kt-tab-panel').forEach(function (p) { p.classList.remove('active'); });
+        this.classList.add('active');
+        var panel = document.getElementById('panel-' + this.dataset.tab);
+        if (panel) panel.classList.add('active');
+        if (this.dataset.tab === 'orders') loadKitchenOrders();
+    });
+});
+
+function ktSwitchCpTab(tab, btnEl) {
+    document.querySelectorAll('.cp-subtab').forEach(function (b) { b.classList.remove('active'); });
+    if (btnEl) btnEl.classList.add('active');
+    else document.querySelectorAll('.cp-subtab').forEach(function (b) { if (b.dataset.cptab === tab) b.classList.add('active'); });
+    var costEl = document.getElementById('cpTabCost');
+    var discEl = document.getElementById('cpTabDiscount');
+    if (costEl) costEl.style.display = (tab === 'cost') ? 'block' : 'none';
+    if (discEl) discEl.style.display = (tab === 'discount') ? 'block' : 'none';
+}
+
+function ktRenderTable(bodyId, cols, icon, txt, arr, fn) {
+    var b = document.getElementById(bodyId);
+    if (!b) return;
+    if (!arr || !arr.length) {
+        b.innerHTML = '<tr><td colspan="' + cols + '"><div class="kt-empty"><i class="bi ' + icon + '"></i><p>' + ktEscapeHtml(txt) + '</p></div></td></tr>';
+        return;
+    }
+    var rows = [];
+    arr.forEach(function (item, i) { rows.push(fn(item, i)); });
+    b.innerHTML = rows.join('');
+}
+
+/* ════════════════════════════════════════════════
+   سفارشات آشپزخانه + نوتیفیکیشن
+   ════════════════════════════════════════════════ */
+function loadKitchenOrders() {
+    var container = document.getElementById('kitchen-orders-list');
+    if (!container) return;
+    container.innerHTML =
+        '<div style="text-align:center;padding:40px;color:var(--kt-text-sec)">' +
+        '<div class="kt-spin" style="margin:0 auto 12px"></div>' +
+        '<p style="font-size:var(--kt-fs-sm)">در حال بارگذاری...</p></div>';
+
+    fetch('/api/orders/kitchen/?status=preparing')
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            var orders = data.orders || [];
+            renderKitchenOrders(orders);
+            knDetectNewOrders(orders);
+        })
+        .catch(function () {
+            container.innerHTML =
+                '<div class="ko-empty"><i class="bi bi-exclamation-triangle" style="font-size:3rem;display:block;margin-bottom:10px;opacity:.4"></i>' +
+                '<p style="font-size:var(--kt-fs-sm)">خطا در بارگذاری</p></div>';
+        });
+}
+
+function renderKitchenOrders(orders) {
+    var container = document.getElementById('kitchen-orders-list');
+    if (!container) return;
+    var badge = document.getElementById('orders-badge');
+    if (badge) {
+        if (orders.length > 0) { badge.textContent = orders.length; badge.style.display = ''; }
+        else { badge.style.display = 'none'; }
+    }
+    if (!orders.length) {
+        container.innerHTML =
+            '<div class="ko-empty">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:64px;height:64px;color:var(--kt-border);margin-bottom:12px">' +
+            '<circle cx="12" cy="12" r="10"/><path d="M20 6L9 17l-5-5"/></svg>' +
+            '<h3>سفارشی نیست</h3><p>همه سفارشات آماده شده</p></div>';
+        return;
+    }
+    var html = '';
+    orders.forEach(function (order) {
+        html += '<div class="ko-card" data-order-id="' + order.id + '">';
+        html += '<div class="ko-card-header">';
+        html += '<span class="ko-card-id">سفارش #' + order.id + '</span>';
+        html += '<span class="ko-card-time"><i class="bi bi-clock"></i> ' + ktEscapeHtml(order.created_at || '') + '</span>';
+        if (order.customer_name && order.customer_name !== '—') {
+            html += '<span style="font-size:var(--kt-fs-xs);color:var(--kt-text-sec)"><i class="bi bi-person"></i> ' + ktEscapeHtml(order.customer_name) + '</span>';
+        }
+        html += '<span class="ko-card-status">در حال آماده‌سازی</span>';
+        html += '</div>';
+        html += '<div class="ko-card-body"><div class="ko-items">';
+        (order.items || []).forEach(function (item) {
+            html += '<div class="ko-item">';
+            html += '<span class="ko-item-name">' + ktEscapeHtml(item.food_name) + '</span>';
+            html += '<span class="ko-item-qty">&times;' + item.quantity + '</span>';
+            html += '</div>';
+        });
+        html += '</div></div>';
+        html += '<div class="ko-card-footer">';
+        html += '<span class="ko-total">' + Number(order.total_price || 0).toLocaleString('fa-IR') + ' تومان</span>';
+        html += '<button class="ko-btn-ready" onclick="markOrderReady(' + order.id + ')">';
+        html += '<i class="bi bi-check-lg"></i> آماده است</button>';
+        html += '</div></div>';
+    });
+    container.innerHTML = html;
+}
+
+function markOrderReady(orderId) {
+    if (!confirm('سفارش #' + orderId + ' آماده شده؟')) return;
+    var card = document.querySelector('.ko-card[data-order-id="' + orderId + '"]');
+    if (card) { card.style.opacity = '.5'; card.style.pointerEvents = 'none'; }
+    fetch('/api/orders/' + orderId + '/status/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': ktCsrf() },
+        body: JSON.stringify({ status: 'ready' })
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+        if (data.success || data.id) {
+            if (card) {
+                card.style.transition = 'all .3s ease';
+                card.style.opacity = '0';
+                card.style.transform = 'translateX(30px)';
+                setTimeout(function () {
+                    card.remove();
+                    var remaining = document.querySelectorAll('.ko-card');
+                    if (!remaining.length) loadKitchenOrders();
+                    var badge = document.getElementById('orders-badge');
+                    if (badge) {
+                        var count = document.querySelectorAll('.ko-card').length;
+                        if (count > 0) { badge.textContent = count; badge.style.display = ''; }
+                        else { badge.style.display = 'none'; }
+                    }
+                }, 300);
+            }
+            var idx = _ktKnownOrderIds.indexOf(orderId);
+            if (idx > -1) _ktKnownOrderIds.splice(idx, 1);
+            knUpdateCounter();
+        } else {
+            if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; }
+            ktToast(data.error || 'خطا', 'e');
+        }
+    })
+    .catch(function () {
+        if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; }
+        ktToast('خطا در ارتباط با سرور', 'e');
+    });
+}
+
+function ktStartOrdersPolling() {
+    if (_ktOrdersInterval) clearInterval(_ktOrdersInterval);
+    _ktOrdersInterval = setInterval(function () {
+        var activeTab = document.querySelector('.kt-tab.active');
+        if (activeTab && activeTab.dataset.tab === 'orders') {
+            loadKitchenOrders();
+        } else {
+            fetch('/api/orders/kitchen/?status=preparing')
+                .then(function (r) { return r.json(); })
+                .then(function (data) { knDetectNewOrders(data.orders || []); })
+                .catch(function () {});
+        }
+    }, 15000);
+}
+
+/* ════════════════════════════════════════════════
+   سیستم نوتیفیکیشن (KN)
+   ════════════════════════════════════════════════ */
+
+/* ★ FIX: بهبود تشخیص سفارشات جدید — حذف سفارشات قدیمی از لیست شناخته‌شده */
+function knDetectNewOrders(orders) {
+    var currentIds = orders.map(function (o) { return o.id; });
+
+    /* حذف سفارشاتی که دیگر در لیست نیستند */
+    for (var k = _ktKnownOrderIds.length - 1; k >= 0; k--) {
+        if (currentIds.indexOf(_ktKnownOrderIds[k]) === -1) {
+            _ktKnownOrderIds.splice(k, 1);
+        }
+    }
+
+    orders.forEach(function (order) {
+        if (_ktKnownOrderIds.indexOf(order.id) === -1) {
+            _ktKnownOrderIds.push(order.id);
+            if (_knInitDone) knAddNotification(order);
+        }
+    });
+    knUpdateCounter();
+}
+
+function knMarkInitDone() { _knInitDone = true; }
+
+function knAddNotification(order) {
+    _knPending.push(order);
+    var container = document.getElementById('knContainer');
+    if (!container) return;
+
+    var toast = document.createElement('div');
+    toast.className = 'kn-toast kn-new';
+    toast.setAttribute('data-kn-order-id', order.id);
+
+    var itemNames = [];
+    (order.items || []).forEach(function (it) {
+        itemNames.push('<span class="kn-item"><strong>' + it.quantity + '&times;</strong> ' + ktEscapeHtml(it.food_name) + '</span>');
+    });
+    var timeStr = ktEscapeHtml(order.created_at || '');
+
+    toast.innerHTML =
+        '<div class="kn-head">' +
+            '<span class="kn-pulse-dot"></span>' +
+            '<span class="kn-label">سفارش جدید</span>' +
+            '<span class="kn-time"><i class="bi bi-clock"></i> ' + timeStr + '</span>' +
+            '<button class="kn-dismiss" onclick="knDismiss(this)"><i class="bi bi-x"></i></button>' +
+        '</div>' +
+        '<div class="kn-body">' +
+            '<div class="kn-title">سفارش #' + order.id + '</div>' +
+            '<div class="kn-items">' + itemNames.join('') + '</div>' +
+            '<div class="kn-meta">' +
+                '<span><i class="bi bi-cash-stack"></i> ' + Number(order.total_price || 0).toLocaleString('fa-IR') + ' تومان</span>' +
+                (order.customer_name && order.customer_name !== '—' ? '<span><i class="bi bi-person"></i> ' + ktEscapeHtml(order.customer_name) + '</span>' : '') +
+            '</div>' +
+        '</div>' +
+        '<div class="kn-timer-bar"><div class="kn-timer-fill" style="width:100%"></div></div>' +
+        '<div class="kn-foot">' +
+            '<button class="kn-btn kn-btn-ready" onclick="knMarkReady(' + order.id + ',this)"><i class="bi bi-check-lg"></i> آماده است</button>' +
+            '<button class="kn-btn kn-btn-snooze" onclick="knDismiss(this)"><i class="bi bi-bell-slash"></i> بعداً</button>' +
+        '</div>';
+
+    container.appendChild(toast);
+
+    /* انیمیشن تایمر نوار */
+    var fill = toast.querySelector('.kn-timer-fill');
+    if (fill) {
+        var pct = 100;
+        var timer = setInterval(function () {
+            pct -= 0.5;
+            if (fill) fill.style.width = pct + '%';
+            if (pct <= 0) {
+                clearInterval(timer);
+                knDismissToast(toast);
+            }
+        }, 150);
+        toast._timer = timer;
+    }
+
+    /* صدای نوتیفیکیشن */
+    knPlaySound();
+    knUpdateCounter();
+}
+
+/* ★ FIX: جدا کردن پخش صدا — جلوگیری از ایجاد چندین Audio */
+var _knAudio = null;
+function knPlaySound() {
+    try {
+        if (!_knAudio) {
+            _knAudio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+            _knAudio.volume = 0.3;
+        }
+        _knAudio.currentTime = 0;
+        _knAudio.play().catch(function () {});
+    } catch (e) { /* ساکت */ }
+}
+
+function knMarkReady(orderId, btnEl) {
+    var toast = btnEl.closest('.kn-toast');
+    if (toast && toast._timer) clearInterval(toast._timer);
+    markOrderReady(orderId);
+    if (toast) knDismissToast(toast);
+}
+
+function knDismiss(btnEl) {
+    var toast = btnEl.closest('.kn-toast');
+    if (!toast) return;
+    if (toast._timer) clearInterval(toast._timer);
+    knDismissToast(toast);
+}
+
+function knDismissToast(toast) {
+    if (!toast) return;
+    toast.classList.add('kn-exit');
+    setTimeout(function () {
+        var oid = parseInt(toast.getAttribute('data-kn-order-id'));
+        if (!isNaN(oid)) {
+            for (var i = _knPending.length - 1; i >= 0; i--) {
+                if (_knPending[i].id === oid) _knPending.splice(i, 1);
+            }
+        }
+        toast.remove();
+        knUpdateCounter();
+    }, 400);
+}
+
+function knUpdateCounter() {
+    var counter = document.getElementById('knCounter');
+    var numEl   = document.getElementById('knCounterNum');
+    if (!counter || !numEl) return;
+    var count = document.querySelectorAll('.kn-toast').length;
+    if (count > 0) {
+        numEl.textContent = count;
+        counter.style.display = 'flex';
+    } else {
+        counter.style.display = 'none';
+    }
+}
+
+function knShowAllPending() {
+    document.querySelectorAll('.kt-tab').forEach(function (t) { t.classList.remove('active'); });
+    document.querySelectorAll('.kt-tab-panel').forEach(function (p) { p.classList.remove('active'); });
+    var ordersTab    = document.querySelector('.kt-tab[data-tab="orders"]');
+    var ordersPanel  = document.getElementById('panel-orders');
+    if (ordersTab)   ordersTab.classList.add('active');
+    if (ordersPanel) ordersPanel.classList.add('active');
+    loadKitchenOrders();
+}
+
+/* ════════════════════════════════════════════════
+   Timer (تایمر شمارش معکوس تخفیف‌ها)
+   ════════════════════════════════════════════════ */
+var KT_TIMERS = {};
+
+function ktTimerKey(did) { return 'kt_disc_timer_' + did; }
+
+function ktSaveTimer(did, mins) {
+    var exp = Date.now() + (mins * 60000);
+    var d = { expires: exp, discountId: did };
+    localStorage.setItem(ktTimerKey(did), JSON.stringify(d));
+    KT_TIMERS[did] = d;
+}
+
+function ktClearTimer(did) {
+    localStorage.removeItem(ktTimerKey(did));
+    delete KT_TIMERS[did];
+}
+
+function ktGetTimer(did) {
+    if (KT_TIMERS[did]) return KT_TIMERS[did];
+    try {
+        var r = localStorage.getItem(ktTimerKey(did));
+        if (r) {
+            var d = JSON.parse(r);
+            if (d.expires > Date.now()) { KT_TIMERS[did] = d; return d; }
+            else localStorage.removeItem(ktTimerKey(did));
+        }
+    } catch (e) { /* ساکت */ }
+    return null;
+}
+
+function ktGetTimerRemaining(did) {
+    var t = ktGetTimer(did);
+    if (!t) return null;
+    var df = t.expires - Date.now();
+    if (df <= 0) return { expired: true, minutes: 0, seconds: 0, total: 0, display: 'منقضی شد', urgency: 'critical' };
+    var m = Math.floor(df / 60000), s = Math.floor((df % 60000) / 1000);
+    var h = m >= 60 ? Math.floor(m / 60) + 'ساعت و ' : '';
+    return {
+        expired: false, total: df, minutes: m, seconds: s,
+        display: h + (m % 60) + ':' + (s < 10 ? '0' : '') + s,
+        urgency: m < 5 ? 'critical' : (m < 15 ? 'warning' : 'normal')
+    };
+}
+
+function ktTimerBadge(did) {
+    var rem = ktGetTimerRemaining(did);
+    if (!rem) return '';
+    if (rem.expired) return '<span style="padding:3px 10px;border-radius:8px;font-size:var(--kt-fs-xs);font-weight:700;background:var(--kt-danger-bg);color:var(--kt-danger)"><i class="bi bi-clock-history"></i> منقضی شد</span>';
+    var c  = rem.urgency === 'critical' ? 'var(--kt-danger)' : (rem.urgency === 'warning' ? 'var(--kt-warning)' : 'var(--kt-success)');
+    var bg = rem.urgency === 'critical' ? 'var(--kt-danger-bg)' : (rem.urgency === 'warning' ? 'var(--kt-warning-bg)' : 'var(--kt-success-bg)');
+    var p  = rem.urgency === 'critical' ? 'animation:ktPulse 1s infinite' : '';
+    return '<span style="padding:4px 12px;border-radius:10px;font-size:var(--kt-fs-xs);font-weight:700;background:' + bg + ';color:' + c + ';display:inline-flex;align-items:center;gap:4px;' + p + '"><i class="bi bi-stopwatch-fill"></i> ' + rem.display + '</span>';
+}
+
+function ktRebuildTimersFromServer() {
+    var list = DM._list();
+    list.forEach(function (d) {
+        var did = ktGetId(d);
+        if (!did) return;
+        if (d.is_active && d.expires_at) {
+            var exp = new Date(d.expires_at).getTime();
+            if (exp > Date.now()) {
+                var data = { expires: exp, discountId: did };
+                localStorage.setItem(ktTimerKey(did), JSON.stringify(data));
+                KT_TIMERS[did] = data;
+            } else {
+                ktClearTimer(did);
+            }
+        } else {
+            ktClearTimer(did);
+        }
+    });
+}
+
+var _ktTimerExpiring = false;
+
+async function ktHandleExpiredTimers() {
+    if (_ktTimerExpiring) return;
+    var ids = [];
+    for (var id in KT_TIMERS) {
+        if (!KT_TIMERS.hasOwnProperty(id)) continue;
+        var rem = ktGetTimerRemaining(parseInt(id));
+        if (rem && rem.expired) ids.push(parseInt(id));
+    }
+    if (!ids.length) return;
+    _ktTimerExpiring = true;
+    try {
+        for (var i = 0; i < ids.length; i++) {
+            ktClearTimer(ids[i]);
+            try {
+                await ktApi('/api/kitchen/discounts/' + ids[i] + '/', 'PATCH', { is_active: false });
+            } catch (e) {
+                try { await ktApi('/api/kitchen/discounts/' + ids[i] + '/', 'DELETE'); } catch (e2) { /* ساکت */ }
+            }
+        }
+        ktToast(ids.length + ' تخفیف منقضی شد', 'e');
+        await ktLoad();
+    } catch (e) { /* ساکت */ }
+    finally { _ktTimerExpiring = false; }
+}
+
+/* ★ FIX: ساخت HTML تایمر — جلوگیری از تکرار کد */
+function _ktTimerHtml(did) {
+    var rem = ktGetTimerRemaining(did);
+    if (!rem) return '';
+    if (rem.expired) return '<span style="padding:3px 10px;border-radius:8px;font-size:var(--kt-fs-xs);font-weight:700;background:var(--kt-danger-bg);color:var(--kt-danger)"><i class="bi bi-clock-history"></i> منقضی شد</span>';
+    var c  = rem.urgency === 'critical' ? 'var(--kt-danger)' : (rem.urgency === 'warning' ? 'var(--kt-warning)' : 'var(--kt-success)');
+    var bg = rem.urgency === 'critical' ? 'var(--kt-danger-bg)' : (rem.urgency === 'warning' ? 'var(--kt-warning-bg)' : 'var(--kt-success-bg)');
+    var p  = rem.urgency === 'critical' ? 'animation:ktPulse 1s infinite' : '';
+    return '<span style="padding:4px 12px;border-radius:10px;font-size:var(--kt-fs-xs);font-weight:700;background:' + bg + ';color:' + c + ';display:inline-flex;align-items:center;gap:4px;' + p + '"><i class="bi bi-stopwatch-fill"></i> ' + rem.display + '</span>';
+}
+
+function ktStartTimerInterval() {
+    if (ktTimerInterval) clearInterval(ktTimerInterval);
+    ktTimerInterval = setInterval(function () {
+        var hasExp = false;
+        document.querySelectorAll('[data-timer-id]').forEach(function (el) {
+            var did = parseInt(el.getAttribute('data-timer-id'));
+            if (isNaN(did)) return;
+            var html = _ktTimerHtml(did);
+            if (!html) { el.innerHTML = ''; return; }
+            el.innerHTML = html;
+            var rem = ktGetTimerRemaining(did);
+            if (rem && rem.expired) hasExp = true;
+        });
+        if (hasExp) ktHandleExpiredTimers();
+    }, 1000);
+}
+
+function ktIsDiscountActive(d) {
+    if (!d || !d.is_active) return false;
+    var did = ktGetId(d);
+    if (did) {
+        var rem = ktGetTimerRemaining(did);
+        if (rem && rem.expired) return false;
+    }
+    if (d.expires_at && new Date(d.expires_at).getTime() <= Date.now()) return false;
+    if (d.scope === 'happy_hour' && d.start_time && d.end_time) {
+        var now = new Date(), nm = now.getHours() * 60 + now.getMinutes();
+        var p1 = d.start_time.split(':'), p2 = d.end_time.split(':');
+        var sm = parseInt(p1[0]) * 60 + parseInt(p1[1]);
+        var em = parseInt(p2[0]) * 60 + parseInt(p2[1]);
+        return sm <= em ? (nm >= sm && nm <= em) : (nm >= sm || nm <= em);
+    }
+    return true;
+}
+
+function ktGetProductStock(p) {
+    if (!p) return { total: 0, reserved: 0, available: 0 };
+    var inv = ktD.inventory;
+    if (Array.isArray(inv)) {
+        for (var i = 0; i < inv.length; i++) {
+            if (inv[i].kitchen_product_id === p.id || inv[i].kitchen_product === p.id) {
+                return {
+                    total: inv[i].quantity || 0,
+                    reserved: inv[i].reserved_quantity || 0,
+                    available: (inv[i].available_quantity != null) ? inv[i].available_quantity : 0
+                };
+            }
+        }
+    }
+    return {
+        total: p.stock || 0,
+        reserved: p.reserved || 0,
+        available: (p.available != null) ? p.available : (p.stock || 0)
+    };
+}
+
+/* ════════════════════════════════════════════════
+   تولید محصول
+   ════════════════════════════════════════════════ */
+function ktOpenProduceModal() {
+    var po = document.getElementById('prProduct');
+    if (po) {
+        var opts = ['<option value="">انتخاب محصول...</option>'];
+        ktD.products.forEach(function (p) {
+            var stock = ktGetProductStock(p);
+            opts.push('<option value="' + p.id + '" data-cost="' + (p.cost || 0) + '" data-stock="' + stock.available + '">' + ktEscapeHtml(p.name) + ' (موجودی: ' + stock.available + ')</option>');
+        });
+        po.innerHTML = opts.join('');
+    }
+    document.getElementById('prQty').value = 1;
+    document.getElementById('prNotes').value = '';
+    document.getElementById('prInfoBox').innerHTML = '';
+    ktOpenModal('ktModalProduce');
+}
+
+function ktProduceUpdateInfo() {
+    var pid = parseInt(document.getElementById('prProduct').value);
+    var qty = parseInt(document.getElementById('prQty').value) || 0;
+    var box = document.getElementById('prInfoBox');
+    if (!pid || qty <= 0) { box.innerHTML = ''; return; }
+    var p = ktD.products.find(function (x) { return x.id === pid; });
+    if (!p) { box.innerHTML = ''; return; }
+    var stock    = ktGetProductStock(p);
+    var cost     = Number(p.cost) || 0;
+    var totalCost = cost * qty;
+
+    var h = '<div class="kt-produce-preview">';
+    h += '<div class="kt-produce-preview-title"><i class="bi bi-info-circle"></i> خلاصه تولید</div>';
+    h += '<div class="kt-produce-item"><span class="kt-produce-item-name">محصول</span><span class="kt-produce-item-qty">' + ktEscapeHtml(p.name) + '</span></div>';
+    h += '<div class="kt-produce-item"><span class="kt-produce-item-name">تعداد</span><span class="kt-produce-item-qty">' + ktFmt(qty) + ' واحد</span></div>';
+    h += '<div class="kt-produce-item"><span class="kt-produce-item-name">هزینه واحد</span><span class="kt-produce-item-qty">' + ktFmt(cost) + ' تومان</span></div>';
+    h += '<div class="kt-produce-item"><span class="kt-produce-item-name">هزینه کل</span><span class="kt-produce-item-qty" style="color:var(--kt-danger)">' + ktFmt(totalCost) + ' تومان</span></div>';
+    h += '<div class="kt-produce-item"><span class="kt-produce-item-name">موجودی فعلی</span><span class="kt-produce-item-qty">' + ktFmt(stock.available) + '</span></div>';
+    h += '<div class="kt-produce-item"><span class="kt-produce-item-name">موجودی بعد تولید</span><span class="kt-produce-item-qty" style="color:var(--kt-produce)">' + ktFmt(stock.available + qty) + '</span></div>';
+    h += '</div>';
+    box.innerHTML = h;
+}
+
+/* ★ FIX: تابع واحد تولید — حذف تابع تکراری ktDoProduceFromTab */
+async function ktDoProduce() {
+    var pid   = parseInt(document.getElementById('prProduct').value);
+    var qty   = parseInt(document.getElementById('prQty').value) || 0;
+    var notes = document.getElementById('prNotes').value.trim();
+
+    if (!pid) { ktToast('محصول را انتخاب کنید', 'e'); document.getElementById('prProduct').focus(); return; }
+    if (qty <= 0) { ktToast('تعداد باید بیشتر از صفر باشد', 'e'); document.getElementById('prQty').focus(); return; }
+
+    return ktRunAction(async function () {
+        var result = await ktApi('/api/kitchen/products/' + pid + '/produce/', 'POST', { quantity: qty, notes: notes });
+        ktCloseModal('ktModalProduce');
+        /* ★ FIX: پاکسازی فرم بعد از موفقیت */
+        document.getElementById('prProduct').value = '';
+        document.getElementById('prQty').value = 1;
+        document.getElementById('prNotes').value = '';
+        document.getElementById('prInfoBox').innerHTML = '';
+        return result.msg || ('تولید ' + qty + ' واحد انجام شد');
+    });
+}
+
+/* ★ ALIAS: سازگاری با کد قبلی اگر جایی صدا زده شده */
+var ktDoProduceFromTab = ktDoProduce;
+
+/* ════════════════════════════════════════════════
+   Discount Manager
+   ════════════════════════════════════════════════ */
+var DM = {
+    _list: function () {
+        var l = ktD.discounts;
+        if (!Array.isArray(l)) {
+            if (l && l.results) l = l.results;
+            else l = [];
+        }
+        return l;
+    },
+
+    _getPid: function (d) {
+        if (d.kitchen_product !== undefined && d.kitchen_product !== null)
+            return (typeof d.kitchen_product === 'object') ? d.kitchen_product.id : d.kitchen_product;
+        if (d.kitchen_product_id !== undefined) return d.kitchen_product_id;
+        if (d.product_id !== undefined) return d.product_id;
+        return null;
+    },
+
+    find: function (pid) {
+        var list = this._list();
+        if (!list.length) return null;
+        var n = Number(pid), fb = null;
+        for (var i = 0; i < list.length; i++) {
+            var d = list[i], dp = DM._getPid(d);
+            if (dp !== null && Number(dp) === n) {
+                if (ktIsDiscountActive(d)) return d;
+                if (!fb) fb = d;
+            }
+        }
+        return fb;
+    },
+
+    calcFinal: function (price, d) {
+        if (!d || !ktIsDiscountActive(d)) return price;
+        if (d.discount_type === 'percentage') return Math.round(price * (1 - Number(d.value) / 100));
+        return Math.max(0, price - Number(d.value));
+    },
+
+    calcFromForm: function (price) {
+        var vE = document.getElementById("cpDiscValue"), tE = document.getElementById("cpDiscType");
+        if (!vE || !tE) return price;
+        var v = parseInt(vE.value) || 0;
+        if (tE.value === 'percentage') return Math.round(price * (1 - v / 100));
+        return Math.max(0, price - v);
+    },
+
+    updatePreview: function () {
+        var p = ktD.products.find(function (x) { return x.id === cpProductId; });
+        if (!p) return;
+        var price = Number(p.selling_price) || 0, fpr = DM.calcFromForm(price);
+        var oE = document.getElementById("cpDiscOrigPrice"), fE = document.getElementById("cpDiscFinalPrice");
+        if (oE) oE.textContent = ktFmt(price) + ' ت';
+        if (fE) { fE.textContent = ktFmt(fpr) + ' ت'; fE.style.color = fpr < price ? 'var(--kt-success)' : 'var(--kt-primary)'; }
+    },
+
+    save: async function (par) {
+        if (!par.name) { ktToast("نام تخفیف الزامی", "e"); return false; }
+        if (!par.value || par.value <= 0) { ktToast("مقدار تخفیف الزامی", "e"); return false; }
+        var body = {
+            name: par.name, discount_type: par.type || 'percentage',
+            scope: par.scope || 'all_items', value: par.value, is_active: true
+        };
+        if (par.maxQty)    body.max_quantity   = par.maxQty;
+        if (par.minStock)  body.minimum_stock  = par.minStock;
+        if (par.startTime) body.start_time     = par.startTime;
+        if (par.endTime)   body.end_time       = par.endTime;
+        body.expires_at = (par.timerMin && par.timerMin > 0) ? new Date(Date.now() + par.timerMin * 60000).toISOString() : null;
+
+        try {
+            ktSpin(true);
+            /* حذف تخفیف‌های قبلی همان محصول */
+            if (!par.discId && par.pid) {
+                var list = DM._list(), oids = [];
+                for (var i = 0; i < list.length; i++) {
+                    if (Number(DM._getPid(list[i])) === Number(par.pid)) oids.push(ktGetId(list[i]));
+                }
+                for (var j = 0; j < oids.length; j++) {
+                    try { await ktApi('/api/kitchen/discounts/' + oids[j] + '/', 'DELETE'); } catch (e) { /* ساکت */ }
+                    ktClearTimer(oids[j]);
+                }
+            }
+            var rId = par.discId;
+            if (par.discId) {
+                await ktApi('/api/kitchen/discounts/' + par.discId + '/', 'PATCH', body);
+                ktToast("تخفیف بروزرسانی شد", "s");
+            } else {
+                if (!par.pid) { ktToast("محصول انتخاب نشده", "e"); return false; }
+                body.kitchen_product = par.pid;
+                var cr = await ktApi('/api/kitchen/discounts/', 'POST', body);
+                ktToast("تخفیف ثبت شد", "s");
+                if (cr && cr.id) rId = cr.id;
+            }
+            if (par.timerMin && par.timerMin > 0 && rId) ktSaveTimer(rId, par.timerMin);
+            await ktLoad();
+            return true;
+        } catch (e) {
+            ktToast("خطا: " + e.message, "e");
+            return false;
+        } finally {
+            ktSpin(false);
+        }
+    },
+
+    delete: async function (id) {
+        if (!id && id !== 0) { ktToast("شناسه نامعتبر", "e"); return false; }
+        var result = await ktConfirmRunAction("حذف تخفیف؟", async function () {
+            await ktApi('/api/kitchen/discounts/' + id + '/', 'DELETE');
+            ktClearTimer(id);
+            return "حذف شد";
+        });
+        return result !== null;
+    },
+
+    renderDiscountTab: function (product) {
+        if (!product) return '<div class="kt-empty"><p>محصول نامعتبر</p></div>';
+        var ex = DM.find(product.id);
+        var price  = Number(product.selling_price) || 0;
+        var h      = '';
+        var active = ex && ktIsDiscountActive(ex);
+        var stock  = ktGetProductStock(product);
+        var isD    = ktIsDrink(product) || ktIsDrink({ name: product.name, category_name: product.category_display || product.category || '' });
+        var stColors = ktTierColors(stock.available, 0, 10);
+
+        /* کارت‌های موجودی */
+        h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">';
+        h += '<div style="background:' + stColors.bg + ';border:1px solid ' + stColors.border + ';border-radius:10px;padding:12px;text-align:center"><div style="font-size:1.1rem;font-weight:800;color:' + stColors.color + '">' + ktFmt(stock.available) + '</div><div style="font-size:var(--kt-fs-xs);color:var(--kt-text-sec);margin-top:3px">قابل فروش</div></div>';
+        h += '<div style="background:var(--kt-warning-bg);border:1px solid var(--kt-warning-border);border-radius:10px;padding:12px;text-align:center"><div style="font-size:1.1rem;font-weight:800;color:var(--kt-warning)">' + ktFmt(stock.reserved) + '</div><div style="font-size:var(--kt-fs-xs);color:var(--kt-text-sec);margin-top:3px">رزرو شده</div></div>';
+        h += '<div style="background:var(--kt-info-bg);border:1px solid var(--kt-info-border);border-radius:10px;padding:12px;text-align:center"><div style="font-size:1.1rem;font-weight:800;color:var(--kt-info)">' + ktFmt(stock.total) + '</div><div style="font-size:var(--kt-fs-xs);color:var(--kt-text-sec);margin-top:3px">کل تولید</div></div>';
+        h += '</div>';
+
+        if (stock.available <= 0) h += '<div style="background:var(--kt-danger-bg);border:1.5px solid var(--kt-danger-border);border-radius:10px;padding:12px;margin-bottom:14px;text-align:center"><div style="font-weight:700;color:var(--kt-danger);font-size:var(--kt-fs-sm)"><i class="bi bi-exclamation-triangle"></i> موجودی صفر!</div></div>';
+
+        /* تخفیف فعال */
+        if (ex && active) {
+            var vt  = ktDiscountValueText(ex, 'تومان');
+            var fp  = DM.calcFinal(price, ex);
+            var did = ktGetId(ex);
+            var inf = [ex.discount_type_display || ex.discount_type, vt];
+            if (ex.start_time && ex.end_time) inf.push('ساعت ' + ex.start_time + ' تا ' + ex.end_time);
+            if (ex.max_quantity) inf.push('حداکثر ' + ex.max_quantity + ' عدد');
+
+            h += '<div style="background:var(--kt-success-bg);border:1.5px solid rgba(22,163,74,.25);border-radius:12px;padding:16px;margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div style="flex:1">';
+            h += '<div style="font-weight:800;color:var(--kt-success);font-size:var(--kt-fs-base);margin-bottom:6px"><i class="bi bi-check-circle-fill" style="margin-left:4px"></i> ' + ktEscapeHtml(ex.name || 'تخفیف فعال') + '</div>';
+            h += '<div style="font-size:var(--kt-fs-sm);color:var(--kt-text-sec);line-height:1.8">' + inf.join(' <span style="color:var(--kt-border)">|</span> ') + '</div>';
+            var tbHtml1 = ktTimerBadgeIfAny(did);
+            if (tbHtml1) h += '<div style="margin-top:8px" data-timer-id="' + did + '">' + tbHtml1 + '</div>';
+            h += '<div style="display:flex;align-items:center;gap:10px;margin-top:10px"><span style="font-size:1rem;font-weight:700;color:var(--kt-text-sec);text-decoration:line-through;opacity:.5">' + ktFmt(price) + ' ت</span><i class="bi bi-arrow-left" style="color:var(--kt-accent)"></i><span style="font-size:1.2rem;font-weight:900;color:var(--kt-success)">' + ktFmt(fp) + ' تومان</span></div>';
+            var sv = price - fp;
+            if (sv > 0) h += '<div style="margin-top:6px;font-size:var(--kt-fs-sm);color:var(--kt-success);font-weight:600"><i class="bi bi-piggy-bank" style="margin-left:3px"></i> مشتری ' + ktFmt(sv) + ' تومان پس‌انداز می‌کند</div>';
+            h += '</div>';
+            if (did) h += '<button type="button" class="kt-btn kt-btn-danger kt-btn-sm" style="flex-shrink:0" onclick="DM.delete(' + did + ').then(function(ok){if(ok)ktShowProductCost(' + product.id + ');})"><i class="bi bi-trash"></i></button>';
+            h += '</div></div>';
+        }
+
+        /* تخفیف منقضی */
+        if (ex && !active) {
+            h += '<div style="background:var(--kt-danger-bg);border:1.5px solid var(--kt-danger-border);border-radius:12px;padding:16px;margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center"><div><div style="font-weight:800;color:var(--kt-danger);font-size:var(--kt-fs-sm)"><i class="bi bi-clock-history" style="margin-left:4px"></i> تخفیف منقضی شده</div><div style="font-size:var(--kt-fs-sm);color:var(--kt-text-sec);margin-top:4px">' + ktEscapeHtml(ex.name || '') + ' — دیگر فعال نیست</div></div>';
+            var oi = ktGetId(ex);
+            if (oi) h += '<button type="button" class="kt-btn kt-btn-danger kt-btn-sm" onclick="DM.delete(' + oi + ').then(function(ok){if(ok)ktShowProductCost(' + product.id + ');})"><i class="bi bi-trash"></i></button>';
+            h += '</div></div>';
+        }
+
+        var accentB = isD ? 'var(--kt-drink)' : 'var(--kt-accent)';
+        h += '<div style="border:1.5px solid var(--kt-border);border-radius:12px;padding:18px">';
+        h += '<div style="font-weight:700;font-size:var(--kt-fs-base);margin-bottom:16px;color:var(--kt-text)"><i class="bi bi-' + (active ? 'pencil-square' : 'plus-circle') + '" style="color:' + accentB + ';margin-left:6px"></i> ' + (active ? 'ویرایش تخفیف' : 'ثبت تخفیف جدید') + '</div>';
+        h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+        h += ktFieldGroup('نام تخفیف', '<input type="text" id="cpDiscName" value="' + ktEscapeHtml(active && ex ? ex.name : ('تخفیف ' + product.name)) + '">');
+        h += ktFieldGroup('نوع تخفیف', '<select id="cpDiscType" onchange="DM.updatePreview()"><option value="percentage"' + (active && ex && ex.discount_type === 'fixed_amount' ? '' : ' selected') + '>درصدی (%)</option><option value="fixed_amount"' + (active && ex && ex.discount_type === 'fixed_amount' ? ' selected' : '') + '>مبلغ ثابت (تومان)</option></select>');
+        h += '</div>';
+
+        var availColor   = stock.available <= 0 ? 'var(--kt-danger)' : 'var(--kt-success)';
+        var stockInfoHtml = '<div style="margin-top:4px;font-size:var(--kt-fs-xs);color:var(--kt-text-sec)"><i class="bi bi-info-circle"></i> موجودی: <strong style="color:' + availColor + '">' + ktFmt(stock.available) + '</strong>' + (stock.reserved > 0 ? ' | رزرو: <strong style="color:var(--kt-warning)">' + ktFmt(stock.reserved) + '</strong>' : '') + '</div>';
+
+        h += '<div style="display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-top:10px">';
+        h += ktFieldGroup('مقدار تخفیف', '<input type="number" id="cpDiscValue" min="1" placeholder="20" oninput="DM.updatePreview()" value="' + (active && ex ? ex.value : '') + '">');
+        h += ktFieldGroup('تعداد مجاز', '<input type="number" id="cpDiscQty" min="0" placeholder="نامحدود" value="' + (active && ex && ex.max_quantity ? ex.max_quantity : '') + '">' + stockInfoHtml);
+        h += '</div>';
+
+        h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">';
+        h += ktFieldGroup('ساعت شروع', '<input type="time" id="cpDiscStart" value="' + (active && ex && ex.start_time ? ex.start_time : '') + '">');
+        h += ktFieldGroup('ساعت پایان', '<input type="time" id="cpDiscEnd" value="' + (active && ex && ex.end_time ? ex.end_time : '') + '">');
+        h += '</div>';
+
+        /* تایمر */
+        h += '<div style="margin-top:10px;padding:14px;border:1.5px dashed var(--kt-border);border-radius:10px;background:var(--kt-bg)"><div style="display:flex;align-items:center;gap:6px;margin-bottom:10px"><i class="bi bi-stopwatch-fill" style="color:' + accentB + ';font-size:1.1rem"></i><span style="font-weight:700;font-size:var(--kt-fs-sm);color:var(--kt-text)">تایمر شمارش معکوس</span></div>';
+        h += ktFieldGroup('مدت زمان (دقیقه)', '<input type="number" id="cpDiscTimer" min="0" placeholder="مثلاً 120" value="">' + '<div style="font-size:var(--kt-fs-xs);color:var(--kt-text-sec);margin-top:3px">خالی = بدون تایمر</div>');
+        h += '</div>';
+
+        /* پیش‌نمایش قیمت */
+        var pf = active && ex ? DM.calcFinal(price, ex) : price;
+        h += '<div style="margin-top:14px;background:var(--kt-bg);border-radius:10px;padding:14px"><div style="font-size:var(--kt-fs-sm);color:var(--kt-text-sec);margin-bottom:8px;text-align:center">پیش‌نمایش قیمت</div><div style="display:flex;justify-content:center;align-items:center;gap:14px">';
+        h += '<div style="text-align:center"><div style="font-size:var(--kt-fs-xs);color:var(--kt-text-sec)">قیمت اصلی</div><div id="cpDiscOrigPrice" style="font-size:1rem;font-weight:700;color:var(--kt-text-sec);text-decoration:line-through">' + ktFmt(price) + ' ت</div></div>';
+        h += '<i class="bi bi-arrow-left-circle-fill" style="font-size:1.4rem;color:' + accentB + '"></i>';
+        h += '<div style="text-align:center"><div style="font-size:var(--kt-fs-xs);color:var(--kt-text-sec)">قیمت نهایی</div><div id="cpDiscFinalPrice" style="font-size:1.3rem;font-weight:900;color:var(--kt-success)">' + ktFmt(pf) + ' ت</div></div>';
+        h += '</div></div>';
+
+        h += '<div id="cpDiscError" style="display:none;margin-top:10px;padding:10px;border-radius:8px;background:var(--kt-danger-bg);color:var(--kt-danger);font-size:var(--kt-fs-sm);font-weight:600;text-align:center"></div>';
+        h += '<button type="button" class="kt-btn kt-btn-primary" style="width:100%;margin-top:14px;justify-content:center" id="btnSaveDiscount"><i class="bi bi-check-lg"></i> ' + (active ? 'بروزرسانی تخفیف' : 'ثبت تخفیف') + '</button>';
+        h += '</div>';
+        return h;
+    },
+
+    saveFromDiscountTab: async function () {
+        var err = document.getElementById('cpDiscError');
+        if (err) err.style.display = 'none';
+        if (!cpProductId) { if (err) { err.textContent = 'محصول مشخص نشده'; err.style.display = 'block'; } return; }
+        var p = ktD.products.find(function (x) { return x.id === cpProductId; });
+        if (!p) { if (err) { err.textContent = 'محصول یافت نشد'; err.style.display = 'block'; } return; }
+
+        var nE  = document.getElementById("cpDiscName");
+        var tE  = document.getElementById("cpDiscType");
+        var vE  = document.getElementById("cpDiscValue");
+        var qE  = document.getElementById("cpDiscQty");
+        var sE  = document.getElementById("cpDiscStart");
+        var eE  = document.getElementById("cpDiscEnd");
+        var tmE = document.getElementById("cpDiscTimer");
+        if (!nE || !vE) { if (err) { err.textContent = 'فرم ناقص'; err.style.display = 'block'; } return; }
+
+        var name = nE.value.trim();
+        var type = tE ? tE.value : 'percentage';
+        var val  = parseInt(vE.value) || 0;
+        var qty  = qE ? (parseInt(qE.value) || 0) : 0;
+        var st   = sE ? sE.value : '';
+        var en   = eE ? eE.value : '';
+        var tm   = tmE ? (parseInt(tmE.value) || 0) : 0;
+
+        if (!name) { if (err) { err.textContent = 'نام را وارد کنید'; err.style.display = 'block'; } nE.focus(); return; }
+        if (!val || val <= 0) { if (err) { err.textContent = 'مقدار را وارد کنید'; err.style.display = 'block'; } vE.focus(); return; }
+        if (type === 'percentage' && val > 100) { if (err) { err.textContent = 'درصد نمی‌تواند بیشتر از ۱۰۰ باشد'; err.style.display = 'block'; } vE.focus(); return; }
+        if (p && qty > 0) {
+            var stk = ktGetProductStock(p);
+            if (qty > stk.available) {
+                if (err) { err.innerHTML = '<i class="bi bi-exclamation-triangle"></i> تعداد (<strong>' + qty + '</strong>) بیشتر از موجودی (<strong>' + ktFmt(stk.available) + '</strong>)!'; err.style.display = 'block'; }
+                qE.focus(); return;
+            }
+        }
+
+        var ex  = DM.find(p.id);
+        var did = (ex && ktIsDiscountActive(ex)) ? ktGetId(ex) : null;
+        var ok  = await DM.save({
+            pid: p.id, discId: did, name: name, type: type, scope: 'all_items',
+            value: val, maxQty: qty > 0 ? qty : null,
+            startTime: st || null, endTime: en || null, timerMin: tm
+        });
+        if (ok) await ktShowProductCost(p.id);
+    },
+
+    saveFromTab: async function () {
+        var nE  = document.getElementById("mdName");
+        var pE  = document.getElementById("mdProduct");
+        var tE  = document.getElementById("mdType");
+        var scE = document.getElementById("mdScope");
+        var vE  = document.getElementById("mdValue");
+        var mxE = document.getElementById("mdMaxQty");
+        var mnE = document.getElementById("mdMinStock");
+        var sE  = document.getElementById("mdStart");
+        var eE  = document.getElementById("mdEnd");
+        var ok  = await DM.save({
+            pid: parseInt(pE.value) || null, name: nE.value.trim(),
+            type: tE.value, scope: scE.value, value: parseInt(vE.value) || 0,
+            maxQty: parseInt(mxE.value) || null, minStock: parseInt(mnE.value) || null,
+            startTime: sE.value || null, endTime: eE.value || null, timerMin: 0
+        });
+        if (ok) ktCloseModal('ktModalDiscount');
+    },
+
+    renderTable: function () {
+        var list = DM._list();
+        ktRenderTable('ktDiscBody', 8, 'bi-percent', 'تخفیفی ثبت نشده', list, function (d, i) {
+            var did  = ktGetId(d) || 0;
+            var val  = ktDiscountValueText(d);
+            var act  = ktIsDiscountActive(d);
+            var ti   = '';
+            if (d.start_time && d.end_time) ti = '<br><span style="font-size:var(--kt-fs-xs);color:var(--kt-text-sec)">ساعت ' + d.start_time + ' تا ' + d.end_time + '</span>';
+            var qi = d.max_quantity ? '<br><span style="font-size:var(--kt-fs-xs);color:var(--kt-accent)">&times;' + d.max_quantity + '</span>' : '';
+            var tbHtml = ktTimerBadgeIfAny(did);
+            var tHtml  = tbHtml ? ('<br><span data-timer-id="' + did + '">' + tbHtml + '</span>') : '';
+            return '<tr>' +
+                '<td>' + (i + 1) + '</td>' +
+                '<td style="font-weight:600">' + ktEscapeHtml(d.name || '—') + '</td>' +
+                '<td>' + ktEscapeHtml(d.product_name || '—') + '</td>' +
+                '<td>' + ktEscapeHtml(d.discount_type_display || d.discount_type || '—') + '</td>' +
+                '<td>' + ktEscapeHtml(d.scope_display || d.scope || '—') + ti + '</td>' +
+                '<td style="font-weight:700;color:var(--kt-primary)">' + val + qi + tHtml + '</td>' +
+                '<td>' + (act ? '<span class="kt-badge kt-badge-ok">فعال</span>' : '<span class="kt-badge kt-badge-out">غیرفعال</span>') + '</td>' +
+                '<td><button class="kt-btn kt-btn-danger kt-btn-sm" onclick="DM.delete(' + did + ').then(function(){ktLoad()})">حذف</button></td>' +
+                '</tr>';
+        });
+    }
+};
+
+function ktSaveDiscount()    { DM.saveFromTab(); }
+function ktRenderDiscounts() { DM.renderTable(); }
+
+/* ════════════════════════════════════════════════
+   Load & Render
+   ════════════════════════════════════════════════ */
+
+/* ★ FIX: جلوگیری از فراخوانی همزمان — استفاده از Promise مشترک */
+var _ktLoadPromise = null;
+
+async function ktLoad() {
+    if (_ktLoadPromise) return _ktLoadPromise;
+    _ktLoadPromise = _ktLoadInner();
+    try {
+        return await _ktLoadPromise;
+    } finally {
+        _ktLoadPromise = null;
+    }
+}
+
+async function _ktLoadInner() {
+    try {
+        var data = await ktApi('/api/kitchen/dashboard/');
+        if (data && typeof data === 'object') {
+            ktD.products  = Array.isArray(data.products)  ? data.products  : (ktD.products  || []);
+            ktD.batches   = Array.isArray(data.batches)   ? data.batches   : (ktD.batches   || []);
+            ktD.discounts = Array.isArray(data.discounts) ? data.discounts : (data.discounts && data.discounts.results ? data.discounts.results : (ktD.discounts || []));
+            ktD.inventory = Array.isArray(data.inventory) ? data.inventory : (ktD.inventory || []);
+            ktD.logs      = Array.isArray(data.logs)      ? data.logs      : (ktD.logs      || []);
+            ktD.low_stock = Array.isArray(data.low_stock) ? data.low_stock : (ktD.low_stock || []);
+            ktD.waste     = Array.isArray(data.waste)     ? data.waste     : (data.waste && data.waste.results ? data.waste.results : (ktD.waste || []));
+            ktD.stats     = (data.stats && typeof data.stats === 'object') ? data.stats : (ktD.stats || {});
+        }
+        ktRebuildTimersFromServer();
+        ktRenderAll();
+        ktStartTimerInterval();
+    } catch (e) {
+        ktToast('خطا: ' + e.message, 'e');
+    }
+}
+
+function ktRenderAll() {
+    ktRenderStats();
+    ktBuildMenuCatFilters();
+    ktRenderMenuFoods();
+    ktRenderDiscounts();
+    ktRenderWaste();
+    ktRenderWasteStats();
+    ktBuildWasteReasonFilters();
+    ktPopulateDropdowns();
+}
+
+/* ════════════════════════════════════════════════
+   Stats
+   ════════════════════════════════════════════════ */
+function ktStatCard(cls, icon, val, lbl) {
+    return '<div class="kt-stat ' + cls + '"><i class="bi ' + icon + '" style="font-size:1.4rem;margin-bottom:6px;display:block"></i><span class="kt-sv">' + val + '</span><div class="kt-sl">' + lbl + '</div></div>';
+}
+
+function ktRenderStats() {
+    var s     = ktD.stats || {};
+    var waste = ktD.waste || [];
+    var today = new Date().toISOString().slice(0, 10);
+    var todayWaste    = waste.filter(function (w) { return (w.created_at || '').slice(0, 10) === today; });
+    var todayWasteQty = todayWaste.reduce(function (sum, w) { return sum + (w.quantity || 0); }, 0);
+    var totalStock    = 0;
+    ktD.inventory.forEach(function (inv) { totalStock += (inv.quantity || 0); });
+
+    var h = '';
+    h += ktStatCard('orange', 'bi-grid-fill',    s.total_products  || 0,                 'محصولات');
+    h += ktStatCard('teal',   'bi-box-seam',     ktFmt(totalStock),                       'کل موجودی');
+    h += ktStatCard('amber',  'bi-cash-stack',   ktFmt(s.inventory_value || 0) + ' ت',    'ارزش موجودی');
+    h += ktStatCard('red',    'bi-trash3-fill',  s.waste_today_qty || todayWasteQty,       'ضایعات امروز');
+    h += ktStatCard('green',  'bi-percent',      s.active_discounts || 0,                  'تخفیف فعال');
+    document.getElementById('ktStats').innerHTML = h;
+}
+
+/* ════════════════════════════════════════════════
+   Populate Dropdowns
+   ════════════════════════════════════════════════ */
+function ktPopulateDropdowns(){
+    /* dropdown مودال تخفیف */
+    var po=document.getElementById('mdProduct');
+    if(po){var o=['<option value="">همه محصولات</option>'];ktD.products.forEach(function(p){o.push('<option value="'+p.id+'">'+ktEscapeHtml(p.name)+'</option>');});po.innerHTML=o.join('');}
+
+    /* ★ dropdown تب تولید */
+    var pr=document.getElementById('prProduct');
+    if(pr){
+        var opts=['<option value="">انتخاب محصول...</option>'];
+        ktD.products.forEach(function(p){
+            var stock=ktGetProductStock(p);
+            opts.push('<option value="'+p.id+'" data-cost="'+(p.cost||0)+'" data-stock="'+stock.available+'">'+ktEscapeHtml(p.name)+' (موجودی: '+stock.available+')</option>');
+        });
+        pr.innerHTML=opts.join('');
+    }
+}
+
+/* ════════════════════════════════════════════════
+   Menu Foods
+   ════════════════════════════════════════════════ */
+function ktDebouncedRenderMenu() {
+    if (_ktMenuDebounce) clearTimeout(_ktMenuDebounce);
+    _ktMenuDebounce = setTimeout(ktRenderMenuFoods, 200);
+}
+
+function ktBuildMenuCatFilters() {
+    var wrap = document.getElementById('ktMenuCats');
+    if (!wrap) return;
+    var cc = {};
+    ktMenuFoods.forEach(function (f) { var c = String(f.category_id); cc[c] = (cc[c] || 0) + 1; });
+    var b = [];
+    b.push('<button class="kt-mf-cat-btn active" data-cat="all" onclick="ktSelectMenuCat(this)">همه (' + ktMenuFoods.length + ')</button>');
+    ktFoodCats.forEach(function (c) {
+        var n = cc[String(c.id)] || 0;
+        if (n > 0) b.push('<button class="kt-mf-cat-btn" data-cat="' + c.id + '" onclick="ktSelectMenuCat(this)">' + ktEscapeHtml(c.name) + ' (' + n + ')</button>');
+    });
+    wrap.innerHTML = b.join('');
+}
+
+function ktSelectMenuCat(btn) {
+    document.querySelectorAll('.kt-mf-cat-btn').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    ktRenderMenuFoods();
+}
+
+function ktDrinkDiscount(pid) {
+    ktShowProductCost(pid);
+    setTimeout(function () { ktSwitchCpTab('discount', document.querySelector('[data-cptab="discount"]')); }, 150);
+}
+
+function ktRenderMenuFoods() {
+    var grid = document.getElementById('ktMenuFoodsGrid');
+    var sb   = document.getElementById('ktMfStats');
+    if (!grid) return;
+
+    var ab = document.querySelector('.kt-mf-cat-btn.active');
+    if (!ab) {
+        var all = document.querySelector('.kt-mf-cat-btn[data-cat="all"]');
+        if (all) all.classList.add('active');
+        ab = all;
+    }
+    var q   = (document.getElementById('ktMenuSearch').value || '').trim().toLowerCase();
+    var cat = ab ? ab.dataset.cat : 'all';
+
+    var kpMap = {};
+    ktD.products.forEach(function (p) { kpMap[p.name] = p; });
+
+    var filtered = ktMenuFoods.filter(function (f) {
+        var ms = !q || f.name.toLowerCase().indexOf(q) !== -1;
+        var mc = cat === 'all' || String(f.category_id) === cat;
+        return ms && mc;
+    });
+
+    var inK = ktMenuFoods.filter(function (f) { return !!kpMap[f.name]; }).length;
+    if (sb) sb.innerHTML =
+        '<div class="kt-mf-stat"><span class="kt-mf-sv" style="color:var(--kt-primary)">' + ktMenuFoods.length + '</span><div class="kt-mf-sl">کل منو</div></div>' +
+        '<div class="kt-mf-stat"><span class="kt-mf-sv" style="color:var(--kt-success)">' + inK + '</span><div class="kt-mf-sl">در آشپزخانه</div></div>' +
+        '<div class="kt-mf-stat"><span class="kt-mf-sv" style="color:var(--kt-danger)">' + (ktMenuFoods.length - inK) + '</span><div class="kt-mf-sl">منتظر ورود</div></div>';
+
+    if (!filtered.length) {
+        var em = q ? 'نتیجه‌ای برای «' + ktEscapeHtml(q) + '» یافت نشد' : cat !== 'all' ? 'آیتمی در این دسته نیست' : 'موردی یافت نشد';
+        grid.innerHTML = '<div class="kt-empty"><i class="bi bi-book"></i><p>' + em + '</p></div>';
+        return;
+    }
+
+    var rows = [];
+    filtered.forEach(function (f, i) {
+        var kp = kpMap[f.name];
+        var ik = !!kp;
+        var isD = ktIsDrink(f);
+
+        /* قیمت */
+        var fp;
+        if (ik && kp.selling_price != null && kp.selling_price !== '') fp = Number(kp.selling_price);
+        else fp = Number(f.final_price || f.price || 0);
+
+        var priceH = '';
+        if (ik) {
+            var disc = DM.find(kp.id);
+            if (disc && ktIsDiscountActive(disc)) {
+                var fpr = DM.calcFinal(fp, disc);
+                var dt  = ktDiscountValueText(disc);
+                var qB  = disc.max_quantity ? '<span style="padding:2px 6px;border-radius:8px;font-size:var(--kt-fs-xs);font-weight:700;background:var(--kt-accent-light);color:var(--kt-accent)">x' + disc.max_quantity + '</span>' : '';
+                var di  = ktGetId(disc);
+                var tbHtml2 = ktTimerBadgeIfAny(di);
+                var tmH = tbHtml2 ? ('<br><span data-timer-id="' + di + '">' + tbHtml2 + '</span>') : '';
+                priceH = '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-weight:800;font-size:var(--kt-fs-sm);color:var(--kt-text-sec);text-decoration:line-through;opacity:.6">' + ktFmt(fp) + ' ت</span><span style="font-weight:800;font-size:var(--kt-fs-md);color:var(--kt-success)">' + ktFmt(fpr) + ' ت</span><span style="padding:2px 8px;border-radius:10px;font-size:var(--kt-fs-xs);font-weight:700;background:var(--kt-danger-bg);color:var(--kt-danger)">' + dt + '</span>' + qB + '</div>' + tmH;
+            }
+        }
+        if (!priceH) priceH = '<span style="font-weight:800;font-size:var(--kt-fs-sm);color:' + (isD ? 'var(--kt-drink)' : 'var(--kt-primary)') + '">' + (fp > 0 ? ktFmt(fp) + ' ت' : '-') + '</span>';
+
+        /* موجودی */
+        var stockH = '';
+        if (ik) {
+            var st  = ktGetProductStock(kp);
+            var stC = ktTierColors(st.available, 0, 10);
+            stockH = '<div style="margin-top:4px"><span style="padding:3px 10px;border-radius:8px;font-size:var(--kt-fs-xs);font-weight:700;background:' + stC.bg + ';color:' + stC.color + '"><i class="bi ' + stC.icon + '" style="margin-left:2px"></i> موجودی: ' + ktFmt(st.available) + '</span>';
+            if (st.reserved > 0) stockH += ' <span style="padding:3px 10px;border-radius:8px;font-size:var(--kt-fs-xs);font-weight:700;background:var(--kt-warning-bg);color:var(--kt-warning)"><i class="bi bi-lock-fill" style="margin-left:2px"></i> رزرو: ' + ktFmt(st.reserved) + '</span>';
+            stockH += '</div>';
+        }
+
+        /* بنر تخفیف نوشیدنی */
+        var discBanner = '';
+        if (ik && isD) {
+            var ad = DM.find(kp.id);
+            if (ad && ktIsDiscountActive(ad)) {
+                var dtx = ktDiscountValueText(ad);
+                discBanner = '<div style="position:absolute;top:0;left:0;right:0;padding:6px;background:linear-gradient(90deg,var(--kt-drink),#a78bfa);color:#fff;font-size:var(--kt-fs-xs);font-weight:700;text-align:center;z-index:1"><i class="bi bi-percent"></i> ' + ktEscapeHtml(ad.name) + ' - ' + dtx + ' تخفیف</div>';
+            }
+        }
+
+        /* دکمه‌ها */
+        var actBtn = '';
+        if (ik) {
+            if (isD) {
+                actBtn = '<div style="display:flex;gap:6px;margin-top:10px">';
+                actBtn += '<button type="button" class="kt-btn kt-btn-primary" style="flex:1;justify-content:center;font-size:var(--kt-fs-xs)" onclick="ktShowProductCost(' + kp.id + ')"><i class="bi bi-calculator"></i> هزینه</button>';
+                actBtn += '<button type="button" class="kt-btn kt-btn-produce" style="flex:0.7;justify-content:center;font-size:var(--kt-fs-xs)" onclick="ktProduceQuick(' + kp.id + ')"><i class="bi bi-gear-wide-connected"></i> تولید</button>';
+                actBtn += '<button type="button" class="kt-btn kt-btn-drink" style="flex:0.6;justify-content:center;font-size:var(--kt-fs-xs)" onclick="ktDrinkDiscount(' + kp.id + ')"><i class="bi bi-percent"></i> تخفیف</button>';
+                actBtn += '</div>';
+            } else {
+                actBtn = '<div style="display:flex;gap:6px;margin-top:10px">';
+                actBtn += '<button type="button" class="kt-btn kt-btn-primary" style="flex:1;justify-content:center;font-size:var(--kt-fs-xs)" onclick="ktShowProductCost(' + kp.id + ')"><i class="bi bi-calculator"></i> هزینه و قیمت</button>';
+                actBtn += '<button type="button" class="kt-btn kt-btn-produce" style="flex:0.6;justify-content:center;font-size:var(--kt-fs-xs)" onclick="ktProduceQuick(' + kp.id + ')"><i class="bi bi-gear-wide-connected"></i> تولید</button>';
+                actBtn += '</div>';
+            }
+        } else if (isD) {
+            actBtn = '<button type="button" class="kt-btn kt-btn-primary" style="width:100%;margin-top:10px;justify-content:center" onclick="ktQuickAddAndOpen(' + f.id + ')"><i class="bi bi-plus-circle"></i> هزینه و قیمت</button>';
+        } else {
+            actBtn = '<button type="button" class="kt-btn kt-btn-primary" style="width:100%;margin-top:10px;justify-content:center" onclick="ktQuickAdd(' + f.id + ')"><i class="bi bi-plus-circle"></i> ورود به آشپزخانه</button>';
+        }
+
+        var cardCls = isD ? 'kt-card drink-card' : 'kt-card';
+        var imgCls  = isD ? 'kt-mf-img drink-bg' : 'kt-mf-img';
+        var imgIc   = isD ? 'bi-cup-straw' : 'bi-image';
+        var catBg   = isD ? 'var(--kt-drink-bg)' : 'var(--kt-accent-light)';
+        var catClr  = isD ? 'var(--kt-drink)' : 'var(--kt-warning)';
+
+        rows.push(
+            '<div class="' + cardCls + '" style="animation-delay:' + (i * 0.03) + 's">' +
+            discBanner +
+            '<div class="' + imgCls + '">' + (f.image ? '<img src="' + f.image + '" alt="' + ktEscapeHtml(f.name) + '">' : '<i class="bi ' + imgIc + '"></i>') + '</div>' +
+            '<div class="kt-card-title">' + ktEscapeHtml(f.name) + '</div>' +
+            '<div style="display:flex;gap:6px;align-items:center;margin:8px 0;flex-wrap:wrap"><span style="padding:4px 12px;border-radius:12px;font-size:var(--kt-fs-xs);font-weight:600;background:' + catBg + ';color:' + catClr + '">' + ktEscapeHtml(f.category_name || 'بدون دسته') + '</span>' + priceH + '</div>' +
+            stockH +
+            actBtn +
+            '</div>'
+        );
+    });
+    grid.innerHTML = rows.join('');
+}
+
+function ktProduceQuick(productId) {
+    ktOpenProduceModal();
+    var po = document.getElementById('prProduct');
+    if (po) po.value = productId;
+    ktProduceUpdateInfo();
+}
+
+/* ════════════════════════════════════════════════
+   Quick Add
+   ════════════════════════════════════════════════ */
+async function ktQuickAddAndOpen(fid) {
+    var f = ktMenuFoods.find(function (x) { return x.id === fid; });
+    if (!f) return;
+    if (!ktRecipes.length) { ktToast('دستور پختی وجود ندارد', 'e'); return; }
+    var cv    = ktMapFoodCategory(f.category_name);
+    var price = f.final_price || f.price || 0;
+
+    return ktRunAction(async function () {
+        var created = await ktApi('/api/kitchen/products/', 'POST', {
+            name: f.name, recipe: ktRecipes[0].id, category: cv,
+            selling_price: price, description: 'از منوی رستوران'
+        });
+        return { msg: f.name + ' اضافه شد', created: created };
+    }, {
+        onSuccess: function (result) {
+            fetch("{% url 'food_management_api' %}", { credentials: 'same-origin' })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.foods) {
+                        ktMenuFoods = data.foods.map(function (fd) {
+                            return {
+                                id: fd.id, name: fd.name, category_name: fd.category_name,
+                                category_id: fd.category_id, price: fd.kitchen_price || 0,
+                                final_price: fd.kitchen_price || 0, image: fd.image
+                            };
+                        });
+                        ktRenderMenuFoods();
+                    }
+                }).catch(function () {});
+            var created = result && result.created;
+            if (created && created.id) ktShowProductCost(created.id);
+            else {
+                var p = ktD.products.find(function (x) { return x.name === f.name; });
+                if (p) ktShowProductCost(p.id);
+            }
+        }
+    });
+}
+
+function ktQuickAdd(fid) {
+    var f = ktMenuFoods.find(function (x) { return x.id === fid; });
+    if (!f) return;
+    ktQuickAddFoodId = fid;
+    document.getElementById('qkFoodName').textContent = f.name;
+    document.getElementById('qkFoodInfo').textContent = (f.category_name || '') + ' — ' + ktFmt(f.final_price || f.price || 0) + ' تومان';
+    document.getElementById('qkPrice').value = f.final_price || f.price || 0;
+    var opts = ['<option value="">انتخاب دستور پخت...</option>'];
+    ktRecipes.forEach(function (r) { opts.push('<option value="' + r.id + '">' + ktEscapeHtml(r.name) + '</option>'); });
+    document.getElementById('qkRecipe').innerHTML = opts.join('');
+    ktOpenModal('ktModalQuickAdd');
+}
+
+function ktDoQuickAdd() {
+    var f = ktMenuFoods.find(function (x) { return x.id === ktQuickAddFoodId; });
+    if (!f) return;
+    var rid   = document.getElementById('qkRecipe').value;
+    var pi    = document.getElementById('qkPrice').value;
+    var price = (pi !== '' && pi != null) ? parseInt(pi) : (f.final_price || f.price || 0);
+    if (isNaN(price)) price = 0;
+    var cv    = ktMapFoodCategory(f.category_name);
+    var payload = {
+        name: f.name, category: cv, selling_price: price,
+        description: 'از منوی رستوران — ' + (f.category_name || '')
+    };
+    if (rid) payload.recipe = parseInt(rid);
+    return ktRunAction(async function () {
+        await ktApi('/api/kitchen/products/', 'POST', payload);
+        ktCloseModal('ktModalQuickAdd');
+        return '«' + f.name + '» اضافه شد!';
+    });
+}
+
+/* ════════════════════════════════════════════════
+   Product Cost & Price
+   ════════════════════════════════════════════════ */
+async function ktShowProductCost(productId) {
+    var p = ktD.products.find(function (x) { return x.id === productId; });
+    if (!p) { ktToast("محصول یافت نشد", "e"); return; }
+    cpProductId = p.id;
+
+    var cost   = Number(p.cost) || 0;
+    var price  = Number(p.selling_price) || 0;
+    var margin = cost > 0 ? Math.round(((price - cost) / cost) * 100) : 0;
+    var profit = price - cost;
+
+    var cBox = document.getElementById("cpTabCost");
+    var dBox = document.getElementById("cpTabDiscount");
+    if (!cBox || !dBox) return;
+
+    var isD      = ktIsDrink(p) || ktIsDrink({ name: p.name, category_name: p.category_display || p.category || '' });
+    var accent   = isD ? 'var(--kt-drink)' : 'var(--kt-primary)';
+    var titleIcon = isD ? 'bi-cup-straw' : 'bi-calculator';
+
+    var h = '';
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">';
+    h += ktCsBox(ktFmt(cost) + ' ت', 'هزینه تولید', 'var(--kt-danger)');
+    h += ktCsBox(ktFmt(price) + ' ت', 'قیمت فروش', 'var(--kt-success)');
+    h += ktCsBox(ktFmt(profit) + ' ت', 'سود واحد', profit >= 0 ? 'var(--kt-success)' : 'var(--kt-danger)');
+    h += ktCsBox(p.max_production || 0, 'حداکثر تولید');
+    h += '</div>';
+    h += '<div style="background:' + (profit >= 0 ? "var(--kt-success-bg)" : "var(--kt-danger-bg)") + ';border:1px solid ' + (profit >= 0 ? "rgba(22,163,74,.2)" : "rgba(220,38,38,.2)") + ';border-radius:10px;padding:14px;text-align:center;margin-bottom:16px"><span style="font-size:var(--kt-fs-sm);font-weight:700;color:' + (profit >= 0 ? "var(--kt-success)" : "var(--kt-danger)") + '">حاشیه سود: ' + margin + '%</span></div>';
+
+    h += '<div style="border:1.5px solid var(--kt-border);border-radius:12px;padding:18px">';
+    h += '<div style="font-weight:700;font-size:var(--kt-fs-base);margin-bottom:14px;color:var(--kt-text)"><i class="bi bi-pencil" style="color:' + accent + ';margin-left:6px"></i> تنظیم قیمت فروش</div>';
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">';
+    h += ktFieldGroup('درصد سود', '<input type="number" id="cpProfitPct" min="0" max="500" step="1" value="' + margin + '" oninput="cpCalcFromPct()">');
+    h += ktFieldGroup('قیمت فروش (تومان)', '<input type="number" id="cpNewPrice" min="0" step="1000" value="' + price + '" oninput="cpCalcFromPrice()">');
+    h += '</div>';
+    h += '<div id="cpPreview" style="margin-top:14px;background:var(--kt-bg);border-radius:10px;padding:14px">';
+    h += '<div style="display:flex;justify-content:space-between;font-size:var(--kt-fs-sm)"><span>سود جدید:</span><span id="cpNewProfit" style="font-weight:700;color:' + (profit >= 0 ? "var(--kt-success)" : "var(--kt-danger)") + '">' + ktFmt(profit) + ' تومان</span></div>';
+    h += '<div style="display:flex;justify-content:space-between;font-size:var(--kt-fs-sm);margin-top:4px"><span>حاشیه سود:</span><span id="cpNewMargin" style="font-weight:700">' + margin + '%</span></div>';
+    h += '</div>';
+    h += '<button type="button" class="kt-btn kt-btn-accent" style="width:100%;margin-top:14px;justify-content:center" onclick="ktDoSavePrice()"><i class="bi bi-check-lg"></i> ذخیره قیمت</button>';
+    h += '</div>';
+
+    cBox.innerHTML = h;
+    dBox.innerHTML = DM.renderDiscountTab(p);
+    document.getElementById("cpTitle").innerHTML = '<i class="bi ' + titleIcon + '" style="color:' + accent + ';margin-left:6px"></i> ' + ktEscapeHtml(p.name);
+
+    /* ★ FIX: پاکسازی observer قبلی */
+    if (_ktCostObserver) { _ktCostObserver.disconnect(); _ktCostObserver = null; }
+    ktOpenModal("ktModalCostPrice");
+    ktSwitchCpTab('cost');
+
+    /* ★ FIX: تعویض دکمه تخفیف با کلون — جلوگیری از چندبار event listener */
+    var btnD = document.getElementById('btnSaveDiscount');
+    if (btnD) {
+        var nb = btnD.cloneNode(true);
+        btnD.parentNode.replaceChild(nb, btnD);
+        nb.addEventListener('click', function (e) { e.preventDefault(); DM.saveFromDiscountTab(); });
+    }
+
+    var modal = document.getElementById('ktModalCostPrice');
+    _ktCostObserver = new MutationObserver(function (mutations) {
+        mutations.forEach(function (m) {
+            if (m.attributeName === 'class' && !modal.classList.contains('open')) ktRenderMenuFoods();
+        });
+    });
+    _ktCostObserver.observe(modal, { attributes: true });
+}
+
+function cpCalcFromPct() {
+    var p = ktD.products.find(function (x) { return x.id === cpProductId; });
+    if (!p) return;
+    var c  = Number(p.cost) || 0;
+    var pc = parseFloat(document.getElementById("cpProfitPct").value) || 0;
+    var np = Math.round(c * (1 + pc / 100));
+    document.getElementById("cpNewPrice").value = np;
+    cpUpdatePreview(c, np);
+}
+
+function cpCalcFromPrice() {
+    var p = ktD.products.find(function (x) { return x.id === cpProductId; });
+    if (!p) return;
+    var c  = Number(p.cost) || 0;
+    var np = parseInt(document.getElementById("cpNewPrice").value) || 0;
+    var pc = c > 0 ? Math.round(((np - c) / c) * 100) : 0;
+    document.getElementById("cpProfitPct").value = pc;
+    cpUpdatePreview(c, np);
+}
+
+function cpUpdatePreview(cost, np) {
+    var pr = np - cost;
+    var m  = cost > 0 ? Math.round(((np - cost) / cost) * 100) : 0;
+    var pe = document.getElementById("cpNewProfit");
+    if (pe) { pe.textContent = ktFmt(pr) + " تومان"; pe.style.color = pr >= 0 ? "var(--kt-success)" : "var(--kt-danger)"; }
+    var me = document.getElementById("cpNewMargin");
+    if (me) { me.textContent = m + "%"; me.style.color = pr >= 0 ? "var(--kt-success)" : "var(--kt-danger)"; }
+}
+
+function ktDoSavePrice() {
+    var np = parseInt(document.getElementById("cpNewPrice").value);
+    if (isNaN(np) || np < 0) { ktToast("قیمت نامعتبر", "e"); return; }
+    return ktRunAction(async function () {
+        await ktApi("/api/kitchen/products/" + cpProductId + "/", "PATCH", { selling_price: np });
+        return "قیمت بروزرسانی شد";
+    }, { onSuccess: function () { ktShowProductCost(cpProductId); } });
+}
+
+/* ════════════════════════════════════════════════
+   Material Planning
+   ════════════════════════════════════════════════ */
+function renderMaterialBlock(title, icon, color, items) {
+    var h = '<div style="margin-bottom:16px"><div style="font-weight:700;font-size:var(--kt-fs-base);margin-bottom:10px;color:var(--kt-text)"><i class="bi ' + icon + '" style="color:' + color + ';margin-left:4px"></i> ' + title + '</div>';
+    items.forEach(function (m) {
+        var ok  = m.available >= m.required;
+        var pct = m.required > 0 ? Math.round((m.available / m.required) * 100) : 100;
+        var bc  = ok ? "var(--kt-success)" : (pct >= 50 ? "var(--kt-warning)" : "var(--kt-danger)");
+        h += '<div style="background:var(--kt-surface);border:1.5px solid ' + (ok ? "var(--kt-border)" : "var(--kt-danger-border)") + ';border-radius:10px;padding:14px;margin-bottom:8px">';
+        h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span style="font-weight:700;font-size:var(--kt-fs-sm)">' + ktEscapeHtml(m.name || '—') + '</span><span class="kt-badge ' + (ok ? "kt-badge-ok" : "kt-badge-out") + '">' + (ok ? "موجود" : "کمبود") + '</span></div>';
+        h += '<div style="display:flex;justify-content:space-between;font-size:var(--kt-fs-sm);color:var(--kt-text-sec);margin-bottom:6px"><span>نیاز: ' + ktFmt(m.required) + ' ' + (m.unit || '') + '</span><span>موجود: ' + ktFmt(m.available) + ' ' + (m.unit || '') + '</span></div>';
+        h += '<div style="background:#e7e5e4;border-radius:4px;height:6px;overflow:hidden"><div style="width:' + Math.min(100, pct) + '%;background:' + bc + ';height:100%;border-radius:4px"></div></div>';
+        if (!ok) h += '<div style="margin-top:6px;font-size:var(--kt-fs-sm);color:var(--kt-danger);font-weight:600">کمبود: ' + ktFmt(m.required - m.available) + ' ' + (m.unit || '') + '</div>';
+        h += '</div>';
+    });
+    h += '</div>';
+    return h;
+}
+
+function ktOpenMatPlan() {
+    var box = document.getElementById("mpProductList"), rows = [];
+    ktD.products.forEach(function (p) {
+        rows.push(
+            '<div style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--kt-border);border-radius:10px;margin-bottom:8px">' +
+            '<div style="flex:1"><div style="font-weight:700;font-size:var(--kt-fs-sm)">' + ktEscapeHtml(p.name) + '</div>' +
+            '<div style="font-size:var(--kt-fs-xs);color:var(--kt-text-sec)">موجودی: ' + (p.stock || 0) + ' | ظرفیت: ' + (p.max_production || 0) + '</div></div>' +
+            '<input type="number" min="0" value="0" data-pid="' + p.id + '" class="mpQtyInput" style="width:80px;padding:8px;border:1.5px solid var(--kt-border);border-radius:8px;text-align:center;font-size:var(--kt-fs-sm);font-weight:700;color:var(--kt-text)">' +
+            '</div>'
+        );
+    });
+    box.innerHTML = rows.join('');
+    document.getElementById("mpResultArea").innerHTML = "";
+    ktOpenModal("ktModalMatPlan");
+}
+
+async function ktCalcMaterials() {
+    var inputs = document.querySelectorAll(".mpQtyInput"), reqs = [];
+    inputs.forEach(function (inp) {
+        var q = parseInt(inp.value) || 0;
+        if (q > 0) reqs.push({ product_id: parseInt(inp.dataset.pid), quantity: q });
+    });
+    if (!reqs.length) { ktToast("حداقل یک محصول", "e"); return; }
+
+    var rb = document.getElementById("mpResultArea");
+    rb.innerHTML = '<div style="text-align:center;padding:20px"><div class="kt-spin" style="margin:0 auto"></div><p style="margin-top:8px;font-size:var(--kt-fs-sm);color:var(--kt-text-sec)">در حال محاسبه...</p></div>';
+
+    try {
+        var resp = await ktApi("/api/kitchen/calculate-materials/", "POST", { items: reqs });
+        var ps = resp.products || [], rm = resp.raw_materials || [], sm = resp.semi_materials || [], ts = resp.shortage_count || 0;
+        var h = '<div style="background:var(--kt-success-bg);border:1px solid rgba(22,163,74,.2);border-radius:12px;padding:16px;margin-bottom:16px"><div style="font-weight:700;font-size:var(--kt-fs-sm);color:var(--kt-success);margin-bottom:8px"><i class="bi bi-check-circle"></i> خلاصه</div>';
+        ps.forEach(function (p) {
+            h += '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:var(--kt-fs-sm)"><span>' + ktEscapeHtml(p.name || '—') + '</span><span style="font-weight:700">' + (p.quantity || 0) + ' واحد</span></div>';
+        });
+        h += '</div>';
+        if (rm.length) h += renderMaterialBlock('مواد اولیه', 'bi-box-seam', 'var(--kt-primary)', rm);
+        if (sm.length) h += renderMaterialBlock('مواد نیمه‌آماده', 'bi-gear', 'var(--kt-accent)', sm);
+        if (ts > 0) h += '<div style="background:var(--kt-danger-bg);border:1.5px solid var(--kt-danger-border);border-radius:12px;padding:16px;text-align:center"><div style="font-weight:800;font-size:1rem;color:var(--kt-danger)"><i class="bi bi-exclamation-triangle"></i> ' + ts + ' قلم کمبود!</div></div>';
+        else h += '<div style="background:var(--kt-success-bg);border:1.5px solid rgba(22,163,74,.2);border-radius:12px;padding:16px;text-align:center"><div style="font-weight:800;font-size:1rem;color:var(--kt-success)"><i class="bi bi-check-circle-fill"></i> همه مواد موجود!</div></div>';
+        rb.innerHTML = h;
+    } catch (e) {
+        rb.innerHTML = '<div style="background:var(--kt-danger-bg);border:1px solid var(--kt-danger-border);border-radius:10px;padding:16px;text-align:center"><div style="font-weight:700;color:var(--kt-danger)">' + ktEscapeHtml(e.message) + '</div></div>';
+    }
+}
+
+/* ════════════════════════════════════════════════
+   Waste Management
+   ════════════════════════════════════════════════ */
+var _ktWasteFilterReason = 'all';
+
+function ktDebouncedRenderWaste() {
+    if (_ktWasteDebounce) clearTimeout(_ktWasteDebounce);
+    _ktWasteDebounce = setTimeout(ktRenderWaste, 200);
+}
+
+function ktBuildWasteReasonFilters() {
+    var wrap = document.getElementById('ktWasteReasonFilters');
+    if (!wrap) return;
+    var waste = ktD.waste || [];
+    var rc = {};
+    waste.forEach(function (w) { rc[w.reason] = (rc[w.reason] || 0) + 1; });
+    var b = ['<button class="kt-mf-cat-btn' + (_ktWasteFilterReason === 'all' ? ' active' : '') + '" data-wreason="all" onclick="ktSelectWasteReason(this)">همه (' + waste.length + ')</button>'];
+    for (var key in _ktWasteReasons) {
+        if (!_ktWasteReasons.hasOwnProperty(key)) continue;
+        var n = rc[key] || 0;
+        if (n > 0) b.push('<button class="kt-mf-cat-btn' + (_ktWasteFilterReason === key ? ' active' : '') + '" data-wreason="' + key + '" onclick="ktSelectWasteReason(this)">' + _ktWasteReasons[key].label + ' (' + n + ')</button>');
+    }
+    wrap.innerHTML = b.join('');
+}
+
+function ktSelectWasteReason(btn) {
+    document.querySelectorAll('[data-wreason]').forEach(function (b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    _ktWasteFilterReason = btn.dataset.wreason;
+    ktRenderWaste();
+}
+
+function ktRenderWasteStats() {
+    var sb = document.getElementById('ktWasteStats');
+    if (!sb) return;
+    var waste = ktD.waste || [];
+    var today = new Date().toISOString().slice(0, 10);
+    var todayWaste = waste.filter(function (w) { return (w.created_at || '').slice(0, 10) === today; });
+    var todayQty   = todayWaste.reduce(function (s, w) { return s + (w.quantity || 0); }, 0);
+    var todayCost  = todayWaste.reduce(function (s, w) { return s + (w.total_cost || (w.cost && w.quantity ? w.cost * w.quantity : w.cost) || 0); }, 0);
+    var totalQty   = waste.reduce(function (s, w) { return s + (w.quantity || 0); }, 0);
+    var totalCost  = waste.reduce(function (s, w) { return s + (w.total_cost || (w.cost && w.quantity ? w.cost * w.quantity : w.cost) || 0); }, 0);
+
+    sb.innerHTML =
+        '<div class="kt-mf-stat"><span class="kt-mf-sv" style="color:var(--kt-danger)">' + todayQty + '</span><div class="kt-mf-sl">ضایعات امروز</div></div>' +
+        '<div class="kt-mf-stat"><span class="kt-mf-sv" style="color:var(--kt-danger)">' + ktFmt(todayCost) + ' ت</span><div class="kt-mf-sl">هزینه امروز</div></div>' +
+        '<div class="kt-mf-stat"><span class="kt-mf-sv" style="color:var(--kt-warning)">' + totalQty + '</span><div class="kt-mf-sl">کل ضایعات</div></div>' +
+        '<div class="kt-mf-stat"><span class="kt-mf-sv" style="color:var(--kt-warning)">' + ktFmt(totalCost) + ' ت</span><div class="kt-mf-sl">کل هزینه</div></div>';
+}
+
+function ktRenderWaste() {
+    var waste = ktD.waste || [];
+    var q = (document.getElementById('ktWasteSearch').value || '').trim().toLowerCase();
+    var filtered = waste.filter(function (w) {
+        var mr = _ktWasteFilterReason === 'all' || w.reason === _ktWasteFilterReason;
+        var mq = !q || (w.product_name || w.kitchen_product_name || '').toLowerCase().indexOf(q) !== -1 || (w.notes || '').toLowerCase().indexOf(q) !== -1;
+        return mr && mq;
+    });
+    ktRenderTable('ktWasteBody', 9, 'bi-trash3', 'ضایعاتی ثبت نشده', filtered, function (w, i) {
+        var rInfo = _ktWasteReasons[w.reason] || _ktWasteReasons['other'];
+        var reasonBadge = '<span class="kt-waste-reason" style="background:' + rInfo.bg + ';color:' + rInfo.color + '"><i class="bi ' + rInfo.icon + '"></i> ' + rInfo.label + '</span>';
+        /* ★ FIX: محاسبه یکسان هزینه ضایعات */
+        var costVal = w.total_cost || (w.cost && w.quantity ? w.cost * w.quantity : (w.cost || 0));
+        var dt = w.created_at ? new Date(w.created_at) : null;
+        var dateStr = dt ? dt.toLocaleDateString('fa-IR') : '—';
+        var timeStr = dt ? dt.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) : '';
+        var notesHtml = w.notes
+            ? '<span style="font-size:var(--kt-fs-sm);color:var(--kt-text-sec);max-width:120px;display:inline-block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + ktEscapeHtml(w.notes) + '">' + ktEscapeHtml(w.notes) + '</span>'
+            : '<span style="color:var(--kt-border)">—</span>';
+        return '<tr>' +
+            '<td>' + (i + 1) + '</td>' +
+            '<td style="font-weight:600">' + ktEscapeHtml(w.product_name || w.kitchen_product_name || '—') + '</td>' +
+            '<td style="font-weight:700;color:var(--kt-danger)">' + ktFmt(w.quantity) + '</td>' +
+            '<td>' + reasonBadge + '</td>' +
+            '<td style="font-weight:700;color:var(--kt-danger)">' + ktFmt(costVal) + ' ت</td>' +
+            '<td><span style="font-size:var(--kt-fs-sm)">' + dateStr + '</span><br><span style="font-size:var(--kt-fs-xs);color:var(--kt-text-sec)">' + timeStr + '</span></td>' +
+            '<td>' + ktEscapeHtml(w.created_by || '—') + '</td>' +
+            '<td>' + notesHtml + '</td>' +
+            '<td><button class="kt-btn kt-btn-danger kt-btn-sm" onclick="ktDeleteWaste(' + (w.id || 0) + ')"><i class="bi bi-trash"></i></button></td>' +
+            '</tr>';
+    });
+}
+
+function ktOpenWasteModal() {
+    var po = document.getElementById('mwProduct');
+    if (po) {
+        var opts = ['<option value="">انتخاب محصول...</option>'];
+        ktD.products.forEach(function (p) {
+            var stock = ktGetProductStock(p);
+            opts.push('<option value="' + p.id + '" data-cost="' + (p.cost || 0) + '">' + ktEscapeHtml(p.name) + ' (موجودی: ' + stock.available + ')</option>');
+        });
+        po.innerHTML = opts.join('');
+    }
+    document.getElementById('mwQty').value = 1;
+    document.getElementById('mwReason').value = 'expired';
+    document.getElementById('mwNotes').value = '';
+    document.getElementById('mwCostPreview').innerHTML = '';
+    ktOpenModal('ktModalWaste');
+}
+
+function ktUpdateWasteCostPreview() {
+    var pid = parseInt(document.getElementById('mwProduct').value);
+    var qty = parseInt(document.getElementById('mwQty').value) || 0;
+    var box = document.getElementById('mwCostPreview');
+    if (!pid || qty <= 0) { box.innerHTML = ''; return; }
+    var p = ktD.products.find(function (x) { return x.id === pid; });
+    if (!p) { box.innerHTML = ''; return; }
+    var cost  = Number(p.cost) || 0;
+    var total = cost * qty;
+    box.innerHTML = '<div class="kt-waste-cost-box"><div style="font-size:var(--kt-fs-sm);color:var(--kt-text-sec);margin-bottom:4px">هزینه تخمینی ضایعات</div><div class="kt-waste-cost-val">' + ktFmt(total) + ' تومان</div><div class="kt-waste-cost-sub">(' + ktFmt(cost) + ' تومان × ' + qty + ' واحد)</div></div>';
+}
+
+function ktSaveWaste() {
+    var pid    = parseInt(document.getElementById('mwProduct').value);
+    var qty    = parseInt(document.getElementById('mwQty').value) || 0;
+    var reason = document.getElementById('mwReason').value;
+    var notes  = document.getElementById('mwNotes').value.trim();
+
+    if (!pid) { ktToast('محصول را انتخاب کنید', 'e'); document.getElementById('mwProduct').focus(); return; }
+    if (qty <= 0) { ktToast('تعداد باید بیشتر از صفر باشد', 'e'); document.getElementById('mwQty').focus(); return; }
+
+    var p = ktD.products.find(function (x) { return x.id === pid; });
+    if (p) {
+        var stock = ktGetProductStock(p);
+        if (qty > stock.available) {
+            ktToast('تعداد ضایعات (' + qty + ') بیشتر از موجودی (' + stock.available + ') است!', 'e');
+            document.getElementById('mwQty').focus();
+            return;
+        }
+    }
+    return ktRunAction(async function () {
+        await ktApi('/api/kitchen/waste/', 'POST', { kitchen_product: pid, quantity: qty, reason: reason, notes: notes });
+        ktCloseModal('ktModalWaste');
+        return 'ضایعات ثبت شد';
+    });
+}
+
+function ktDeleteWaste(id) {
+    return ktConfirmRunAction('حذف رکورد ضایعات؟', async function () {
+        await ktApi('/api/kitchen/waste/' + id + '/', 'DELETE');
+        return 'حذف شد';
+    });
+}
+
+/* ════════════════════════════════════════════════
+   Init
+   ════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', function () {
+    ktLoad().then(function () { knMarkInitDone(); });
+    loadKitchenOrders();
+    ktStartOrdersPolling();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends "base_loyalty.html" %}
+
+{% block title %}ثبت‌نام مشتری{% endblock %}
+{% block nav_register %}active{% endblock %}
+{% block page_title %}ثبت‌نام مشتری جدید{% endblock %}
+{% block page_subtitle %}عضویت در باشگاه مشتریان{% endblock %}
+
+{% block content %}
+
+    <div style="max-width: 640px;">
+
+        <div class="card fade-in">
+            <div class="card-header">
+                <div class="card-title">فرم ثبت‌نام</div>
+            </div>
+
+            <form id="registerForm" onsubmit="handleRegister(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>شماره موبایل *</label>
+                        <input type="text" name="phone" id="regPhone"
+                               maxlength="11" pattern="09[0-9]{9}"
+                               placeholder="09123456789" required>
+                    </div>
+                    <div class="form-group">
+                        <label>نام</label>
+                        <input type="text" name="first_name" id="regFirstName" placeholder="مثال: علی">
+                    </div>
+                    <div class="form-group">
+                        <label>نام خانوادگی</label>
+                        <input type="text" name="last_name" id="regLastName" placeholder="مثال: رضایی">
+                    </div>
+                    <div class="form-group">
+                        <label>ایمیل</label>
+                        <input type="email" name="email" id="regEmail" placeholder="example@mail.com">
+                    </div>
+                    <div class="form-group">
+                        <label>تاریخ تولد</label>
+                        <input type="date" name="birth_date" id="regBirthDate">
+                    </div>
+                    <div class="form-group">
+                        <label>کد دعوت (اختیاری)</label>
+                        <input type="text" name="referral_code" id="regReferral"
+                               maxlength="12" placeholder="کد ۸ کاراکتری">
+                    </div>
+                </div>
+
+                <div style="margin-top: 28px; display:flex; gap:12px;">
+                    <button type="submit" class="btn btn-gold" id="submitBtn">
+                        &#10010; ثبت‌نام
+                    </button>
+                    <button type="reset" class="btn btn-outline">پاک کردن</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Result -->
+        <div class="card fade-in" id="resultCard" style="margin-top: 24px; display:none;">
+            <div class="card-header">
+                <div class="card-title" style="color: var(--green);">&#10004; ثبت‌نام موفق</div>
+            </div>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function handleRegister(e) {
+        e.preventDefault();
+        var btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = 'در حال ثبت...';
+
+        var data = {
+            phone:         document.getElementById('regPhone').value.trim(),
+            first_name:    document.getElementById('regFirstName').value.trim(),
+            last_name:     document.getElementById('regLastName').value.trim(),
+            email:         document.getElementById('regEmail').value.trim(),
+            birth_date:    document.getElementById('regBirthDate').value || null,
+            referral_code: document.getElementById('regReferral').value.trim()
+        };
+
+        try {
+            var result = await apiCall('/api/loyalty/customers/', 'POST', data);
+
+            if (result.error) {
+                showToast(result.error, 'error');
+            } else {
+                showToast('مشتری با موفقیت ثبت‌نام شد!', 'success');
+                document.getElementById('resultCard').style.display = 'block';
+
+                var name = result.full_name || '—';
+                var phone = result.phone;
+                var code = result.referral_code;
+                var icon = result.membership_level ? result.membership_level.icon : '&#129353;';
+                var title = result.membership_level ? result.membership_level.title : 'برنز';
+
+                document.getElementById('resultContent').innerHTML =
+                    '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;">' +
+                        '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">نام</div><div style="font-weight:600;">' + name + '</div></div>' +
+                        '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">شماره</div><div style="font-weight:600;direction:ltr;text-align:right;font-family:monospace;">' + phone + '</div></div>' +
+                        '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">کد دعوت</div><div style="font-weight:700;color:var(--gold);font-family:monospace;font-size:16px;">' + code + '</div></div>' +
+                        '<div><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">سطح</div><div><span class="badge badge-gold">' + icon + ' ' + title + '</span></div></div>' +
+                    '</div>';
+
+                document.getElementById('registerForm').reset();
+            }
+        } catch (err) {
+            showToast('خطای شبکه — دوباره تلاش کنید', 'error');
+            console.error(err);
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = '&#10010; ثبت‌نام';
+    }
+</script>
+{% endblock %}
