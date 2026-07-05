@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
-const API = import.meta.env.VITE_API_URL || 'http://192.168.240.235:8000';
+const API = import.meta.env.VITE_API_URL || '';
 
 /* ═══════════════════════════════════════════
  *  Theme
