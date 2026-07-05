@@ -28,8 +28,7 @@ frontend/dist/
 Thumbs.db
 
 # Environment
-.env
-*.env
+
 
 # Docker
 backend/nginx.conf
