@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import AddShoppingCartIcon from '@mui/icons-material/AddShoppingCart';
 
-const API = import.meta.env.VITE_API_URL || 'http://192.168.240.235:8000';
+const API = import.meta.env.VITE_API_URL || '';
 
 function FoodCard({ food, onAddToCart }) {
   return (

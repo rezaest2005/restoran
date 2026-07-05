@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import TableRestaurantIcon from '@mui/icons-material/TableRestaurant';
 
-const API = import.meta.env.VITE_API_URL || 'http://192.168.240.235:8000';
+const API = import.meta.env.VITE_API_URL || '';
 
 function Reservation() {
   const [tables, setTables] = useState([]);

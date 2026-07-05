@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 
-const API = import.meta.env.VITE_API_URL || 'http://192.168.240.235:8000';
+const API = import.meta.env.VITE_API_URL || '';
 
 /* ═══════════════════════════════════════════════════════
  * تم رنگی جدید: Midnight Luxury Glow (تاریک مدرن و لوکس)

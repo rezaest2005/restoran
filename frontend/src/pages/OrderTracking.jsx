@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 
-const API = import.meta.env.VITE_API_URL || 'http://192.168.240.235:8000';
+const API = import.meta.env.VITE_API_URL || '';
 
 const steps = [
   'در انتظار',
