@@ -703,7 +703,9 @@ document.addEventListener('DOMContentLoaded', function() {
     a.addEventListener('click', closeSidebar);
   });
 
-  loadDashboard();
+  if (document.getElementById('dStatSales')) {
+    loadDashboard();
+}
 });
 
 /* ═══ Date ═══ */

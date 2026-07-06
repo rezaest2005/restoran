@@ -469,7 +469,7 @@ async function saveAddUser(){
     var password=document.getElementById('addPassword').value;
     var role=document.getElementById('addRoleSelect').value;
     if(!username){toast('نام کاربری را وارد کنید',true);return;}
-    if(!password||password.length<6){toast('رمز باید حداقل ۶ کاراکتر باشد',true);return;}
+    if(!password||password.length<4){toast('رمز باید حداقل 4 کاراکتر باشد',true);return;}
     try{var r=await fetch('/api/users/create/',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+getToken(),'X-CSRFToken':getCSRF()},body:JSON.stringify({username:username,phone_number:phone,password:password,role:role})});var d=await r.json();if(d.success){toast(d.msg||'کاربر ایجاد شد',false,'success');closeModal('addModal');loadUsers();}else toast(d.error||'خطا',true);}catch(e){toast('خطای ارتباط',true);}
 }
 
@@ -501,7 +501,7 @@ function checkStrengthPass(p){doStrengthCheck(p,document.getElementById('strengt
 function checkStrength(p){doStrengthCheck(p,document.getElementById('addStrengthFill'),document.getElementById('addStrengthText'));}
 function doStrengthCheck(pass,fill,text){
     if(!pass){fill.className='strength-fill';text.textContent='';return;}
-    var s=0;if(pass.length>=6)s++;if(pass.length>=10)s++;if(/[A-Z]/.test(pass))s++;if(/[0-9]/.test(pass))s++;if(/[^A-Za-z0-9]/.test(pass))s++;
+    var s=0;if(pass.length>=4)s++;if(pass.length>=10)s++;if(/[A-Z]/.test(pass))s++;if(/[0-9]/.test(pass))s++;if(/[^A-Za-z0-9]/.test(pass))s++;
     if(s<=2){fill.className='strength-fill strength-weak';text.textContent='ضعیف';text.style.color='var(--danger)';}
     else if(s<=3){fill.className='strength-fill strength-medium';text.textContent='متوسط';text.style.color='var(--accent)';}
     else{fill.className='strength-fill strength-strong';text.textContent='قوی';text.style.color='var(--success)';}
@@ -510,7 +510,7 @@ function doStrengthCheck(pass,fill,text){
 async function savePassword(){
     var p1=document.getElementById('newPassword').value;var p2=document.getElementById('newPassword2').value;
     if(!p1){toast('رمز جدید را وارد کنید',true);return;}
-    if(p1.length<6){toast('رمز باید حداقل ۶ کاراکتر باشد',true);return;}
+    if(p1.length<4){toast('رمز باید حداقل 4 کاراکتر باشد',true);return;}
     if(p1!==p2){toast('رمزها مطابقت ندارند',true);return;}
     try{var r=await fetch('/api/users/reset-password/',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+getToken(),'X-CSRFToken':getCSRF()},body:JSON.stringify({user_id:selectedUserId,new_password:p1})});var d=await r.json();if(d.success){toast(d.msg,false,'success');closeModal('passModal');}else toast(d.error||'خطا',true);}catch(e){toast('خطای ارتباط',true);}
 }

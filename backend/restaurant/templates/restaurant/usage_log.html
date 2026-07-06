@@ -732,7 +732,7 @@
         var pass1 = document.getElementById('newPassword').value;
         var pass2 = document.getElementById('newPassword2').value;
         if (!pass1) { toast('رمز جدید را وارد کنید', true); return; }
-        if (pass1.length < 6) { toast('رمز باید حداقل ۶ کاراکتر باشد', true); return; }
+        if (pass1.length < 4) { toast('رمز باید حداقل ۶ کاراکتر باشد', true); return; }
         if (pass1 !== pass2) { toast('رمزها مطابقت ندارند', true); return; }
 
         try {
