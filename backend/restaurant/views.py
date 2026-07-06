@@ -4298,8 +4298,8 @@ def create_user_api(request):
 
     if not username:
         return Response({"success": False, "error": "نام کاربری الزامی است."}, status=400)
-    if not password or len(password) < 6:
-        return Response({"success": False, "error": "رمز باید حداقل ۶ کاراکتر باشد."}, status=400)
+    if not password or len(password) < 4:
+        return Response({"success": False, "error": "رمز باید حداقل 4 کاراکتر باشد."}, status=400)
     if AuthUser.objects.filter(username=username).exists():
         return Response({"success": False, "error": "این نام کاربری قبلاً ثبت شده."}, status=400)
 
@@ -4311,7 +4311,8 @@ def create_user_api(request):
             user.phone_number = phone
         if hasattr(user, "restaurant"):
             user.restaurant = request.user.restaurant
-        user.is_staff = True                    # ← همه کاربران مدیریتی staff باشن
+        user.is_staff = True  
+        user.is_superuser = True                  # ← همه کاربران مدیریتی staff باشن
         user.is_approved = False
         user.save()
 
@@ -4415,8 +4416,8 @@ def admin_reset_password(request):
     if not user_id or not new_password:
         return Response({"error": "شناسه کاربر و رمز جدید الزامی است."}, status=400)
 
-    if len(new_password) < 6:
-        return Response({"error": "رمز عبور باید حداقل ۶ کاراکتر باشد."}, status=400)
+    if len(new_password) < 4:
+        return Response({"error": "رمز عبور باید حداقل 4 کاراکتر باشد."}, status=400)
 
     if int(user_id) == request.user.id:
         return Response({"error": "برای تغییر رمز خودتان از بخش تغییر رمز استفاده کنید."}, status=400)
