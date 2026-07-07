@@ -407,11 +407,12 @@
         <a href="/pos/" class="nav-link" data-theme="restaurant">
           <span class="ni"><i class="bi bi-credit-card"></i></span><span>صندوق فروش (POS)</span>
         </a>
-          <a href="/orders/" class="nav-link" data-theme="restaurant">
-        <span class="ni"><i class="bi bi-receipt-cutoff"></i></span>
-        <span>مدیریت سفارشات</span>
-    </a>
+        <a href="/orders/" class="nav-link" data-theme="restaurant">
+            <span class="ni"><i class="bi bi-receipt-cutoff"></i></span>
+            <span>مدیریت سفارشات</span>
+        </a>
       </div>
+
       <div class="nav-sep"></div>
       <div class="nav-group">
         <div class="nav-group-label">غذا و منو</div>
@@ -444,8 +445,8 @@
         <a href="/kitchen/" class="nav-link" data-theme="restaurant">
           <span class="ni"><i class="bi bi-fire"></i></span><span>مدیریت آشپزخانه</span>
         </a>
-        <a href="/usage-log/" class="nav-link" data-theme="restaurant">
-          <span class="ni"><i class="bi bi-graph-up-arrow"></i></span><span>تاریخچه مصرف</span>
+        <a href="/admin/" class="nav-link" data-theme="restaurant">
+          <span class="ni"><i class="bi bi-graph-up-arrow"></i></span><span>داشبرد</span>
         </a>
       </div>
     </div>
@@ -703,9 +704,7 @@ document.addEventListener('DOMContentLoaded', function() {
     a.addEventListener('click', closeSidebar);
   });
 
-  if (document.getElementById('dStatSales')) {
-    loadDashboard();
-}
+  if (document.getElementById('dStatSales')) { loadDashboard(); }
 });
 
 /* ═══ Date ═══ */
