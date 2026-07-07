@@ -2,13 +2,13 @@ services:
   web:
     build: ./backend
     container_name: django_app
-    command: python manage.py runserver 0.0.0.0:8000
+    command: sh /app/entrypoint.sh
     volumes:
       - ./backend:/app
     expose:
       - "8000"
     env_file:
-      - ./backend/.env
+      - ./.env
     environment:
       - DEBUG=True
 
