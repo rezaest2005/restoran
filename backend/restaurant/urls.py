@@ -149,7 +149,7 @@ urlpatterns = [
     # ──────────────────────────────────────────────────────────────
     #  POS
     # ──────────────────────────────────────────────────────────────
-    path("pos/",                          views.pos_page,              name="pos_page"),
+    path("dashboard/pos/",                          views.pos_page,              name="pos_page"),
     path("api/pos/create-order/",         views.pos_create_order,      name="pos_create_order"),
     path("pos/receipt/<int:pk>/",         views.pos_receipt,           name="pos_receipt"),
     path("api/pos/daily-report/",         views.pos_daily_report,      name="pos_daily_report"),
@@ -200,33 +200,33 @@ urlpatterns = [
     # ──────────────────────────────────────────────────────────────
     #  Pages (HTML)
     # ──────────────────────────────────────────────────────────────
-    path("",                                    views.home,       name="home"),
-    path("auth/",                               views.auth_page,  name="auth_page"),
+    path("dashboard/",                                    views.home,       name="home"),
+    path("dashboard/auth/",                               views.auth_page,  name="auth_page"),
 
-    path("invoices/",                           views.purchase_invoice_list,    name="invoice_list"),
-    path("invoices/create/",                    views.create_purchase_invoice,  name="create_invoice"),
-    path("invoices/create/view/",               views.create_invoice_view,      name="create_invoice_view"),
-    path("invoices/<int:pk>/",                  views.purchase_invoice_detail,  name="invoice_detail"),
+    path("dashboard/invoices/",                           views.purchase_invoice_list,    name="invoice_list"),
+    path("dashboard/invoices/create/",                    views.create_purchase_invoice,  name="create_invoice"),
+    path("dashboard/invoices/create/view/",               views.create_invoice_view,      name="create_invoice_view"),
+    path("dashboard/invoices/<int:pk>/",                  views.purchase_invoice_detail,  name="invoice_detail"),
 
-    path("raw-materials/",                      views.raw_materials_view,       name="raw_materials"),
-    path("semi-finished/",                      views.semi_finished_view,       name="semi_finished"),
-    path("ready-materials/",                    views.ready_materials_page,     name="ready_materials"),
+    path("dashboard/raw-materials/",                      views.raw_materials_view,       name="raw_materials"),
+    path("dashboard/semi-finished/",                      views.semi_finished_view,       name="semi_finished"),
+    path("dashboard/ready-materials/",                    views.ready_materials_page,     name="ready_materials"),
 
-    path("usage-log/",                          views.usage_log_view,           name="usage_log"),
-    path("kitchen/",                            views.kitchen_page,             name="kitchen_page"),
+    path("dashboard/usage-log/",                          views.usage_log_view,           name="usage_log"),
+    path("dashboard/kitchen/",                            views.kitchen_page,             name="kitchen_page"),
 
-    path("loyalty/",                            views.loyalty_dashboard_page,        name="loyalty_dashboard"),
-    path("loyalty/customers/",                  views.loyalty_customers_page,        name="loyalty_customers"),
-    path("loyalty/customers/<int:pk>/",         views.loyalty_customer_detail_page,  name="loyalty_customer_detail"),
-    path("loyalty/coupons/",                    views.loyalty_coupons_page,          name="loyalty_coupons"),
-    path("loyalty/rewards/",                    views.loyalty_rewards_page,          name="loyalty_rewards"),
-    path("loyalty/notifications/",              views.loyalty_notifications_page,    name="loyalty_notifications"),
-    path("loyalty/register/",                   views.loyalty_register_page,         name="loyalty_register"),
+    path("dashboard/loyalty/",                            views.loyalty_dashboard_page,        name="loyalty_dashboard"),
+    path("dashboard/loyalty/customers/",                  views.loyalty_customers_page,        name="loyalty_customers"),
+    path("dashboard/loyalty/customers/<int:pk>/",         views.loyalty_customer_detail_page,  name="loyalty_customer_detail"),
+    path("dashboard/loyalty/coupons/",                    views.loyalty_coupons_page,          name="loyalty_coupons"),
+    path("dashboard/loyalty/rewards/",                    views.loyalty_rewards_page,          name="loyalty_rewards"),
+    path("dashboard/loyalty/notifications/",              views.loyalty_notifications_page,    name="loyalty_notifications"),
+    path("dashboard/loyalty/register/",                   views.loyalty_register_page,         name="loyalty_register"),
 
-    path("recipes/",                            recipe_views.recipes_page,           name="recipes_page"),
-    path("recipes/manager/",                    recipe_views.recipe_manager_page,    name="recipe_manager"),
+    path("dashboard/recipes/",                            recipe_views.recipes_page,           name="recipes_page"),
+    path("dashboard/recipes/manager/",                    recipe_views.recipe_manager_page,    name="recipe_manager"),
 
-    path("foods/",                              views.food_management_page,          name="food_management"),
+    path("dashboard/foods/",                              views.food_management_page,          name="food_management"),
 
-    path("orders/", views.orders_dashboard, name="orders_dashboard"),
+    path("dashboard/orders/", views.orders_dashboard, name="orders_dashboard"),
 ]
