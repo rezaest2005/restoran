@@ -2686,92 +2686,6 @@ def pos_daily_report(request: HttpRequest):
         logger.exception("Error in daily report")
         return JsonResponse({'success': False, 'error': str(exc)})
 
-@staff_member_required
-def pos_close_summary(request: HttpRequest):
-    """خلاصه بستن روز — سفارشات باز + موجودی آشپزخانه."""
-    try:
-        today = timezone.localdate()
-        start = timezone.make_aware(
-            timezone.datetime.combine(today, timezone.datetime.min.time())
-        )
-        end = timezone.make_aware(
-            timezone.datetime.combine(today, timezone.datetime.max.time())
-        )
-
-        orders = Order.objects.filter(created_at__range=(start, end))
-        delivered = orders.filter(status='delivered')
-        pending = orders.exclude(status='delivered')
-
-        total_sales = sum(o.total_price for o in orders)
-
-        pending_list = [
-            {
-                'id': o.id,
-                'customer': o.customer_name,
-                'total': int(o.total_price),
-            }
-            for o in pending
-        ]
-
-        # محصولات آشپزخانه برای dropdown ضایعات
-        kitchen_items = []
-        for kp in KitchenProduct.objects.filter(is_active=True):
-            inv = kp.get_inventory()
-            kitchen_items.append({
-                'id': kp.id,
-                'name': kp.name,
-                'stock': int(inv.quantity),
-            })
-
-        return JsonResponse({
-            'success': True,
-            'total_sales': int(total_sales),
-            'order_count': orders.count(),
-            'delivered_count': delivered.count(),
-            'pending_count': pending.count(),
-            'pending_orders': pending_list,
-            'kitchen_items': kitchen_items,
-        })
-    except Exception as exc:
-        logger.exception("Error in close summary")
-        return JsonResponse({'success': False, 'error': str(exc)})
-
-
-
-@csrf_protect
-@require_POST
-@staff_member_required
-def pos_close_all_pending(request: HttpRequest):
-    """تحویل همه سفارشات باز امروز."""
-    try:
-        today = timezone.localdate()
-        start = timezone.make_aware(
-            timezone.datetime.combine(today, timezone.datetime.min.time())
-        )
-        end = timezone.make_aware(
-            timezone.datetime.combine(today, timezone.datetime.max.time())
-        )
-
-        pending = Order.objects.filter(
-            created_at__range=(start, end)
-        ).exclude(status='delivered')
-
-        count = pending.update(status='delivered')
-
-        return JsonResponse({
-            'success': True,
-            'msg': f"{count} سفارش تحویل‌شده علامت زده شد",
-        })
-    except Exception as exc:
-        logger.exception("Error closing pending orders")
-        return JsonResponse({'success': False, 'error': str(exc)})
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  LOYALTY SYSTEM — VIEWSETS
-# ══════════════════════════════════════════════════════════════════════════════
-
-
 class MembershipLevelViewSet(viewsets.ModelViewSet):
     queryset = MembershipLevel.objects.all()
     serializer_class = MembershipLevelSerializer
@@ -4314,7 +4228,7 @@ def create_user_api(request):
         if hasattr(user, "restaurant"):
             user.restaurant = request.user.restaurant
         user.is_staff = True  
-        user.is_superuser = True                  # ← همه کاربران مدیریتی staff باشن
+        user.is_superuser = False  # FIXED                  # ← همه کاربران مدیریتی staff باشن
         user.is_approved = False
         user.save()
 
@@ -4505,7 +4419,7 @@ from django.contrib.auth import login
 
 class SetSessionView(APIView):
     """بعد از JWT login، Django session هم بساز تا صفحات HTML کار کنن"""
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
         access_token = request.data.get('access_token')
