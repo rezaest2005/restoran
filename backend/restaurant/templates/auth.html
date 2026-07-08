@@ -340,251 +340,282 @@
   </div>
 
 <script>
+  // ═══════════════════════════════════════════════════════════
+  //  لایه ۱: API Client
+  // ═══════════════════════════════════════════════════════════
   var API_BASE = '/api/auth';
 
   function getCookie(name) {
-    var cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-      var cookies = document.cookie.split(';');
-      for (var i = 0; i < cookies.length; i++) {
-        var cookie = cookies[i].trim();
-        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
-        }
+    var v = null;
+    document.cookie.split(';').forEach(function(c) {
+      c = c.trim();
+      if (c.startsWith(name + '=')) v = decodeURIComponent(c.slice(name.length + 1));
+    });
+    return v;
+  }
+
+  var api = {
+    csrf: function() { return getCookie('csrftoken') || ''; },
+
+    post: async function(url, body) {
+      try {
+        var res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': api.csrf() },
+          body: JSON.stringify(body),
+        });
+        var data = await res.json().catch(function() { return {}; });
+        return { ok: res.ok, data: data };
+      } catch (err) {
+        return { ok: false, data: {}, networkError: true };
       }
+    },
+  };
+
+  // ═══════════════════════════════════════════════════════════
+  //  لایه ۲: Store
+  // ═══════════════════════════════════════════════════════════
+  var store = (function() {
+    var state = { status: 'idle', message: '', tab: 'login' };
+    return {
+      get: function() { return state; },
+      set: function(patch) {
+        state = Object.assign({}, state, patch);
+        render(state);
+      },
+    };
+  })();
+
+  // ═══════════════════════════════════════════════════════════
+  //  لایه ۳: View — UI = f(state)
+  // ═══════════════════════════════════════════════════════════
+  function $(id) { return document.getElementById(id); }
+
+  function render(s) {
+    // ── پیام‌ها ──
+    var box = $('message');
+    if (box) {
+      box.className = 'message ' + s.status;
+      box.textContent = s.message;
+      box.hidden = (s.status === 'idle' || s.status === 'loading');
     }
-    return cookieValue;
+
+    // ── دکمه‌ها ──
+    document.querySelectorAll('button[type="submit"]').forEach(function(btn) {
+      btn.disabled = (s.status === 'loading');
+      if (s.status === 'loading') btn.classList.add('loading');
+      else btn.classList.remove('loading');
+    });
+
+    // ── تب‌ها ──
+    var isLogin = s.tab === 'login';
+    var tabs = document.querySelectorAll('.tab-btn');
+    if (tabs[0]) { if (isLogin) tabs[0].classList.add('active'); else tabs[0].classList.remove('active'); }
+    if (tabs[1]) { if (!isLogin) tabs[1].classList.add('active'); else tabs[1].classList.remove('active'); }
+    var lp = $('login-panel'); if (lp) { if (isLogin) lp.classList.add('active'); else lp.classList.remove('active'); }
+    var rp = $('register-panel'); if (rp) { if (!isLogin) rp.classList.add('active'); else rp.classList.remove('active'); }
+
+    // ── عنوان ──
+    var ft = $('form-title');
+    var fs = $('form-subtitle');
+    if (ft) ft.textContent = isLogin ? 'خوش آمدید' : 'ایجاد حساب جدید';
+    if (fs) fs.textContent = isLogin ? 'برای ادامه وارد حساب خود شوید' : 'ثبت\u200cنام کنید و از امکانات استفاده کنید';
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  //  توابع کمکی
+  // ═══════════════════════════════════════════════════════════
+  var ROUTES = {
+    owner: '/admin/',
+    manager: '/admin/',
+    cashier: '/pos/',
+    kitchen: '/kitchen/',
+    customer: '/admin/',
+  };
+
+  function redirectFor(user) {
+    if (!user) return '/auth/';
+    return ROUTES[user.role] || '/auth/';
+  }
+
+  function buildIdentity(id) {
+    return /^09\d{9}$/.test(id) ? { phone_number: id } : { username: id };
+  }
+
+  async function persistSession(access, refresh, user) {
+    localStorage.setItem('access_token', access);
+    localStorage.setItem('refresh_token', refresh);
+    localStorage.setItem('user', JSON.stringify(user));
+    try {
+      await api.post(API_BASE + '/set-session/', {
+        access_token: access,
+        user_id: user.id,
+      });
+    } catch (e) {
+      // set-session fail → مهم نیست، توکن ذخیره شده
+    }
   }
 
   function switchTab(tab) {
-    document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
-    document.querySelectorAll('.form-panel').forEach(function(p) { p.classList.remove('active'); });
-    hideMessages();
-    if (tab === 'login') {
-      document.querySelectorAll('.tab-btn')[0].classList.add('active');
-      document.getElementById('login-panel').classList.add('active');
-      document.getElementById('form-title').textContent = 'خوش آمدید';
-      document.getElementById('form-subtitle').textContent = 'برای ادامه وارد حساب خود شوید';
-    } else {
-      document.querySelectorAll('.tab-btn')[1].classList.add('active');
-      document.getElementById('register-panel').classList.add('active');
-      document.getElementById('form-title').textContent = 'ایجاد حساب جدید';
-      document.getElementById('form-subtitle').textContent = 'ثبت‌نام کنید و از امکانات استفاده کنید';
-    }
+    store.set({ tab: tab, status: 'idle', message: '' });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function togglePass(inputId, btn) {
-    var input = document.getElementById(inputId);
-    if (input.type === 'password') {
-      input.type = 'text';
-      btn.innerHTML = '&#128064;';
-    } else {
-      input.type = 'password';
-      btn.innerHTML = '&#128065;';
-    }
+    var input = $(inputId);
+    var show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    btn.innerHTML = show ? '&#128064;' : '&#128065;';
   }
 
-  function showError(text) {
-    hideMessages();
-    document.getElementById('msg-error-text').textContent = text;
-    document.getElementById('msg-error').classList.add('show');
-  }
-
-  function showSuccess(text) {
-    hideMessages();
-    document.getElementById('msg-success-text').textContent = text;
-    document.getElementById('msg-success').classList.add('show');
-  }
-
-  function showPending(text) {
-    hideMessages();
-    document.getElementById('msg-pending-text').textContent = text;
-    document.getElementById('msg-pending').classList.add('show');
-  }
-
-  function hideMessages() {
-    document.getElementById('msg-error').classList.remove('show');
-    document.getElementById('msg-success').classList.remove('show');
-    document.getElementById('msg-pending').classList.remove('show');
-  }
-
-  function setLoading(btnId, loading) {
-    var btn = document.getElementById(btnId);
-    if (loading) { btn.classList.add('loading'); btn.disabled = true; }
-    else { btn.classList.remove('loading'); btn.disabled = false; }
-  }
-
-function getRedirectUrl(user) {
-    if (!user) return '/auth/';
-    var role = user.role || '';
-    if (role === 'owner' || role === 'manager') return '/admin/';
-    if (role === 'cashier') return '/pos/';
-    if (role === 'kitchen') return '/kitchen/';
-    if (role === 'customer') return '/admin/';    // ← مشتری → منو
-    return '/auth/';                              // ← ناشناخته → برگشت لاگین
-}
-
+  // ═══════════════════════════════════════════════════════════
+  //  منطق اصلی: ورود
+  // ═══════════════════════════════════════════════════════════
   async function handleLogin(e) {
-    e.preventDefault();
-    hideMessages();
-    setLoading('login-btn', true);
+    if (e && e.preventDefault) e.preventDefault();
+    store.set({ status: 'loading', message: '' });
 
-    var username = document.getElementById('login-username').value.trim();
-    var password = document.getElementById('login-password').value;
+    var username = ($('login-username') || {}).value || '';
+    var password = ($('login-password') || {}).value || '';
+    username = username.trim();
 
     if (!username || !password) {
-      showError('نام کاربری و رمز عبور را وارد کنید.');
-      setLoading('login-btn', false);
+      store.set({ status: 'error', message: 'نام کاربری و رمز عبور را وارد کنید.' });
       return;
     }
 
-    var body = { password: password };
-    if (/^09\d{9}$/.test(username)) {
-      body.phone_number = username;
-    } else {
-      body.username = username;
+    var result = await api.post(API_BASE + '/login/', Object.assign(
+      buildIdentity(username),
+      { password: password }
+    ));
+
+    if (result.networkError) {
+      store.set({ status: 'error', message: 'خطا در اتصال به سرور.' });
+      return;
     }
 
-    try {
-      var res = await fetch(API_BASE + '/login/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken'),
-        },
-        body: JSON.stringify(body),
-      });
+    var data = result.data;
 
-      var data = await res.json();
-
-      // ← بررسی تأیید نشده
-      if (data.pending || (data.data && data.data.pending)) {
-        showPending(data.error || data.message || 'حساب شما هنوز توسط مدیر تأیید نشده.');
-        setLoading('login-btn', false);
-        return;
-      }
-
-      // ← بررسی خطا
-      if (!res.ok) {
-        showError(data.error || data.detail || 'خطا در ورود. دوباره تلاش کنید.');
-        setLoading('login-btn', false);
-        return;
-      }
-
-      // ← لاگین موفق
-      if (data.access) {
-        localStorage.setItem('access_token', data.access);
-        localStorage.setItem('refresh_token', data.refresh);
-        localStorage.setItem('user', JSON.stringify(data.user));
-
-        // ← ایجاد Django session هم همزمان
-        await fetch('/api/auth/set-session/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-          },
-          body: JSON.stringify({
-            access_token: data.access,
-            user_id: data.user.id,
-          }),
-        });
-
-        showSuccess('ورود موفقیت‌آمیز! در حال انتقال...');
-        var redirectUrl = getRedirectUrl(data.user);
-        setTimeout(function() { window.location.href = redirectUrl; }, 500);
-      } else {
-        showError('پاسخ غیرمنتظره از سرور.');
-      }
-    } catch (err) {
-      showError('خطا در اتصال به سرور.');
-    } finally {
-      setLoading('login-btn', false);
+    // حساب تأیید نشده
+    if (data.pending || (data.data && data.data.pending)) {
+      store.set({ status: 'pending', message: data.error || data.message || 'حساب شما هنوز توسط مدیر تأیید نشده.' });
+      return;
     }
+
+    // خطای ورود
+    if (!result.ok || !data.access) {
+      store.set({ status: 'error', message: data.error || data.detail || 'خطا در ورود. دوباره تلاش کنید.' });
+      return;
+    }
+
+    // ورود موفق → ذخیره و هدایت
+    var redirectUrl = redirectFor(data.user);
+    store.set({ status: 'success', message: 'ورود موفقیت\u200cآمیز! در حال انتقال...' });
+
+    await persistSession(data.access, data.refresh, data.user);
+
+    setTimeout(function() {
+      window.location.href = redirectUrl;
+    }, 500);
   }
 
+  // ═══════════════════════════════════════════════════════════
+  //  منطق اصلی: ثبت‌نام
+  // ═══════════════════════════════════════════════════════════
   async function handleRegister(e) {
-    e.preventDefault();
-    hideMessages();
-    setLoading('register-btn', true);
+    if (e && e.preventDefault) e.preventDefault();
+    store.set({ status: 'loading', message: '' });
 
-    var username  = document.getElementById('reg-username').value.trim();
-    var phone     = document.getElementById('reg-phone').value.trim();
-    var firstName = document.getElementById('reg-firstname').value.trim();
-    var lastName  = document.getElementById('reg-lastname').value.trim();
-    var password  = document.getElementById('reg-password').value;
-    var password2 = document.getElementById('reg-password2').value;
+    var username  = (($('reg-username') || {}).value || '').trim();
+    var phone     = (($('reg-phone') || {}).value || '').trim();
+    var firstName = (($('reg-firstname') || {}).value || '').trim();
+    var lastName  = (($('reg-lastname') || {}).value || '').trim();
+    var password  = ($('reg-password') || {}).value || '';
+    var password2 = ($('reg-password2') || {}).value || '';
 
     if (password !== password2) {
-      showError('رمزهای عبور مطابقت ندارند.');
-      setLoading('register-btn', false); return;
+      store.set({ status: 'error', message: 'رمزهای عبور مطابقت ندارند.' }); return;
     }
     if (password.length < 8) {
-      showError('رمز عبور باید حداقل ۸ کاراکتر باشد.');
-      setLoading('register-btn', false); return;
+      store.set({ status: 'error', message: 'رمز عبور باید حداقل ۸ کاراکتر باشد.' }); return;
     }
     if (!/^09\d{9}$/.test(phone)) {
-      showError('شماره موبایل نامعتبر است.');
-      setLoading('register-btn', false); return;
+      store.set({ status: 'error', message: 'شماره موبایل نامعتبر است.' }); return;
     }
 
-    try {
-      var res = await fetch(API_BASE + '/register/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': getCookie('csrftoken'),
-        },
-        body: JSON.stringify({
-          username: username,
-          phone_number: phone,
-          first_name: firstName,
-          last_name: lastName,
-          password: password,
-          password_confirm: password2,
-          role: 'customer',
-        }),
-      });
+    var result = await api.post(API_BASE + '/register/', {
+      username: username,
+      phone_number: phone,
+      first_name: firstName,
+      last_name: lastName,
+      password: password,
+      password_confirm: password2,
+      role: 'customer',
+    });
 
-      var data = await res.json();
-
-      // ← ثبت‌نام انجام شد ولی تأیید نشده
-      if (data.pending || (data.data && data.data.pending)) {
-        showPending(data.message || 'ثبت‌نام انجام شد. پس از تأیید مدیر می‌توانید وارد شوید.');
-        setTimeout(function() { switchTab('login'); }, 3000);
-        setLoading('register-btn', false);
-        return;
-      }
-
-      // ← ثبت‌نام و ورود موفق
-      if (res.ok && data.data) {
-        localStorage.setItem('access_token', data.data.tokens.access);
-        localStorage.setItem('refresh_token', data.data.tokens.refresh);
-        localStorage.setItem('user', JSON.stringify(data.data.user));
-        showSuccess('ثبت‌نام موفق! در حال انتقال...');
-        var redirectUrl = getRedirectUrl(data.data.user);
-        setTimeout(function() { window.location.href = redirectUrl; }, 500);
-      } else {
-        var errors = data.errors || data;
-        var firstError = typeof errors === 'object'
-          ? Object.values(errors).flat().join(' ')
-          : data.error || 'خطا در ثبت‌نام.';
-        showError(firstError);
-      }
-    } catch (err) {
-      showError('خطا در اتصال به سرور.');
-    } finally {
-      setLoading('register-btn', false);
+    if (result.networkError) {
+      store.set({ status: 'error', message: 'خطا در اتصال به سرور.' }); return;
     }
+
+    var data = result.data;
+
+    // ثبت‌نام اما تأیید نشده
+    if (data.pending || (data.data && data.data.pending)) {
+      store.set({ status: 'pending', message: data.message || 'ثبت\u200cنام انجام شد. پس از تأیید مدیر می\u200cتوانید وارد شوید.' });
+      setTimeout(function() { switchTab('login'); }, 3000);
+      return;
+    }
+
+    // ثبت‌نام و ورود موفق
+    if (result.ok && data.data) {
+      var tokens = data.data.tokens;
+      var user = data.data.user;
+      var redirectUrl = redirectFor(user);
+      store.set({ status: 'success', message: 'ثبت\u200cنام موفق! در حال انتقال...' });
+      await persistSession(tokens.access, tokens.refresh, user);
+      setTimeout(function() { window.location.href = redirectUrl; }, 500);
+      return;
+    }
+
+    // خطای ثبت‌نام
+    var errors = data.errors || data;
+    var msg = (typeof errors === 'object' && errors !== null)
+      ? Object.values(errors).flat().join(' ')
+      : (data.error || 'خطا در ثبت\u200cنام.');
+    store.set({ status: 'error', message: msg });
   }
 
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-      var active = document.querySelector('.form-panel.active form');
-      if (active) active.dispatchEvent(new Event('submit'));
-    }
+  // ═══════════════════════════════════════════════════════════
+  //  اتصال به DOM
+  // ═══════════════════════════════════════════════════════════
+  document.addEventListener('DOMContentLoaded', function() {
+    // فرم ورود
+    var lf = $('login-form');
+    if (lf) lf.addEventListener('submit', handleLogin);
+
+    // فرم ثبت‌نام
+    var rf = $('register-form');
+    if (rf) rf.addEventListener('submit', handleRegister);
+
+    // دکمه‌های تعویض تب
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() { switchTab(btn.dataset.tab); });
+    });
+
+    // نمایش/مخفی رمز
+    document.querySelectorAll('[data-toggle-pass]').forEach(function(btn) {
+      btn.addEventListener('click', function() { togglePass(btn.dataset.togglePass, btn); });
+    });
+
+    // Enter
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        var form = document.querySelector('.form-panel.active form');
+        if (form) form.dispatchEvent(new Event('submit', { cancelable: true }));
+      }
+    });
+
+    render(store.get());
   });
 </script>
 
