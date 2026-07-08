@@ -138,10 +138,21 @@ JAZZMIN_UI_TWEAKS = {
     "sidebar_fixed": True,
 }
 
-CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:8000',
-    'http://127.0.0.1:8000',
-]
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS = [
+        'http://localhost:8000',
+        'http://127.0.0.1:8000',
+        'http://192.168.1.125:8000',
+        'http://192.168.1.252:8000',
+        'http://192.168.1.101:8000',
+        'http://192.168.240.235:8000',
+        'http://192.168.240.231:8000',
+    ]
+else:
+    CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
+
+CSRF_COOKIE_HTTPONLY = False
+SESSION_COOKIE_HTTPONLY = False
 
 CSRF_COOKIE_HTTPONLY = False
 SESSION_COOKIE_HTTPONLY = False
