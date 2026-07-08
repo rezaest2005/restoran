@@ -1546,6 +1546,7 @@ def ready_material_save(request: HttpRequest):
         description = request.POST.get('description', '').strip()
         unit = request.POST.get('unit', 'unit')
         quantity = Decimal(str(request.POST.get('quantity', 0) or 0))
+        consume_quantity = Decimal(str(request.POST.get('consume_quantity', 0) or 0))
         purchase_price = int(float(request.POST.get('purchase_price', 0) or 0))
         selling_price = int(float(request.POST.get('selling_price', 0) or 0))
         minimum_stock = Decimal(str(request.POST.get('minimum_stock', 0) or 0))
@@ -1599,7 +1600,8 @@ def ready_material_save(request: HttpRequest):
         else:
             mat = ReadyMaterial.objects.create(
                 name=name, description=description, unit=unit,
-                quantity=quantity, purchase_price=purchase_price,
+                quantity=consume_quantity if raw_mat and consume_quantity > 0 else quantity,
+                purchase_price=purchase_price,
                 selling_price=selling_price, minimum_stock=minimum_stock,
                 supplier_id=supplier_id, barcode=barcode,
                 source_raw_material=raw_mat,

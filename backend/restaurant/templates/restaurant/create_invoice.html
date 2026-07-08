@@ -1235,7 +1235,7 @@ function openPreview(source) {
         var ok = true;
         rows.forEach(function (tr) {
             var nm = tr.querySelector('[name="item_name"]');
-            if (nm && nm.value.trim() === 'جمع کل') return;
+            if (nm && nm.value.trim().indexOf('جمع کل') !== -1) return;
             var q = tr.querySelector('[name="quantity"]'), p = tr.querySelector('[name="unit_price"]');
             var qv = q ? (q.dataset.rawValue || stripCommas(q.value)) : 0;
             var pv = p ? (p.dataset.rawValue || stripCommas(p.value)) : 0;
@@ -1252,7 +1252,7 @@ function openPreview(source) {
     var gt = 0, cnt = 0;
     rows.forEach(function (tr) {
         var nm = (tr.querySelector('[name="item_name"]') || {}).value || '';
-        if (nm === 'جمع کل') return;
+        if (nm.indexOf('جمع کل') !== -1) return;
         var qty = stripCommas((tr.querySelector('[name="quantity"]') || {}).value);
         var unit = (tr.querySelector('[name="unit"]') || {}).value || '';
         var price = stripCommas((tr.querySelector('[name="unit_price"]') || {}).value);

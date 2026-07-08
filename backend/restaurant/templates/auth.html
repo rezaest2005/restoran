@@ -292,12 +292,6 @@
         <h2 id="form-title">خوش آمدید</h2>
         <p id="form-subtitle">برای ادامه وارد حساب خود شوید</p>
       </div>
-
-      <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('login')">ورود</button>
-        <button class="tab-btn" onclick="switchTab('register')">ثبت‌نام</button>
-      </div>
-
       <div class="msg error" id="msg-error">
         <span>&#9888;</span>
         <span id="msg-error-text"></span>
@@ -341,62 +335,6 @@
       </div>
 
       <!-- ═══ REGISTER ═══ -->
-      <div class="form-panel" id="register-panel">
-        <form onsubmit="handleRegister(event)">
-          <div class="field">
-            <label>نام کاربری</label>
-            <div class="input-wrap">
-              <input type="text" id="reg-username" placeholder="نام کاربری دلخواه" autocomplete="username" required>
-              <span class="input-ico">&#128100;</span>
-            </div>
-          </div>
-          <div class="field">
-            <label>شماره موبایل</label>
-            <div class="input-wrap">
-              <input type="tel" id="reg-phone" placeholder="09123456789" maxlength="11" autocomplete="tel" required>
-              <span class="input-ico">&#128241;</span>
-            </div>
-          </div>
-          <div class="name-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-            <div class="field">
-              <label>نام</label>
-              <div class="input-wrap">
-                <input type="text" id="reg-firstname" placeholder="نام" autocomplete="given-name">
-              </div>
-            </div>
-            <div class="field">
-              <label>نام خانوادگی</label>
-              <div class="input-wrap">
-                <input type="text" id="reg-lastname" placeholder="نام خانوادگی" autocomplete="family-name">
-              </div>
-            </div>
-          </div>
-          <div class="field">
-            <label>رمز عبور</label>
-            <div class="input-wrap">
-              <input type="password" id="reg-password" placeholder="حداقل ۸ کاراکتر" autocomplete="new-password" required>
-              <button type="button" class="toggle-pass" onclick="togglePass('reg-password', this)">&#128065;</button>
-              <span class="input-ico">&#128274;</span>
-            </div>
-          </div>
-          <div class="field">
-            <label>تکرار رمز عبور</label>
-            <div class="input-wrap">
-              <input type="password" id="reg-password2" placeholder="رمز عبور را تکرار کنید" autocomplete="new-password" required>
-              <button type="button" class="toggle-pass" onclick="togglePass('reg-password2', this)">&#128065;</button>
-              <span class="input-ico">&#128274;</span>
-            </div>
-          </div>
-          <button type="submit" class="btn-primary" id="register-btn">
-            <span class="btn-text">ایجاد حساب</span>
-            <div class="spinner"></div>
-          </button>
-        </form>
-        <div class="divider"><span>یا</span></div>
-        <div class="form-footer">
-          قبلاً ثبت‌نام کردید؟ <a href="#" onclick="switchTab('login'); return false;">وارد شوید</a>
-        </div>
-      </div>
 
     </div>
   </div>

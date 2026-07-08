@@ -9,12 +9,14 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-load_dotenv(BASE_DIR / '.env')
+# ═══ خواندن .env از ریشه پروژه (پوشه بالاتر از backend) ═══
+PROJECT_ROOT = BASE_DIR.parent
+load_dotenv(PROJECT_ROOT / '.env')
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-!0v)nh)hqet@qn(k8jd$h$tg@st%cqf2ya0xuu*xej-m0=_89s')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-# ═══ DEBUG = همه IP قبول — Production = از .env ═══
+# ═══ DEBUG = فقط در توسعه همه IP ها / Production = از .env ═══
 if DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
@@ -103,10 +105,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
+# ═══ دیتابیس: از env بخون (برای Docker) یا پیش‌فرض sqlite ═══
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': os.getenv('DATABASE_PATH', str(BASE_DIR / 'db.sqlite3')),
     }
 }
 
@@ -134,3 +137,11 @@ JAZZMIN_UI_TWEAKS = {
     "navbar_fixed": True,
     "sidebar_fixed": True,
 }
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
+
+CSRF_COOKIE_HTTPONLY = False
+SESSION_COOKIE_HTTPONLY = False
