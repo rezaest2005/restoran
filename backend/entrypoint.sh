@@ -1,10 +1,10 @@
-#!/bin/sh
+#!/bin/bash
 echo "Running migrations..."
-python manage.py migrate --noinput
+python manage.py migrate --no-input
 python manage.py collectstatic --noinput 2>/dev/null
 
 echo "Creating superuser..."
-python manage.py shell <<EOF
+python manage.py shell <<'EOF'
 from django.contrib.auth import get_user_model
 import os
 User = get_user_model()
