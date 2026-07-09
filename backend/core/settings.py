@@ -1,4 +1,4 @@
-"""
+﻿"""
 Django settings for core project.
 """
 
@@ -16,11 +16,16 @@ load_dotenv(PROJECT_ROOT / '.env')
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-!0v)nh)hqet@qn(k8jd$h$tg@st%cqf2ya0xuu*xej-m0=_89s')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-# ═══ DEBUG = فقط در توسعه همه IP ها / Production = از .env ═══
-if DEBUG:
-    ALLOWED_HOSTS = ['*']
-else:
-    ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# ═══ CSRF + ALLOWED_HOSTS — همه از .env خوانده میشه ═══
+CSRF_TRUSTED_ORIGINS = os.getenv(
+    'CSRF_TRUSTED_ORIGINS',
+    'http://localhost:8000,http://127.0.0.1:8000,https://est.rysh.ir'
+).split(',')
+
+ALLOWED_HOSTS = os.getenv(
+    'ALLOWED_HOSTS',
+    'localhost,127.0.0.1,est.rysh.ir,*'
+).split(',')
 
 AUTH_USER_MODEL = 'restaurant.User'
 
@@ -137,22 +142,6 @@ JAZZMIN_UI_TWEAKS = {
     "navbar_fixed": True,
     "sidebar_fixed": True,
 }
-
-if DEBUG:
-    CSRF_TRUSTED_ORIGINS = [
-        'http://localhost:8000',
-        'http://127.0.0.1:8000',
-        'http://192.168.1.125:8000',
-        'http://192.168.1.252:8000',
-        'http://192.168.1.101:8000',
-        'http://192.168.240.235:8000',
-        'http://192.168.240.231:8000',
-    ]
-else:
-    CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
-
-CSRF_COOKIE_HTTPONLY = False
-SESSION_COOKIE_HTTPONLY = False
 
 CSRF_COOKIE_HTTPONLY = False
 SESSION_COOKIE_HTTPONLY = False
