@@ -1,4 +1,4 @@
-"""
+﻿"""
 Restaurant Management System — Views
 =====================================
 API ViewSets  ·  Pages  ·  Purchase Invoices
@@ -4419,7 +4419,7 @@ from django.contrib.auth import login
 
 class SetSessionView(APIView):
     """بعد از JWT login، Django session هم بساز تا صفحات HTML کار کنن"""
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         access_token = request.data.get('access_token')

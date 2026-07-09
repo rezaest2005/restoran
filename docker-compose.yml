@@ -1,6 +1,9 @@
-services:
+﻿services:
   web:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend
     container_name: django_app
     command: sh /app/entrypoint.sh
     volumes:
@@ -15,7 +18,8 @@ services:
   nginx:
     build:
       context: .
-      dockerfile: frontend/Dockerfile
+      dockerfile: Dockerfile
+      target: nginx
     container_name: nginx_proxy
     ports:
       - "8000:8000"
