@@ -22,10 +22,10 @@ CSRF_TRUSTED_ORIGINS = os.getenv(
     'http://localhost:8000,http://127.0.0.1:8000,https://est.rysh.ir'
 ).split(',')
 
-ALLOWED_HOSTS = os.getenv(
-    'ALLOWED_HOSTS',
-    'localhost,127.0.0.1,est.rysh.ir,*'
-).split(',')
+if DEBUG:
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,est.rysh.ir').split(',')
 
 AUTH_USER_MODEL = 'restaurant.User'
 
