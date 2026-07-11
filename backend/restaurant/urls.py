@@ -202,6 +202,7 @@ urlpatterns = [
     # ──────────────────────────────────────────────────────────────
     path("dashboard/",                                    views.home,       name="home"),
     path("dashboard/auth/",                               views.auth_page,  name="auth_page"),
+    path("dashboard/logout/",                              views.logout_page, name="logout_page"),
 
     path("dashboard/invoices/",                           views.purchase_invoice_list,    name="invoice_list"),
     path("dashboard/invoices/create/",                    views.create_purchase_invoice,  name="create_invoice"),

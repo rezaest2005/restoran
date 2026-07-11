@@ -378,7 +378,7 @@
 
   {% if user.is_superuser %}
   <div class="sb-top-link">
-    <a href="/users/" id="sbUsersLink">
+    <a href="{% url 'user_management' %}" id="sbUsersLink">
       <span class="stl-ico"><i class="bi bi-shield-lock"></i></span>
       <span>مدیریت کاربران</span>
     </a>
@@ -404,10 +404,10 @@
     <div class="sb-panel active" id="sbp-restaurant">
       <div class="nav-group">
         <div class="nav-group-label">صندوق فروش</div>
-        <a href="/pos/" class="nav-link" data-theme="restaurant">
+        <a href="{% url 'pos_page' %}" class="nav-link" data-theme="restaurant">
           <span class="ni"><i class="bi bi-credit-card"></i></span><span>صندوق فروش (POS)</span>
         </a>
-        <a href="/orders/" class="nav-link" data-theme="restaurant">
+        <a href="{% url 'orders_dashboard' %}" class="nav-link" data-theme="restaurant">
             <span class="ni"><i class="bi bi-receipt-cutoff"></i></span>
             <span>مدیریت سفارشات</span>
         </a>
@@ -416,33 +416,33 @@
       <div class="nav-sep"></div>
       <div class="nav-group">
         <div class="nav-group-label">غذا و منو</div>
-        <a href="/foods/" class="nav-link" data-theme="restaurant">
+        <a href="{% url 'food_management' %}" class="nav-link" data-theme="restaurant">
           <span class="ni"><i class="bi bi-egg-fried"></i></span><span>غذاها و منو</span>
         </a>
-        <a href="/recipes/manager/" class="nav-link" data-theme="restaurant">
+        <a href="{% url 'recipe_manager' %}" class="nav-link" data-theme="restaurant">
           <span class="ni"><i class="bi bi-journal-text"></i></span><span>رسپی‌ها (دستور پخت)</span>
         </a>
       </div>
       <div class="nav-sep"></div>
       <div class="nav-group">
         <div class="nav-group-label">انبار و تأمین</div>
-        <a href="/raw-materials/" class="nav-link" data-theme="restaurant">
+        <a href="{% url 'raw_materials' %}" class="nav-link" data-theme="restaurant">
           <span class="ni"><i class="bi bi-archive"></i></span><span>مواد اولیه</span>
         </a>
-        <a href="/semi-finished/" class="nav-link" data-theme="restaurant">
+        <a href="{% url 'semi_finished' %}" class="nav-link" data-theme="restaurant">
           <span class="ni"><i class="bi bi-layers"></i></span><span>مواد نیمه‌آماده</span>
         </a>
-        <a href="/ready-materials/" class="nav-link" data-theme="restaurant">
+        <a href="{% url 'ready_materials' %}" class="nav-link" data-theme="restaurant">
           <span class="ni"><i class="bi bi-box2"></i></span><span>مواد آماده</span>
         </a>
-        <a href="/invoices/create/" class="nav-link" data-theme="restaurant">
+        <a href="{% url 'create_invoice' %}" class="nav-link" data-theme="restaurant">
           <span class="ni"><i class="bi bi-pencil-square"></i></span><span>ثبت فاکتور خرید</span>
         </a>
       </div>
       <div class="nav-sep"></div>
       <div class="nav-group">
         <div class="nav-group-label">آشپزخانه و تولید</div>
-        <a href="/kitchen/" class="nav-link" data-theme="restaurant">
+        <a href="{% url 'kitchen_page' %}" class="nav-link" data-theme="restaurant">
           <span class="ni"><i class="bi bi-fire"></i></span><span>مدیریت آشپزخانه</span>
         </a>
         <a href="/admin/" class="nav-link" data-theme="restaurant">
@@ -453,34 +453,34 @@
 
     <div class="sb-panel" id="sbp-loyalty">
       <div class="nav-group">
-        <a href="/loyalty/" class="nav-link" data-theme="loyalty">
+        <a href="{% url 'loyalty_dashboard' %}" class="nav-link" data-theme="loyalty">
           <span class="ni"><i class="bi bi-trophy"></i></span><span>داشبورد باشگاه</span>
         </a>
       </div>
       <div class="nav-sep"></div>
       <div class="nav-group">
         <div class="nav-group-label">اعضا</div>
-        <a href="/loyalty/customers/" class="nav-link" data-theme="loyalty">
+        <a href="{% url 'loyalty_customers' %}" class="nav-link" data-theme="loyalty">
           <span class="ni"><i class="bi bi-people"></i></span><span>مشتریان باشگاه</span>
         </a>
-        <a href="/loyalty/register/" class="nav-link" data-theme="loyalty">
+        <a href="{% url 'loyalty_register' %}" class="nav-link" data-theme="loyalty">
           <span class="ni"><i class="bi bi-person-plus"></i></span><span>ثبت‌نام مشتری</span>
         </a>
       </div>
       <div class="nav-sep"></div>
       <div class="nav-group">
         <div class="nav-group-label">کوپن و جایزه</div>
-        <a href="/loyalty/coupons/" class="nav-link" data-theme="loyalty">
+        <a href="{% url 'loyalty_coupons' %}" class="nav-link" data-theme="loyalty">
           <span class="ni"><i class="bi bi-ticket-perforated"></i></span><span>کوپن‌ها</span>
         </a>
-        <a href="/loyalty/rewards/" class="nav-link" data-theme="loyalty">
+        <a href="{% url 'loyalty_rewards' %}" class="nav-link" data-theme="loyalty">
           <span class="ni"><i class="bi bi-gift"></i></span><span>جوایز</span>
         </a>
       </div>
       <div class="nav-sep"></div>
       <div class="nav-group">
         <div class="nav-group-label">ارتباطات</div>
-        <a href="/loyalty/notifications/" class="nav-link" data-theme="loyalty">
+        <a href="{% url 'loyalty_notifications' %}" class="nav-link" data-theme="loyalty">
           <span class="ni"><i class="bi bi-bell"></i></span><span>اعلان‌ها</span>
         </a>
       </div>
@@ -489,7 +489,7 @@
     <div class="sb-panel" id="sbp-accounting">
       <div class="nav-group">
         <div class="nav-group-label">گزارش‌ها</div>
-        <a href="/invoices/" class="nav-link" data-theme="accounting">
+        <a href="{% url 'invoice_list' %}" class="nav-link" data-theme="accounting">
           <span class="ni"><i class="bi bi-file-earmark-text"></i></span><span>فاکتورهای خرید</span>
         </a>
       </div>
@@ -497,7 +497,7 @@
   </div>
 
   <div class="sidebar-foot">
-    <a href="/"><i class="bi bi-house"></i><span>صفحه اصلی</span></a>
+    <a href="{% url 'home' %}"><i class="bi bi-house"></i><span>صفحه اصلی</span></a>
   </div>
 </aside>
 
@@ -517,9 +517,9 @@
       </div>
     </div>
     <div class="topbar-l">
-      <a href="/pos/" class="tb-btn" title="صندوق فروش"><i class="bi bi-credit-card"></i></a>
-      <a href="/orders/" class="tb-btn" title="سفارشات"><i class="bi bi-box-seam"></i></a>
-      <a href="/users/" class="tb-btn" title="کاربران"><i class="bi bi-people"></i></a>
+      <a href="{% url 'pos_page' %}" class="tb-btn" title="صندوق فروش"><i class="bi bi-credit-card"></i></a>
+      <a href="{% url 'orders_dashboard' %}" class="tb-btn" title="سفارشات"><i class="bi bi-box-seam"></i></a>
+      <a href="{% url 'user_management' %}" class="tb-btn" title="کاربران"><i class="bi bi-people"></i></a>
     </div>
   </div>
 
@@ -560,19 +560,19 @@
       </div>
 
       <div class="quick-grid">
-        <a href="/pos/" class="quick-btn">
+        <a href="{% url 'pos_page' %}" class="quick-btn">
           <div class="quick-btn-icon" style="background:rgba(255,107,53,0.1);color:#ff6b35"><i class="bi bi-credit-card"></i></div>
           <div class="quick-btn-label">صندوق فروش</div>
         </a>
-        <a href="/orders/" class="quick-btn">
+        <a href="{% url 'orders_dashboard' %}" class="quick-btn">
           <div class="quick-btn-icon" style="background:rgba(59,130,246,0.1);color:#3b82f6"><i class="bi bi-plus-square"></i></div>
           <div class="quick-btn-label">سفارش جدید</div>
         </a>
-        <a href="/invoices/create/" class="quick-btn">
+        <a href="{% url 'create_invoice' %}" class="quick-btn">
           <div class="quick-btn-icon" style="background:rgba(16,185,129,0.1);color:#10b981"><i class="bi bi-file-earmark-plus"></i></div>
           <div class="quick-btn-label">ثبت فاکتور</div>
         </a>
-        <a href="/kitchen/" class="quick-btn">
+        <a href="{% url 'kitchen_page' %}" class="quick-btn">
           <div class="quick-btn-icon" style="background:rgba(139,92,246,0.1);color:#8b5cf6"><i class="bi bi-fire"></i></div>
           <div class="quick-btn-label">آشپزخانه</div>
         </a>
