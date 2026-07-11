@@ -393,6 +393,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 #  Dashboard Template View
 # ═══════════════════════════════════════════
 
+@staff_member_required
 def orders_dashboard(request):
     orders = Order.objects.prefetch_related('items__food').order_by('-created_at')
 
@@ -456,12 +457,22 @@ class ReadyMaterialViewSet(viewsets.ModelViewSet):
 # ══════════════════════════════════════════════════════════════════════════════
 
 
+@login_required
 def home(request: HttpRequest):
     return render(request, "home.html")
 
 
 def auth_page(request: HttpRequest):
+    if request.user.is_authenticated:
+        return redirect("home")
     return render(request, "auth.html")
+
+
+@login_required
+def logout_page(request: HttpRequest):
+    from django.contrib.auth import logout
+    logout(request)
+    return redirect("auth_page")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -469,17 +480,20 @@ def auth_page(request: HttpRequest):
 # ══════════════════════════════════════════════════════════════════════════════
 
 
+@staff_member_required
 def purchase_invoice_list(request: HttpRequest):
     invoices = PurchaseInvoice.objects.all().order_by("-date")
     return render(request, "restaurant/invoice_list.html", {"invoices": invoices})
 
 
+@staff_member_required
 def purchase_invoice_detail(request: HttpRequest, pk: int):
     invoice = get_object_or_404(PurchaseInvoice, pk=pk)
     return render(request, "restaurant/invoice_detail.html", {"invoice": invoice})
 
 
 @csrf_protect
+@staff_member_required
 def create_purchase_invoice(request: HttpRequest):
     if request.method == "POST":
         try:
@@ -3154,6 +3168,7 @@ def loyalty_notifications_page(request: HttpRequest):
     )
 
 
+@staff_member_required
 def loyalty_register_page(request: HttpRequest):
     return render(request, "loyalty/register.html")
 

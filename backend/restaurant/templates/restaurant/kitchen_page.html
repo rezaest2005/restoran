@@ -274,9 +274,9 @@
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
                 <button class="kt-btn kt-btn-accent kt-btn-sm" onclick="ktOpenMatPlan()"><i class="bi bi-clipboard-data"></i> برنامه مواد</button>
-                <a href="/api/warehouse-inventory/" class="kt-btn kt-btn-ghost kt-btn-sm"><i class="bi bi-box-seam"></i> انبار</a>
-                <a href="/api/semi-finished-page/" class="kt-btn kt-btn-ghost kt-btn-sm"><i class="bi bi-gear"></i> نیم‌آماده</a>
-                <a href="/api/usage-log/" class="kt-btn kt-btn-ghost kt-btn-sm"><i class="bi bi-clock-history"></i> تاریخچه</a>
+                <a href="{% url 'warehouse-json' %}" class="kt-btn kt-btn-ghost kt-btn-sm"><i class="bi bi-box-seam"></i> انبار</a>
+                <a href="{% url 'semi_finished' %}" class="kt-btn kt-btn-ghost kt-btn-sm"><i class="bi bi-gear"></i> نیم‌آماده</a>
+                <a href="{% url 'usage_log' %}" class="kt-btn kt-btn-ghost kt-btn-sm"><i class="bi bi-clock-history"></i> تاریخچه</a>
             </div>
         </header>
 

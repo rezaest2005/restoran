@@ -316,9 +316,9 @@
             <p>ساخت و مدیریت محصولات آماده از مواد نیم‌آماده و اولیه</p>
         </div>
         <div style="display:flex;gap:10px;">
-            <a href="/api/semi-finished-page/" class="fp-btn fp-btn-ghost fp-btn-sm">نیم‌آماده‌ها</a>
-            <a href="/api/warehouse/" class="fp-btn fp-btn-ghost fp-btn-sm">انبار</a>
-            <a href="/api/usage-log/" class="fp-btn fp-btn-ghost fp-btn-sm">تاریخچه مصرف</a>
+            <a href="{% url 'semi_finished' %}" class="fp-btn fp-btn-ghost fp-btn-sm">نیم‌آماده‌ها</a>
+            <a href="{% url 'warehouse-json' %}" class="fp-btn fp-btn-ghost fp-btn-sm">انبار</a>
+            <a href="{% url 'usage_log' %}" class="fp-btn fp-btn-ghost fp-btn-sm">تاریخچه مصرف</a>
             <button class="fp-btn fp-btn-primary" onclick="fpOpenCreate()">+ محصول جدید</button>
         </div>
     </div>
