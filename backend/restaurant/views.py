@@ -459,7 +459,7 @@ class ReadyMaterialViewSet(viewsets.ModelViewSet):
 
 @login_required
 def home(request: HttpRequest):
-    return render(request, "home.html")
+    return render(request, "admin/index.html")
 
 
 def auth_page(request: HttpRequest):
