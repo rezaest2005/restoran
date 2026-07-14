@@ -19,7 +19,7 @@ import re
 import datetime
 from django.db.models import Sum,F, Q
 from django.utils import timezone
-from decimal import Decimal
+from decimal import Decimal,InvalidOperation
 from io import StringIO
 import requests
 import json
@@ -590,12 +590,25 @@ def _attach_invoice_items(invoice: PurchaseInvoice, post_data) -> int:
 
 
 def _update_raw_material_stock(name: str, qty: float, unit: str, price: int):
-    """اگر ماده اولیه وجود دارد → موجودی اضافه کن، وگرنه بساز."""
+    """اگر ماده اولیه وجود دارد → موجودی اضافه + قیمت آپدیت + جابجایی انبار."""
     mat = RawMaterial.objects.filter(name__iexact=name).first()
     if mat:
-        mat.quantity = float(mat.quantity) + float(qty)
+        old_price = mat.price
+        old_stock = float(mat.quantity)
+
+        mat.quantity = old_stock + float(qty)
         mat.price = price
         mat.save()
+
+        InventoryMovement.objects.create(
+            raw_material   = mat,
+            movement_type  = 'in',
+            quantity       = qty,
+            previous_stock = old_stock,
+            new_stock      = mat.quantity,
+            reference_type = 'PurchaseInvoice',
+            notes          = 'ثبت از فاکتور خرید',
+        )
     else:
         RawMaterial.objects.create(
             name=name, label="", price=price, unit=unit, quantity=int(qty)
@@ -1008,7 +1021,6 @@ def warehouse_json(request: HttpRequest):
 #  Staff-Only Page Views
 # ══════════════════════════════════════════════════════════════════════════════
 
-
 @staff_member_required
 def create_invoice_view(request: HttpRequest):
     categories = Category.objects.filter(is_active=True).order_by('order')
@@ -1024,7 +1036,6 @@ def create_invoice_view(request: HttpRequest):
             "categories_json": categories_json,
         },
     )
-
 
 @staff_member_required
 def raw_materials_view(request: HttpRequest):
