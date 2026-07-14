@@ -33,7 +33,7 @@
 .page-header p { color: var(--text-sec); font-size: .95rem; font-weight: 300; }
 
 .card {
-    background: var(--surface); border: 1px solid var(--border);
+    background: #fff; border: 1px solid var(--border);
     border-radius: var(--radius); padding: 28px; margin-bottom: 20px;
     box-shadow: var(--shadow); opacity: 0; animation: fadeUp .6s ease both;
 }
@@ -56,7 +56,7 @@
 .field input, .field textarea, .field select {
     width: 100%; padding: 11px 14px; border: 1.5px solid var(--border);
     border-radius: var(--radius-sm); font-family: inherit; font-size: .93rem;
-    color: var(--text); background: var(--surface);
+    color: var(--text); background: #fff;
     transition: border-color .2s, box-shadow .2s; outline: none;
 }
 .field input:focus, .field textarea:focus, .field select:focus {
@@ -81,7 +81,7 @@
 }
 .excel-modal-overlay.active { display: flex; }
 .excel-modal {
-    background: var(--surface); border-radius: var(--radius); width: 92%;
+    background: #fff; border-radius: var(--radius); width: 92%;
     max-width: 520px; box-shadow: 0 20px 60px rgba(41,37,36,.2);
     animation: excelIn .35s ease; overflow: hidden;
 }
@@ -108,7 +108,7 @@
 .em-upload-zone .em-sub { font-size: .82rem; color: var(--text-sec); margin-bottom: 4px; }
 .em-upload-zone .em-sub span { color: var(--accent); font-weight: 600; cursor: pointer; }
 .em-upload-zone .em-formats { font-size: .72rem; color: #aaa; margin-top: 8px; }
-.em-upload-zone .em-file { display: none; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; padding: 12px 18px; background: var(--surface); border: 1px solid var(--success); border-radius: var(--radius-sm); font-size: .88rem; font-weight: 600; color: var(--success); }
+.em-upload-zone .em-file { display: none; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; padding: 12px 18px; background: #fff; border: 1px solid var(--success); border-radius: var(--radius-sm); font-size: .88rem; font-weight: 600; color: var(--success); }
 .em-upload-zone.has-file .em-file { display: inline-flex; }
 .em-upload-zone .em-file svg { width: 18px; height: 18px; }
 .em-upload-zone .spinner { width: 40px; height: 40px; border: 3.5px solid var(--border); border-top-color: var(--success); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto; display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
@@ -116,7 +116,7 @@
 .em-upload-zone.loading .em-icon, .em-upload-zone.loading .em-title, .em-upload-zone.loading .em-sub, .em-upload-zone.loading .em-formats { opacity: .15; }
 .em-upload-zone input[type=file] { display: none; }
 .em-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: space-between; align-items: center; }
-.em-btn-tmpl { display: inline-flex; align-items: center; gap: 5px; padding: 9px 18px; border: 1.5px solid var(--accent-border); border-radius: var(--radius-sm); background: var(--surface); color: var(--accent); font-family: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; transition: all .2s; }
+.em-btn-tmpl { display: inline-flex; align-items: center; gap: 5px; padding: 9px 18px; border: 1.5px solid var(--accent-border); border-radius: var(--radius-sm); background: #fff; color: var(--accent); font-family: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; transition: all .2s; }
 .em-btn-tmpl:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 .em-btn-tmpl svg { width: 15px; height: 15px; flex-shrink: 0; }
 .em-btn-done { padding: 10px 28px; border: none; border-radius: var(--radius-sm); background: var(--success); color: #fff; font-family: inherit; font-size: .9rem; font-weight: 700; cursor: pointer; transition: all .2s; display: none; }
@@ -161,7 +161,7 @@
 .form-actions { display: flex; gap: 12px; justify-content: flex-start; margin-top: 24px; flex-wrap: wrap; opacity: 0; animation: fadeUp .6s ease both; }
 .btn-primary { padding: 13px 40px; border: none; border-radius: var(--radius-sm); background: var(--accent); color: #fff; font-family: inherit; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all .2s; box-shadow: var(--shadow); }
 .btn-primary:hover { background: var(--accent-hover); box-shadow: var(--shadow-md); transform: translateY(-1px); }
-.btn-secondary { padding: 13px 28px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text-sec); font-family: inherit; font-size: .95rem; font-weight: 500; cursor: pointer; transition: all .2s; }
+.btn-secondary { padding: 13px 28px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: #fff; color: var(--text-sec); font-family: inherit; font-size: .95rem; font-weight: 500; cursor: pointer; transition: all .2s; }
 .btn-secondary:hover { border-color: var(--text-sec); color: var(--text); }
 .btn-preview { padding: 13px 28px; border: 1.5px solid var(--accent-border); border-radius: var(--radius-sm); background: var(--accent-light); color: var(--accent); font-family: inherit; font-size: .95rem; font-weight: 600; cursor: pointer; transition: all .2s; display: inline-flex; align-items: center; gap: 8px; }
 .btn-preview:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
@@ -235,14 +235,14 @@
 .modal-footer .btn-confirm svg { width: 18px; height: 18px; }
 
 .supplier-input-wrap { display: flex; gap: 8px; align-items: stretch; }
-.supplier-input-wrap input { flex: 1; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; font-size: .93rem; color: var(--text); background: var(--surface); outline: none; transition: border-color .2s, box-shadow .2s; }
+.supplier-input-wrap input { flex: 1; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; font-size: .93rem; color: var(--text); background: #fff; outline: none; transition: border-color .2s, box-shadow .2s; }
 .supplier-input-wrap input.supplier-warning { border-color: #eab308 !important; background: #fefce8 !important; box-shadow: 0 0 0 3px rgba(234,179,8,.15) !important; }
 .supplier-input-wrap input.supplier-found { border-color: var(--success) !important; background: var(--success-bg) !important; box-shadow: 0 0 0 3px rgba(22,163,74,.12) !important; }
 .supplier-input-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(181,133,58,.12); }
 .btn-add-supplier { display: inline-flex; align-items: center; gap: 6px; padding: 11px 18px; border: 1.5px solid var(--accent-border); border-radius: var(--radius-sm); background: var(--accent-light); color: var(--accent); font-family: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; transition: all .2s; white-space: nowrap; }
 .btn-add-supplier:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 .btn-add-supplier svg { width: 16px; height: 16px; flex-shrink: 0; }
-.supplier-dropdown { position: absolute; top: 100%; right: 0; left: 0; z-index: 99999; background: var(--surface); border: 1.5px solid var(--accent-border); border-radius: var(--radius-sm); box-shadow: 0 8px 24px rgba(41,37,36,.15); list-style: none; max-height: 220px; overflow-y: auto; display: none; margin: 4px 0 0; padding: 4px 0; }
+.supplier-dropdown { position: absolute; top: 100%; right: 0; left: 0; z-index: 99999; background: #fff; border: 1.5px solid var(--accent-border); border-radius: var(--radius-sm); box-shadow: 0 8px 24px rgba(41,37,36,.15); list-style: none; max-height: 220px; overflow-y: auto; display: none; margin: 4px 0 0; padding: 4px 0; }
 .supplier-dropdown.show { display: block; }
 .supplier-dropdown li { padding: 10px 16px; cursor: pointer; text-align: right; transition: background .15s; border-bottom: 1px solid var(--border); font-size: .88rem; }
 .supplier-dropdown li:last-child { border-bottom: none; }
@@ -255,7 +255,7 @@
 
 .supplier-modal-overlay { position: fixed; inset: 0; background: rgba(41,37,36,.45); z-index: 99998; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
 .supplier-modal-overlay.active { display: flex; }
-.supplier-modal { background: var(--surface); border-radius: var(--radius); width: 92%; max-width: 520px; box-shadow: 0 20px 60px rgba(41,37,36,.2); animation: smIn .3s ease; overflow: hidden; }
+.supplier-modal { background: #fff; border-radius: var(--radius); width: 92%; max-width: 520px; box-shadow: 0 20px 60px rgba(41,37,36,.2); animation: smIn .3s ease; overflow: hidden; }
 .sm-header { display: flex; align-items: center; gap: 10px; padding: 20px 24px; border-bottom: 1px solid var(--border); }
 .sm-header svg { width: 22px; height: 22px; color: var(--accent); flex-shrink: 0; }
 .sm-header h3 { font-size: 1.1rem; font-weight: 700; flex: 1; }
@@ -274,19 +274,129 @@
 .sm-btn-cancel:hover { border-color: var(--text-sec); color: var(--text); }
 @media (max-width: 500px) { .sm-row { grid-template-columns: 1fr; } }
 
+/* ═══ تقویم شمسی ═══ */
+.shamsi-field { position: relative; }
+.shamsi-input-wrap {
+    position: relative; display: flex; align-items: center;
+}
+.shamsi-input-wrap input {
+    width: 100%; padding: 11px 40px 11px 14px; border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm); font-family: inherit; font-size: .93rem;
+    color: var(--text); background: #fff; cursor: pointer;
+    transition: border-color .2s, box-shadow .2s; outline: none;
+}
+.shamsi-input-wrap input:focus,
+.shamsi-input-wrap:hover input { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(181,133,58,.12); }
+.shamsi-input-wrap .cal-icon {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    width: 20px; height: 20px; color: var(--accent); pointer-events: none;
+}
+
+.shamsi-cal {
+    position: absolute; top: calc(100% + 6px); right: 0; z-index: 99999;
+    background: #fff; border: 1.5px solid var(--accent-border);
+    border-radius: var(--radius); padding: 18px;
+    box-shadow: 0 12px 36px rgba(41,37,36,.16);
+    width: 310px; display: none;
+    animation: calSlideIn .25s ease;
+}
+.shamsi-cal.open { display: block; }
+
+.cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.cal-head-title { font-size: .95rem; font-weight: 700; color: var(--text); user-select: none; }
+.cal-nav-btn {
+    width: 34px; height: 34px; border: 1.5px solid var(--border);
+    border-radius: 8px; background: #fff; color: var(--text-sec);
+    font-size: 1.1rem; cursor: pointer; display: flex;
+    align-items: center; justify-content: center; transition: all .2s;
+    font-family: inherit;
+}
+.cal-nav-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.cal-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 2px; text-align: center;
+}
+.cal-dow {
+    font-size: .7rem; font-weight: 600; color: var(--accent);
+    padding: 8px 0; user-select: none;
+}
+.cal-day {
+    padding: 8px 0; border-radius: 8px; font-size: .85rem;
+    color: var(--text); cursor: pointer; transition: all .15s;
+    line-height: 1; user-select: none;
+}
+.cal-day:hover { background: var(--accent-light); }
+.cal-day.today {
+    border: 1.5px solid var(--accent); font-weight: 700;
+}
+.cal-day.selected {
+    background: var(--accent); color: #fff; font-weight: 700;
+}
+.cal-day.selected:hover { background: var(--accent-hover); }
+.cal-day.empty { cursor: default; }
+.cal-day.empty:hover { background: transparent; }
+.cal-today-btn {
+    display: block; width: 100%; margin-top: 14px; padding: 8px;
+    border: 1.5px solid var(--accent-border); border-radius: 8px;
+    background: var(--accent-light); color: var(--accent);
+    font-family: inherit; font-size: .82rem; font-weight: 600;
+    cursor: pointer; transition: all .2s; text-align: center;
+}
+.cal-today-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ═══ اتوکمپلیت آیتم (پیشرفته) ═══ */
+.item-autocomplete {
+    position: fixed; display: none; z-index: 999999;
+    background: #fff; border: 1.5px solid var(--accent-border);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 8px 24px rgba(41,37,36,.18);
+    list-style: none; margin: 0; padding: 4px 0;
+    max-height: 240px; overflow-y: auto;
+    font-family: inherit; font-size: .88rem; direction: rtl;
+}
+.item-autocomplete .ac-item {
+    padding: 10px 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: background .15s; border-bottom: 1px solid #f5f0e8;
+    gap: 12px;
+}
+.item-autocomplete .ac-item:last-child { border-bottom: none; }
+.item-autocomplete .ac-item:hover { background: var(--accent-light); }
+.item-autocomplete .ac-name {
+    font-weight: 600; color: var(--text); font-size: .9rem;
+    flex: 1; text-align: right; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+}
+.item-autocomplete .ac-price {
+    color: var(--accent); font-weight: 700; font-size: .82rem;
+    white-space: nowrap; font-family: 'DM Mono', monospace;
+    background: var(--accent-light); padding: 3px 10px;
+    border-radius: 20px; direction: ltr;
+}
+.item-autocomplete .ac-unit {
+    color: var(--text-sec); font-size: .72rem; font-weight: 500;
+    white-space: nowrap;
+}
+.item-autocomplete .ac-empty {
+    padding: 16px; text-align: center; color: var(--text-sec);
+    font-size: .85rem; cursor: default;
+}
+.item-autocomplete .ac-empty:hover { background: transparent; }
+
 @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes rowIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
 @keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
 @keyframes smIn { from { opacity: 0; transform: scale(.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 @keyframes excelIn { from { opacity: 0; transform: scale(.92) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes calSlideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 {% endblock %}
 
 {% block content %}
 <div id="toast-box"></div>
 
-<!-- ═══ مودال پیش‌نمایش ═══ -->
+<!-- مودال پیش‌نمایش -->
 <div class="modal-overlay" id="preview-modal">
 <div class="modal-box">
     <div class="modal-header">
@@ -316,7 +426,7 @@
 </div>
 </div>
 
-<!-- ═══ مودال اکسل ═══ -->
+<!-- مودال اکسل -->
 <div class="excel-modal-overlay" id="excel-modal">
 <div class="excel-modal">
     <div class="em-header">
@@ -353,7 +463,7 @@
 </div>
 </div>
 
-<!-- ═══ مودال تأمین‌کننده ═══ -->
+<!-- مودال تأمین‌کننده -->
 <div class="supplier-modal-overlay" id="supplier-modal">
 <div class="supplier-modal">
     <div class="sm-header">
@@ -378,7 +488,7 @@
 </div>
 </div>
 
-<!-- ═══ مودال مدیریت دسته‌بندی‌ها ═══ -->
+<!-- مودال مدیریت دسته‌بندی‌ها -->
 <div class="supplier-modal-overlay" id="cat-modal">
 <div class="supplier-modal">
     <div class="sm-header">
@@ -402,7 +512,7 @@
 </div>
 </div>
 
-<!-- ═══ محتوای اصلی ═══ -->
+<!-- محتوای اصلی -->
 <div class="container">
 <header class="page-header" style="animation-delay:0s">
     <h1>ثبت فاکتور خرید</h1>
@@ -412,7 +522,7 @@
 <form method="post" enctype="multipart/form-data" id="invoice-form" action="{% url 'create_invoice' %}">
     {% csrf_token %}
 
-    <!-- ═══ کارت اطلاعات فاکتور ═══ -->
+    <!-- کارت اطلاعات فاکتور -->
     <div class="card" style="animation-delay:.1s">
     <div class="card-head">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
@@ -431,12 +541,26 @@
         <ul class="supplier-dropdown" id="supplier-dropdown"></ul>
         </div>
         <div class="field"><label>شماره فاکتور</label><input type="text" name="invoice_number" placeholder="اختیاری"></div>
-        <div class="field"><label>تاریخ *</label><input type="date" name="date" required id="date-input"></div>
+
+        <!-- ══ تاریخ شمسی ══ -->
+        <div class="field shamsi-field" id="shamsi-field">
+            <label>تاریخ *</label>
+            <div class="shamsi-input-wrap">
+                <input type="text" id="shamsi-date-display" readonly
+                       placeholder="انتخاب تاریخ..." required>
+                <svg class="cal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+            </div>
+            <input type="hidden" name="date" id="gregorian-date" required>
+            <div class="shamsi-cal" id="shamsi-cal"></div>
+        </div>
+
         <div class="field"><label>توضیحات</label><input type="text" name="description" placeholder="یادداشت یا توضیح اضافی"></div>
     </div>
     </div>
 
-    <!-- ═══ کارت اقلام فاکتور ═══ -->
+    <!-- کارت اقلام فاکتور -->
     <div class="card" style="animation-delay:.3s">
     <div class="card-head">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
@@ -459,7 +583,6 @@
         </button>
     </div>
 
-    <!-- ══ جدول اقلام (tbody واحد) ══ -->
     <div class="table-wrap" id="table-wrap" style="display:none">
         <table class="inv-table">
         <thead>
@@ -484,7 +607,7 @@
     </div>
     </div>
 
-    <!-- ═══ کارت خلاصه ═══ -->
+    <!-- کارت خلاصه -->
     <div class="card" style="animation-delay:.4s">
     <div class="summary-grid">
         <div class="summary-box">
@@ -498,7 +621,7 @@
     </div>
     </div>
 
-    <!-- ═══ دکمه‌های عملیات ═══ -->
+    <!-- دکمه‌های عملیات -->
     <div class="form-actions" style="animation-delay:.5s">
     <button type="submit" class="btn-primary" id="submit-btn">ثبت فاکتور</button>
     <button type="button" class="btn-preview" id="preview-btn">
@@ -517,11 +640,11 @@
 document.addEventListener('DOMContentLoaded', function () {
 'use strict';
 
-// ═══════════════════════════════════════════
-//  بخش ۱: ثابت‌ها و DOM
-// ═══════════════════════════════════════════
 var $ = function (id) { return document.getElementById(id); };
 
+/* ═══════════════════════════════════════════
+   بخش ۱: ثابت‌ها و DOM
+   ═══════════════════════════════════════════ */
 var UNIT_OPTIONS = [
     { value: 'kg',    label: 'کیلوگرم' },
     { value: 'g',     label: 'گرم' },
@@ -546,7 +669,13 @@ var DEFAULT_CATEGORIES = [
     { value: 'cleaning',  label: 'شستشو و بهداشت' }
 ];
 
-// ══ فقط یک بار هر المان را بگیر ══
+var SHAMSI_MONTHS = [
+    'فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور',
+    'مهر','آبان','آذر','دی','بهمن','اسفند'
+];
+var SHAMSI_DOW = ['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنجشنبه','جمعه'];
+var SHAMSI_DOW_SHORT = ['ش','ی','د','س','چ','پ','ج'];
+
 var tbody     = $('invoice-tbody');
 var tableWrap = $('table-wrap');
 var emptySt   = $('empty-state');
@@ -556,381 +685,464 @@ var sumCount  = $('sum-count');
 var sumTotal  = $('sum-total');
 var rowIdx    = 0;
 
-// ── دیباگ ──
-console.log('[Init] tbody:', tbody, '| add-row-btn:', $('add-row-btn'));
-if (!tbody) console.error('⛔ tbody#invoice-tbody پیدا نشد!');
-if (!$('add-row-btn')) console.error('⛔ #add-row-btn پیدا نشد!');
+/* ═══════════════════════════════════════════
+   بخش ۲: تبدیل تاریخ شمسی ↔ میلادی
+   ═══════════════════════════════════════════ */
+function gregorianToShamsi(gy, gm, gd) {
+    var g_d_m = [0,31,59,90,120,151,181,212,243,273,304,334];
+    var gy2 = (gm > 2) ? (gy + 1) : gy;
+    var days = 355666 + (365 * gy) + Math.floor((gy2 + 3) / 4)
+             - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400)
+             + gd + g_d_m[gm - 1];
+    var jy = -1595 + (33 * Math.floor(days / 12053));
+    days %= 12053;
+    jy += 4 * Math.floor(days / 1461);
+    days %= 1461;
+    if (days > 365) { jy += Math.floor((days - 1) / 365); days = (days - 1) % 365; }
+    var jm, jd;
+    if (days < 186) { jm = 1 + Math.floor(days / 31); jd = 1 + (days % 31); }
+    else { jm = 7 + Math.floor((days - 186) / 30); jd = 1 + ((days - 186) % 30); }
+    return [jy, jm, jd];
+}
 
-// ═══════════════════════════════════════════
-//  بخش ۲: توابع دسته‌بندی
-// ═══════════════════════════════════════════
+function shamsiToGregorian(jy, jm, jd) {
+    jy += 1595;
+    var days = -355668 + (365 * jy) + (Math.floor(jy / 33) * 8)
+             + Math.floor(((jy % 33) + 3) / 4) + jd;
+    if (jm < 7) days += (jm - 1) * 31;
+    else days += (jm - 7) * 30 + 186;
+    var gy = 400 * Math.floor(days / 146097);
+    days %= 146097;
+    if (days > 36524) {
+        days--; gy += 100 * Math.floor(days / 36524);
+        days %= 36524; if (days >= 365) days++;
+    }
+    gy += 4 * Math.floor(days / 1461);
+    days %= 1461;
+    if (days > 365) { gy += Math.floor((days - 1) / 365); days = (days - 1) % 365; }
+    var gd = days + 1;
+    var monthDays = [0,31,28,31,30,31,30,31,31,30,31,30,31];
+    if ((gy % 4 === 0 && gy % 100 !== 0) || (gy % 400 === 0)) monthDays[2] = 29;
+    var gm;
+    for (gm = 1; gm <= 12; gm++) {
+        if (gd <= monthDays[gm]) break;
+        gd -= monthDays[gm];
+    }
+    return [gy, gm, gd];
+}
+
+function isShamsiLeap(jy) {
+    var ref = [1,5,9,13,17,22,26,30,34,38,43,47,51,55,59,63,67,71,75,79,83,88,92,96];
+    var r = ((jy - 474) % 2820) % 128;
+    for (var i = 0; i < ref.length; i++) { if (ref[i] === r) return true; }
+    return false;
+}
+
+function shamsiDaysInMonth(jy, jm) {
+    if (jm <= 6) return 31;
+    if (jm <= 11) return 30;
+    return isShamsiLeap(jy) ? 30 : 29;
+}
+
+/* ═══════════════════════════════════════════
+   بخش ۳: تقویم شمسی
+   ═══════════════════════════════════════════ */
+var calState = { year: 0, month: 0, selectedJY: 0, selectedJM: 0, selectedJD: 0 };
+var calOpen = false;
+
+function initShamsiDate() {
+    var now = new Date();
+    var s = gregorianToShamsi(now.getFullYear(), now.getMonth() + 1, now.getDate());
+    calState.selectedJY = s[0];
+    calState.selectedJM = s[1];
+    calState.selectedJD = s[2];
+    calState.year = s[0];
+    calState.month = s[1];
+    applyShamsiDate(s[0], s[1], s[2]);
+    renderCalendar();
+}
+
+function applyShamsiDate(jy, jm, jd) {
+    var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+    var display = toPersianNum(jy + '/' + pad(jm) + '/' + pad(jd));
+    var dispEl = $('shamsi-date-display');
+    if (dispEl) dispEl.value = display;
+
+    var greg = shamsiToGregorian(jy, jm, jd);
+    var gregEl = $('gregorian-date');
+    if (gregEl) gregEl.value = greg[0] + '-' + pad(greg[1]) + '-' + pad(greg[2]);
+}
+
+function openCalendar() {
+    var cal = $('shamsi-cal'); if (!cal) return;
+    renderCalendar();
+    cal.classList.add('open');
+    calOpen = true;
+}
+
+function closeCalendar() {
+    var cal = $('shamsi-cal'); if (!cal) return;
+    cal.classList.remove('open');
+    calOpen = false;
+}
+
+function renderCalendar() {
+    var cal = $('shamsi-cal'); if (!cal) return;
+    var jy = calState.year, jm = calState.month;
+    var daysInMonth = shamsiDaysInMonth(jy, jm);
+
+    // روز اول ماه شمسی در هفته میلادی
+    var greg1 = shamsiToGregorian(jy, jm, 1);
+    var dow = new Date(greg1[0], greg1[1] - 1, greg1[2]).getDay();
+    // شنبه = 0
+    var startOffset = (dow + 1) % 7;
+
+    var todayS = gregorianToShamsi(new Date().getFullYear(), new Date().getMonth() + 1, new Date().getDate());
+
+    var html = '<div class="cal-head">';
+    html += '<button type="button" class="cal-nav-btn" id="cal-prev">&rsaquo;</button>';
+    html += '<span class="cal-head-title">' + SHAMSI_MONTHS[jm - 1] + ' ' + toPersianNum(jy) + '</span>';
+    html += '<button type="button" class="cal-nav-btn" id="cal-next">&lsaquo;</button>';
+    html += '</div>';
+    html += '<div class="cal-grid">';
+
+    // هدر روزهای هفته
+    SHAMSI_DOW_SHORT.forEach(function (d) {
+        html += '<div class="cal-dow">' + d + '</div>';
+    });
+
+    // خانه‌های خالی قبل از روز اول
+    for (var i = 0; i < startOffset; i++) {
+        html += '<div class="cal-day empty"></div>';
+    }
+
+    // خانه‌های روزها
+    for (var d = 1; d <= daysInMonth; d++) {
+        var cls = 'cal-day';
+        var isToday = (d === todayS[1] && jm === todayS[0] && jy === todayS[2 - 2 + 2]);
+        // bug fix:
+        isToday = (d === todayS[2] && jm === todayS[1] && jy === todayS[0]);
+        var isSelected = (d === calState.selectedJD && jm === calState.selectedJM && jy === calState.selectedJY);
+
+        if (isToday) cls += ' today';
+        if (isSelected) cls += ' selected';
+        html += '<div class="' + cls + '" data-day="' + d + '">' + toPersianNum(d) + '</div>';
+    }
+
+    html += '</div>';
+    html += '<button type="button" class="cal-today-btn" id="cal-today">برو به امروز</button>';
+
+    cal.innerHTML = html;
+
+    // رویدادها
+    $('cal-prev').addEventListener('click', function (e) {
+        e.stopPropagation();
+        calState.month--;
+        if (calState.month < 1) { calState.month = 12; calState.year--; }
+        renderCalendar();
+    });
+    $('cal-next').addEventListener('click', function (e) {
+        e.stopPropagation();
+        calState.month++;
+        if (calState.month > 12) { calState.month = 1; calState.year++; }
+        renderCalendar();
+    });
+    $('cal-today').addEventListener('click', function (e) {
+        e.stopPropagation();
+        var t = gregorianToShamsi(new Date().getFullYear(), new Date().getMonth() + 1, new Date().getDate());
+        calState.year = t[0]; calState.month = t[1];
+        calState.selectedJY = t[0]; calState.selectedJM = t[1]; calState.selectedJD = t[2];
+        applyShamsiDate(t[0], t[1], t[2]);
+        renderCalendar();
+        closeCalendar();
+    });
+
+    cal.querySelectorAll('.cal-day:not(.empty)').forEach(function (el) {
+        el.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var day = parseInt(this.dataset.day, 10);
+            calState.selectedJY = calState.year;
+            calState.selectedJM = calState.month;
+            calState.selectedJD = day;
+            applyShamsiDate(calState.year, calState.month, day);
+            renderCalendar();
+            setTimeout(closeCalendar, 150);
+        });
+    });
+}
+
+// رویدادهای تقویم
+var shamsiField = $('shamsi-field');
+if (shamsiField) {
+    shamsiField.addEventListener('click', function (e) {
+        if (!e.target.closest('.shamsi-cal')) {
+            calOpen ? closeCalendar() : openCalendar();
+        }
+    });
+}
+document.addEventListener('click', function (e) {
+    if (calOpen && !e.target.closest('#shamsi-field')) closeCalendar();
+});
+
+/* ═══════════════════════════════════════════
+   بخش ۴: توابع دسته‌بندی
+   ═══════════════════════════════════════════ */
 function getCategories() {
     var saved = localStorage.getItem('invoice_categories');
-    if (saved) {
-        try { return JSON.parse(saved); }
-        catch (e) { /* ignore */ }
-    }
+    if (saved) { try { return JSON.parse(saved); } catch (e) {} }
     return DEFAULT_CATEGORIES.slice();
 }
-
-function saveCategories(list) {
-    localStorage.setItem('invoice_categories', JSON.stringify(list));
-}
+function saveCategories(list) { localStorage.setItem('invoice_categories', JSON.stringify(list)); }
 
 function buildCategorySelect(sel) {
     var cats = getCategories();
     var html = '<option value="">— انتخاب —</option>';
     cats.forEach(function (c) {
-        html += '<option value="' + c.value + '"' +
-                (c.value === sel ? ' selected' : '') + '>' +
-                c.label + '</option>';
+        html += '<option value="' + c.value + '"' + (c.value === sel ? ' selected' : '') + '>' + c.label + '</option>';
     });
-    html += '<option value="__other__"' +
-            (sel === '__other__' ||
-             (sel && sel !== '' && !cats.find(function (x) { return x.value === sel; }))
-             ? ' selected' : '') +
-            '>✏️ سایر (تایپ دلخواه)</option>';
+    html += '<option value="__other__"' + (sel === '__other__' || (sel && sel !== '' && !cats.find(function (x) { return x.value === sel; })) ? ' selected' : '') + '>✏️ سایر</option>';
     return html;
 }
-
 function getCategoryLabel(val) {
     if (!val) return '—';
-    var cats = getCategories();
-    var found = cats.find(function (c) { return c.value === val; });
+    var found = getCategories().find(function (c) { return c.value === val; });
     return found ? found.label : val;
 }
-
 function handleCategoryChange(selectEl) {
     var td = selectEl.parentElement;
     var oldInput = td.querySelector('.custom-cat-input');
     if (oldInput) oldInput.remove();
-
     if (selectEl.value === '__other__') {
         var inp = document.createElement('input');
-        inp.type = 'text';
-        inp.className = 'custom-cat-input';
+        inp.type = 'text'; inp.className = 'custom-cat-input';
         inp.placeholder = 'نام دسته‌بندی دلخواه...';
         inp.style.cssText = 'width:100%;padding:6px 8px;border:1.5px solid var(--accent);border-radius:8px;font-family:inherit;font-size:.82rem;margin-top:4px;text-align:center;outline:none;';
-        td.appendChild(inp);
-        inp.focus();
-        inp.addEventListener('input', function () {
-            selectEl.dataset.customValue = inp.value.trim();
-        });
-        inp.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
-        });
-    } else {
-        delete selectEl.dataset.customValue;
-    }
+        td.appendChild(inp); inp.focus();
+        inp.addEventListener('input', function () { selectEl.dataset.customValue = inp.value.trim(); });
+        inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } });
+    } else { delete selectEl.dataset.customValue; }
 }
-
 function refreshAllCategorySelects() {
     document.querySelectorAll('[name="category"]').forEach(function (sel) {
         var currentVal = sel.value;
-        if (currentVal !== '__other__') {
-            var oldInp = sel.parentElement.querySelector('.custom-cat-input');
-            if (oldInp) oldInp.remove();
-        }
+        if (currentVal !== '__other__') { var oldInp = sel.parentElement.querySelector('.custom-cat-input'); if (oldInp) oldInp.remove(); }
         sel.innerHTML = buildCategorySelect(currentVal);
         sel.onchange = function () { handleCategoryChange(this); };
     });
 }
 
-// ═══════════════════════════════════════════
-//  بخش ۳: توابع کمکی
-// ═══════════════════════════════════════════
-function escapeHtml(str) {
-    var d = document.createElement('div');
-    d.textContent = str || '';
-    return d.innerHTML;
-}
+/* ═══════════════════════════════════════════
+   بخش ۵: توابع کمکی
+   ═══════════════════════════════════════════ */
+function escapeHtml(str) { var d = document.createElement('div'); d.textContent = str || ''; return d.innerHTML; }
+function toPersianNum(n) { var d = '۰۱۲۳۴۵۶۷۸۹'; return String(n).replace(/\d/g, function (c) { return d[c]; }); }
+function formatPrice(n) { return toPersianNum(Math.round(n).toLocaleString('en')); }
+function getCookie(name) { var arr = document.cookie.split(';'); for (var i = 0; i < arr.length; i++) { var parts = arr[i].trim().split('='); if (parts[0] === name) return decodeURIComponent(parts.slice(1).join('=')); } return ''; }
+function buildUnitSelect(sel) { return UNIT_OPTIONS.map(function (u) { return '<option value="' + u.value + '"' + (u.value === sel ? ' selected' : '') + '>' + u.label + '</option>'; }).join(''); }
+function getUnitLabel(val) { var u = UNIT_OPTIONS.find(function (o) { return o.value === val; }); return u ? u.label : val; }
+function addCommas(raw) { if (!raw && raw !== '0') return ''; var s = String(raw).replace(/,/g, ''); var parts = s.split('.'); parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ','); return parts.join('.'); }
+function stripCommas(s) { return parseFloat(String(s).replace(/,/g, '')) || 0; }
+function showToast(msg, type) { type = type || 'success'; var box = $('toast-box'); if (!box) return; var t = document.createElement('div'); t.className = 'toast toast-' + type; t.textContent = msg; box.appendChild(t); requestAnimationFrame(function () { t.classList.add('show'); }); setTimeout(function () { t.classList.remove('show'); setTimeout(function () { t.remove(); }, 350); }, 3500); }
+function handleFormattedInput(e, allowDecimal) { var input = e.target; var cursorPos = input.selectionStart; var oldVal = input.value; var raw = allowDecimal ? oldVal.replace(/[^\d.]/g, '') : oldVal.replace(/[^\d]/g, ''); if (allowDecimal) { var fi = raw.indexOf('.'); if (fi !== -1) raw = raw.substring(0, fi + 1) + raw.substring(fi + 1).replace(/\./g, ''); } if (!raw) { input.value = ''; input.dataset.rawValue = '0'; var tr = input.closest('tr'); if (tr) calcRow(tr); return; } var formatted = addCommas(raw); input.value = formatted; input.dataset.rawValue = raw; var diff = formatted.length - oldVal.length; input.setSelectionRange(Math.max(0, cursorPos + diff), Math.max(0, cursorPos + diff)); var row = input.closest('tr'); if (row) calcRow(row); }
+function safeBind(id, event, fn) { var el = $(id); if (el) el.addEventListener(event, fn); }
+function debounce(fn, delay) { var t; return function () { var args = arguments, ctx = this; clearTimeout(t); t = setTimeout(function () { fn.apply(ctx, args); }, delay); }; }
 
-function toPersianNum(n) {
-    var d = '۰۱۲۳۴۵۶۷۸۹';
-    return String(n).replace(/\d/g, function (c) { return d[c]; });
-}
-
-function formatPrice(n) {
-    return toPersianNum(Math.round(n).toLocaleString('en'));
-}
-
-function getCookie(name) {
-    var arr = document.cookie.split(';');
-    for (var i = 0; i < arr.length; i++) {
-        var parts = arr[i].trim().split('=');
-        if (parts[0] === name) return decodeURIComponent(parts.slice(1).join('='));
-    }
-    return '';
-}
-
-function buildUnitSelect(sel) {
-    return UNIT_OPTIONS.map(function (u) {
-        return '<option value="' + u.value + '"' +
-            (u.value === sel ? ' selected' : '') + '>' +
-            u.label + '</option>';
-    }).join('');
-}
-
-function getUnitLabel(val) {
-    var u = UNIT_OPTIONS.find(function (o) { return o.value === val; });
-    return u ? u.label : val;
-}
-
-function addCommas(raw) {
-    if (!raw && raw !== '0') return '';
-    var s = String(raw).replace(/,/g, '');
-    var parts = s.split('.');
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    return parts.join('.');
-}
-
-function stripCommas(s) {
-    return parseFloat(String(s).replace(/,/g, '')) || 0;
-}
-
-function showToast(msg, type) {
-    type = type || 'success';
-    var box = $('toast-box'); if (!box) return;
-    var t = document.createElement('div');
-    t.className = 'toast toast-' + type;
-    t.textContent = msg;
-    box.appendChild(t);
-    requestAnimationFrame(function () { t.classList.add('show'); });
-    setTimeout(function () {
-        t.classList.remove('show');
-        setTimeout(function () { t.remove(); }, 350);
-    }, 3500);
-}
-
-function handleFormattedInput(e, allowDecimal) {
-    var input = e.target;
-    var cursorPos = input.selectionStart;
-    var oldVal = input.value;
-    var raw = allowDecimal ? oldVal.replace(/[^\d.]/g, '') : oldVal.replace(/[^\d]/g, '');
-    if (allowDecimal) {
-        var fi = raw.indexOf('.');
-        if (fi !== -1) raw = raw.substring(0, fi + 1) + raw.substring(fi + 1).replace(/\./g, '');
-    }
-    if (!raw) {
-        input.value = ''; input.dataset.rawValue = '0';
-        var tr = input.closest('tr'); if (tr) calcRow(tr); return;
-    }
-    var formatted = addCommas(raw);
-    input.value = formatted; input.dataset.rawValue = raw;
-    var diff = formatted.length - oldVal.length;
-    input.setSelectionRange(Math.max(0, cursorPos + diff), Math.max(0, cursorPos + diff));
-    var row = input.closest('tr'); if (row) calcRow(row);
-}
-
-function safeBind(id, event, fn) {
-    var el = $(id);
-    if (el) el.addEventListener(event, fn);
-    else console.warn('[safeBind] Element not found: #' + id);
-}
-
-// ═══════════════════════════════════════════
-//  بخش ۴: مودال آپلود اکسل
-// ═══════════════════════════════════════════
+/* ═══════════════════════════════════════════
+   بخش ۶: مودال آپلود اکسل
+   ═══════════════════════════════════════════ */
 var excelModal  = $('excel-modal');
 var emZone      = $('em-upload-zone');
 var emFileInput = $('em-file-input');
 var emDoneBtn   = $('em-done');
 
-safeBind('btn-open-excel', 'click', function () {
-    if (excelModal) { excelModal.classList.add('active'); resetExcelModal(); }
-});
-
-function resetExcelModal() {
-    if (!emZone) return;
-    emZone.classList.remove('has-file', 'loading', 'drag-over');
-    var fn = $('em-file-name'); if (fn) fn.textContent = '';
-    if (emFileInput) emFileInput.value = '';
-    if (emDoneBtn) emDoneBtn.classList.remove('show');
-}
-
-safeBind('em-close', 'click', function () {
-    if (excelModal) excelModal.classList.remove('active');
-});
-if (excelModal) excelModal.addEventListener('click', function (e) {
-    if (e.target === excelModal) excelModal.classList.remove('active');
-});
-
-if (emZone) {
-    emZone.addEventListener('click', function (e) {
-        if (!e.target.closest('.spinner') && !e.target.closest('.em-file')) {
-            if (emFileInput) emFileInput.click();
-        }
-    });
-    emZone.addEventListener('dragover', function (e) { e.preventDefault(); emZone.classList.add('drag-over'); });
-    emZone.addEventListener('dragleave', function () { emZone.classList.remove('drag-over'); });
-    emZone.addEventListener('drop', function (e) {
-        e.preventDefault(); emZone.classList.remove('drag-over');
-        if (e.dataTransfer.files[0]) uploadExcel(e.dataTransfer.files[0]);
-    });
-}
-if (emFileInput) emFileInput.addEventListener('change', function (e) {
-    if (e.target.files[0]) uploadExcel(e.target.files[0]);
-});
+safeBind('btn-open-excel', 'click', function () { if (excelModal) { excelModal.classList.add('active'); resetExcelModal(); } });
+function resetExcelModal() { if (!emZone) return; emZone.classList.remove('has-file','loading','drag-over'); var fn = $('em-file-name'); if (fn) fn.textContent = ''; if (emFileInput) emFileInput.value = ''; if (emDoneBtn) emDoneBtn.classList.remove('show'); }
+safeBind('em-close', 'click', function () { if (excelModal) excelModal.classList.remove('active'); });
+if (excelModal) excelModal.addEventListener('click', function (e) { if (e.target === excelModal) excelModal.classList.remove('active'); });
+if (emZone) { emZone.addEventListener('click', function (e) { if (!e.target.closest('.spinner') && !e.target.closest('.em-file')) { if (emFileInput) emFileInput.click(); } }); emZone.addEventListener('dragover', function (e) { e.preventDefault(); emZone.classList.add('drag-over'); }); emZone.addEventListener('dragleave', function () { emZone.classList.remove('drag-over'); }); emZone.addEventListener('drop', function (e) { e.preventDefault(); emZone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) uploadExcel(e.dataTransfer.files[0]); }); }
+if (emFileInput) emFileInput.addEventListener('change', function (e) { if (e.target.files[0]) uploadExcel(e.target.files[0]); });
 
 function uploadExcel(file) {
     var ext = file.name.split('.').pop().toLowerCase();
-    if (['xlsx', 'xls', 'csv'].indexOf(ext) === -1) { showToast('فرمت فایل مجاز نیست.', 'error'); return; }
+    if (['xlsx','xls','csv'].indexOf(ext) === -1) { showToast('فرمت فایل مجاز نیست.', 'error'); return; }
     if (emZone) emZone.classList.add('loading');
     var fd = new FormData(); fd.append('file', file);
     fetch('/api/invoices/parse-excel/', { method: 'POST', body: fd, headers: { 'X-CSRFToken': getCookie('csrftoken') } })
     .then(function (r) { return r.json(); })
     .then(function (data) {
         if (data.success) {
-            if (tbody) tbody.innerHTML = '';
-            rowIdx = 0;
+            if (tbody) tbody.innerHTML = ''; rowIdx = 0;
             data.items.forEach(function (item) { addRow(item); });
-            if (data.supplier_name) {
-                var _si = $('supplier-name');
-                if (_si) {
-                    _si.value = data.supplier_name;
-                    _si.classList.remove('supplier-warning', 'supplier-found');
-                    if (data.supplier_id) {
-                        _si.dataset.supplierId = String(data.supplier_id);
-                        _si.classList.add('supplier-found');
-                        showToast('تأمین‌کننده «' + data.supplier_name + '» شناسایی شد.');
-                    } else {
-                        _si.dataset.supplierId = '';
-                        _si.classList.add('supplier-warning');
-                        showToast('«' + data.supplier_name + '» در لیست نیست.', 'error');
-                    }
-                }
-            }
+            if (data.supplier_name) { var _si = $('supplier-name'); if (_si) { _si.value = data.supplier_name; _si.classList.remove('supplier-warning','supplier-found'); if (data.supplier_id) { _si.dataset.supplierId = String(data.supplier_id); _si.classList.add('supplier-found'); showToast('تأمین‌کننده «' + data.supplier_name + '» شناسایی شد.'); } else { _si.dataset.supplierId = ''; _si.classList.add('supplier-warning'); showToast('«' + data.supplier_name + '» در لیست نیست.', 'error'); } } }
             if (emZone) { emZone.classList.remove('loading'); emZone.classList.add('has-file'); }
-            var fileName = $('em-file-name');
-            if (fileName) fileName.textContent = file.name + ' (' + data.count + ' کالا)';
+            var fileName = $('em-file-name'); if (fileName) fileName.textContent = file.name + ' (' + data.count + ' کالا)';
             if (emDoneBtn) emDoneBtn.classList.add('show');
             showToast(toPersianNum(data.count) + ' کالا از فایل خوانده شد.');
-        } else {
-            if (emZone) emZone.classList.remove('loading');
-            showToast(data.error || 'خطا', 'error');
-        }
+        } else { if (emZone) emZone.classList.remove('loading'); showToast(data.error || 'خطا', 'error'); }
     })
-    .catch(function (err) {
-        console.error('Upload error:', err);
-        if (emZone) emZone.classList.remove('loading');
-        showToast('خطا در ارتباط با سرور.', 'error');
-    });
+    .catch(function (err) { console.error('Upload error:', err); if (emZone) emZone.classList.remove('loading'); showToast('خطا در ارتباط با سرور.', 'error'); });
 }
+if (emDoneBtn) emDoneBtn.addEventListener('click', function () { if (excelModal) excelModal.classList.remove('active'); });
 
-if (emDoneBtn) emDoneBtn.addEventListener('click', function () {
-    if (excelModal) excelModal.classList.remove('active');
-});
-
-// ═══════════════════════════════════════════
-//  بخش ۵: Autocomplete
-// ═══════════════════════════════════════════
-function debounce(fn, delay) {
-    var t;
-    return function () {
-        var args = arguments, ctx = this;
-        clearTimeout(t); t = setTimeout(function () { fn.apply(ctx, args); }, delay);
-    };
-}
-
-function createDropdown() {
-    var dd = document.createElement('ul');
-    dd.className = 'autocomplete-dropdown';
-    dd.style.cssText = 'position:fixed;display:none;z-index:999999;background:#fff;border:1.5px solid #e8d5b5;border-radius:10px;box-shadow:0 4px 12px rgba(41,37,36,.15);list-style:none;margin:0;padding:4px 0;max-height:200px;overflow-y:auto;font-family:Vazirmatn,sans-serif;font-size:.85rem;direction:rtl;';
-    document.body.appendChild(dd);
-    return dd;
-}
-
-function positionDropdown(dd, input) {
-    var r = input.getBoundingClientRect();
-    dd.style.top = (r.bottom + 4) + 'px';
-    dd.style.left = r.left + 'px';
-    dd.style.width = r.width + 'px';
-}
-
-function hideDropdown() {
-    document.querySelectorAll('.autocomplete-dropdown').forEach(function (dd) {
+/* ═══════════════════════════════════════════
+   بخش ۷: اتوکمپلیت اقلام (با پر کردن قیمت)
+   ═══════════════════════════════════════════ */
+function hideAllItemDropdowns() {
+    document.querySelectorAll('.item-autocomplete').forEach(function (dd) {
         dd.style.display = 'none'; dd.innerHTML = '';
     });
 }
 
-function showDropdown(dd, items, input) {
+function createItemDropdown() {
+    var dd = document.createElement('ul');
+    dd.className = 'item-autocomplete';
+    document.body.appendChild(dd);
+    return dd;
+}
+
+function positionItemDropdown(dd, input) {
+    var r = input.getBoundingClientRect();
+    dd.style.top = (r.bottom + 4) + 'px';
+    dd.style.right = (window.innerWidth - r.right) + 'px';
+    dd.style.width = Math.max(r.width, 280) + 'px';
+}
+
+function showItemDropdown(dd, items, input) {
     dd.innerHTML = '';
-    if (!items.length) { dd.style.display = 'none'; return; }
+    if (!items.length) {
+        var empty = document.createElement('li');
+        empty.className = 'ac-empty';
+        empty.textContent = 'موردی پیدا نشد';
+        dd.appendChild(empty);
+        positionItemDropdown(dd, input);
+        dd.style.display = 'block';
+        return;
+    }
+
     items.forEach(function (item) {
         var li = document.createElement('li');
-        li.textContent = item.name;
-        li.style.cssText = 'padding:8px 14px;cursor:pointer;color:#292524;text-align:right;transition:background .15s;';
-        li.addEventListener('mouseenter', function () { li.style.background = '#fdf6ec'; });
-        li.addEventListener('mouseleave', function () { li.style.background = ''; });
+        li.className = 'ac-item';
+
+        var nameSpan = '<span class="ac-name">' + escapeHtml(item.name) + '</span>';
+        var priceSpan = '';
+        if (item.unit_price) {
+            priceSpan = '<span class="ac-price">' + formatPrice(item.unit_price) + ' ت</span>';
+        } else {
+            priceSpan = '<span class="ac-price" style="background:transparent;color:var(--text-sec)">بدون قیمت</span>';
+        }
+        var unitSpan = '';
+        if (item.unit) {
+            unitSpan = '<span class="ac-unit">' + escapeHtml(getUnitLabel(item.unit)) + '</span>';
+        }
+
+        li.innerHTML = nameSpan + unitSpan + priceSpan;
+
         li.addEventListener('mousedown', function (e) {
-            e.preventDefault(); input.value = item.name;
-            dd.style.display = 'none'; dd.innerHTML = '';
+            e.preventDefault();
+            var row = input.closest('tr');
+            if (!row) return;
+
+            // ۱) پر کردن نام کالا
+            input.value = item.name;
+
+            // ۲) پر کردن قیمت واحد
+            if (item.unit_price) {
+                var priceInput = row.querySelector('[name="unit_price"]');
+                if (priceInput) {
+                    priceInput.value = addCommas(String(item.unit_price));
+                    priceInput.dataset.rawValue = String(item.unit_price);
+                }
+            }
+
+            // ۳) پر کردن واحد
+            if (item.unit) {
+                var unitSelect = row.querySelector('[name="unit"]');
+                if (unitSelect) unitSelect.value = item.unit;
+            }
+
+            // ۴) پر کردن دسته‌بندی
+            if (item.category) {
+                var catSelect = row.querySelector('[name="category"]');
+                if (catSelect) {
+                    var cats = getCategories();
+                    var exists = cats.find(function (c) { return c.value === item.category; });
+                    if (exists) {
+                        catSelect.value = item.category;
+                    } else {
+                        catSelect.value = '__other__';
+                        catSelect.dataset.customValue = item.category;
+                        handleCategoryChange(catSelect);
+                        var customInp = catSelect.parentElement.querySelector('.custom-cat-input');
+                        if (customInp) customInp.value = item.category;
+                    }
+                }
+            }
+
+            dd.style.display = 'none';
+            calcRow(row);
+
+            // نوتیفای
+            showToast('«' + item.name + '» انتخاب شد' + (item.unit_price ? ' — ' + formatPrice(item.unit_price) + ' تومان' : ''));
         });
+
         dd.appendChild(li);
     });
-    positionDropdown(dd, input);
+
+    positionItemDropdown(dd, input);
     dd.style.display = 'block';
 }
 
-function attachAutocomplete(input) {
-    if (!input || input.dataset.acAttached) return;
-    input.dataset.acAttached = 'true';
-    var dd = createDropdown();
+function attachItemAutocomplete(input) {
+    if (!input || input.dataset.itemAcAttached) return;
+    input.dataset.itemAcAttached = 'true';
+    var dd = createItemDropdown();
+
     var doSearch = debounce(function () {
         var q = input.value.trim();
         if (q.length < 1) { dd.style.display = 'none'; dd.innerHTML = ''; return; }
-        fetch('/api/raw-material-suggestions/?q=' + encodeURIComponent(q))
+        fetch('/api/raw-materials/suggestions/?q=' + encodeURIComponent(q))
             .then(function (r) { return r.json(); })
-            .then(function (items) { showDropdown(dd, items, input); })
+            .then(function (items) { showItemDropdown(dd, items, input); })
             .catch(function () { dd.style.display = 'none'; });
-    }, 250);
+    }, 200);
+
     input.addEventListener('input', doSearch);
+    input.addEventListener('focus', function () {
+        var q = input.value.trim();
+        if (q.length >= 1) {
+            fetch('/api/raw-materials/suggestions/?q=' + encodeURIComponent(q))
+                .then(function (r) { return r.json(); })
+                .then(function (items) { showItemDropdown(dd, items, input); })
+                .catch(function () {});
+        }
+    });
     input.addEventListener('blur', function () { setTimeout(function () { dd.style.display = 'none'; dd.innerHTML = ''; }, 250); });
     input.addEventListener('keydown', function (e) { if (e.key === 'Escape') { dd.style.display = 'none'; dd.innerHTML = ''; } });
 }
 
-document.addEventListener('scroll', hideDropdown, true);
+document.addEventListener('scroll', hideAllItemDropdowns, true);
 
-// ═══════════════════════════════════════════
-//  بخش ۶: منطق جدول اقلام
-// ═══════════════════════════════════════════
+/* ═══════════════════════════════════════════
+   بخش ۸: منطق جدول اقلام
+   ═══════════════════════════════════════════ */
 function addRow(data) {
-    if (!tbody) {
-        // fallback اگر tbody هنوز پیدا نشده
-        tbody = $('invoice-tbody');
-    }
-    if (!tbody) {
-        console.error('⛔ addRow: tbody پیدا نشد!');
-        return;
-    }
-
+    if (!tbody) tbody = $('invoice-tbody');
+    if (!tbody) return;
     data = data || {};
     var tr = document.createElement('tr');
     tr.className = 'item-row new-row';
     tr.dataset.idx = rowIdx++;
 
     var isTotal = data.item_name && data.item_name.trim().indexOf('جمع کل') !== -1;
-    var rawQ  = data.quantity   || '';
-    var dispQ = rawQ ? addCommas(rawQ) : '';
-    var rawP  = data.unit_price || '';
-    var dispP = rawP ? addCommas(rawP) : '';
+    var rawQ = data.quantity || ''; var dispQ = rawQ ? addCommas(rawQ) : '';
+    var rawP = data.unit_price || ''; var dispP = rawP ? addCommas(rawP) : '';
     var safeName = escapeHtml(data.item_name || '');
-
     var catVal = data.category || '';
     var cats = getCategories();
-    var isCustom = false;
-    if (catVal && !cats.find(function (c) { return c.value === catVal; })) {
-        isCustom = true;
-    }
+    var isCustom = catVal && !cats.find(function (c) { return c.value === catVal; });
 
-    var catHtml = '<td>' +
-        '<select name="category">' + buildCategorySelect(isCustom ? '__other__' : catVal) + '</select>';
-    if (isCustom) {
-        catHtml += '<input type="text" class="custom-cat-input" ' +
-            'placeholder="نام دسته‌بندی دلخواه..." ' +
-            'value="' + escapeHtml(catVal) + '" ' +
-            'style="width:100%;padding:6px 8px;border:1.5px solid var(--accent);border-radius:8px;font-family:inherit;font-size:.82rem;margin-top:4px;text-align:center;outline:none;">';
-    }
+    var catHtml = '<td><select name="category">' + buildCategorySelect(isCustom ? '__other__' : catVal) + '</select>';
+    if (isCustom) catHtml += '<input type="text" class="custom-cat-input" placeholder="نام دسته‌بندی..." value="' + escapeHtml(catVal) + '" style="width:100%;padding:6px 8px;border:1.5px solid var(--accent);border-radius:8px;font-family:inherit;font-size:.82rem;margin-top:4px;text-align:center;outline:none;">';
     catHtml += '</td>';
 
     tr.innerHTML =
@@ -945,414 +1157,120 @@ function addRow(data) {
 
     if (isTotal) {
         tr.classList.add('total-row');
-        ['unit', 'category', 'quantity', 'unit_price'].forEach(function (name) {
-            var el = tr.querySelector('[name="' + name + '"]');
-            if (el && el.parentElement) el.parentElement.innerHTML = '<span style="color:var(--text-sec);font-weight:500">—</span>';
-        });
-        var nameInput = tr.querySelector('[name="item_name"]');
-        if (nameInput) nameInput.setAttribute('readonly', 'true');
+        ['unit','category','quantity','unit_price'].forEach(function (name) { var el = tr.querySelector('[name="' + name + '"]'); if (el && el.parentElement) el.parentElement.innerHTML = '<span style="color:var(--text-sec);font-weight:500">—</span>'; });
+        var nameInput = tr.querySelector('[name="item_name"]'); if (nameInput) nameInput.setAttribute('readonly', 'true');
     } else {
-        tr.querySelector('.btn-del').addEventListener('click', function () {
-            tr.style.transition = 'opacity .25s, transform .25s';
-            tr.style.opacity = '0'; tr.style.transform = 'translateX(30px)';
-            setTimeout(function () { tr.remove(); refresh(); }, 250);
-        });
+        tr.querySelector('.btn-del').addEventListener('click', function () { tr.style.transition = 'opacity .25s, transform .25s'; tr.style.opacity = '0'; tr.style.transform = 'translateX(30px)'; setTimeout(function () { tr.remove(); refresh(); }, 250); });
         tr.querySelector('[name="quantity"]').addEventListener('input', function (e) { handleFormattedInput(e, true); });
         tr.querySelector('[name="unit_price"]').addEventListener('input', function (e) { handleFormattedInput(e, false); });
-        attachAutocomplete(tr.querySelector('[name="item_name"]'));
+        attachItemAutocomplete(tr.querySelector('[name="item_name"]'));
         var catSelect = tr.querySelector('[name="category"]');
-        if (catSelect) {
-            catSelect.addEventListener('change', function () { handleCategoryChange(this); });
-            if (isCustom) {
-                var customInp = tr.querySelector('.custom-cat-input');
-                if (customInp) {
-                    customInp.addEventListener('input', function () { catSelect.dataset.customValue = this.value.trim(); });
-                    customInp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); this.blur(); } });
-                }
-            }
-        }
+        if (catSelect) { catSelect.addEventListener('change', function () { handleCategoryChange(this); }); if (isCustom) { var customInp = tr.querySelector('.custom-cat-input'); if (customInp) { customInp.addEventListener('input', function () { catSelect.dataset.customValue = this.value.trim(); }); customInp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); this.blur(); } }); } } }
     }
-
     tbody.appendChild(tr);
     moveTotalRowToBottom();
     if (!isTotal) calcRow(tr);
     refresh();
 }
 
-function moveTotalRowToBottom() {
-    if (!tbody) return;
-    var tr = tbody.querySelector('tr.total-row');
-    if (tr) tbody.appendChild(tr);
-}
+function moveTotalRowToBottom() { if (!tbody) return; var tr = tbody.querySelector('tr.total-row'); if (tr) tbody.appendChild(tr); }
+function calcRow(tr) { var qInput = tr.querySelector('[name="quantity"]'); var pInput = tr.querySelector('[name="unit_price"]'); var q = qInput ? stripCommas(qInput.value) : 0; var p = pInput ? Math.round(stripCommas(pInput.value)) : 0; var lt = tr.querySelector('.line-total'); if (lt) lt.textContent = (q * p) > 0 ? formatPrice(q * p) : '—'; updateSummary(); }
+function refresh() { var idx = 0; document.querySelectorAll('.item-row').forEach(function (tr) { var rn = tr.querySelector('.row-num'); if (!tr.classList.contains('total-row')) { if (rn) rn.textContent = toPersianNum(++idx); } else { if (rn) rn.textContent = ''; } }); updateSummary(); var has = tbody ? tbody.children.length > 0 : false; if (tableWrap) tableWrap.style.display = has ? '' : 'none'; if (emptySt) emptySt.style.display = has ? 'none' : ''; }
+function updateSummary() { var total = 0; document.querySelectorAll('.item-row').forEach(function (tr) { if (tr.classList.contains('total-row')) return; var qInput = tr.querySelector('[name="quantity"]'); var pInput = tr.querySelector('[name="unit_price"]'); if (!qInput || !pInput) return; total += stripCommas(qInput.value) * Math.round(stripCommas(pInput.value)); }); var count = document.querySelectorAll('.item-row:not(.total-row)').length; if (sumCount) sumCount.textContent = count > 0 ? toPersianNum(count) : '—'; if (sumTotal) sumTotal.textContent = total > 0 ? formatPrice(total) + ' تومان' : '— تومان'; if (badge) badge.textContent = count > 0 ? toPersianNum(count) + ' قلم' : '— قلم'; if (tbody) { var totalRow = tbody.querySelector('tr.total-row'); if (totalRow) { var lt = totalRow.querySelector('.line-total'); if (lt) { lt.textContent = total > 0 ? formatPrice(total) : '—'; lt.style.fontSize = '1rem'; lt.style.fontWeight = '800'; } } } if (sumTotal) { sumTotal.classList.remove('pulse'); void sumTotal.offsetWidth; sumTotal.classList.add('pulse'); } }
 
-function calcRow(tr) {
-    var qInput = tr.querySelector('[name="quantity"]');
-    var pInput = tr.querySelector('[name="unit_price"]');
-    var q = qInput ? stripCommas(qInput.value) : 0;
-    var p = pInput ? Math.round(stripCommas(pInput.value)) : 0;
-    var lt = tr.querySelector('.line-total');
-    if (lt) lt.textContent = (q * p) > 0 ? formatPrice(q * p) : '—';
-    updateSummary();
-}
+/* ═══════════════════════════════════════════
+   بخش ۹: Supplier Combobox
+   ═══════════════════════════════════════════ */
+var supInput = $('supplier-name'), supDropdown = $('supplier-dropdown'), supModal = $('supplier-modal'), btnAdd = $('btn-add-supplier'), supTimer = null, supHL = -1;
 
-function refresh() {
-    var idx = 0;
-    document.querySelectorAll('.item-row').forEach(function (tr) {
-        var rn = tr.querySelector('.row-num');
-        if (!tr.classList.contains('total-row')) {
-            if (rn) rn.textContent = toPersianNum(++idx);
-        } else {
-            if (rn) rn.textContent = '';
-        }
-    });
-    updateSummary();
-    var has = tbody ? tbody.children.length > 0 : false;
-    if (tableWrap) tableWrap.style.display = has ? '' : 'none';
-    if (emptySt)   emptySt.style.display   = has ? 'none' : '';
-}
-
-function updateSummary() {
-    var total = 0;
-    document.querySelectorAll('.item-row').forEach(function (tr) {
-        if (tr.classList.contains('total-row')) return;
-        var qInput = tr.querySelector('[name="quantity"]');
-        var pInput = tr.querySelector('[name="unit_price"]');
-        if (!qInput || !pInput) return;
-        total += stripCommas(qInput.value) * Math.round(stripCommas(pInput.value));
-    });
-    var count = document.querySelectorAll('.item-row:not(.total-row)').length;
-    if (sumCount) sumCount.textContent = count > 0 ? toPersianNum(count) : '—';
-    if (sumTotal) sumTotal.textContent = total > 0 ? formatPrice(total) + ' تومان' : '— تومان';
-    if (badge)    badge.textContent    = count > 0 ? toPersianNum(count) + ' قلم' : '— قلم';
-    if (tbody) {
-        var totalRow = tbody.querySelector('tr.total-row');
-        if (totalRow) {
-            var lt = totalRow.querySelector('.line-total');
-            if (lt) { lt.textContent = total > 0 ? formatPrice(total) : '—'; lt.style.fontSize = '1rem'; lt.style.fontWeight = '800'; }
-        }
-    }
-    if (sumTotal) { sumTotal.classList.remove('pulse'); void sumTotal.offsetWidth; sumTotal.classList.add('pulse'); }
-}
-
-// ═══════════════════════════════════════════
-//  بخش ۷: Supplier Combobox
-// ═══════════════════════════════════════════
-var supInput    = $('supplier-name');
-var supDropdown = $('supplier-dropdown');
-var supModal    = $('supplier-modal');
-var btnAdd      = $('btn-add-supplier');
-var supTimer    = null;
-var supHL       = -1;
-
-if (supModal) {
-    var smClose = $('sm-close'), smCancel = $('sm-cancel'), smSave = $('sm-save');
-    if (smClose)  smClose.addEventListener('click', closeSupModal);
-    if (smCancel) smCancel.addEventListener('click', closeSupModal);
-    supModal.addEventListener('click', function (e) { if (e.target === supModal) closeSupModal(); });
-    if (smSave) smSave.addEventListener('click', function () {
-        var nameField = $('sm-name');
-        var name = nameField ? nameField.value.trim() : '';
-        if (!name) { showToast('نام شرکت الزامی است.', 'error'); if (nameField) nameField.focus(); return; }
-        smSave.disabled = true; smSave.textContent = 'در حال ذخیره...';
-        var data = new FormData();
-        data.append('name', name);
-        data.append('phone',          ($('sm-phone')   || {}).value || '');
-        data.append('contact_person', ($('sm-contact') || {}).value || '');
-        data.append('address',        ($('sm-address') || {}).value || '');
-        data.append('description',    ($('sm-desc')    || {}).value || '');
-        var csrf = getCookie('csrftoken') || '';
-        fetch('/api/suppliers/save/', { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: data })
-        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-        .then(function (result) {
-            smSave.disabled = false; smSave.textContent = 'ذخیره تأمین‌کننده';
-            if (result.id) {
-                selectSupplier({ id: result.id, name: result.name, phone: result.phone || '', address: result.address || '', contact_person: result.contact_person || '' });
-                closeSupModal(); showToast('تأمین‌کننده «' + name + '» ثبت شد.');
-            } else if (result.error) { showToast('خطا: ' + result.error, 'error'); }
-            else if (result.errors) {
-                var msgs = []; for (var k in result.errors) { if (result.errors.hasOwnProperty(k)) msgs.push(result.errors[k].join('، ')); }
-                showToast('خطا: ' + msgs.join(' | '), 'error');
-            }
-        })
-        .catch(function () { smSave.disabled = false; smSave.textContent = 'ذخیره تأمین‌کننده'; showToast('خطا در ارتباط با سرور.', 'error'); });
-    });
-}
+if (supModal) { var smClose = $('sm-close'), smCancel = $('sm-cancel'), smSave = $('sm-save'); if (smClose) smClose.addEventListener('click', closeSupModal); if (smCancel) smCancel.addEventListener('click', closeSupModal); supModal.addEventListener('click', function (e) { if (e.target === supModal) closeSupModal(); }); if (smSave) smSave.addEventListener('click', function () { var nameField = $('sm-name'); var name = nameField ? nameField.value.trim() : ''; if (!name) { showToast('نام شرکت الزامی است.', 'error'); if (nameField) nameField.focus(); return; } smSave.disabled = true; smSave.textContent = 'در حال ذخیره...'; var data = new FormData(); data.append('name', name); data.append('phone', ($('sm-phone') || {}).value || ''); data.append('contact_person', ($('sm-contact') || {}).value || ''); data.append('address', ($('sm-address') || {}).value || ''); data.append('description', ($('sm-desc') || {}).value || ''); var csrf = getCookie('csrftoken') || ''; fetch('/api/suppliers/save/', { method: 'POST', headers: { 'X-CSRFToken': csrf }, body: data }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (result) { smSave.disabled = false; smSave.textContent = 'ذخیره تأمین‌کننده'; if (result.id) { selectSupplier({ id: result.id, name: result.name, phone: result.phone || '', address: result.address || '', contact_person: result.contact_person || '' }); closeSupModal(); showToast('تأمین‌کننده «' + name + '» ثبت شد.'); } else if (result.error) { showToast('خطا: ' + result.error, 'error'); } else if (result.errors) { var msgs = []; for (var k in result.errors) { if (result.errors.hasOwnProperty(k)) msgs.push(result.errors[k].join('، ')); } showToast('خطا: ' + msgs.join(' | '), 'error'); } }).catch(function () { smSave.disabled = false; smSave.textContent = 'ذخیره تأمین‌کننده'; showToast('خطا در ارتباط با سرور.', 'error'); }); }); }
 
 if (btnAdd) btnAdd.addEventListener('click', function () { openSupModal(supInput ? supInput.value.trim() : ''); });
-
-if (supInput) {
-    supInput.addEventListener('input', function () {
-        clearTimeout(supTimer); var q = this.value.trim(); supInput.dataset.supplierId = '';
-        if (q.length < 1) { hideSupDD(); return; }
-        supTimer = setTimeout(function () {
-            fetch('/api/suppliers/suggestions/?q=' + encodeURIComponent(q))
-                .then(function (r) { return r.json(); })
-                .then(function (items) { showSupDD(items, q); })
-                .catch(function () { hideSupDD(); });
-        }, 200);
-    });
-    supInput.addEventListener('keydown', function (e) {
-        if (!supDropdown) return;
-        var items = supDropdown.querySelectorAll('li[data-id]');
-        if (!items.length) return;
-        if (e.key === 'ArrowDown') { e.preventDefault(); supHL = Math.min(supHL + 1, items.length - 1); highlightSup(items); }
-        else if (e.key === 'ArrowUp') { e.preventDefault(); supHL = Math.max(supHL - 1, 0); highlightSup(items); }
-        else if (e.key === 'Enter' && supHL >= 0) { e.preventDefault(); var li = items[supHL]; selectSupplier({ id: li.dataset.id, name: li.dataset.name, phone: li.dataset.phone, address: li.dataset.address, contact_person: li.dataset.contact }); }
-        else if (e.key === 'Escape') { hideSupDD(); }
-    });
-}
-
+if (supInput) { supInput.addEventListener('input', function () { clearTimeout(supTimer); var q = this.value.trim(); supInput.dataset.supplierId = ''; if (q.length < 1) { hideSupDD(); return; } supTimer = setTimeout(function () { fetch('/api/suppliers/suggestions/?q=' + encodeURIComponent(q)).then(function (r) { return r.json(); }).then(function (items) { showSupDD(items, q); }).catch(function () { hideSupDD(); }); }, 200); }); supInput.addEventListener('keydown', function (e) { if (!supDropdown) return; var items = supDropdown.querySelectorAll('li[data-id]'); if (!items.length) return; if (e.key === 'ArrowDown') { e.preventDefault(); supHL = Math.min(supHL + 1, items.length - 1); highlightSup(items); } else if (e.key === 'ArrowUp') { e.preventDefault(); supHL = Math.max(supHL - 1, 0); highlightSup(items); } else if (e.key === 'Enter' && supHL >= 0) { e.preventDefault(); var li = items[supHL]; selectSupplier({ id: li.dataset.id, name: li.dataset.name, phone: li.dataset.phone, address: li.dataset.address, contact_person: li.dataset.contact }); } else if (e.key === 'Escape') { hideSupDD(); } }); }
 function highlightSup(items) { items.forEach(function (li, i) { li.classList.toggle('supplier-highlight', i === supHL); }); if (items[supHL]) items[supHL].scrollIntoView({ block: 'nearest' }); }
-
-function showSupDD(items, q) {
-    if (!supDropdown) return;
-    supDropdown.innerHTML = ''; supHL = -1;
-    if (!items.length) {
-        var li = document.createElement('li'); li.className = 'sd-empty';
-        li.innerHTML = 'تأمین‌کننده‌ای پیدا نشد — <a href="#" style="color:var(--accent);font-weight:600;text-decoration:none">افزودن جدید</a>';
-        li.querySelector('a').addEventListener('click', function (e) { e.preventDefault(); openSupModal(q); });
-        supDropdown.appendChild(li); supDropdown.classList.add('show'); return;
-    }
-    items.forEach(function (item) {
-        var li = document.createElement('li');
-        li.dataset.id = item.id; li.dataset.name = item.name; li.dataset.phone = item.phone || ''; li.dataset.address = item.address || ''; li.dataset.contact = item.contact_person || '';
-        var safeQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        var highlighted = item.name.replace(new RegExp('(' + safeQ + ')', 'gi'), '<strong style="color:var(--accent)">$1</strong>');
-        var infoParts = [];
-        if (item.phone) infoParts.push('📞 ' + escapeHtml(item.phone));
-        if (item.contact_person) infoParts.push('👤 ' + escapeHtml(item.contact_person));
-        if (item.address) infoParts.push('📍 ' + escapeHtml(item.address));
-        li.innerHTML = '<div class="sd-name">' + highlighted + '</div>' + (infoParts.length ? '<div class="sd-info">' + infoParts.join(' — ') + '</div>' : '');
-        li.addEventListener('mousedown', function (e) { e.preventDefault(); selectSupplier(item); });
-        supDropdown.appendChild(li);
-    });
-    supDropdown.classList.add('show');
-}
-
-function selectSupplier(item) {
-    if (supInput) { supInput.value = item.name; supInput.dataset.supplierId = item.id; supInput.classList.remove('supplier-warning'); supInput.classList.add('supplier-found'); }
-    hideSupDD();
-    var d = []; if (item.phone) d.push('تلفن: ' + item.phone); if (item.contact_person) d.push('مسئول: ' + item.contact_person); if (item.address) d.push('آدرس: ' + item.address);
-    if (d.length) showToast(d.join(' | '), 'success');
-}
-
+function showSupDD(items, q) { if (!supDropdown) return; supDropdown.innerHTML = ''; supHL = -1; if (!items.length) { var li = document.createElement('li'); li.className = 'sd-empty'; li.innerHTML = 'تأمین‌کننده‌ای پیدا نشد — <a href="#" style="color:var(--accent);font-weight:600;text-decoration:none">افزودن جدید</a>'; li.querySelector('a').addEventListener('click', function (e) { e.preventDefault(); openSupModal(q); }); supDropdown.appendChild(li); supDropdown.classList.add('show'); return; } items.forEach(function (item) { var li = document.createElement('li'); li.dataset.id = item.id; li.dataset.name = item.name; li.dataset.phone = item.phone || ''; li.dataset.address = item.address || ''; li.dataset.contact = item.contact_person || ''; var safeQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); var highlighted = item.name.replace(new RegExp('(' + safeQ + ')', 'gi'), '<strong style="color:var(--accent)">$1</strong>'); var infoParts = []; if (item.phone) infoParts.push('📞 ' + escapeHtml(item.phone)); if (item.contact_person) infoParts.push('👤 ' + escapeHtml(item.contact_person)); if (item.address) infoParts.push('📍 ' + escapeHtml(item.address)); li.innerHTML = '<div class="sd-name">' + highlighted + '</div>' + (infoParts.length ? '<div class="sd-info">' + infoParts.join(' — ') + '</div>' : ''); li.addEventListener('mousedown', function (e) { e.preventDefault(); selectSupplier(item); }); supDropdown.appendChild(li); }); supDropdown.classList.add('show'); }
+function selectSupplier(item) { if (supInput) { supInput.value = item.name; supInput.dataset.supplierId = item.id; supInput.classList.remove('supplier-warning'); supInput.classList.add('supplier-found'); } hideSupDD(); var d = []; if (item.phone) d.push('تلفن: ' + item.phone); if (item.contact_person) d.push('مسئول: ' + item.contact_person); if (item.address) d.push('آدرس: ' + item.address); if (d.length) showToast(d.join(' | '), 'success'); }
 function hideSupDD() { if (!supDropdown) return; supDropdown.classList.remove('show'); supDropdown.innerHTML = ''; supHL = -1; }
 document.addEventListener('click', function (e) { if (!e.target.closest('.field') && !e.target.closest('#supplier-dropdown')) hideSupDD(); });
-
-function openSupModal(prefillName) {
-    var modal = $('supplier-modal'); if (!modal) return;
-    var nf = $('sm-name'); if (nf) nf.value = prefillName || '';
-    ['sm-phone', 'sm-contact', 'sm-address', 'sm-desc'].forEach(function (id) { var el = $(id); if (el) el.value = ''; });
-    modal.classList.add('active');
-    setTimeout(function () { if (nf) nf.focus(); }, 100);
-}
-
+function openSupModal(prefillName) { var modal = $('supplier-modal'); if (!modal) return; var nf = $('sm-name'); if (nf) nf.value = prefillName || ''; ['sm-phone','sm-contact','sm-address','sm-desc'].forEach(function (id) { var el = $(id); if (el) el.value = ''; }); modal.classList.add('active'); setTimeout(function () { if (nf) nf.focus(); }, 100); }
 function closeSupModal() { var m = $('supplier-modal'); if (m) m.classList.remove('active'); }
 
-// ═══════════════════════════════════════════
-//  بخش ۸: مودال مدیریت دسته‌بندی‌ها
-// ═══════════════════════════════════════════
-var catModal    = $('cat-modal');
-var catList     = $('cat-list');
-var catNewInput = $('cat-new-input');
-
+/* ═══════════════════════════════════════════
+   بخش ۱۰: مودال مدیریت دسته‌بندی‌ها
+   ═══════════════════════════════════════════ */
+var catModal = $('cat-modal'), catList = $('cat-list'), catNewInput = $('cat-new-input');
 safeBind('btn-manage-cats', 'click', function () { openCatModal(); });
-safeBind('cat-close',       'click', closeCatModal);
-safeBind('cat-close-btn',   'click', closeCatModal);
-safeBind('cat-reset-btn',   'click', function () {
-    if (!confirm('دسته‌بندی‌ها به حالت پیش‌فرض برمی‌گردند؟')) return;
-    localStorage.removeItem('invoice_categories');
-    renderCatList(); refreshAllCategorySelects();
-    showToast('دسته‌بندی‌ها به پیش‌فرض برگشت.');
-});
+safeBind('cat-close', 'click', closeCatModal);
+safeBind('cat-close-btn', 'click', closeCatModal);
+safeBind('cat-reset-btn', 'click', function () { if (!confirm('دسته‌بندی‌ها به حالت پیش‌فرض برمی‌گردند؟')) return; localStorage.removeItem('invoice_categories'); renderCatList(); refreshAllCategorySelects(); showToast('دسته‌بندی‌ها به پیش‌فرض برگشت.'); });
 safeBind('cat-add-btn', 'click', addNewCategory);
-
 if (catNewInput) catNewInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); addNewCategory(); } });
 if (catModal) catModal.addEventListener('click', function (e) { if (e.target === catModal) closeCatModal(); });
-
 function openCatModal() { if (!catModal) return; renderCatList(); catModal.classList.add('active'); setTimeout(function () { if (catNewInput) catNewInput.focus(); }, 100); }
 function closeCatModal() { if (catModal) catModal.classList.remove('active'); }
+function renderCatList() { if (!catList) return; catList.innerHTML = ''; var cats = getCategories(); if (!cats.length) { catList.innerHTML = '<p style="text-align:center;color:var(--text-sec);padding:20px">دسته‌بندی‌ای وجود ندارد</p>'; return; } cats.forEach(function (cat, idx) { var div = document.createElement('div'); div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)'; div.innerHTML = '<span style="flex:1;font-size:.9rem;font-weight:500;color:var(--text)">' + escapeHtml(cat.label) + '</span><span style="font-size:.72rem;color:var(--text-sec);font-family:monospace">' + escapeHtml(cat.value) + '</span><button type="button" data-idx="' + idx + '" style="border:none;background:transparent;color:#dc2626;cursor:pointer;font-size:1.2rem;padding:4px 8px;border-radius:6px" title="حذف">×</button>'; div.querySelector('button').addEventListener('click', function () { removeCategory(parseInt(this.dataset.idx)); }); catList.appendChild(div); }); }
+function addNewCategory() { if (!catNewInput) return; var label = catNewInput.value.trim(); if (!label) { showToast('نام دسته‌بندی را وارد کنید.', 'error'); catNewInput.focus(); return; } var value = label.replace(/\s+/g, '_').toLowerCase().replace(/[^\w\u0600-\u06FF]/g, ''); if (!value) value = 'cat_' + Date.now(); var cats = getCategories(); if (cats.find(function (c) { return c.label === label; })) { showToast('این دسته‌بندی قبلاً وجود دارد.', 'error'); return; } cats.push({ value: value, label: label }); saveCategories(cats); catNewInput.value = ''; renderCatList(); refreshAllCategorySelects(); showToast('دسته‌بندی «' + label + '» اضافه شد.'); }
+function removeCategory(idx) { var cats = getCategories(); if (idx < 0 || idx >= cats.length) return; var removed = cats.splice(idx, 1)[0]; saveCategories(cats); renderCatList(); refreshAllCategorySelects(); showToast('«' + removed.label + '» حذف شد.'); }
 
-function renderCatList() {
-    if (!catList) return;
-    catList.innerHTML = '';
-    var cats = getCategories();
-    if (!cats.length) { catList.innerHTML = '<p style="text-align:center;color:var(--text-sec);padding:20px">دسته‌بندی‌ای وجود ندارد</p>'; return; }
-    cats.forEach(function (cat, idx) {
-        var div = document.createElement('div');
-        div.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)';
-        div.innerHTML = '<span style="flex:1;font-size:.9rem;font-weight:500;color:var(--text)">' + escapeHtml(cat.label) + '</span>' +
-            '<span style="font-size:.72rem;color:var(--text-sec);font-family:monospace">' + escapeHtml(cat.value) + '</span>' +
-            '<button type="button" data-idx="' + idx + '" style="border:none;background:transparent;color:#dc2626;cursor:pointer;font-size:1.2rem;padding:4px 8px;border-radius:6px" title="حذف">×</button>';
-        div.querySelector('button').addEventListener('click', function () { removeCategory(parseInt(this.dataset.idx)); });
-        catList.appendChild(div);
-    });
-}
-
-function addNewCategory() {
-    if (!catNewInput) return;
-    var label = catNewInput.value.trim();
-    if (!label) { showToast('نام دسته‌بندی را وارد کنید.', 'error'); catNewInput.focus(); return; }
-    var value = label.replace(/\s+/g, '_').toLowerCase().replace(/[^\w\u0600-\u06FF]/g, '');
-    if (!value) value = 'cat_' + Date.now();
-    var cats = getCategories();
-    if (cats.find(function (c) { return c.label === label; })) { showToast('این دسته‌بندی قبلاً وجود دارد.', 'error'); return; }
-    cats.push({ value: value, label: label });
-    saveCategories(cats); catNewInput.value = '';
-    renderCatList(); refreshAllCategorySelects();
-    showToast('دسته‌بندی «' + label + '» اضافه شد.');
-}
-
-function removeCategory(idx) {
-    var cats = getCategories();
-    if (idx < 0 || idx >= cats.length) return;
-    var removed = cats.splice(idx, 1)[0];
-    saveCategories(cats); renderCatList(); refreshAllCategorySelects();
-    showToast('«' + removed.label + '» حذف شد.');
-}
-
-// ═══════════════════════════════════════════
-//  بخش ۹: مودال پیش‌نمایش
-// ═══════════════════════════════════════════
-var previewModal = $('preview-modal');
-var previewTbody = $('preview-tbody');
-var previewSource = '';
-
-function readCategoryValue(catEl) {
-    if (!catEl) return '';
-    if (catEl.value === '__other__') {
-        var customInp = catEl.parentElement.querySelector('.custom-cat-input');
-        return customInp ? customInp.value.trim() : 'سایر';
-    }
-    return catEl.value;
-}
-
-function openPreview(source) {
-    previewSource = source || 'preview';
-    var rows = document.querySelectorAll('.item-row');
-    if (!rows.length) { showToast('حداقل یک کالا اضافه کنید.', 'error'); return false; }
-    if (previewSource === 'submit') {
-        var ok = true;
-        rows.forEach(function (tr) {
-            var nm = tr.querySelector('[name="item_name"]');
-            if (nm && nm.value.trim().indexOf('جمع کل') !== -1) return;
-            var q = tr.querySelector('[name="quantity"]'), p = tr.querySelector('[name="unit_price"]');
-            var qv = q ? (q.dataset.rawValue || stripCommas(q.value)) : 0;
-            var pv = p ? (p.dataset.rawValue || stripCommas(p.value)) : 0;
-            if (!nm || !nm.value.trim() || !qv || !pv) ok = false;
-        });
-        if (!ok) { showToast('لطفاً همه فیلدها را کامل کنید.', 'error'); return false; }
-    }
-    var supplier = ($('supplier-name') || {}).value || '—';
-    var invNum = (document.querySelector('[name="invoice_number"]') || {}).value || '—';
-    var invDate = ($('date-input') || {}).value || '—';
-    var pi = $('preview-info');
-    if (pi) pi.innerHTML = '<div class="pi-item"><span class="pi-label">تأمین‌کننده:</span><span class="pi-value">' + escapeHtml(supplier) + '</span></div><div class="pi-item"><span class="pi-label">شماره فاکتور:</span><span class="pi-value">' + escapeHtml(invNum) + '</span></div><div class="pi-item"><span class="pi-label">تاریخ:</span><span class="pi-value">' + escapeHtml(invDate) + '</span></div>';
-    if (previewTbody) previewTbody.innerHTML = '';
-    var gt = 0, cnt = 0;
-    rows.forEach(function (tr) {
-        var nm = (tr.querySelector('[name="item_name"]') || {}).value || '';
-        if (nm.indexOf('جمع کل') !== -1) return;
-        var qty = stripCommas((tr.querySelector('[name="quantity"]') || {}).value);
-        var unit = (tr.querySelector('[name="unit"]') || {}).value || '';
-        var price = stripCommas((tr.querySelector('[name="unit_price"]') || {}).value);
-        var cat = readCategoryValue(tr.querySelector('[name="category"]'));
-        var lt = qty * price; gt += lt; cnt++;
-        var r = document.createElement('tr');
-        r.innerHTML = '<td>' + toPersianNum(cnt) + '</td><td class="p-name">' + escapeHtml(nm || '—') + '</td><td class="p-cat">' + escapeHtml(cat ? getCategoryLabel(cat) : '—') + '</td><td>' + (qty ? toPersianNum(qty) : '—') + '</td><td>' + escapeHtml(getUnitLabel(unit)) + '</td><td class="p-total">' + (lt > 0 ? formatPrice(lt) + ' تومان' : '—') + '</td>';
-        if (previewTbody) previewTbody.appendChild(r);
-    });
-    var pt = $('preview-total'); if (pt) pt.textContent = gt > 0 ? formatPrice(gt) + ' تومان' : '— تومان';
-    var pc = $('preview-count'); if (pc) pc.textContent = toPersianNum(cnt) + ' قلم کالا';
-    var backBtn = $('modal-back-btn'), confBtn = $('modal-confirm-btn');
-    if (previewSource === 'submit') { if (backBtn) backBtn.textContent = 'بازگشت و ویرایش'; if (confBtn) confBtn.style.display = ''; }
-    else { if (backBtn) backBtn.textContent = 'بستن'; if (confBtn) confBtn.style.display = 'none'; }
-    if (previewModal) previewModal.classList.add('active');
-    return true;
-}
-
+/* ═══════════════════════════════════════════
+   بخش ۱۱: مودال پیش‌نمایش
+   ═══════════════════════════════════════════ */
+var previewModal = $('preview-modal'), previewTbody = $('preview-tbody'), previewSource = '';
+function readCategoryValue(catEl) { if (!catEl) return ''; if (catEl.value === '__other__') { var customInp = catEl.parentElement.querySelector('.custom-cat-input'); return customInp ? customInp.value.trim() : 'سایر'; } return catEl.value; }
+function openPreview(source) { previewSource = source || 'preview'; var rows = document.querySelectorAll('.item-row'); if (!rows.length) { showToast('حداقل یک کالا اضافه کنید.', 'error'); return false; } if (previewSource === 'submit') { var ok = true; rows.forEach(function (tr) { var nm = tr.querySelector('[name="item_name"]'); if (nm && nm.value.trim().indexOf('جمع کل') !== -1) return; var q = tr.querySelector('[name="quantity"]'), p = tr.querySelector('[name="unit_price"]'); var qv = q ? (q.dataset.rawValue || stripCommas(q.value)) : 0; var pv = p ? (p.dataset.rawValue || stripCommas(p.value)) : 0; if (!nm || !nm.value.trim() || !qv || !pv) ok = false; }); if (!ok) { showToast('لطفاً همه فیلدها را کامل کنید.', 'error'); return false; } } var supplier = ($('supplier-name') || {}).value || '—'; var invNum = (document.querySelector('[name="invoice_number"]') || {}).value || '—'; var invDateEl = $('shamsi-date-display'); var invDate = invDateEl ? invDateEl.value || '—' : '—'; var pi = $('preview-info'); if (pi) pi.innerHTML = '<div class="pi-item"><span class="pi-label">تأمین‌کننده:</span><span class="pi-value">' + escapeHtml(supplier) + '</span></div><div class="pi-item"><span class="pi-label">شماره فاکتور:</span><span class="pi-value">' + escapeHtml(invNum) + '</span></div><div class="pi-item"><span class="pi-label">تاریخ:</span><span class="pi-value">' + escapeHtml(invDate) + '</span></div>'; if (previewTbody) previewTbody.innerHTML = ''; var gt = 0, cnt = 0; rows.forEach(function (tr) { var nm = (tr.querySelector('[name="item_name"]') || {}).value || ''; if (nm.indexOf('جمع کل') !== -1) return; var qty = stripCommas((tr.querySelector('[name="quantity"]') || {}).value); var unit = (tr.querySelector('[name="unit"]') || {}).value || ''; var price = stripCommas((tr.querySelector('[name="unit_price"]') || {}).value); var cat = readCategoryValue(tr.querySelector('[name="category"]')); var lt = qty * price; gt += lt; cnt++; var r = document.createElement('tr'); r.innerHTML = '<td>' + toPersianNum(cnt) + '</td><td class="p-name">' + escapeHtml(nm || '—') + '</td><td class="p-cat">' + escapeHtml(cat ? getCategoryLabel(cat) : '—') + '</td><td>' + (qty ? toPersianNum(qty) : '—') + '</td><td>' + escapeHtml(getUnitLabel(unit)) + '</td><td class="p-total">' + (lt > 0 ? formatPrice(lt) + ' تومان' : '—') + '</td>'; if (previewTbody) previewTbody.appendChild(r); }); var pt = $('preview-total'); if (pt) pt.textContent = gt > 0 ? formatPrice(gt) + ' تومان' : '— تومان'; var pc = $('preview-count'); if (pc) pc.textContent = toPersianNum(cnt) + ' قلم کالا'; var backBtn = $('modal-back-btn'), confBtn = $('modal-confirm-btn'); if (previewSource === 'submit') { if (backBtn) backBtn.textContent = 'بازگشت و ویرایش'; if (confBtn) confBtn.style.display = ''; } else { if (backBtn) backBtn.textContent = 'بستن'; if (confBtn) confBtn.style.display = 'none'; } if (previewModal) previewModal.classList.add('active'); return true; }
 function closePreview() { if (previewModal) previewModal.classList.remove('active'); }
-
 safeBind('modal-close-btn', 'click', closePreview);
 safeBind('modal-back-btn', 'click', closePreview);
 if (previewModal) previewModal.addEventListener('click', function (e) { if (e.target === previewModal) closePreview(); });
-
-safeBind('modal-confirm-btn', 'click', function () {
-    document.querySelectorAll('.item-row').forEach(function (tr) {
-        var q = tr.querySelector('[name="quantity"]'), p = tr.querySelector('[name="unit_price"]');
-        if (q && q.dataset.rawValue) q.value = q.dataset.rawValue;
-        if (p && p.dataset.rawValue) p.value = p.dataset.rawValue;
-    });
-    closePreview(); if (form) form.submit();
-});
-
+safeBind('modal-confirm-btn', 'click', function () { document.querySelectorAll('.item-row').forEach(function (tr) { var q = tr.querySelector('[name="quantity"]'), p = tr.querySelector('[name="unit_price"]'); if (q && q.dataset.rawValue) q.value = q.dataset.rawValue; if (p && p.dataset.rawValue) p.value = p.dataset.rawValue; }); closePreview(); if (form) form.submit(); });
 safeBind('preview-btn', 'click', function () { openPreview('preview'); });
 
-// ═══════════════════════════════════════════
-//  بخش ۱۰: رویدادهای سراسری
-// ═══════════════════════════════════════════
+/* ═══════════════════════════════════════════
+   بخش ۱۲: رویدادهای سراسری
+   ═══════════════════════════════════════════ */
 safeBind('add-row-btn', 'click', function () { addRow(); });
+if (form) form.addEventListener('submit', function (e) { e.preventDefault(); var gregDate = $('gregorian-date'); if (!gregDate || !gregDate.value) { showToast('لطفاً تاریخ را انتخاب کنید.', 'error'); openCalendar(); return; } openPreview('submit'); });
+safeBind('reset-btn', 'click', function () { if (!confirm('آیا مطمئن هستید؟')) return; if (tbody) tbody.innerHTML = ''; rowIdx = 0; refresh(); showToast('پاک شد.'); });
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closePreview(); closeSupModal(); closeCatModal(); closeCalendar(); hideAllItemDropdowns(); if (excelModal) excelModal.classList.remove('active'); } });
 
-if (form) form.addEventListener('submit', function (e) { e.preventDefault(); openPreview('submit'); });
-
-safeBind('reset-btn', 'click', function () {
-    if (!confirm('آیا مطمئن هستید؟')) return;
-    if (tbody) tbody.innerHTML = ''; rowIdx = 0; refresh(); showToast('پاک شد.');
-});
-
-document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') { closePreview(); closeSupModal(); closeCatModal(); if (excelModal) excelModal.classList.remove('active'); }
-});
-
-// ═══════════════════════════════════════════
-//  بخش ۱۱: دانلود قالب اکسل
-// ═══════════════════════════════════════════
+/* ═══════════════════════════════════════════
+   بخش ۱۳: دانلود قالب اکسل
+   ═══════════════════════════════════════════ */
 safeBind('em-download-tmpl', 'click', function () {
     if (typeof ExcelJS === 'undefined') { showToast('کتابخانه ExcelJS بارگذاری نشده.', 'error'); return; }
     try {
-        var wb = new ExcelJS.Workbook();
-        var ws = wb.addWorksheet('اقلام فاکتور', { views: [{ rightToLeft: true }] });
+        var wb = new ExcelJS.Workbook(); var ws = wb.addWorksheet('اقلام فاکتور', { views: [{ rightToLeft: true }] });
         var GOLD = 'B5853A', GL = 'FDF6EC', HB = 'F5EDE0', W = 'FFFFFF', D = '292524', GR = '78716C', GGB = 'F0FDF4', GN = '16A34A';
         var bt = { top: { style: 'thin', color: { argb: 'FFE7E5E4' } }, bottom: { style: 'thin', color: { argb: 'FFE7E5E4' } }, right: { style: 'thin', color: { argb: 'FFE7E5E4' } }, left: { style: 'thin', color: { argb: 'FFE7E5E4' } } };
         var ba = { top: { style: 'medium', color: { argb: 'FF' + GOLD } }, bottom: { style: 'medium', color: { argb: 'FF' + GOLD } }, right: { style: 'thin', color: { argb: 'FFE8D5B5' } }, left: { style: 'thin', color: { argb: 'FFE8D5B5' } } };
-        ws.columns = [{ width: 3 }, { width: 30 }, { width: 18 }, { width: 12 }, { width: 12 }, { width: 22 }, { width: 20 }];
+        ws.columns = [{ width: 3 },{ width: 30 },{ width: 18 },{ width: 12 },{ width: 12 },{ width: 22 },{ width: 20 }];
         ws.getRow(1).height = 8;
         ws.mergeCells('B2:G2');
         var tc = ws.getCell('B2'); tc.value = '📋 فاکتور خرید مواد اولیه'; tc.font = { name: 'Vazirmatn', size: 16, bold: true, color: { argb: 'FF' + D } }; tc.alignment = { horizontal: 'center', vertical: 'middle' }; tc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + GL } };
         ws.getRow(2).height = 42;
         for (var c = 2; c <= 7; c++) { ws.getRow(2).getCell(c).border = { bottom: { style: 'medium', color: { argb: 'FF' + GOLD } } }; }
         ws.getRow(3).height = 10;
-        var hl = ['', 'نام کالا', 'دسته‌بندی', 'مقدار', 'واحد', 'قیمت واحد (ریال)', 'قیمت کل (ریال)'];
+        var hl = ['','نام کالا','دسته‌بندی','مقدار','واحد','قیمت واحد (ریال)','قیمت کل (ریال)'];
         var hr = ws.getRow(4); hr.height = 36;
         hl.forEach(function (l, i) { if (!l) return; var cell = hr.getCell(i + 1); cell.value = l; cell.font = { name: 'Vazirmatn', size: 11, bold: true, color: { argb: 'FF' + GOLD } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + HB } }; cell.alignment = { horizontal: 'center', vertical: 'middle' }; cell.border = ba; });
-        var sd = [{ n: 'برنج ایرانی هاشمی', cat: 'grain', q: 10, u: 'kg', p: 85000 }, { n: 'روغن مایع آفتابگردان', cat: 'oil', q: 5, u: 'l', p: 120000 }, { n: 'رب گوجه فرنگی', cat: 'canned', q: 3, u: 'pack', p: 45000 }, { n: 'پیاز زرد', cat: 'vegetable', q: 20, u: 'kg', p: 15000 }, { n: 'سینه مرغ', cat: 'protein', q: 8, u: 'kg', p: 95000 }, { n: 'تخم‌مرغ شانه‌ای', cat: 'protein', q: 6, u: 'unit', p: 78000 }, { n: 'ماکارونی رشته‌ای', cat: 'grain', q: 12, u: 'pack', p: 28000 }];
-        sd.forEach(function (it, idx) {
-            var r = 5 + idx, row = ws.getRow(r); row.height = 30; var bg = idx % 2 === 0 ? W : 'FAF8F5';
-            row.getCell(1).value = idx + 1; row.getCell(1).font = { name: 'Vazirmatn', size: 9, color: { argb: 'FF' + GR } }; row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' };
-            row.getCell(2).value = it.n; row.getCell(2).font = { name: 'Vazirmatn', size: 10, color: { argb: 'FF' + D } }; row.getCell(2).alignment = { horizontal: 'right', vertical: 'middle' };
-            row.getCell(3).value = it.cat; row.getCell(3).font = { name: 'Vazirmatn', size: 9, color: { argb: 'FF' + GR } }; row.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' };
-            row.getCell(4).value = it.q; row.getCell(4).font = { name: 'Vazirmatn', size: 10, color: { argb: 'FF' + D } }; row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' };
-            row.getCell(5).value = it.u; row.getCell(5).font = { name: 'Vazirmatn', size: 10, color: { argb: 'FF' + GR } }; row.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' };
-            row.getCell(6).value = it.p; row.getCell(6).font = { name: 'Vazirmatn', size: 10, color: { argb: 'FF' + D } }; row.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' }; row.getCell(6).numFmt = '#,##0';
-            row.getCell(7).value = { formula: 'D' + r + '*F' + r }; row.getCell(7).font = { name: 'Vazirmatn', size: 10, bold: true, color: { argb: 'FF' + GOLD } }; row.getCell(7).alignment = { horizontal: 'center', vertical: 'middle' }; row.getCell(7).numFmt = '#,##0';
-            for (var cc = 1; cc <= 7; cc++) { row.getCell(cc).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + bg } }; row.getCell(cc).border = bt; }
-        });
+        var sd = [{ n: 'برنج ایرانی هاشمی', cat: 'grain', q: 10, u: 'kg', p: 85000 },{ n: 'روغن مایع آفتابگردان', cat: 'oil', q: 5, u: 'l', p: 120000 },{ n: 'رب گوجه فرنگی', cat: 'canned', q: 3, u: 'pack', p: 45000 },{ n: 'پیاز زرد', cat: 'vegetable', q: 20, u: 'kg', p: 15000 },{ n: 'سینه مرغ', cat: 'protein', q: 8, u: 'kg', p: 95000 },{ n: 'تخم‌مرغ شانه‌ای', cat: 'protein', q: 6, u: 'unit', p: 78000 },{ n: 'ماکارونی رشته‌ای', cat: 'grain', q: 12, u: 'pack', p: 28000 }];
+        sd.forEach(function (it, idx) { var r = 5 + idx, row = ws.getRow(r); row.height = 30; var bg = idx % 2 === 0 ? W : 'FAF8F5'; row.getCell(1).value = idx + 1; row.getCell(1).font = { name: 'Vazirmatn', size: 9, color: { argb: 'FF' + GR } }; row.getCell(1).alignment = { horizontal: 'center', vertical: 'middle' }; row.getCell(2).value = it.n; row.getCell(2).font = { name: 'Vazirmatn', size: 10, color: { argb: 'FF' + D } }; row.getCell(2).alignment = { horizontal: 'right', vertical: 'middle' }; row.getCell(3).value = it.cat; row.getCell(3).font = { name: 'Vazirmatn', size: 9, color: { argb: 'FF' + GR } }; row.getCell(3).alignment = { horizontal: 'center', vertical: 'middle' }; row.getCell(4).value = it.q; row.getCell(4).font = { name: 'Vazirmatn', size: 10, color: { argb: 'FF' + D } }; row.getCell(4).alignment = { horizontal: 'center', vertical: 'middle' }; row.getCell(5).value = it.u; row.getCell(5).font = { name: 'Vazirmatn', size: 10, color: { argb: 'FF' + GR } }; row.getCell(5).alignment = { horizontal: 'center', vertical: 'middle' }; row.getCell(6).value = it.p; row.getCell(6).font = { name: 'Vazirmatn', size: 10, color: { argb: 'FF' + D } }; row.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' }; row.getCell(6).numFmt = '#,##0'; row.getCell(7).value = { formula: 'D' + r + '*F' + r }; row.getCell(7).font = { name: 'Vazirmatn', size: 10, bold: true, color: { argb: 'FF' + GOLD } }; row.getCell(7).alignment = { horizontal: 'center', vertical: 'middle' }; row.getCell(7).numFmt = '#,##0'; for (var cc = 1; cc <= 7; cc++) { row.getCell(cc).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + bg } }; row.getCell(cc).border = bt; } });
         ws.getRow(12).height = 8; ws.mergeCells('B13:F13');
         var sl = ws.getCell('B13'); sl.value = '💰 جمع کل فاکتور'; sl.font = { name: 'Vazirmatn', size: 13, bold: true, color: { argb: 'FF' + D } }; sl.alignment = { horizontal: 'right', vertical: 'middle' }; sl.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + GGB } }; sl.border = { top: { style: 'medium', color: { argb: 'FF' + GN } }, bottom: { style: 'medium', color: { argb: 'FF' + GN } }, right: { style: 'medium', color: { argb: 'FF' + GN } } };
         var sv = ws.getCell('G13'); sv.value = { formula: 'SUM(G5:G11)' }; sv.font = { name: 'Vazirmatn', size: 14, bold: true, color: { argb: 'FF' + GN } }; sv.alignment = { horizontal: 'center', vertical: 'middle' }; sv.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + GGB } }; sv.border = { top: { style: 'medium', color: { argb: 'FF' + GN } }, bottom: { style: 'medium', color: { argb: 'FF' + GN } }, left: { style: 'thin', color: { argb: 'FF' + GN } } }; sv.numFmt = '#,##0';
         ws.getRow(13).height = 40; ws.getRow(14).height = 12;
         ws.mergeCells('B15:G15');
         var gt2 = ws.getCell('B15'); gt2.value = '💡 راهنمای پر کردن فایل'; gt2.font = { name: 'Vazirmatn', size: 11, bold: true, color: { argb: 'FF' + GOLD } }; gt2.alignment = { horizontal: 'right', vertical: 'middle' }; ws.getRow(15).height = 30;
-        ['• ستون واحد فقط مقادیر: kg | g | l | ml | unit | bunch | pack', '• ستون دسته‌بندی: protein | dairy | grain | oil | spice | vegetable | fruit | canned | beverage | packaging | cleaning', '• فایل پر شده را در همین پنجره بارگذاری کنید', '• قیمت کل به‌صورت خودکار محاسبه می‌شود'].forEach(function (text, gi) { var rn = 16 + gi; ws.mergeCells('B' + rn + ':G' + rn); var cell = ws.getCell('B' + rn); cell.value = text; cell.font = { name: 'Vazirmatn', size: 9.5, color: { argb: 'FF' + GR } }; cell.alignment = { horizontal: 'right', vertical: 'middle' }; ws.getRow(rn).height = 24; });
-        wb.xlsx.writeBuffer().then(function (buf) {
-            var bl = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            var u = URL.createObjectURL(bl); var a = document.createElement('a'); a.href = u; a.download = 'قالب_فاکتور_خرید.xlsx'; a.click(); URL.revokeObjectURL(u);
-            showToast('فایل قالب دانلود شد.');
-        });
+        ['• ستون واحد فقط مقادیر: kg | g | l | ml | unit | bunch | pack','• ستون دسته‌بندی: protein | dairy | grain | oil | spice | vegetable | fruit | canned | beverage | packaging | cleaning','• فایل پر شده را در همین پنجره بارگذاری کنید','• قیمت کل به‌صورت خودکار محاسبه می‌شود'].forEach(function (text, gi) { var rn = 16 + gi; ws.mergeCells('B' + rn + ':G' + rn); var cell = ws.getCell('B' + rn); cell.value = text; cell.font = { name: 'Vazirmatn', size: 9.5, color: { argb: 'FF' + GR } }; cell.alignment = { horizontal: 'right', vertical: 'middle' }; ws.getRow(rn).height = 24; });
+        wb.xlsx.writeBuffer().then(function (buf) { var bl = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }); var u = URL.createObjectURL(bl); var a = document.createElement('a'); a.href = u; a.download = 'قالب_فاکتور_خرید.xlsx'; a.click(); URL.revokeObjectURL(u); showToast('فایل قالب دانلود شد.'); });
     } catch (err) { console.error(err); showToast('خطا در ساخت فایل اکسل.', 'error'); }
 });
 
-console.log('✅ Invoice script loaded');
+/* ═══════════════════════════════════════════
+   بخش ۱۴: مقداردهی اولیه
+   ═══════════════════════════════════════════ */
+initShamsiDate();
+console.log('✅ Invoice script loaded — Shamsi calendar + item autocomplete with price');
 });
 </script>
 {% endblock %}
