@@ -27,6 +27,7 @@ if DEBUG:
 else:
     ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,est.rysh.ir').split(',')
 
+# ═══ مدل کاربر ═══
 AUTH_USER_MODEL = 'restaurant.User'
 
 CARD_READER_IP = os.getenv('CARD_READER_IP', '192.168.1.100')
@@ -87,6 +88,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'restaurant.middleware.TenantMiddleware',              # ← بعد از authentication
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]

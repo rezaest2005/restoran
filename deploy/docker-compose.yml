@@ -15,6 +15,7 @@
       - ../.env
     environment:
       - DEBUG=True
+    restart: unless-stopped
 
   nginx:
     build:
@@ -26,3 +27,4 @@
       - "8000:8000"
     depends_on:
       - web
+    restart: unless-stopped
