@@ -1,9 +1,12 @@
-# restaurant/admin.py
+"""
+restaurant/admin.py — Multi-tenant Admin
+"""
 
 from django.contrib import admin
 from django.utils import timezone
 from django.utils.html import format_html
 from django.template.response import TemplateResponse
+
 from .models import (
     # 1. Menu
     Category, Food,
@@ -23,7 +26,7 @@ from .models import (
     MembershipLevel, CustomerProfile, LoyaltyTransaction,
     Coupon, CustomerCoupon, LoyaltyWallet, WalletTransaction,
     Reward, RewardRedemption, Referral, LoyaltyNotification,
-    # 9. Auth
+    # 9. Auth (shared — بدون tenant)
     Restaurant, User,
     # 10. Recipe
     Recipe, RecipeIngredient, RecipeSemiFinished,
@@ -32,8 +35,11 @@ from .models import (
     # 12. Kitchen
     KitchenProduct, KitchenInventory,
     ProductionPlan, ProductionPlanItem, ProductionBatch,
-    KitchenDiscount, CapacityAnalysis, ProductionLog,
+    KitchenDiscount, CapacityAnalysis, ProductionLog, WasteLog,
+    # 13. Day Close
+    DayCloseReport, DayCloseLog,
 )
+from .models import UNIT_CHOICES  # ثابت سطح ماژول
 
 
 # ═══════════════════════════════════════════
@@ -46,32 +52,43 @@ admin.site.index_title = "داشبورد"
 
 
 # ═══════════════════════════════════════════
+#  Tenant-aware base — همه داده‌های همه رستوران‌ها
+# ═══════════════════════════════════════════
+
+class TenantModelAdmin(admin.ModelAdmin):
+    """ادمین بدون فیلتر tenant — برای سوپرادمین که همه چیز رو ببینه"""
+
+    def get_queryset(self, request):
+        return self.model.all_objects.get_queryset()
+
+
+# ═══════════════════════════════════════════
 #  1. MENU — Category · Food
 # ═══════════════════════════════════════════
 
 @admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
-    list_display  = ("name", "is_active", "order", "food_count")
-    list_filter   = ("is_active",)
+class CategoryAdmin(TenantModelAdmin):
+    list_display  = ("name", "restaurant", "is_active", "order", "food_count")
+    list_filter   = ("restaurant", "is_active")
     search_fields = ("name",)
     list_editable = ("is_active", "order")
 
     def food_count(self, obj):
-        return obj.foods.count() if hasattr(obj, 'foods') else obj.food_set.count()
+        return obj.foods.count()
     food_count.short_description = "تعداد غذا"
 
 
 @admin.register(Food)
-class FoodAdmin(admin.ModelAdmin):
-    list_display  = ("name", "category", "price", "final_price_display", "is_available", "created_at")
-    list_filter   = ("category", "is_available", "created_at")
+class FoodAdmin(TenantModelAdmin):
+    list_display  = ("name", "restaurant", "category", "price", "final_price_display", "is_available", "created_at")
+    list_filter   = ("restaurant", "category", "is_available", "created_at")
     search_fields = ("name",)
     list_editable = ("is_available",)
     readonly_fields = ("created_at",)
     list_per_page = 30
 
     fieldsets = (
-        ("اطلاعات غذا", {"fields": ("category", "name", "image", "price", "final_price", "is_available")}),
+        ("اطلاعات غذا", {"fields": ("restaurant", "category", "name", "image", "price", "final_price", "is_available")}),
         ("تاریخ", {"fields": ("created_at",)}),
     )
 
@@ -85,15 +102,16 @@ class FoodAdmin(admin.ModelAdmin):
 # ═══════════════════════════════════════════
 
 @admin.register(Table)
-class TableAdmin(admin.ModelAdmin):
-    list_display  = ("number", "is_reserved")
+class TableAdmin(TenantModelAdmin):
+    list_display  = ("number", "restaurant", "is_reserved")
+    list_filter   = ("restaurant",)
     list_editable = ("is_reserved",)
 
 
 @admin.register(Reservation)
-class ReservationAdmin(admin.ModelAdmin):
-    list_display    = ("customer_name", "table", "date", "time", "guests", "phone", "created_at")
-    list_filter     = ("date", "table")
+class ReservationAdmin(TenantModelAdmin):
+    list_display    = ("customer_name", "restaurant", "table", "date", "time", "guests", "phone", "created_at")
+    list_filter     = ("restaurant", "date", "table")
     search_fields   = ("customer_name", "phone")
     readonly_fields = ("created_at",)
     list_per_page   = 20
@@ -118,20 +136,20 @@ class OrderItemInline(admin.TabularInline):
 
 
 @admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
+class OrderAdmin(TenantModelAdmin):
     list_display = (
-        "id", "customer_name", "table",
+        "id", "restaurant", "customer_name", "table",
         "status_colored", "items_count",
         "total_price_display", "created_at",
     )
-    list_filter     = ("status", "created_at", "table")
+    list_filter     = ("restaurant", "status", "created_at", "table")
     search_fields   = ("customer_name", "phone")
     readonly_fields = ("total_price", "created_at")
     inlines         = [OrderItemInline]
     list_per_page   = 25
 
     fieldsets = (
-        ("مشتری", {"fields": ("customer_name", "phone")}),
+        ("مشتری", {"fields": ("restaurant", "customer_name", "phone")}),
         ("سفارش", {"fields": ("table", "status", "total_price")}),
         ("تاریخ", {"fields": ("created_at",)}),
     )
@@ -140,12 +158,8 @@ class OrderAdmin(admin.ModelAdmin):
 
     def status_colored(self, obj):
         colors = {
-            "pending":   "#f39c12",
-            "confirmed": "#3b82f6",
-            "preparing": "#e67e22",
-            "ready":     "#2ecc71",
-            "delivered": "#95a5a6",
-            "cancelled": "#e74c3c",
+            "pending": "#f39c12", "confirmed": "#3b82f6", "preparing": "#e67e22",
+            "ready": "#2ecc71", "delivered": "#95a5a6", "cancelled": "#e74c3c",
         }
         c = colors.get(obj.status, "#333")
         return format_html(
@@ -176,11 +190,11 @@ class OrderAdmin(admin.ModelAdmin):
 
 
 @admin.register(OrderItem)
-class OrderItemAdmin(admin.ModelAdmin):
-    list_display    = ("order", "food", "quantity", "price_display")
-    search_fields   = ("food__name", "order__customer_name")
+class OrderItemAdmin(TenantModelAdmin):
+    list_display        = ("order", "restaurant", "food", "quantity", "price_display")
+    search_fields       = ("food__name", "order__customer_name")
     autocomplete_fields = ("order", "food")
-    list_per_page   = 30
+    list_per_page       = 30
 
     def price_display(self, obj):
         return f"{int(obj.price):,} ت" if obj.price else "—"
@@ -192,36 +206,21 @@ class OrderItemAdmin(admin.ModelAdmin):
 # ═══════════════════════════════════════════
 
 @admin.register(RawMaterial)
-class RawMaterialAdmin(admin.ModelAdmin):
+class RawMaterialAdmin(TenantModelAdmin):
     list_display = (
-        "name", "label", "price_display", "unit",
+        "name", "restaurant", "label", "price_display", "unit",
         "quantity", "total_price_display", "stock_badge",
     )
-    list_filter   = ("unit",)
+    list_filter   = ("restaurant", "unit")
     search_fields = ("name", "label")
     list_per_page = 30
 
     fieldsets = (
-        ("اطلاعات", {"fields": ("name", "label")}),
+        ("اطلاعات", {"fields": ("restaurant", "name", "label")}),
         ("موجودی", {"fields": ("price", "unit", "quantity")}),
     )
 
     actions = ["reset_quantity"]
-
-    def changelist_view(self, request, extra_context=None):
-        context = {
-            **self.admin_site.each_context(request),
-            "title": "مدیریت مواد اولیه",
-            "materials": RawMaterial.objects.all().order_by("name"),
-            "unit_choices": RawMaterial.UNIT_CHOICES,
-            "opts": self.model._meta,
-        }
-        return TemplateResponse(request, "restaurant/raw_materials.html", context)
-
-    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
-        extra_context = extra_context or {}
-        extra_context["custom_mode"] = True
-        return super().changeform_view(request, object_id, form_url, extra_context)
 
     def price_display(self, obj):
         return f"{int(obj.price):,} ت"
@@ -246,29 +245,17 @@ class RawMaterialAdmin(admin.ModelAdmin):
 
 
 @admin.register(InventoryUsageLog)
-class InventoryUsageLogAdmin(admin.ModelAdmin):
-    list_display    = ("raw_material", "type_badge", "quantity_used", "reference", "used_at")
-    list_filter     = ("usage_type", "used_at")
+class InventoryUsageLogAdmin(TenantModelAdmin):
+    list_display    = ("raw_material", "restaurant", "type_badge", "quantity_used", "reference", "used_at")
+    list_filter     = ("restaurant", "usage_type", "used_at")
     search_fields   = ("raw_material__name", "reference", "note")
     readonly_fields = ("used_at",)
     list_per_page   = 30
 
-    def changelist_view(self, request, extra_context=None):
-        logs = InventoryUsageLog.objects.select_related("raw_material").order_by("-used_at")
-        context = {
-            **self.admin_site.each_context(request),
-            "title": "تاریخچه مصرف انبار",
-            "logs": logs,
-            "opts": self.model._meta,
-        }
-        return TemplateResponse(request, "restaurant/usage_log.html", context)
-
     def type_badge(self, obj):
         colors = {
-            "semi_finished": "#3498db",
-            "order": "#2ecc71",
-            "manual": "#f39c12",
-            "waste": "#e74c3c",
+            "semi_finished": "#3498db", "order": "#2ecc71",
+            "manual": "#f39c12", "waste": "#e74c3c",
         }
         c = colors.get(obj.usage_type, "#333")
         return format_html('<span style="color:{};">{}</span>', c, obj.get_usage_type_display())
@@ -292,40 +279,25 @@ class SemiFinishedIngredientInline(admin.TabularInline):
 
 
 @admin.register(SemiFinished)
-class SemiFinishedAdmin(admin.ModelAdmin):
+class SemiFinishedAdmin(TenantModelAdmin):
     list_display = (
-        "name", "category", "unit", "quantity_produced",
+        "name", "restaurant", "category", "unit", "quantity_produced",
         "ingredients_count", "cost_display", "profit_percentage",
         "suggested_display", "can_produce_display", "created_at",
     )
-    list_filter     = ("category", "created_at")
+    list_filter     = ("restaurant", "category", "created_at")
     search_fields   = ("name", "description")
     readonly_fields = ("created_at", "updated_at")
     inlines         = [SemiFinishedIngredientInline]
     list_per_page   = 25
 
     fieldsets = (
-        ("اطلاعات پایه", {"fields": ("name", "category", "description")}),
+        ("اطلاعات پایه", {"fields": ("restaurant", "name", "category", "description")}),
         ("تولید", {"fields": ("unit", "quantity_produced", "current_stock", "profit_percentage")}),
         ("غذاهای مرتبط", {"fields": ("foods",)}),
         ("تاریخ", {"fields": ("created_at", "updated_at")}),
     )
     filter_horizontal = ("foods",)
-
-    def changelist_view(self, request, extra_context=None):
-        context = {
-            **self.admin_site.each_context(request),
-            "title": "مدیریت مواد نیم‌آماده",
-            "semi_finished_list": SemiFinished.objects.all(),
-            "raw_materials": RawMaterial.objects.all(),
-            "opts": self.model._meta,
-        }
-        return TemplateResponse(request, "restaurant/semi_finished.html", context)
-
-    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
-        extra_context = extra_context or {}
-        extra_context["my_custom_data"] = True
-        return super().changeform_view(request, object_id, form_url, extra_context)
 
     def ingredients_count(self, obj):
         return obj.ingredients.count()
@@ -348,8 +320,8 @@ class SemiFinishedAdmin(admin.ModelAdmin):
 
 
 @admin.register(SemiFinishedIngredient)
-class SemiFinishedIngredientAdmin(admin.ModelAdmin):
-    list_display        = ("semi_finished", "raw_material", "quantity", "cost_display")
+class SemiFinishedIngredientAdmin(TenantModelAdmin):
+    list_display        = ("semi_finished", "restaurant", "raw_material", "quantity", "cost_display")
     search_fields       = ("raw_material__name", "semi_finished__name")
     autocomplete_fields = ("semi_finished", "raw_material")
     list_per_page       = 30
@@ -364,13 +336,14 @@ class SemiFinishedIngredientAdmin(admin.ModelAdmin):
 # ═══════════════════════════════════════════
 
 @admin.register(Supplier)
-class SupplierAdmin(admin.ModelAdmin):
-    list_display    = ("name", "phone", "contact_person", "created_at")
+class SupplierAdmin(TenantModelAdmin):
+    list_display    = ("name", "restaurant", "phone", "contact_person", "created_at")
+    list_filter     = ("restaurant",)
     search_fields   = ("name", "phone", "contact_person")
     readonly_fields = ("created_at",)
 
     fieldsets = (
-        ("اطلاعات شرکت", {"fields": ("name", "phone", "address")}),
+        ("اطلاعات شرکت", {"fields": ("restaurant", "name", "phone", "address")}),
         ("ارتباطات", {"fields": ("contact_person", "description")}),
         ("تاریخ", {"fields": ("created_at",)}),
     )
@@ -388,33 +361,19 @@ class PurchaseInvoiceItemInline(admin.TabularInline):
 
 
 @admin.register(PurchaseInvoice)
-class PurchaseInvoiceAdmin(admin.ModelAdmin):
-    list_display    = ("supplier_name", "invoice_number", "date", "items_count", "total_display", "created_at")
-    list_filter     = ("date", "created_at")
+class PurchaseInvoiceAdmin(TenantModelAdmin):
+    list_display    = ("supplier_name", "restaurant", "invoice_number", "date", "items_count", "total_display", "created_at")
+    list_filter     = ("restaurant", "date", "created_at")
     search_fields   = ("supplier_name", "invoice_number", "description")
     readonly_fields = ("created_at",)
     inlines         = [PurchaseInvoiceItemInline]
     list_per_page   = 20
 
     fieldsets = (
-        ("فاکتور", {"fields": ("supplier_name", "invoice_number", "date")}),
+        ("فاکتور", {"fields": ("restaurant", "supplier_name", "invoice_number", "date")}),
         ("توضیحات و فایل", {"fields": ("description", "file")}),
         ("تاریخ", {"fields": ("created_at",)}),
     )
-
-    def changelist_view(self, request, extra_context=None):
-        context = {
-            **self.admin_site.each_context(request),
-            "title": "فاکتورهای خرید",
-            "invoices": PurchaseInvoice.objects.all(),
-            "opts": self.model._meta,
-        }
-        return TemplateResponse(request, "restaurant/create_invoice.html", context)
-
-    def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
-        extra_context = extra_context or {}
-        extra_context["my_custom_data"] = True
-        return super().changeform_view(request, object_id, form_url, extra_context)
 
     def items_count(self, obj):
         return obj.items.count()
@@ -426,10 +385,10 @@ class PurchaseInvoiceAdmin(admin.ModelAdmin):
 
 
 @admin.register(PurchaseInvoiceItem)
-class PurchaseInvoiceItemAdmin(admin.ModelAdmin):
-    list_display    = ("invoice", "item_name", "quantity", "unit", "unit_price_display", "line_display")
-    search_fields   = ("item_name", "invoice__supplier_name")
-    list_per_page   = 30
+class PurchaseInvoiceItemAdmin(TenantModelAdmin):
+    list_display  = ("invoice", "restaurant", "item_name", "quantity", "unit", "unit_price_display", "line_display")
+    search_fields = ("item_name", "invoice__supplier_name")
+    list_per_page = 30
 
     def unit_price_display(self, obj):
         return f"{int(obj.unit_price):,} ت"
@@ -445,19 +404,19 @@ class PurchaseInvoiceItemAdmin(admin.ModelAdmin):
 # ═══════════════════════════════════════════
 
 @admin.register(ReadyMaterial)
-class ReadyMaterialAdmin(admin.ModelAdmin):
+class ReadyMaterialAdmin(TenantModelAdmin):
     list_display = (
-        "name", "unit", "quantity", "purchase_price",
+        "name", "restaurant", "unit", "quantity", "purchase_price",
         "selling_price", "stock_status_display", "supplier", "is_active",
     )
-    list_filter     = ("unit", "is_active", "supplier", "created_at")
+    list_filter     = ("restaurant", "unit", "is_active", "supplier", "created_at")
     search_fields   = ("name", "barcode", "description")
     list_editable   = ("is_active",)
     readonly_fields = ("created_at", "updated_at")
     list_per_page   = 30
 
     fieldsets = (
-        ("اطلاعات پایه", {"fields": ("name", "description", "unit", "barcode")}),
+        ("اطلاعات پایه", {"fields": ("restaurant", "name", "description", "unit", "barcode")}),
         ("قیمت‌گذاری", {"fields": ("purchase_price", "selling_price")}),
         ("موجودی", {"fields": ("quantity", "minimum_stock")}),
         ("تأمین‌کننده و ارتباط", {"fields": ("supplier", "category", "source_raw_material", "consume_quantity")}),
@@ -480,18 +439,19 @@ class ReadyMaterialAdmin(admin.ModelAdmin):
 # ═══════════════════════════════════════════
 
 @admin.register(MembershipLevel)
-class MembershipLevelAdmin(admin.ModelAdmin):
+class MembershipLevelAdmin(TenantModelAdmin):
     list_display = (
-        "icon", "title", "name", "min_spending_display", "min_points",
+        "icon", "title", "name", "restaurant", "min_spending_display", "min_points",
         "discount_percent", "points_multiplier", "cashback_rate",
         "free_delivery", "priority_support", "order",
     )
+    list_filter   = ("restaurant",)
     list_editable = ("order",)
     search_fields = ("title", "name")
     list_per_page = 10
 
     fieldsets = (
-        ("پایه", {"fields": ("name", "title", "icon", "color", "order")}),
+        ("پایه", {"fields": ("restaurant", "name", "title", "icon", "color", "order")}),
         ("شرایط ارتقا", {"fields": ("min_spending", "min_points")}),
         ("مزایا", {"fields": ("discount_percent", "points_multiplier", "cashback_rate", "free_delivery", "priority_support")}),
         ("توضیحات", {"fields": ("description",)}),
@@ -521,20 +481,20 @@ class CustCouponInline(admin.TabularInline):
 
 
 @admin.register(CustomerProfile)
-class CustomerProfileAdmin(admin.ModelAdmin):
+class CustomerProfileAdmin(TenantModelAdmin):
     list_display = (
-        "phone", "full_name", "level_display", "total_points",
+        "phone", "full_name", "restaurant", "level_display", "total_points",
         "available_points", "spending_display", "total_orders",
         "referral_code", "is_active", "joined_at",
     )
-    list_filter     = ("membership_level", "is_active", "joined_at")
+    list_filter     = ("restaurant", "membership_level", "is_active", "joined_at")
     search_fields   = ("phone", "first_name", "last_name", "email", "referral_code")
     readonly_fields = ("referral_code", "total_points", "available_points", "total_spending", "total_orders", "joined_at", "updated_at")
     inlines         = [LoyaltyTxInline, CustCouponInline]
     list_per_page   = 25
 
     fieldsets = (
-        ("اطلاعات شخصی", {"fields": ("phone", "email", "first_name", "last_name", "birth_date", "profile_image")}),
+        ("اطلاعات شخصی", {"fields": ("restaurant", "phone", "email", "first_name", "last_name", "birth_date", "profile_image")}),
         ("باشگاه", {"fields": ("membership_level", "total_points", "available_points", "total_spending", "total_orders")}),
         ("دعوت", {"fields": ("referral_code", "referred_by")}),
         ("وضعیت", {"fields": ("notes", "is_active")}),
@@ -567,9 +527,9 @@ class CustomerProfileAdmin(admin.ModelAdmin):
 
 
 @admin.register(LoyaltyTransaction)
-class LoyaltyTransactionAdmin(admin.ModelAdmin):
-    list_display    = ("customer", "type_badge", "points", "balance_after", "description", "created_at")
-    list_filter     = ("transaction_type", "created_at")
+class LoyaltyTransactionAdmin(TenantModelAdmin):
+    list_display    = ("customer", "restaurant", "type_badge", "points", "balance_after", "description", "created_at")
+    list_filter     = ("restaurant", "transaction_type", "created_at")
     search_fields   = ("customer__phone", "customer__first_name", "description")
     readonly_fields = ("created_at",)
     list_per_page   = 30
@@ -583,13 +543,13 @@ class LoyaltyTransactionAdmin(admin.ModelAdmin):
 
 
 @admin.register(Coupon)
-class CouponAdmin(admin.ModelAdmin):
+class CouponAdmin(TenantModelAdmin):
     list_display = (
-        "code", "name", "coupon_type", "discount_type",
+        "code", "name", "restaurant", "coupon_type", "discount_type",
         "discount_value_display", "usage_display",
         "validity_badge", "is_active", "valid_from", "valid_until",
     )
-    list_filter         = ("coupon_type", "discount_type", "is_active")
+    list_filter         = ("restaurant", "coupon_type", "discount_type", "is_active")
     search_fields       = ("code", "name")
     list_editable       = ("is_active",)
     filter_horizontal   = ("applicable_levels",)
@@ -597,7 +557,7 @@ class CouponAdmin(admin.ModelAdmin):
     list_per_page       = 20
 
     fieldsets = (
-        ("پایه", {"fields": ("code", "name", "description", "coupon_type")}),
+        ("پایه", {"fields": ("restaurant", "code", "name", "description", "coupon_type")}),
         ("تخفیف", {"fields": ("discount_type", "discount_value", "max_discount_amount", "min_order_amount")}),
         ("محدودیت", {"fields": ("max_uses", "max_uses_per_customer", "used_count")}),
         ("زمان", {"fields": ("valid_from", "valid_until")}),
@@ -623,8 +583,9 @@ class CouponAdmin(admin.ModelAdmin):
 
 
 @admin.register(CustomerCoupon)
-class CustomerCouponAdmin(admin.ModelAdmin):
-    list_display  = ("customer", "coupon", "used_count", "first_used_at", "last_used_at")
+class CustomerCouponAdmin(TenantModelAdmin):
+    list_display  = ("customer", "coupon", "restaurant", "used_count", "first_used_at", "last_used_at")
+    list_filter   = ("restaurant",)
     search_fields = ("customer__phone", "coupon__code")
     list_per_page = 30
 
@@ -641,8 +602,9 @@ class WalletTxInline(admin.TabularInline):
 
 
 @admin.register(LoyaltyWallet)
-class LoyaltyWalletAdmin(admin.ModelAdmin):
-    list_display    = ("customer", "balance_display", "updated_at")
+class LoyaltyWalletAdmin(TenantModelAdmin):
+    list_display    = ("customer", "restaurant", "balance_display", "updated_at")
+    list_filter     = ("restaurant",)
     search_fields   = ("customer__phone",)
     readonly_fields = ("updated_at",)
     inlines         = [WalletTxInline]
@@ -653,9 +615,9 @@ class LoyaltyWalletAdmin(admin.ModelAdmin):
 
 
 @admin.register(WalletTransaction)
-class WalletTransactionAdmin(admin.ModelAdmin):
-    list_display    = ("wallet", "type_badge", "amount_display", "balance_display", "description", "created_at")
-    list_filter     = ("transaction_type", "created_at")
+class WalletTransactionAdmin(TenantModelAdmin):
+    list_display    = ("wallet", "restaurant", "type_badge", "amount_display", "balance_display", "description", "created_at")
+    list_filter     = ("restaurant", "transaction_type", "created_at")
     search_fields   = ("wallet__customer__phone", "description")
     readonly_fields = ("created_at",)
     list_per_page   = 30
@@ -677,18 +639,18 @@ class WalletTransactionAdmin(admin.ModelAdmin):
 
 
 @admin.register(Reward)
-class RewardAdmin(admin.ModelAdmin):
+class RewardAdmin(TenantModelAdmin):
     list_display = (
-        "name", "category", "points_display", "value_display",
+        "name", "restaurant", "category", "points_display", "value_display",
         "qty_display", "min_membership_level", "available_badge", "is_active",
     )
-    list_filter   = ("category", "is_active")
+    list_filter   = ("restaurant", "category", "is_active")
     search_fields = ("name", "description")
     list_editable = ("is_active",)
     list_per_page = 20
 
     fieldsets = (
-        ("پایه", {"fields": ("name", "description", "category", "image")}),
+        ("پایه", {"fields": ("restaurant", "name", "description", "category", "image")}),
         ("ارزش", {"fields": ("points_required", "value")}),
         ("محدودیت", {"fields": ("quantity_available", "min_membership_level")}),
         ("وضعیت", {"fields": ("is_active",)}),
@@ -714,9 +676,9 @@ class RewardAdmin(admin.ModelAdmin):
 
 
 @admin.register(RewardRedemption)
-class RewardRedemptionAdmin(admin.ModelAdmin):
-    list_display    = ("customer", "reward", "points_spent", "status_badge", "redeemed_at")
-    list_filter     = ("status", "redeemed_at")
+class RewardRedemptionAdmin(TenantModelAdmin):
+    list_display    = ("customer", "restaurant", "reward", "points_spent", "status_badge", "redeemed_at")
+    list_filter     = ("restaurant", "status", "redeemed_at")
     search_fields   = ("customer__phone", "reward__name")
     readonly_fields = ("redeemed_at",)
     list_per_page   = 20
@@ -729,24 +691,24 @@ class RewardRedemptionAdmin(admin.ModelAdmin):
 
 
 @admin.register(Referral)
-class ReferralAdmin(admin.ModelAdmin):
-    list_display    = ("referrer", "referred", "referral_code", "bonus_points", "is_rewarded", "rewarded_at", "created_at")
-    list_filter     = ("is_rewarded", "created_at")
+class ReferralAdmin(TenantModelAdmin):
+    list_display    = ("referrer", "restaurant", "referred", "referral_code", "bonus_points", "is_rewarded", "rewarded_at", "created_at")
+    list_filter     = ("restaurant", "is_rewarded", "created_at")
     search_fields   = ("referrer__phone", "referred__phone", "referral_code")
     readonly_fields = ("created_at",)
     list_per_page   = 20
 
 
 @admin.register(LoyaltyNotification)
-class LoyaltyNotificationAdmin(admin.ModelAdmin):
-    list_display    = ("customer", "channel", "notification_type", "title", "read_badge", "sent_badge", "created_at")
-    list_filter     = ("channel", "notification_type", "is_read", "is_sent", "created_at")
+class LoyaltyNotificationAdmin(TenantModelAdmin):
+    list_display    = ("customer", "restaurant", "channel", "notification_type", "title", "read_badge", "sent_badge", "created_at")
+    list_filter     = ("restaurant", "channel", "notification_type", "is_read", "is_sent", "created_at")
     search_fields   = ("customer__phone", "title", "message")
     readonly_fields = ("created_at",)
     list_per_page   = 30
 
     fieldsets = (
-        ("گیرنده", {"fields": ("customer",)}),
+        ("گیرنده", {"fields": ("restaurant", "customer")}),
         ("اعلان", {"fields": ("channel", "notification_type", "title", "message")}),
         ("داده", {"fields": ("data",)}),
         ("وضعیت", {"fields": ("is_read", "is_sent", "sent_at")}),
@@ -777,11 +739,12 @@ class LoyaltyNotificationAdmin(admin.ModelAdmin):
 
 
 # ═══════════════════════════════════════════
-#  9. AUTHENTICATION
+#  9. AUTHENTICATION — Shared (بدون TenantModelAdmin)
 # ═══════════════════════════════════════════
 
 @admin.register(Restaurant)
 class RestaurantAdmin(admin.ModelAdmin):
+    """مدل مشترک — فیلتر tenant نداره"""
     list_display    = ("name", "phone", "is_active", "users_count", "created_at")
     list_filter     = ("is_active",)
     search_fields   = ("name", "phone", "address")
@@ -795,13 +758,14 @@ class RestaurantAdmin(admin.ModelAdmin):
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
+    """مدل مشترک — فیلتر tenant نداره"""
     list_display = (
         "username", "get_full_name", "phone_number",
         "role_badge", "restaurant", "is_active", "is_verified", "created_at",
     )
     list_filter     = ("role", "is_active", "is_verified", "restaurant")
     search_fields   = ("username", "first_name", "last_name", "phone_number", "email")
-    list_editable   = ("is_active", "is_verified")
+    list_editable   = ("is_active",)
     readonly_fields = ("created_at", "updated_at")
 
     fieldsets = (
@@ -855,20 +819,20 @@ class RecipeSemiFinishedInline(admin.TabularInline):
 
 
 @admin.register(Recipe)
-class RecipeAdmin(admin.ModelAdmin):
+class RecipeAdmin(TenantModelAdmin):
     list_display = (
-        "id", "food_name", "version", "ingredients_count", "semi_count",
+        "id", "restaurant", "food_name", "version", "ingredients_count", "semi_count",
         "total_cost_display", "cost_per_serving_display",
         "suggested_price_display", "margin_display", "is_active", "updated_at",
     )
-    list_filter     = ("is_active", "version", "created_at")
+    list_filter     = ("restaurant", "is_active", "version", "created_at")
     search_fields   = ("food__name", "instructions", "notes")
     readonly_fields = (
         "total_raw_material_cost", "total_semi_finished_cost",
         "total_cost", "cost_per_serving", "suggested_price",
         "created_at", "updated_at",
     )
-    autocomplete_fields = ("food", "restaurant")
+    autocomplete_fields = ("food",)
     inlines         = [RecipeIngredientInline, RecipeSemiFinishedInline]
     list_per_page   = 25
 
@@ -924,8 +888,8 @@ class RecipeAdmin(admin.ModelAdmin):
 
 
 @admin.register(RecipeIngredient)
-class RecipeIngredientAdmin(admin.ModelAdmin):
-    list_display = ("recipe_food", "raw_material", "quantity", "unit", "wastage_percent", "effective_display", "cost_display", "optional")
+class RecipeIngredientAdmin(TenantModelAdmin):
+    list_display        = ("recipe_food", "raw_material", "quantity", "unit", "wastage_percent", "effective_display", "cost_display", "optional")
     search_fields       = ("raw_material__name", "recipe__food__name")
     autocomplete_fields = ("recipe", "raw_material")
     list_per_page       = 30
@@ -945,7 +909,7 @@ class RecipeIngredientAdmin(admin.ModelAdmin):
 
 
 @admin.register(RecipeSemiFinished)
-class RecipeSemiFinishedAdmin(admin.ModelAdmin):
+class RecipeSemiFinishedAdmin(TenantModelAdmin):
     list_display        = ("recipe_food", "semi_finished", "quantity", "unit", "cost_display")
     search_fields       = ("semi_finished__name", "recipe__food__name")
     autocomplete_fields = ("recipe", "semi_finished")
@@ -965,13 +929,13 @@ class RecipeSemiFinishedAdmin(admin.ModelAdmin):
 # ═══════════════════════════════════════════
 
 @admin.register(InventoryMovement)
-class InventoryMovementAdmin(admin.ModelAdmin):
+class InventoryMovementAdmin(TenantModelAdmin):
     list_display = (
-        "raw_material", "movement_badge", "quantity",
+        "raw_material", "restaurant", "movement_badge", "quantity",
         "previous_stock", "new_stock", "reference_type",
         "created_by", "created_at",
     )
-    list_filter     = ("movement_type", "created_at")
+    list_filter     = ("restaurant", "movement_type", "created_at")
     search_fields   = ("raw_material__name", "notes")
     readonly_fields = ("created_at",)
     list_per_page   = 30
@@ -998,13 +962,13 @@ class KitchenInventoryInline(admin.StackedInline):
 
 
 @admin.register(KitchenProduct)
-class KitchenProductAdmin(admin.ModelAdmin):
+class KitchenProductAdmin(TenantModelAdmin):
     list_display = (
-        "name", "category", "recipe_name", "selling_price",
+        "name", "restaurant", "category", "recipe_name", "selling_price",
         "cost_display", "profit_display", "stock_display",
         "capacity_display", "is_active",
     )
-    list_filter         = ("category", "is_active", "created_at")
+    list_filter         = ("restaurant", "category", "is_active", "created_at")
     search_fields       = ("name", "description", "recipe__food__name")
     list_editable       = ("selling_price", "is_active")
     readonly_fields     = ("created_at", "updated_at")
@@ -1013,7 +977,7 @@ class KitchenProductAdmin(admin.ModelAdmin):
     list_per_page       = 25
 
     fieldsets = (
-        ("پایه", {"fields": ("name", "recipe", "category", "description", "image")}),
+        ("پایه", {"fields": ("restaurant", "name", "recipe", "category", "description", "image")}),
         ("قیمت", {"fields": ("selling_price",)}),
         ("وضعیت", {"fields": ("is_active", "created_at", "updated_at")}),
     )
@@ -1064,8 +1028,9 @@ class KitchenProductAdmin(admin.ModelAdmin):
 
 
 @admin.register(KitchenInventory)
-class KitchenInventoryAdmin(admin.ModelAdmin):
-    list_display    = ("kitchen_product", "quantity", "reserved_quantity", "available_qty", "low_stock_threshold", "status_badge", "updated_at")
+class KitchenInventoryAdmin(TenantModelAdmin):
+    list_display    = ("kitchen_product", "restaurant", "quantity", "reserved_quantity", "available_qty", "low_stock_threshold", "status_badge", "updated_at")
+    list_filter     = ("restaurant",)
     search_fields   = ("kitchen_product__name",)
     readonly_fields = ("updated_at",)
     list_per_page   = 25
@@ -1091,16 +1056,16 @@ class PlanItemInline(admin.TabularInline):
 
 
 @admin.register(ProductionPlan)
-class ProductionPlanAdmin(admin.ModelAdmin):
-    list_display    = ("id", "date", "status_badge", "created_by", "items_count", "created_at")
-    list_filter     = ("status", "date")
+class ProductionPlanAdmin(TenantModelAdmin):
+    list_display    = ("id", "restaurant", "date", "status_badge", "created_by", "items_count", "created_at")
+    list_filter     = ("restaurant", "status", "date")
     search_fields   = ("notes", "created_by__username")
     readonly_fields = ("created_at", "updated_at")
     inlines         = [PlanItemInline]
     list_per_page   = 20
 
     fieldsets = (
-        ("برنامه", {"fields": ("date", "status", "notes")}),
+        ("برنامه", {"fields": ("restaurant", "date", "status", "notes")}),
         ("تاریخ", {"fields": ("created_at", "updated_at")}),
     )
 
@@ -1116,17 +1081,17 @@ class ProductionPlanAdmin(admin.ModelAdmin):
 
 
 @admin.register(ProductionPlanItem)
-class ProductionPlanItemAdmin(admin.ModelAdmin):
-    list_display        = ("production_plan", "kitchen_product", "quantity")
-    list_filter         = ("production_plan__date",)
+class ProductionPlanItemAdmin(TenantModelAdmin):
+    list_display        = ("production_plan", "restaurant", "kitchen_product", "quantity")
+    list_filter         = ("restaurant", "production_plan__date")
     search_fields       = ("kitchen_product__name",)
     autocomplete_fields = ("production_plan", "kitchen_product")
 
 
 @admin.register(ProductionBatch)
-class ProductionBatchAdmin(admin.ModelAdmin):
-    list_display    = ("id", "kitchen_product", "quantity_produced", "cost_display", "produced_by", "produced_at")
-    list_filter     = ("produced_at",)
+class ProductionBatchAdmin(TenantModelAdmin):
+    list_display    = ("id", "restaurant", "kitchen_product", "quantity_produced", "cost_display", "produced_by", "produced_at")
+    list_filter     = ("restaurant", "produced_at")
     search_fields   = ("kitchen_product__name", "produced_by__username", "notes")
     readonly_fields = ("produced_at",)
     list_per_page   = 30
@@ -1137,15 +1102,15 @@ class ProductionBatchAdmin(admin.ModelAdmin):
 
 
 @admin.register(KitchenDiscount)
-class KitchenDiscountAdmin(admin.ModelAdmin):
-    list_display  = ("name", "product_display", "discount_type", "scope", "value_display", "is_active")
-    list_filter   = ("discount_type", "scope", "is_active")
+class KitchenDiscountAdmin(TenantModelAdmin):
+    list_display  = ("name", "restaurant", "product_display", "discount_type", "scope", "value_display", "is_active")
+    list_filter   = ("restaurant", "discount_type", "scope", "is_active")
     search_fields = ("name", "kitchen_product__name")
     list_editable = ("is_active",)
     list_per_page = 20
 
     fieldsets = (
-        ("پایه", {"fields": ("name", "kitchen_product", "discount_type", "scope", "value")}),
+        ("پایه", {"fields": ("restaurant", "name", "kitchen_product", "discount_type", "scope", "value")}),
         ("محدودیت", {"fields": ("max_quantity", "minimum_stock", "start_time", "end_time", "expires_at")}),
         ("وضعیت", {"fields": ("is_active",)}),
     )
@@ -1162,20 +1127,21 @@ class KitchenDiscountAdmin(admin.ModelAdmin):
 
 
 @admin.register(CapacityAnalysis)
-class CapacityAnalysisAdmin(admin.ModelAdmin):
-    list_display    = ("kitchen_product", "max_production_quantity", "limiting_material_name", "limiting_material_type", "calculated_at")
+class CapacityAnalysisAdmin(TenantModelAdmin):
+    list_display    = ("kitchen_product", "restaurant", "max_production_quantity", "limiting_material_name", "limiting_material_type", "calculated_at")
+    list_filter     = ("restaurant",)
     search_fields   = ("kitchen_product__name", "limiting_material_name")
     readonly_fields = ("calculated_at",)
     list_per_page   = 25
 
 
 @admin.register(ProductionLog)
-class ProductionLogAdmin(admin.ModelAdmin):
-    list_display  = ("id", "user", "product_name", "action_badge", "quantity", "details_short", "created_at")
-    list_filter   = ("action", "created_at")
-    search_fields = ("kitchen_product__name", "user__username", "user__first_name", "details")
+class ProductionLogAdmin(TenantModelAdmin):
+    list_display    = ("id", "restaurant", "user", "product_name", "action_badge", "quantity", "details_short", "created_at")
+    list_filter     = ("restaurant", "action", "created_at")
+    search_fields   = ("kitchen_product__name", "user__username", "user__first_name", "details")
     readonly_fields = ("created_at", "materials_consumed")
-    list_per_page = 30
+    list_per_page   = 30
 
     def product_name(self, obj):
         return obj.kitchen_product.name if obj.kitchen_product else "—"
@@ -1194,3 +1160,71 @@ class ProductionLogAdmin(admin.ModelAdmin):
         text = obj.details or "—"
         return text[:50] + "..." if len(text) > 50 else text
     details_short.short_description = "جزئیات"
+
+
+@admin.register(WasteLog)
+class WasteLogAdmin(TenantModelAdmin):
+    list_display    = ("kitchen_product", "restaurant", "quantity", "reason", "created_at")
+    list_filter     = ("restaurant", "created_at")
+    search_fields   = ("kitchen_product__name", "reason")
+    readonly_fields = ("created_at",)
+    list_per_page   = 30
+
+
+# ═══════════════════════════════════════════
+#  13. DAY CLOSE
+# ═══════════════════════════════════════════
+
+@admin.register(DayCloseReport)
+class DayCloseReportAdmin(TenantModelAdmin):
+    list_display = (
+        "date", "restaurant", "total_sales_display", "total_cost_display",
+        "total_profit_display", "order_count", "delivered_count",
+        "waste_count", "discount_total_display", "closed_by", "closed_at",
+    )
+    list_filter     = ("restaurant", "date")
+    search_fields   = ("closed_by__username",)
+    readonly_fields = ("closed_at", "inventory_snapshot", "items_detail", "top_items")
+    list_per_page   = 20
+
+    fieldsets = (
+        ("تاریخ", {"fields": ("restaurant", "date")}),
+        ("مالی", {"fields": ("total_sales", "total_cost", "total_profit", "discount_total")}),
+        ("آمار", {"fields": ("order_count", "delivered_count", "waste_count", "waste_value")}),
+        ("داده", {"fields": ("inventory_snapshot", "items_detail", "top_items"), "classes": ("collapse",)}),
+        ("بستن", {"fields": ("closed_by", "closed_at")}),
+    )
+
+    def total_sales_display(self, obj):
+        return f"{int(obj.total_sales):,} ت"
+    total_sales_display.short_description = "فروش"
+
+    def total_cost_display(self, obj):
+        return f"{int(obj.total_cost):,} ت"
+    total_cost_display.short_description = "هزینه"
+
+    def total_profit_display(self, obj):
+        p = int(obj.total_profit)
+        if p > 0:
+            return format_html('<span style="color:#2ecc71;font-weight:700;">{:,} ت</span>', p)
+        return format_html('<span style="color:#e74c3c;">{:,} ت</span>', p)
+    total_profit_display.short_description = "سود"
+
+    def discount_total_display(self, obj):
+        return f"{int(obj.discount_total):,} ت"
+    discount_total_display.short_description = "تخفیف"
+
+
+@admin.register(DayCloseLog)
+class DayCloseLogAdmin(TenantModelAdmin):
+    list_display    = ("date", "restaurant", "action_badge", "user", "created_at")
+    list_filter     = ("restaurant", "action", "created_at")
+    search_fields   = ("user__username",)
+    readonly_fields = ("created_at", "details")
+    list_per_page   = 30
+
+    def action_badge(self, obj):
+        if obj.action == "close":
+            return format_html('<span style="color:#e74c3c;font-weight:700;">بستن</span>')
+        return format_html('<span style="color:#2ecc71;font-weight:700;">باز کردن</span>')
+    action_badge.short_description = "عملیات"

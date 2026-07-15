@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e 
 echo "Running migrations..."
 python manage.py migrate --no-input
 python manage.py collectstatic --noinput 2>/dev/null
