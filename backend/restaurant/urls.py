@@ -5,7 +5,7 @@ Restaurant Management System — URLs (کامل و یکپارچه)
 
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
-from . import views, recipe_views
+from . import views, recipe_views, dictionary_views
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -43,6 +43,15 @@ router.register("inventory-movements", recipe_views.InventoryMovementViewSet, ba
 # ══════════════════════════════════════════════════════════════════════════════
 
 urlpatterns = [
+
+    # ──────────────────────────────────────────────────────────────
+    #  Dictionary (دیکشنری اسامی)
+    # ──────────────────────────────────────────────────────────────
+    path("api/dictionary/list/",                    dictionary_views.dictionary_list,        name="dictionary_list"),
+    path("api/dictionary/autocomplete/",            dictionary_views.dictionary_autocomplete, name="dictionary_autocomplete"),
+    path("api/dictionary/create/",                  dictionary_views.dictionary_create,       name="dictionary_create"),
+    path("api/dictionary/<int:pk>/update/",         dictionary_views.dictionary_update,       name="dictionary_update"),
+    path("api/dictionary/<int:pk>/delete/",         dictionary_views.dictionary_delete,       name="dictionary_delete"),
 
     # ──────────────────────────────────────────────────────────────
     #  Kitchen
@@ -119,8 +128,6 @@ urlpatterns = [
     path("api/semi-finished/save/",        views.semi_finished_save,          name="semi_finished_save"),
     path("api/semi-finished/delete/",      views.semi_finished_delete,        name="semi_finished_delete"),
     path("api/warehouse-json/",            views.warehouse_json,              name="warehouse-json"),
-    # ▼▼▼ این خط کامنت شد — تکراری بود و recipe_views اولویت داره ▼▼▼
-    # path("api/recipes/produce-semi/",      views.semi_finished_produce,       name="semi-finished-produce"),
     path("api/semi-finished/<int:pk>/produce-detail/", views.semi_finished_produce_detail, name="semi-finished-produce-detail"),
 
     # ──────────────────────────────────────────────────────────────
@@ -230,4 +237,6 @@ urlpatterns = [
     path("dashboard/foods/",                              views.food_management_page,          name="food_management"),
 
     path("dashboard/orders/", views.orders_dashboard, name="orders_dashboard"),
+
+    path("dashboard/dictionary/", views.dictionary_page, name="dictionary_page"),
 ]
