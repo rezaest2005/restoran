@@ -1,0 +1,575 @@
+{% extends "restaurant_base.html" %}
+{% load static %}
+
+{% block title %}دیکشنری اسامی{% endblock %}
+{% block page_title %}دیکشنری اسامی{% endblock %}
+{% block breadcrumb %}خانه / دیکشنری اسامی{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ═══ PAGE HEADER ═══ */
+  .dict-page-header {
+    padding: 28px 32px 0;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .dict-page-header h2 {
+    font-size: 22px; font-weight: 900; color: var(--text);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .dict-page-header h2 i {
+    font-size: 24px; color: var(--brand);
+    background: var(--brand-light); width: 44px; height: 44px;
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  }
+  .dict-page-sub { font-size: 13px; color: var(--muted); font-weight: 600; margin-top: 4px; }
+
+  /* ═══ STATS BAR ═══ */
+  .dict-stats {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 12px; padding: 20px 32px;
+  }
+  .dict-stat-card {
+    background: var(--surface); border-radius: 14px; padding: 16px 18px;
+    border: 2px solid var(--border); transition: all 0.25s;
+    cursor: pointer; position: relative; overflow: hidden;
+  }
+  .dict-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--card-shadow-hover);
+  }
+  .dict-stat-card.active {
+    border-color: var(--brand);
+    box-shadow: 0 4px 16px rgba(255,107,53,0.15);
+  }
+  .dict-stat-card.active::before {
+    content: ''; position: absolute; top: 0; right: 0; left: 0;
+    height: 3px; background: linear-gradient(90deg, var(--brand), #ff9a3c);
+    border-radius: 3px 3px 0 0;
+  }
+  .dict-stat-icon {
+    width: 40px; height: 40px; border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; margin-bottom: 10px;
+  }
+  .dict-stat-card:nth-child(1) .dict-stat-icon { background: rgba(255,107,53,0.12); color: #ff6b35; }
+  .dict-stat-card:nth-child(2) .dict-stat-icon { background: rgba(139,92,246,0.12); color: #8b5cf6; }
+  .dict-stat-card:nth-child(3) .dict-stat-icon { background: rgba(16,185,129,0.12); color: #10b981; }
+  .dict-stat-card:nth-child(4) .dict-stat-icon { background: rgba(59,130,246,0.12); color: #3b82f6; }
+
+  .dict-stat-num {
+    font-size: 28px; font-weight: 900; color: var(--text);
+    line-height: 1; letter-spacing: -1px;
+  }
+  .dict-stat-label {
+    font-size: 12px; color: var(--muted); font-weight: 700;
+    margin-top: 4px;
+  }
+
+  /* ═══ MAIN PANEL ═══ */
+  .dict-panel {
+    margin: 0 32px 32px;
+    background: var(--surface); border-radius: 18px;
+    border: 2px solid var(--border); overflow: hidden;
+    box-shadow: var(--card-shadow);
+  }
+
+  /* ── Panel Header ── */
+  .dict-panel-head {
+    padding: 18px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 2px solid var(--border);
+    background: #fafbfc;
+  }
+  .dict-panel-head h3 {
+    font-size: 16px; font-weight: 900; color: var(--text);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .dict-panel-head h3 .cat-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+  .dict-panel-head h3 .cat-dot.raw    { background: #ff6b35; }
+  .dict-panel-head h3 .cat-dot.semi   { background: #8b5cf6; }
+  .dict-panel-head h3 .cat-dot.ready  { background: #10b981; }
+  .dict-panel-head h3 .cat-dot.final  { background: #3b82f6; }
+
+  .dict-search {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .dict-search input {
+    padding: 8px 14px; border: 2px solid var(--border); border-radius: 10px;
+    font-family: 'Vazirmatn', sans-serif; font-size: 13px; font-weight: 600;
+    color: var(--text); width: 240px; transition: border-color 0.2s;
+  }
+  .dict-search input:focus { outline: none; border-color: var(--brand); }
+  .dict-search input::placeholder { color: var(--muted); }
+
+  /* ── Add Form ── */
+  .dict-page-form {
+    display: grid; grid-template-columns: 1fr 160px 1fr 160px;
+    gap: 10px; padding: 18px 24px;
+    background: #f8f9fb; border-bottom: 2px solid var(--border);
+    align-items: end;
+  }
+  .dict-form-group { display: flex; flex-direction: column; gap: 4px; }
+  .dict-form-group label {
+    font-size: 11px; font-weight: 800; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .dict-form-group input,
+  .dict-form-group select {
+    padding: 10px 14px; border: 2px solid var(--border); border-radius: 10px;
+    font-family: 'Vazirmatn', sans-serif; font-size: 13px; font-weight: 600;
+    color: var(--text); background: var(--surface); transition: border-color 0.2s;
+  }
+  .dict-form-group input:focus,
+  .dict-form-group select:focus { outline: none; border-color: var(--brand); }
+  .dict-form-group input::placeholder { color: var(--muted); font-weight: 500; }
+
+  .dict-page-add-btn {
+    padding: 10px 24px; border: none; border-radius: 10px;
+    background: var(--brand); color: #fff;
+    font-family: 'Vazirmatn', sans-serif; font-size: 13px; font-weight: 800;
+    cursor: pointer; transition: all 0.2s; height: 42px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .dict-page-add-btn:hover { background: #e85d2c; box-shadow: 0 4px 12px rgba(255,107,53,0.3); }
+  .dict-page-add-btn.editing { background: #10b981; }
+  .dict-page-add-btn.editing:hover { background: #059669; box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+  .dict-cancel-btn {
+    padding: 10px 16px; border: 2px solid var(--border); border-radius: 10px;
+    background: var(--surface); color: var(--muted);
+    font-family: 'Vazirmatn', sans-serif; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s; height: 42px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .dict-cancel-btn:hover { border-color: #ef4444; color: #ef4444; background: #fef2f2; }
+
+  /* ── Table ── */
+  .dict-table { width: 100%; border-collapse: collapse; }
+  .dict-table th {
+    padding: 12px 24px; font-size: 11px; font-weight: 800;
+    color: var(--muted); text-align: right;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    background: #fafbfc; border-bottom: 2px solid var(--border);
+  }
+  .dict-table td {
+    padding: 14px 24px; font-size: 13.5px; font-weight: 600;
+    color: var(--text); border-bottom: 1px solid #f0f0f2;
+    transition: background 0.15s;
+  }
+  .dict-table tbody tr { transition: all 0.15s; }
+  .dict-table tbody tr:hover { background: #f8f9fb; }
+  .dict-table tbody tr.editing-row { background: #fffbeb !important; }
+
+  .dict-table .col-name { font-weight: 700; }
+  .dict-table .col-unit {
+    text-align: center;
+  }
+  .dict-table .col-unit span {
+    display: inline-flex; padding: 3px 12px; border-radius: 6px;
+    font-size: 12px; font-weight: 700;
+    background: rgba(255,107,53,0.08); color: var(--brand);
+  }
+  .dict-table .col-desc {
+    color: var(--muted); font-size: 12.5px; font-weight: 500;
+    max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .dict-table .col-num {
+    text-align: center; font-size: 12px; color: var(--muted); font-weight: 600;
+  }
+  .dict-table .col-actions { text-align: left; }
+  .dict-table .col-actions button {
+    width: 34px; height: 34px; border-radius: 9px; border: none;
+    cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 14px; transition: all 0.2s; margin-right: 4px;
+  }
+  .btn-edit { background: rgba(59,130,246,0.08); color: #3b82f6; }
+  .btn-edit:hover { background: rgba(59,130,246,0.18); transform: scale(1.05); }
+  .btn-delete { background: rgba(239,68,68,0.06); color: #ef4444; }
+  .btn-delete:hover { background: rgba(239,68,68,0.15); transform: scale(1.05); }
+
+  /* ── Empty State ── */
+  .dict-page-empty {
+    text-align: center; padding: 60px 20px;
+    color: var(--muted);
+  }
+  .dict-page-empty i {
+    font-size: 52px; display: block; margin-bottom: 14px; opacity: 0.2;
+  }
+  .dict-page-empty p {
+    font-size: 15px; font-weight: 700;
+  }
+  .dict-page-empty span {
+    font-size: 13px; font-weight: 500; display: block; margin-top: 6px;
+  }
+
+  /* ── Toast ── */
+  .dict-toast {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px);
+    background: #1f2937; color: #fff; padding: 12px 24px;
+    border-radius: 12px; font-size: 13px; font-weight: 700;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    z-index: 600; opacity: 0;
+    transition: all 0.35s cubic-bezier(.4,0,.2,1);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .dict-toast.show {
+    transform: translateX(-50%) translateY(0); opacity: 1;
+  }
+  .dict-toast.success { background: #059669; }
+  .dict-toast.error { background: #dc2626; }
+
+  /* ═══ ریسپانسیو ═══ */
+  @media (max-width: 900px) {
+    .dict-stats { grid-template-columns: repeat(2, 1fr); }
+    .dict-page-form { grid-template-columns: 1fr 1fr; }
+    .dict-search input { width: 160px; }
+  }
+  @media (max-width: 640px) {
+    .dict-stats { grid-template-columns: 1fr 1fr; padding: 16px; }
+    .dict-panel { margin: 0 16px 24px; }
+    .dict-page-header { padding: 20px 16px 0; flex-direction: column; align-items: flex-start; gap: 12px; }
+    .dict-page-form { grid-template-columns: 1fr; }
+    .dict-table .col-num, .dict-table .col-desc { display: none; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="dict-page-header">
+  <div>
+    <h2><i class="bi bi-book"></i>دیکشنری اسامی</h2>
+    <div class="dict-page-sub">مدیریت نام‌های پرتکرار — از این لیست در فرم‌های مختلف استفاده می‌شود</div>
+  </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="dict-stats">
+  <div class="dict-stat-card active" data-cat="raw_material" onclick="PageDict.switchCategory(this)">
+    <div class="dict-stat-icon"><i class="bi bi-archive"></i></div>
+    <div class="dict-stat-num" id="stat-raw_material">0</div>
+    <div class="dict-stat-label">مواد اولیه</div>
+  </div>
+  <div class="dict-stat-card" data-cat="semi_finished" onclick="PageDict.switchCategory(this)">
+    <div class="dict-stat-icon"><i class="bi bi-layers"></i></div>
+    <div class="dict-stat-num" id="stat-semi_finished">0</div>
+    <div class="dict-stat-label">نیمه‌آماده</div>
+  </div>
+  <div class="dict-stat-card" data-cat="ready_material" onclick="PageDict.switchCategory(this)">
+    <div class="dict-stat-icon"><i class="bi bi-box2"></i></div>
+    <div class="dict-stat-num" id="stat-ready_material">0</div>
+    <div class="dict-stat-label">مواد آماده</div>
+  </div>
+  <div class="dict-stat-card" data-cat="final_product" onclick="PageDict.switchCategory(this)">
+    <div class="dict-stat-icon"><i class="bi bi-egg-fried"></i></div>
+    <div class="dict-stat-num" id="stat-final_product">0</div>
+    <div class="dict-stat-label">محصول نهایی</div>
+  </div>
+</div>
+
+<!-- Main Panel -->
+<div class="dict-panel">
+  <div class="dict-panel-head">
+    <h3>
+      <span class="cat-dot raw" id="catDot"></span>
+      <span id="catTitle">مواد اولیه</span>
+    </h3>
+    <div class="dict-search">
+      <input type="text" id="pageDictSearch" placeholder="جستجو..." oninput="PageDict.filterList()">
+      <i class="bi bi-search" style="color:var(--muted); font-size:14px; margin-right:-4px;"></i>
+    </div>
+  </div>
+
+  <!-- Add Form -->
+  <div class="dict-page-form" id="pageDictForm">
+    <div class="dict-form-group">
+      <label>نام آیتم</label>
+      <input type="text" id="pdName" placeholder="مثال: آرد سفید">
+    </div>
+    <div class="dict-form-group">
+      <label>واحد</label>
+      <select id="pdUnit">
+        <option value="">انتخاب...</option>
+        <option value="kg">کیلوگرم</option>
+        <option value="g">گرم</option>
+        <option value="l">لیتر</option>
+        <option value="ml">میلی‌لیتر</option>
+        <option value="unit">عدد</option>
+        <option value="bunch">دسته</option>
+        <option value="pack">بسته</option>
+      </select>
+    </div>
+    <div class="dict-form-group">
+      <label>توضیحات</label>
+      <input type="text" id="pdDesc" placeholder="اختیاری">
+    </div>
+    <div style="display:flex; gap:6px; align-self:end;">
+      <button class="dict-page-add-btn" id="pdAddBtn" onclick="PageDict.save()">
+        <i class="bi bi-plus-lg"></i> افزودن
+      </button>
+      <button class="dict-cancel-btn" id="pdCancelBtn" onclick="PageDict.cancelEdit()" style="display:none;">
+        <i class="bi bi-x-lg"></i> انصراف
+      </button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <table class="dict-table">
+    <thead>
+      <tr>
+        <th style="width:40px;">#</th>
+        <th>نام</th>
+        <th style="width:120px; text-align:center;">واحد</th>
+        <th>توضیحات</th>
+        <th style="width:100px; text-align:left;">عملیات</th>
+      </tr>
+    </thead>
+    <tbody id="pdTableBody"></tbody>
+  </table>
+
+  <!-- Empty State -->
+  <div class="dict-page-empty" id="pdEmpty" style="display:none;">
+    <i class="bi bi-inbox"></i>
+    <p>آیتمی ثبت نشده</p>
+    <span>از فرم بالا آیتم جدید اضافه کنید</span>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="dict-toast" id="dictToast"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var PageDict = (function() {
+  var currentCat = 'raw_material';
+  var allItems = {};
+  var editingId = null;
+  var searchQuery = '';
+
+  var CAT_META = {
+    raw_material:   { title: 'مواد اولیه', dot: 'raw' },
+    semi_finished:  { title: 'نیمه‌آماده',  dot: 'semi' },
+    ready_material: { title: 'مواد آماده',  dot: 'ready' },
+    final_product:  { title: 'محصول نهایی', dot: 'final' },
+  };
+
+  var nameEl    = document.getElementById('pdName');
+  var unitEl    = document.getElementById('pdUnit');
+  var descEl    = document.getElementById('pdDesc');
+  var addBtn    = document.getElementById('pdAddBtn');
+  var cancelBtn = document.getElementById('pdCancelBtn');
+  var tableBody = document.getElementById('pdTableBody');
+  var emptyEl   = document.getElementById('pdEmpty');
+  var searchEl  = document.getElementById('pageDictSearch');
+  var catTitle  = document.getElementById('catTitle');
+  var catDot    = document.getElementById('catDot');
+  var toastEl   = document.getElementById('dictToast');
+
+  // ── CSRF ──
+  function csrf() {
+    var c = document.cookie.match(/csrftoken=([^;]+)/);
+    return c ? c[1] : '';
+  }
+  function api(url, method, body) {
+    var opts = {
+      method: method,
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
+    };
+    if (body) opts.body = JSON.stringify(body);
+    return fetch(url, opts).then(function(r) { return r.json(); });
+  }
+
+  // ── Toast ──
+  function toast(msg, type) {
+    toastEl.textContent = msg;
+    toastEl.className = 'dict-toast ' + (type || '');
+    toastEl.classList.add('show');
+    setTimeout(function() { toastEl.classList.remove('show'); }, 2500);
+  }
+
+  // ── Load ──
+  function loadAll() {
+    api('/api/dictionary/list/', 'GET').then(function(res) {
+      allItems = {};
+      (res.items || []).forEach(function(item) {
+        if (!allItems[item.category]) allItems[item.category] = [];
+        allItems[item.category].push(item);
+      });
+      updateStats();
+      render();
+    });
+  }
+
+  function updateStats() {
+    ['raw_material', 'semi_finished', 'ready_material', 'final_product'].forEach(function(cat) {
+      var el = document.getElementById('stat-' + cat);
+      if (el) el.textContent = (allItems[cat] || []).length;
+    });
+  }
+
+  // ── Switch Category ──
+  function switchCategory(card) {
+    document.querySelectorAll('.dict-stat-card').forEach(function(c) { c.classList.remove('active'); });
+    card.classList.add('active');
+    currentCat = card.dataset.cat;
+    cancelEdit();
+    searchEl.value = '';
+    searchQuery = '';
+
+    var meta = CAT_META[currentCat];
+    catTitle.textContent = meta.title;
+    catDot.className = 'cat-dot ' + meta.dot;
+
+    render();
+  }
+
+  // ── Filter ──
+  function filterList() {
+    searchQuery = searchEl.value.trim().toLowerCase();
+    render();
+  }
+
+  // ── Render ──
+  function render() {
+    var items = allItems[currentCat] || [];
+
+    if (searchQuery) {
+      items = items.filter(function(item) {
+        return item.name.toLowerCase().indexOf(searchQuery) !== -1
+          || (item.description || '').toLowerCase().indexOf(searchQuery) !== -1;
+      });
+    }
+
+    if (items.length === 0) {
+      tableBody.innerHTML = '';
+      emptyEl.style.display = 'block';
+      return;
+    }
+
+    emptyEl.style.display = 'none';
+    var html = '';
+    items.forEach(function(item, i) {
+      var editing = editingId === item.id ? ' editing-row' : '';
+      html += '<tr class="' + editing + '" data-id="' + item.id + '">'
+        + '<td class="col-num">' + (i + 1) + '</td>'
+        + '<td class="col-name">' + esc(item.name) + '</td>'
+        + '<td class="col-unit"><span>' + esc(item.unit_display) + '</span></td>'
+        + '<td class="col-desc">' + esc(item.description || '—') + '</td>'
+        + '<td class="col-actions">'
+        + '  <button class="btn-edit" onclick="PageDict.edit(' + item.id + ')" title="ویرایش"><i class="bi bi-pencil"></i></button>'
+        + '  <button class="btn-delete" onclick="PageDict.remove(' + item.id + ')" title="حذف"><i class="bi bi-trash3"></i></button>'
+        + '</td>'
+        + '</tr>';
+    });
+    tableBody.innerHTML = html;
+  }
+
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s || '';
+    return d.innerHTML;
+  }
+
+  // ── Create / Update ──
+  function save() {
+    var name = nameEl.value.trim();
+    var unit = unitEl.value;
+    var desc = descEl.value.trim();
+    if (!name) { nameEl.focus(); toast('نام آیتم را وارد کنید', 'error'); return; }
+    if (!unit) { unitEl.focus(); toast('واحد را انتخاب کنید', 'error'); return; }
+
+    if (editingId) {
+      api('/api/dictionary/' + editingId + '/update/', 'POST', { name: name, unit: unit, description: desc })
+        .then(function(res) {
+          if (res.error) { toast(res.error, 'error'); return; }
+          var items = allItems[currentCat] || [];
+          for (var i = 0; i < items.length; i++) {
+            if (items[i].id === editingId) {
+              items[i] = Object.assign(items[i], res);
+              break;
+            }
+          }
+          cancelEdit();
+          render();
+          toast('آیتم ویرایش شد', 'success');
+        });
+    } else {
+      api('/api/dictionary/create/', 'POST', { name: name, unit: unit, category: currentCat, description: desc })
+        .then(function(res) {
+          if (res.error) { toast(res.error, 'error'); return; }
+          if (!allItems[currentCat]) allItems[currentCat] = [];
+          allItems[currentCat].push(res);
+          updateStats();
+          render();
+          nameEl.value = '';
+          descEl.value = '';
+          unitEl.value = '';
+          nameEl.focus();
+          toast('آیتم اضافه شد', 'success');
+        });
+    }
+  }
+
+  // ── Edit ──
+  function edit(id) {
+    var items = allItems[currentCat] || [];
+    var item = items.find(function(x) { return x.id === id; });
+    if (!item) return;
+    editingId = id;
+    nameEl.value = item.name;
+    unitEl.value = item.unit;
+    descEl.value = item.description || '';
+    addBtn.innerHTML = '<i class="bi bi-check-lg"></i> ذخیره';
+    addBtn.classList.add('editing');
+    cancelBtn.style.display = '';
+    nameEl.focus();
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function cancelEdit() {
+    editingId = null;
+    nameEl.value = '';
+    unitEl.value = '';
+    descEl.value = '';
+    addBtn.innerHTML = '<i class="bi bi-plus-lg"></i> افزودن';
+    addBtn.classList.remove('editing');
+    cancelBtn.style.display = 'none';
+  }
+
+  // ── Delete ──
+  function remove(id) {
+    if (!confirm('آیا از حذف این آیتم مطمئنید؟')) return;
+    api('/api/dictionary/' + id + '/delete/', 'POST').then(function(res) {
+      if (res.error) { toast(res.error, 'error'); return; }
+      var items = allItems[currentCat] || [];
+      allItems[currentCat] = items.filter(function(x) { return x.id !== id; });
+      if (editingId === id) cancelEdit();
+      updateStats();
+      render();
+      toast('آیتم حذف شد', 'success');
+    });
+  }
+
+  // Enter key
+  nameEl.addEventListener('keydown', function(e) { if (e.key === 'Enter') save(); });
+  descEl.addEventListener('keydown', function(e) { if (e.key === 'Enter') save(); });
+
+  // ── Init ──
+  loadAll();
+
+  return {
+    switchCategory: switchCategory,
+    filterList: filterList,
+    save: save,
+    edit: edit,
+    cancelEdit: cancelEdit,
+    remove: remove,
+  };
+})();
+</script>
+{% endblock %}

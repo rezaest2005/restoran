@@ -329,6 +329,7 @@ def set_order_item_price(sender, instance: OrderItem, **kwargs) -> None:
 
 
 class RawMaterial(TenantModel):
+    UNIT_CHOICES = UNIT_CHOICES
     name     = name_field(verbose_name='نام ماده اولیه')
     label    = models.CharField(max_length=200, blank=True, verbose_name="برچسب")
     price    = price_field()
@@ -1392,3 +1393,30 @@ class DayCloseLog(TenantModel):
 
     def __str__(self):
         return f'{self.get_action_display()} — {self.date} — {self.user}'
+    
+# ─── 13. ITEM DICTIONARY ──────────────────
+
+
+class ItemDictionary(TenantModel):
+    CATEGORY_CHOICES = [
+        ('raw_material',   'ماده اولیه'),
+        ('semi_finished',  'نیمه‌آماده'),
+        ('ready_material', 'ماده آماده'),
+        ('final_product',  'محصول نهایی'),
+    ]
+
+    name        = name_field(verbose_name='نام')
+    unit        = unit_field()
+    description = description_field()
+    category    = models.CharField(max_length=20, choices=CATEGORY_CHOICES, verbose_name='دسته‌بندی', db_index=True)
+    is_active   = is_active_field()
+    created_at  = created_at_field()
+
+    class Meta:
+        verbose_name        = 'دیکشنری آیتم'
+        verbose_name_plural = 'دیکشنری آیتم‌ها'
+        unique_together     = ['restaurant', 'name', 'category']
+        ordering            = ['category', 'name']
+
+    def __str__(self):
+        return f'{self.name} ({self.get_category_display()})'

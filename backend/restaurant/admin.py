@@ -37,7 +37,7 @@ from .models import (
     ProductionPlan, ProductionPlanItem, ProductionBatch,
     KitchenDiscount, CapacityAnalysis, ProductionLog, WasteLog,
     # 13. Day Close
-    DayCloseReport, DayCloseLog,
+    DayCloseReport, DayCloseLog,ItemDictionary
 )
 from .models import UNIT_CHOICES  # ثابت سطح ماژول
 
@@ -1228,3 +1228,12 @@ class DayCloseLogAdmin(TenantModelAdmin):
             return format_html('<span style="color:#e74c3c;font-weight:700;">بستن</span>')
         return format_html('<span style="color:#2ecc71;font-weight:700;">باز کردن</span>')
     action_badge.short_description = "عملیات"
+
+
+
+@admin.register(ItemDictionary)
+class ItemDictionaryAdmin(admin.ModelAdmin):
+    list_display  = ['name', 'unit', 'category', 'is_active', 'created_at']
+    list_filter   = ['category', 'is_active']
+    search_fields = ['name', 'description']
+    list_editable = ['is_active']

@@ -19,7 +19,7 @@ import re
 import datetime
 from django.db.models import Sum,F, Q
 from django.utils import timezone
-from decimal import Decimal,InvalidOperation
+from decimal import Decimal
 from io import StringIO
 import requests
 import json
@@ -47,7 +47,7 @@ from django.db import transaction
 from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST,require_GET
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
@@ -96,6 +96,7 @@ from .models import (
     Table,
     WasteLog,
     InventoryMovement,
+    ItemDictionary,
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -4492,3 +4493,122 @@ def user_delete(request):
 
     target.delete()
     return JsonResponse({'success': True})
+
+
+@login_required
+@require_GET
+def dictionary_list(request):
+    category = request.GET.get('category', '')
+    qs = ItemDictionary.objects.all()
+    if category:
+        qs = qs.filter(category=category)
+    data = [
+        {
+            'id': item.id,
+            'name': item.name,
+            'unit': item.unit,
+            'unit_display': item.get_unit_display(),
+            'description': item.description or '',
+            'category': item.category,
+        }
+        for item in qs
+    ]
+    return JsonResponse({'items': data})
+
+
+@login_required
+@require_GET
+def dictionary_autocomplete(request):
+    q = request.GET.get('q', '').strip()
+    category = request.GET.get('category', '')
+    if len(q) < 1:
+        return JsonResponse({'items': []})
+    qs = ItemDictionary.objects.filter(name__icontains=q, is_active=True)
+    if category:
+        qs = qs.filter(category=category)
+    qs = qs[:15]
+    data = [
+        {
+            'id': item.id,
+            'name': item.name,
+            'unit': item.unit,
+            'unit_display': item.get_unit_display(),
+            'description': item.description or '',
+        }
+        for item in qs
+    ]
+    return JsonResponse({'items': data})
+
+
+@login_required
+@require_POST
+def dictionary_create(request):
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        data = request.POST
+
+    name     = (data.get('name') or '').strip()
+    unit     = (data.get('unit') or '').strip()
+    category = (data.get('category') or '').strip()
+    desc     = (data.get('description') or '').strip()
+
+    if not name or not unit or not category:
+        return JsonResponse({'error': 'نام، واحد و دسته‌بندی الزامی است'}, status=400)
+
+    if ItemDictionary.objects.filter(name=name, category=category).exists():
+        return JsonResponse({'error': 'این اسم قبلاً در این دسته‌بندی ثبت شده'}, status=400)
+
+    item = ItemDictionary.objects.create(
+        name=name, unit=unit, category=category, description=desc,
+    )
+    return JsonResponse({
+        'id': item.id, 'name': item.name,
+        'unit': item.unit, 'unit_display': item.get_unit_display(),
+        'description': item.description or '', 'category': item.category,
+    }, status=201)
+
+
+@login_required
+@require_POST
+def dictionary_update(request, pk):
+    try:
+        item = ItemDictionary.objects.get(pk=pk)
+    except ItemDictionary.DoesNotExist:
+        return JsonResponse({'error': 'آیتم یافت نشد'}, status=404)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        data = request.POST
+
+    if 'name' in data:
+        item.name = (data['name'] or '').strip()
+    if 'unit' in data:
+        item.unit = (data['unit'] or '').strip()
+    if 'description' in data:
+        item.description = (data['description'] or '').strip()
+
+    item.save()
+    return JsonResponse({
+        'id': item.id, 'name': item.name,
+        'unit': item.unit, 'unit_display': item.get_unit_display(),
+        'description': item.description or '',
+    })
+
+
+@login_required
+@require_POST
+def dictionary_delete(request, pk):
+    try:
+        item = ItemDictionary.objects.get(pk=pk)
+    except ItemDictionary.DoesNotExist:
+        return JsonResponse({'error': 'آیتم یافت نشد'}, status=404)
+
+    item.delete()
+    return JsonResponse({'success': True})
+
+@login_required
+def dictionary_page(request):
+    """صفحه مدیریت دیکشنری اسامی"""
+    return render(request, 'restaurant/dictionary.html')
