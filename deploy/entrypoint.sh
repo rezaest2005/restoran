@@ -1,5 +1,8 @@
-#!/bin/bash
-set -e 
+﻿#!/bin/bash
+set -e
+echo "Cleaning orphaned data..."
+python manage.py fix_orphan_data
+
 echo "Running migrations..."
 python manage.py migrate --no-input
 python manage.py collectstatic --noinput 2>/dev/null
