@@ -1,4 +1,4 @@
-{% extends "admin/restaurant_base.html" %}
+﻿{% extends "admin/restaurant_base.html" %}
 {% load static %}
 
 {% block title %}دیکشنری اسامی{% endblock %}
@@ -580,7 +580,7 @@ var PageDict = (function() {
       updateStats(); render();
     }).catch(function(){});
 
-    fetch('/api/foods/', { headers: { 'X-CSRFToken': csrf() } })
+    fetch('/api/foods/management/', { headers: { 'X-CSRFToken': csrf() } })
       .then(function(r) { return r.json(); })
       .then(function(res) {
         allFoods = res.foods || res || [];
@@ -629,7 +629,7 @@ var PageDict = (function() {
     catDot.className = 'cat-dot ' + meta.dot;
 
     dictSection.style.display = isDict() ? '' : 'none';
-    foodSection.style.display = isFood() ? '' : 'none';
+    foodSection.style.display = isFood() ? 'block' : 'none';
 
     render();
   }
@@ -868,7 +868,7 @@ var PageDict = (function() {
   }
 
   function refreshFoods() {
-    fetch('/api/foods/', { headers: { 'X-CSRFToken': csrf() } })
+    fetch('/api/foods/management/', { headers: { 'X-CSRFToken': csrf() } })
       .then(function(r) { return r.json(); })
       .then(function(res) {
         allFoods = res.foods || res || [];
