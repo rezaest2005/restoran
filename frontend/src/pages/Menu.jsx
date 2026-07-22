@@ -390,7 +390,7 @@ function FoodCard({ food, catName, onAdd }) {
     <div className="cd">
       <div className="ci">
         {food.image
-          ? <img src={food.image} alt={food.name} loading="lazy" />
+          ? <img src={food.image?.startsWith('http') ? food.image : `${API}${food.image}`} alt={food.name} loading="lazy" />
           : <div className="ci-ph">{emoji}</div>}
         <div className="ci-ov" />
         {catName && <span className="cb">{catName}</span>}
@@ -430,42 +430,39 @@ function Menu({ onAddToCart, cartCount = 0 }) {
   const [ld2, setLd2]       = useState(true);
 
   useEffect(() => {
-    axios.get(`${API}/api/categories/`)
-      .then(r => {
-        const d = r.data.results || r.data;
-        const arr = Array.isArray(d) ? d : [];
-        if (arr.length > 0) setSel(arr[0].id);
-        setCats(arr);
+    Promise.all([
+      axios.get(`${API}/api/categories/`),
+      axios.get(`${API}/api/foods/`)
+    ])
+      .then(([catRes, foodRes]) => {
+        const cats = catRes.data.results || catRes.data;
+        const allFoods = foodRes.data.results || foodRes.data;
+        const catsArr = Array.isArray(cats) ? cats : [];
+        if (catsArr.length > 0) setSel(catsArr[0].id);
+        setCats(catsArr);
+        setFoods(Array.isArray(allFoods) ? allFoods : []);
       })
       .catch(e => console.error(e))
-      .finally(() => setLd1(false));
+      .finally(() => { setLd1(false); setLd2(false); });
   }, []);
-
-  useEffect(() => {
-    if (sel === null) return;
-    setLd2(true);
-    const u = sel === 0
-      ? `${API}/api/foods/`
-      : `${API}/api/foods/?category=${sel}`;
-    axios.get(u)
-      .then(r => { const d = r.data.results || r.data; setFoods(Array.isArray(d) ? d : []); })
-      .catch(e => console.error(e))
-      .finally(() => setLd2(false));
-  }, [sel]);
 
   const cMap = useMemo(() => {
     const m = {}; cats.forEach(c => { m[c.id] = c.name; }); return m;
   }, [cats]);
 
   const list = useMemo(() => {
-    if (!q.trim()) return foods;
+    let base = foods;
+    if (sel !== null && sel !== 0) {
+      base = base.filter(f => f.category === sel || f.category_id === sel);
+    }
+    if (!q.trim()) return base;
     const s = q.trim().toLowerCase();
-    return foods.filter(f =>
+    return base.filter(f =>
       f.name?.toLowerCase().includes(s) ||
       f.description?.toLowerCase().includes(s) ||
       (cMap[f.category] || '').toLowerCase().includes(s)
     );
-  }, [foods, q, cMap]);
+  }, [foods, sel, q, cMap]);
 
   const aName = sel === 0 ? 'همه دسته‌بندی‌ها' : (cMap[sel] || 'فیلتر شده');
 
