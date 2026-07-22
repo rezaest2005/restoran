@@ -40,7 +40,7 @@ UNIT_MAX_LENGTH = 10
 class DecimalSafeEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
-            if obj % 1 == 0:          # ← باگ‌فیکس: int() روی اعشاری خطا نمی‌ده
+            if obj % 1 == 0:
                 return int(obj)
             return float(obj)
         return super().default(obj)
@@ -105,7 +105,7 @@ def updated_at_field(**kwargs):
 
 
 # ═══════════════════════════════════════════
-#  SHARED MODELS (بدون tenant — توی همه رستوران‌ها مشترکن)
+#  SHARED MODELS
 # ═══════════════════════════════════════════
 
 
@@ -184,7 +184,7 @@ class User(AbstractUser):
 
 
 # ═══════════════════════════════════════════
-#  TENANT MODELS (از اینجا به بعد همه TenantModel هستن)
+#  TENANT MODELS
 # ═══════════════════════════════════════════
 
 
@@ -210,8 +210,8 @@ class Food(TenantModel):
     category     = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="foods", db_index=True)
     name         = name_field(verbose_name='نام غذا')
     image        = models.ImageField(upload_to="foods/", blank=True)
-    price        = price_field(max_digits=10, verbose_name='قیمت')
-    final_price  = price_field(max_digits=10, verbose_name='قیمت نهایی')  # ← باگ‌فیکس: از price_field استفاده شد
+    price        = price_field(max_digits=10, verbose_name='قیمت', default=0)           # ← FIX
+    final_price  = price_field(max_digits=10, verbose_name='قیمت نهایی', default=0)     # ← FIX
     is_available = is_active_field(verbose_name='موجود')
     created_at   = created_at_field()
 
@@ -228,7 +228,6 @@ class Food(TenantModel):
 
 @receiver(pre_save, sender=Food)
 def set_food_final_price(sender, instance, **kwargs):
-    """← باگ‌فیکس: اگه final_price ست نشده، از price کپی کن"""
     if not instance.final_price:
         instance.final_price = instance.price
 
@@ -251,7 +250,7 @@ class Table(TenantModel):
 class Reservation(TenantModel):
     table         = models.ForeignKey(Table, on_delete=models.CASCADE)
     customer_name = name_field(max_length=200, verbose_name='نام مشتری', db_index=False)
-    phone         = phone_field()  # ← باگ‌فیکس: blank=True از phone_field
+    phone         = phone_field()
     date          = models.DateField()
     time          = models.TimeField()
     guests        = models.IntegerField()
@@ -261,7 +260,7 @@ class Reservation(TenantModel):
         verbose_name        = "رزرو"
         verbose_name_plural = "رزروها"
         indexes = [
-            models.Index(fields=["date", "time"]),  # ← ایندکس جدید
+            models.Index(fields=["date", "time"]),
         ]
 
     def __str__(self) -> str:
@@ -311,7 +310,7 @@ class OrderItem(TenantModel):
         verbose_name        = "آیتم سفارش"
         verbose_name_plural = "آیتم‌های سفارش"
         indexes = [
-            models.Index(fields=["order", "food"]),  # ← ایندکس جدید
+            models.Index(fields=["order", "food"]),
         ]
 
     def __str__(self) -> str:
@@ -332,9 +331,9 @@ class RawMaterial(TenantModel):
     UNIT_CHOICES = UNIT_CHOICES
     name     = name_field(verbose_name='نام ماده اولیه')
     label    = models.CharField(max_length=200, blank=True, verbose_name="برچسب")
-    price    = price_field()
+    price    = price_field(default=0)              # ← FIX
     unit     = unit_field()
-    quantity = qty_field()
+    quantity = qty_field(default=0)                # ← FIX
 
     class Meta:
         ordering            = ["name"]
@@ -390,7 +389,7 @@ class SemiFinished(TenantModel):
     category          = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='other', verbose_name='دسته‌بندی')
     description       = description_field()
     unit              = unit_field()
-    quantity_produced = qty_field(decimal_places=2, verbose_name='مقدار تولید شده')
+    quantity_produced = qty_field(decimal_places=2, verbose_name='مقدار تولید شده', default=0)  # ← FIX
     profit_percentage = models.IntegerField(default=30, verbose_name='درصد سود پیشنهادی')
     foods             = models.ManyToManyField('Food', blank=True, verbose_name='غذاهای مرتبط')
     current_stock     = qty_field(decimal_places=2, default=0, verbose_name='موجودی فعلی')
@@ -436,7 +435,7 @@ class SemiFinished(TenantModel):
 class SemiFinishedIngredient(TenantModel):
     semi_finished = models.ForeignKey(SemiFinished, on_delete=models.CASCADE, related_name='ingredients')
     raw_material  = models.ForeignKey(RawMaterial, on_delete=models.CASCADE, verbose_name='ماده اولیه', db_index=True)
-    quantity      = qty_field(decimal_places=2, verbose_name='مقدار مصرفی')
+    quantity      = qty_field(decimal_places=2, verbose_name='مقدار مصرفی', default=0)  # ← FIX
 
     class Meta:
         verbose_name        = 'ماده اولیه مصرفی'
@@ -505,9 +504,9 @@ class PurchaseInvoice(TenantModel):
 class PurchaseInvoiceItem(TenantModel):
     invoice    = models.ForeignKey(PurchaseInvoice, on_delete=models.CASCADE, related_name="items", verbose_name="فاکتور", db_index=True)
     item_name  = models.CharField(max_length=200, verbose_name="نام کالا")
-    quantity   = qty_field(decimal_places=2)
+    quantity   = qty_field(decimal_places=2, default=0)     # ← FIX
     unit       = unit_field()
-    unit_price = price_field()
+    unit_price = price_field(default=0)                     # ← FIX
     category   = models.ForeignKey("Category", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="دسته‌بندی")
 
     class Meta:
@@ -529,9 +528,9 @@ class ReadyMaterial(TenantModel):
     name                = name_field(verbose_name='نام ماده')
     description         = description_field()
     unit                = unit_field(default='unit')
-    quantity            = qty_field(max_digits=12, decimal_places=3)
-    purchase_price      = price_field(verbose_name='قیمت خرید (تومان)')
-    selling_price       = price_field(verbose_name='قیمت فروش (تومان)')
+    quantity            = qty_field(max_digits=12, decimal_places=3, default=0)           # ← FIX
+    purchase_price      = price_field(verbose_name='قیمت خرید (تومان)', default=0)      # ← FIX
+    selling_price       = price_field(verbose_name='قیمت فروش (تومان)', default=0)      # ← FIX
     minimum_stock       = qty_field(max_digits=12, decimal_places=3, default=0, verbose_name='حداقل موجودی')
     supplier            = models.ForeignKey("Supplier", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="تأمین‌کننده")
     barcode             = models.CharField(max_length=100, blank=True, verbose_name="بارکد", db_index=True)
@@ -600,7 +599,7 @@ class MembershipLevel(TenantModel):
         ordering            = ['order']
         verbose_name        = 'سطح عضویت'
         verbose_name_plural = 'سطوح عضویت'
-        unique_together     = ['restaurant', 'name']  # ← هر رستوران سطوح خودش
+        unique_together     = ['restaurant', 'name']
 
     def __str__(self) -> str:
         return f"{self.icon} {self.title}"
@@ -639,7 +638,7 @@ class CustomerProfile(TenantModel):
         verbose_name        = 'مشتری باشگاه'
         verbose_name_plural = 'مشتریان باشگاه'
         indexes = [
-            models.Index(fields=['restaurant', 'phone']),  # ← unique per tenant
+            models.Index(fields=['restaurant', 'phone']),
             models.Index(fields=['referral_code']),
             models.Index(fields=['membership_level', '-total_spending']),
         ]
@@ -648,7 +647,6 @@ class CustomerProfile(TenantModel):
         return f"{self.full_name or self.phone} ({self.available_points} امتیاز)"
 
     def save(self, *args, **kwargs):
-        # ← باگ‌فیکس: collision-safe referral code
         if not self.referral_code:
             for _ in range(5):
                 code = uuid.uuid4().hex[:8].upper()
@@ -754,7 +752,7 @@ class Coupon(TenantModel):
         ordering            = ['-created_at']
         verbose_name        = 'کوپن'
         verbose_name_plural = 'کوپن‌ها'
-        unique_together     = ['restaurant', 'code']  # ← کد کوپن هر رستوران یونیک
+        unique_together     = ['restaurant', 'code']
 
     def __str__(self) -> str:
         return f"{self.code} — {self.name}"
@@ -964,11 +962,11 @@ class Recipe(TenantModel):
     version                    = models.PositiveIntegerField('نسخه', default=1)
     is_active                  = is_active_field()
 
-    total_raw_material_cost  = price_field(max_digits=14, verbose_name='هزینه مواد اولیه')
-    total_semi_finished_cost = price_field(max_digits=14, verbose_name='هزینه مواد نیم‌آماده')
-    total_cost               = price_field(max_digits=14, verbose_name='هزینه کل')
-    cost_per_serving         = price_field(max_digits=14, verbose_name='هزینه هر سرو')
-    suggested_price          = price_field(max_digits=14, verbose_name='قیمت پیشنهادی')
+    total_raw_material_cost  = price_field(max_digits=14, verbose_name='هزینه مواد اولیه', default=0)
+    total_semi_finished_cost = price_field(max_digits=14, verbose_name='هزینه مواد نیم‌آماده', default=0)
+    total_cost               = price_field(max_digits=14, verbose_name='هزینه کل', default=0)
+    cost_per_serving         = price_field(max_digits=14, verbose_name='هزینه هر سرو', default=0)
+    suggested_price          = price_field(max_digits=14, verbose_name='قیمت پیشنهادی', default=0)
 
     created_at = created_at_field()
     updated_at = updated_at_field()
@@ -1348,14 +1346,14 @@ class WasteLog(TenantModel):
 
 class DayCloseReport(TenantModel):
     date               = models.DateField(verbose_name='تاریخ')
-    total_sales        = price_field(max_digits=14, verbose_name='فروش کل')
-    total_cost         = price_field(max_digits=14, verbose_name='هزینه کل')
-    total_profit       = price_field(max_digits=14, verbose_name='سود خالص')
+    total_sales        = price_field(max_digits=14, verbose_name='فروش کل', default=0)
+    total_cost         = price_field(max_digits=14, verbose_name='هزینه کل', default=0)
+    total_profit       = price_field(max_digits=14, verbose_name='سود خالص', default=0)
     order_count        = models.IntegerField(default=0, verbose_name='تعداد سفارش')
     delivered_count    = models.IntegerField(default=0, verbose_name='تحویل شده')
     waste_count        = models.IntegerField(default=0, verbose_name='تعداد ضایعات')
-    waste_value        = price_field(max_digits=14, verbose_name='ارزش ضایعات')
-    discount_total     = price_field(max_digits=14, verbose_name='کل تخفیف')
+    waste_value        = price_field(max_digits=14, verbose_name='ارزش ضایعات', default=0)
+    discount_total     = price_field(max_digits=14, verbose_name='کل تخفیف', default=0)
     inventory_snapshot = models.JSONField(default=dict, verbose_name='عکس موجودی', encoder=DecimalSafeEncoder)
     items_detail       = models.JSONField(default=list, verbose_name='جزئیات آیتم‌ها', encoder=DecimalSafeEncoder)
     top_items          = models.JSONField(default=list, verbose_name='پرفروش‌ترین‌ها', encoder=DecimalSafeEncoder)
@@ -1367,7 +1365,7 @@ class DayCloseReport(TenantModel):
         verbose_name_plural = 'گزارش‌های بستن روز'
         ordering            = ['-date']
         indexes = [
-            models.Index(fields=['restaurant', '-date']),  
+            models.Index(fields=['restaurant', '-date']),
         ]
 
     def __str__(self):
@@ -1393,7 +1391,8 @@ class DayCloseLog(TenantModel):
 
     def __str__(self):
         return f'{self.get_action_display()} — {self.date} — {self.user}'
-    
+
+
 # ─── 13. ITEM DICTIONARY ──────────────────
 
 

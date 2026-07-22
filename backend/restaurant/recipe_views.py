@@ -11,18 +11,17 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
 
 from .models import (
-    Recipe, RecipeIngredient, RecipeSemiFinished,
+    Recipe, RecipeIngredient,
     InventoryMovement,
     RawMaterial, SemiFinished, Food,
 )
 from .recipe_serializers import (
-    RecipeListSerializer, RecipeDetailSerializer, RecipeCreateSerializer,
+    RecipeDetailSerializer, RecipeCreateSerializer,
     InventoryMovementSerializer,
 )
-from .permissions import IsOwner, IsOwnerOrWarehouse, IsStaffRole
 from .utils import api_success, api_error
 from .recipe_services import (
-    calculate_recipe_cost, calculate_food_profit_margin,
+    calculate_recipe_cost,
     recalculate_all_food_costs, validate_recipe_inventory,
     validate_order_inventory, deduct_inventory_for_order,
     get_inventory_analytics,
@@ -33,6 +32,7 @@ from .recipe_services import (
 # ══════════════════════════════════════════════════════════════════════════════
 #  RECIPE VIEWSET
 # ══════════════════════════════════════════════════════════════════════════════
+
 class RecipeViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -50,7 +50,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeCreateSerializer
         return RecipeDetailSerializer
 
-    # ★FIX: هم recipe موجود آپدیت میشه، هم recipe جدید id برمی‌گردونه
     def create(self, request, *args, **kwargs):
         food_id = request.data.get('food')
         if food_id:
@@ -63,7 +62,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 data['id'] = existing.id
                 data['pk'] = existing.id
                 return Response(data, status=status.HTTP_200_OK)
-        # ★FIX: recipe جدید هم id برمی‌گردونه
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
@@ -132,10 +131,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
         result = calculate_recipe_cost(recipe)
         return Response(result)
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  INVENTORY MOVEMENT VIEWSET
 # ══════════════════════════════════════════════════════════════════════════════
-
 
 class InventoryMovementViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = InventoryMovementSerializer
@@ -156,11 +155,9 @@ class InventoryMovementViewSet(viewsets.ReadOnlyModelViewSet):
 #  RECIPE — FUNCTION-BASED API VIEWS
 # ══════════════════════════════════════════════════════════════════════════════
 
-
 @api_view(['POST'])
 @drf_permission_classes([permissions.IsAuthenticated])
 def validate_order_inventory_view(request):
-    """POST /api/recipes/validate-inventory/ — بررسی موجودی قبل از ثبت سفارش"""
     items = request.data.get('items', [])
     if not items:
         return api_error('آیتمی ارسال نشد.')
@@ -173,7 +170,6 @@ def validate_order_inventory_view(request):
 @api_view(['POST'])
 @drf_permission_classes([permissions.IsAuthenticated])
 def deduct_inventory_view(request):
-    """POST /api/recipes/deduct-inventory/ — کسر انبار برای سفارش"""
     from .models import Order
     order_id = request.data.get('order_id')
     if not order_id:
@@ -194,7 +190,6 @@ def deduct_inventory_view(request):
 @api_view(['POST'])
 @drf_permission_classes([permissions.IsAuthenticated])
 def recalculate_costs_view(request):
-    """POST /api/recipes/recalculate-all/ — محاسبه مجدد هزینه تمام رسپی‌ها"""
     result = recalculate_all_food_costs()
     return api_success(data=result, message=f'{result["count"]} رسپی محاسبه شد.')
 
@@ -202,7 +197,6 @@ def recalculate_costs_view(request):
 @api_view(['GET'])
 @drf_permission_classes([permissions.IsAuthenticated])
 def inventory_analytics_view(request):
-    """GET /api/recipes/analytics/ — آمار و تحلیل انبار"""
     data = get_inventory_analytics()
     return api_success(data=data)
 
@@ -210,7 +204,6 @@ def inventory_analytics_view(request):
 @api_view(['POST'])
 @drf_permission_classes([permissions.IsAuthenticated])
 def produce_semi_finished_view(request):
-    """POST /api/recipes/produce-semi/ — تولید ماده نیم‌آماده"""
     sf_id = request.data.get('semi_finished_id')
     quantity = request.data.get('quantity', 1)
     if not sf_id:
@@ -226,34 +219,32 @@ def produce_semi_finished_view(request):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  SUGGESTION APIs — Plain Django views
+#  SUGGESTION APIs
 # ══════════════════════════════════════════════════════════════════════════════
-
 
 @csrf_exempt
 @require_GET
 def food_suggestions_view(request):
-    """GET /api/recipes/foods/suggest/?q=..."""
     query = request.GET.get('q', '').strip()
     if not query:
         return JsonResponse([], safe=False)
     foods = Food.objects.filter(
         name__icontains=query
     ).values('id', 'name', 'final_price')[:15]
-    data = []
-    for f in foods:
-        data.append({
+    data = [
+        {
             'id': f['id'],
             'name': f['name'],
             'price': int(f['final_price']) if f['final_price'] else 0,
-        })
+        }
+        for f in foods
+    ]
     return JsonResponse(data, safe=False)
 
 
 @csrf_exempt
 @require_GET
 def raw_material_suggestions_api(request):
-    """GET /api/recipes/raw-materials/suggest/?q=..."""
     query = request.GET.get('q', '').strip()
     if not query:
         materials = RawMaterial.objects.all().values(
@@ -263,38 +254,41 @@ def raw_material_suggestions_api(request):
         materials = RawMaterial.objects.filter(
             name__icontains=query
         ).values('id', 'name', 'unit', 'price', 'quantity')[:15]
-    data = []
-    for m in materials:
-        data.append({
+    unit_map = dict(RawMaterial.UNIT_CHOICES)
+    data = [
+        {
             'id': m['id'],
             'name': m['name'],
             'unit': m['unit'],
             'price': int(m['price']) if m['price'] else 0,
             'quantity': int(m['quantity']) if m['quantity'] else 0,
-            'unit_display': dict(RawMaterial.UNIT_CHOICES).get(m['unit'], m['unit']),
-        })
+            'unit_display': unit_map.get(m['unit'], m['unit']),
+        }
+        for m in materials
+    ]
     return JsonResponse(data, safe=False)
 
 
 @csrf_exempt
 @require_GET
 def semi_finished_suggestions_api(request):
-    """GET /api/recipes/semi-finished/suggest/?q=..."""
     query = request.GET.get('q', '').strip()
     if not query:
         items = SemiFinished.objects.all()[:50]
     else:
         items = SemiFinished.objects.filter(name__icontains=query)[:15]
-    data = []
-    for s in items:
-        data.append({
+    unit_map = dict(RawMaterial.UNIT_CHOICES)
+    data = [
+        {
             'id': s.id,
             'name': s.name,
             'unit': s.unit,
             'cost_per_unit': int(s.cost_per_unit) if s.cost_per_unit else 0,
-            'unit_display': dict(RawMaterial.UNIT_CHOICES).get(s.unit, s.unit),
+            'unit_display': unit_map.get(s.unit, s.unit),
             'category': s.category,
-        })
+        }
+        for s in items
+    ]
     return JsonResponse(data, safe=False)
 
 
@@ -302,17 +296,6 @@ def semi_finished_suggestions_api(request):
 #  PAGE VIEWS (HTML)
 # ══════════════════════════════════════════════════════════════════════════════
 
-
-@staff_member_required
-def recipes_page(request):
-    """GET /recipes/ — صفحه لیست رسپی‌ها"""
-    try:
-        return render(request, 'recipes/recipes.html')
-    except Exception:
-        return render(request, 'recipes/recipe_manager.html')
-
-
 @staff_member_required
 def recipe_manager_page(request):
-    """GET /recipes/manager/ — صفحه مدیریت رسپی"""
     return render(request, 'recipes/recipe_manager.html')
