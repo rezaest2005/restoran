@@ -378,7 +378,9 @@
           <option value="unit">عدد</option>
           <option value="bunch">دسته</option>
           <option value="pack">بسته</option>
+          <option value="custom">سایر...</option>
         </select>
+        <input type="text" id="pdCustomUnit" placeholder="واحد سفارشی..." style="display:none; margin-top: 6px;">
       </div>
       <div class="dict-form-group">
         <label>توضیحات</label>
@@ -546,6 +548,7 @@ var PageDict = (function() {
   var fmCatName    = document.getElementById('fmCatName');
   var fmCatOrder   = document.getElementById('fmCatOrder');
   var fmCatSaveBtn = document.getElementById('fmCatSaveBtn');
+  var customUnitEl = document.getElementById('pdCustomUnit');
 
   /* ═══ Helpers ═══ */
   function csrf() {
@@ -753,6 +756,10 @@ var PageDict = (function() {
     var unit = unitEl.value;
     var desc = descEl.value.trim();
     if (!name) { nameEl.focus(); toast('نام آیتم را وارد کنید', 'error'); return; }
+    if (unit === 'custom') {
+      unit = customUnitEl.value.trim();
+      if (!unit) { customUnitEl.focus(); toast('واحد سفارشی را وارد کنید', 'error'); return; }
+    }
     if (!unit) { unitEl.focus(); toast('واحد را انتخاب کنید', 'error'); return; }
 
     if (editingId) {
@@ -784,6 +791,12 @@ var PageDict = (function() {
     if (!item) return;
     editingId = id;
     nameEl.value = item.name; unitEl.value = item.unit; descEl.value = item.description || '';
+    var knownUnits = ['kg','g','l','ml','unit','bunch','pack'];
+    if (knownUnits.indexOf(item.unit) === -1) {
+      unitEl.value = 'custom';
+      customUnitEl.value = item.unit;
+      customUnitEl.style.display = '';
+    }
     addBtn.innerHTML = '<i class="bi bi-check-lg"></i> ذخیره';
     addBtn.classList.add('editing'); cancelBtn.style.display = '';
     nameEl.focus(); render();
@@ -792,6 +805,7 @@ var PageDict = (function() {
   function cancelEdit() {
     editingId = null;
     nameEl.value = ''; unitEl.value = ''; descEl.value = '';
+    customUnitEl.value = ''; customUnitEl.style.display = 'none';
     addBtn.innerHTML = '<i class="bi bi-plus-lg"></i> افزودن';
     addBtn.classList.remove('editing'); cancelBtn.style.display = 'none';
   }
@@ -957,6 +971,17 @@ var PageDict = (function() {
   descEl.addEventListener('keydown', function(e) { if (e.key === 'Enter') save(); });
   foodNameEl.addEventListener('keydown', function(e) { if (e.key === 'Enter') saveFood(); });
   fmCatName.addEventListener('keydown', function(e) { if (e.key === 'Enter') saveCategory(); });
+
+  /* ═══ Custom Unit Toggle ═══ */
+  unitEl.addEventListener('change', function() {
+    if (this.value === 'custom') {
+      customUnitEl.style.display = '';
+      customUnitEl.focus();
+    } else {
+      customUnitEl.style.display = 'none';
+      customUnitEl.value = '';
+    }
+  });
 
   /* ═══ Init ═══ */
   loadAll();
