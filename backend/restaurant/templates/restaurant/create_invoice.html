@@ -7,7 +7,6 @@
 
 {% block extra_css %}
 <link rel="icon" href="data:;base64,=">
-<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <style>
 :root {
     --accent: #b5853a;
@@ -41,6 +40,7 @@
 .card-head {
     display: flex; align-items: center; gap: 10px;
     margin-bottom: 22px; padding-bottom: 14px; border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
 }
 .card-head svg { width: 22px; height: 22px; color: var(--accent); flex-shrink: 0; }
 .card-head h2 { font-size: 1.1rem; font-weight: 700; }
@@ -63,67 +63,6 @@
 .field input:focus, .field textarea:focus, .field select:focus {
     border-color: var(--accent); box-shadow: 0 0 0 3px rgba(181,133,58,.12);
 }
-
-.btn-excel {
-    display: inline-flex; align-items: center; gap: 7px;
-    padding: 7px 16px; border: 1.5px solid var(--success);
-    border-radius: 20px; background: var(--success-bg); color: var(--success);
-    font-family: inherit; font-size: .78rem; font-weight: 700;
-    cursor: pointer; transition: all .25s; white-space: nowrap; margin-right: auto;
-}
-.btn-excel:hover { background: var(--success); color: #fff; box-shadow: 0 4px 14px rgba(22,163,74,.25); transform: translateY(-1px); }
-.btn-excel:active { transform: scale(.97); }
-.btn-excel svg { width: 16px; height: 16px; flex-shrink: 0; }
-
-.excel-modal-overlay {
-    position: fixed; inset: 0; background: rgba(41,37,36,.45);
-    z-index: 99999; display: none; align-items: center; justify-content: center;
-    backdrop-filter: blur(4px);
-}
-.excel-modal-overlay.active { display: flex; }
-.excel-modal {
-    background: #fff; border-radius: var(--radius); width: 92%;
-    max-width: 520px; box-shadow: 0 20px 60px rgba(41,37,36,.2);
-    animation: excelIn .35s ease; overflow: hidden;
-}
-.em-header { display: flex; align-items: center; gap: 10px; padding: 20px 24px; border-bottom: 1px solid var(--border); }
-.em-header svg { width: 24px; height: 24px; color: var(--success); flex-shrink: 0; }
-.em-header h3 { font-size: 1.1rem; font-weight: 700; flex: 1; }
-.em-close { width: 34px; height: 34px; border: none; border-radius: 8px; background: transparent; color: var(--text-sec); font-size: 1.4rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all .2s; }
-.em-close:hover { background: var(--danger-bg); color: var(--danger); }
-.em-body { padding: 24px; }
-.em-upload-zone {
-    border: 2.5px dashed var(--border); border-radius: var(--radius);
-    padding: 48px 24px; text-align: center; cursor: pointer;
-    transition: all .3s; position: relative; background: #f5f6fa;
-}
-.em-upload-zone:hover { border-color: var(--success); background: var(--success-bg); }
-.em-upload-zone.drag-over { border-color: var(--success); background: var(--success-bg); box-shadow: 0 0 0 4px rgba(22,163,74,.12); transform: scale(1.01); }
-.em-upload-zone.has-file { border-color: var(--success); border-style: solid; background: var(--success-bg); }
-.em-upload-zone .em-icon { margin-bottom: 14px; transition: all .3s; }
-.em-upload-zone .em-icon svg { width: 52px; height: 52px; color: var(--accent); }
-.em-upload-zone.drag-over .em-icon svg { color: var(--success); transform: translateY(-4px); }
-.em-upload-zone.has-file .em-icon svg { color: var(--success); }
-.em-upload-zone .em-title { font-size: 1.05rem; font-weight: 700; color: var(--text); margin-bottom: 6px; transition: color .2s; }
-.em-upload-zone.has-file .em-title { color: var(--success); }
-.em-upload-zone .em-sub { font-size: .82rem; color: var(--text-sec); margin-bottom: 4px; }
-.em-upload-zone .em-sub span { color: var(--accent); font-weight: 600; cursor: pointer; }
-.em-upload-zone .em-formats { font-size: .72rem; color: #aaa; margin-top: 8px; }
-.em-upload-zone .em-file { display: none; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; padding: 12px 18px; background: #fff; border: 1px solid var(--success); border-radius: var(--radius-sm); font-size: .88rem; font-weight: 600; color: var(--success); }
-.em-upload-zone.has-file .em-file { display: inline-flex; }
-.em-upload-zone .em-file svg { width: 18px; height: 18px; }
-.em-upload-zone .spinner { width: 40px; height: 40px; border: 3.5px solid var(--border); border-top-color: var(--success); border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto; display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); }
-.em-upload-zone.loading .spinner { display: block; }
-.em-upload-zone.loading .em-icon, .em-upload-zone.loading .em-title, .em-upload-zone.loading .em-sub, .em-upload-zone.loading .em-formats { opacity: .15; }
-.em-upload-zone input[type=file] { display: none; }
-.em-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: space-between; align-items: center; }
-.em-btn-tmpl { display: inline-flex; align-items: center; gap: 5px; padding: 9px 18px; border: 1.5px solid var(--accent-border); border-radius: var(--radius-sm); background: #fff; color: var(--accent); font-family: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; transition: all .2s; }
-.em-btn-tmpl:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
-.em-btn-tmpl svg { width: 15px; height: 15px; flex-shrink: 0; }
-.em-btn-done { padding: 10px 28px; border: none; border-radius: var(--radius-sm); background: var(--success); color: #fff; font-family: inherit; font-size: .9rem; font-weight: 700; cursor: pointer; transition: all .2s; display: none; }
-.em-btn-done.show { display: inline-flex; align-items: center; gap: 6px; }
-.em-btn-done:hover { background: #15803d; }
-.em-btn-done svg { width: 16px; height: 16px; }
 
 .table-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
 .btn-add { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border: none; border-radius: var(--radius-sm); background: var(--accent); color: #fff; font-family: inherit; font-size: .85rem; font-weight: 600; cursor: pointer; transition: background .2s, transform .15s; }
@@ -433,19 +372,106 @@
     .isb-toggle { display: none !important; }
 }
 
-/* ═══ توضیحات دیکشنری ═══ */
-.dc-desc {
-    font-size: .68rem; color: var(--text-sec);
-    white-space: nowrap; overflow: hidden;
-    text-overflow: ellipsis; margin-top: 2px; opacity: .7;
+/* ═══ لیست مواد اولیه از دیکشنری ═══ */
+.dict-items-section {
+    margin-bottom: 16px;
+    background: #fafbfc; border-radius: 12px;
+    border: 1.5px solid var(--border); padding: 16px;
 }
+.dict-header-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+}
+.dict-count-label {
+    font-size: .82rem; color: var(--text-sec); font-weight: 600;
+}
+.dict-count-label span { color: var(--accent); font-weight: 800; }
+.dict-search-bar {
+    margin-bottom: 10px;
+}
+.dict-search-bar input {
+    width: 100%; padding: 10px 14px; border: 1.5px solid var(--border);
+    border-radius: 10px; font-family: inherit; font-size: .88rem;
+    color: var(--text); outline: none; transition: border-color .2s;
+    background: #fff;
+}
+.dict-search-bar input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(181,133,58,.1); }
+.dict-search-bar input::placeholder { color: #c5c0ba; }
+.dict-cats-bar {
+    display: flex; gap: 6px; overflow-x: auto;
+    padding-bottom: 10px; margin-bottom: 12px;
+    scrollbar-width: thin; -webkit-overflow-scrolling: touch;
+}
+.dict-cats-bar::-webkit-scrollbar { height: 4px; }
+.dict-cats-bar::-webkit-scrollbar-thumb { background: var(--accent-border); border-radius: 4px; }
+.dict-cat-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 14px; border-radius: 20px;
+    border: 1.5px solid var(--border); background: #fff;
+    font-family: inherit; font-size: .78rem; font-weight: 600;
+    color: var(--text-sec); cursor: pointer;
+    transition: all .2s; white-space: nowrap;
+}
+.dict-cat-pill:hover { border-color: var(--accent); color: var(--accent); }
+.dict-cat-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.dict-cat-pill.active .pill-count { background: rgba(255,255,255,.25); color: #fff; }
+.pill-count {
+    font-size: .65rem; font-weight: 700;
+    padding: 1px 6px; border-radius: 10px;
+    background: rgba(0,0,0,.06);
+}
+.dict-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 8px; max-height: 300px; overflow-y: auto;
+    padding: 2px; scrollbar-width: thin;
+}
+.dict-grid::-webkit-scrollbar { width: 4px; }
+.dict-grid::-webkit-scrollbar-thumb { background: var(--accent-border); border-radius: 4px; }
+.dict-card {
+    background: #fff; border: 1.5px solid var(--border);
+    border-radius: 10px; padding: 12px 14px;
+    cursor: pointer; transition: all .2s;
+}
+.dict-card:hover {
+    border-color: var(--accent); box-shadow: 0 3px 10px rgba(181,133,58,.12);
+    transform: translateY(-1px);
+}
+.dict-card.dc-added {
+    border-color: var(--success) !important; background: var(--success-bg) !important;
+    transform: scale(.96);
+}
+.dc-name {
+    font-size: .88rem; font-weight: 700; color: var(--text);
+    margin-bottom: 5px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+}
+.dc-meta {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.dc-cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dc-cat-label { font-size: .7rem; color: var(--text-sec); font-weight: 500; }
+.dc-unit-badge {
+    font-size: .65rem; font-weight: 600;
+    padding: 2px 7px; border-radius: 8px;
+    background: var(--accent-light); color: var(--accent);
+}
+.dc-desc {
+    font-size: .65rem; color: var(--text-sec);
+    margin-top: 3px; opacity: .7; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+}
+.dict-empty {
+    text-align: center; padding: 32px 16px; color: var(--text-sec);
+    grid-column: 1 / -1;
+}
+.dict-empty svg { width: 40px; height: 40px; color: var(--border); margin-bottom: 8px; }
+.dict-empty p { font-size: .85rem; }
 
 @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes rowIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
 @keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
 @keyframes smIn { from { opacity: 0; transform: scale(.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-@keyframes excelIn { from { opacity: 0; transform: scale(.92) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 @keyframes calSlideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 {% endblock %}
@@ -510,43 +536,6 @@
     <button type="button" class="btn-confirm" id="modal-confirm-btn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
         تأیید و ثبت فاکتور
-    </button>
-    </div>
-</div>
-</div>
-
-<!-- مودال اکسل -->
-<div class="excel-modal-overlay" id="excel-modal">
-<div class="excel-modal">
-    <div class="em-header">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="m9 15 3-3 3 3"/></svg>
-    <h3>بارگذاری فایل اکسل</h3>
-    <button type="button" class="em-close" id="em-close">&times;</button>
-    </div>
-    <div class="em-body">
-    <div class="em-upload-zone" id="em-upload-zone">
-        <div class="spinner"></div>
-        <div class="em-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        </div>
-        <div class="em-title">فایل را بکشید و اینجا رها کنید</div>
-        <div class="em-sub">یا <span>کلیک کنید</span> تا فایل انتخاب شود</div>
-        <div class="em-formats">xlsx · xls · csv</div>
-        <div class="em-file">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
-        <span id="em-file-name"></span>
-        </div>
-        <input type="file" id="em-file-input" accept=".xlsx,.xls,.csv">
-    </div>
-    </div>
-    <div class="em-footer">
-    <button type="button" class="em-btn-tmpl" id="em-download-tmpl">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="m9 15 3-3 3 3"/></svg>
-        دانلود قالب اکسل
-    </button>
-    <button type="button" class="em-btn-done" id="em-done">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>
-        اتمام بارگذاری
     </button>
     </div>
 </div>
@@ -651,20 +640,33 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
         <h2>اقلام فاکتور</h2>
         <span class="badge" id="badge-count">— قلم</span>
-        <button type="button" class="btn-excel" id="btn-open-excel">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="m9 15 3-3 3 3"/></svg>
-        بارگذاری اکسل
-        </button>
         <button type="button" class="btn-add" id="btn-manage-cats" style="background:transparent;border:1.5px solid var(--border);color:var(--text-sec);font-size:.78rem;padding:6px 14px" title="مدیریت دسته‌بندی‌ها">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
         دسته‌بندی‌ها
         </button>
     </div>
 
+    <!-- ✅ لیست مواد اولیه از دیکشنری -->
+    <div class="dict-items-section">
+        <div class="dict-header-row">
+            <div class="dict-count-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;vertical-align:-3px;margin-left:4px;color:var(--accent)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <span id="dict-count">۰</span> آیتم در دیکشنری — کلیک کنید تا اضافه شود
+            </div>
+        </div>
+        <div class="dict-search-bar">
+            <input type="text" id="dict-search" placeholder="جستجوی مواد اولیه...">
+        </div>
+        <div class="dict-cats-bar" id="dict-cats"></div>
+        <div class="dict-grid" id="dict-grid">
+            <div class="dict-empty"><p>در حال بارگذاری...</p></div>
+        </div>
+    </div>
+
     <div class="table-toolbar">
         <button type="button" class="btn-add" id="add-row-btn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        افزودن ردیف
+        افزودن ردیف دستی
         </button>
     </div>
 
@@ -688,7 +690,7 @@
 
     <div class="empty-state" id="empty-state">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="2" y1="9" x2="22" y2="9"/><line x1="9" y1="3" x2="9" y2="9"/></svg>
-        <p>هنوز کالایی اضافه نشده — دکمه «افزودن ردیف» بزنید یا فایل اکسل بارگذاری کنید</p>
+        <p>هنوز کالایی اضافه نشده — از لیست بالا انتخاب کنید یا دکمه «افزودن ردیف دستی» بزنید</p>
     </div>
     </div>
 
@@ -832,30 +834,6 @@ var shf=$('shamsi-field');if(shf)shf.addEventListener('click',function(e){if(!e.
 document.addEventListener('click',function(e){if(calOpen&&!e.target.closest('#shamsi-field'))closeCal();});
 
 /* ═══════════════════════════════════
-   مودال اکسل
-   ═══════════════════════════════════ */
-var em=$('excel-modal'),ez=$('em-upload-zone'),ef=$('em-file-input'),ed=$('em-done');
-bind('btn-open-excel','click',function(){if(em){em.classList.add('active');ez&&ez.classList.remove('has-file','loading','drag-over');if(ef)ef.value='';if(ed)ed.classList.remove('show');}});
-bind('em-close','click',function(){if(em)em.classList.remove('active');});
-if(em)em.addEventListener('click',function(e){if(e.target===em)em.classList.remove('active');});
-if(ez){ez.addEventListener('click',function(e){if(!e.target.closest('.spinner')&&!e.target.closest('.em-file')&&ef)ef.click();});ez.addEventListener('dragover',function(e){e.preventDefault();ez.classList.add('drag-over');});ez.addEventListener('dragleave',function(){ez.classList.remove('drag-over');});ez.addEventListener('drop',function(e){e.preventDefault();ez.classList.remove('drag-over');if(e.dataTransfer.files[0])uploadEx(e.dataTransfer.files[0]);});}
-if(ef)ef.addEventListener('change',function(e){if(e.target.files[0])uploadEx(e.target.files[0]);});
-
-function uploadEx(file){
-    var ext=file.name.split('.').pop().toLowerCase();if(['xlsx','xls','csv'].indexOf(ext)===-1){toast('فرمت مجاز نیست.','error');return;}
-    if(ez)ez.classList.add('loading');var fd=new FormData();fd.append('file',file);
-    fetch('/api/invoices/parse-excel/',{method:'POST',body:fd,headers:{'X-CSRFToken':gc('csrftoken')}})
-    .then(function(r){return r.json();})
-    .then(function(data){
-        if(data.success){if(tbody)tbody.innerHTML='';rowIdx=0;data.items.forEach(function(it){addRow(it);});
-        if(data.supplier_name){var si=$('supplier-name');if(si){si.value=data.supplier_name;si.classList.remove('supplier-warning','supplier-found');if(data.supplier_id){si.dataset.supplierId=String(data.supplier_id);si.classList.add('supplier-found');}else{si.dataset.supplierId='';si.classList.add('supplier-warning');}}}
-        if(ez){ez.classList.remove('loading');ez.classList.add('has-file');}var fn=$('em-file-name');if(fn)fn.textContent=file.name+' ('+data.count+' کالا)';if(ed)ed.classList.add('show');toast(pn(data.count)+' کالا خوانده شد.');
-        }else{if(ez)ez.classList.remove('loading');toast(data.error||'خطا','error');}
-    }).catch(function(){if(ez)ez.classList.remove('loading');toast('خطا در ارتباط.','error');});
-}
-if(ed)ed.addEventListener('click',function(){if(em)em.classList.remove('active');});
-
-/* ═══════════════════════════════════
    اتوکمپلیت اقلام (از dictItems)
    ═══════════════════════════════════ */
 function searchMat(q){q=(q||'').trim().toLowerCase();if(!q)return dictItems.slice();var s=[],c=[];for(var i=0;i<dictItems.length;i++){var nl=dictItems[i].name.toLowerCase();if(nl.indexOf(q)!==-1)(nl.indexOf(q)===0?s:c).push(dictItems[i]);}return s.concat(c);}
@@ -870,7 +848,6 @@ function showDD(dd,items,inp){
         li.innerHTML='<span class="ac-name">'+esc(it.name)+'</span>'
             +(it.category?'<span class="ac-cat">'+esc(gcl(it.category))+'</span>':'')
             +(it.unit?'<span class="ac-unit">'+esc(gul(it.unit))+'</span>':'');
-
         li.addEventListener('mousedown',function(e){
             e.preventDefault();var row=inp.closest('tr');if(!row)return;
             inp.value=it.name;
@@ -959,34 +936,21 @@ bind('preview-btn','click',function(){op('preview');});
 /* ═══════════════════════════════════════════════════════════
    دیکشنری مواد اولیه — از API
    ═══════════════════════════════════════════════════════════ */
-
-/*   ✅ اصلاح ۱: آدرس API از /api/materials/dictionary/ به /api/dictionary/
-     ✅ اصلاح ۲: واحد price از API نمیاد — از فیلدها حذف شد              */
-
 function loadDict(cb) {
     if (dictItems.length) { if (cb) cb(); return; }
-    var g  = $('dict-grid');   if (g)  g.innerHTML  = '<div class="dict-loading">در حال بارگذاری...</div>';
-    var gm = $('dict-grid-m'); if (gm) gm.innerHTML = '<div class="dict-loading">در حال بارگذاری...</div>';
-
-    fetch('/api/dictionary/list/', { headers: { 'X-CSRFToken': gc('csrftoken') } })    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    fetch('/api/dictionary/list/', { headers: { 'X-CSRFToken': gc('csrftoken') } })
+    .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(function (data) {
         dictItems = (data.items || []).map(function (it) {
-            return {
-                id: it.id,
-                name: it.name,
-                unit: it.unit || 'unit',
-                category: it.category || '',
-                description: it.description || ''
-            };
+            return { id: it.id, name: it.name, unit: it.unit || 'unit', category: it.category || '', description: it.description || '' };
         });
         renderDictAll();
         if (cb) cb();
     })
     .catch(function (err) {
         console.warn('Dictionary API error:', err);
-        var msg = '<div class="dict-empty"><p>خطا در بارگذاری دیکشنری</p></div>';
-        if (g)  g.innerHTML  = msg;
-        if (gm) gm.innerHTML = msg;
+        var g = $('dict-grid');
+        if (g) g.innerHTML = '<div class="dict-empty"><p>خطا در بارگذاری دیکشنری</p></div>';
         toast('خطا در بارگذاری دیکشنری', 'error');
     });
 }
@@ -1013,7 +977,6 @@ function renderDictCats(id) {
     });
 }
 
-/*   ✅ اصلاح ۳: renderDictGrid بدون unit_price — به جاش description نشون میده */
 function renderDictGrid(id) {
     var el = $(id); if (!el) return;
     var items = filteredItems();
@@ -1035,22 +998,12 @@ function renderDictGrid(id) {
             + '</div>';
     });
     el.innerHTML = h;
-
     el.querySelectorAll('.dict-card').forEach(function (card) {
         card.addEventListener('click', function () {
             var id = this.dataset.id;
             var m = dictItems.find(function (x) { return String(x.id) === String(id); });
             if (!m) return;
-
-            /* ✅ اصلاح ۴: واحد price خالی — کاربر باید قیمت رو دستی بزنه */
-            addRow({
-                item_name: m.name,
-                unit: m.unit,
-                category: m.category,
-                quantity: '',
-                unit_price: ''
-            });
-
+            addRow({ item_name: m.name, unit: m.unit, category: m.category, quantity: '', unit_price: '' });
             toast('«' + m.name + '» اضافه شد — قیمت واحد را وارد کنید.');
             this.classList.add('dc-added');
             var self = this;
@@ -1063,12 +1016,8 @@ function renderDictGrid(id) {
 function updateDictCount(id) { var el = $(id); if (el) el.textContent = pn(filteredItems().length); }
 
 function renderDictAll() {
-    renderDictCats('dict-cats');   renderDictGrid('dict-grid');   updateDictCount('dict-count');
-    renderDictCats('dict-cats-m'); renderDictGrid('dict-grid-m'); updateDictCount('dict-count-m');
+    renderDictCats('dict-cats'); renderDictGrid('dict-grid'); updateDictCount('dict-count');
 }
-
-function openDictOv() { var o = $('dict-overlay'); if (o) { o.classList.add('active'); loadDict(renderDictAll); } }
-function closeDictOv() { var o = $('dict-overlay'); if (o) o.classList.remove('active'); }
 
 /* ═══════════════════════════════════
    رویدادهای سراسری
@@ -1086,52 +1035,15 @@ if (form) form.addEventListener('submit', function (e) {
     op('submit');
 });
 
-bind('dict-fab', 'click', openDictOv);
-bind('dict-overlay-close', 'click', closeDictOv);
-var dovEl = $('dict-overlay');
-if (dovEl) dovEl.addEventListener('click', function (e) { if (e.target === dovEl) closeDictOv(); });
-
 var dsEl = $('dict-search');
 if (dsEl) dsEl.addEventListener('input', function () { dictQuery = this.value; renderDictAll(); });
-var dsmEl = $('dict-search-m');
-if (dsmEl) dsmEl.addEventListener('input', function () { dictQuery = this.value; renderDictAll(); });
 
 document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
-        cp(); csm(); closeDictOv(); closeCal(); hideDDs();
+        cp(); csm(); closeCal(); hideDDs();
         if (cm) cm.classList.remove('active');
-        if (em) em.classList.remove('active');
         var s = $('items-sidebar'); if (s && window.innerWidth <= 1200) s.classList.remove('visible');
     }
-});
-
-/* ═══════════════════════════════════
-   دانلود قالب اکسل
-   ═══════════════════════════════════ */
-bind('em-download-tmpl', 'click', function () {
-    if (typeof ExcelJS === 'undefined') { toast('ExcelJS بارگذاری نشده.', 'error'); return; }
-    try {
-        var wb = new ExcelJS.Workbook(), ws = wb.addWorksheet('اقلام فاکتور', { views: [{ rightToLeft: true }] });
-        var GLD = 'B5853A', GL = 'FDF6EC', HB = 'F5EDE0', W = 'FFFFFF', D = '292524', GR = '78716C', GGB = 'F0FDF4', GN = '16A34A';
-        var bt = { top: { style: 'thin', color: { argb: 'FFE7E5E4' } }, bottom: { style: 'thin', color: { argb: 'FFE7E5E4' } }, right: { style: 'thin', color: { argb: 'FFE7E5E4' } }, left: { style: 'thin', color: { argb: 'FFE7E5E4' } } };
-        var ba = { top: { style: 'medium', color: { argb: 'FF' + GLD } }, bottom: { style: 'medium', color: { argb: 'FF' + GLD } }, right: { style: 'thin', color: { argb: 'FFE8D5B5' } }, left: { style: 'thin', color: { argb: 'FFE8D5B5' } } };
-        ws.columns = [{ width: 3 },{ width: 30 },{ width: 18 },{ width: 12 },{ width: 12 },{ width: 22 },{ width: 20 }];
-        ws.getRow(1).height = 8; ws.mergeCells('B2:G2');
-        var tc = ws.getCell('B2'); tc.value = '📋 فاکتور خرید مواد اولیه'; tc.font = { name: 'Vazirmatn', size: 16, bold: true, color: { argb: 'FF' + D } }; tc.alignment = { horizontal: 'center', vertical: 'middle' }; tc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + GL } };
-        ws.getRow(2).height = 42;
-        for (var c = 2; c <= 7; c++) ws.getRow(2).getCell(c).border = { bottom: { style: 'medium', color: { argb: 'FF' + GLD } } };
-        ws.getRow(3).height = 10;
-        var hl = ['','نام کالا','دسته‌بندی','مقدار','واحد','قیمت واحد (ریال)','قیمت کل (ریال)'];
-        var hr = ws.getRow(4); hr.height = 36;
-        hl.forEach(function (l, i) { if (!l) return; var cell = hr.getCell(i + 1); cell.value = l; cell.font = { name: 'Vazirmatn', size: 11, bold: true, color: { argb: 'FF' + GLD } }; cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + HB } }; cell.alignment = { horizontal: 'center', vertical: 'middle' }; cell.border = ba; });
-        var sd = [{ n: 'برنج ایرانی هاشمی', q: 10, u: 'kg', p: 85000 },{ n: 'روغن مایع', q: 5, u: 'l', p: 120000 },{ n: 'رب گوجه', q: 3, u: 'pack', p: 45000 },{ n: 'پیاز زرد', q: 20, u: 'kg', p: 15000 },{ n: 'سینه مرغ', q: 8, u: 'kg', p: 95000 },{ n: 'تخم‌مرغ', q: 6, u: 'unit', p: 78000 },{ n: 'ماکارونی', q: 12, u: 'pack', p: 28000 }];
-        sd.forEach(function (it, idx) { var r = 5 + idx, row = ws.getRow(r); row.height = 30; var bg = idx % 2 === 0 ? W : 'FAF8F5'; row.getCell(1).value = idx + 1; row.getCell(2).value = it.n; row.getCell(4).value = it.q; row.getCell(5).value = it.u; row.getCell(6).value = it.p; row.getCell(6).numFmt = '#,##0'; row.getCell(7).value = { formula: 'D' + r + '*F' + r }; row.getCell(7).numFmt = '#,##0'; [1,2,3,4,5,6,7].forEach(function(ci){var cell=row.getCell(ci);cell.font={name:'Vazirmatn',size:10,color:{argb:'FF'+(ci===7?GLD:D)}};cell.alignment={horizontal:ci===2?'right':'center',vertical:'middle'};cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF'+bg}};cell.border=bt;if(ci===7)cell.font.bold=true;});});
-        ws.getRow(12).height = 8; ws.mergeCells('B13:F13');
-        var sl = ws.getCell('B13'); sl.value = '💰 جمع کل'; sl.font = { name: 'Vazirmatn', size: 13, bold: true, color: { argb: 'FF' + D } }; sl.alignment = { horizontal: 'right', vertical: 'middle' }; sl.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + GGB } }; sl.border = { top: { style: 'medium', color: { argb: 'FF' + GN } }, bottom: { style: 'medium', color: { argb: 'FF' + GN } }, right: { style: 'medium', color: { argb: 'FF' + GN } } };
-        var sv = ws.getCell('G13'); sv.value = { formula: 'SUM(G5:G11)' }; sv.font = { name: 'Vazirmatn', size: 14, bold: true, color: { argb: 'FF' + GN } }; sv.alignment = { horizontal: 'center', vertical: 'middle' }; sv.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + GGB } }; sv.border = { top: { style: 'medium', color: { argb: 'FF' + GN } }, bottom: { style: 'medium', color: { argb: 'FF' + GN } }, left: { style: 'thin', color: { argb: 'FF' + GN } } }; sv.numFmt = '#,##0';
-        ws.getRow(13).height = 40;
-        wb.xlsx.writeBuffer().then(function (buf) { var bl = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }); var u = URL.createObjectURL(bl); var a = document.createElement('a'); a.href = u; a.download = 'قالب_فاکتور_خرید.xlsx'; a.click(); URL.revokeObjectURL(u); toast('دانلود شد.'); });
-    } catch (err) { console.error(err); toast('خطا در ساخت فایل.', 'error'); }
 });
 
 /* ═══════════════════════════════════
@@ -1140,7 +1052,7 @@ bind('em-download-tmpl', 'click', function () {
 initCal();
 loadDict();
 
-console.log('✅ Invoice script loaded');
+console.log('✅ Invoice script loaded — dict inline mode');
 });
 </script>
 {% endblock %}
