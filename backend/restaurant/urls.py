@@ -4,7 +4,7 @@ Restaurant Management System — URLs
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from . import views, dictionary_views
+from . import views
 
 router = DefaultRouter()
 router.register("categories",       views.CategoryViewSet,       basename="category")
@@ -91,11 +91,11 @@ urlpatterns = [
     path("api/recipes/semi-finished/suggest/", views.semi_finished_suggestions_api,  name="semi_finished_suggestions"),
 
     # ── Dictionary ──
-    path("api/dictionary/list/",                dictionary_views.dictionary_list,        name="dictionary_list"),
-    path("api/dictionary/autocomplete/",        dictionary_views.dictionary_autocomplete, name="dictionary_autocomplete"),
-    path("api/dictionary/create/",              dictionary_views.dictionary_create,       name="dictionary_create"),
-    path("api/dictionary/<int:pk>/update/",     dictionary_views.dictionary_update,       name="dictionary_update"),
-    path("api/dictionary/<int:pk>/delete/",     dictionary_views.dictionary_delete,       name="dictionary_delete"),
+    path("api/dictionary/list/",                views.dictionary_list,        name="dictionary_list"),
+    path("api/dictionary/autocomplete/",        views.dictionary_autocomplete, name="dictionary_autocomplete"),
+    path("api/dictionary/create/",              views.dictionary_create,       name="dictionary_create"),
+    path("api/dictionary/<int:pk>/update/",     views.dictionary_update,       name="dictionary_update"),
+    path("api/dictionary/<int:pk>/delete/",     views.dictionary_delete,       name="dictionary_delete"),
 
     # ── Kitchen ──
     path("api/kitchen/dashboard/",                  views.kitchen_dashboard_api,              name="kitchen_dashboard"),
