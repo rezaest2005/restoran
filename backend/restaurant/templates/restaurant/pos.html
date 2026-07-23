@@ -23,6 +23,9 @@
         --pos-radius: 14px;
     }
 
+    /* ═══ فیکس اسکرول افقی ═══ */
+    html, body { max-width: 100%; overflow-x: hidden; }
+
     body {
         background: var(--pos-bg);
         font-family: 'Vazirmatn', Tahoma, Arial, sans-serif;
@@ -81,7 +84,7 @@
     .pos-wrap {
         min-height: calc(100vh - 180px);
         display: grid;
-        grid-template-columns: 1fr 400px;
+        grid-template-columns: minmax(0, 1fr) 400px;
         gap: 0;
         width: 100%;
     }
@@ -243,7 +246,7 @@
     .pos-checkout-btn:hover { background: #142038; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(27,42,74,.25); }
     .pos-checkout-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
 
-    /* ═══ Cart Toggle Button (mobile) ═══ */
+    /* ═══ Cart Toggle Button (old — hidden on mobile) ═══ */
     .cart-toggle-btn {
         display: none; position: fixed; bottom: 20px; left: 20px; z-index: 998;
         width: 60px; height: 60px; border-radius: 50%; border: none;
@@ -404,12 +407,7 @@
        ORDERS MANAGEMENT TAB
     ════════════════════════════════════════════════ */
     .orders-wrap { padding: 24px; }
-
-    /* ── Stats ── */
-    .orders-stats {
-        display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
-        margin-bottom: 24px;
-    }
+    .orders-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
     .orders-stat-card {
         background: var(--pos-surface); border: 1.5px solid var(--pos-border);
         border-radius: var(--pos-radius); padding: 20px; position: relative;
@@ -432,12 +430,7 @@
     .os-prep .os-icon { background: rgba(59,130,246,.1); color: #3b82f6; }
     .os-ready { border-top: 3px solid var(--pos-success); }
     .os-ready .os-icon { background: rgba(46,204,113,.1); color: var(--pos-success); }
-
-    /* ── Toolbar ── */
-    .orders-toolbar {
-        display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-        margin-bottom: 20px;
-    }
+    .orders-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
     .orders-pills { display: flex; gap: 6px; flex-wrap: wrap; }
     .orders-pill {
         display: inline-flex; align-items: center; gap: 6px;
@@ -478,8 +471,6 @@
     .btn-refresh-orders:hover { border-color: var(--pos-accent); color: var(--pos-accent); }
     .btn-refresh-orders i { transition: transform .4s; }
     .btn-refresh-orders:hover i { transform: rotate(180deg); }
-
-    /* ── Order Cards ── */
     .orders-list { display: flex; flex-direction: column; gap: 14px; }
     .order-card {
         background: var(--pos-surface); border: 1px solid var(--pos-border);
@@ -494,7 +485,6 @@
     .order-card.s-ready     { border-right: 4px solid var(--pos-success); }
     .order-card.s-delivered { border-right: 4px solid var(--pos-accent); }
     .order-card.s-cancelled { border-right: 4px solid var(--pos-danger); opacity: .65; }
-
     .oc-header {
         display: flex; align-items: center; gap: 12px;
         padding: 14px 18px; border-bottom: 1px solid var(--pos-border);
@@ -520,7 +510,6 @@
     .oc-status.st-cancelled { background: rgba(231,76,60,.08); color: var(--pos-danger); }
     .oc-status.st-cancelled .s-dot { background: var(--pos-danger); }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
-
     .oc-time {
         font-size: .8rem; color: var(--pos-text-sec); margin-right: auto;
         display: flex; align-items: center; gap: 5px;
@@ -569,8 +558,6 @@
     .oc-btn-cancel:hover { background: rgba(231,76,60,.15); }
     .oc-btn-detail  { background: #f3f4f6; color: var(--pos-text-sec); }
     .oc-btn-detail:hover { background: #e5e7eb; }
-
-    /* ── Empty ── */
     .orders-empty {
         text-align: center; padding: 60px 20px; color: var(--pos-text-sec);
     }
@@ -849,7 +836,7 @@
        RESPONSIVE — TABLET (≤ 1024px)
     ════════════════════════════════════════════════ */
     @media (max-width: 1024px) {
-        .pos-wrap { grid-template-columns: 1fr 360px; }
+        .pos-wrap { grid-template-columns: minmax(0, 1fr) 360px; }
         .pos-grid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); }
         .disc-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
         .report-stats { grid-template-columns: repeat(2, 1fr); }
@@ -861,15 +848,10 @@
     ════════════════════════════════════════════════ */
     @media (max-width: 768px) {
 
-        /* ── Tabs ── */
-        .pos-tabs { padding: 0 8px; gap: 2px; }
-        .pos-tab { padding: 10px 12px; font-size: 12px; gap: 5px; }
-        .pos-tab i { font-size: 15px; }
-        .pos-tab .tab-badge, .pos-tab .tab-badge-orders { font-size: 10px; padding: 1px 6px; }
-
-        /* ── POS Layout ── */
-        .pos-wrap { grid-template-columns: 1fr; min-height: auto; }
-        .pos-menu { padding: 12px; max-height: none; overflow-y: visible; }
+        /* ── مخفی کردن تب‌ها + فیکس گرید ── */
+        .pos-tabs { display: none; }
+        .pos-wrap { grid-template-columns: minmax(0, 1fr); min-height: auto; }
+        .pos-menu { padding: 12px; max-height: none; overflow-y: visible; min-width: 0; }
         .pos-cart {
             position: fixed; bottom: 0; left: 0; right: 0;
             height: auto; max-height: 0; overflow: hidden;
@@ -881,7 +863,7 @@
         .pos-cart.open { max-height: 75vh; overflow-y: auto; box-shadow: 0 -8px 40px rgba(27,42,74,.2); }
         .pos-cart-header { cursor: pointer; padding: 14px 16px; }
         .pos-cart-header:active { background: var(--pos-bg); }
-        .cart-toggle-btn { display: flex; }
+        .cart-toggle-btn { display: none !important; }
         .pos-search { padding: 9px 14px; font-size: 13px; margin-bottom: 10px; }
         .pos-cats { gap: 5px; margin-bottom: 12px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; scrollbar-width: none; }
         .pos-cats::-webkit-scrollbar { display: none; }
@@ -922,8 +904,6 @@
             border-radius: 12px; bottom: 80px; justify-content: center;
         }
         .pos-toast.show { transform: translateX(0) translateY(0); }
-
-        /* ── Discount ── */
         .disc-wrap { padding: 12px; }
         .disc-header { margin-bottom: 12px; gap: 8px; }
         .disc-header h2 { font-size: 16px; gap: 6px; }
@@ -949,8 +929,6 @@
         .disc-value-input { padding: 7px 8px; font-size: 13px; max-width: 80px; }
         .disc-apply-btn { padding: 7px 10px; font-size: 12px; }
         .disc-remove-btn { padding: 8px; font-size: 13px; }
-
-        /* ── Orders Tab ── */
         .orders-wrap { padding: 12px; }
         .orders-stats { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px; }
         .orders-stat-card { padding: 14px; }
@@ -973,8 +951,6 @@
         .oc-total { font-size: .9rem; }
         .oc-btn { padding: 6px 12px; font-size: .72rem; }
         .oc-actions { gap: 4px; }
-
-        /* ── Report ── */
         .report-wrap { padding: 12px; }
         .report-header { margin-bottom: 12px; }
         .report-header h2 { font-size: 17px; }
@@ -991,8 +967,6 @@
         .report-table { min-width: 450px; }
         .report-table th { padding: 8px 10px; font-size: 11px; }
         .report-table td { padding: 8px 10px; font-size: 12px; }
-
-        /* ── Close Day ── */
         .close-wrap { padding: 12px; }
         .close-header h2 { font-size: 17px; }
         .close-card { padding: 14px; margin-bottom: 10px; }
@@ -1006,8 +980,6 @@
         .close-btn { padding: 8px 14px; font-size: 13px; }
         .close-btn-close-day { padding: 14px; font-size: 15px; }
         .close-btn-remove { width: 100%; height: 36px; }
-
-        /* ── History ── */
         .history-wrap { padding: 12px; }
         .history-header { margin-bottom: 12px; }
         .history-header h2 { font-size: 17px; }
@@ -1024,8 +996,6 @@
         .history-table th { padding: 8px 10px; font-size: 11px; }
         .history-table td { padding: 8px 10px; font-size: 12px; }
         .history-btn { padding: 5px 10px; font-size: 11px; }
-
-        /* ── Payment Modal ── */
         .pay-box { border-radius: 16px; width: calc(100vw - 24px); }
         .pay-header { padding: 20px 16px 16px; }
         .pay-header-icon { width: 48px; height: 48px; font-size: 22px; margin-bottom: 12px; }
@@ -1036,19 +1006,13 @@
         .pay-status-section { padding: 16px; }
         .pay-actions { padding: 0 16px 16px; flex-direction: column-reverse; gap: 8px; }
         .pay-btn { padding: 12px; font-size: 14px; }
-
-        /* ── Receipt ── */
         .pos-receipt { width: calc(100vw - 32px); max-width: 340px; }
         .pos-receipt-actions { flex-direction: column; gap: 6px; }
-
-        /* ── Order Detail Modal ── */
         .order-detail-box { border-radius: 14px; }
         .od-header { padding: 14px 16px; }
         .od-header h3 { font-size: 1rem; }
         .od-body { padding: 16px; }
         .od-footer { padding: 12px 16px; flex-wrap: wrap; }
-
-        /* ── History Detail Modal ── */
         .history-modal { width: calc(100vw - 24px); max-height: 85vh; border-radius: 14px; }
         .history-modal-header { padding: 14px 16px; }
         .history-modal-header h3 { font-size: 14px; }
@@ -1065,10 +1029,6 @@
        RESPONSIVE — SMALL MOBILE (≤ 480px)
     ════════════════════════════════════════════════ */
     @media (max-width: 480px) {
-        .pos-tabs { gap: 1px; padding: 0 4px; }
-        .pos-tab { padding: 8px 8px; font-size: 11px; gap: 3px; }
-        .pos-tab i { font-size: 13px; }
-        .pos-tab span:not(.tab-badge):not(.tab-badge-orders):not(.pos-tab i) { display: none; }
         .pos-grid { grid-template-columns: repeat(2, 1fr); gap: 5px; }
         .pos-food-img { height: 55px; font-size: 18px; }
         .pos-food-name { font-size: 10px; }
@@ -1098,30 +1058,93 @@
         .oc-total { font-size: .82rem; }
         .oc-btn { padding: 5px 10px; font-size: .68rem; }
     }
+
+    /* ═══════════════════════════════════════════════
+       FAB MOBILE MENU
+    ════════════════════════════════════════════════ */
+    .mobile-fab-wrap { display: none; }
+
+    @media (max-width: 768px) {
+        .mobile-fab-wrap { display: block; }
+
+        .fab-overlay {
+            position: fixed; inset: 0; background: rgba(27,42,74,.35);
+            backdrop-filter: blur(2px); z-index: 996;
+            opacity: 0; pointer-events: none; transition: opacity .25s;
+        }
+        .fab-overlay.show { opacity: 1; pointer-events: auto; }
+
+        .mobile-fab-btn {
+            position: fixed; bottom: 20px; left: 20px; z-index: 999;
+            width: 60px; height: 60px; border-radius: 50%; border: none;
+            background: var(--pos-accent); color: #fff; font-size: 24px;
+            box-shadow: 0 6px 24px rgba(27,42,74,.35); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: transform .3s cubic-bezier(.4,0,.2,1), background .2s;
+        }
+        .mobile-fab-btn.open { transform: rotate(135deg); background: var(--pos-danger); }
+
+        .mobile-fab-badge {
+            position: absolute; top: -4px; right: -4px;
+            background: var(--pos-success); color: #fff;
+            width: 22px; height: 22px; border-radius: 50%;
+            font-size: 11px; font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+            border: 2px solid var(--pos-bg); transition: opacity .2s;
+        }
+        .mobile-fab-badge.hide { opacity: 0; }
+
+        .mobile-fab-menu {
+            position: fixed; bottom: 92px; left: 20px; z-index: 998;
+            display: flex; flex-direction: column-reverse; gap: 10px;
+            opacity: 0; pointer-events: none; transform: translateY(16px);
+            transition: opacity .25s, transform .25s;
+            max-width: calc(100vw - 40px);
+        }
+        .mobile-fab-menu.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+        .fab-menu-item {
+            display: flex; align-items: center; gap: 10px;
+            background: var(--pos-surface); border: 1.5px solid var(--pos-border);
+            border-radius: 30px; padding: 10px 16px;
+            box-shadow: 0 4px 18px rgba(27,42,74,.15);
+            font-family: 'Vazirmatn', Tahoma, sans-serif; font-weight: 700; font-size: 13px;
+            color: var(--pos-text); cursor: pointer; white-space: nowrap;
+        }
+        .fab-menu-item.active { border-color: var(--pos-success); color: var(--pos-success); background: rgba(46,204,113,.08); }
+        .fab-menu-item .fmi-icon { font-size: 16px; color: var(--pos-accent); display: flex; }
+        .fab-menu-item.active .fmi-icon { color: var(--pos-success); }
+        .fmi-badge2 {
+            background: var(--pos-warning); color: #fff; font-size: 10px; font-weight: 800;
+            padding: 1px 7px; border-radius: 8px; margin-right: auto; display: none;
+        }
+
+        .fab-cart-item { background: var(--pos-accent); color: #fff; border-color: var(--pos-accent); }
+        .fab-cart-item .fmi-icon { color: #fff; }
+        .fab-cart-item .fmi-price {
+            margin-right: auto; font-size: 12px; font-weight: 800; color: var(--pos-success);
+            background: #fff; padding: 2px 8px; border-radius: 10px;
+        }
+    }
 </style>
 {% endblock %}
-
 {% block content %}
 <!-- ═══════════ TABS ═══════════ -->
 <div class="pos-tabs">
-    <button class="pos-tab active" onclick="switchTab('pos', this)">
+    <button class="pos-tab active" data-tab="pos" onclick="switchTab('pos', this)">          
         <i class="bi bi-cart3"></i> صندوق فروش
     </button>
-    <button class="pos-tab" onclick="switchTab('orders', this)">
-        <i class="bi bi-receipt"></i> مدیریت سفارشات
-        <span class="tab-badge-orders" id="ordersTabBadge">۰</span>
-    </button>
-    <button class="pos-tab" onclick="switchTab('discount', this)">
+    <button class="pos-tab" data-tab="discount" onclick="switchTab('discount', this)">       
         <i class="bi bi-percent"></i> تخفیف
         <span class="tab-badge" id="discountTabBadge">۰</span>
     </button>
-    <button class="pos-tab" onclick="switchTab('report', this)">
+    <button class="pos-tab" data-tab="report" onclick="switchTab('report', this)">           
         <i class="bi bi-bar-chart-line"></i> گزارش روز
     </button>
-    <button class="pos-tab" onclick="switchTab('close', this)">
+    <button class="pos-tab" data-tab="close" onclick="switchTab('close', this)">            
         <i class="bi bi-moon-stars"></i> بستن روز
     </button>
-    <button class="pos-tab" onclick="switchTab('history', this)">
+    <button class="pos-tab" data-tab="history" onclick="switchTab('history', this)">         
         <i class="bi bi-clock-history"></i> تاریخچه
     </button>
 </div>
@@ -1167,62 +1190,7 @@
     </div>
 </div>
 
-<!-- ═══════════ TAB 2: مدیریت سفارشات ═══════════ -->
-<div class="pos-panel" id="panel-orders">
-    <div class="orders-wrap">
-        <!-- Stats -->
-        <div class="orders-stats">
-            <div class="orders-stat-card os-total">
-                <div class="os-icon"><i class="bi bi-receipt"></i></div>
-                <div class="os-label">کل سفارشات</div>
-                <div class="os-value" id="ordStatTotal">۰</div>
-            </div>
-            <div class="orders-stat-card os-pending">
-                <div class="os-icon"><i class="bi bi-clock"></i></div>
-                <div class="os-label">در انتظار</div>
-                <div class="os-value" id="ordStatPending">۰</div>
-            </div>
-            <div class="orders-stat-card os-prep">
-                <div class="os-icon"><i class="bi bi-fire"></i></div>
-                <div class="os-label">در حال آماده‌سازی</div>
-                <div class="os-value" id="ordStatPrep">۰</div>
-            </div>
-            <div class="orders-stat-card os-ready">
-                <div class="os-icon"><i class="bi bi-check-circle"></i></div>
-                <div class="os-label">آماده تحویل</div>
-                <div class="os-value" id="ordStatReady">۰</div>
-            </div>
-        </div>
-
-        <!-- Toolbar -->
-        <div class="orders-toolbar">
-            <div class="orders-pills" id="ordersPills">
-                <button class="orders-pill active" data-filter="all">همه<span class="op-count" id="opAll">۰</span></button>
-                <button class="orders-pill" data-filter="pending">در انتظار<span class="op-count c-pending" id="opPending">۰</span></button>
-                <button class="orders-pill" data-filter="preparing">آماده‌سازی<span class="op-count c-prep" id="opPrep">۰</span></button>
-                <button class="orders-pill" data-filter="ready">آماده<span class="op-count c-ready" id="opReady">۰</span></button>
-            </div>
-            <div class="orders-search">
-                <i class="bi bi-search"></i>
-                <input type="text" id="ordersSearch" placeholder="جستجوی شماره سفارش...">
-            </div>
-            <button type="button" class="btn-refresh-orders" id="btnRefreshOrders">
-                <i class="bi bi-arrow-clockwise"></i> بروزرسانی
-            </button>
-        </div>
-
-        <!-- Orders List -->
-        <div class="orders-list" id="ordersList">
-            <div class="orders-empty">
-                <i class="bi bi-inbox"></i>
-                <h3>سفارشی ثبت نشده</h3>
-                <p>هنوز هیچ سفارشی در سیستم وجود ندارد</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ═══════════ TAB 3: تخفیف ═══════════ -->
+<!-- ═══════════ TAB 2: تخفیف ═══════════ -->
 <div class="pos-panel" id="panel-discount">
     <div class="disc-wrap">
         <div class="disc-header">
@@ -1339,7 +1307,6 @@
     </div>
 </div>
 
-<!-- مودال جزئیات سفارش -->
 <div class="order-detail-overlay" id="orderDetailModal">
     <div class="order-detail-box">
         <div class="od-header">
@@ -1361,12 +1328,44 @@
     </div>
 </div>
 
-<!-- ═══ دکمه شناور سبد — فقط موبایل ═══ -->
-<button class="cart-toggle-btn" id="cartToggle" onclick="toggleMobileCart()">
-    <i class="bi bi-cart3"></i>
-    <span class="cart-fab-badge" id="cartFabBadge">۰</span>
-</button>
-{% endblock %} 
+<!-- ═══ FAB موبایل — جایگزین دکمه سبد قدیمی ═══ -->
+<div class="mobile-fab-wrap" id="mobileFabWrap">
+    <div class="fab-overlay" id="fabOverlay" onclick="closeFabMenu()"></div>
+
+    <div class="mobile-fab-menu" id="mobileFabMenu">
+        <button class="fab-menu-item" data-tab="history" onclick="switchTab('history')">
+            <span class="fmi-icon"><i class="bi bi-clock-history"></i></span>
+            <span class="fmi-label">تاریخچه</span>
+        </button>
+        <button class="fab-menu-item" data-tab="close" onclick="switchTab('close')">
+            <span class="fmi-icon"><i class="bi bi-moon-stars"></i></span>
+            <span class="fmi-label">بستن روز</span>
+        </button>
+        <button class="fab-menu-item" data-tab="report" onclick="switchTab('report')">
+            <span class="fmi-icon"><i class="bi bi-bar-chart-line"></i></span>
+            <span class="fmi-label">گزارش روز</span>
+        </button>
+        <button class="fab-menu-item" data-tab="discount" onclick="switchTab('discount')">
+            <span class="fmi-icon"><i class="bi bi-percent"></i></span>
+            <span class="fmi-label">تخفیف</span>
+        </button>
+        <button class="fab-menu-item" data-tab="pos" onclick="switchTab('pos')">
+            <span class="fmi-icon"><i class="bi bi-shop"></i></span>
+            <span class="fmi-label">صندوق فروش</span>
+        </button>
+        <button class="fab-menu-item fab-cart-item" onclick="fabOpenCart()">
+            <span class="fmi-icon"><i class="bi bi-cart3"></i></span>
+            <span class="fmi-label">سفارش</span>
+            <span class="fmi-price" id="fabCartPrice">۰ تومان</span>
+        </button>
+    </div>
+
+    <button class="mobile-fab-btn" id="mobileFabBtn" onclick="toggleFabMenu()">
+        <i class="bi bi-plus-lg"></i>
+        <span class="mobile-fab-badge hide" id="mobileFabBadge">۰</span>
+    </button>
+</div>
+{% endblock %}
 {% block extra_js %}
 <script>
 /* ═══ فیکس اسکرول ═══ */
@@ -1408,7 +1407,7 @@ function getCookie(n) { var v=null; document.cookie.split(';').forEach(function(
 function debounce(fn, ms) { var t; return function() { var ctx=this, args=arguments; clearTimeout(t); t=setTimeout(function(){ fn.apply(ctx, args); }, ms); }; }
 function $(id) { return document.getElementById(id); }
 
-/* ── API Helper — جایگزین fetch های تکراری ── */
+/* ── API Helper ── */
 async function apiFetch(url, options) {
     var defaults = {
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
@@ -1442,21 +1441,100 @@ function showToast(msg, type) {
 /* ── Confirm Helper ── */
 function confirmAction(msg) { return confirm(msg); }
 
-/* ═══ Mobile Cart ═══ */
+/* ═══ Mobile Cart Drawer ═══ */
 function toggleMobileCart() {
     var cart = document.querySelector('.pos-cart');
     if (cart) cart.classList.toggle('open');
 }
-function syncCartBadge(count) {
-    var fab = $('cartFabBadge');
-    if (fab) fab.textContent = toP(count);
+
+/* ═══════════════════════════════════════════════════════════════
+   ★ FAB SYSTEM — جایگزین cart-toggle-btn قدیمی ★
+═══════════════════════════════════════════════════════════════ */
+var _fabOpen = false;
+
+function toggleFabMenu() {
+    _fabOpen = !_fabOpen;
+    var wrap  = $('mobileFabWrap');
+    var btn   = $('mobileFabBtn');
+    var menu  = $('mobileFabMenu');
+    if (!wrap) return;
+    if (_fabOpen) {
+        wrap.classList.add('open');
+        btn.classList.add('open');
+        menu.classList.add('show');
+    } else {
+        closeFabMenu();
+    }
 }
+
+function closeFabMenu() {
+    _fabOpen = false;
+    var wrap = $('mobileFabWrap');
+    var btn  = $('mobileFabBtn');
+    var menu = $('mobileFabMenu');
+    if (wrap) wrap.classList.remove('open');
+    if (btn)  btn.classList.remove('open');
+    if (menu) menu.classList.remove('show');
+}
+
+function fabOpenCart() {
+    closeFabMenu();
+    if (window.innerWidth <= 768) {
+        var cart = document.querySelector('.pos-cart');
+        if (cart) cart.classList.add('open');
+    }
+}
+
+/* ── sync FAB badges + price ── */
+function syncFabCart(count) {
+    var badge = $('mobileFabBadge');
+    if (badge) {
+        badge.textContent = toP(count);
+        if (count > 0) badge.classList.remove('hide'); else badge.classList.add('hide');
+    }
+    /* price label inside FAB menu */
+    var priceEl = $('fabCartPrice');
+    if (priceEl) {
+        var total = 0;
+        Object.keys(posCart).forEach(function(id) {
+            var f = getFood(id);
+            if (f) total += posGetPrice(f) * posCart[id];
+        });
+        if (_appliedCoupon) {
+            var cs = _appliedCoupon.discount_type === 'percentage'
+                ? Math.round(total * _appliedCoupon.value / 100)
+                : Math.min(_appliedCoupon.value, total);
+            total = Math.max(0, total - cs);
+        }
+        priceEl.textContent = count > 0 ? fmtN(total) + ' تومان' : '۰ تومان';
+    }
+}
+
+/* ── sync orders FAB badge ── */
+function syncFabOrders(active) {
+    var badge = $('fabOrdersBadge');
+    if (badge) {
+        badge.textContent = toP(active);
+        if (active > 0) badge.classList.remove('hide'); else badge.classList.add('hide');
+    }
+}
+
+/* ═══ click-outside handlers ═══ */
 document.addEventListener('click', function(e) {
     if (window.innerWidth > 768) return;
+
+    /* close cart drawer when clicking outside */
     var cart = document.querySelector('.pos-cart');
-    var fab = $('cartToggle');
-    if (cart && cart.classList.contains('open') && !cart.contains(e.target) && (!fab || !fab.contains(e.target))) {
-        cart.classList.remove('open');
+    if (cart && cart.classList.contains('open') && !cart.contains(e.target)) {
+        /* don't close if clicking the FAB cart item */
+        var fabCart = e.target.closest('.fab-cart-item');
+        if (!fabCart) cart.classList.remove('open');
+    }
+
+    /* close FAB menu when clicking outside */
+    if (_fabOpen) {
+        var wrap = $('mobileFabWrap');
+        if (wrap && !wrap.contains(e.target)) closeFabMenu();
     }
 });
 
@@ -1475,14 +1553,26 @@ var _pendingOrder = null;
 var _appliedCoupon = null;
 
 /* ═══════════════════════════════════════════════════════════════
-   TAB SWITCHING
+   ★ TAB SWITCHING — ★ اصلاح شده برای FAB (btn اختیاری)
 ═══════════════════════════════════════════════════════════════ */
 var _loadedTabs = {};
 function switchTab(tab, btn) {
     document.querySelectorAll('.pos-tab').forEach(function(t) { t.classList.remove('active'); });
     document.querySelectorAll('.pos-panel').forEach(function(p) { p.classList.remove('active'); });
-    btn.classList.add('active');
+
+    /* ★ btn ممکنه undefined باشه وقتی FAB صدا می‌زنه ★ */
+    if (btn) {
+        btn.classList.add('active');
+    } else {
+        /* پیدا کردن دکمه متناظر با data-tab */
+        var matchBtn = document.querySelector('.pos-tab[data-tab="' + tab + '"]');
+        if (matchBtn) matchBtn.classList.add('active');
+    }
+
     $('panel-' + tab).classList.add('active');
+
+    /* close FAB menu if open */
+    closeFabMenu();
 
     var actions = {
         'pos': function() { posFilter(); },
@@ -1605,7 +1695,8 @@ function posUpdateCart() {
     if (!ids.length) {
         box.innerHTML = '<div class="pos-cart-empty"><i class="bi bi-cart-x"></i><p>غذایی انتخاب نشده</p></div>';
         $('posCartCount').textContent = toP(0);
-        syncCartBadge(0);
+        /* ★ sync FAB ★ */
+        syncFabCart(0);
         $('posTotal').textContent = fmtP(0);
         $('posCheckout').disabled = true;
         updateCartTotals(); updateDiscountTabBadge();
@@ -1631,7 +1722,8 @@ function posUpdateCart() {
     });
     box.innerHTML = h;
     $('posCartCount').textContent = toP(count);
-    syncCartBadge(count);
+    /* ★ sync FAB ★ */
+    syncFabCart(count);
     $('posCheckout').disabled = false;
     updateCartTotals(); updateDiscountTabBadge();
 }
@@ -1657,6 +1749,10 @@ function updateCartTotals() {
         $('originalTotal').textContent = fmtP(originalTotal);
         $('savingsTotal').textContent = '-' + fmtN(totalSaving) + ' تومان';
     } else { origRow.classList.remove('show'); savRow.classList.remove('show'); }
+
+    /* ★ sync FAB price ★ */
+    var priceEl = $('fabCartPrice');
+    if (priceEl) priceEl.textContent = fmtN(finalTotal);
 }
 function updateDiscountTabBadge() {
     var count = 0;
@@ -1668,7 +1764,7 @@ function updateDiscountTabBadge() {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   ORDERS MANAGEMENT TAB — تب مدیریت سفارشات
+   ORDERS MANAGEMENT TAB
 ═══════════════════════════════════════════════════════════════ */
 var _ordersData = [];
 var _ordersFilter = 'all';
@@ -1713,6 +1809,8 @@ function updateOrdersTabBadge() {
     var badge = $('ordersTabBadge');
     badge.textContent = toP(active);
     if (active > 0) badge.classList.add('show'); else badge.classList.remove('show');
+    /* ★ sync FAB orders badge ★ */
+    syncFabOrders(active);
 }
 
 function renderOrders() {
@@ -2004,7 +2102,8 @@ async function posCheckout() {
         if (data.success) {
             _pendingOrder = { data: data, amount: totalAmount, cartSnapshot: {} };
             ids.forEach(function(id) { _pendingOrder.cartSnapshot[id] = posCart[id]; });
-            posCart = {}; _appliedCoupon = null; posUpdateCart(); posFilter(); syncCartBadge(0);
+            posCart = {}; _appliedCoupon = null; posUpdateCart(); posFilter();
+            syncFabCart(0);
             $('posCustName').value = ''; $('posCustPhone').value = '';
             showPayModal(totalAmount, data);
         } else { if (data.error && data.error.indexOf('موجودی') !== -1) { showToast(data.error, 'error'); posFilter(); } else showToast(data.error || 'خطای نامشخص', 'error'); }
@@ -2051,7 +2150,6 @@ async function payCancel() {
     if (_pendingOrder && _pendingOrder.cartSnapshot) {
         Object.keys(_pendingOrder.cartSnapshot).forEach(function(id) { if (!posCart[id]) posCart[id] = 0; posCart[id] += _pendingOrder.cartSnapshot[id]; });
         posUpdateCart(); posFilter();
-        var total = 0; Object.keys(posCart).forEach(function(k) { total += posCart[k]; }); syncCartBadge(total);
     }
     _pendingOrder = null; $('payModal').classList.remove('show');
 }
@@ -2196,10 +2294,14 @@ function closeHistoryDetail() { $('historyDetailModal').classList.remove('show')
     $('payModal').addEventListener('click', function(e) { if (e.target === this) payCancel(); });
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
+            if (_fabOpen) { closeFabMenu(); return; }
             if ($('payModal').classList.contains('show')) { payCancel(); return; }
             if ($('historyDetailModal').classList.contains('show')) { closeHistoryDetail(); return; }
             if ($('posReceiptModal').classList.contains('show')) { posCloseReceipt(); return; }
             if ($('orderDetailModal').classList.contains('show')) { $('orderDetailModal').classList.remove('active'); return; }
+            /* ★ close cart drawer on Escape ★ */
+            var cart = document.querySelector('.pos-cart');
+            if (cart && cart.classList.contains('open')) { cart.classList.remove('open'); return; }
         }
     });
 })();
@@ -2211,7 +2313,7 @@ document.addEventListener('DOMContentLoaded', function() {
     posBuildCats();
     posFilter();
     updateDiscountTabBadge();
-    syncCartBadge(0);
+    syncFabCart(0);
     $('posSearch').addEventListener('input', _posFilterDebounced);
     $('discSearch').addEventListener('input', debounce(discFilter, 200));
 });

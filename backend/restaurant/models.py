@@ -521,16 +521,19 @@ class PurchaseInvoiceItem(TenantModel):
         return self.quantity * self.unit_price
 
 
+
+
 # ─── 7. READY MATERIALS ──────────────────
 
 
 class ReadyMaterial(TenantModel):
+    UNIT_CHOICES = UNIT_CHOICES              
     name                = name_field(verbose_name='نام ماده')
     description         = description_field()
     unit                = unit_field(default='unit')
-    quantity            = qty_field(max_digits=12, decimal_places=3, default=0)           # ← FIX
-    purchase_price      = price_field(verbose_name='قیمت خرید (تومان)', default=0)      # ← FIX
-    selling_price       = price_field(verbose_name='قیمت فروش (تومان)', default=0)      # ← FIX
+    quantity            = qty_field(max_digits=12, decimal_places=3, default=0)
+    purchase_price      = price_field(verbose_name='قیمت خرید (تومان)', default=0)
+    selling_price       = price_field(verbose_name='قیمت فروش (تومان)', default=0)
     minimum_stock       = qty_field(max_digits=12, decimal_places=3, default=0, verbose_name='حداقل موجودی')
     supplier            = models.ForeignKey("Supplier", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="تأمین‌کننده")
     barcode             = models.CharField(max_length=100, blank=True, verbose_name="بارکد", db_index=True)
@@ -560,8 +563,6 @@ class ReadyMaterial(TenantModel):
         if self.minimum_stock > 0 and self.quantity <= self.minimum_stock:
             return "low"
         return "ok"
-
-
 # ─── 8. LOYALTY SYSTEM ────────────────────
 
 
