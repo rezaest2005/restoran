@@ -148,3 +148,8 @@ JAZZMIN_UI_TWEAKS = {
 CSRF_COOKIE_HTTPONLY = False
 SESSION_COOKIE_HTTPONLY = False
 LOGIN_URL = '/dashboard/auth/'
+
+# ═══ Proxy / Cloudflare SSL — رفع redirect loop ═══
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+SECURE_SSL_REDIRECT = False

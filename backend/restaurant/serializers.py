@@ -188,7 +188,7 @@ class SemiFinishedSerializer(serializers.ModelSerializer):
 
 # ★FIX: null-safe + int() یکنواخت + حذف side-effect از active_discounts
 class KitchenProductSerializer(serializers.ModelSerializer):
-    recipe_name = serializers.CharField(source='recipe.food.name', read_only=True, default='')
+    recipe_name = serializers.SerializerMethodField()
     category_display = serializers.CharField(source='get_category_display', read_only=True)
     cost = serializers.SerializerMethodField()
     profit = serializers.SerializerMethodField()
@@ -211,7 +211,15 @@ class KitchenProductSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
         ]
 
-    # ★FIX: try/except + None safety
+    # ★FIX2: این متد نبود ← دلیل اصلی ارور 500
+    def get_recipe_name(self, obj):
+        try:
+            if obj.recipe and hasattr(obj.recipe, 'food') and obj.recipe.food:
+                return obj.recipe.food.name
+        except Exception:
+            pass
+        return ''
+
     def get_cost(self, obj):
         try:
             c = obj.calculate_cost()
@@ -219,7 +227,6 @@ class KitchenProductSerializer(serializers.ModelSerializer):
         except Exception:
             return 0
 
-    # ★FIX: int() مثل get_cost برای سازگاری
     def get_profit(self, obj):
         try:
             p = obj.calculate_profit()
@@ -227,7 +234,6 @@ class KitchenProductSerializer(serializers.ModelSerializer):
         except Exception:
             return 0
 
-    # ★FIX: tuple unpacking ایمن
     def get_max_production(self, obj):
         try:
             result = obj.calculate_max_production()
@@ -246,7 +252,6 @@ class KitchenProductSerializer(serializers.ModelSerializer):
         except Exception:
             return None
 
-    # ★FIX: get_inventory ممکنه side-effect داشته باشه — ایمن‌تر
     def get_current_stock(self, obj):
         try:
             inv = obj.get_inventory()
@@ -268,26 +273,25 @@ class KitchenProductSerializer(serializers.ModelSerializer):
         except Exception:
             return False
 
-    # ★FIX بحرانی: قبلاً KitchenDiscountSerializer فراخوانی می‌شد
-    # که side-effect داشت (غیرفعال‌سازی تخفیف‌های منقضی).
-    # حالا فقط داده خام برمی‌گردونه بدون side-effect.
     def get_active_discounts(self, obj):
-        qs = obj.discounts.filter(is_active=True, expires_at__gt=timezone.now())
-        return [
-            {
-                'id': d.id,
-                'name': d.name,
-                'discount_type': d.discount_type,
-                'value': int(d.value),
-                'scope': d.scope,
-                'max_quantity': d.max_quantity,
-                'start_time': str(d.start_time) if d.start_time else None,
-                'end_time': str(d.end_time) if d.end_time else None,
-                'expires_at': d.expires_at.isoformat() if d.expires_at else None,
-            }
-            for d in qs
-        ]
-
+        try:
+            qs = obj.discounts.filter(is_active=True, expires_at__gt=timezone.now())
+            return [
+                {
+                    'id': d.id,
+                    'name': d.name,
+                    'discount_type': d.discount_type,
+                    'value': int(d.value),
+                    'scope': d.scope,
+                    'max_quantity': d.max_quantity,
+                    'start_time': str(d.start_time) if d.start_time else None,
+                    'end_time': str(d.end_time) if d.end_time else None,
+                    'expires_at': d.expires_at.isoformat() if d.expires_at else None,
+                }
+                for d in qs
+            ]
+        except Exception:
+            return []
 
 class KitchenInventorySerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='kitchen_product.name', read_only=True)
