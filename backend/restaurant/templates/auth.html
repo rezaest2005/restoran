@@ -426,12 +426,13 @@
   //  توابع کمکی
   // ═══════════════════════════════════════════════════════════
   var ROUTES = {
-    owner: '/admin/',
-    manager: '/admin/',
-    cashier: '/pos/',
-    kitchen: '/kitchen/',
-    customer: '/admin/',
-  };
+  owner: '/dashboard/',
+  manager: '/dashboard/',
+  cashier: '/dashboard/pos/',
+  kitchen: '/dashboard/kitchen/',
+  customer: '/dashboard/',
+};
+
 
   function redirectFor(user) {
     if (!user) return '/auth/';
