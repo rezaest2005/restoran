@@ -152,8 +152,7 @@ urlpatterns = [
     # ══════════════════════════════════════════════════════════════
     #  Pages (HTML) — همه از views (restaurant_page_views.py)
     # ══════════════════════════════════════════════════════════════
-
-    path("dashboard/",                                views.home,               name="home"),
+    path("dashboard/app/", views.home, name="dashboard_app"),
     path("dashboard/auth/",                           views.auth_page,          name="auth_page"),
     path("dashboard/logout/",                         views.logout_page,        name="logout_page"),
     path("dashboard/invoices/",                       views.purchase_invoice_list,   name="invoice_list"),
