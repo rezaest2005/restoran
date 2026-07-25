@@ -4,7 +4,6 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <title>ورود | رستوران</title>
-  <!-- ← فونت از CDN جایگزین (رایگان و بدون فیلتر) -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
 <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -113,34 +112,6 @@
     }
     .form-header p { font-size: 13px; color: #8e8ea0; }
 
-    .tabs {
-      display: flex; background: #fff;
-      border-radius: 16px; padding: 5px;
-      margin-bottom: 32px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-      border: 1px solid #ecedf0;
-    }
-    .tab-btn {
-      flex: 1; padding: 12px; text-align: center;
-      font-size: 14px; font-weight: 700; color: #8e8ea0;
-      background: transparent; border: none; border-radius: 12px;
-      cursor: pointer; transition: all 0.3s;
-      font-family: 'Vazirmatn', sans-serif;
-    }
-    .tab-btn.active {
-      background: linear-gradient(135deg, #ff6b35, #f7931e);
-      color: #fff; box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3);
-    }
-
-    .form-panel { display: none; }
-    .form-panel.active {
-      display: block; animation: fadeIn 0.4s ease;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
     .field { margin-bottom: 20px; }
     .field label {
       display: block; font-size: 12px; font-weight: 700;
@@ -207,8 +178,9 @@
       font-size: 13px; font-weight: 600;
       margin-bottom: 20px; display: none;
       animation: fadeIn 0.3s ease;
+      align-items: center; gap: 8px;
     }
-    .msg.show { display: flex; align-items: center; gap: 8px; }
+    .msg.show { display: flex; }
     .msg.error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
     .msg.success { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
     .msg.pending {
@@ -233,6 +205,11 @@
     }
     .form-footer a:hover { text-decoration: underline; }
 
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     @media (max-width: 900px) {
       body { flex-direction: column; overflow-y: auto; overflow-x: hidden; }
       .panel-left { min-height: auto; padding: 28px 20px 24px; flex: none; }
@@ -251,8 +228,6 @@
       .form-container { padding: 20px 18px 36px; }
       .form-header h2 { font-size: 20px; }
       .form-header { margin-bottom: 24px; }
-      .tabs { margin-bottom: 24px; border-radius: 12px; padding: 4px; }
-      .tab-btn { padding: 10px; font-size: 13px; border-radius: 10px; }
       .input-wrap input { padding: 12px 14px 12px 44px; font-size: 15px; border-radius: 12px; }
       .input-ico { left: 14px; font-size: 16px; }
       .toggle-pass { left: 42px; font-size: 14px; }
@@ -262,7 +237,6 @@
       .msg { font-size: 12px; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; }
       .divider { margin: 18px 0; }
       .form-footer { font-size: 12px; margin-top: 16px; }
-      .name-grid { grid-template-columns: 1fr !important; gap: 0 !important; }
     }
     @supports (padding-bottom: env(safe-area-inset-bottom)) {
       .form-container { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
@@ -292,6 +266,8 @@
         <h2 id="form-title">خوش آمدید</h2>
         <p id="form-subtitle">برای ادامه وارد حساب خود شوید</p>
       </div>
+
+      <!-- ★ FIX: پیام‌ها — حالا render() اینها را آپدیت می‌کند -->
       <div class="msg error" id="msg-error">
         <span>&#9888;</span>
         <span id="msg-error-text"></span>
@@ -334,7 +310,7 @@
         </div>
       </div>
 
-      <!-- ═══ REGISTER ═══ -->
+      <!-- ═══ REGISTER (حذف شده بود — اگر لازم نیست همین بماند) ═══ -->
 
     </div>
   </div>
@@ -391,52 +367,69 @@
   // ═══════════════════════════════════════════════════════════
   function $(id) { return document.getElementById(id); }
 
+  /* ★ FIX: render حالا پیام‌های واقعی را آپدیت می‌کند */
   function render(s) {
     // ── پیام‌ها ──
-    var box = $('message');
-    if (box) {
-      box.className = 'message ' + s.status;
-      box.textContent = s.message;
-      box.hidden = (s.status === 'idle' || s.status === 'loading');
+    var errBox  = $('msg-error');
+    var okBox   = $('msg-success');
+    var pendBox = $('msg-pending');
+
+    // اول همه را مخفی کن
+    if (errBox)  errBox.classList.remove('show');
+    if (okBox)   okBox.classList.remove('show');
+    if (pendBox) pendBox.classList.remove('show');
+
+    // فقط پیام مربوط به وضعیت فعلی را نشان بده
+    if (s.message) {
+      if (s.status === 'error') {
+        if (errBox) {
+          $('msg-error-text').textContent = s.message;
+          errBox.classList.add('show');
+        }
+      } else if (s.status === 'success') {
+        if (okBox) {
+          $('msg-success-text').textContent = s.message;
+          okBox.classList.add('show');
+        }
+      } else if (s.status === 'pending') {
+        if (pendBox) {
+          $('msg-pending-text').textContent = s.message;
+          pendBox.classList.add('show');
+        }
+      }
     }
 
     // ── دکمه‌ها ──
-    document.querySelectorAll('button[type="submit"]').forEach(function(btn) {
+    document.querySelectorAll('.btn-primary').forEach(function(btn) {
       btn.disabled = (s.status === 'loading');
       if (s.status === 'loading') btn.classList.add('loading');
       else btn.classList.remove('loading');
     });
 
-    // ── تب‌ها ──
-    var isLogin = s.tab === 'login';
-    var tabs = document.querySelectorAll('.tab-btn');
-    if (tabs[0]) { if (isLogin) tabs[0].classList.add('active'); else tabs[0].classList.remove('active'); }
-    if (tabs[1]) { if (!isLogin) tabs[1].classList.add('active'); else tabs[1].classList.remove('active'); }
-    var lp = $('login-panel'); if (lp) { if (isLogin) lp.classList.add('active'); else lp.classList.remove('active'); }
-    var rp = $('register-panel'); if (rp) { if (!isLogin) rp.classList.add('active'); else rp.classList.remove('active'); }
-
     // ── عنوان ──
     var ft = $('form-title');
     var fs = $('form-subtitle');
+    var isLogin = s.tab === 'login';
     if (ft) ft.textContent = isLogin ? 'خوش آمدید' : 'ایجاد حساب جدید';
-    if (fs) fs.textContent = isLogin ? 'برای ادامه وارد حساب خود شوید' : 'ثبت\u200cنام کنید و از امکانات استفاده کنید';
+    if (fs) fs.textContent = isLogin ? 'برای ادامه وارد حساب خود شوید' : 'ثبت‌نام کنید و از امکانات استفاده کنید';
   }
 
   // ═══════════════════════════════════════════════════════════
   //  توابع کمکی
   // ═══════════════════════════════════════════════════════════
-var ROUTES = {
-  owner: '/dashboard/app/',
-  manager: '/dashboard/app/',
-  cashier: '/dashboard/pos/',
-  kitchen: '/dashboard/kitchen/',
-  customer: '/dashboard/app/',
-};
 
+  /* ★ FIX: آدرس‌ها با ساختار جدید مطابقت دارد */
+  var ROUTES = {
+    owner:    '/dashboard/app/',
+    manager:  '/dashboard/app/',
+    cashier:  '/dashboard/pos/',
+    kitchen:  '/dashboard/kitchen/',
+    customer: '/dashboard/app/',
+  };
 
   function redirectFor(user) {
-    if (!user) return '/auth/';
-    return ROUTES[user.role] || '/auth/';
+    if (!user) return '/dashboard/';               /* ★ FIX: /auth/ → /dashboard/ */
+    return ROUTES[user.role] || '/dashboard/';     /* ★ FIX: fallback */
   }
 
   function buildIdentity(id) {
@@ -497,22 +490,18 @@ var ROUTES = {
 
     var data = result.data;
 
-    // حساب تأیید نشده
     if (data.pending || (data.data && data.data.pending)) {
       store.set({ status: 'pending', message: data.error || data.message || 'حساب شما هنوز توسط مدیر تأیید نشده.' });
       return;
     }
 
-    // خطای ورود
     if (!result.ok || !data.access) {
       store.set({ status: 'error', message: data.error || data.detail || 'خطا در ورود. دوباره تلاش کنید.' });
       return;
     }
 
-    // ورود موفق → ذخیره و هدایت
     var redirectUrl = redirectFor(data.user);
-    store.set({ status: 'success', message: 'ورود موفقیت\u200cآمیز! در حال انتقال...' });
-
+    store.set({ status: 'success', message: 'ورود موفقیت‌آمیز! در حال انتقال...' });
     await persistSession(data.access, data.refresh, data.user);
 
     setTimeout(function() {
@@ -521,101 +510,9 @@ var ROUTES = {
   }
 
   // ═══════════════════════════════════════════════════════════
-  //  منطق اصلی: ثبت‌نام
-  // ═══════════════════════════════════════════════════════════
-  async function handleRegister(e) {
-    if (e && e.preventDefault) e.preventDefault();
-    store.set({ status: 'loading', message: '' });
-
-    var username  = (($('reg-username') || {}).value || '').trim();
-    var phone     = (($('reg-phone') || {}).value || '').trim();
-    var firstName = (($('reg-firstname') || {}).value || '').trim();
-    var lastName  = (($('reg-lastname') || {}).value || '').trim();
-    var password  = ($('reg-password') || {}).value || '';
-    var password2 = ($('reg-password2') || {}).value || '';
-
-    if (password !== password2) {
-      store.set({ status: 'error', message: 'رمزهای عبور مطابقت ندارند.' }); return;
-    }
-    if (password.length < 8) {
-      store.set({ status: 'error', message: 'رمز عبور باید حداقل ۸ کاراکتر باشد.' }); return;
-    }
-    if (!/^09\d{9}$/.test(phone)) {
-      store.set({ status: 'error', message: 'شماره موبایل نامعتبر است.' }); return;
-    }
-
-    var result = await api.post(API_BASE + '/register/', {
-      username: username,
-      phone_number: phone,
-      first_name: firstName,
-      last_name: lastName,
-      password: password,
-      password_confirm: password2,
-      role: 'customer',
-    });
-
-    if (result.networkError) {
-      store.set({ status: 'error', message: 'خطا در اتصال به سرور.' }); return;
-    }
-
-    var data = result.data;
-
-    // ثبت‌نام اما تأیید نشده
-    if (data.pending || (data.data && data.data.pending)) {
-      store.set({ status: 'pending', message: data.message || 'ثبت\u200cنام انجام شد. پس از تأیید مدیر می\u200cتوانید وارد شوید.' });
-      setTimeout(function() { switchTab('login'); }, 3000);
-      return;
-    }
-
-    // ثبت‌نام و ورود موفق
-    if (result.ok && data.data) {
-      var tokens = data.data.tokens;
-      var user = data.data.user;
-      var redirectUrl = redirectFor(user);
-      store.set({ status: 'success', message: 'ثبت\u200cنام موفق! در حال انتقال...' });
-      await persistSession(tokens.access, tokens.refresh, user);
-      setTimeout(function() { window.location.href = redirectUrl; }, 500);
-      return;
-    }
-
-    // خطای ثبت‌نام
-    var errors = data.errors || data;
-    var msg = (typeof errors === 'object' && errors !== null)
-      ? Object.values(errors).flat().join(' ')
-      : (data.error || 'خطا در ثبت\u200cنام.');
-    store.set({ status: 'error', message: msg });
-  }
-
-  // ═══════════════════════════════════════════════════════════
   //  اتصال به DOM
   // ═══════════════════════════════════════════════════════════
   document.addEventListener('DOMContentLoaded', function() {
-    // فرم ورود
-    var lf = $('login-form');
-    if (lf) lf.addEventListener('submit', handleLogin);
-
-    // فرم ثبت‌نام
-    var rf = $('register-form');
-    if (rf) rf.addEventListener('submit', handleRegister);
-
-    // دکمه‌های تعویض تب
-    document.querySelectorAll('.tab-btn').forEach(function(btn) {
-      btn.addEventListener('click', function() { switchTab(btn.dataset.tab); });
-    });
-
-    // نمایش/مخفی رمز
-    document.querySelectorAll('[data-toggle-pass]').forEach(function(btn) {
-      btn.addEventListener('click', function() { togglePass(btn.dataset.togglePass, btn); });
-    });
-
-    // Enter
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        var form = document.querySelector('.form-panel.active form');
-        if (form) form.dispatchEvent(new Event('submit', { cancelable: true }));
-      }
-    });
-
     render(store.get());
   });
 </script>
