@@ -9,14 +9,12 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ═══ خواندن .env از ریشه پروژه (پوشه بالاتر از backend) ═══
 PROJECT_ROOT = BASE_DIR.parent
 load_dotenv(PROJECT_ROOT / '.env')
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-!0v)nh)hqet@qn(k8jd$h$tg@st%cqf2ya0xuu*xej-m0=_89s')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-# ═══ CSRF + ALLOWED_HOSTS — همه از .env خوانده میشه ═══
 CSRF_TRUSTED_ORIGINS = os.getenv(
     'CSRF_TRUSTED_ORIGINS',
     'http://localhost:8000,http://127.0.0.1:8000,https://est.rysh.ir'
@@ -27,7 +25,6 @@ if DEBUG:
 else:
     ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1,est.rysh.ir').split(',')
 
-# ═══ مدل کاربر ═══
 AUTH_USER_MODEL = 'restaurant.User'
 
 CARD_READER_IP = os.getenv('CARD_READER_IP', '192.168.1.100')
@@ -77,7 +74,6 @@ SIMPLE_JWT = {
     'TOKEN_OBTAIN_SERIALIZER': 'restaurant.serializers.CustomTokenObtainSerializer',
 }
 
-# ═══ CORS ═══
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
@@ -88,7 +84,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'restaurant.middleware.TenantMiddleware',              # ← بعد از authentication
+    'restaurant.middleware.TenantMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -112,7 +108,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'core.wsgi.application'
 
-# ═══ دیتابیس: از env بخون (برای Docker) یا پیش‌فرض sqlite ═══
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -147,9 +142,14 @@ JAZZMIN_UI_TWEAKS = {
 
 CSRF_COOKIE_HTTPONLY = False
 SESSION_COOKIE_HTTPONLY = False
-LOGIN_URL = '/dashboard/auth/'
 
-# ═══ Proxy / Cloudflare SSL — رفع redirect loop ═══
+# ★ تغییر: LOGIN_URL با ساختار جدید مطابقت دارد
+# قبلاً: LOGIN_URL = '/dashboard/auth/'
+# حالا:
+LOGIN_URL = '/dashboard/'
+LOGIN_REDIRECT_URL = '/dashboard/app/'
+
+# Proxy / Cloudflare SSL
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 SECURE_SSL_REDIRECT = False

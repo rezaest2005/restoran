@@ -540,8 +540,6 @@
 </div>
 
 {% endblock %}
-
-
 {% block extra_js %}
 <script>
 /* ════════════════════════════════════════════════
@@ -562,12 +560,17 @@ var _ktDrinkKW = [
     'دلستر','ماءالشعیر','سودا','نوشابه','milkshake','frappe','latte',
     'espresso','یخ','ice'
 ];
+
 function ktIsDrink(food) {
     if (!food) return false;
-    var cat = (food.category_name || '').toLowerCase();
-    var nm  = (food.name || '').toLowerCase();
+    var cat = ' ' + (food.category_name || '').toLowerCase() + ' ';
+    var nm  = ' ' + (food.name || '').toLowerCase() + ' ';
     for (var i = 0; i < _ktDrinkKW.length; i++) {
-        if (cat.indexOf(_ktDrinkKW[i]) !== -1 || nm.indexOf(_ktDrinkKW[i]) !== -1) return true;
+        var kw = _ktDrinkKW[i];
+        var padded = ' ' + kw + ' ';
+        if (cat.indexOf(padded) !== -1 || nm.indexOf(padded) !== -1) return true;
+        // همچنین چک شروع رشته
+        if (cat.indexOf(' ' + kw) === 0 || nm.indexOf(' ' + kw) === 0) return true;
     }
     return false;
 }
@@ -594,6 +597,9 @@ var _ktOrdersInterval = null;
 var _ktKnownOrderIds = [];
 var _knInitDone = false;
 var _knPending = [];
+
+/* ★ BUG-FIX #5: قفل جلوگیری از کلیک مکرر روی «آماده است» */
+var _markReadyLock = {};
 
 /* ════════════════════════════════════════════════
    ابزارهای پایه
@@ -636,39 +642,53 @@ function ktSpin(show) {
     if (el) el.classList.toggle('show', !!show);
 }
 
-/* ★ FIX: بهبود مدیریت خطا و پاسخ‌های 204 */
-async function ktApi(url, method, body) {
+/* ★ BUG-FIX #4a: اضافه کردن timeout به ktApi — جلوگیری از hang شدن بی‌نهایت */
+async function ktApi(url, method, body, timeoutMs) {
+    timeoutMs = timeoutMs || 30000;
+    var controller = new AbortController();
+    var timer = setTimeout(function () { controller.abort(); }, timeoutMs);
+
     var opts = {
         method: method || 'GET',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': ktCsrf() }
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': ktCsrf() },
+        signal: controller.signal
     };
     if (body) opts.body = JSON.stringify(body);
-    var r = await fetch(url, opts);
-    if (r.status === 204) return { success: true, status: 204 };
-    var text = await r.text();
-    var j;
-    try { j = JSON.parse(text); }
-    catch (e) { throw new Error('سرور پاسخ نامعتبر (status ' + r.status + ')'); }
-    if (!r.ok) {
-        var errMsg = '';
-        if (j && typeof j === 'object') {
-            if (j.error)        errMsg = (typeof j.error === 'string') ? j.error : (Array.isArray(j.error) ? j.error.join(', ') : JSON.stringify(j.error));
-            else if (j.detail)  errMsg = j.detail;
-            else if (j.message) errMsg = j.message;
-            else {
-                var parts = [];
-                for (var key in j) {
-                    if (j.hasOwnProperty(key)) {
-                        var val = Array.isArray(j[key]) ? j[key].join(', ') : j[key];
-                        parts.push(key + ': ' + val);
+
+    try {
+        var r = await fetch(url, opts);
+        clearTimeout(timer);
+
+        if (r.status === 204) return { success: true, status: 204 };
+        var text = await r.text();
+        var j;
+        try { j = JSON.parse(text); }
+        catch (e) { throw new Error('سرور پاسخ نامعتبر (status ' + r.status + ')'); }
+        if (!r.ok) {
+            var errMsg = '';
+            if (j && typeof j === 'object') {
+                if (j.error)        errMsg = (typeof j.error === 'string') ? j.error : (Array.isArray(j.error) ? j.error.join(', ') : JSON.stringify(j.error));
+                else if (j.detail)  errMsg = j.detail;
+                else if (j.message) errMsg = j.message;
+                else {
+                    var parts = [];
+                    for (var key in j) {
+                        if (j.hasOwnProperty(key)) {
+                            var val = Array.isArray(j[key]) ? j[key].join(', ') : j[key];
+                            parts.push(key + ': ' + val);
+                        }
                     }
+                    errMsg = parts.length ? parts.join(' | ') : JSON.stringify(j);
                 }
-                errMsg = parts.length ? parts.join(' | ') : JSON.stringify(j);
             }
+            throw new Error(errMsg || 'خطای سرور (' + r.status + ')');
         }
-        throw new Error(errMsg || 'خطای سرور (' + r.status + ')');
+        return j;
+    } catch (e) {
+        clearTimeout(timer);
+        if (e.name === 'AbortError') throw new Error('زمان اتصال به سرور تمام شد');
+        throw e;
     }
-    return j;
 }
 
 /* ════════════════════════════════════════════════
@@ -686,7 +706,6 @@ function ktDiscountValueText(d, unitLabel) {
 }
 
 function ktTimerBadgeIfAny(id) {
-    /* ★ FIX: همیشه string برمی‌گرداند نه null */
     if (!id) return '';
     var tb = ktTimerBadge(id);
     return tb || '';
@@ -717,7 +736,6 @@ function ktCsBox(value, label, color) {
     return '<div class="kt-cs" style="padding:14px;border:1px solid var(--kt-border)"><span class="kt-cs-val" style="color:' + (color || 'var(--kt-text)') + ';font-size:1.1rem">' + value + '</span><span class="kt-cs-lbl">' + ktEscapeHtml(label) + '</span></div>';
 }
 
-/* ★ FIX: جلوگیری از race condition — فقط یک بار ktSpin */
 async function ktRunAction(actionFn, opts) {
     opts = opts || {};
     try {
@@ -752,13 +770,11 @@ function ktOpenModal(id) {
     document.body.style.overflow = 'hidden';
 }
 
-/* ★ FIX: پاکسازی observer هنگام بستن مودال */
 function ktCloseModal(id) {
     var el = document.getElementById(id);
     if (!el) return;
     el.classList.remove('open');
     if (!document.querySelector('.kt-modal.open')) document.body.style.overflow = '';
-    /* پاکسازی observer مودال هزینه */
     if (id === 'ktModalCostPrice' && _ktCostObserver) {
         _ktCostObserver.disconnect();
         _ktCostObserver = null;
@@ -877,10 +893,15 @@ function renderKitchenOrders(orders) {
     container.innerHTML = html;
 }
 
+/* ★ BUG-FIX #5: قفل debounce برای جلوگیری از POST تکراری */
 function markOrderReady(orderId) {
+    if (_markReadyLock[orderId]) return;
     if (!confirm('سفارش #' + orderId + ' آماده شده؟')) return;
+    _markReadyLock[orderId] = true;
+
     var card = document.querySelector('.ko-card[data-order-id="' + orderId + '"]');
     if (card) { card.style.opacity = '.5'; card.style.pointerEvents = 'none'; }
+
     fetch('/api/orders/' + orderId + '/status/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': ktCsrf() },
@@ -916,20 +937,36 @@ function markOrderReady(orderId) {
     .catch(function () {
         if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; }
         ktToast('خطا در ارتباط با سرور', 'e');
+    })
+    .finally(function () {
+        delete _markReadyLock[orderId];
     });
 }
+
+/* ★ BUG-FIX #4b: اضافه کردن AbortController به polling — جلوگیری از تلنبار شدن درخواست‌ها */
+var _pollController = null;
 
 function ktStartOrdersPolling() {
     if (_ktOrdersInterval) clearInterval(_ktOrdersInterval);
     _ktOrdersInterval = setInterval(function () {
+        // لغو درخواست قبلی اگر هنوز pending است
+        if (_pollController) {
+            try { _pollController.abort(); } catch (e) { /* ساکت */ }
+        }
+        _pollController = new AbortController();
+
         var activeTab = document.querySelector('.kt-tab.active');
         if (activeTab && activeTab.dataset.tab === 'orders') {
             loadKitchenOrders();
         } else {
-            fetch('/api/orders/kitchen/?status=preparing')
+            fetch('/api/orders/kitchen/?status=preparing', { signal: _pollController.signal })
                 .then(function (r) { return r.json(); })
                 .then(function (data) { knDetectNewOrders(data.orders || []); })
-                .catch(function () {});
+                .catch(function (e) {
+                    // AbortError طبیعی است — نادیده بگیر
+                    if (e.name === 'AbortError') return;
+                    /* سایر خطاها ساکت */
+                });
         }
     }, 15000);
 }
@@ -937,8 +974,6 @@ function ktStartOrdersPolling() {
 /* ════════════════════════════════════════════════
    سیستم نوتیفیکیشن (KN)
    ════════════════════════════════════════════════ */
-
-/* ★ FIX: بهبود تشخیص سفارشات جدید — حذف سفارشات قدیمی از لیست شناخته‌شده */
 function knDetectNewOrders(orders) {
     var currentIds = orders.map(function (o) { return o.id; });
 
@@ -1018,17 +1053,57 @@ function knAddNotification(order) {
     knUpdateCounter();
 }
 
-/* ★ FIX: جدا کردن پخش صدا — جلوگیری از ایجاد چندین Audio */
-var _knAudio = null;
+/* ★ BUG-FIX #2: بهبود صدای نوتیفیکیشن — استفاده از Web Audio API
+   برای تولید صدای واقعی beep به جای base64 بی‌صدا */
+var _knAudioCtx = null;
+
 function knPlaySound() {
     try {
-        if (!_knAudio) {
-            _knAudio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
-            _knAudio.volume = 0.3;
+        if (!_knAudioCtx) {
+            _knAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
-        _knAudio.currentTime = 0;
-        _knAudio.play().catch(function () {});
-    } catch (e) { /* ساکت */ }
+        var ctx = _knAudioCtx;
+        // اگر context در حالت suspended است (autoplay policy)، resume کن
+        if (ctx.state === 'suspended') {
+            ctx.resume();
+        }
+
+        // تولید صدای beep کوتاه — دو نت پشت سر هم
+        var now = ctx.currentTime;
+
+        // نت اول
+        var osc1 = ctx.createOscillator();
+        var gain1 = ctx.createGain();
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(880, now); // A5
+        gain1.gain.setValueAtTime(0.15, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.15);
+
+        // نت دوم (کمی بالاتر)
+        var osc2 = ctx.createOscillator();
+        var gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(1100, now + 0.12); // C#6
+        gain2.gain.setValueAtTime(0, now);
+        gain2.gain.setValueAtTime(0.15, now + 0.12);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.12);
+        osc2.stop(now + 0.3);
+    } catch (e) {
+        // fallback: تلاش با Audio ساده — ساکت در صورت خطا
+        try {
+            var fallbackAudio = new Audio('data:audio/wav;base64,' +
+                'UklGRl9vT19teleAUTBQRWZtdAAAAAA=');
+            fallbackAudio.volume = 0.3;
+            fallbackAudio.play().catch(function () {});
+        } catch (e2) { /* ساکت */ }
+    }
 }
 
 function knMarkReady(orderId, btnEl) {
@@ -1186,16 +1261,8 @@ async function ktHandleExpiredTimers() {
     finally { _ktTimerExpiring = false; }
 }
 
-/* ★ FIX: ساخت HTML تایمر — جلوگیری از تکرار کد */
-function _ktTimerHtml(did) {
-    var rem = ktGetTimerRemaining(did);
-    if (!rem) return '';
-    if (rem.expired) return '<span style="padding:3px 10px;border-radius:8px;font-size:var(--kt-fs-xs);font-weight:700;background:var(--kt-danger-bg);color:var(--kt-danger)"><i class="bi bi-clock-history"></i> منقضی شد</span>';
-    var c  = rem.urgency === 'critical' ? 'var(--kt-danger)' : (rem.urgency === 'warning' ? 'var(--kt-warning)' : 'var(--kt-success)');
-    var bg = rem.urgency === 'critical' ? 'var(--kt-danger-bg)' : (rem.urgency === 'warning' ? 'var(--kt-warning-bg)' : 'var(--kt-success-bg)');
-    var p  = rem.urgency === 'critical' ? 'animation:ktPulse 1s infinite' : '';
-    return '<span style="padding:4px 12px;border-radius:10px;font-size:var(--kt-fs-xs);font-weight:700;background:' + bg + ';color:' + c + ';display:inline-flex;align-items:center;gap:4px;' + p + '"><i class="bi bi-stopwatch-fill"></i> ' + rem.display + '</span>';
-}
+/* ★ BUG-FIX #3: حذف تابع تکراری _ktTimerHtml —
+   استفاده مستقیم از ktTimerBadge در ktStartTimerInterval */
 
 function ktStartTimerInterval() {
     if (ktTimerInterval) clearInterval(ktTimerInterval);
@@ -1204,9 +1271,8 @@ function ktStartTimerInterval() {
         document.querySelectorAll('[data-timer-id]').forEach(function (el) {
             var did = parseInt(el.getAttribute('data-timer-id'));
             if (isNaN(did)) return;
-            var html = _ktTimerHtml(did);
-            if (!html) { el.innerHTML = ''; return; }
-            el.innerHTML = html;
+            var html = ktTimerBadge(did); // ← استفاده از تابع واحد
+            el.innerHTML = html || '';
             var rem = ktGetTimerRemaining(did);
             if (rem && rem.expired) hasExp = true;
         });
@@ -1295,7 +1361,6 @@ function ktProduceUpdateInfo() {
     box.innerHTML = h;
 }
 
-/* ★ FIX: تابع واحد تولید — حذف تابع تکراری ktDoProduceFromTab */
 async function ktDoProduce() {
     var pid   = parseInt(document.getElementById('prProduct').value);
     var qty   = parseInt(document.getElementById('prQty').value) || 0;
@@ -1307,7 +1372,6 @@ async function ktDoProduce() {
     return ktRunAction(async function () {
         var result = await ktApi('/api/kitchen/products/' + pid + '/produce/', 'POST', { quantity: qty, notes: notes });
         ktCloseModal('ktModalProduce');
-        /* ★ FIX: پاکسازی فرم بعد از موفقیت */
         document.getElementById('prProduct').value = '';
         document.getElementById('prQty').value = 1;
         document.getElementById('prNotes').value = '';
@@ -1316,7 +1380,7 @@ async function ktDoProduce() {
     });
 }
 
-/* ★ ALIAS: سازگاری با کد قبلی اگر جایی صدا زده شده */
+/* سازگاری با کد قبلی */
 var ktDoProduceFromTab = ktDoProduce;
 
 /* ════════════════════════════════════════════════
@@ -1377,6 +1441,7 @@ var DM = {
         if (fE) { fE.textContent = ktFmt(fpr) + ' ت'; fE.style.color = fpr < price ? 'var(--kt-success)' : 'var(--kt-primary)'; }
     },
 
+
     save: async function (par) {
         if (!par.name) { ktToast("نام تخفیف الزامی", "e"); return false; }
         if (!par.value || par.value <= 0) { ktToast("مقدار تخفیف الزامی", "e"); return false; }
@@ -1392,6 +1457,7 @@ var DM = {
 
         try {
             ktSpin(true);
+
             /* حذف تخفیف‌های قبلی همان محصول */
             if (!par.discId && par.pid) {
                 var list = DM._list(), oids = [];
@@ -1399,10 +1465,20 @@ var DM = {
                     if (Number(DM._getPid(list[i])) === Number(par.pid)) oids.push(ktGetId(list[i]));
                 }
                 for (var j = 0; j < oids.length; j++) {
-                    try { await ktApi('/api/kitchen/discounts/' + oids[j] + '/', 'DELETE'); } catch (e) { /* ساکت */ }
+                    try {
+                        await ktApi('/api/kitchen/discounts/' + oids[j] + '/', 'DELETE');
+                    } catch (e) {
+                        // تلاش دوم: غیرفعال کردن به جای حذف
+                        try {
+                            await ktApi('/api/kitchen/discounts/' + oids[j] + '/', 'PATCH', { is_active: false });
+                        } catch (e2) {
+                            console.warn('عدم موفقیت در حذف/غیرفعال‌سازی تخفیف قدیمی #' + oids[j] + ':', e2.message);
+                        }
+                    }
                     ktClearTimer(oids[j]);
                 }
             }
+
             var rId = par.discId;
             if (par.discId) {
                 await ktApi('/api/kitchen/discounts/' + par.discId + '/', 'PATCH', body);
@@ -1619,8 +1695,6 @@ function ktRenderDiscounts() { DM.renderTable(); }
 /* ════════════════════════════════════════════════
    Load & Render
    ════════════════════════════════════════════════ */
-
-/* ★ FIX: جلوگیری از فراخوانی همزمان — استفاده از Promise مشترک */
 var _ktLoadPromise = null;
 
 async function ktLoad() {
@@ -1694,11 +1768,9 @@ function ktRenderStats() {
    Populate Dropdowns
    ════════════════════════════════════════════════ */
 function ktPopulateDropdowns(){
-    /* dropdown مودال تخفیف */
     var po=document.getElementById('mdProduct');
     if(po){var o=['<option value="">همه محصولات</option>'];ktD.products.forEach(function(p){o.push('<option value="'+p.id+'">'+ktEscapeHtml(p.name)+'</option>');});po.innerHTML=o.join('');}
 
-    /* ★ dropdown تب تولید */
     var pr=document.getElementById('prProduct');
     if(pr){
         var opts=['<option value="">انتخاب محصول...</option>'];
@@ -1784,7 +1856,6 @@ function ktRenderMenuFoods() {
         var ik = !!kp;
         var isD = ktIsDrink(f);
 
-        /* قیمت */
         var fp;
         if (ik && kp.selling_price != null && kp.selling_price !== '') fp = Number(kp.selling_price);
         else fp = Number(f.final_price || f.price || 0);
@@ -1804,7 +1875,6 @@ function ktRenderMenuFoods() {
         }
         if (!priceH) priceH = '<span style="font-weight:800;font-size:var(--kt-fs-sm);color:' + (isD ? 'var(--kt-drink)' : 'var(--kt-primary)') + '">' + (fp > 0 ? ktFmt(fp) + ' ت' : '-') + '</span>';
 
-        /* موجودی */
         var stockH = '';
         if (ik) {
             var st  = ktGetProductStock(kp);
@@ -1814,7 +1884,6 @@ function ktRenderMenuFoods() {
             stockH += '</div>';
         }
 
-        /* بنر تخفیف نوشیدنی */
         var discBanner = '';
         if (ik && isD) {
             var ad = DM.find(kp.id);
@@ -1824,7 +1893,6 @@ function ktRenderMenuFoods() {
             }
         }
 
-        /* دکمه‌ها */
         var actBtn = '';
         if (ik) {
             if (isD) {
@@ -1994,12 +2062,12 @@ async function ktShowProductCost(productId) {
     dBox.innerHTML = DM.renderDiscountTab(p);
     document.getElementById("cpTitle").innerHTML = '<i class="bi ' + titleIcon + '" style="color:' + accent + ';margin-left:6px"></i> ' + ktEscapeHtml(p.name);
 
-    /* ★ FIX: پاکسازی observer قبلی */
+    /* پاکسازی observer قبلی */
     if (_ktCostObserver) { _ktCostObserver.disconnect(); _ktCostObserver = null; }
     ktOpenModal("ktModalCostPrice");
     ktSwitchCpTab('cost');
 
-    /* ★ FIX: تعویض دکمه تخفیف با کلون — جلوگیری از چندبار event listener */
+    /* تعویض دکمه تخفیف با کلون — جلوگیری از چندبار event listener */
     var btnD = document.getElementById('btnSaveDiscount');
     if (btnD) {
         var nb = btnD.cloneNode(true);
@@ -2180,7 +2248,6 @@ function ktRenderWaste() {
     ktRenderTable('ktWasteBody', 9, 'bi-trash3', 'ضایعاتی ثبت نشده', filtered, function (w, i) {
         var rInfo = _ktWasteReasons[w.reason] || _ktWasteReasons['other'];
         var reasonBadge = '<span class="kt-waste-reason" style="background:' + rInfo.bg + ';color:' + rInfo.color + '"><i class="bi ' + rInfo.icon + '"></i> ' + rInfo.label + '</span>';
-        /* ★ FIX: محاسبه یکسان هزینه ضایعات */
         var costVal = w.total_cost || (w.cost && w.quantity ? w.cost * w.quantity : (w.cost || 0));
         var dt = w.created_at ? new Date(w.created_at) : null;
         var dateStr = dt ? dt.toLocaleDateString('fa-IR') : '—';
@@ -2267,9 +2334,11 @@ function ktDeleteWaste(id) {
    Init
    ════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', function () {
-    ktLoad().then(function () { knMarkInitDone(); });
-    loadKitchenOrders();
-    ktStartOrdersPolling();
+    ktLoad().then(function () {
+        knMarkInitDone();
+        loadKitchenOrders();
+        ktStartOrdersPolling();
+    });
 });
 </script>
 {% endblock %}

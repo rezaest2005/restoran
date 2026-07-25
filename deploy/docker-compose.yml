@@ -7,7 +7,7 @@
     container_name: django_app
     command: sh /app/entrypoint.sh
     volumes:
-      - ../backend:/app
+      - ../dashboard:/app                    # ★ backend → dashboard
       - ./entrypoint.sh:/app/entrypoint.sh
     expose:
       - "8000"

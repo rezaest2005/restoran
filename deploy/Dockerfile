@@ -1,24 +1,24 @@
 ﻿# ═══════════════════════════════════════════════════════
-#  Stage 1: Build فرانت‌اند
+#  Stage 1: Build فرانت‌اند (menu)
 # ═══════════════════════════════════════════════════════
 FROM node:20-alpine AS frontend-build
 WORKDIR /app
-COPY frontend/package*.json ./
+COPY menu/package*.json ./
 RUN npm ci
-COPY frontend/ .
+COPY menu/ .
 RUN npm run build
 
 # ═══════════════════════════════════════════════════════
-#  Stage 2: بک‌اند Django
+#  Stage 2: بک‌اند Django (dashboard)
 # ═══════════════════════════════════════════════════════
 FROM python:3.12-slim AS backend
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 RUN apt-get update && apt-get install -y dos2unix && rm -rf /var/lib/apt/lists/*
-COPY backend/requirements.txt .
+COPY dashboard/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY backend/ .
+COPY dashboard/ .
 RUN python manage.py collectstatic --noinput 2>/dev/null || true
 COPY deploy/entrypoint.sh /app/entrypoint.sh
 RUN dos2unix /app/entrypoint.sh && chmod +x /app/entrypoint.sh
