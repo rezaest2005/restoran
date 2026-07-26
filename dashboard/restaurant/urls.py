@@ -155,6 +155,7 @@ urlpatterns = [
 
     # ★ صفحه ورود
     path("dashboard/",                              views.auth_page,                 name="auth_page"),
+    path("dashboard/auth/",                         views.redirect_to_dashboard,     name="auth_redirect"),  # ★ اضافه شد
     path("dashboard/app/",                          views.home,                      name="dashboard_app"),
     path("dashboard/logout/",                       views.logout_page,               name="logout_page"),
 
