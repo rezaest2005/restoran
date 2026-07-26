@@ -419,18 +419,20 @@
   // ═══════════════════════════════════════════════════════════
 
   /* ★ FIX: آدرس‌ها با ساختار جدید مطابقت دارد */
-  var ROUTES = {
-    owner:    '/dashboard/app/',
-    manager:  '/dashboard/app/',
-    cashier:  '/dashboard/pos/',
-    kitchen:  '/dashboard/kitchen/',
+  // بعد:
+var ROUTES = {
+    owner: '/dashboard/app/',
+    manager: '/dashboard/app/',
+    cashier: '/dashboard/pos/',
+    kitchen: '/dashboard/kitchen/',
     customer: '/dashboard/app/',
-  };
+};
 
-  function redirectFor(user) {
-    if (!user) return '/dashboard/';               /* ★ FIX: /auth/ → /dashboard/ */
-    return ROUTES[user.role] || '/dashboard/';     /* ★ FIX: fallback */
-  }
+function redirectFor(user) {
+    if (!user) return '/dashboard/';
+    if (user.is_superuser) return '/dashboard/super/';  
+    return ROUTES[user.role] || '/dashboard/';
+}
 
   function buildIdentity(id) {
     return /^09\d{9}$/.test(id) ? { phone_number: id } : { username: id };

@@ -2,6 +2,13 @@
 Restaurant Views Package — Re-export everything so urls.py stays unchanged.
 """
 
+# ── Super Admin API ──
+from .super_admin import (
+    super_stats_api, super_tenants_api,
+    super_tenant_detail_api, super_tenant_services_api,
+    super_services_list_api, super_users_api,
+)
+
 # ── ViewSets ──
 from .viewsets import (
     CategoryViewSet, FoodViewSet, TableViewSet, ReservationViewSet,
@@ -100,6 +107,7 @@ from .dictionary import (
 # ── Page Views (HTML) ──
 from .restaurant_page_views import (
     home, auth_page, logout_page,
+    super_admin_page,                                # ★ اینجا import می‌شود
     purchase_invoice_list, purchase_invoice_detail,
     create_purchase_invoice, create_invoice_view,
     raw_materials_view, semi_finished_view,
@@ -114,11 +122,11 @@ from .restaurant_page_views import (
     user_management_page, dictionary_page,
 )
 
-# ═══════════════════════════════════════════════════════════════════
-#  Public API — به Pylance میگه اینا عمومی‌ان و باید export بشن
-# ═══════════════════════════════════════════════════════════════════
-
 __all__ = [
+    # Super Admin
+    "super_admin_page", "super_stats_api", "super_tenants_api",
+    "super_tenant_detail_api", "super_tenant_services_api",
+    "super_services_list_api", "super_users_api",
     # ViewSets
     "CategoryViewSet", "FoodViewSet", "TableViewSet", "ReservationViewSet",
     "OrderViewSet", "SemiFinishedViewSet", "ReadyMaterialViewSet",
@@ -182,6 +190,7 @@ __all__ = [
     "dictionary_create", "dictionary_update", "dictionary_delete",
     # Page Views
     "home", "auth_page", "logout_page",
+    "super_admin_page",
     "purchase_invoice_list", "purchase_invoice_detail",
     "create_purchase_invoice", "create_invoice_view",
     "raw_materials_view", "semi_finished_view",

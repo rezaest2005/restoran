@@ -1420,3 +1420,67 @@ class ItemDictionary(TenantModel):
 
     def __str__(self):
         return f'{self.name} ({self.get_category_display()})'
+# ═══════════════════════════════════════════
+#  پنل مدیریت کلان — مدل‌ها
+# ═══════════════════════════════════════════
+
+class Service(models.Model):
+    """سرویس‌های قابل فروش"""
+    code        = models.CharField(max_length=50, unique=True)
+    label       = models.CharField(max_length=100)
+    description = models.TextField(blank=True, default="")
+    icon        = models.CharField(max_length=10, blank=True, default="")
+    default_price = models.BigIntegerField(default=0, help_text="قیمت پیش‌فرض ماهانه (تومان)")
+    is_active   = models.BooleanField(default=True)
+    order       = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f"{self.icon} {self.label}"
+
+
+class Tenant(models.Model):
+    """رستوران / مشتری"""
+    name      = models.CharField(max_length=200, verbose_name="نام رستوران")
+    owner     = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name='owned_tenants', verbose_name="مالک"
+    )
+    phone     = models.CharField(max_length=20, blank=True, default="")
+    address   = models.TextField(blank=True, default="")
+    is_active = models.BooleanField(default=True, verbose_name="فعال")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def active_services_count(self):
+        return self.services.filter(is_enabled=True).count()
+
+    @property
+    def monthly_revenue(self):
+        return sum(ts.price for ts in self.services.filter(is_enabled=True))
+
+
+class TenantService(models.Model):
+    """سرویس‌های فعال هر مشتری + قیمت سفارشی"""
+    tenant       = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='services')
+    service      = models.ForeignKey(Service, on_delete=models.CASCADE, related_name='tenant_services')
+    is_enabled   = models.BooleanField(default=False)
+    price        = models.BigIntegerField(default=0, help_text="قیمت ماهانه (تومان)")
+    activated_at = models.DateTimeField(null=True, blank=True)
+    expires_at   = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ('tenant', 'service')
+        ordering = ['service__order']
+
+    def __str__(self):
+        status = "✅" if self.is_enabled else "❌"
+        return f"{self.tenant.name} — {self.service.label} {status}"

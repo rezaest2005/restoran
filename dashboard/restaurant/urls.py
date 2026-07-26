@@ -150,15 +150,24 @@ urlpatterns = [
     path("api/", include(router.urls)),
 
     # ══════════════════════════════════════════════════════════════
-    #  Pages (HTML) — همه از views (restaurant_page_views.py)
+    #  Pages (HTML)
     # ══════════════════════════════════════════════════════════════
 
-    # ★ صفحه ورود — اولین صفحه‌ای که کاربر می‌بیند
+    # ★ صفحه ورود
     path("dashboard/",                              views.auth_page,                 name="auth_page"),
-
     path("dashboard/app/",                          views.home,                      name="dashboard_app"),
-
     path("dashboard/logout/",                       views.logout_page,               name="logout_page"),
+
+    # ★ پنل مدیریت کلان (فقط superuser)
+    path("dashboard/super/",                        views.super_admin_page,          name="super_admin"),
+    path("api/super/stats/",                        views.super_stats_api,           name="super_stats_api"),
+    path("api/super/tenants/",                      views.super_tenants_api,         name="super_tenants_api"),
+    path("api/super/tenants/<int:pk>/",             views.super_tenant_detail_api,   name="super_tenant_detail_api"),
+    path("api/super/tenants/<int:pk>/services/",    views.super_tenant_services_api, name="super_tenant_services_api"),
+    path("api/super/services/",                     views.super_services_list_api,   name="super_services_list_api"),
+    path("api/super/users/",                        views.super_users_api,           name="super_users_api"),
+
+    # ★ سایر صفحات
     path("dashboard/invoices/",                     views.purchase_invoice_list,     name="invoice_list"),
     path("dashboard/invoices/create/",              views.create_purchase_invoice,   name="create_invoice"),
     path("dashboard/invoices/create/view/",         views.create_invoice_view,       name="create_invoice_view"),
