@@ -305,6 +305,7 @@
 <script>
   var urlParams = new URLSearchParams(window.location.search);
   var nextUrl = urlParams.get('next');
+  var isSuperLogin = nextUrl && nextUrl.includes('/super');
 
   var API_BASE = '/api/auth';
 
@@ -337,9 +338,7 @@
         var res = await fetch(url, { credentials: 'same-origin' });
         if (!res.ok) return null;
         return await res.json();
-      } catch (e) {
-        return null;
-      }
+      } catch (e) { return null; }
     },
   };
 
@@ -357,24 +356,15 @@
   function $(id) { return document.getElementById(id); }
 
   function render(s) {
-    var errBox  = $('msg-error');
-    var okBox   = $('msg-success');
-    var pendBox = $('msg-pending');
+    var errBox = $('msg-error'), okBox = $('msg-success'), pendBox = $('msg-pending');
     if (errBox)  errBox.classList.remove('show');
     if (okBox)   okBox.classList.remove('show');
     if (pendBox) pendBox.classList.remove('show');
 
     if (s.message) {
-      if (s.status === 'error' && errBox) {
-        $('msg-error-text').textContent = s.message;
-        errBox.classList.add('show');
-      } else if (s.status === 'success' && okBox) {
-        $('msg-success-text').textContent = s.message;
-        okBox.classList.add('show');
-      } else if (s.status === 'pending' && pendBox) {
-        $('msg-pending-text').textContent = s.message;
-        pendBox.classList.add('show');
-      }
+      if (s.status === 'error' && errBox)   { $('msg-error-text').textContent = s.message; errBox.classList.add('show'); }
+      if (s.status === 'success' && okBox)   { $('msg-success-text').textContent = s.message; okBox.classList.add('show'); }
+      if (s.status === 'pending' && pendBox) { $('msg-pending-text').textContent = s.message; pendBox.classList.add('show'); }
     }
 
     document.querySelectorAll('.btn-primary').forEach(function(btn) {
@@ -382,36 +372,35 @@
       if (s.status === 'loading') btn.classList.add('loading');
       else btn.classList.remove('loading');
     });
-
-    var ft = $('form-title');
-    var fs = $('form-subtitle');
-    var isLogin = s.tab === 'login';
-    if (ft) ft.textContent = isLogin ? 'خوش آمدید' : 'ایجاد حساب جدید';
-    if (fs) fs.textContent = isLogin ? 'برای ادامه وارد حساب خود شوید' : 'ثبت‌نام کنید و از امکانات استفاده کنید';
   }
 
-  if (nextUrl && nextUrl.includes('/super')) {
+  // ★ عنوان بر اساس next
+  if (isSuperLogin) {
     document.addEventListener('DOMContentLoaded', function() {
-      var ft = $('form-title');
-      var fs = $('form-subtitle');
+      var ft = $('form-title'), fs = $('form-subtitle');
       if (ft) ft.textContent = 'ورود مدیر کل';
       if (fs) fs.textContent = 'پنل مدیریت کلان سیستم';
       document.title = 'ورود مدیر کل';
     });
   }
 
+  // ★ بررسی لاگین قبلی (فقط برای همان بخش)
   document.addEventListener('DOMContentLoaded', function() {
-    api.get(API_BASE + '/me/').then(function(user) {
-      if (user && user.username) {
-        if (nextUrl && user.is_superuser) {
+    if (isSuperLogin) {
+      // بررسی super cookie
+      api.get('/api/super/stats/').then(function(data) {
+        if (data && data.total_tenants !== undefined) {
           window.location.href = nextUrl;
-        } else if (nextUrl && !user.is_superuser) {
-          window.location.href = '/dashboard/app/';
-        } else {
+        }
+      }).catch(function() {});
+    } else {
+      // بررسی session عادی
+      api.get(API_BASE + '/me/').then(function(user) {
+        if (user && user.username) {
           window.location.href = redirectFor(user);
         }
-      }
-    }).catch(function() {});
+      }).catch(function() {});
+    }
   });
 
   var ROUTES = {
@@ -424,33 +413,12 @@
 
   function redirectFor(user) {
     if (!user) return '/dashboard/';
-    if (nextUrl) {
-      if (user.is_superuser) return nextUrl;
-      return '/dashboard/app/';
-    }
     if (user.is_superuser) return '/dashboard/super/';
     return ROUTES[user.role] || '/dashboard/';
   }
 
   function buildIdentity(id) {
     return /^09\d{9}$/.test(id) ? { phone_number: id } : { username: id };
-  }
-
-  async function persistSession(access, refresh, user) {
-    localStorage.setItem('access_token', access);
-    localStorage.setItem('refresh_token', refresh);
-    localStorage.setItem('user', JSON.stringify(user));
-    try {
-      await api.post(API_BASE + '/set-session/', {
-        access_token: access,
-        user_id: user.id,
-      });
-    } catch (e) {}
-  }
-
-  function switchTab(tab) {
-    store.set({ tab: tab, status: 'idle', message: '' });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function togglePass(inputId, btn) {
@@ -460,6 +428,7 @@
     btn.innerHTML = show ? '&#128064;' : '&#128065;';
   }
 
+  // ★ ورود
   async function handleLogin(e) {
     if (e && e.preventDefault) e.preventDefault();
     store.set({ status: 'loading', message: '' });
@@ -473,40 +442,49 @@
       return;
     }
 
-    var result = await api.post(API_BASE + '/login/', Object.assign(
-      buildIdentity(username),
-      { password: password }
-    ));
+    var credentials = Object.assign(buildIdentity(username), { password: password });
 
-    if (result.networkError) {
-      store.set({ status: 'error', message: 'خطا در اتصال به سرور.' });
-      return;
+    if (isSuperLogin) {
+      // ★ ورود مدیر کل — cookie جداگانه
+      var result = await api.post('/api/super/login/', credentials);
+      if (result.networkError) {
+        store.set({ status: 'error', message: 'خطا در اتصال به سرور.' });
+        return;
+      }
+      if (result.ok && result.data.ok) {
+        store.set({ status: 'success', message: 'ورود موفق! در حال انتقال...' });
+        setTimeout(function() { window.location.href = nextUrl; }, 500);
+      } else {
+        store.set({ status: 'error', message: result.data.error || 'خطا در ورود.' });
+      }
+    } else {
+      // ★ ورود عادی — Django session
+      var result = await api.post(API_BASE + '/login/', credentials);
+      if (result.networkError) {
+        store.set({ status: 'error', message: 'خطا در اتصال به سرور.' });
+        return;
+      }
+      var data = result.data;
+      if (data.pending) {
+        store.set({ status: 'pending', message: data.error || 'حساب شما هنوز تأیید نشده.' });
+        return;
+      }
+      if (!result.ok || !data.access) {
+        store.set({ status: 'error', message: data.error || 'خطا در ورود.' });
+        return;
+      }
+      // ذخیره session
+      localStorage.setItem('access_token', data.access);
+      localStorage.setItem('refresh_token', data.refresh);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      try { await api.post(API_BASE + '/set-session/', { access_token: data.access, user_id: data.user.id }); } catch(e) {}
+
+      store.set({ status: 'success', message: 'ورود موفق! در حال انتقال...' });
+      setTimeout(function() { window.location.href = redirectFor(data.user); }, 500);
     }
-
-    var data = result.data;
-
-    if (data.pending || (data.data && data.data.pending)) {
-      store.set({ status: 'pending', message: data.error || data.message || 'حساب شما هنوز توسط مدیر تأیید نشده.' });
-      return;
-    }
-
-    if (!result.ok || !data.access) {
-      store.set({ status: 'error', message: data.error || data.detail || 'خطا در ورود. دوباره تلاش کنید.' });
-      return;
-    }
-
-    var redirectUrl = redirectFor(data.user);
-    store.set({ status: 'success', message: 'ورود موفقیت‌آمیز! در حال انتقال...' });
-    await persistSession(data.access, data.refresh, data.user);
-
-    setTimeout(function() {
-      window.location.href = redirectUrl;
-    }, 500);
   }
 
-  document.addEventListener('DOMContentLoaded', function() {
-    render(store.get());
-  });
+  document.addEventListener('DOMContentLoaded', function() { render(store.get()); });
 </script>
 
 </body>
