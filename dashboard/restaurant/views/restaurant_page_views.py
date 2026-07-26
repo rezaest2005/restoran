@@ -22,7 +22,6 @@ from .helpers import (
     _build_foods_with_discounts, _merge_warehouse_data,
     _build_invoice_from_post, _attach_invoice_items,
 )
-# ★ اضافه شد
 from .super_admin import superuser_required
 
 logger = logging.getLogger(__name__)
@@ -43,6 +42,10 @@ def auth_page(request: HttpRequest):
     if request.user.is_authenticated:
         return redirect("dashboard_app")
     return render(request, "auth.html")
+
+
+def redirect_to_dashboard(request):                          # ★ اضافه شد
+    return redirect("auth_page")
 
 
 @login_required(login_url=LOGIN_URL)

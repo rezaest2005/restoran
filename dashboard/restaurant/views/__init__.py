@@ -107,7 +107,8 @@ from .dictionary import (
 # ── Page Views (HTML) ──
 from .restaurant_page_views import (
     home, auth_page, logout_page,
-    super_admin_page,                                # ★ اینجا import می‌شود
+    redirect_to_dashboard,                               # ★ اضافه شد
+    super_admin_page,
     purchase_invoice_list, purchase_invoice_detail,
     create_purchase_invoice, create_invoice_view,
     raw_materials_view, semi_finished_view,
@@ -190,6 +191,7 @@ __all__ = [
     "dictionary_create", "dictionary_update", "dictionary_delete",
     # Page Views
     "home", "auth_page", "logout_page",
+    "redirect_to_dashboard",                             # ★ اضافه شد
     "super_admin_page",
     "purchase_invoice_list", "purchase_invoice_detail",
     "create_purchase_invoice", "create_invoice_view",
