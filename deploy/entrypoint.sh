@@ -7,26 +7,39 @@ echo "Running migrations..."
 python manage.py migrate --no-input
 python manage.py collectstatic --noinput 2>/dev/null
 
-echo "Creating superuser..."
+echo "Creating default users..."
 python manage.py shell <<'EOF'
 from django.contrib.auth import get_user_model
-import os
 User = get_user_model()
-u = os.environ.get("DJANGO_SUPERUSER_USERNAME", "admin")
-p = os.environ.get("DJANGO_SUPERUSER_PASSWORD", "admin")
-if not User.objects.filter(username=u).exists():
-    obj = User.objects.create_superuser(username=u, password=p)
-    obj.is_approved = True
-    obj.save()
-    print(f"Superuser {u} created")
-else:
-    obj = User.objects.get(username=u)
-    obj.is_approved = True
+
+if not User.objects.filter(username='admin').exists():
+    obj = User.objects.create_user(username='admin', password='admin', role='owner', first_name='Manager')
     obj.is_staff = True
-    obj.is_superuser = True
-    obj.set_password(p)
+    obj.is_approved = True
+    obj.is_superuser = False
     obj.save()
-    print(f"Superuser {u} updated")
+    print("admin created (regular user)")
+else:
+    obj = User.objects.get(username='admin')
+    obj.is_staff = True
+    obj.is_approved = True
+    obj.is_superuser = False
+    obj.set_password('admin')
+    obj.save()
+    print("admin updated (regular user)")
+
+su_user = 'reza1383' + chr(36)
+if not User.objects.filter(username=su_user).exists():
+    obj = User.objects.create_superuser(username=su_user, password=su_user, first_name='SuperAdmin')
+    obj.is_approved = True
+    obj.save()
+    print(f"{su_user} created (superuser)")
+else:
+    obj = User.objects.get(username=su_user)
+    obj.is_superuser = True
+    obj.is_staff = True
+    obj.save()
+    print(f"{su_user} exists (superuser)")
 EOF
 
 echo "Starting server..."
