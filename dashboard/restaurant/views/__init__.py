@@ -4,6 +4,7 @@ Restaurant Views Package — Re-export everything so urls.py stays unchanged.
 
 # ── Super Admin API ──
 from .super_admin import (
+    super_admin_login_api, super_admin_logout_api,
     super_stats_api, super_tenants_api,
     super_tenant_detail_api, super_tenant_services_api,
     super_services_list_api, super_users_api,
@@ -107,7 +108,7 @@ from .dictionary import (
 # ── Page Views (HTML) ──
 from .restaurant_page_views import (
     home, auth_page, logout_page,
-    redirect_to_dashboard,                               # ★ اضافه شد
+    redirect_to_dashboard,
     super_admin_page,
     purchase_invoice_list, purchase_invoice_detail,
     create_purchase_invoice, create_invoice_view,
@@ -125,6 +126,7 @@ from .restaurant_page_views import (
 
 __all__ = [
     # Super Admin
+    "super_admin_login_api", "super_admin_logout_api",
     "super_admin_page", "super_stats_api", "super_tenants_api",
     "super_tenant_detail_api", "super_tenant_services_api",
     "super_services_list_api", "super_users_api",
@@ -191,7 +193,7 @@ __all__ = [
     "dictionary_create", "dictionary_update", "dictionary_delete",
     # Page Views
     "home", "auth_page", "logout_page",
-    "redirect_to_dashboard",                             # ★ اضافه شد
+    "redirect_to_dashboard",
     "super_admin_page",
     "purchase_invoice_list", "purchase_invoice_detail",
     "create_purchase_invoice", "create_invoice_view",

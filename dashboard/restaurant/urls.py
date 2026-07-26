@@ -155,11 +155,13 @@ urlpatterns = [
 
     # ★ صفحه ورود
     path("dashboard/",                              views.auth_page,                 name="auth_page"),
-    path("dashboard/auth/",                         views.redirect_to_dashboard,     name="auth_redirect"),  # ★ اضافه شد
+    path("dashboard/auth/",                         views.redirect_to_dashboard,     name="auth_redirect"),
     path("dashboard/app/",                          views.home,                      name="dashboard_app"),
     path("dashboard/logout/",                       views.logout_page,               name="logout_page"),
 
     # ★ پنل مدیریت کلان (فقط superuser)
+    path("api/super/login/",                        views.super_admin_login_api,     name="super_admin_login_api"),
+    path("api/super/logout/",                       views.super_admin_logout_api,    name="super_admin_logout_api"),
     path("dashboard/super/",                        views.super_admin_page,          name="super_admin"),
     path("api/super/stats/",                        views.super_stats_api,           name="super_stats_api"),
     path("api/super/tenants/",                      views.super_tenants_api,         name="super_tenants_api"),

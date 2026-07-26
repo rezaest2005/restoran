@@ -1,28 +1,104 @@
 """
-پنل مدیریت کلان — ویوها (فقط API)
+پنل مدیریت کلان — ویوها
+session جداگانه با cookie مستقل
 """
 import json
 from functools import wraps
+
+from django.contrib.auth import authenticate
+from django.core import signing
 from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.http import require_http_methods
 
 from ..models import Service, Tenant, TenantService, User
 
-LOGIN_URL = '/dashboard/'
+SUPER_TOKEN_SALT = 'super-admin-panel-v1'
+SUPER_TOKEN_COOKIE = 'super_session'
+
+
+# ═══════════════════════════════════════════
+#  احراز هویت جداگانه — cookie مستقل
+# ═══════════════════════════════════════════
+
+def _get_super_user(request):
+    """خواندن کاربر از cookie سوپر ادمین"""
+    token = request.COOKIES.get(SUPER_TOKEN_COOKIE)
+    if not token:
+        return None
+    try:
+        data = signing.loads(token, salt=SUPER_TOKEN_SALT, max_age=86400 * 7)
+        return User.objects.get(id=data['uid'], is_superuser=True, is_active=True)
+    except Exception:
+        return None
 
 
 def superuser_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            return redirect('/dashboard/?next=/dashboard/super/')   # ★ تغییر
-        if not request.user.is_superuser:
-            return redirect('dashboard_app')
+        user = _get_super_user(request)
+        if not user:
+            if request.path.startswith('/api/'):
+                return JsonResponse({'error': 'unauthorized'}, status=401)
+            return redirect('/dashboard/?next=/dashboard/super/')
+        request.user = user
         return view_func(request, *args, **kwargs)
     return wrapper
+
+
+# ═══════════════════════════════════════════
+#  API: ورود / خروج مدیر کل
+# ═══════════════════════════════════════════
+
+@csrf_protect
+def super_admin_login_api(request):
+    """ورود مدیر کل — cookie جداگانه"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, TypeError):
+        body = request.POST
+
+    username = (body.get('username') or '').strip()
+    password = body.get('password') or ''
+
+    if not username or not password:
+        return JsonResponse({'error': 'نام کاربری و رمز عبور الزامی است'}, status=400)
+
+    user = authenticate(request, username=username, password=password)
+
+    if user is None:
+        return JsonResponse({'error': 'نام کاربری یا رمز عبور اشتباه است'}, status=401)
+
+    if not user.is_superuser:
+        return JsonResponse({'error': 'شما مجوز دسترسی به این بخش را ندارید'}, status=403)
+
+    token = signing.dumps({'uid': user.id}, salt=SUPER_TOKEN_SALT)
+    response = JsonResponse({
+        'ok': True,
+        'user': {
+            'id': user.id,
+            'username': user.username,
+            'is_superuser': True,
+        }
+    })
+    response.set_cookie(
+        SUPER_TOKEN_COOKIE, token,
+        max_age=86400 * 7,
+        httponly=True,
+        samesite='Lax',
+    )
+    return response
+
+
+def super_admin_logout_api(request):
+    """خروج مدیر کل"""
+    response = JsonResponse({'ok': True})
+    response.delete_cookie(SUPER_TOKEN_COOKIE)
+    return response
 
 
 # ═══════════════════════════════════════════
@@ -52,7 +128,7 @@ def super_stats_api(request):
 
 
 # ═══════════════════════════════════════════
-#  API: لیست سرویس‌ها (همه)
+#  API: لیست سرویس‌ها
 # ═══════════════════════════════════════════
 
 @superuser_required
@@ -227,7 +303,7 @@ def super_tenant_services_api(request, pk):
 
 
 # ═══════════════════════════════════════════
-#  API: لیست کاربران (برای انتخاب مالک)
+#  API: لیست کاربران
 # ═══════════════════════════════════════════
 
 @superuser_required
@@ -237,11 +313,10 @@ def super_users_api(request):
 
 
 # ═══════════════════════════════════════════
-#  API: بررسی سرویس‌های فعال کاربر
+#  بررسی سرویس‌های فعال
 # ═══════════════════════════════════════════
 
 def get_user_enabled_services(user):
-    """لیست کدهای سرویس‌های فعال کاربر — برای sidebar و منو"""
     if user.is_superuser:
         return list(Service.objects.filter(is_active=True).values_list('code', flat=True))
     tenant = Tenant.objects.filter(owner=user, is_active=True).first()
@@ -256,7 +331,7 @@ def get_user_enabled_services(user):
 
 
 # ═══════════════════════════════════════════
-#  تابع کمکی: اطمینان از وجود سرویس‌ها
+#  تابع کمکی
 # ═══════════════════════════════════════════
 
 DEFAULT_SERVICES = [
