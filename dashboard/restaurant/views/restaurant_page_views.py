@@ -22,10 +22,11 @@ from .helpers import (
     _build_foods_with_discounts, _merge_warehouse_data,
     _build_invoice_from_post, _attach_invoice_items,
 )
+# ★ اضافه شد
+from .super_admin import superuser_required
 
 logger = logging.getLogger(__name__)
 
-# ★ ثابت صفحه لاگین — همه جا از این استفاده می‌شود
 LOGIN_URL = '/dashboard/'
 
 
@@ -33,18 +34,18 @@ LOGIN_URL = '/dashboard/'
 #  عمومی — لاگین، خروج، داشبورد
 # ═══════════════════════════════════════════
 
-@login_required(login_url=LOGIN_URL)       # ★ اصلاح شد
+@login_required(login_url=LOGIN_URL)
 def home(request: HttpRequest):
     return render(request, "admin/index.html")
 
 
 def auth_page(request: HttpRequest):
     if request.user.is_authenticated:
-        return redirect("dashboard_app")   # ★ اصلاح شد: "home" → "dashboard_app"
+        return redirect("dashboard_app")
     return render(request, "auth.html")
 
 
-@login_required(login_url=LOGIN_URL)       # ★ اصلاح شد
+@login_required(login_url=LOGIN_URL)
 def logout_page(request: HttpRequest):
     from django.contrib.auth import logout
     logout(request)
@@ -55,20 +56,20 @@ def logout_page(request: HttpRequest):
 #  فاکتور خرید — لیست، جزئیات، ایجاد
 # ═══════════════════════════════════════════
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def purchase_invoice_list(request: HttpRequest):
     invoices = PurchaseInvoice.objects.all().order_by("-date")
     return render(request, "restaurant/invoice_list.html", {"invoices": invoices})
 
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def purchase_invoice_detail(request: HttpRequest, pk: int):
     invoice = get_object_or_404(PurchaseInvoice, pk=pk)
     return render(request, "restaurant/invoice_detail.html", {"invoice": invoice})
 
 
 @csrf_protect
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def create_purchase_invoice(request: HttpRequest):
     if request.method == "POST":
         try:
@@ -91,7 +92,7 @@ def create_purchase_invoice(request: HttpRequest):
     })
 
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def create_invoice_view(request: HttpRequest):
     categories = Category.objects.filter(is_active=True).order_by('order')
     categories_json = json_module.dumps(
@@ -107,7 +108,7 @@ def create_invoice_view(request: HttpRequest):
 #  انبار — مواد اولیه، نیم‌آماده، مصرف
 # ═══════════════════════════════════════════
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def raw_materials_view(request: HttpRequest):
     return render(request, "restaurant/raw_materials.html", {
         "materials": RawMaterial.objects.all().order_by("name"),
@@ -115,7 +116,7 @@ def raw_materials_view(request: HttpRequest):
     })
 
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def semi_finished_view(request: HttpRequest):
     semi_finished_list = SemiFinished.objects.prefetch_related("ingredients__raw_material").all()
     raw_materials = RawMaterial.objects.all()
@@ -130,7 +131,7 @@ def semi_finished_view(request: HttpRequest):
     })
 
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def usage_log_view(request: HttpRequest):
     semi_finished_list = SemiFinished.objects.prefetch_related(
         "ingredients__raw_material"
@@ -175,7 +176,7 @@ def usage_log_view(request: HttpRequest):
     })
 
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def ready_materials_page(request: HttpRequest):
     return render(request, 'restaurant/ready_materials.html', {
         'ready_materials': ReadyMaterial.objects.select_related('supplier', 'category').all(),
@@ -190,7 +191,7 @@ def ready_materials_page(request: HttpRequest):
 #  آشپزخانه — داشبورد تولید
 # ═══════════════════════════════════════════
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def kitchen_page(request: HttpRequest):
     from django.db.models import F
     recipes = list(Recipe.objects.values("id").annotate(name=F("food__name")))
@@ -236,7 +237,7 @@ def kitchen_page(request: HttpRequest):
 #  صندوق فروش — POS + رسید
 # ═══════════════════════════════════════════
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def pos_page(request: HttpRequest):
     foods_data, cats_data = _build_foods_with_discounts()
     existing_names = {c['name']: c['id'] for c in cats_data}
@@ -279,7 +280,7 @@ def pos_page(request: HttpRequest):
     })
 
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def pos_receipt(request: HttpRequest, pk: int):
     order = get_object_or_404(Order, pk=pk)
     items = []
@@ -312,7 +313,7 @@ def pos_receipt(request: HttpRequest, pk: int):
 #  مدیریت غذا و سفارشات
 # ═══════════════════════════════════════════
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def food_management_page(request: HttpRequest):
     foods_data, categories_data = _build_foods_with_discounts()
     return render(request, "restaurant/food_management.html", {
@@ -321,7 +322,7 @@ def food_management_page(request: HttpRequest):
     })
 
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def orders_dashboard(request):
     orders = Order.objects.prefetch_related('items__food').order_by('-created_at')
     pending = preparing = ready = 0
@@ -342,7 +343,7 @@ def orders_dashboard(request):
 #  رسپی — مدیریت دستورات
 # ═══════════════════════════════════════════
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def recipe_manager_page(request):
     return render(request, 'recipes/recipe_manager.html')
 
@@ -351,40 +352,40 @@ def recipe_manager_page(request):
 #  باشگاه مشتریان — داشبورد و صفحات
 # ═══════════════════════════════════════════
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def loyalty_dashboard_page(request: HttpRequest):
     from ..services import get_loyalty_dashboard
     return render(request, "loyalty/dashboard.html", {"stats": get_loyalty_dashboard()})
 
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def loyalty_customers_page(request: HttpRequest):
     return render(request, "loyalty/customers.html")
 
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def loyalty_customer_detail_page(request: HttpRequest, pk: int):
     return render(request, "loyalty/customer_detail.html")
 
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def loyalty_coupons_page(request: HttpRequest):
     return render(request, "loyalty/coupons.html")
 
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def loyalty_rewards_page(request: HttpRequest):
     return render(request, "loyalty/rewards.html")
 
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def loyalty_notifications_page(request: HttpRequest):
     return render(request, "loyalty/notifications.html", {
         "unread_notifications": LoyaltyNotification.objects.filter(is_read=False).count(),
     })
 
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def loyalty_register_page(request: HttpRequest):
     return render(request, "loyalty/register.html")
 
@@ -393,7 +394,7 @@ def loyalty_register_page(request: HttpRequest):
 #  مدیریت کاربران — نقش‌ها و مجوزها
 # ═══════════════════════════════════════════
 
-@staff_member_required(login_url=LOGIN_URL)  # ★ اصلاح شد
+@staff_member_required(login_url=LOGIN_URL)
 def user_management_page(request: HttpRequest):
     roles = [
         {"value": "owner", "label": "مالک", "permissions": [
@@ -436,6 +437,15 @@ def user_management_page(request: HttpRequest):
 #  دیکشنری — مدیریت اسامی
 # ═══════════════════════════════════════════
 
-@login_required(login_url=LOGIN_URL)         
+@login_required(login_url=LOGIN_URL)
 def dictionary_page(request):
     return render(request, 'restaurant/dictionary.html')
+
+
+# ═══════════════════════════════════════════
+#  ★ پنل مدیریت کلان — صفحه HTML
+# ═══════════════════════════════════════════
+
+@superuser_required
+def super_admin_page(request):
+    return render(request, "restaurant/super_admin.html")
