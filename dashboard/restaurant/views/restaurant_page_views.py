@@ -4,11 +4,13 @@ Restaurant Management — Page Views
 """
 import json as json_module
 import logging
+from decimal import Decimal
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.csrf import csrf_protect
@@ -44,7 +46,7 @@ def auth_page(request: HttpRequest):
     return render(request, "auth.html")
 
 
-def redirect_to_dashboard(request):                          # ★ اضافه شد
+def redirect_to_dashboard(request):
     return redirect("auth_page")
 
 
@@ -71,40 +73,90 @@ def purchase_invoice_detail(request: HttpRequest, pk: int):
     return render(request, "restaurant/invoice_detail.html", {"invoice": invoice})
 
 
-@csrf_protect
-@staff_member_required(login_url=LOGIN_URL)
-def create_purchase_invoice(request: HttpRequest):
-    if request.method == "POST":
-        try:
-            invoice = _build_invoice_from_post(request)
-            created = _attach_invoice_items(invoice, request.POST)
-            messages.success(request, f"فاکتور خرید با {created} قلم کالا ثبت شد.")
-            return redirect("/admin/restaurant/purchaseinvoice/")
-        except ValueError as exc:
-            messages.error(request, str(exc))
-        except Exception as exc:
-            logger.exception("Error creating purchase invoice")
-            messages.error(request, f"خطا در ثبت فاکتور: {exc}")
-    categories = Category.objects.filter(is_active=True).order_by('order')
-    categories_json = json_module.dumps(
-        [{'id': c.id, 'name': c.name} for c in categories], ensure_ascii=False
-    )
-    return render(request, "restaurant/create_invoice.html", {
-        "unit_choices": RawMaterial.UNIT_CHOICES,
-        "categories_json": categories_json,
-    })
-
-
 @staff_member_required(login_url=LOGIN_URL)
 def create_invoice_view(request: HttpRequest):
-    categories = Category.objects.filter(is_active=True).order_by('order')
-    categories_json = json_module.dumps(
-        [{'id': c.id, 'name': c.name} for c in categories], ensure_ascii=False
-    )
-    return render(request, "restaurant/create_invoice.html", {
-        "unit_choices": RawMaterial.UNIT_CHOICES,
-        "categories_json": categories_json,
-    })
+    """صفحه ثبت فاکتور — فقط نمایش HTML"""
+    return render(request, "restaurant/create_invoice.html")
+
+
+@staff_member_required(login_url=LOGIN_URL)
+@csrf_protect
+def create_purchase_invoice(request: HttpRequest):
+    """ثبت فاکتور خرید — GET: نمایش صفحه | POST: افزودن به انبار"""
+
+    if request.method == 'POST':
+        try:
+            supplier_name = request.POST.get('supplier_name', '').strip()
+            invoice_number = request.POST.get('invoice_number', '').strip()
+            description = request.POST.get('description', '').strip()
+
+            item_names  = request.POST.getlist('item_name')
+            quantities  = request.POST.getlist('quantity')
+            unit_prices = request.POST.getlist('unit_price')
+            units       = request.POST.getlist('unit')
+
+            if not item_names:
+                messages.error(request, 'هیچ کالایی وارد نشده.')
+                return redirect('create_invoice')
+
+            if supplier_name:
+                Supplier.objects.get_or_create(
+                    name__iexact=supplier_name,
+                    defaults={'name': supplier_name}
+                )
+
+            added = []
+
+            with transaction.atomic():
+                for i in range(len(item_names)):
+                    name = item_names[i].strip()
+                    if not name:
+                        continue
+
+                    raw_qty   = quantities[i].replace(',', '') if i < len(quantities) else '0'
+                    raw_price = unit_prices[i].replace(',', '') if i < len(unit_prices) else '0'
+                    qty   = Decimal(raw_qty or '0')
+                    price = int(float(raw_price or 0))
+                    unit  = units[i] if i < len(units) else 'unit'
+
+                    if qty <= 0:
+                        continue
+
+                    mat = RawMaterial.objects.filter(name__iexact=name).first()
+                    if mat:
+                        mat.quantity += qty
+                        mat.price = price
+                        mat.save()
+                    else:
+                        mat = RawMaterial.objects.create(
+                            name=name, label='', price=price,
+                            unit=unit, quantity=qty,
+                        )
+
+                    added.append(f'{name} ({qty})')
+
+                    InventoryUsageLog.objects.create(
+                        raw_material=mat,
+                        usage_type='purchase',
+                        quantity_used=float(qty),
+                        reference=f'فاکتور خرید شماره {invoice_number or "—"}',
+                        note=f'تأمین‌کننده: {supplier_name or "—"} — {description or ""}',
+                    )
+
+            if added:
+                messages.success(request, f'فاکتور ثبت شد: {", ".join(added)}')
+            else:
+                messages.warning(request, 'کالای معتبری ثبت نشد.')
+
+            return redirect('create_invoice')
+
+        except Exception as exc:
+            logger.exception('Error creating invoice')
+            messages.error(request, f'خطا: {exc}')
+            return redirect('create_invoice')
+
+    # GET — نمایش صفحه
+    return render(request, "restaurant/create_invoice.html")
 
 
 # ═══════════════════════════════════════════
@@ -348,7 +400,14 @@ def orders_dashboard(request):
 
 @staff_member_required(login_url=LOGIN_URL)
 def recipe_manager_page(request):
-    return render(request, 'recipes/recipe_manager.html')
+    restaurant = None
+    if hasattr(request.user, 'restaurant'):
+        restaurant = request.user.restaurant
+    elif hasattr(request.user, 'profile') and hasattr(request.user.profile, 'restaurant'):
+        restaurant = request.user.profile.restaurant
+    return render(request, 'recipes/recipe_manager.html', {
+        'restaurant': restaurant,
+    })
 
 
 # ═══════════════════════════════════════════

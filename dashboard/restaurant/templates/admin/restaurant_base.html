@@ -218,7 +218,6 @@
       border-radius: 0 0 20px 20px;
     }
 
-    /* Crystal shimmer overlay */
     .topbar::before {
       content: '';
       position: absolute; inset: 0;
@@ -248,7 +247,6 @@
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 
-    /* ── Topbar Left (buttons) ── */
     .topbar-l {
       display: flex; align-items: flex-end; gap: 4px;
       flex-shrink: 0;
@@ -259,7 +257,6 @@
     }
     .topbar-l::-webkit-scrollbar { display: none; }
 
-    /* ── Topbar Button — Glass Style ── */
     .tb-btn {
       display: flex; flex-direction: column; align-items: center;
       justify-content: center; gap: 3px;
@@ -295,7 +292,6 @@
     }
     .tb-btn:hover .tb-btn-label { color: var(--brand); }
 
-    /* دکمه دیکشنری — Glass Accent */
     .tb-btn-dict i {
       background: rgba(255,107,53,0.08);
       border-color: rgba(255,107,53,0.4);
@@ -316,7 +312,6 @@
       align-self: center;
     }
 
-    /* ── Hamburger — Glass ── */
     .hamburger {
       display: flex; width: 40px; height: 40px; border-radius: 12px;
       border: 1.5px solid rgba(207,210,217,0.7);
@@ -342,7 +337,6 @@
 
     .content {}
 
-    /* Autocomplete dropdown */
     .ac-wrap { position: relative; }
     .ac-dropdown {
       position: absolute; top: 100%; right: 0; left: 0;
@@ -365,19 +359,11 @@
     }
     .ac-item-desc { font-size: 11px; color: var(--muted); margin-right: auto; }
 
-
-    /* ═══════════════════════════════════════════════════
-       RESPONSIVE — Tablet Landscape  (≤ 1100px)
-       ═══════════════════════════════════════════════════ */
     @media (max-width: 1100px) {
       .topbar { padding: 12px 20px; border-radius: 0 0 18px 18px; }
       .topbar-title { font-size: 17px; }
       .tb-btn-label { font-size: 9px; }
     }
-
-    /* ═══════════════════════════════════════════════════
-       RESPONSIVE — Tablet Portrait  (≤ 900px)
-       ═══════════════════════════════════════════════════ */
     @media (max-width: 900px) {
       .topbar { padding: 10px 16px; gap: 10px; border-radius: 0 0 16px 16px; }
       .topbar-r { gap: 10px; }
@@ -388,80 +374,44 @@
       .tb-btn-label { font-size: 9px; }
       .hamburger { border-radius: 10px; }
     }
-
-    /* ═══════════════════════════════════════════════════
-       RESPONSIVE — Small Tablet / Large Phone  (≤ 768px)
-       ═══════════════════════════════════════════════════ */
     @media (max-width: 768px) {
       .topbar { padding: 10px 14px; gap: 8px; border-radius: 0 0 14px 14px; }
       .topbar-r { gap: 8px; }
       .topbar-title { font-size: 15px; }
       .topbar-crumb { font-size: 10.5px; }
-
-      /* ✅ متن‌ها نمایش داده می‌شن ولی کوچکتر */
       .tb-btn-label { font-size: 8.5px; font-weight: 600; }
       .tb-btn { padding: 4px 6px; gap: 2px; border-radius: 9px; }
       .tb-btn i { width: 30px; height: 30px; font-size: 14px; border-radius: 8px; }
       .tb-sep { height: 20px; }
       .hamburger { width: 38px; height: 38px; font-size: 17px; border-radius: 10px; }
     }
-
-    /* ═══════════════════════════════════════════════════
-       RESPONSIVE — Mobile  (≤ 640px)
-       ═══════════════════════════════════════════════════ */
     @media (max-width: 640px) {
       .topbar { padding: 8px 10px; gap: 6px; border-radius: 0 0 12px 12px; }
       .topbar-r { gap: 6px; }
       .topbar-title { font-size: 14px; letter-spacing: 0; }
       .topbar-crumb { font-size: 9.5px; max-width: 120px; }
-
-      /* ✅ متن‌ها نمایش داده می‌شن */
       .tb-btn-label { font-size: 8px; font-weight: 600; }
       .tb-btn { padding: 3px 5px; gap: 1px; border-radius: 8px; }
-      .tb-btn i {
-        width: 28px; height: 28px; font-size: 12px;
-        border-radius: 7px; border-width: 1px;
-      }
+      .tb-btn i { width: 28px; height: 28px; font-size: 12px; border-radius: 7px; border-width: 1px; }
       .tb-sep { height: 18px; }
       .topbar-l { gap: 2px; }
-
-      .hamburger {
-        width: 36px; height: 36px; font-size: 16px;
-        border-radius: 9px; border-width: 1.5px;
-      }
-
-      /* sidebar brand compact */
+      .hamburger { width: 36px; height: 36px; font-size: 16px; border-radius: 9px; border-width: 1.5px; }
       .sidebar-brand { padding: 14px 12px 10px; gap: 10px; }
       .sb-icon { width: 38px; height: 38px; font-size: 17px; border-radius: 10px; }
       .sb-text { font-size: 14px; }
       .sb-sub { font-size: 9px; }
     }
-
-    /* ═══════════════════════════════════════════════════
-       RESPONSIVE — Small Phone  (≤ 480px)
-       ═══════════════════════════════════════════════════ */
     @media (max-width: 480px) {
       .topbar { padding: 7px 8px; gap: 4px; border-radius: 0 0 10px 10px; }
       .topbar-r { gap: 5px; }
       .topbar-title { font-size: 13px; }
       .topbar-crumb { font-size: 9px; max-width: 80px; }
-
-      /* ✅ متن‌ها نمایش ولی خیلی کوچک */
       .tb-btn-label { font-size: 7.5px; font-weight: 600; }
       .tb-btn { padding: 2px 4px; gap: 1px; border-radius: 7px; }
-      .tb-btn i {
-        width: 26px; height: 26px; font-size: 11px;
-        border-radius: 6px;
-      }
+      .tb-btn i { width: 26px; height: 26px; font-size: 11px; border-radius: 6px; }
       .topbar-l { gap: 1px; }
       .tb-sep { height: 16px; }
-
-      .hamburger {
-        width: 34px; height: 34px; font-size: 15px;
-        border-radius: 8px;
-      }
-
-      /* sidebar compact */
+      .hamburger { width: 34px; height: 34px; font-size: 15px; border-radius: 8px; }
       .sidebar-brand { padding: 12px 10px 8px; gap: 8px; }
       .sb-icon { width: 34px; height: 34px; font-size: 15px; border-radius: 8px; }
       .sb-text { font-size: 13px; }
@@ -475,37 +425,23 @@
       .nav-link .ni { width: 26px; height: 26px; font-size: 12px; border-radius: 7px; }
       .nav-group-label { padding: 10px 14px 4px; font-size: 9px; }
     }
-
-    /* ═══════════════════════════════════════════════════
-       RESPONSIVE — Tiny Phone  (≤ 360px)
-       ═══════════════════════════════════════════════════ */
     @media (max-width: 360px) {
       .topbar { padding: 6px 6px; gap: 3px; border-radius: 0 0 8px 8px; }
       .topbar-r { gap: 4px; }
       .topbar-title { font-size: 12px; }
       .topbar-crumb { display: none; }
-
-      /* ✅ متن‌ها فقط برای دیکشنری می‌مونه، بقیه مخفی */
       .topbar-l .tb-btn:not(.tb-btn-dict) .tb-btn-label { display: none; }
       .tb-btn-dict .tb-btn-label { display: block; font-size: 7px; }
-
       .tb-btn { padding: 2px; gap: 1px; border-radius: 6px; }
-      .tb-btn i {
-        width: 24px; height: 24px; font-size: 10px;
-        border-radius: 5px;
-      }
-      .hamburger {
-        width: 32px; height: 32px; font-size: 14px;
-        border-radius: 7px;
-      }
-
+      .tb-btn i { width: 24px; height: 24px; font-size: 10px; border-radius: 5px; }
+      .hamburger { width: 32px; height: 32px; font-size: 14px; border-radius: 7px; }
       .sb-icon { width: 30px; height: 30px; font-size: 13px; border-radius: 7px; }
       .sb-text { font-size: 12px; }
     }
   </style>
   {% block extra_css %}{% endblock %}
 </head>
-<body>
+<body data-restaurant-id="{{ restaurant.id|default:'' }}">
 
 <!-- ═══ SIDEBAR ═══ -->
 <aside class="sidebar" id="sidebar">
@@ -759,6 +695,41 @@
 var pD = '\u06F0\u06F1\u06F2\u06F3\u06F4\u06F5\u06F6\u06F7\u06F8\u06F9';
 function toP(n) { return String(n).replace(/\d/g, function(c){ return pD[c]; }); }
 function fmtN(v) { return toP(parseInt(v||0).toLocaleString('en')); }
+</script>
+
+<!-- ★★★ NEW: RESTAURANT_ID GLOBAL ★★★ -->
+<script>
+/* ═══════════════ RESTAURANT ID ═══════════════
+   اولویت استخراج:
+   1. data-attribute روی <body>
+   2. Django context variable
+   3. hidden input
+   4. meta tag
+   ═══════════════════════════════════════════ */
+(function() {
+    var rid = null;
+
+    /* روش ۱: data-restaurant-id روی body */
+    var bodyAttr = document.body.getAttribute('data-restaurant-id');
+    if (bodyAttr && bodyAttr !== '' && bodyAttr !== 'None' && bodyAttr !== 'null') {
+        rid = parseInt(bodyAttr);
+    }
+
+    /* روش ۲: hidden input */
+    if (!rid) {
+        var hidden = document.querySelector('input[name="restaurant_id"], input#restaurantId');
+        if (hidden && hidden.value) rid = parseInt(hidden.value);
+    }
+
+    /* روش ۳: meta tag */
+    if (!rid) {
+        var meta = document.querySelector('meta[name="restaurant-id"]');
+        if (meta && meta.content) rid = parseInt(meta.content);
+    }
+
+    window.RESTAURANT_ID = rid || null;
+    console.log('[Base] RESTAURANT_ID =', window.RESTAURANT_ID);
+})();
 </script>
 
 <script>

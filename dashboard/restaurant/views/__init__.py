@@ -103,6 +103,8 @@ from .recipe import (
 from .dictionary import (
     dictionary_list, dictionary_autocomplete,
     dictionary_create, dictionary_update, dictionary_delete,
+    dictionary_raw_materials, dictionary_semi_finished,
+    dictionary_ready_materials, dictionary_food_menu,
 )
 
 # ── Page Views (HTML) ──
@@ -191,6 +193,8 @@ __all__ = [
     # Dictionary
     "dictionary_list", "dictionary_autocomplete",
     "dictionary_create", "dictionary_update", "dictionary_delete",
+    "dictionary_raw_materials", "dictionary_semi_finished",
+    "dictionary_ready_materials", "dictionary_food_menu",
     # Page Views
     "home", "auth_page", "logout_page",
     "redirect_to_dashboard",

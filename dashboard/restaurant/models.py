@@ -210,8 +210,8 @@ class Food(TenantModel):
     category     = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="foods", db_index=True)
     name         = name_field(verbose_name='نام غذا')
     image        = models.ImageField(upload_to="foods/", blank=True)
-    price        = price_field(max_digits=10, verbose_name='قیمت', default=0)           # ← FIX
-    final_price  = price_field(max_digits=10, verbose_name='قیمت نهایی', default=0)     # ← FIX
+    price        = price_field(max_digits=10, verbose_name='قیمت', default=0)
+    final_price  = price_field(max_digits=10, verbose_name='قیمت نهایی', default=0)
     is_available = is_active_field(verbose_name='موجود')
     created_at   = created_at_field()
 
@@ -331,9 +331,9 @@ class RawMaterial(TenantModel):
     UNIT_CHOICES = UNIT_CHOICES
     name     = name_field(verbose_name='نام ماده اولیه')
     label    = models.CharField(max_length=200, blank=True, verbose_name="برچسب")
-    price    = price_field(default=0)              # ← FIX
+    price    = price_field(default=0)
     unit     = unit_field()
-    quantity = qty_field(default=0)                # ← FIX
+    quantity = qty_field(default=0)
 
     class Meta:
         ordering            = ["name"]
@@ -389,7 +389,7 @@ class SemiFinished(TenantModel):
     category          = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='other', verbose_name='دسته‌بندی')
     description       = description_field()
     unit              = unit_field()
-    quantity_produced = qty_field(decimal_places=2, verbose_name='مقدار تولید شده', default=0)  # ← FIX
+    quantity_produced = qty_field(decimal_places=2, verbose_name='مقدار تولید شده', default=0)
     profit_percentage = models.IntegerField(default=30, verbose_name='درصد سود پیشنهادی')
     foods             = models.ManyToManyField('Food', blank=True, verbose_name='غذاهای مرتبط')
     current_stock     = qty_field(decimal_places=2, default=0, verbose_name='موجودی فعلی')
@@ -435,7 +435,7 @@ class SemiFinished(TenantModel):
 class SemiFinishedIngredient(TenantModel):
     semi_finished = models.ForeignKey(SemiFinished, on_delete=models.CASCADE, related_name='ingredients')
     raw_material  = models.ForeignKey(RawMaterial, on_delete=models.CASCADE, verbose_name='ماده اولیه', db_index=True)
-    quantity      = qty_field(decimal_places=2, verbose_name='مقدار مصرفی', default=0)  # ← FIX
+    quantity      = qty_field(decimal_places=2, verbose_name='مقدار مصرفی', default=0)
 
     class Meta:
         verbose_name        = 'ماده اولیه مصرفی'
@@ -504,9 +504,9 @@ class PurchaseInvoice(TenantModel):
 class PurchaseInvoiceItem(TenantModel):
     invoice    = models.ForeignKey(PurchaseInvoice, on_delete=models.CASCADE, related_name="items", verbose_name="فاکتور", db_index=True)
     item_name  = models.CharField(max_length=200, verbose_name="نام کالا")
-    quantity   = qty_field(decimal_places=2, default=0)     # ← FIX
+    quantity   = qty_field(decimal_places=2, default=0)
     unit       = unit_field()
-    unit_price = price_field(default=0)                     # ← FIX
+    unit_price = price_field(default=0)
     category   = models.ForeignKey("Category", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="دسته‌بندی")
 
     class Meta:
@@ -521,13 +521,11 @@ class PurchaseInvoiceItem(TenantModel):
         return self.quantity * self.unit_price
 
 
-
-
 # ─── 7. READY MATERIALS ──────────────────
 
 
 class ReadyMaterial(TenantModel):
-    UNIT_CHOICES = UNIT_CHOICES              
+    UNIT_CHOICES = UNIT_CHOICES
     name                = name_field(verbose_name='نام ماده')
     description         = description_field()
     unit                = unit_field(default='unit')
@@ -563,6 +561,8 @@ class ReadyMaterial(TenantModel):
         if self.minimum_stock > 0 and self.quantity <= self.minimum_stock:
             return "low"
         return "ok"
+
+
 # ─── 8. LOYALTY SYSTEM ────────────────────
 
 
@@ -965,6 +965,7 @@ class Recipe(TenantModel):
 
     total_raw_material_cost  = price_field(max_digits=14, verbose_name='هزینه مواد اولیه', default=0)
     total_semi_finished_cost = price_field(max_digits=14, verbose_name='هزینه مواد نیم‌آماده', default=0)
+    total_packaging_cost     = price_field(max_digits=14, verbose_name='هزینه بسته‌بندی', default=0)  # ★ جدید
     total_cost               = price_field(max_digits=14, verbose_name='هزینه کل', default=0)
     cost_per_serving         = price_field(max_digits=14, verbose_name='هزینه هر سرو', default=0)
     suggested_price          = price_field(max_digits=14, verbose_name='قیمت پیشنهادی', default=0)
@@ -1037,6 +1038,35 @@ class RecipeSemiFinished(TenantModel):
     @property
     def total_cost(self):
         return Decimal(str(self.quantity)) * self.semi_finished.cost_per_unit
+
+
+# ★ مدل جدید — آیتم‌های بسته‌بندی رسپی
+class RecipePackagingItem(TenantModel):
+    recipe       = models.ForeignKey(
+        Recipe, on_delete=models.CASCADE,
+        related_name='packaging_items',
+        verbose_name='دستور پخت', db_index=True,
+    )
+    raw_material = models.ForeignKey(
+        RawMaterial, on_delete=models.CASCADE,
+        related_name='packaging_usages',
+        verbose_name='ماده بسته‌بندی',
+    )
+    quantity     = models.DecimalField('مقدار', max_digits=10, decimal_places=3)
+    unit         = unit_field(default='unit')
+    notes        = description_field(verbose_name='یادداشت')
+
+    class Meta:
+        verbose_name        = 'آیتم بسته‌بندی رسپی'
+        verbose_name_plural = 'آیتم‌های بسته‌بندی رسپی'
+        unique_together     = ['recipe', 'raw_material']
+
+    def __str__(self):
+        return f'{self.raw_material.name} — {self.quantity} {self.unit}'
+
+    @property
+    def total_cost(self):
+        return Decimal(str(self.quantity)) * self.raw_material.price
 
 
 # ─── 10. INVENTORY TRACKING ──────────────
@@ -1396,7 +1426,6 @@ class DayCloseLog(TenantModel):
 
 # ─── 13. ITEM DICTIONARY ──────────────────
 
-
 class ItemDictionary(TenantModel):
     CATEGORY_CHOICES = [
         ('raw_material',   'ماده اولیه'),
@@ -1405,12 +1434,13 @@ class ItemDictionary(TenantModel):
         ('final_product',  'محصول نهایی'),
     ]
 
-    name        = name_field(verbose_name='نام')
-    unit        = unit_field()
-    description = description_field()
-    category    = models.CharField(max_length=20, choices=CATEGORY_CHOICES, verbose_name='دسته‌بندی', db_index=True)
-    is_active   = is_active_field()
-    created_at  = created_at_field()
+    name           = name_field(verbose_name='نام')
+    unit           = unit_field()
+    description    = description_field()
+    category       = models.CharField(max_length=20, choices=CATEGORY_CHOICES, verbose_name='دسته‌بندی', db_index=True)
+    dict_category  = models.CharField(max_length=50, blank=True, default='', verbose_name='زیردسته‌بندی')
+    is_active      = is_active_field()
+    created_at     = created_at_field()
 
     class Meta:
         verbose_name        = 'دیکشنری آیتم'
@@ -1420,6 +1450,8 @@ class ItemDictionary(TenantModel):
 
     def __str__(self):
         return f'{self.name} ({self.get_category_display()})'
+
+
 # ═══════════════════════════════════════════
 #  پنل مدیریت کلان — مدل‌ها
 # ═══════════════════════════════════════════
