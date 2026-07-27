@@ -759,6 +759,7 @@ var SHAMSI_MONTHS = ['فروردین','اردیبهشت','خرداد','تیر','
 var SHAMSI_DOW = ['ش','ی','د','س','چ','پ','ج'];
 
 var tbody, tableWrap, emptySt, form, badge, sumCount, sumTotal, rowIdx = 0;
+var formConfirming = false; // ★ فلگ: اجازه سابمیت واقعی فرم
 
 /* ═══════════════════════════════════
    توابع کمکی
@@ -774,28 +775,42 @@ function bind(id,ev,fn) { var el=$(id); if(el) el.addEventListener(ev,fn); }
 function toast(msg,type) { type=type||'success'; var b=$('toast-box'); if(!b) return; var t=document.createElement('div'); t.className='toast toast-'+type; t.textContent=msg; b.appendChild(t); requestAnimationFrame(function(){t.classList.add('show');}); setTimeout(function(){t.classList.remove('show');setTimeout(function(){t.remove();},350);},3500); }
 function bus(s) { return UNIT_OPTIONS.map(function(u){return '<option value="'+u.value+'"'+(u.value===s?' selected':'')+'>'+u.label+'</option>';}).join(''); }
 function gul(v) { var u=UNIT_OPTIONS.find(function(o){return o.value===v;}); return u?u.label:v; }
+function gcl(v) {
+    if (!v) return '—';
+
+    for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
+        if (DEFAULT_CATEGORIES[i].value === v) return DEFAULT_CATEGORIES[i].label;
+    }
+
+    for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
+        if (DEFAULT_CATEGORIES[i].label === v) return DEFAULT_CATEGORIES[i].label;
+    }
+
+    for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
+        if (DEFAULT_CATEGORIES[i].label.indexOf(v) !== -1) return DEFAULT_CATEGORIES[i].label;
+        if (v.indexOf(DEFAULT_CATEGORIES[i].label) !== -1) return DEFAULT_CATEGORIES[i].label;
+    }
+
+    if (v.indexOf('cat_') === 0) return 'دسته‌بندی سفارشی';
+
+    return v;
+}
+function gcb(v) {
+    if (!v) return '#78716c';
+    for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
+        if (DEFAULT_CATEGORIES[i].value === v) return CAT_COLORS[v] || '#78716c';
+    }
+    for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
+        if (DEFAULT_CATEGORIES[i].label === v) return CAT_COLORS[DEFAULT_CATEGORIES[i].value] || '#78716c';
+    }
+    for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
+        if (DEFAULT_CATEGORIES[i].label.indexOf(v) !== -1 || v.indexOf(DEFAULT_CATEGORIES[i].label) !== -1) {
+            return CAT_COLORS[DEFAULT_CATEGORIES[i].value] || '#78716c';
+        }
+    }
+    return '#78716c';
+}
 function hfi(e,dec) { var i=e.target,cp=i.selectionStart,ov=i.value; var r=dec?ov.replace(/[^\d.]/g,''):ov.replace(/[^\d]/g,''); if(dec){var fi=r.indexOf('.');if(fi!==-1)r=r.substring(0,fi+1)+r.substring(fi+1).replace(/\./g,'');} if(!r){i.value='';i.dataset.rawValue='0';var tr=i.closest('tr');if(tr)calcRow(tr);return;} var f=ac(r);i.value=f;i.dataset.rawValue=r;var df=f.length-ov.length;i.setSelectionRange(Math.max(0,cp+df),Math.max(0,cp+df));var row=i.closest('tr');if(row)calcRow(row); }
-
-/* ═══════════════════════════════════
-   دسته‌بندی‌ها
-   ═══════════════════════════════════ */
-function getCats() { var s=localStorage.getItem('invoice_categories'); if(s){try{return JSON.parse(s);}catch(e){}} return DEFAULT_CATEGORIES.slice(); }
-function saveCats(l) { localStorage.setItem('invoice_categories',JSON.stringify(l)); }
-function gcl(v) { if(!v) return '—'; var f=getCats().find(function(c){return c.value===v;}); return f?f.label:v; }
-
-function bcs(sel) {
-    var cats=getCats(), h='<option value="">— انتخاب —</option>';
-    cats.forEach(function(c){h+='<option value="'+c.value+'"'+(c.value===sel?' selected':'')+'>'+c.label+'</option>';});
-    h+='<option value="__other__"'+(sel==='__other__'||(sel&&sel!==''&&!cats.find(function(x){return x.value===sel;}))?' selected':'')+'>✏️ سایر</option>';
-    return h;
-}
-function hcc(selEl) {
-    var td=selEl.parentElement, old=td.querySelector('.custom-cat-input'); if(old) old.remove();
-    if(selEl.value==='__other__'){var inp=document.createElement('input');inp.type='text';inp.className='custom-cat-input';inp.placeholder='نام دسته‌بندی...';inp.style.cssText='width:100%;padding:6px 8px;border:1.5px solid var(--accent);border-radius:8px;font-family:inherit;font-size:.82rem;margin-top:4px;text-align:center;outline:none;';td.appendChild(inp);inp.focus();inp.addEventListener('input',function(){selEl.dataset.customValue=inp.value.trim();});} else {delete selEl.dataset.customValue;}
-}
-function refreshCats() {
-    document.querySelectorAll('[name="category"]').forEach(function(sel){var v=sel.value;if(v!=='__other__'){var o=sel.parentElement.querySelector('.custom-cat-input');if(o)o.remove();}sel.innerHTML=bcs(v);sel.onchange=function(){hcc(this);};});
-}
 
 /* ═══════════════════════════════════
    تاریخ شمسی
@@ -846,13 +861,18 @@ function showDD(dd,items,inp){
     items.slice(0,15).forEach(function(it){
         var li=document.createElement('li');li.className='ac-item';
         li.innerHTML='<span class="ac-name">'+esc(it.name)+'</span>'
-            +(it.category?'<span class="ac-cat">'+esc(gcl(it.category))+'</span>':'')
+            +(it.dict_category?'<span class="ac-cat">'+esc(gcl(it.dict_category))+'</span>':'')
             +(it.unit?'<span class="ac-unit">'+esc(gul(it.unit))+'</span>':'');
         li.addEventListener('mousedown',function(e){
             e.preventDefault();var row=inp.closest('tr');if(!row)return;
             inp.value=it.name;
             if(it.unit){var us=row.querySelector('[name="unit"]');if(us)us.value=it.unit;}
-            if(it.category){var cs=row.querySelector('[name="category"]');if(cs){var cats=getCats();if(cats.find(function(c){return c.value===it.category;}))cs.value=it.category;else{cs.value='__other__';cs.dataset.customValue=it.category;hcc(cs);var ci=cs.parentElement.querySelector('.custom-cat-input');if(ci)ci.value=it.category;}}}
+            var catSpan=row.querySelector('.cat-display');
+            if(catSpan){
+                var lbl=gcl(it.dict_category), color=gcb(it.dict_category);
+                catSpan.innerHTML='<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:6px;font-size:11px;font-weight:700;background:'+color+'15;color:'+color+'"><span style="width:6px;height:6px;border-radius:50%;background:'+color+'"></span>'+esc(lbl)+'</span>';
+                catSpan.dataset.catValue=it.dict_category||'';
+            }
             dd.style.display='none';calcRow(row);
         });
         dd.appendChild(li);
@@ -870,19 +890,89 @@ function addRow(data){
     var tr=document.createElement('tr');tr.className='item-row new-row';tr.dataset.idx=rowIdx++;
     var isT=data.item_name&&data.item_name.trim().indexOf('جمع کل')!==-1;
     var rq=data.quantity||'',dq=rq?ac(rq):'',rp=data.unit_price||'',dp=rp?ac(rp):'';
-    var cv=data.category||'',cats=getCats(),ic=cv&&!cats.find(function(c){return c.value===cv;});
-    var ch='<td><select name="category">'+bcs(ic?'__other__':cv)+'</select>';
-    if(ic)ch+='<input type="text" class="custom-cat-input" placeholder="نام دسته‌بندی..." value="'+esc(cv)+'" style="width:100%;padding:6px 8px;border:1.5px solid var(--accent);border-radius:8px;font-family:inherit;font-size:.82rem;margin-top:4px;text-align:center;outline:none;">';
-    ch+='</td>';
-    tr.innerHTML='<td class="row-num"></td><td><input type="text" name="item_name" value="'+esc(data.item_name||'')+'" placeholder="نام کالا..." required autocomplete="off"></td>'+ch+'<td><input type="text" name="quantity" value="'+dq+'" placeholder="—" inputmode="decimal" data-raw-value="'+rq+'"></td><td><select name="unit">'+bus(data.unit||'unit')+'</select></td><td><input type="text" name="unit_price" value="'+dp+'" placeholder="—" inputmode="numeric" data-raw-value="'+rp+'"></td><td class="line-total">—</td><td><button type="button" class="btn-del'+(isT?' hidden':'')+'" title="حذف">×</button></td>';
-    if(isT){tr.classList.add('total-row');['unit','category','quantity','unit_price'].forEach(function(n){var el=tr.querySelector('[name="'+n+'"]');if(el&&el.parentElement)el.parentElement.innerHTML='<span style="color:var(--text-sec);font-weight:500">—</span>';});var ni=tr.querySelector('[name="item_name"]');if(ni)ni.readOnly=true;}
-    else{tr.querySelector('.btn-del').addEventListener('click',function(){tr.style.cssText='opacity:0;transform:translateX(30px);transition:.25s';setTimeout(function(){tr.remove();refresh();},250);});tr.querySelector('[name="quantity"]').addEventListener('input',function(e){hfi(e,true);});tr.querySelector('[name="unit_price"]').addEventListener('input',function(e){hfi(e,false);});attachAC(tr.querySelector('[name="item_name"]'));var cs=tr.querySelector('[name="category"]');if(cs){cs.addEventListener('change',function(){hcc(this);});if(ic){var ci=tr.querySelector('.custom-cat-input');if(ci)ci.addEventListener('input',function(){cs.dataset.customValue=this.value.trim();});}}}
+
+    var catLabel=data.dict_category?gcl(data.dict_category):'—';
+    var catColor=data.dict_category?gcb(data.dict_category):'#78716c';
+    var catHtml='<span class="cat-display" data-cat-value="'+esc(data.dict_category||'')+'">'
+        +(data.dict_category?'<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:6px;font-size:11px;font-weight:700;background:'+catColor+'15;color:'+catColor+'"><span style="width:6px;height:6px;border-radius:50%;background:'+catColor+'"></span>'+esc(catLabel)+'</span>':'<span style="color:var(--text-sec);font-size:.82rem">—</span>')
+        +'</span>';
+
+    tr.innerHTML='<td class="row-num"></td>'
+        +'<td><input type="text" name="item_name" value="'+esc(data.item_name||'')+'" placeholder="نام کالا..." required autocomplete="off"></td>'
+        +'<td style="text-align:center">'+catHtml+'</td>'
+        +'<td><input type="text" name="quantity" value="'+dq+'" placeholder="مقدار بده" inputmode="decimal" data-raw-value="'+rq+'"></td>'
+        +'<td><select name="unit">'+bus(data.unit||'unit')+'</select></td>'
+        +'<td><input type="text" name="unit_price" value="'+dp+'" placeholder="قیمت بده" inputmode="numeric" data-raw-value="'+rp+'"></td>'
+        +'<td class="line-total">—</td>'
+        +'<td><button type="button" class="btn-del'+(isT?' hidden':'')+'" title="حذف">×</button></td>';
+
+    if(isT){
+        tr.classList.add('total-row');
+        ['unit','quantity','unit_price'].forEach(function(n){var el=tr.querySelector('[name="'+n+'"]');if(el&&el.parentElement)el.parentElement.innerHTML='<span style="color:var(--text-sec);font-weight:500">—</span>';});
+        var ni=tr.querySelector('[name="item_name"]');if(ni)ni.readOnly=true;
+    } else {
+        tr.querySelector('.btn-del').addEventListener('click',function(){tr.style.cssText='opacity:0;transform:translateX(30px);transition:.25s';setTimeout(function(){tr.remove();refresh();},250);});
+        tr.querySelector('[name="quantity"]').addEventListener('input',function(e){hfi(e,true);});
+        tr.querySelector('[name="unit_price"]').addEventListener('input',function(e){hfi(e,false);});
+        attachAC(tr.querySelector('[name="item_name"]'));
+    }
     tbody.appendChild(tr);var t=tbody.querySelector('tr.total-row');if(t)tbody.appendChild(t);if(!isT)calcRow(tr);refresh();
 }
+
 function calcRow(tr){var q=tr.querySelector('[name="quantity"]'),p=tr.querySelector('[name="unit_price"]');var qv=q?sc(q.value):0,pv=p?Math.round(sc(p.value)):0;var lt=tr.querySelector('.line-total');if(lt)lt.textContent=qv*pv>0?fp(qv*pv):'—';updSum();}
-function refresh(){var idx=0,sb=[];document.querySelectorAll('.item-row').forEach(function(tr){var rn=tr.querySelector('.row-num');if(!tr.classList.contains('total-row')){idx++;if(rn)rn.textContent=pn(idx);var nm=(tr.querySelector('[name="item_name"]')||{}).value||'';if(nm.trim()&&nm.indexOf('جمع کل')===-1){var us=tr.querySelector('[name="unit"]'),qi=tr.querySelector('[name="quantity"]');sb.push({name:nm.trim(),unit:gul(us?us.value:''),qty:qi?sc(qi.value):0});}}else{if(rn)rn.textContent='';}});updSidebar(sb);updSum();var has=tbody?tbody.children.length>0:false;if(tableWrap)tableWrap.style.display=has?'':'none';if(emptySt)emptySt.style.display=has?'none':'';}
-function updSidebar(items){var s=$('items-sidebar'),b=$('isb-body'),bg=$('isb-badge'),tg=$('isb-toggle'),tb=$('isb-toggle-badge');if(!s||!b)return;if(items.length>0){s.classList.add('visible');if(tg)tg.classList.add('visible');var h='';items.forEach(function(it,i){h+='<div class="isb-item"><div class="isb-item-left"><span class="isb-idx">'+pn(i+1)+'</span><span class="isb-name">'+esc(it.name)+'</span></div><div class="isb-right"><span class="isb-unit">'+esc(it.unit)+'</span><span class="isb-qty">'+(it.qty>0?pn(it.qty):'—')+'</span></div></div>';});b.innerHTML=h;if(bg)bg.textContent=pn(items.length);if(tb){tb.textContent=pn(items.length);tb.classList.add('show');}}else{s.classList.remove('visible');if(tg)tg.classList.remove('visible');b.innerHTML='<div class="isb-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="2" y1="9" x2="22" y2="9"/><line x1="9" y1="3" x2="9" y2="9"/></svg><p>هنوز کالایی اضافه نشده</p></div>';}}
-function updSum(){var total=0;document.querySelectorAll('.item-row').forEach(function(tr){if(tr.classList.contains('total-row'))return;var q=tr.querySelector('[name="quantity"]'),p=tr.querySelector('[name="unit_price"]');if(q&&p)total+=sc(q.value)*Math.round(sc(p.value));});var cnt=document.querySelectorAll('.item-row:not(.total-row)').length;if(sumCount)sumCount.textContent=cnt>0?pn(cnt):'—';if(sumTotal){sumTotal.textContent=total>0?fp(total)+' تومان':'— تومان';sumTotal.classList.remove('pulse');void sumTotal.offsetWidth;sumTotal.classList.add('pulse');}if(badge)badge.textContent=cnt>0?pn(cnt)+' قلم':'— قلم';if(tbody){var tr=tbody.querySelector('tr.total-row');if(tr){var lt=tr.querySelector('.line-total');if(lt){lt.textContent=total>0?fp(total):'—';lt.style.cssText='font-size:1rem;font-weight:800';}}}}
+
+function refresh(){
+    var idx=0,sb=[];
+    document.querySelectorAll('.item-row').forEach(function(tr){
+        var rn=tr.querySelector('.row-num');
+        if(!tr.classList.contains('total-row')){
+            idx++;if(rn)rn.textContent=pn(idx);
+            var nm=(tr.querySelector('[name="item_name"]')||{}).value||'';
+            if(nm.trim()&&nm.indexOf('جمع کل')===-1){
+                var us=tr.querySelector('[name="unit"]'),qi=tr.querySelector('[name="quantity"]');
+                var catEl=tr.querySelector('.cat-display');
+                sb.push({name:nm.trim(),unit:gul(us?us.value:''),qty:qi?sc(qi.value):0,cat:catEl?catEl.dataset.catValue:''});
+            }
+        } else { if(rn)rn.textContent=''; }
+    });
+    updSidebar(sb);updSum();
+    var has=tbody?tbody.children.length>0:false;
+    if(tableWrap)tableWrap.style.display=has?'':'none';
+    if(emptySt)emptySt.style.display=has?'none':'';
+}
+
+function updSidebar(items){
+    var s=$('items-sidebar'),b=$('isb-body'),bg=$('isb-badge'),tg=$('isb-toggle'),tb=$('isb-toggle-badge');
+    if(!s||!b)return;
+    if(items.length>0){
+        s.classList.add('visible');if(tg)tg.classList.add('visible');
+        var h='';
+        items.forEach(function(it,i){
+            var catColor=it.cat?gcb(it.cat):'';
+            h+='<div class="isb-item"><div class="isb-item-left"><span class="isb-idx">'+pn(i+1)+'</span><span class="isb-name">'+esc(it.name)+'</span></div><div class="isb-right">'+(it.cat&&it.cat!=='—'?'<span style="font-size:6px;width:8px;height:8px;border-radius:50%;background:'+catColor+';flex-shrink:0"></span>':'')+'<span class="isb-unit">'+esc(it.unit)+'</span><span class="isb-qty">'+(it.qty>0?pn(it.qty):'—')+'</span></div></div>';
+        });
+        b.innerHTML=h;
+        if(bg)bg.textContent=pn(items.length);
+        if(tb){tb.textContent=pn(items.length);tb.classList.add('show');}
+    } else {
+        s.classList.remove('visible');if(tg)tg.classList.remove('visible');
+        b.innerHTML='<div class="isb-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="20" height="18" rx="2"/><line x1="2" y1="9" x2="22" y2="9"/><line x1="9" y1="3" x2="9" y2="9"/></svg><p>هنوز کالایی اضافه نشده</p></div>';
+    }
+}
+
+function updSum(){
+    var total=0;
+    document.querySelectorAll('.item-row').forEach(function(tr){
+        if(tr.classList.contains('total-row'))return;
+        var q=tr.querySelector('[name="quantity"]'),p=tr.querySelector('[name="unit_price"]');
+        if(q&&p)total+=sc(q.value)*Math.round(sc(p.value));
+    });
+    var cnt=document.querySelectorAll('.item-row:not(.total-row)').length;
+    if(sumCount)sumCount.textContent=cnt>0?pn(cnt):'—';
+    if(sumTotal){sumTotal.textContent=total>0?fp(total)+' تومان':'— تومان';sumTotal.classList.remove('pulse');void sumTotal.offsetWidth;sumTotal.classList.add('pulse');}
+    if(badge)badge.textContent=cnt>0?pn(cnt)+' قلم':'— قلم';
+    if(tbody){var tr=tbody.querySelector('tr.total-row');if(tr){var lt=tr.querySelector('.line-total');if(lt){lt.textContent=total>0?fp(total):'—';lt.style.cssText='font-size:1rem;font-weight:800';}}}
+}
 
 /* ═══════════════════════════════════
    Supplier
@@ -900,64 +990,118 @@ function osm(name){var m=$('supplier-modal');if(!m)return;var nf=$('sm-name');if
 function csm(){var m=$('supplier-modal');if(m)m.classList.remove('active');}
 
 /* ═══════════════════════════════════
-   مودال دسته‌بندی‌ها
-   ═══════════════════════════════════ */
-var cm=$('cat-modal'),cl=$('cat-list'),cn=$('cat-new-input');
-bind('btn-manage-cats','click',function(){if(cm){rcl();cm.classList.add('active');setTimeout(function(){if(cn)cn.focus();},100);}});
-bind('cat-close','click',function(){if(cm)cm.classList.remove('active');});
-bind('cat-close-btn','click',function(){if(cm)cm.classList.remove('active');});
-bind('cat-reset-btn','click',function(){if(!confirm('بازگشت به پیش‌فرض؟'))return;localStorage.removeItem('invoice_categories');rcl();refreshCats();renderDictAll();toast('به پیش‌فرض برگشت.');});
-bind('cat-add-btn','click',anc);
-if(cn)cn.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();anc();}});
-if(cm)cm.addEventListener('click',function(e){if(e.target===cm)cm.classList.remove('active');});
-function rcl(){if(!cl)return;cl.innerHTML='';var cats=getCats();if(!cats.length){cl.innerHTML='<p style="text-align:center;color:var(--text-sec);padding:20px">خالی</p>';return;}cats.forEach(function(cat,idx){var d=document.createElement('div');d.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)';d.innerHTML='<span style="flex:1;font-size:.9rem;font-weight:500">'+esc(cat.label)+'</span><span style="font-size:.72rem;color:var(--text-sec);font-family:monospace">'+esc(cat.value)+'</span><button type="button" data-idx="'+idx+'" style="border:none;background:0;color:#dc2626;cursor:pointer;font-size:1.2rem;padding:4px 8px">×</button>';d.querySelector('button').addEventListener('click',function(){rc(parseInt(this.dataset.idx));});cl.appendChild(d);});}
-function anc(){if(!cn)return;var lb=cn.value.trim();if(!lb){toast('نام را وارد کنید.','error');cn.focus();return;}var v=lb.replace(/\s+/g,'_').toLowerCase().replace(/[^\w\u0600-\u06FF]/g,'')||'cat_'+Date.now();var cats=getCats();if(cats.find(function(c){return c.label===lb;})){toast('تکراری!','error');return;}cats.push({value:v,label:lb});saveCats(cats);cn.value='';rcl();refreshCats();renderDictAll();toast('«'+lb+'» اضافه شد.');}
-function rc(idx){var cats=getCats();if(idx<0||idx>=cats.length)return;var rm=cats.splice(idx,1)[0];saveCats(cats);rcl();refreshCats();renderDictAll();toast('«'+rm.label+'» حذف شد.');}
-
-/* ═══════════════════════════════════
-   مودال پیش‌نمایش
+   مودال پیش‌نمایش + ★ سابمیت واقعی
    ═══════════════════════════════════ */
 var pm=$('preview-modal'),ptb=$('preview-tbody'),psrc='';
-function rcv(el){if(!el)return'';if(el.value==='__other__'){var ci=el.parentElement.querySelector('.custom-cat-input');return ci?ci.value.trim():'سایر';}return el.value;}
 function op(src){
     psrc=src||'preview';var rows=document.querySelectorAll('.item-row');if(!rows.length){toast('کالایی نیست.','error');return false;}
     if(psrc==='submit'){var ok=true;rows.forEach(function(tr){var nm=tr.querySelector('[name="item_name"]');if(nm&&nm.value.indexOf('جمع کل')!==-1)return;var q=tr.querySelector('[name="quantity"]'),p=tr.querySelector('[name="unit_price"]');if(!nm||!nm.value.trim()||!(q?q.dataset.rawValue||sc(q.value):0)||!(p?p.dataset.rawValue||sc(p.value):0))ok=false;});if(!ok){toast('فیلدها کامل نیست.','error');return false;}}
     var pi=$('preview-info');if(pi)pi.innerHTML='<div class="pi-item"><span class="pi-label">تأمین‌کننده:</span><span class="pi-value">'+esc(($('supplier-name')||{}).value||'—')+'</span></div><div class="pi-item"><span class="pi-label">شماره:</span><span class="pi-value">'+esc((document.querySelector('[name="invoice_number"]')||{}).value||'—')+'</span></div><div class="pi-item"><span class="pi-label">تاریخ:</span><span class="pi-value">'+esc(($('shamsi-date-display')||{}).value||'—')+'</span></div>';
     if(ptb)ptb.innerHTML='';var gt=0,cnt=0;
-    rows.forEach(function(tr){var nm=(tr.querySelector('[name="item_name"]')||{}).value||'';if(nm.indexOf('جمع کل')!==-1)return;var qty=sc((tr.querySelector('[name="quantity"]')||{}).value),unit=(tr.querySelector('[name="unit"]')||{}).value||'',price=sc((tr.querySelector('[name="unit_price"]')||{}).value),cat=rcv(tr.querySelector('[name="category"]')),lt=qty*price;gt+=lt;cnt++;var r=document.createElement('tr');r.innerHTML='<td>'+pn(cnt)+'</td><td class="p-name">'+esc(nm||'—')+'</td><td class="p-cat">'+esc(cat?gcl(cat):'—')+'</td><td>'+(qty?pn(qty):'—')+'</td><td>'+esc(gul(unit))+'</td><td class="p-total">'+(lt>0?fp(lt)+' تومان':'—')+'</td>';if(ptb)ptb.appendChild(r);});
+    rows.forEach(function(tr){
+        var nm=(tr.querySelector('[name="item_name"]')||{}).value||'';
+        if(nm.indexOf('جمع کل')!==-1)return;
+        var qty=sc((tr.querySelector('[name="quantity"]')||{}).value),
+            unit=(tr.querySelector('[name="unit"]')||{}).value||'',
+            price=sc((tr.querySelector('[name="unit_price"]')||{}).value),
+            catEl=tr.querySelector('.cat-display'),
+            cat=catEl?catEl.dataset.catValue:'',
+            lt=qty*price;
+        gt+=lt;cnt++;
+        var r=document.createElement('tr');
+        r.innerHTML='<td>'+pn(cnt)+'</td><td class="p-name">'+esc(nm||'—')+'</td><td class="p-cat">'+(cat?'<span style="color:'+gcb(cat)+'">'+esc(gcl(cat))+'</span>':'—')+'</td><td>'+(qty?pn(qty):'—')+'</td><td>'+esc(gul(unit))+'</td><td class="p-total">'+(lt>0?fp(lt)+' تومان':'—')+'</td>';
+        if(ptb)ptb.appendChild(r);
+    });
     var pte=$('preview-total');if(pte)pte.textContent=gt>0?fp(gt)+' تومان':'—';var pc=$('preview-count');if(pc)pc.textContent=pn(cnt)+' قلم';var bb=$('modal-back-btn'),cb=$('modal-confirm-btn');if(psrc==='submit'){if(bb)bb.textContent='بازگشت';if(cb)cb.style.display='';}else{if(bb)bb.textContent='بستن';if(cb)cb.style.display='none';}if(pm)pm.classList.add('active');return true;
 }
 function cp(){if(pm)pm.classList.remove('active');}
 bind('modal-close-btn','click',cp);bind('modal-back-btn','click',cp);
 if(pm)pm.addEventListener('click',function(e){if(e.target===pm)cp();});
-bind('modal-confirm-btn','click',function(){document.querySelectorAll('.item-row').forEach(function(tr){var q=tr.querySelector('[name="quantity"]'),p=tr.querySelector('[name="unit_price"]');if(q&&q.dataset.rawValue)q.value=q.dataset.rawValue;if(p&&p.dataset.rawValue)p.value=p.dataset.rawValue;});cp();if(form)form.submit();});
+
+/* ★ تأیید نهایی — سابمیت واقعی فرم */
+bind('modal-confirm-btn','click',function(){
+    document.querySelectorAll('.item-row').forEach(function(tr){
+        var q=tr.querySelector('[name="quantity"]'),p=tr.querySelector('[name="unit_price"]');
+        if(q&&q.dataset.rawValue)q.value=q.dataset.rawValue;
+        if(p&&p.dataset.rawValue)p.value=p.dataset.rawValue;
+    });
+    cp();
+    formConfirming = true;  /* ★ فلگ: اجازه سابمیت واقعی */
+    if(form) form.submit();
+});
+
 bind('preview-btn','click',function(){op('preview');});
 
 /* ═══════════════════════════════════════════════════════════
-   دیکشنری مواد اولیه — از API
+   دیکشنری مواد اولیه — از API (فقط خوندنی)
    ═══════════════════════════════════════════════════════════ */
-function loadDict(cb) {
-    if (dictItems.length) { if (cb) cb(); return; }
-    fetch('/api/dictionary/list/', { headers: { 'X-CSRFToken': gc('csrftoken') } })
+function loadDict() {
+    var grid = $('dict-grid');
+    if (grid) grid.innerHTML = '<div class="dict-loading" style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-sec)"><p>در حال بارگذاری...</p></div>';
+
+    fetch('/api/dictionary/raw-materials/', { headers: { 'X-CSRFToken': gc('csrftoken') } })
     .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(function (data) {
         dictItems = (data.items || []).map(function (it) {
-            return { id: it.id, name: it.name, unit: it.unit || 'unit', category: it.category || '', description: it.description || '' };
+            return {
+                id:            it.id,
+                name:          it.name,
+                unit:          it.unit || 'unit',
+                dict_category: it.dict_category || '',
+                description:   it.description || ''
+            };
         });
         renderDictAll();
-        if (cb) cb();
     })
     .catch(function (err) {
         console.warn('Dictionary API error:', err);
         var g = $('dict-grid');
-        if (g) g.innerHTML = '<div class="dict-empty"><p>خطا در بارگذاری دیکشنری</p></div>';
+        if (g) g.innerHTML = '<div class="dict-empty"><p>خطا در بارگذاری مواد اولیه</p></div>';
         toast('خطا در بارگذاری دیکشنری', 'error');
     });
 }
 
+/* ★ تابع تبدیل: هر فرمتی → value استاندارد */
+function resolveCategory(rawCat, catMap) {
+    if (!rawCat) return '';
+
+    /* تلاش ۱: مچ مستقیم با value (مثلاً protein, oil) */
+    for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
+        if (DEFAULT_CATEGORIES[i].value === rawCat) return rawCat;
+    }
+
+    /* تلاش ۲: مچ با label (مثلاً پروتئینی, روغن و چربی) */
+    for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
+        if (DEFAULT_CATEGORIES[i].label === rawCat) return DEFAULT_CATEGORIES[i].value;
+    }
+
+    /* تلاش ۳: مچ جزئی با label (مثلاً غلات → غلات و حبوبات) */
+    for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
+        if (DEFAULT_CATEGORIES[i].label.indexOf(rawCat) !== -1 || rawCat.indexOf(DEFAULT_CATEGORIES[i].label) !== -1) {
+            return DEFAULT_CATEGORIES[i].value;
+        }
+    }
+
+    /* تلاش ۴: resolve از طریق catMap (مثلاً cat_1785 → سبزیجات → vegetable) */
+    if (catMap[rawCat]) {
+        var resolvedLabel = catMap[rawCat];
+        for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
+            if (DEFAULT_CATEGORIES[i].label === resolvedLabel ||
+                DEFAULT_CATEGORIES[i].label.indexOf(resolvedLabel) !== -1 ||
+                resolvedLabel.indexOf(DEFAULT_CATEGORIES[i].label) !== -1) {
+                return DEFAULT_CATEGORIES[i].value;
+            }
+        }
+        /* اگه لیبل پیدا شد ولی با DEFAULT_CATEGORIES مچ نشد، همون لیبل رو برگردون */
+        return resolvedLabel;
+    }
+
+    return ''; /* هیچی پیدا نشد */
+}
+
 function filteredItems() {
     var items = dictItems;
-    if (dictActiveCat !== 'all') { var c = dictActiveCat; items = items.filter(function (m) { return m.category === c; }); }
+    if (dictActiveCat !== 'all') { var c = dictActiveCat; items = items.filter(function (m) { return m.dict_category === c; }); }
     if (dictQuery) { var q = dictQuery.toLowerCase(); items = items.filter(function (m) { return m.name.toLowerCase().indexOf(q) !== -1; }); }
     return items;
 }
@@ -965,8 +1109,8 @@ function filteredItems() {
 function renderDictCats(id) {
     var el = $(id); if (!el) return;
     var h = '<button type="button" class="dict-cat-pill' + (dictActiveCat === 'all' ? ' active' : '') + '" data-cat="all">همه <span class="pill-count">' + pn(dictItems.length) + '</span></button>';
-    getCats().forEach(function (cat) {
-        var count = dictItems.filter(function (m) { return m.category === cat.value; }).length;
+    DEFAULT_CATEGORIES.forEach(function (cat) {
+        var count = dictItems.filter(function (m) { return m.dict_category === cat.value; }).length;
         if (!count) return;
         var color = CAT_COLORS[cat.value] || '#78716c', active = dictActiveCat === cat.value;
         h += '<button type="button" class="dict-cat-pill' + (active ? ' active' : '') + '" data-cat="' + cat.value + '"' + (active ? ' style="background:' + color + ';border-color:' + color + '"' : '') + '>' + esc(cat.label) + ' <span class="pill-count">' + pn(count) + '</span></button>';
@@ -986,12 +1130,12 @@ function renderDictGrid(id) {
     }
     var h = '';
     items.forEach(function (it) {
-        var color = CAT_COLORS[it.category] || '#78716c';
+        var color = CAT_COLORS[it.dict_category] || '#78716c';
         h += '<div class="dict-card" data-id="' + it.id + '">'
             + '<div class="dc-name">' + esc(it.name) + '</div>'
             + '<div class="dc-meta">'
             + '<span class="dc-cat-dot" style="background:' + color + '"></span>'
-            + '<span class="dc-cat-label">' + esc(gcl(it.category)) + '</span>'
+            + '<span class="dc-cat-label">' + esc(gcl(it.dict_category)) + '</span>'
             + '<span class="dc-unit-badge">' + esc(gul(it.unit)) + '</span>'
             + '</div>'
             + (it.description ? '<div class="dc-desc">' + esc(it.description) + '</div>' : '')
@@ -1003,7 +1147,7 @@ function renderDictGrid(id) {
             var id = this.dataset.id;
             var m = dictItems.find(function (x) { return String(x.id) === String(id); });
             if (!m) return;
-            addRow({ item_name: m.name, unit: m.unit, category: m.category, quantity: '', unit_price: '' });
+            addRow({ item_name: m.name, unit: m.unit, dict_category: m.dict_category, quantity: '', unit_price: '' });
             toast('«' + m.name + '» اضافه شد — قیمت واحد را وارد کنید.');
             this.classList.add('dc-added');
             var self = this;
@@ -1029,9 +1173,20 @@ bind('add-row-btn', 'click', function () { addRow(); });
 bind('isb-toggle', 'click', function () { var s = $('items-sidebar'); if (s) s.classList.toggle('visible'); });
 bind('reset-btn', 'click', function () { if (!confirm('پاک شود؟')) return; if (tbody) tbody.innerHTML = ''; rowIdx = 0; refresh(); toast('پاک شد.'); });
 
+/* ★ هندلر submit فرم — با فلگ formConfirming */
 if (form) form.addEventListener('submit', function (e) {
+    if (formConfirming) {
+        /* ★ از مودال تأیید اومده → فرم واقعاً POST بشه → صفحه رفرش */
+        return;
+    }
+    /* ★ از دکمه ثبت اومده → فقط مودال رو باز کن */
     e.preventDefault();
-    var gd = $('gregorian-date'); if (!gd || !gd.value) { toast('تاریخ الزامی.', 'error'); openCal(); return; }
+    var gd = $('gregorian-date');
+    if (!gd || !gd.value) {
+        toast('تاریخ الزامی.', 'error');
+        openCal();
+        return;
+    }
     op('submit');
 });
 
@@ -1041,7 +1196,6 @@ if (dsEl) dsEl.addEventListener('input', function () { dictQuery = this.value; r
 document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
         cp(); csm(); closeCal(); hideDDs();
-        if (cm) cm.classList.remove('active');
         var s = $('items-sidebar'); if (s && window.innerWidth <= 1200) s.classList.remove('visible');
     }
 });
@@ -1052,7 +1206,7 @@ document.addEventListener('keydown', function (e) {
 initCal();
 loadDict();
 
-console.log('✅ Invoice script loaded — dict inline mode');
+console.log('✅ Invoice script loaded — formConfirming mode');
 });
 </script>
 {% endblock %}

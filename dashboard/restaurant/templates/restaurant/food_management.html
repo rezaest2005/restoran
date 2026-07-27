@@ -321,7 +321,7 @@
     <header class="fd-header">
         <div>
             <h1>غذا و منو</h1>
-            <p>مدیریت آیتم‌های منو — قیمت‌گذاری از آشپزخانه</p>
+            <p>مدیریت آیتم‌های منو — قیمت‌گذاری دستی یا از آشپزخانه</p>
         </div>
         <div class="fd-header-btns">
             <button class="fd-btn fd-btn-outline" onclick="window.print()">
@@ -421,6 +421,26 @@
             <button class="fd-btn fd-btn-outline" onclick="closeModal()">انصراف</button>
             <button class="fd-btn fd-btn-accent" onclick="saveFood()">
                 <i class="bi bi-check-lg"></i> ذخیره
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Modal: Manual Price ═══ -->
+<div class="fd-modal-overlay" id="priceModal">
+    <div class="fd-modal" style="max-width:380px;">
+        <h3><i class="bi bi-cash-stack" style="color:var(--fd-accent);"></i> قیمت‌گذاری دستی</h3>
+        <input type="hidden" id="priceFoodId">
+        <p id="priceFoodName" style="font-weight:700;font-size:1rem;margin-bottom:16px;color:var(--fd-text);"></p>
+        <div class="fd-field">
+            <label>قیمت (تومان)</label>
+            <input type="text" id="priceFoodValue" placeholder="مثال: 250000" inputmode="numeric"
+                   oninput="this.value=this.value.replace(/[^0-9,]/g,'')">
+        </div>
+        <div class="fd-modal-actions">
+            <button class="fd-btn fd-btn-outline" onclick="closePriceModal()">انصراف</button>
+            <button class="fd-btn fd-btn-accent" onclick="saveManualPrice()">
+                <i class="bi bi-check-lg"></i> ثبت قیمت
             </button>
         </div>
     </div>
@@ -719,6 +739,9 @@ function renderFoods(data) {
             '<div class="fd-card-actions">' +
                 '<button class="fd-btn fd-btn-outline fd-btn-sm" onclick=\'editFood(' + JSON.stringify(f).replace(/'/g, "\\'") + ')\'>' +
                     '<i class="bi bi-pencil"></i> ویرایش</button>' +
+                '<button class="fd-btn fd-btn-sm" style="background:var(--fd-accent-light);color:var(--fd-accent)" ' +
+                    'onclick="openPriceModal(' + f.id + ',\'' + escHtml(f.name).replace(/'/g, "\\'") + '\',' + (f.final_price || f.kitchen_price || 0) + ')">' +
+                    '<i class="bi bi-cash-stack"></i> قیمت</button>' +
                 '<button class="fd-btn fd-btn-sm" style="background:var(--fd-danger-bg);color:var(--fd-danger)" ' +
                     'onclick="openDeleteModal(' + f.id + ',\'' + escHtml(f.name).replace(/'/g, "\\'") + '\',\'food\')">' +
                     '<i class="bi bi-trash3"></i></button>' +
@@ -730,13 +753,13 @@ function renderFoods(data) {
 function updateStats() {
     document.getElementById('statTotal').textContent = toP(foods.length);
     document.getElementById('statCats').textContent = toP(categories.length);
-    var withKitchen = foods.filter(function(f){ return f.has_kitchen; });
+    var withPrice = foods.filter(function(f){ return f.final_price > 0 || f.kitchen_price > 0; });
     var discountCount = foods.filter(function(f){ return f.discount; }).length;
     document.getElementById('statDiscounts').textContent = toP(discountCount);
-    if (withKitchen.length) {
+    if (withPrice.length) {
         var total = 0;
-        withKitchen.forEach(function(f){ total += f.kitchen_price; });
-        document.getElementById('statAvgPrice').textContent = fmtPrice(Math.round(total / withKitchen.length));
+        withPrice.forEach(function(f){ total += (f.final_price || f.kitchen_price || 0); });
+        document.getElementById('statAvgPrice').textContent = fmtPrice(Math.round(total / withPrice.length));
     } else {
         document.getElementById('statAvgPrice').textContent = '—';
     }
@@ -829,6 +852,58 @@ function saveFood() {
 }
 
 // ══════════════════════════════════════════════════════════
+//  MANUAL PRICE
+// ══════════════════════════════════════════════════════════
+
+function openPriceModal(id, name, currentPrice) {
+    document.getElementById('priceFoodId').value = id;
+    document.getElementById('priceFoodName').textContent = name;
+    document.getElementById('priceFoodValue').value = currentPrice ? parseInt(currentPrice).toLocaleString('en') : '';
+    document.getElementById('priceModal').classList.add('show');
+    setTimeout(function(){ document.getElementById('priceFoodValue').focus(); }, 100);
+}
+
+function closePriceModal() {
+    document.getElementById('priceModal').classList.remove('show');
+}
+
+function saveManualPrice() {
+    var id = document.getElementById('priceFoodId').value;
+    var raw = document.getElementById('priceFoodValue').value.replace(/,/g, '');
+    var price = parseInt(raw) || 0;
+
+    if (!id) { toast('شناسه غذا یافت نشد', 'error'); return; }
+    if (price <= 0) { toast('قیمت باید بیشتر از صفر باشد', 'error'); return; }
+
+    var food = foods.find(function(f){ return String(f.id) === String(id); });
+
+    var fd = new FormData();
+    fd.append('id', id);
+    if (food) {
+        fd.append('name', food.name);
+        fd.append('category', food.category_id);
+    }
+    fd.append('final_price', price);
+
+    fetch("{% url 'food_save' %}", {
+        method: 'POST',
+        body: fd,
+        headers: {'X-CSRFToken': getCookie('csrftoken')}
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+        if (res.success) {
+            toast('قیمت «' + (food ? food.name : '') + '» = ' + fmtPrice(price) + ' تومان ثبت شد');
+            closePriceModal();
+            location.reload();
+        } else {
+            toast(res.error || 'خطا', 'error');
+        }
+    })
+    .catch(function(e){ toast('خطا: ' + e, 'error'); });
+}
+
+// ══════════════════════════════════════════════════════════
 //  DELETE
 // ══════════════════════════════════════════════════════════
 
@@ -882,7 +957,7 @@ function toast(msg, type) {
     document.body.appendChild(el);
     setTimeout(function() { el.remove(); }, 3500);
 }
-// ═══ Auto-refresh foods + discounts every 30 seconds ═══
+
 // ═══ Auto-refresh foods + discounts every 30 seconds ═══
 setInterval(function(){
     fetch("{% url 'food_management_api' %}", {
@@ -891,7 +966,7 @@ setInterval(function(){
     .then(function(r){ return r.json(); })
     .then(function(data){
         if (data.foods) {
-            foods = data.foods;       // ← اینجا has_kitchen و kitchen_price آپدیت میشن
+            foods = data.foods;
             applyFilters();
             updateStats();
         }
@@ -900,3 +975,4 @@ setInterval(function(){
 }, 30000);
 </script>
 {% endblock %}
+

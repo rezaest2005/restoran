@@ -15,7 +15,8 @@ from .models import (
     ReadyMaterial,
     SemiFinished, SemiFinishedIngredient,
     Restaurant,
-    Recipe,
+    Recipe, RecipeIngredient, RecipeSemiFinished, RecipePackagingItem,  # ★ جدید
+    RawMaterial,  # ★ جدید
     MembershipLevel, CustomerProfile,
     LoyaltyTransaction,
     LoyaltyWallet, WalletTransaction,
@@ -51,21 +52,248 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'image', 'is_active', 'order']
 
 
-# ★FIX: Race condition در upsert — حالا از update_or_create استفاده می‌کنه
+# ══════════════════════════════════════════════════════════════════════════════
+#  ★ RECIPE ENGINE SERIALIZERS (جدید + اصلاح‌شده)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class RecipeIngredientSerializer(serializers.ModelSerializer):
+    raw_material_name = serializers.SerializerMethodField()
+    raw_material_id = serializers.PrimaryKeyRelatedField(
+        queryset=RawMaterial.objects.all(),
+        source='raw_material', write_only=True,
+    )
+    raw_material = serializers.SerializerMethodField()
+    unit_display = serializers.SerializerMethodField()
+    effective_quantity = serializers.SerializerMethodField()
+    total_cost = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RecipeIngredient
+        fields = [
+            'id', 'raw_material', 'raw_material_id', 'raw_material_name',
+            'quantity', 'unit', 'unit_display',
+            'wastage_percent', 'optional', 'notes',
+            'effective_quantity', 'total_cost',
+        ]
+
+    def get_raw_material(self, obj):
+        if obj.raw_material:
+            return {
+                'id': obj.raw_material.id,
+                'name': obj.raw_material.name,
+                'unit': obj.raw_material.unit,
+                'price': int(obj.raw_material.price or 0),
+                'quantity': float(obj.raw_material.quantity or 0),
+            }
+        return None
+
+    def get_raw_material_name(self, obj):
+        return obj.raw_material.name if obj.raw_material else ''
+
+    def get_unit_display(self, obj):
+        try:
+            return obj.get_unit_display() or ''
+        except Exception:
+            return obj.unit or ''
+
+    def get_effective_quantity(self, obj):
+        try:
+            return round(obj.effective_quantity, 3)
+        except Exception:
+            return float(obj.quantity)
+
+    def get_total_cost(self, obj):
+        try:
+            return int(obj.total_cost)
+        except (TypeError, ValueError):
+            return 0
+
+
+class RecipeSemiFinishedSerializer(serializers.ModelSerializer):
+    semi_finished_name = serializers.SerializerMethodField()
+    semi_finished_id = serializers.PrimaryKeyRelatedField(
+        queryset=SemiFinished.objects.all(),
+        source='semi_finished', write_only=True,
+    )
+    semi_finished = serializers.SerializerMethodField()
+    unit_display = serializers.SerializerMethodField()
+    total_cost = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RecipeSemiFinished
+        fields = [
+            'id', 'semi_finished', 'semi_finished_id', 'semi_finished_name',
+            'quantity', 'unit', 'unit_display', 'total_cost',
+        ]
+
+    def get_semi_finished(self, obj):
+        if obj.semi_finished:
+            return {
+                'id': obj.semi_finished.id,
+                'name': obj.semi_finished.name,
+                'unit': obj.semi_finished.unit,
+                'cost_per_unit': int(obj.semi_finished.cost_per_unit or 0),
+            }
+        return None
+
+    def get_semi_finished_name(self, obj):
+        return obj.semi_finished.name if obj.semi_finished else ''
+
+    def get_unit_display(self, obj):
+        try:
+            return obj.get_unit_display() or ''
+        except Exception:
+            return obj.unit or ''
+
+    def get_total_cost(self, obj):
+        try:
+            return int(obj.total_cost)
+        except (TypeError, ValueError):
+            return 0
+
+
+# ★ جدید — سریالایزر بسته‌بندی رسپی
+class RecipePackagingItemSerializer(serializers.ModelSerializer):
+    raw_material_name = serializers.SerializerMethodField()
+    raw_material_id = serializers.PrimaryKeyRelatedField(
+        queryset=RawMaterial.objects.all(),
+        source='raw_material', write_only=True,
+    )
+    raw_material = serializers.SerializerMethodField()
+    unit_display = serializers.SerializerMethodField()
+    total_cost = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RecipePackagingItem
+        fields = [
+            'id', 'raw_material', 'raw_material_id', 'raw_material_name',
+            'quantity', 'unit', 'unit_display', 'notes', 'total_cost',
+        ]
+
+    def get_raw_material(self, obj):
+        if obj.raw_material:
+            return {
+                'id': obj.raw_material.id,
+                'name': obj.raw_material.name,
+                'unit': obj.raw_material.unit,
+                'price': int(obj.raw_material.price or 0),
+                'quantity': float(obj.raw_material.quantity or 0),
+            }
+        return None
+
+    def get_raw_material_name(self, obj):
+        return obj.raw_material.name if obj.raw_material else ''
+
+    def get_unit_display(self, obj):
+        try:
+            return obj.get_unit_display() or ''
+        except Exception:
+            return obj.unit or ''
+
+    def get_total_cost(self, obj):
+        try:
+            return int(obj.total_cost)
+        except (TypeError, ValueError):
+            return 0
+
+
+# ★ اصلاح‌شده — RecipeSerializer با پشتیبانی کامل از nested create/update
 class RecipeSerializer(serializers.ModelSerializer):
+    food_name = serializers.CharField(source='food.name', read_only=True)
+    ingredients = RecipeIngredientSerializer(many=True, required=False)
+    semi_finished_items = RecipeSemiFinishedSerializer(many=True, required=False)
+    packaging_items = RecipePackagingItemSerializer(many=True, required=False)  # ★ جدید
+    profit_margin = serializers.FloatField(read_only=True)
+
     class Meta:
         model = Recipe
-        fields = '__all__'
+        fields = [
+            'id', 'food', 'food_name',
+            'yield_quantity', 'instructions',
+            'estimated_preparation_time', 'notes',
+            'version', 'is_active',
+            # اقلام
+            'ingredients', 'semi_finished_items', 'packaging_items',  # ★ جدید
+            # هزینه‌ها
+            'total_raw_material_cost', 'total_semi_finished_cost',
+            'total_packaging_cost',  # ★ جدید
+            'total_cost', 'cost_per_serving', 'suggested_price',
+            'profit_margin',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = [
+            'total_raw_material_cost', 'total_semi_finished_cost',
+            'total_packaging_cost', 'total_cost', 'cost_per_serving',
+            'suggested_price', 'version',
+            'created_at', 'updated_at',
+        ]
 
     def create(self, validated_data):
+        ingredients_data = validated_data.pop('ingredients', [])
+        semi_items_data = validated_data.pop('semi_finished_items', [])
+        packaging_items_data = validated_data.pop('packaging_items', [])  # ★
+
         food = validated_data.get('food')
         if food:
             recipe, created = Recipe.objects.update_or_create(
                 food=food,
                 defaults=validated_data,
             )
-            return recipe
-        return super().create(validated_data)
+            if not created:
+                # پاک کردن آیتم‌های قبلی در آپدیت
+                recipe.ingredients.all().delete()
+                recipe.semi_finished_items.all().delete()
+                recipe.packaging_items.all().delete()  # ★
+        else:
+            recipe = Recipe.objects.create(**validated_data)
+
+        # مواد اولیه
+        for ing_data in ingredients_data:
+            RecipeIngredient.objects.create(recipe=recipe, **ing_data)
+
+        # نیمه‌آماده
+        for sf_data in semi_items_data:
+            RecipeSemiFinished.objects.create(recipe=recipe, **sf_data)
+
+        # ★ بسته‌بندی
+        for pk_data in packaging_items_data:
+            RecipePackagingItem.objects.create(recipe=recipe, **pk_data)
+
+        # محاسبه هزینه
+        recipe.recalculate_cost()
+        return recipe
+
+    def update(self, instance, validated_data):
+        ingredients_data = validated_data.pop('ingredients', None)
+        semi_items_data = validated_data.pop('semi_finished_items', None)
+        packaging_items_data = validated_data.pop('packaging_items', None)  # ★
+
+        # آپدیت فیلدهای ساده
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        # مواد اولیه
+        if ingredients_data is not None:
+            instance.ingredients.all().delete()
+            for ing_data in ingredients_data:
+                RecipeIngredient.objects.create(recipe=instance, **ing_data)
+
+        # نیمه‌آماده
+        if semi_items_data is not None:
+            instance.semi_finished_items.all().delete()
+            for sf_data in semi_items_data:
+                RecipeSemiFinished.objects.create(recipe=instance, **sf_data)
+
+        # ★ بسته‌بندی
+        if packaging_items_data is not None:
+            instance.packaging_items.all().delete()
+            for pk_data in packaging_items_data:
+                RecipePackagingItem.objects.create(recipe=instance, **pk_data)
+
+        # محاسبه هزینه
+        instance.recalculate_cost()
+        return instance
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -211,7 +439,6 @@ class KitchenProductSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at',
         ]
 
-    # ★FIX2: این متد نبود ← دلیل اصلی ارور 500
     def get_recipe_name(self, obj):
         try:
             if obj.recipe and hasattr(obj.recipe, 'food') and obj.recipe.food:
@@ -292,6 +519,7 @@ class KitchenProductSerializer(serializers.ModelSerializer):
             ]
         except Exception:
             return []
+
 
 class KitchenInventorySerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='kitchen_product.name', read_only=True)
@@ -391,17 +619,6 @@ class KitchenDiscountSerializer(serializers.ModelSerializer):
         except Exception:
             return ''
 
-    # ★FIX: حذف side-effect — غیرفعال‌سازی باید در View یا Cron Job انجام بشه
-    # نه در serializer چون READ نباید WRITE انجام بده
-    #
-    # قبلاً اینجا بود:
-    # def to_representation(self, instance):
-    #     if instance.expires_at and instance.expires_at <= timezone.now() and instance.is_active:
-    #         instance.is_active = False
-    #         instance.save(update_fields=['is_active'])
-    #     return super().to_representation(instance)
-
-    # ★FIX: اضافه کردن validation
     def validate_value(self, value):
         if value is not None and value < 0:
             raise serializers.ValidationError('مقدار تخفیف نمی‌تواند منفی باشد.')
@@ -411,17 +628,14 @@ class KitchenDiscountSerializer(serializers.ModelSerializer):
         discount_type = data.get('discount_type') or getattr(self.instance, 'discount_type', None)
         value = data.get('value')
 
-        # تخفیف درصدی نباید بالای ۱۰۰ باشد
         if discount_type == 'percentage' and value is not None:
             if value > 100:
                 raise serializers.ValidationError({'value': 'درصد تخفیف نمی‌تواند بیشتر از ۱۰۰ باشد.'})
 
-        # تخفیف مبلغی نباید منفی باشد
         if discount_type == 'fixed_amount' and value is not None:
             if value < 0:
                 raise serializers.ValidationError({'value': 'مبلغ تخفیف نمی‌تواند منفی باشد.'})
 
-        # ساعت خوش باید start_time و end_time داشته باشد
         scope = data.get('scope') or getattr(self.instance, 'scope', None)
         if scope == 'happy_hour':
             start = data.get('start_time') or getattr(self.instance, 'start_time', None)
@@ -431,7 +645,6 @@ class KitchenDiscountSerializer(serializers.ModelSerializer):
                     'برای ساعت خوش، ساعت شروع و پایان الزامی است.'
                 )
 
-        # تاریخ انقضا باید در آینده باشد
         expires_at = data.get('expires_at')
         if expires_at and expires_at <= timezone.now():
             raise serializers.ValidationError(
@@ -964,11 +1177,11 @@ class CustomTokenObtainSerializer(TokenObtainPairSerializer):
         if not user.is_active:
             raise serializers.ValidationError({'error': 'حساب کاربری غیرفعال است.'})
 
-        if not user.is_approved:    # ← جدید
-            raise serializers.ValidationError({    # ← جدید
-                'error': 'حساب شما هنوز توسط مدیر تأیید نشده است.',    # ← جدید
-                'pending': True,    # ← جدید
-            })    # ← جدید
+        if not user.is_approved:
+            raise serializers.ValidationError({
+                'error': 'حساب شما هنوز توسط مدیر تأیید نشده است.',
+                'pending': True,
+            })
 
         data = super().validate(attrs)
         data['user'] = UserDetailSerializer(user).data
@@ -983,6 +1196,7 @@ class CustomTokenObtainSerializer(TokenObtainPairSerializer):
         token['username'] = user.username
         token['restaurant_id'] = user.restaurant_id
         return token
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
@@ -1118,7 +1332,6 @@ class ReadyMaterialSerializer(serializers.ModelSerializer):
             'barcode', 'is_active', 'total_value', 'stock_status',
         ]
 
-    # ★FIX: قبلاً فیلدها بدون SerializerMethodField بودن و crash می‌کردن
     def get_total_value(self, obj):
         try:
             return int(obj.total_value) if hasattr(obj, 'total_value') else (

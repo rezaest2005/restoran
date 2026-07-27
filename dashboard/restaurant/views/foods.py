@@ -158,7 +158,7 @@ def category_delete(request: HttpRequest):
         if not pk:
             return JsonResponse({"success": False, "error": "شناسه ارسال نشد."})
         cat = Category.objects.get(pk=pk)
-        if cat.food_set.exists():
+        if Food.objects.filter(category=cat).exists():
             return JsonResponse({"success": False, "error": f"دسته‌بندی «{cat.name}» دارای غذا است و قابل حذف نیست."})
         name = cat.name
         cat.delete()
@@ -166,7 +166,6 @@ def category_delete(request: HttpRequest):
     except Exception as exc:
         logger.exception("Error deleting category")
         return JsonResponse({"success": False, "error": str(exc)})
-
 
 def product_category_lookup(request):
     q = request.GET.get('q', '').strip()

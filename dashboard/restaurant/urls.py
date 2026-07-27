@@ -91,11 +91,15 @@ urlpatterns = [
     path("api/recipes/semi-finished/suggest/", views.semi_finished_suggestions_api,  name="semi_finished_suggestions"),
 
     # ── Dictionary ──
-    path("api/dictionary/list/",                views.dictionary_list,        name="dictionary_list"),
-    path("api/dictionary/autocomplete/",        views.dictionary_autocomplete, name="dictionary_autocomplete"),
-    path("api/dictionary/create/",              views.dictionary_create,       name="dictionary_create"),
-    path("api/dictionary/<int:pk>/update/",     views.dictionary_update,       name="dictionary_update"),
-    path("api/dictionary/<int:pk>/delete/",     views.dictionary_delete,       name="dictionary_delete"),
+    path("api/dictionary/list/",                views.dictionary_list,           name="dictionary_list"),
+    path("api/dictionary/autocomplete/",        views.dictionary_autocomplete,   name="dictionary_autocomplete"),
+    path("api/dictionary/create/",              views.dictionary_create,         name="dictionary_create"),
+    path("api/dictionary/<int:pk>/update/",     views.dictionary_update,         name="dictionary_update"),
+    path("api/dictionary/<int:pk>/delete/",     views.dictionary_delete,         name="dictionary_delete"),
+    path("api/dictionary/raw-materials/",       views.dictionary_raw_materials,  name="dict_raw_materials"),
+    path("api/dictionary/semi-finished/",       views.dictionary_semi_finished,  name="dict_semi_finished"),
+    path("api/dictionary/ready-materials/",     views.dictionary_ready_materials, name="dict_ready_materials"),
+    path("api/dictionary/food-menu/",           views.dictionary_food_menu,       name="dict_food_menu"),
 
     # ── Kitchen ──
     path("api/kitchen/dashboard/",                  views.kitchen_dashboard_api,              name="kitchen_dashboard"),

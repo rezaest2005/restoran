@@ -7,7 +7,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from .models import (
-    Recipe, RecipeIngredient, RecipeSemiFinished,
+    Recipe, RecipeIngredient, RecipeSemiFinished, RecipePackagingItem,
     RawMaterial, SemiFinished, Food,
     InventoryMovement, InventoryUsageLog,
 )
@@ -48,7 +48,20 @@ def calculate_recipe_cost(recipe: Recipe) -> dict:
             'cost': cost,
         })
 
-    total = raw_cost + semi_cost
+    # ── بسته‌بندی (جدید)
+    packaging_cost = 0
+    packaging_details = []
+    for pk in recipe.packaging_items.select_related('raw_material').all():
+        cost = pk.total_cost
+        packaging_cost += cost
+        packaging_details.append({
+            'name': pk.raw_material.name,
+            'quantity': float(pk.quantity),
+            'unit_price': int(pk.raw_material.price),
+            'cost': cost,
+        })
+
+    total = raw_cost + semi_cost + packaging_cost
     cost_per_serving = int(total / recipe.yield_quantity) if recipe.yield_quantity else total
 
     # قیمت پیشنهادی (۶۰٪ سود)
@@ -57,16 +70,15 @@ def calculate_recipe_cost(recipe: Recipe) -> dict:
     # ذخیره
     recipe.total_raw_material_cost = raw_cost
     recipe.total_semi_finished_cost = semi_cost
+    recipe.total_packaging_cost = packaging_cost
     recipe.total_cost = total
     recipe.cost_per_serving = cost_per_serving
     recipe.suggested_price = suggested
     recipe.save(update_fields=[
         'total_raw_material_cost', 'total_semi_finished_cost',
-        'total_cost', 'cost_per_serving', 'suggested_price',
+        'total_packaging_cost', 'total_cost', 'cost_per_serving',
+        'suggested_price',
     ])
-
-    # بروزرسانی قیمت غذا — فیلد cost_price در مدل Food وجود ندارد
-    # فعلاً فقط محاسبه انجام میشه و نتیجه برمیگرده
 
     food = recipe.food
     food_price = int(food.final_price) if food.final_price else 0
@@ -77,6 +89,7 @@ def calculate_recipe_cost(recipe: Recipe) -> dict:
         'food_name': recipe.food.name,
         'raw_material_cost': raw_cost,
         'semi_finished_cost': semi_cost,
+        'packaging_cost': packaging_cost,
         'total_cost': total,
         'cost_per_serving': cost_per_serving,
         'suggested_price': suggested,
@@ -84,6 +97,7 @@ def calculate_recipe_cost(recipe: Recipe) -> dict:
         'profit_margin': recipe.profit_margin,
         'raw_details': raw_details,
         'semi_details': semi_details,
+        'packaging_details': packaging_details,
     }
 
 
@@ -160,6 +174,20 @@ def validate_recipe_inventory(recipe: Recipe, quantity: float = 1) -> dict:
                 'shortage': needed - available,
             })
 
+    # ── بسته‌بندی (جدید)
+    for pk in recipe.packaging_items.select_related('raw_material').all():
+        needed = float(pk.quantity) * quantity
+        available = float(pk.raw_material.quantity)
+        if available < needed:
+            insufficient.append({
+                'type': 'packaging',
+                'name': pk.raw_material.name,
+                'needed': needed,
+                'available': available,
+                'unit': pk.raw_material.get_unit_display(),
+                'shortage': needed - available,
+            })
+
     return {
         'success': len(insufficient) == 0,
         'insufficient': insufficient,
@@ -229,7 +257,6 @@ def deduct_inventory_for_order(order, created_by=None) -> dict:
             raw_mat.quantity = new_stock
             raw_mat.save(update_fields=['quantity'])
 
-            # ثبت جابجایی انبار
             InventoryMovement.objects.create(
                 restaurant=getattr(order, 'restaurant', None),
                 raw_material=raw_mat,
@@ -243,7 +270,6 @@ def deduct_inventory_for_order(order, created_by=None) -> dict:
                 created_by=created_by,
             )
 
-            # ثبت تاریخچه مصرف
             InventoryUsageLog.objects.create(
                 raw_material=raw_mat,
                 usage_type='order',
@@ -272,6 +298,44 @@ def deduct_inventory_for_order(order, created_by=None) -> dict:
                 'quantity': float(needed),
                 'previous_stock': float(sf.quantity_produced + needed),
                 'new_stock': float(sf.quantity_produced),
+            })
+
+        # ── کسر بسته‌بندی (جدید)
+        for pk_item in recipe.packaging_items.select_related('raw_material').all():
+            needed = Decimal(str(pk_item.quantity)) * qty
+            raw_mat = pk_item.raw_material
+
+            previous_stock = raw_mat.quantity
+            new_stock = max(Decimal('0'), previous_stock - needed)
+            raw_mat.quantity = new_stock
+            raw_mat.save(update_fields=['quantity'])
+
+            InventoryMovement.objects.create(
+                restaurant=getattr(order, 'restaurant', None),
+                raw_material=raw_mat,
+                movement_type=InventoryMovement.MovementType.ORDER_USAGE,
+                quantity=needed,
+                previous_stock=previous_stock,
+                new_stock=new_stock,
+                reference_type='order',
+                reference_id=order.id,
+                notes=f'بسته‌بندی سفارش #{order.id} — {food.name} × {qty}',
+                created_by=created_by,
+            )
+
+            InventoryUsageLog.objects.create(
+                raw_material=raw_mat,
+                usage_type='order',
+                quantity_used=float(needed),
+                reference=f'بسته‌بندی سفارش #{order.id} — {food.name}',
+                note=f'{qty} عدد {food.name} (بسته‌بندی)',
+            )
+
+            deductions.append({
+                'material': f'{raw_mat.name} (بسته‌بندی)',
+                'quantity': float(needed),
+                'previous_stock': float(previous_stock),
+                'new_stock': float(new_stock),
             })
 
     return {
