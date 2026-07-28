@@ -329,12 +329,29 @@ def set_order_item_price(sender, instance: OrderItem, **kwargs) -> None:
 
 class RawMaterial(TenantModel):
     UNIT_CHOICES = UNIT_CHOICES
-    name     = name_field(verbose_name='نام ماده اولیه')
-    label    = models.CharField(max_length=200, blank=True, verbose_name="برچسب")
-    price    = price_field(default=0)
-    unit     = unit_field()
-    quantity = qty_field(default=0)
 
+    MATERIAL_TYPE_CHOICES = [
+        ('raw',       'ماده اولیه'),
+        ('packaging', 'بسته‌بندی و جعبه'),
+    ]
+
+    name          = name_field(verbose_name='نام ماده اولیه')
+    label         = models.CharField(max_length=200, blank=True, verbose_name="برچسب")
+    price         = price_field(default=0)
+    unit          = unit_field()
+    quantity      = qty_field(default=0)
+    material_type = models.CharField(                        
+        max_length=20,
+        choices=MATERIAL_TYPE_CHOICES,
+        default='raw',
+        verbose_name='نوع ماده',
+        db_index=True,
+    )
+
+
+    @property
+    def total_price(self):
+        return self.price * self.quantity
     class Meta:
         ordering            = ["name"]
         verbose_name        = "ماده اولیه"
@@ -342,11 +359,6 @@ class RawMaterial(TenantModel):
 
     def __str__(self) -> str:
         return f"{self.name} - {self.quantity} {self.get_unit_display()}"
-
-    @property
-    def total_price(self):
-        return self.price * self.quantity
-
 
 class InventoryUsageLog(TenantModel):
     USAGE_TYPE_CHOICES = [
@@ -500,25 +512,33 @@ class PurchaseInvoice(TenantModel):
     def item_count(self) -> int:
         return self.items.count()
 
-
 class PurchaseInvoiceItem(TenantModel):
-    invoice    = models.ForeignKey(PurchaseInvoice, on_delete=models.CASCADE, related_name="items", verbose_name="فاکتور", db_index=True)
-    item_name  = models.CharField(max_length=200, verbose_name="نام کالا")
-    quantity   = qty_field(decimal_places=2, default=0)
-    unit       = unit_field()
-    unit_price = price_field(default=0)
-    category   = models.ForeignKey("Category", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="دسته‌بندی")
+    invoice      = models.ForeignKey(PurchaseInvoice, on_delete=models.CASCADE, related_name="items", verbose_name="فاکتور", db_index=True)
+    item_name    = models.CharField(max_length=200, verbose_name="نام کالا")
+    quantity     = qty_field(decimal_places=2, default=0)
+    unit         = unit_field()
+    unit_price   = price_field(default=0)
+    category     = models.ForeignKey("Category", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="دسته‌بندی")
+
+    # ★ فیلد جدید — لینک به ماده اولیه انبار
+    raw_material = models.ForeignKey(
+        "RawMaterial", on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="invoice_items",
+        verbose_name="ماده اولیه انبار",
+    )
 
     class Meta:
         verbose_name        = "آیتم فاکتور"
         verbose_name_plural = "آیتم‌های فاکتور"
 
-    def __str__(self) -> str:
+    def __str__(self):
         return f"{self.item_name} x{self.quantity}"
 
     @property
     def line_total(self):
         return self.quantity * self.unit_price
+
 
 
 # ─── 7. READY MATERIALS ──────────────────
@@ -1439,6 +1459,7 @@ class ItemDictionary(TenantModel):
     description    = description_field()
     category       = models.CharField(max_length=20, choices=CATEGORY_CHOICES, verbose_name='دسته‌بندی', db_index=True)
     dict_category  = models.CharField(max_length=50, blank=True, default='', verbose_name='زیردسته‌بندی')
+    material_type  = models.CharField(max_length=20, choices=[('raw','ماده اولیه'),('packaging','بسته‌بندی')], default='raw', verbose_name='نوع ماده')
     is_active      = is_active_field()
     created_at     = created_at_field()
 
@@ -1516,3 +1537,46 @@ class TenantService(models.Model):
     def __str__(self):
         status = "✅" if self.is_enabled else "❌"
         return f"{self.tenant.name} — {self.service.label} {status}"
+
+class PackagingMaterial(models.Model):
+    """مواد بسته‌بندی مستقل از مواد اولیه"""
+    restaurant = models.ForeignKey(
+        'Restaurant', on_delete=models.CASCADE,
+        related_name='packaging_materials'
+    )
+    name = models.CharField(max_length=200)
+    unit = models.CharField(
+        max_length=20,
+        choices=[
+            ('unit', 'عدد'),
+            ('pack', 'بسته'),
+            ('roll', 'رول'),
+            ('sheet', 'شیت'),
+            ('box', 'جعبه'),
+            ('bag', 'کیسه'),
+            ('cup', 'لیوان'),
+            ('lid', 'درب'),
+            ('container', 'ظرف'),
+        ],
+        default='unit'
+    )
+    quantity = models.DecimalField(
+        max_digits=12, decimal_places=3, default=0,
+        help_text='موجودی انبار'
+    )
+    price = models.DecimalField(
+        max_digits=12, decimal_places=0, default=0,
+        help_text='قیمت هر واحد (تومان)'
+    )
+    description = models.TextField(blank=True, default='')
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'ماده بسته‌بندی'
+        verbose_name_plural = 'مواد بسته‌بندی'
+
+    def __str__(self):
+        return f'{self.name} ({self.get_unit_display()})'

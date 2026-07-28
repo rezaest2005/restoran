@@ -17,6 +17,7 @@ from .viewsets import (
     MembershipLevelViewSet, CustomerViewSet, CouponViewSet,
     RewardViewSet, ReferralViewSet, NotificationViewSet,
     LoyaltyTransactionViewSet, RewardRedemptionViewSet,
+    PackagingMaterialViewSet,
 )
 
 # ── Auth ──
@@ -138,6 +139,7 @@ __all__ = [
     "MembershipLevelViewSet", "CustomerViewSet", "CouponViewSet",
     "RewardViewSet", "ReferralViewSet", "NotificationViewSet",
     "LoyaltyTransactionViewSet", "RewardRedemptionViewSet",
+    "PackagingMaterialViewSet",
     # Auth
     "LoginView", "RefreshView", "RegisterView", "LogoutView",
     "CurrentUserView", "ChangePasswordView", "ResetPasswordView",

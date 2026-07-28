@@ -8,10 +8,6 @@
 {% block extra_css %}
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
 <style>
-/* ═══════════════════════════════════════════════════
-   دیکشنری اسامی — Full Responsive
-   ═══════════════════════════════════════════════════ */
-
 .dict-page-header {
   padding: 20px 24px 0;
   display: flex; align-items: center; justify-content: space-between;
@@ -28,9 +24,8 @@
 }
 .dict-page-sub { font-size: 12px; color: var(--muted); font-weight: 600; margin-top: 2px; }
 
-/* ── Stats Grid ── */
 .dict-stats {
-  display: grid; grid-template-columns: repeat(4, 1fr);
+  display: grid; grid-template-columns: repeat(5, 1fr);
   gap: 8px; padding: 14px 24px;
 }
 .dict-stat-card {
@@ -61,6 +56,7 @@
 .dict-stat-card:nth-child(2) .dict-stat-icon { background: rgba(139,92,246,0.12); color: #8b5cf6; }
 .dict-stat-card:nth-child(3) .dict-stat-icon { background: rgba(16,185,129,0.12); color: #10b981; }
 .dict-stat-card:nth-child(4) .dict-stat-icon { background: rgba(245,158,11,0.12); color: #f59e0b; }
+.dict-stat-card:nth-child(5) .dict-stat-icon { background: rgba(59,130,246,0.12); color: #3b82f6; }
 
 .dict-stat-num {
   font-size: 24px; font-weight: 900; color: var(--text);
@@ -70,7 +66,6 @@
   font-size: 11px; color: var(--muted); font-weight: 700; margin-top: 3px;
 }
 
-/* ── Main Panel ── */
 .dict-panel {
   margin: 0 24px 24px;
   background: var(--surface); border-radius: 16px;
@@ -78,7 +73,6 @@
   box-shadow: var(--card-shadow, 0 2px 8px rgba(0,0,0,.04));
 }
 
-/* ── Panel Header ── */
 .dict-panel-head {
   padding: 14px 18px;
   display: flex; align-items: center; justify-content: space-between;
@@ -96,6 +90,7 @@
 .dict-panel-head h3 .cat-dot.semi   { background: #8b5cf6; }
 .dict-panel-head h3 .cat-dot.ready  { background: #10b981; }
 .dict-panel-head h3 .cat-dot.food   { background: #f59e0b; }
+.dict-panel-head h3 .cat-dot.pack   { background: #3b82f6; }
 
 .dict-search {
   display: flex; align-items: center; gap: 6px;
@@ -110,7 +105,6 @@
 .dict-search input:focus { outline: none; border-color: var(--brand); }
 .dict-search input::placeholder { color: var(--muted); }
 
-/* ── Category Chip Bar ── */
 .cat-bar {
   display: flex; gap: 6px; padding: 12px 18px;
   flex-wrap: wrap; align-items: center;
@@ -161,7 +155,6 @@
 .add-chip { border-style: dashed; color: var(--brand); }
 .add-chip:hover { background: var(--brand-light, #fff7ed); }
 
-/* ── Category Inline Form ── */
 .cat-inline {
   display: none; padding: 12px 18px;
   background: #fffbeb; border-bottom: 2px solid var(--border);
@@ -181,7 +174,6 @@
 }
 .inline-group input:focus { outline: none; border-color: var(--brand); }
 
-/* ── Dictionary Form ── */
 .dict-page-form {
   display: grid; grid-template-columns: 1fr 120px 150px 1fr auto;
   gap: 8px; padding: 12px 18px;
@@ -225,7 +217,6 @@
 }
 .dict-cancel-btn:hover { border-color: #ef4444; color: #ef4444; background: #fef2f2; }
 
-/* ═══ Custom Category Dropdown — بالا باز میشه ═══ */
 .dict-cat-wrap { position: relative; }
 .dict-cat-trigger {
   display: flex; align-items: center; justify-content: space-between;
@@ -244,7 +235,6 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 
-/* ★ بالا باز میشه — bottom به جای top */
 .dict-cat-panel {
   display: none; position: absolute;
   bottom: calc(100% + 4px); right: 0; left: 0;
@@ -292,7 +282,6 @@
   background: rgba(239,68,68,0.12); color: #ef4444;
 }
 
-/* حالت ویرایش inline داخل دراپ‌داون */
 .dict-cat-opt.editing {
   padding: 4px 6px; gap: 4px; background: #fffbeb;
 }
@@ -310,7 +299,6 @@
 .dict-cat-opt.editing .edit-ok { background: #10b981; color: #fff; }
 .dict-cat-opt.editing .edit-no { background: #f3f4f6; color: var(--muted); }
 
-/* ردیف افزودن داخل دراپ‌داون */
 .dict-cat-add-row {
   display: flex; gap: 4px; padding: 6px;
   border-top: 1px solid #eee; flex-shrink: 0;
@@ -329,7 +317,6 @@
 }
 .dict-cat-add-row button:hover { background: #e85d2c; }
 
-/* ── Table ── */
 .table-responsive {
   overflow-x: auto; -webkit-overflow-scrolling: touch;
 }
@@ -388,7 +375,6 @@
   background: rgba(245,158,11,0.1); color: #d97706; white-space: nowrap;
 }
 
-/* ── Food Form ── */
 .fm-wrap { display: none; }
 .fm-food-form {
   display: grid; grid-template-columns: 1fr 180px auto;
@@ -397,7 +383,6 @@
   align-items: end;
 }
 
-/* ── Empty State ── */
 .dict-page-empty {
   text-align: center; padding: 40px 16px; color: var(--muted);
 }
@@ -409,7 +394,6 @@
   font-size: 11px; font-weight: 500; display: block; margin-top: 4px;
 }
 
-/* ── Toast ── */
 .dict-toast {
   position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px);
   background: #1f2937; color: #fff; padding: 10px 20px;
@@ -424,14 +408,13 @@
 .dict-toast.success { background: #059669; }
 .dict-toast.error { background: #dc2626; }
 
-/* ══════ RESPONSIVE ══════ */
 @media (max-width: 1100px) {
-  .dict-stats { grid-template-columns: repeat(2, 1fr); }
+  .dict-stats { grid-template-columns: repeat(3, 1fr); }
   .dict-search { max-width: 220px; }
 }
 @media (max-width: 900px) {
   .dict-page-header { padding: 16px 16px 0; }
-  .dict-stats { padding: 10px 16px; }
+  .dict-stats { padding: 10px 16px; grid-template-columns: repeat(2, 1fr); }
   .dict-panel { margin: 0 16px 16px; }
   .dict-page-form {
     grid-template-columns: 1fr 1fr;
@@ -532,8 +515,6 @@
   .dict-page-empty i { font-size: 32px; margin-bottom: 8px; }
   .dict-page-empty p { font-size: 12px; }
   .dict-page-empty span { font-size: 10px; }
-
-  /* ★ موبایل — dropdown بالا، وسط صفحه */
   .dict-cat-panel {
     position: fixed; right: 12px; left: 12px;
     bottom: 60px; top: auto; max-height: 50vh;
@@ -593,6 +574,11 @@
     <div class="dict-stat-num" id="stat-ready_material">0</div>
     <div class="dict-stat-label">مواد آماده</div>
   </div>
+  <div class="dict-stat-card" data-cat="packaging" onclick="PageDict.switchCategory(this)">
+    <div class="dict-stat-icon"><i class="bi bi-box-seam"></i></div>
+    <div class="dict-stat-num" id="stat-packaging">0</div>
+    <div class="dict-stat-label">بسته‌بندی و جعبه</div>
+  </div>
   <div class="dict-stat-card" data-cat="food_menu" onclick="PageDict.switchCategory(this)">
     <div class="dict-stat-icon"><i class="bi bi-egg-fried"></i></div>
     <div class="dict-stat-num" id="stat-food_menu">0</div>
@@ -616,8 +602,6 @@
   <div id="dictSection">
     <div class="cat-bar" id="dictCatBar"></div>
 
-    <!-- ★ نوار دسته‌بندی‌های دیکشنری (فیلتر بالای جدول) -->
-    <!-- ★ فرم inline افزودن/ویرایش دسته‌بندی از نوار بالا -->
     <div class="cat-inline" id="dictCatInline">
       <div class="inline-group" style="flex:1; min-width:120px;">
         <label>نام دسته‌بندی</label>
@@ -652,7 +636,7 @@
           <option value="custom">سایر...</option>
         </select>
       </div>
-      <div class="dict-form-group">
+      <div class="dict-form-group" id="dictCatFieldWrap">
         <label>دسته‌بندی</label>
         <div class="dict-cat-wrap" id="dictCatWrap">
           <div class="dict-cat-trigger" id="dictCatTrigger" onclick="PageDict.toggleDictCat()">
@@ -682,7 +666,6 @@
       </div>
     </div>
 
-    <!-- فیلد مخفی واحد سفارشی -->
     <div id="pdCustomUnitWrap" style="display:none; padding:4px 18px 8px; background:#f8f9fb; border-bottom:2px solid var(--border);">
       <input type="text" id="pdCustomUnit" placeholder="واحد سفارشی..." style="width:100%; max-width:180px; padding:5px 8px; border:2px solid var(--brand); border-radius:7px; font-family:inherit; font-size:11px; font-weight:600; outline:none;">
     </div>
@@ -739,21 +722,21 @@
         <input type="text" id="foodName" placeholder="مثال: پیتزا مارگاریتا">
       </div>
       <div class="dict-form-group">
-    <label>دسته‌بندی</label>
-    <div class="dict-cat-wrap" id="foodCatWrap">
-      <div class="dict-cat-trigger" id="foodCatTrigger" onclick="PageDict.toggleFoodCat()">
-        <span id="foodCatSelLabel">— انتخاب —</span>
-        <i class="bi bi-chevron-down"></i>
-      </div>
-      <div class="dict-cat-panel" id="foodCatPanel">
-        <div class="dict-cat-opts" id="foodCatOpts"></div>
-        <div class="dict-cat-add-row">
-          <input type="text" id="foodCatNewInput" placeholder="دسته‌بندی جدید..." onkeydown="if(event.key==='Enter')PageDict.addFoodCat()">
-          <button onclick="PageDict.addFoodCat()"><i class="bi bi-plus-lg"></i></button>
+        <label>دسته‌بندی</label>
+        <div class="dict-cat-wrap" id="foodCatWrap">
+          <div class="dict-cat-trigger" id="foodCatTrigger" onclick="PageDict.toggleFoodCat()">
+            <span id="foodCatSelLabel">— انتخاب —</span>
+            <i class="bi bi-chevron-down"></i>
+          </div>
+          <div class="dict-cat-panel" id="foodCatPanel">
+            <div class="dict-cat-opts" id="foodCatOpts"></div>
+            <div class="dict-cat-add-row">
+              <input type="text" id="foodCatNewInput" placeholder="دسته‌بندی جدید..." onkeydown="if(event.key==='Enter')PageDict.addFoodCat()">
+              <button onclick="PageDict.addFoodCat()"><i class="bi bi-plus-lg"></i></button>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  </div>
       <div style="display:flex; gap:4px;">
         <button class="dict-page-add-btn" id="foodAddBtn" onclick="PageDict.saveFood()">
           <i class="bi bi-plus-lg"></i> افزودن غذا
@@ -810,12 +793,14 @@ var PageDict = (function() {
   var selectedFoodCat = null;
 
   var CAT_META = {
-    raw_material:   { title: 'مواد اولیه',  dot: 'raw' },
-    semi_finished:  { title: 'نیمه‌آماده',   dot: 'semi' },
-    ready_material: { title: 'مواد آماده',   dot: 'ready' },
-    food_menu:      { title: 'غذا و منو',    dot: 'food' },
+    raw_material:   { title: 'مواد اولیه',       dot: 'raw' },
+    semi_finished:  { title: 'نیمه‌آماده',        dot: 'semi' },
+    ready_material: { title: 'مواد آماده',        dot: 'ready' },
+    packaging:      { title: 'بسته‌بندی و جعبه', dot: 'pack' },
+    food_menu:      { title: 'غذا و منو',         dot: 'food' },
   };
-  var isDict = function() { return ['raw_material','semi_finished','ready_material'].indexOf(currentCat) !== -1; };
+  var DICT_CATS_LIST = ['raw_material','semi_finished','ready_material','packaging'];
+  var isDict = function() { return DICT_CATS_LIST.indexOf(currentCat) !== -1; };
   var isFood = function() { return currentCat === 'food_menu'; };
 
   /* ── المان‌ها ── */
@@ -849,13 +834,43 @@ var PageDict = (function() {
   function unitLabel(u) { return UNIT_LABELS[u] || u || '—'; }
 
   /* ═══════════════════════════════════════════════════
-     دسته‌بندی‌های دیکشنری — جدا برای هر تب
+     ★ بسته‌بندی: تشخیص اینکه آیتم متعلق به packaging هست
+     ═══════════════════════════════════════════════════ */
+  function isPackagingKey(key) {
+    if (!key) return false;
+    if (key === 'packaging') return true;
+    var cats = DICT_CATS['packaging'] || {};
+    return !!cats[key];
+  }
+
+  /* ═══════════════════════════════════════════════════
+     ★ گرفتن آیتم‌های تب جاری (شامل فیلتر packaging)
+     ═══════════════════════════════════════════════════ */
+  function getActiveItems() {
+    if (currentCat === 'packaging') {
+      var rawItems = allItems['raw_material'] || [];
+      var packCats = DICT_CATS['packaging'] || {};
+      var packKeys = Object.keys(packCats);
+      packKeys.push('packaging');
+      return rawItems.filter(function(it) { return packKeys.indexOf(it.dict_category) !== -1; });
+    }
+    return allItems[currentCat] || [];
+  }
+
+  function getStorageArray() {
+    if (currentCat === 'packaging') return allItems['raw_material'] || [];
+    return allItems[currentCat] || [];
+  }
+
+  /* ═══════════════════════════════════════════════════
+     دسته‌بندی‌های دیکشنری
      ═══════════════════════════════════════════════════ */
   var DICT_CATS_DEFAULT = {
     raw_material: {
       protein: 'پروتئینی', dairy: 'لبنیات', grain: 'غلات و حبوبات',
       oil: 'روغن و چربی', spice: 'ادویه و چاشنی', vegetable: 'سبزیجات',
-      fruit: 'میوه', canned: 'کنسرو', beverage: 'نوشیدنی'
+      fruit: 'میوه', canned: 'کنسرو', beverage: 'نوشیدنی',
+      packaging: 'بسته‌بندی و جعبه'
     },
     semi_finished: {
       sauce: 'سس‌ها', dough: 'خمیرها', marinade: 'ماریناد',
@@ -865,6 +880,9 @@ var PageDict = (function() {
       bread: 'نان‌ها', pickle: 'ترشی و مربا', canned_food: 'کنسرو',
       dairy_product: 'لبنیات', beverage: 'نوشیدنی',
       packaging: 'بسته‌بندی', cleaning: 'بهداشتی'
+    },
+    packaging: {
+      packaging: 'بسته‌بندی'
     }
   };
 
@@ -875,7 +893,7 @@ var PageDict = (function() {
 
   function loadDictCats() {
     try {
-      var saved = localStorage.getItem('kt_dict_cats_v5');
+      var saved = localStorage.getItem('kt_dict_cats_v6');
       if (saved) {
         var parsed = JSON.parse(saved);
         if (parsed.cats && typeof parsed.cats === 'object') {
@@ -887,12 +905,18 @@ var PageDict = (function() {
   }
 
   function saveDictCats() {
-    try { localStorage.setItem('kt_dict_cats_v5', JSON.stringify({ cats: DICT_CATS })); } catch(e) {}
+    try { localStorage.setItem('kt_dict_cats_v6', JSON.stringify({ cats: DICT_CATS })); } catch(e) {}
   }
 
   function dictCatLabel(v) {
+    if (!v) return '—';
     var cats = getActiveCats();
-    return cats[v] || v || '—';
+    if (cats[v]) return cats[v];
+    if (currentCat === 'packaging') {
+      var rawCats = DICT_CATS['raw_material'] || {};
+      if (rawCats[v]) return rawCats[v];
+    }
+    return v;
   }
 
   /* ═══════════════════════════════════════════════════
@@ -996,13 +1020,14 @@ var PageDict = (function() {
   function deleteDictCat(key) {
     var cats = getActiveCats();
     var label = cats[key] || key;
-    var items = allItems[currentCat] || [];
+    var items = getActiveItems();
     var used = items.filter(function(it) { return it.dict_category === key; });
     var msg = 'حذف دسته‌بندی «' + label + '»؟';
     if (used.length) msg += '\n\n⚠️ ' + used.length + ' آیتم از این دسته استفاده می‌کنن.\nآیتم‌ها بدون دسته‌بندی می‌مونن.';
     if (!confirm(msg)) return;
     delete DICT_CATS[currentCat][key];
     if (selectedDictCat === key) selectedDictCat = '';
+    if (dictFilterCat === key) dictFilterCat = 'all';
     saveDictCats();
     renderDictCatDropdown(); renderDictCatBar(); renderDict();
     toast('دسته‌بندی «' + label + '» حذف شد', 'success');
@@ -1016,7 +1041,7 @@ var PageDict = (function() {
     if (!opts) return;
     var h = '';
     allCats.forEach(function(c) {
-      var sel = selectedFoodCat == c.id ? ' selected' : '';
+      var sel = Number(selectedFoodCat) === Number(c.id) ? ' selected' : '';
       h += '<div class="dict-cat-opt' + sel + '" data-key="' + c.id + '">'
         + '<span class="dict-cat-opt-name" onclick="PageDict.pickFoodCat(' + c.id + ')">' + esc(c.name) + '</span>'
         + '<div class="dict-cat-opt-actions">'
@@ -1027,7 +1052,7 @@ var PageDict = (function() {
     opts.innerHTML = h;
     var label = document.getElementById('foodCatSelLabel');
     if (label) {
-      var found = allCats.find(function(c) { return c.id == selectedFoodCat; });
+      var found = allCats.find(function(c) { return Number(c.id) === Number(selectedFoodCat); });
       if (found) {
         label.textContent = found.name; label.style.color = 'var(--text)';
       } else {
@@ -1052,7 +1077,7 @@ var PageDict = (function() {
   }
 
   function pickFoodCat(id) {
-    selectedFoodCat = id;
+    selectedFoodCat = Number(id);
     closeAllDropdowns();
     renderFoodCatDropdown();
   }
@@ -1076,15 +1101,11 @@ var PageDict = (function() {
       }).catch(function() { toast('خطا در ارتباط', 'error'); });
   }
 
-  /* ═══════════════════════════════════════════════════
-     بستن همه dropdown ها با کلیک بیرون
-     ═══════════════════════════════════════════════════ */
   function closeAllDropdowns() {
     var dPanel = document.getElementById('dictCatPanel');
     var dTrigger = document.getElementById('dictCatTrigger');
     if (dPanel) dPanel.classList.remove('show');
     if (dTrigger) dTrigger.classList.remove('open');
-
     var fPanel = document.getElementById('foodCatPanel');
     var fTrigger = document.getElementById('foodCatTrigger');
     if (fPanel) fPanel.classList.remove('show');
@@ -1111,14 +1132,33 @@ var PageDict = (function() {
   });
 
   /* ═══════════════════════════════════════════════════
-     نوار فیلتر دسته‌بندی‌ها (بالای جدول)
+     نوار فیلتر دسته‌بندی‌ها
      ═══════════════════════════════════════════════════ */
   function renderDictCatBar() {
     var bar = document.getElementById('dictCatBar');
     if (!bar) return;
     var cats = getActiveCats();
     var keys = Object.keys(cats);
-    var items = allItems[currentCat] || [];
+    var items = getActiveItems();
+
+    /* ★ packaging: فقط یک دسته با دکمه ویرایش */
+    if (currentCat === 'packaging') {
+      var h = '';
+      keys.forEach(function(key) {
+        var label = cats[key] || key;
+        var cnt = items.filter(function(it) { return it.dict_category === key; }).length;
+        h += '<div class="cat-chip active">'
+          + '<div class="chip-actions">'
+          + '<button class="chip-edit" onclick="event.stopPropagation(); PageDict.editDictCatBar(\'' + key + '\')" title="ویرایش"><i class="bi bi-pencil"></i></button>'
+          + '</div>'
+          + '<span>' + esc(label) + '</span>'
+          + '<span class="chip-count">' + cnt + '</span>'
+          + '</div>';
+      });
+      bar.innerHTML = h;
+      return;
+    }
+
     var h = '';
     var actAll = dictFilterCat === 'all' ? ' active' : '';
     h += '<button class="cat-chip' + actAll + '" onclick="PageDict.filterDictCat(\'all\')">همه <span class="chip-count">' + items.length + '</span></button>';
@@ -1168,15 +1208,17 @@ var PageDict = (function() {
   function removeDictCatBar(key) {
     var cats = getActiveCats();
     var label = cats[key] || key;
-    var items = allItems[currentCat] || [];
+    var items = getActiveItems();
     var usedIn = items.filter(function(it) { return it.dict_category === key; });
     var msg = 'حذف دسته‌بندی «' + label + '»؟';
     if (usedIn.length) msg += '\n\n⚠️ ' + usedIn.length + ' آیتم از این دسته استفاده می‌کنن.';
     if (!confirm(msg)) return;
     delete DICT_CATS[currentCat][key];
     if (selectedDictCat === key) selectedDictCat = '';
+    if (dictFilterCat === key) dictFilterCat = 'all';
     saveDictCats();
     renderDictCatDropdown(); renderDictCatBar(); renderDict();
+    loadAll();
     toast('دسته‌بندی «' + label + '» حذف شد', 'success');
   }
 
@@ -1250,6 +1292,10 @@ var PageDict = (function() {
       var el = document.getElementById('stat-' + cat);
       if (el) el.textContent = (allItems[cat] || []).length;
     });
+    var packItems = (allItems['raw_material'] || []).filter(function(it) { return isPackagingKey(it.dict_category); });
+    var elPack = document.getElementById('stat-packaging');
+    if (elPack) elPack.textContent = packItems.length;
+
     var elFood = document.getElementById('stat-food_menu');
     if (elFood) elFood.textContent = allFoods.length;
   }
@@ -1260,6 +1306,7 @@ var PageDict = (function() {
     card.classList.add('active');
     currentCat = card.dataset.cat;
     cancelEdit(); cancelFoodEdit(); cancelCatEdit(); cancelDictCatEdit();
+    _dictCatEditing = null;
     searchEl.value = ''; searchQuery = ''; dictFilterCat = 'all';
     selectedDictCat = ''; selectedFoodCat = null;
     var meta = CAT_META[currentCat];
@@ -1280,7 +1327,7 @@ var PageDict = (function() {
   }
 
   function renderDict() {
-    var items = allItems[currentCat] || [];
+    var items = getActiveItems();
     var cats = getActiveCats();
     if (dictFilterCat !== 'all') items = items.filter(function(it) { return it.dict_category === dictFilterCat; });
     if (searchQuery) {
@@ -1323,8 +1370,8 @@ var PageDict = (function() {
     var bar = document.getElementById('fmCatBar');
     var h = '<button class="cat-chip' + (foodFilterCat === 'all' ? ' active' : '') + '" onclick="PageDict.filterFoodCat(\'all\')">همه <span class="chip-count">' + allFoods.length + '</span></button>';
     allCats.forEach(function(c) {
-      var cnt = allFoods.filter(function(f) { return f.category_id === c.id; }).length;
-      var act = foodFilterCat == c.id ? ' active' : '';
+      var cnt = allFoods.filter(function(f) { return Number(f.category_id) === Number(c.id); }).length;
+      var act = Number(foodFilterCat) === Number(c.id) ? ' active' : '';
       h += '<div class="cat-chip' + act + '" onclick="PageDict.filterFoodCat(' + c.id + ')">'
         + '<div class="chip-actions">'
         + '<button class="chip-edit" onclick="event.stopPropagation(); PageDict.editCat(' + c.id + ')" title="ویرایش"><i class="bi bi-pencil"></i></button>'
@@ -1340,7 +1387,7 @@ var PageDict = (function() {
 
   function renderFoodTable() {
     var items = allFoods;
-    if (foodFilterCat !== 'all') items = items.filter(function(f) { return f.category_id == foodFilterCat; });
+    if (foodFilterCat !== 'all') items = items.filter(function(f) { return Number(f.category_id) === Number(foodFilterCat); });
     if (searchQuery) items = items.filter(function(f) { return f.name.toLowerCase().indexOf(searchQuery) !== -1; });
     var tbody = document.getElementById('foodTableBody');
     var empty = document.getElementById('foodEmpty');
@@ -1363,13 +1410,12 @@ var PageDict = (function() {
     tbody.innerHTML = h;
   }
 
-  function filterFoodCat(catId) { foodFilterCat = catId; renderCatBar(); renderFoodTable(); }
+  function filterFoodCat(catId) { foodFilterCat = Number(catId); renderCatBar(); renderFoodTable(); }
 
   /* ═══ CRUD دیکشنری ═══ */
   function save() {
     var name = nameEl.value.trim();
     var unit = unitEl.value;
-    var dictCat = selectedDictCat || '';
     var desc = descEl.value.trim();
     if (!name) { nameEl.focus(); toast('نام آیتم را وارد کنید', 'error'); return; }
     if (unit === 'custom') {
@@ -1378,28 +1424,36 @@ var PageDict = (function() {
     }
     if (!unit) { unitEl.focus(); toast('واحد را انتخاب کنید', 'error'); return; }
 
+    var saveCategory = currentCat;
+    var saveDictCat  = selectedDictCat || '';
+    if (currentCat === 'packaging') {
+      saveCategory = 'raw_material';
+      if (!saveDictCat) saveDictCat = 'packaging';
+    }
+
     if (editingId) {
-      api('/api/dictionary/' + editingId + '/update/', 'POST', { name: name, unit: unit, description: desc, dict_category: dictCat })
+      api('/api/dictionary/' + editingId + '/update/', 'POST', { name: name, unit: unit, description: desc, dict_category: saveDictCat })
         .then(function(res) {
           if (res.error) { toast(res.error, 'error'); return; }
-          var items = allItems[currentCat] || [];
-          for (var i = 0; i < items.length; i++) {
-            if (items[i].id === editingId) {
-              items[i] = Object.assign(items[i], res);
-              items[i].dict_category = dictCat;
-              items[i].unit_display = unitLabel(unit); break;
+          var arr = allItems['raw_material'] || [];
+          for (var i = 0; i < arr.length; i++) {
+            if (arr[i].id === editingId) {
+              arr[i] = Object.assign(arr[i], res);
+              arr[i].dict_category = saveDictCat;
+              arr[i].unit_display = unitLabel(unit); break;
             }
           }
           cancelEdit(); renderDictCatBar(); render(); toast('آیتم ویرایش شد', 'success');
         }).catch(function() { toast('خطا در ارتباط', 'error'); });
     } else {
-      api(URL_DICT_CREATE, 'POST', { name: name, unit: unit, category: currentCat, description: desc, dict_category: dictCat })
+      api(URL_DICT_CREATE, 'POST', { name: name, unit: unit, category: saveCategory, description: desc, dict_category: saveDictCat })
         .then(function(res) {
           if (res.error) { toast(res.error, 'error'); return; }
-          if (!res.dict_category) res.dict_category = dictCat;
+          if (!res.dict_category) res.dict_category = saveDictCat;
           if (!res.unit_display)  res.unit_display  = unitLabel(unit);
-          if (!allItems[currentCat]) allItems[currentCat] = [];
-          allItems[currentCat].push(res);
+          var targetCat = res.category || saveCategory;
+          if (!allItems[targetCat]) allItems[targetCat] = [];
+          allItems[targetCat].push(res);
           updateStats(); renderDictCatBar(); render();
           nameEl.value = ''; descEl.value = ''; unitEl.value = '';
           selectedDictCat = ''; customUnitWrap.style.display = 'none';
@@ -1410,8 +1464,8 @@ var PageDict = (function() {
   }
 
   function edit(id) {
-    var items = allItems[currentCat] || [];
-    var item = items.find(function(x) { return x.id === id; });
+    var arr = (currentCat === 'packaging') ? (allItems['raw_material'] || []) : (allItems[currentCat] || []);
+    var item = arr.find(function(x) { return x.id === id; });
     if (!item) return;
     editingId = id;
     nameEl.value = item.name; descEl.value = item.description || '';
@@ -1442,7 +1496,7 @@ var PageDict = (function() {
     if (!confirm('آیا از حذف این آیتم مطمئنید؟')) return;
     api('/api/dictionary/' + id + '/delete/', 'POST').then(function(res) {
       if (res.error) { toast(res.error, 'error'); return; }
-      allItems[currentCat] = (allItems[currentCat] || []).filter(function(x) { return x.id !== id; });
+      allItems['raw_material'] = (allItems['raw_material'] || []).filter(function(x) { return x.id !== id; });
       if (editingId === id) cancelEdit();
       updateStats(); renderDictCatBar(); render(); toast('آیتم حذف شد', 'success');
     }).catch(function() { toast('خطا در ارتباط', 'error'); });
@@ -1470,7 +1524,7 @@ var PageDict = (function() {
     if (!f) return;
     editingFoodId = id;
     foodNameEl.value = f.name;
-    selectedFoodCat = f.category_id;
+    selectedFoodCat = Number(f.category_id);
     renderFoodCatDropdown();
     foodAddBtn.innerHTML = '<i class="bi bi-check-lg"></i> ذخیره';
     foodAddBtn.classList.add('editing'); foodCancel.style.display = '';

@@ -9,7 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET
 
 from ..models import (
-    Recipe, RecipeIngredient, InventoryMovement,
+    Recipe, RecipeIngredient, RecipePackagingItem, InventoryMovement,  # ★ جدید
     RawMaterial, SemiFinished, Food, Order,
 )
 from ..recipe_serializers import (
@@ -31,7 +31,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Recipe.objects.select_related('food').prefetch_related(
-            'ingredients__raw_material', 'semi_finished_items__semi_finished',
+            'ingredients__raw_material',
+            'semi_finished_items__semi_finished',
+            'packaging_items__raw_material',  # ★ جدید
         ).filter(is_active=True)
         search = self.request.query_params.get('search')
         if search:
@@ -205,14 +207,24 @@ def food_suggestions_view(request):
     return JsonResponse(data, safe=False)
 
 
+# ★ اصلاح‌شده — فیلتر material_type اضافه شد
 @csrf_exempt
 @require_GET
 def raw_material_suggestions_api(request):
     query = request.GET.get('q', '').strip()
-    if not query:
-        materials = RawMaterial.objects.all().values('id', 'name', 'unit', 'price', 'quantity')[:50]
-    else:
-        materials = RawMaterial.objects.filter(name__icontains=query).values('id', 'name', 'unit', 'price', 'quantity')[:15]
+    mat_type = request.GET.get('type', '').strip()  # ★ جدید: raw یا packaging
+
+    qs = RawMaterial.objects.all()
+
+    # ★ فیلتر نوع ماده
+    if mat_type:
+        qs = qs.filter(material_type=mat_type)
+
+    if query:
+        qs = qs.filter(name__icontains=query)
+
+    materials = qs.values('id', 'name', 'unit', 'price', 'quantity')[:100]
+
     unit_map = dict(RawMaterial.UNIT_CHOICES)
     data = [{
         'id': m['id'], 'name': m['name'], 'unit': m['unit'],

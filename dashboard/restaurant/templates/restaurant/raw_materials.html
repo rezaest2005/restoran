@@ -289,6 +289,13 @@ body { font-family: 'Vazirmatn', sans-serif; background: var(--rm-bg); color: va
                 <option value="pack">بسته</option>
             </select>
         </div>
+        <div class="rm-field">
+            <label>نوع ماده</label>
+            <select id="rm-m-type">
+                <option value="raw">ماده اولیه</option>
+                <option value="packaging">بسته‌بندی و جعبه</option>
+            </select>
+        </div>
         <div class="rm-btns">
             <button class="rm-save" id="rm-modal-save">ذخیره</button>
             <button class="rm-cancel" id="rm-modal-cancel">انصراف</button>
@@ -361,7 +368,7 @@ body { font-family: 'Vazirmatn', sans-serif; background: var(--rm-bg); color: va
             </thead>
             <tbody id="rm-tbody">
                 {% for m in materials %}
-                <tr data-id="{{ m.pk }}" data-name="{{ m.name }}" data-label="{{ m.label }}" data-price="{{ m.price }}" data-qty="{{ m.quantity }}" data-unit="{{ m.unit }}">
+                <tr data-id="{{ m.pk }}" data-name="{{ m.name }}" data-label="{{ m.label }}" data-price="{{ m.price }}" data-qty="{{ m.quantity }}" data-unit="{{ m.unit }}" data-material-type="{{ m.material_type }}">
                     <td style="font-weight:600;color:var(--rm-text-sec)">{{ forloop.counter }}</td>
                     <td style="font-weight:600">{{ m.name }}</td>
                     <td style="color:var(--rm-text-sec)">{{ m.label|default:"—" }}</td>
@@ -501,6 +508,7 @@ function rmOpenModal(title, data) {
     if (data) rmMPrice.dataset.rawValue = data.price;
     rmMQty.value = data ? data.qty : '';
     rmMUnit.value = data ? data.unit : 'unit';
+    document.getElementById('rm-m-type').value = data ? (data.material_type || 'raw') : 'raw';
     rmOverlay.classList.add('active');
     rmMName.focus();
 }
@@ -566,6 +574,7 @@ document.getElementById('rm-modal-save').addEventListener('click', function() {
     fd.append('price', rmMPrice.dataset.rawValue || rmStripCommas(rmMPrice.value) || 0);
     fd.append('quantity', rmMQty.value || 0);
     fd.append('unit', rmMUnit.value);
+    fd.append('material_type', document.getElementById('rm-m-type').value);
     fetch('/api/raw-materials/save/', {
         method: 'POST', body: fd,
         headers: { 'X-CSRFToken': rmGetCookie('csrftoken') }

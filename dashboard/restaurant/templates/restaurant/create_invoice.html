@@ -467,6 +467,18 @@
 .dict-empty svg { width: 40px; height: 40px; color: var(--border); margin-bottom: 8px; }
 .dict-empty p { font-size: .85rem; }
 
+/* ★ استایل هدر بخش بسته‌بندی */
+.dict-section-divider {
+    display: flex; align-items: center; gap: 10px;
+    margin: 20px 0 12px; font-size: .85rem; font-weight: 700;
+    color: var(--text-sec);
+}
+.dict-section-divider svg { width: 18px; height: 18px; color: #3b82f6; }
+.dict-section-divider::after {
+    content: ''; flex: 1; height: 1.5px;
+    background: var(--border);
+}
+
 @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes rowIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
@@ -646,12 +658,12 @@
         </button>
     </div>
 
-    <!-- ✅ لیست مواد اولیه از دیکشنری -->
+    <!-- ✅ بخش مواد اولیه از دیکشنری -->
     <div class="dict-items-section">
         <div class="dict-header-row">
             <div class="dict-count-label">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;vertical-align:-3px;margin-left:4px;color:var(--accent)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <span id="dict-count">۰</span> آیتم در دیکشنری — کلیک کنید تا اضافه شود
+                <span id="dict-count">۰</span> ماده اولیه — کلیک کنید تا اضافه شود
             </div>
         </div>
         <div class="dict-search-bar">
@@ -659,6 +671,19 @@
         </div>
         <div class="dict-cats-bar" id="dict-cats"></div>
         <div class="dict-grid" id="dict-grid">
+            <div class="dict-empty"><p>در حال بارگذاری...</p></div>
+        </div>
+
+        <!-- ★ بخش بسته‌بندی و جعبه -->
+        <div class="dict-section-divider">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+            بسته‌بندی و جعبه
+        </div>
+        <div class="dict-search-bar">
+            <input type="text" id="dict-pack-search" placeholder="جستجوی بسته‌بندی...">
+        </div>
+        <div class="dict-cats-bar" id="dict-pack-cats"></div>
+        <div class="dict-grid" id="dict-pack-grid">
             <div class="dict-empty"><p>در حال بارگذاری...</p></div>
         </div>
     </div>
@@ -730,8 +755,17 @@ var $ = function (id) { return document.getElementById(id); };
    ثابت‌ها + وضعیت
    ═══════════════════════════════════ */
 var dictItems = [];
+var dictItemsPack = [];      /* ★ آیتم‌های بسته‌بندی */
 var dictActiveCat = 'all';
+var dictActiveCatPack = 'all'; /* ★ فیلتر دسته بسته‌بندی */
 var dictQuery = '';
+var dictQueryPack = '';        /* ★ جستجوی بسته‌بندی */
+
+/* ★ کلیدهای بسته‌بندی برای جداسازی از مواد اولیه */
+var PACK_CATEGORY_KEYS = [
+    'packaging', 'box', 'container', 'cup', 'lid',
+    'bag', 'wrap', 'tray', 'paper'
+];
 
 var UNIT_OPTIONS = [
     { value: 'kg', label: 'کیلوگرم' }, { value: 'g', label: 'گرم' },
@@ -749,17 +783,28 @@ var DEFAULT_CATEGORIES = [
     { value: 'cleaning', label: 'بهداشت' }
 ];
 
+/* ★ دسته‌بندی‌های بسته‌بندی (از دیکشنری) */
+var PACK_SUBCATS = [
+    { value: 'packaging', label: 'بسته‌بندی' },
+    { value: 'box', label: 'جعبه' }, { value: 'container', label: 'ظرف' },
+    { value: 'cup', label: 'لیوان' }, { value: 'lid', label: 'درب' },
+    { value: 'bag', label: 'کیسه' }, { value: 'wrap', label: 'سلفون و فویل' },
+    { value: 'tray', label: 'سینی' }, { value: 'paper', label: 'کاغذ و برچسب' }
+];
+
 var CAT_COLORS = {
     protein:'#dc2626', dairy:'#2563eb', grain:'#ca8a04', oil:'#ea580c',
     spice:'#7c3aed', vegetable:'#16a34a', fruit:'#e11d48', canned:'#0891b2',
-    beverage:'#4f46e5', packaging:'#78716c', cleaning:'#64748b'
+    beverage:'#4f46e5', packaging:'#78716c', cleaning:'#64748b',
+    box:'#a16207', container:'#0d9488', cup:'#6366f1', lid:'#be185d',
+    bag:'#4d7c0f', wrap:'#0284c7', tray:'#9333ea', paper:'#b45309'
 };
 
 var SHAMSI_MONTHS = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
 var SHAMSI_DOW = ['ش','ی','د','س','چ','پ','ج'];
 
 var tbody, tableWrap, emptySt, form, badge, sumCount, sumTotal, rowIdx = 0;
-var formConfirming = false; // ★ فلگ: اجازه سابمیت واقعی فرم
+var formConfirming = false;
 
 /* ═══════════════════════════════════
    توابع کمکی
@@ -777,40 +822,55 @@ function bus(s) { return UNIT_OPTIONS.map(function(u){return '<option value="'+u
 function gul(v) { var u=UNIT_OPTIONS.find(function(o){return o.value===v;}); return u?u.label:v; }
 function gcl(v) {
     if (!v) return '—';
-
     for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
         if (DEFAULT_CATEGORIES[i].value === v) return DEFAULT_CATEGORIES[i].label;
     }
-
+    /* ★ جستجوی بسته‌بندی */
+    for (var i = 0; i < PACK_SUBCATS.length; i++) {
+        if (PACK_SUBCATS[i].value === v) return PACK_SUBCATS[i].label;
+    }
     for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
         if (DEFAULT_CATEGORIES[i].label === v) return DEFAULT_CATEGORIES[i].label;
     }
-
     for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
         if (DEFAULT_CATEGORIES[i].label.indexOf(v) !== -1) return DEFAULT_CATEGORIES[i].label;
         if (v.indexOf(DEFAULT_CATEGORIES[i].label) !== -1) return DEFAULT_CATEGORIES[i].label;
     }
-
     if (v.indexOf('cat_') === 0) return 'دسته‌بندی سفارشی';
-
     return v;
 }
 function gcb(v) {
     if (!v) return '#78716c';
+    if (CAT_COLORS[v]) return CAT_COLORS[v];
     for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
         if (DEFAULT_CATEGORIES[i].value === v) return CAT_COLORS[v] || '#78716c';
+    }
+    for (var i = 0; i < PACK_SUBCATS.length; i++) {
+        if (PACK_SUBCATS[i].value === v) return CAT_COLORS[v] || '#3b82f6';
     }
     for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
         if (DEFAULT_CATEGORIES[i].label === v) return CAT_COLORS[DEFAULT_CATEGORIES[i].value] || '#78716c';
     }
-    for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
-        if (DEFAULT_CATEGORIES[i].label.indexOf(v) !== -1 || v.indexOf(DEFAULT_CATEGORIES[i].label) !== -1) {
-            return CAT_COLORS[DEFAULT_CATEGORIES[i].value] || '#78716c';
-        }
-    }
     return '#78716c';
 }
 function hfi(e,dec) { var i=e.target,cp=i.selectionStart,ov=i.value; var r=dec?ov.replace(/[^\d.]/g,''):ov.replace(/[^\d]/g,''); if(dec){var fi=r.indexOf('.');if(fi!==-1)r=r.substring(0,fi+1)+r.substring(fi+1).replace(/\./g,'');} if(!r){i.value='';i.dataset.rawValue='0';var tr=i.closest('tr');if(tr)calcRow(tr);return;} var f=ac(r);i.value=f;i.dataset.rawValue=r;var df=f.length-ov.length;i.setSelectionRange(Math.max(0,cp+df),Math.max(0,cp+df));var row=i.closest('tr');if(row)calcRow(row); }
+
+/* ★ تشخیص بسته‌بندی بودن آیتم */
+function isPackItem(it) {
+    return PACK_CATEGORY_KEYS.indexOf(it.dict_category) !== -1;
+}
+
+function clearDictLink(row) {
+    var catInput = row.querySelector('[name="dict_category"]');
+    if (catInput) catInput.value = '';
+    var idInput = row.querySelector('[name="raw_material_id"]');
+    if (idInput) idInput.value = '';
+    var catSpan = row.querySelector('.cat-display');
+    if (catSpan) {
+        catSpan.dataset.catValue = '';
+        catSpan.innerHTML = '<span style="color:var(--text-sec);font-size:.82rem">—</span>';
+    }
+}
 
 /* ═══════════════════════════════════
    تاریخ شمسی
@@ -849,12 +909,23 @@ var shf=$('shamsi-field');if(shf)shf.addEventListener('click',function(e){if(!e.
 document.addEventListener('click',function(e){if(calOpen&&!e.target.closest('#shamsi-field'))closeCal();});
 
 /* ═══════════════════════════════════
-   اتوکمپلیت اقلام (از dictItems)
+   اتوکمپلیت اقلام (از dictItems + dictItemsPack)
    ═══════════════════════════════════ */
-function searchMat(q){q=(q||'').trim().toLowerCase();if(!q)return dictItems.slice();var s=[],c=[];for(var i=0;i<dictItems.length;i++){var nl=dictItems[i].name.toLowerCase();if(nl.indexOf(q)!==-1)(nl.indexOf(q)===0?s:c).push(dictItems[i]);}return s.concat(c);}
+function searchMat(q){
+    q=(q||'').trim().toLowerCase();
+    var all=dictItems.concat(dictItemsPack); /* ★ هر دو لیست */
+    if(!q)return all.slice();
+    var s=[],c=[];
+    for(var i=0;i<all.length;i++){
+        var nl=all[i].name.toLowerCase();
+        if(nl.indexOf(q)!==-1)(nl.indexOf(q)===0?s:c).push(all[i]);
+    }
+    return s.concat(c);
+}
 function hideDDs(){document.querySelectorAll('.item-autocomplete').forEach(function(d){d.style.display='none';d.innerHTML='';});}
 function mkDD(){var d=document.createElement('ul');d.className='item-autocomplete';document.body.appendChild(d);return d;}
 function posDD(dd,inp){var r=inp.getBoundingClientRect(),t=r.bottom+4,l=r.left,w=Math.max(r.width,320);if(l+w>window.innerWidth)l=window.innerWidth-w-10;if(t+260>window.innerHeight)t=r.top-264;dd.style.cssText='top:'+t+'px;left:'+l+'px;width:'+w+'px;right:auto;';}
+
 function showDD(dd,items,inp){
     dd.innerHTML='';
     if(!items.length){dd.innerHTML='<li class="ac-empty">موردی پیدا نشد</li>';posDD(dd,inp);dd.style.display='block';return;}
@@ -870,16 +941,35 @@ function showDD(dd,items,inp){
             var catSpan=row.querySelector('.cat-display');
             if(catSpan){
                 var lbl=gcl(it.dict_category), color=gcb(it.dict_category);
-                catSpan.innerHTML='<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:6px;font-size:11px;font-weight:700;background:'+color+'15;color:'+color+'"><span style="width:6px;height:6px;border-radius:50%;background:'+color+'"></span>'+esc(lbl)+'</span>';
+                catSpan.innerHTML=it.dict_category
+                    ?'<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:6px;font-size:11px;font-weight:700;background:'+color+'15;color:'+color+'"><span style="width:6px;height:6px;border-radius:50%;background:'+color+'"></span>'+esc(lbl)+'</span>'
+                    :'<span style="color:var(--text-sec);font-size:.82rem">—</span>';
                 catSpan.dataset.catValue=it.dict_category||'';
             }
+            var catInput=row.querySelector('[name="dict_category"]');
+            if(catInput) catInput.value=it.dict_category||'';
+            var idInput=row.querySelector('[name="raw_material_id"]');
+            if(idInput) idInput.value=it.id||'';
             dd.style.display='none';calcRow(row);
         });
         dd.appendChild(li);
     });
     posDD(dd,inp);dd.style.display='block';
 }
-function attachAC(inp){if(!inp||inp.dataset.acDone)return;inp.dataset.acDone='1';var dd=mkDD();var srch=debounce(function(){showDD(dd,searchMat(inp.value),inp);},50);inp.addEventListener('input',srch);inp.addEventListener('focus',function(){showDD(dd,searchMat(inp.value),inp);});inp.addEventListener('blur',function(){setTimeout(function(){dd.style.display='none';dd.innerHTML='';},250);});inp.addEventListener('keydown',function(e){if(e.key==='Escape'){dd.style.display='none';dd.innerHTML='';}});}
+
+function attachAC(inp){
+    if(!inp||inp.dataset.acDone)return;
+    inp.dataset.acDone='1';
+    var dd=mkDD();
+    var srch=debounce(function(){showDD(dd,searchMat(inp.value),inp);},50);
+    inp.addEventListener('input',function(e){
+        clearDictLink(this.closest('tr'));
+        srch();
+    });
+    inp.addEventListener('focus',function(){showDD(dd,searchMat(inp.value),inp);});
+    inp.addEventListener('blur',function(){setTimeout(function(){dd.style.display='none';dd.innerHTML='';},250);});
+    inp.addEventListener('keydown',function(e){if(e.key==='Escape'){dd.style.display='none';dd.innerHTML='';}});
+}
 document.addEventListener('scroll',hideDDs,true);
 
 /* ═══════════════════════════════════
@@ -898,7 +988,10 @@ function addRow(data){
         +'</span>';
 
     tr.innerHTML='<td class="row-num"></td>'
-        +'<td><input type="text" name="item_name" value="'+esc(data.item_name||'')+'" placeholder="نام کالا..." required autocomplete="off"></td>'
+        +'<td><input type="text" name="item_name" value="'+esc(data.item_name||'')+'" placeholder="نام کالا..." required autocomplete="off">'
+        +'<input type="hidden" name="dict_category" value="'+esc(data.dict_category||'')+'">'
+        +'<input type="hidden" name="raw_material_id" value="'+(data.id?esc(String(data.id)):'')+'">'
+        +'</td>'
         +'<td style="text-align:center">'+catHtml+'</td>'
         +'<td><input type="text" name="quantity" value="'+dq+'" placeholder="مقدار بده" inputmode="decimal" data-raw-value="'+rq+'"></td>'
         +'<td><select name="unit">'+bus(data.unit||'unit')+'</select></td>'
@@ -990,7 +1083,7 @@ function osm(name){var m=$('supplier-modal');if(!m)return;var nf=$('sm-name');if
 function csm(){var m=$('supplier-modal');if(m)m.classList.remove('active');}
 
 /* ═══════════════════════════════════
-   مودال پیش‌نمایش + ★ سابمیت واقعی
+   مودال پیش‌نمایش + سابمیت واقعی
    ═══════════════════════════════════ */
 var pm=$('preview-modal'),ptb=$('preview-tbody'),psrc='';
 function op(src){
@@ -1018,7 +1111,6 @@ function cp(){if(pm)pm.classList.remove('active');}
 bind('modal-close-btn','click',cp);bind('modal-back-btn','click',cp);
 if(pm)pm.addEventListener('click',function(e){if(e.target===pm)cp();});
 
-/* ★ تأیید نهایی — سابمیت واقعی فرم */
 bind('modal-confirm-btn','click',function(){
     document.querySelectorAll('.item-row').forEach(function(tr){
         var q=tr.querySelector('[name="quantity"]'),p=tr.querySelector('[name="unit_price"]');
@@ -1026,23 +1118,23 @@ bind('modal-confirm-btn','click',function(){
         if(p&&p.dataset.rawValue)p.value=p.dataset.rawValue;
     });
     cp();
-    formConfirming = true;  /* ★ فلگ: اجازه سابمیت واقعی */
+    formConfirming = true;
     if(form) form.submit();
 });
 
 bind('preview-btn','click',function(){op('preview');});
 
 /* ═══════════════════════════════════════════════════════════
-   دیکشنری مواد اولیه — از API (فقط خوندنی)
+   ★ دیکشنری مواد اولیه + بسته‌بندی — از API
    ═══════════════════════════════════════════════════════════ */
 function loadDict() {
     var grid = $('dict-grid');
-    if (grid) grid.innerHTML = '<div class="dict-loading" style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-sec)"><p>در حال بارگذاری...</p></div>';
+    if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-sec)"><p>در حال بارگذاری...</p></div>';
 
     fetch('/api/dictionary/raw-materials/', { headers: { 'X-CSRFToken': gc('csrftoken') } })
     .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(function (data) {
-        dictItems = (data.items || []).map(function (it) {
+        var all = (data.items || []).map(function (it) {
             return {
                 id:            it.id,
                 name:          it.name,
@@ -1051,54 +1143,23 @@ function loadDict() {
                 description:   it.description || ''
             };
         });
+
+        /* ★ جداسازی مواد اولیه از بسته‌بندی */
+        dictItems = all.filter(function (it) { return !isPackItem(it); });
+        dictItemsPack = all.filter(function (it) { return isPackItem(it); });
+
         renderDictAll();
+        renderPackAll();
     })
     .catch(function (err) {
         console.warn('Dictionary API error:', err);
-        var g = $('dict-grid');
-        if (g) g.innerHTML = '<div class="dict-empty"><p>خطا در بارگذاری مواد اولیه</p></div>';
+        if ($('dict-grid')) $('dict-grid').innerHTML = '<div class="dict-empty"><p>خطا در بارگذاری مواد اولیه</p></div>';
+        if ($('dict-pack-grid')) $('dict-pack-grid').innerHTML = '<div class="dict-empty"><p>خطا در بارگذاری</p></div>';
         toast('خطا در بارگذاری دیکشنری', 'error');
     });
 }
 
-/* ★ تابع تبدیل: هر فرمتی → value استاندارد */
-function resolveCategory(rawCat, catMap) {
-    if (!rawCat) return '';
-
-    /* تلاش ۱: مچ مستقیم با value (مثلاً protein, oil) */
-    for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
-        if (DEFAULT_CATEGORIES[i].value === rawCat) return rawCat;
-    }
-
-    /* تلاش ۲: مچ با label (مثلاً پروتئینی, روغن و چربی) */
-    for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
-        if (DEFAULT_CATEGORIES[i].label === rawCat) return DEFAULT_CATEGORIES[i].value;
-    }
-
-    /* تلاش ۳: مچ جزئی با label (مثلاً غلات → غلات و حبوبات) */
-    for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
-        if (DEFAULT_CATEGORIES[i].label.indexOf(rawCat) !== -1 || rawCat.indexOf(DEFAULT_CATEGORIES[i].label) !== -1) {
-            return DEFAULT_CATEGORIES[i].value;
-        }
-    }
-
-    /* تلاش ۴: resolve از طریق catMap (مثلاً cat_1785 → سبزیجات → vegetable) */
-    if (catMap[rawCat]) {
-        var resolvedLabel = catMap[rawCat];
-        for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
-            if (DEFAULT_CATEGORIES[i].label === resolvedLabel ||
-                DEFAULT_CATEGORIES[i].label.indexOf(resolvedLabel) !== -1 ||
-                resolvedLabel.indexOf(DEFAULT_CATEGORIES[i].label) !== -1) {
-                return DEFAULT_CATEGORIES[i].value;
-            }
-        }
-        /* اگه لیبل پیدا شد ولی با DEFAULT_CATEGORIES مچ نشد، همون لیبل رو برگردون */
-        return resolvedLabel;
-    }
-
-    return ''; /* هیچی پیدا نشد */
-}
-
+/* ── مواد اولیه ── */
 function filteredItems() {
     var items = dictItems;
     if (dictActiveCat !== 'all') { var c = dictActiveCat; items = items.filter(function (m) { return m.dict_category === c; }); }
@@ -1147,7 +1208,7 @@ function renderDictGrid(id) {
             var id = this.dataset.id;
             var m = dictItems.find(function (x) { return String(x.id) === String(id); });
             if (!m) return;
-            addRow({ item_name: m.name, unit: m.unit, dict_category: m.dict_category, quantity: '', unit_price: '' });
+            addRow({ item_name: m.name, unit: m.unit, dict_category: m.dict_category, quantity: '', unit_price: '', id: m.id });
             toast('«' + m.name + '» اضافه شد — قیمت واحد را وارد کنید.');
             this.classList.add('dc-added');
             var self = this;
@@ -1163,6 +1224,76 @@ function renderDictAll() {
     renderDictCats('dict-cats'); renderDictGrid('dict-grid'); updateDictCount('dict-count');
 }
 
+/* ── ★ بسته‌بندی و جعبه ── */
+function filteredPackItems() {
+    var items = dictItemsPack;
+    if (dictActiveCatPack !== 'all') { var c = dictActiveCatPack; items = items.filter(function (m) { return m.dict_category === c; }); }
+    if (dictQueryPack) { var q = dictQueryPack.toLowerCase(); items = items.filter(function (m) { return m.name.toLowerCase().indexOf(q) !== -1; }); }
+    return items;
+}
+
+function renderPackCats() {
+    var el = $('dict-pack-cats'); if (!el) return;
+    var h = '<button type="button" class="dict-cat-pill' + (dictActiveCatPack === 'all' ? ' active' : '') + '" data-cat="all">همه <span class="pill-count">' + pn(dictItemsPack.length) + '</span></button>';
+
+    /* فقط دسته‌بندی‌هایی که آیتم دارن */
+    var usedCats = {};
+    dictItemsPack.forEach(function (m) { if (m.dict_category) usedCats[m.dict_category] = true; });
+
+    PACK_SUBCATS.forEach(function (cat) {
+        if (!usedCats[cat.value]) return;
+        var count = dictItemsPack.filter(function (m) { return m.dict_category === cat.value; }).length;
+        var color = CAT_COLORS[cat.value] || '#3b82f6', active = dictActiveCatPack === cat.value;
+        h += '<button type="button" class="dict-cat-pill' + (active ? ' active' : '') + '" data-cat="' + cat.value + '"' + (active ? ' style="background:' + color + ';border-color:' + color + '"' : '') + '>' + esc(cat.label) + ' <span class="pill-count">' + pn(count) + '</span></button>';
+    });
+    el.innerHTML = h;
+    el.querySelectorAll('.dict-cat-pill').forEach(function (pill) {
+        pill.addEventListener('click', function () { dictActiveCatPack = this.dataset.cat; renderPackAll(); });
+    });
+}
+
+function renderPackGrid() {
+    var el = $('dict-pack-grid'); if (!el) return;
+    var items = filteredPackItems();
+    if (!items.length) {
+        el.innerHTML = '<div class="dict-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg><p>' + (dictItemsPack.length ? 'موردی پیدا نشد' : 'بسته‌بندی‌ای ثبت نشده') + '</p></div>';
+        return;
+    }
+    var h = '';
+    items.forEach(function (it) {
+        var color = CAT_COLORS[it.dict_category] || '#3b82f6';
+        h += '<div class="dict-card" data-id="' + it.id + '">'
+            + '<div class="dc-name">' + esc(it.name) + '</div>'
+            + '<div class="dc-meta">'
+            + '<span class="dc-cat-dot" style="background:' + color + '"></span>'
+            + '<span class="dc-cat-label">' + esc(gcl(it.dict_category)) + '</span>'
+            + '<span class="dc-unit-badge">' + esc(gul(it.unit)) + '</span>'
+            + '</div>'
+            + (it.description ? '<div class="dc-desc">' + esc(it.description) + '</div>' : '')
+            + '</div>';
+    });
+    el.innerHTML = h;
+    el.querySelectorAll('.dict-card').forEach(function (card) {
+        card.addEventListener('click', function () {
+            var id = this.dataset.id;
+            var m = dictItemsPack.find(function (x) { return String(x.id) === String(id); });
+            if (!m) return;
+            addRow({ item_name: m.name, unit: m.unit, dict_category: m.dict_category, quantity: '', unit_price: '', id: m.id });
+            toast('«' + m.name + '» اضافه شد — قیمت واحد را وارد کنید.');
+            this.classList.add('dc-added');
+            var self = this;
+            setTimeout(function () { self.classList.remove('dc-added'); }, 800);
+            if (tableWrap) setTimeout(function () { tableWrap.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
+        });
+    });
+}
+
+function renderPackAll() {
+    renderPackCats(); renderPackGrid();
+    var el = $('dict-pack-count');
+    if (el) el.textContent = pn(filteredPackItems().length);
+}
+
 /* ═══════════════════════════════════
    رویدادهای سراسری
    ═══════════════════════════════════ */
@@ -1173,25 +1304,21 @@ bind('add-row-btn', 'click', function () { addRow(); });
 bind('isb-toggle', 'click', function () { var s = $('items-sidebar'); if (s) s.classList.toggle('visible'); });
 bind('reset-btn', 'click', function () { if (!confirm('پاک شود؟')) return; if (tbody) tbody.innerHTML = ''; rowIdx = 0; refresh(); toast('پاک شد.'); });
 
-/* ★ هندلر submit فرم — با فلگ formConfirming */
 if (form) form.addEventListener('submit', function (e) {
-    if (formConfirming) {
-        /* ★ از مودال تأیید اومده → فرم واقعاً POST بشه → صفحه رفرش */
-        return;
-    }
-    /* ★ از دکمه ثبت اومده → فقط مودال رو باز کن */
+    if (formConfirming) { return; }
     e.preventDefault();
     var gd = $('gregorian-date');
-    if (!gd || !gd.value) {
-        toast('تاریخ الزامی.', 'error');
-        openCal();
-        return;
-    }
+    if (!gd || !gd.value) { toast('تاریخ الزامی.', 'error'); openCal(); return; }
     op('submit');
 });
 
+/* ★ جستجوی مواد اولیه */
 var dsEl = $('dict-search');
 if (dsEl) dsEl.addEventListener('input', function () { dictQuery = this.value; renderDictAll(); });
+
+/* ★ جستجوی بسته‌بندی */
+var dsPackEl = $('dict-pack-search');
+if (dsPackEl) dsPackEl.addEventListener('input', function () { dictQueryPack = this.value; renderPackAll(); });
 
 document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
@@ -1206,7 +1333,7 @@ document.addEventListener('keydown', function (e) {
 initCal();
 loadDict();
 
-console.log('✅ Invoice script loaded — formConfirming mode');
+console.log('✅ Invoice script loaded — with packaging support');
 });
 </script>
 {% endblock %}

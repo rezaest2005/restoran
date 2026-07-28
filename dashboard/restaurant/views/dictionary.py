@@ -28,7 +28,8 @@ def dictionary_list(request):
         'id': item.id, 'name': item.name, 'unit': item.unit,
         'unit_display': item.get_unit_display(),
         'description': item.description or '', 'category': item.category,
-        'dict_category': item.dict_category or '',  
+        'dict_category': item.dict_category or '',
+                'material_type': getattr(item, 'material_type', 'raw') or 'raw',  
     } for item in qs]
     return JsonResponse({'items': data})
 
@@ -57,7 +58,8 @@ def dictionary_autocomplete(request):
         'id': item.id, 'name': item.name, 'unit': item.unit,
         'unit_display': item.get_unit_display(),
         'description': item.description or '',
-        'dict_category': item.dict_category or '',  
+        'dict_category': item.dict_category or '',
+                'material_type': getattr(item, 'material_type', 'raw') or 'raw',  
     } for item in qs]
     return JsonResponse({'items': data})
 
@@ -74,7 +76,8 @@ def dictionary_create(request):
     unit          = (data.get('unit') or '').strip()
     category      = (data.get('category') or '').strip()
     desc          = (data.get('description') or '').strip()
-    dict_category = (data.get('dict_category') or '').strip() 
+    dict_category = (data.get('dict_category') or '').strip()
+    material_type = (data.get('material_type') or 'raw').strip() 
 
     if not name or not unit or not category:
         return JsonResponse({'error': 'نام، واحد و دسته‌بندی الزامی است'}, status=400)
@@ -92,7 +95,8 @@ def dictionary_create(request):
         item = ItemDictionary.objects.create(
             name=name, unit=unit, category=category,
             description=desc, restaurant=restaurant,
-            dict_category=dict_category,              
+            dict_category=dict_category,
+                material_type=material_type,              
         )
 
         return JsonResponse({
@@ -130,6 +134,7 @@ def dictionary_update(request, pk):
         item.description = (data['description'] or '').strip()
     if 'dict_category' in data:                         
         item.dict_category = (data['dict_category'] or '').strip()
+        item.material_type = (data.get('material_type') or 'raw').strip()
 
     item.save()
 
@@ -138,6 +143,7 @@ def dictionary_update(request, pk):
         'unit_display': item.get_unit_display(),
         'description': item.description or '',
         'dict_category': item.dict_category or '',      
+        'material_type': getattr(item, 'material_type', 'raw') or 'raw',
     })
 
 
