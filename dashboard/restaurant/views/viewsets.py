@@ -11,6 +11,7 @@ from ..models import (
     MembershipLevel, CustomerProfile, Coupon, Reward, Referral,
     LoyaltyNotification, LoyaltyTransaction, LoyaltyWallet,
     RewardRedemption,
+    PackagingMaterial,  
 )
 from ..serializers import (
     CategorySerializer, FoodSerializer, TableSerializer,
@@ -29,6 +30,7 @@ from ..serializers import (
     WalletSerializer, WalletTransactionSerializer,
     WalletDepositSerializer, WalletDebitSerializer,
     ProfileSerializer,
+    PackagingMaterialSerializer,  
 )
 from ..services import (
     register_customer, earn_points_for_order, redeem_points,
@@ -387,3 +389,31 @@ class RewardRedemptionViewSet(viewsets.ReadOnlyModelViewSet):
         if phone:
             qs = qs.filter(customer__phone=phone)
         return qs
+
+
+# ═══════════════ ★ جدید: Packaging Material ═══════════════
+
+class PackagingMaterialViewSet(viewsets.ModelViewSet):
+    serializer_class = PackagingMaterialSerializer
+
+    def get_queryset(self):
+        qs = PackagingMaterial.objects.filter(is_active=True)
+        rid = getattr(self.request, 'restaurant_id', None) or \
+              getattr(getattr(self.request, 'user', None), 'restaurant_id', None)
+        if rid:
+            qs = qs.filter(restaurant_id=rid)
+        q = self.request.query_params.get('q', '').strip()
+        if q:
+            qs = qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
+        return qs.order_by('name')
+
+    def perform_create(self, serializer):
+        rid = getattr(self.request, 'restaurant_id', None) or \
+              getattr(getattr(self.request, 'user', None), 'restaurant_id', None)
+        serializer.save(restaurant_id=rid)
+
+    @action(detail=False, methods=['get'])
+    def suggest(self, request):
+        qs = self.get_queryset()
+        data = self.get_serializer(qs, many=True).data
+        return Response(data)

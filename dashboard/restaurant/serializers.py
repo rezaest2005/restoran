@@ -9,6 +9,7 @@ from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.contrib.auth import password_validation
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from .models import PackagingMaterial
 
 from .models import (
     Category, Food, Table, Reservation, Order, OrderItem,
@@ -1367,3 +1368,17 @@ class ProduceSerializer(serializers.Serializer):
         if value != round(value, 2):
             raise serializers.ValidationError('حداکثر ۲ رقم اعشار مجاز است.')
         return value
+
+class PackagingMaterialSerializer(serializers.ModelSerializer):
+    unit_display = serializers.CharField(
+        source='get_unit_display', read_only=True
+    )
+
+    class Meta:
+        model = PackagingMaterial
+        fields = [
+            'id', 'name', 'unit', 'unit_display',
+            'quantity', 'price', 'description',
+            'is_active', 'created_at'
+        ]
+        read_only_fields = ['id', 'created_at']

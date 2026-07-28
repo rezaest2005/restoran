@@ -15,6 +15,7 @@ from django.db.models import F
 from django.utils import timezone
 
 from ..models import (
+    ItemDictionary,
     Category, Food, KitchenProduct, RawMaterial,
     ReadyMaterial, SemiFinished, SemiFinishedIngredient,
     PurchaseInvoice, PurchaseInvoiceItem, Supplier,
@@ -69,6 +70,22 @@ VALID_WASTE_REASONS = [
 # ═══════════════════════════════════════════════════════════════════
 #  FOOD & DISCOUNT HELPERS
 # ═══════════════════════════════════════════════════════════════════
+
+
+def _detect_material_type(name, restaurant):
+    """Auto-detect material_type from dictionary"""
+    try:
+        dict_match = ItemDictionary.objects.filter(
+            restaurant=restaurant,
+            name__iexact=name,
+            category="raw_material",
+            dict_category="packaging",
+        ).first()
+        if dict_match:
+            return "packaging"
+    except Exception:
+        pass
+    return "raw"
 
 def _is_drink(name: str) -> bool:
     return any(k in name for k in _DRINK_KEYWORDS)
@@ -215,12 +232,16 @@ def _merge_warehouse_data() -> dict[str, dict]:
     return merged
 
 
-def _update_raw_material_stock(name: str, qty: float, unit: str, price: int):
+def _update_raw_material_stock(name: str, qty: float, unit: str, price: int, restaurant=None):
     mat = RawMaterial.objects.filter(name__iexact=name).first()
     if mat:
         old_stock = float(mat.quantity)
         mat.quantity = old_stock + float(qty)
         mat.price = price
+        if mat.material_type == 'raw':
+            _mt = _detect_material_type(name, restaurant)
+            if _mt == 'packaging':
+                mat.material_type = 'packaging'
         mat.save()
 
         InventoryMovement.objects.create(
@@ -233,8 +254,9 @@ def _update_raw_material_stock(name: str, qty: float, unit: str, price: int):
             notes='ثبت از فاکتور خرید',
         )
     else:
-        RawMaterial.objects.create(
-            name=name, label="", price=price, unit=unit, quantity=int(qty)
+        _mt = _detect_material_type(name, restaurant)
+        RawMaterial.objects.create(restaurant=restaurant,
+            name=name, label="", price=price, unit=unit, quantity=int(qty), material_type=_mt
         )
 
 
@@ -263,7 +285,7 @@ def _build_invoice_from_post(request) -> 'PurchaseInvoice':
     return invoice
 
 
-def _attach_invoice_items(invoice, post_data) -> int:
+def _attach_invoice_items(invoice, post_data, restaurant=None) -> int:
     item_names = post_data.getlist("item_name")
     quantities = post_data.getlist("quantity")
     units = post_data.getlist("unit")
@@ -300,7 +322,7 @@ def _attach_invoice_items(invoice, post_data) -> int:
                 unit_price=price,
                 category=category,
             )
-            _update_raw_material_stock(name, qty, unit, price)
+            _update_raw_material_stock(name, qty, unit, price, restaurant=restaurant)
             created += 1
 
     return created
@@ -465,8 +487,9 @@ def _get_or_sync_ingredients(sf) -> list[dict]:
                 if rm:
                     break
         if not rm:
-            rm = RawMaterial.objects.create(
-                name=name, label="", price=0, unit=unit_code, quantity=0
+            _mt = _detect_material_type(name, sf.restaurant)
+            rm = RawMaterial.objects.create(restaurant=sf.restaurant,
+                name=name, label="", price=0, unit=unit_code, quantity=0, material_type=_mt
             )
 
         sfi, _ = SemiFinishedIngredient.objects.get_or_create(

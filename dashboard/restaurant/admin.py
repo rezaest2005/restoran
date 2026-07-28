@@ -5,6 +5,7 @@ restaurant/admin.py — Multi-tenant Admin
 from django.contrib import admin
 from django.utils import timezone
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.template.response import TemplateResponse
 
 from .models import (
@@ -233,10 +234,10 @@ class RawMaterialAdmin(TenantModelAdmin):
     def stock_badge(self, obj):
         q = int(obj.quantity)
         if q <= 0:
-            return format_html('<span style="color:#e74c3c;font-weight:700;">تمام شده</span>')
+            return mark_safe('<span style="color:#e74c3c;font-weight:700;">تمام شده</span>')
         if q < 5:
-            return format_html('<span style="color:#f39c12;font-weight:700;">⚠ کمبود</span>')
-        return format_html('<span style="color:#2ecc71;">✓ موجود</span>')
+            return mark_safe('<span style="color:#f39c12;font-weight:700;">⚠ کمبود</span>')
+        return mark_safe('<span style="color:#2ecc71;">✓ موجود</span>')
     stock_badge.short_description = "وضعیت"
 
     @admin.action(description="صفر کردن موجودی")
@@ -1043,7 +1044,7 @@ class KitchenInventoryAdmin(TenantModelAdmin):
         if obj.is_low_stock:
             return format_html('<span style="color:#e74c3c;font-weight:700;">⚠ کمبود</span>')
         if obj.available_quantity > 0:
-            return format_html('<span style="color:#2ecc71;">✓ موجود</span>')
+            return mark_safe('<span style="color:#2ecc71;">✓ موجود</span>')
         return format_html('<span style="color:#95a5a6;">✗ ناموجود</span>')
     status_badge.short_description = "وضعیت"
 

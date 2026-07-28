@@ -13,11 +13,14 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_protect
 
+from .helpers import _detect_material_type
 from ..models import (
     Category, RawMaterial, SemiFinished, ReadyMaterial,
-    Food, Supplier, PurchaseInvoice, InventoryUsageLog,
+    Food, Supplier, PurchaseInvoice, PurchaseInvoiceItem,
+    InventoryUsageLog, InventoryMovement,
     Order, LoyaltyNotification, KitchenProduct, Recipe,
 )
 from .helpers import (
@@ -64,7 +67,7 @@ def logout_page(request: HttpRequest):
 @staff_member_required(login_url=LOGIN_URL)
 def purchase_invoice_list(request: HttpRequest):
     invoices = PurchaseInvoice.objects.all().order_by("-date")
-    return render(request, "restaurant/invoice_list.html", {"invoices": invoices})
+    return render(request, "restaurant/create_invoice.html", {"invoices": invoices})
 
 
 @staff_member_required(login_url=LOGIN_URL)
@@ -86,31 +89,55 @@ def create_purchase_invoice(request: HttpRequest):
 
     if request.method == 'POST':
         try:
-            supplier_name = request.POST.get('supplier_name', '').strip()
+            supplier_name  = request.POST.get('supplier_name', '').strip()
             invoice_number = request.POST.get('invoice_number', '').strip()
-            description = request.POST.get('description', '').strip()
+            description    = request.POST.get('description', '').strip()
 
             item_names  = request.POST.getlist('item_name')
             quantities  = request.POST.getlist('quantity')
             unit_prices = request.POST.getlist('unit_price')
             units       = request.POST.getlist('unit')
+            dict_cats   = request.POST.getlist('dict_category')
+            mat_ids     = request.POST.getlist('raw_material_id')
 
             if not item_names:
                 messages.error(request, 'هیچ کالایی وارد نشده.')
                 return redirect('create_invoice')
 
+            restaurant = getattr(request, 'restaurant', None)
+
+            # ═══ ۱. ذخیره تأمین‌کننده ═══
             if supplier_name:
                 Supplier.objects.get_or_create(
+                    restaurant=restaurant,
                     name__iexact=supplier_name,
-                    defaults={'name': supplier_name}
+                    defaults={'name': supplier_name},
                 )
+
+            # ═══ ۲. ساختن هدر فاکتور ═══
+            date_str = request.POST.get('date', '').strip()
+            try:
+                parts = date_str.split('-')
+                invoice_date = timezone.datetime(
+                    int(parts[0]), int(parts[1]), int(parts[2])
+                ).date()
+            except Exception:
+                invoice_date = timezone.now().date()
+
+            invoice = PurchaseInvoice.objects.create(
+                restaurant=restaurant,
+                supplier_name=supplier_name,
+                invoice_number=invoice_number,
+                date=invoice_date,
+                description=description,
+            )
 
             added = []
 
             with transaction.atomic():
                 for i in range(len(item_names)):
                     name = item_names[i].strip()
-                    if not name:
+                    if not name or 'جمع کل' in name:
                         continue
 
                     raw_qty   = quantities[i].replace(',', '') if i < len(quantities) else '0'
@@ -118,37 +145,83 @@ def create_purchase_invoice(request: HttpRequest):
                     qty   = Decimal(raw_qty or '0')
                     price = int(float(raw_price or 0))
                     unit  = units[i] if i < len(units) else 'unit'
+                    dict_cat = dict_cats[i] if i < len(dict_cats) else ''
+                    raw_id   = mat_ids[i] if i < len(mat_ids) else ''
 
                     if qty <= 0:
                         continue
 
-                    mat = RawMaterial.objects.filter(name__iexact=name).first()
+                    # ═══ ۳. پیدا کردن ماده اولیه ═══
+                    mat = None
+
+                    # تلاش ۱: با شناسه (از دیکشنری)
+                    if raw_id:
+                        try:
+                            mat = RawMaterial.objects.get(
+                                id=int(raw_id), restaurant=restaurant
+                            )
+                        except (RawMaterial.DoesNotExist, ValueError, TypeError):
+                            pass
+
+                    # تلاش ۲: با نام + رستوران
+                    if not mat:
+                        mat = RawMaterial.objects.filter(
+                            restaurant=restaurant, name__iexact=name
+                        ).first()
+
+                    # تلاش ۳: ساختن جدید
                     if mat:
+                        old_qty = mat.quantity
                         mat.quantity += qty
                         mat.price = price
+                        if mat.material_type == 'raw':
+                            _mt = _detect_material_type(name, restaurant)
+                            if _mt == 'packaging':
+                                mat.material_type = 'packaging'
                         mat.save()
                     else:
+                        _mt = _detect_material_type(name, restaurant)
                         mat = RawMaterial.objects.create(
+                            restaurant=restaurant,
                             name=name, label='', price=price,
-                            unit=unit, quantity=qty,
+                            unit=unit, quantity=qty, material_type=_mt,
                         )
+                        old_qty = Decimal('0')
 
                     added.append(f'{name} ({qty})')
 
-                    InventoryUsageLog.objects.create(
+                    # ═══ ۴. ثبت جابجایی انبار ═══
+                    InventoryMovement.objects.create(
+                        restaurant=restaurant,
                         raw_material=mat,
-                        usage_type='purchase',
-                        quantity_used=float(qty),
-                        reference=f'فاکتور خرید شماره {invoice_number or "—"}',
-                        note=f'تأمین‌کننده: {supplier_name or "—"} — {description or ""}',
+                        movement_type='in',
+                        quantity=qty,
+                        previous_stock=old_qty,
+                        new_stock=mat.quantity,
+                        reference_type='PurchaseInvoice',
+                        reference_id=invoice.id,
+                        notes=f'فاکتور خرید شماره {invoice_number or "—"} — تأمین‌کننده: {supplier_name or "—"}',
+                        created_by=request.user if request.user.is_authenticated else None,
+                    )
+
+                    # ═══ ۵. ثبت آیتم فاکتور ═══
+                    PurchaseInvoiceItem.objects.create(
+                        restaurant=restaurant,
+                        invoice=invoice,
+                        item_name=name,
+                        quantity=qty,
+                        unit=unit,
+                        unit_price=price,
+                        raw_material=mat,
                     )
 
             if added:
                 messages.success(request, f'فاکتور ثبت شد: {", ".join(added)}')
             else:
                 messages.warning(request, 'کالای معتبری ثبت نشد.')
+                invoice.delete()
 
-            return redirect('create_invoice')
+            return redirect('invoice_list')
 
         except Exception as exc:
             logger.exception('Error creating invoice')

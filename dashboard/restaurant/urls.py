@@ -24,6 +24,7 @@ router.register("loyalty-transactions", views.LoyaltyTransactionViewSet, basenam
 router.register("reward-redemptions",   views.RewardRedemptionViewSet,   basename="reward-redemption")
 router.register("recipes",              views.RecipeViewSet,             basename="recipe")
 router.register("inventory-movements",  views.InventoryMovementViewSet,  basename="inventory-movement")
+router.register("packaging-materials",  views.PackagingMaterialViewSet,  basename="packaging-material")  # ★ جدید
 
 urlpatterns = [
     # ── Auth ──

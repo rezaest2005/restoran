@@ -14,9 +14,10 @@ from django.views.decorators.http import require_POST
 
 from ..models import (
     RawMaterial, Supplier, SemiFinished, SemiFinishedIngredient,
-    ReadyMaterial, InventoryMovement, InventoryUsageLog,
+    ReadyMaterial, InventoryMovement, InventoryUsageLog, ItemDictionary,
 )
 from .helpers import (
+    _detect_material_type,
     _read_file_rows, _extract_items_from_rows,
     _get_or_sync_ingredients, _merge_warehouse_data,
 )
@@ -36,6 +37,18 @@ def raw_material_save(request: HttpRequest):
         price = int(float(request.POST.get("price", 0)))
         unit = request.POST.get("unit", "unit")
         quantity = int(float(request.POST.get("quantity", 0)))
+        material_type = request.POST.get("material_type", "raw").strip()
+
+        # Auto-detect packaging from dictionary
+        if material_type == "raw":
+            dict_match = ItemDictionary.objects.filter(
+                restaurant=request.restaurant,
+                name__iexact=name,
+                category="raw_material",
+                dict_category="packaging",
+            ).first()
+            if dict_match:
+                material_type = "packaging"
 
         if not name:
             return JsonResponse({"success": False, "error": "نام کالا الزامی است."})
@@ -51,10 +64,11 @@ def raw_material_save(request: HttpRequest):
             mat.price = price
             mat.unit = unit
             mat.quantity = quantity
+            mat.material_type = material_type
             mat.save()
             msg = "ویرایش شد."
         else:
-            mat = RawMaterial.objects.create(name=name, label=label, price=price, unit=unit, quantity=quantity)
+            mat = RawMaterial.objects.create(restaurant=request.restaurant,name=name, label=label, price=price, unit=unit, quantity=quantity, material_type=material_type)
             msg = "اضافه شد."
 
         return JsonResponse({
@@ -64,6 +78,7 @@ def raw_material_save(request: HttpRequest):
                 "price": int(mat.price), "unit": mat.unit,
                 "unit_display": mat.get_unit_display(),
                 "quantity": int(mat.quantity), "total": int(mat.total_price),
+                "material_type": mat.material_type,
             },
         })
     except Exception as exc:
@@ -214,10 +229,11 @@ def semi_finished_save(request: HttpRequest):
                 if ing_name:
                     mat = RawMaterial.objects.filter(name__iexact=ing_name).first()
                     if not mat:
-                        mat = RawMaterial.objects.create(
+                        _mt = _detect_material_type(ing_name, sf.restaurant)
+                        mat = RawMaterial.objects.create(restaurant=request.restaurant,
                             name=ing_name, label=ing.get("label", ""),
                             price=int(float(ing.get("price", 0))),
-                            unit=ing.get("unit", "kg"), quantity=0,
+                            unit=ing.get("unit", "kg"), quantity=0, material_type=_mt,
                         )
                     raw_id = mat.id
                 else:
