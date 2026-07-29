@@ -478,6 +478,28 @@
     content: ''; flex: 1; height: 1.5px;
     background: var(--border);
 }
+/* ═══ بخش‌های داینامیک دیکشنری ═══ */
+.dict-section-block {
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+.dict-section-block:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+.dict-section-head {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 10px; padding: 8px 0;
+}
+.dict-section-head svg { width: 18px; height: 18px; flex-shrink: 0; }
+.dict-section-head .dsh-label { font-size: .9rem; font-weight: 700; }
+.dict-section-head .dsh-count {
+    font-size: .72rem; font-weight: 600;
+    padding: 2px 10px; border-radius: 20px;
+    margin-right: auto;
+}
 
 @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes rowIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
@@ -658,35 +680,20 @@
         </button>
     </div>
 
-    <!-- ✅ بخش مواد اولیه از دیکشنری -->
-    <div class="dict-items-section">
+
+        <div class="dict-items-section">
         <div class="dict-header-row">
             <div class="dict-count-label">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;vertical-align:-3px;margin-left:4px;color:var(--accent)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <span id="dict-count">۰</span> ماده اولیه — کلیک کنید تا اضافه شود
+                مجموع <span id="dict-count">۰</span> قلم — کلیک کنید تا اضافه شود
             </div>
         </div>
-        <div class="dict-search-bar">
-            <input type="text" id="dict-search" placeholder="جستجوی مواد اولیه...">
-        </div>
-        <div class="dict-cats-bar" id="dict-cats"></div>
-        <div class="dict-grid" id="dict-grid">
-            <div class="dict-empty"><p>در حال بارگذاری...</p></div>
-        </div>
-
-        <!-- ★ بخش بسته‌بندی و جعبه -->
-        <div class="dict-section-divider">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-            بسته‌بندی و جعبه
-        </div>
-        <div class="dict-search-bar">
-            <input type="text" id="dict-pack-search" placeholder="جستجوی بسته‌بندی...">
-        </div>
-        <div class="dict-cats-bar" id="dict-pack-cats"></div>
-        <div class="dict-grid" id="dict-pack-grid">
-            <div class="dict-empty"><p>در حال بارگذاری...</p></div>
+        <div id="dict-sections-container">
+            <div style="text-align:center;padding:32px;color:var(--text-sec)"><p>در حال بارگذاری...</p></div>
         </div>
     </div>
+
+
 
     <div class="table-toolbar">
         <button type="button" class="btn-add" id="add-row-btn">
@@ -752,20 +759,9 @@ document.addEventListener('DOMContentLoaded', function () {
 var $ = function (id) { return document.getElementById(id); };
 
 /* ═══════════════════════════════════
-   ثابت‌ها + وضعیت
+   ثابت‌ها
    ═══════════════════════════════════ */
 var dictItems = [];
-var dictItemsPack = [];      /* ★ آیتم‌های بسته‌بندی */
-var dictActiveCat = 'all';
-var dictActiveCatPack = 'all'; /* ★ فیلتر دسته بسته‌بندی */
-var dictQuery = '';
-var dictQueryPack = '';        /* ★ جستجوی بسته‌بندی */
-
-/* ★ کلیدهای بسته‌بندی برای جداسازی از مواد اولیه */
-var PACK_CATEGORY_KEYS = [
-    'packaging', 'box', 'container', 'cup', 'lid',
-    'bag', 'wrap', 'tray', 'paper'
-];
 
 var UNIT_OPTIONS = [
     { value: 'kg', label: 'کیلوگرم' }, { value: 'g', label: 'گرم' },
@@ -783,7 +779,6 @@ var DEFAULT_CATEGORIES = [
     { value: 'cleaning', label: 'بهداشت' }
 ];
 
-/* ★ دسته‌بندی‌های بسته‌بندی (از دیکشنری) */
 var PACK_SUBCATS = [
     { value: 'packaging', label: 'بسته‌بندی' },
     { value: 'box', label: 'جعبه' }, { value: 'container', label: 'ظرف' },
@@ -799,6 +794,44 @@ var CAT_COLORS = {
     box:'#a16207', container:'#0d9488', cup:'#6366f1', lid:'#be185d',
     bag:'#4d7c0f', wrap:'#0284c7', tray:'#9333ea', paper:'#b45309'
 };
+
+var TAB_FIELD = 'group_slug';
+
+/* ★ همه چیز داینامیک از API ساخته میشه — هیچ hardcode نیست */
+var SECTIONS_META = {};
+var SECTIONS_ORDER = [];
+var SECTION_CATS = {};
+
+var FALLBACK_META = {
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
+    color: '#78716c',
+    searchPlaceholder: 'جستجو...'
+};
+
+var ICON_MAP = {
+    'bi-archive':     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
+    'bi-box':         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
+    'bi-box-seam':    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
+    'bi-cup':         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V8z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>',
+    'bi-search':      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+    'bi-egg':         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2C8 2 4 8 4 14a8 8 0 0 0 16 0c0-6-4-12-8-12z"/></svg>',
+    'bi-droplet':     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>',
+    'bi-leaf':        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66c.95-2.3 2.89-5.43 7.29-6.5"/><path d="M17 8c3-1 5-3 5-3s-2 5-5 8"/></svg>',
+    'bi-snow':        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"/><polyline points="8 6 12 2 16 6"/><polyline points="8 18 12 22 16 18"/><line x1="2" y1="12" x2="22" y2="12"/><polyline points="6 8 2 12 6 16"/><polyline points="18 8 22 12 18 16"/></svg>',
+    'bi-heart':       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+    'bi-cup-straw':   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 2h8l-1 9H9L8 2z"/><path d="M12 11v6"/><path d="M6 22h12"/><path d="M9 17h6l1 5H8l1-5z"/></svg>',
+    'bi-cart':        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>',
+};
+
+var DEFAULT_ICON = ICON_MAP['bi-archive'];
+
+function resolveIcon(iconStr) {
+    if (!iconStr) return DEFAULT_ICON;
+    if (iconStr.indexOf('<svg') === 0) return iconStr;
+    return ICON_MAP[iconStr] || DEFAULT_ICON;
+}
+
+var dictSections = {};
 
 var SHAMSI_MONTHS = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
 var SHAMSI_DOW = ['ش','ی','د','س','چ','پ','ج'];
@@ -825,7 +858,6 @@ function gcl(v) {
     for (var i = 0; i < DEFAULT_CATEGORIES.length; i++) {
         if (DEFAULT_CATEGORIES[i].value === v) return DEFAULT_CATEGORIES[i].label;
     }
-    /* ★ جستجوی بسته‌بندی */
     for (var i = 0; i < PACK_SUBCATS.length; i++) {
         if (PACK_SUBCATS[i].value === v) return PACK_SUBCATS[i].label;
     }
@@ -854,22 +886,13 @@ function gcb(v) {
     return '#78716c';
 }
 function hfi(e,dec) { var i=e.target,cp=i.selectionStart,ov=i.value; var r=dec?ov.replace(/[^\d.]/g,''):ov.replace(/[^\d]/g,''); if(dec){var fi=r.indexOf('.');if(fi!==-1)r=r.substring(0,fi+1)+r.substring(fi+1).replace(/\./g,'');} if(!r){i.value='';i.dataset.rawValue='0';var tr=i.closest('tr');if(tr)calcRow(tr);return;} var f=ac(r);i.value=f;i.dataset.rawValue=r;var df=f.length-ov.length;i.setSelectionRange(Math.max(0,cp+df),Math.max(0,cp+df));var row=i.closest('tr');if(row)calcRow(row); }
-
-/* ★ تشخیص بسته‌بندی بودن آیتم */
-function isPackItem(it) {
-    return PACK_CATEGORY_KEYS.indexOf(it.dict_category) !== -1;
-}
-
 function clearDictLink(row) {
     var catInput = row.querySelector('[name="dict_category"]');
     if (catInput) catInput.value = '';
     var idInput = row.querySelector('[name="raw_material_id"]');
     if (idInput) idInput.value = '';
     var catSpan = row.querySelector('.cat-display');
-    if (catSpan) {
-        catSpan.dataset.catValue = '';
-        catSpan.innerHTML = '<span style="color:var(--text-sec);font-size:.82rem">—</span>';
-    }
+    if (catSpan) { catSpan.dataset.catValue = ''; catSpan.innerHTML = '<span style="color:var(--text-sec);font-size:.82rem">—</span>'; }
 }
 
 /* ═══════════════════════════════════
@@ -909,11 +932,11 @@ var shf=$('shamsi-field');if(shf)shf.addEventListener('click',function(e){if(!e.
 document.addEventListener('click',function(e){if(calOpen&&!e.target.closest('#shamsi-field'))closeCal();});
 
 /* ═══════════════════════════════════
-   اتوکمپلیت اقلام (از dictItems + dictItemsPack)
+   اتوکمپلیت اقلام
    ═══════════════════════════════════ */
 function searchMat(q){
     q=(q||'').trim().toLowerCase();
-    var all=dictItems.concat(dictItemsPack); /* ★ هر دو لیست */
+    var all=dictItems;
     if(!q)return all.slice();
     var s=[],c=[];
     for(var i=0;i<all.length;i++){
@@ -1125,88 +1148,247 @@ bind('modal-confirm-btn','click',function(){
 bind('preview-btn','click',function(){op('preview');});
 
 /* ═══════════════════════════════════════════════════════════
-   ★ دیکشنری مواد اولیه + بسته‌بندی — از API
+   ★★★ دیکشنری داینامیک — همه چیز از API ساخته میشه ★★★
    ═══════════════════════════════════════════════════════════ */
+
 function loadDict() {
-    var grid = $('dict-grid');
-    if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-sec)"><p>در حال بارگذاری...</p></div>';
+    var container = $('dict-sections-container');
+    if (container) container.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text-sec)"><p>در حال بارگذاری...</p></div>';
 
     fetch('/api/dictionary/raw-materials/', { headers: { 'X-CSRFToken': gc('csrftoken') } })
     .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(function (data) {
-        var all = (data.items || []).map(function (it) {
-            return {
+
+        /* ★ ریست کامل — همه چیز از API ساخته میشه */
+        SECTIONS_META = {};
+        SECTIONS_ORDER = [];
+        SECTION_CATS = {};
+
+        /* ★ ساخت بخش‌ها از tabs */
+        if (data.tabs && data.tabs.length) {
+            data.tabs.forEach(function (t) {
+                var slug = t.slug;
+                if (!slug) return;
+                SECTIONS_ORDER.push(slug);
+                SECTIONS_META[slug] = {
+                    label: t.name || slug,
+                    icon: resolveIcon(t.icon),       /* ★ resolveIcon */
+                    color: t.color || FALLBACK_META.color,
+                    searchPlaceholder: 'جستجوی ' + (t.name || slug) + '...'
+                };
+            });
+        }
+
+        /* ★ توزیع آیتم‌ها بر اساس group_slug */
+        dictSections = {};
+        dictItems = [];
+
+        (data.items || []).forEach(function (it) {
+            var item = {
                 id:            it.id,
                 name:          it.name,
                 unit:          it.unit || 'unit',
                 dict_category: it.dict_category || '',
-                description:   it.description || ''
+                description:   it.description || '',
+                tab:           it[TAB_FIELD] || 'other'
             };
+            dictItems.push(item);
+
+            if (!dictSections[item.tab]) {
+                dictSections[item.tab] = { items: [], activeCat: 'all', query: '' };
+            }
+            dictSections[item.tab].items.push(item);
+
+            /* ★ جمع‌آوری خودکار دسته‌بندی‌ها */
+            if (item.dict_category && !SECTION_CATS[item.tab]) {
+                SECTION_CATS[item.tab] = [];
+            }
+            if (item.dict_category && SECTION_CATS[item.tab]) {
+                var exists = false;
+                for (var ci = 0; ci < SECTION_CATS[item.tab].length; ci++) {
+                    if (SECTION_CATS[item.tab][ci].value === item.dict_category) { exists = true; break; }
+                }
+                if (!exists) {
+                    SECTION_CATS[item.tab].push({ value: item.dict_category, label: gcl(item.dict_category) });
+                }
+            }
         });
 
-        /* ★ جداسازی مواد اولیه از بسته‌بندی */
-        dictItems = all.filter(function (it) { return !isPackItem(it); });
-        dictItemsPack = all.filter(function (it) { return isPackItem(it); });
+        /* ★ بخش‌های پیش‌بینی‌نشده */
+        Object.keys(dictSections).forEach(function (key) {
+            if (SECTIONS_ORDER.indexOf(key) === -1) SECTIONS_ORDER.push(key);
+            if (!SECTIONS_META[key]) {
+                /* fallback از اولین آیتم بخش */
+                var first = dictSections[key].items[0] || {};
+                SECTIONS_META[key] = {
+                    label: key,
+                    icon: resolveIcon(first._group_icon),
+                    color: first._group_color || FALLBACK_META.color,
+                    searchPlaceholder: 'جستجو...'
+                };
+            }
+        });
 
-        renderDictAll();
-        renderPackAll();
+        renderAllSections();
     })
     .catch(function (err) {
         console.warn('Dictionary API error:', err);
-        if ($('dict-grid')) $('dict-grid').innerHTML = '<div class="dict-empty"><p>خطا در بارگذاری مواد اولیه</p></div>';
-        if ($('dict-pack-grid')) $('dict-pack-grid').innerHTML = '<div class="dict-empty"><p>خطا در بارگذاری</p></div>';
+        if (container) container.innerHTML = '<div class="dict-empty"><p>خطا در بارگذاری دیکشنری</p></div>';
         toast('خطا در بارگذاری دیکشنری', 'error');
     });
 }
 
-/* ── مواد اولیه ── */
-function filteredItems() {
-    var items = dictItems;
-    if (dictActiveCat !== 'all') { var c = dictActiveCat; items = items.filter(function (m) { return m.dict_category === c; }); }
-    if (dictQuery) { var q = dictQuery.toLowerCase(); items = items.filter(function (m) { return m.name.toLowerCase().indexOf(q) !== -1; }); }
+/* ── رندر همه بخش‌ها ── */
+function renderAllSections() {
+    var container = $('dict-sections-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    var totalCount = 0;
+    var isFirst = true;
+
+    SECTIONS_ORDER.forEach(function (tabId) {
+        var sec = dictSections[tabId];
+        if (!sec || !sec.items.length) return;
+        totalCount += sec.items.length;
+        container.appendChild(buildSectionDOM(tabId, sec, isFirst));
+        isFirst = false;
+    });
+
+    Object.keys(dictSections).forEach(function (tabId) {
+        if (SECTIONS_ORDER.indexOf(tabId) !== -1) return;
+        var sec = dictSections[tabId];
+        if (!sec || !sec.items.length) return;
+        totalCount += sec.items.length;
+        container.appendChild(buildSectionDOM(tabId, sec, isFirst));
+        isFirst = false;
+    });
+
+    var countEl = $('dict-count');
+    if (countEl) countEl.textContent = pn(totalCount);
+}
+
+function buildSectionDOM(tabId, sec, isFirst) {
+    var meta = SECTIONS_META[tabId] || FALLBACK_META;
+    var color = meta.color || FALLBACK_META.color;
+    var div = document.createElement('div');
+    div.className = 'dict-section-block';
+    div.dataset.section = tabId;
+
+    var filtered = getFilteredItems(tabId);
+
+    var html = '';
+
+    if (isFirst) {
+        html += '<div class="dict-section-head" style="color:' + color + '">'
+            + (meta.icon || '')
+            + '<span class="dsh-label">' + esc(meta.label) + '</span>'
+            + '<span class="dsh-count" style="background:' + color + '15;color:' + color + '">'
+            + pn(sec.items.length) + ' قلم</span></div>';
+    } else {
+        html += '<div class="dict-section-divider" style="color:' + color + '">'
+            + (meta.icon || '') + ' ' + esc(meta.label) + '</div>';
+    }
+
+    html += '<div class="dict-search-bar"><input type="text" class="dict-search-input" data-section="' + tabId + '" placeholder="' + esc(meta.searchPlaceholder || 'جستجو...') + '" value="' + esc(sec.query) + '"></div>';
+
+    html += '<div class="dict-grid">' + _gridHTML(filtered) + '</div>';
+
+    div.innerHTML = html;
+
+    var searchInput = div.querySelector('.dict-search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', function () {
+            dictSections[tabId].query = this.value;
+            _refreshGrid(tabId);
+        });
+    }
+
+    _bindCards(div, tabId);
+
+    return div;
+}
+
+/* ── توابع کمکی بخش‌ها ── */
+function getCatsForSection(tabId) {
+    if (SECTION_CATS[tabId] && SECTION_CATS[tabId].length) return SECTION_CATS[tabId];
+    var sec = dictSections[tabId];
+    if (!sec) return [];
+    var map = {};
+    sec.items.forEach(function (it) { if (it.dict_category) map[it.dict_category] = true; });
+    return Object.keys(map).map(function (k) { return { value: k, label: gcl(k) }; });
+}
+
+function getFilteredItems(tabId) {
+    var sec = dictSections[tabId];
+    if (!sec) return [];
+    var items = sec.items;
+    if (sec.activeCat !== 'all') items = items.filter(function (m) { return m.dict_category === sec.activeCat; });
+    if (sec.query) { var q = sec.query.toLowerCase(); items = items.filter(function (m) { return m.name.toLowerCase().indexOf(q) !== -1; }); }
     return items;
 }
 
-function renderDictCats(id) {
-    var el = $(id); if (!el) return;
-    var h = '<button type="button" class="dict-cat-pill' + (dictActiveCat === 'all' ? ' active' : '') + '" data-cat="all">همه <span class="pill-count">' + pn(dictItems.length) + '</span></button>';
-    DEFAULT_CATEGORIES.forEach(function (cat) {
-        var count = dictItems.filter(function (m) { return m.dict_category === cat.value; }).length;
-        if (!count) return;
-        var color = CAT_COLORS[cat.value] || '#78716c', active = dictActiveCat === cat.value;
-        h += '<button type="button" class="dict-cat-pill' + (active ? ' active' : '') + '" data-cat="' + cat.value + '"' + (active ? ' style="background:' + color + ';border-color:' + color + '"' : '') + '>' + esc(cat.label) + ' <span class="pill-count">' + pn(count) + '</span></button>';
-    });
-    el.innerHTML = h;
-    el.querySelectorAll('.dict-cat-pill').forEach(function (pill) {
-        pill.addEventListener('click', function () { dictActiveCat = this.dataset.cat; renderDictAll(); });
-    });
+function _catPill(val, label, count, active, color) {
+    var style = active && color ? ' style="background:' + color + ';border-color:' + color + '"' : '';
+    return '<button type="button" class="dict-cat-pill' + (active ? ' active' : '') + '" data-cat="' + val + '"' + style + '>'
+        + esc(label) + ' <span class="pill-count">' + count + '</span></button>';
 }
 
-function renderDictGrid(id) {
-    var el = $(id); if (!el) return;
-    var items = filteredItems();
-    if (!items.length) {
-        el.innerHTML = '<div class="dict-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>موردی پیدا نشد</p></div>';
-        return;
-    }
+function _gridHTML(items) {
+    if (!items.length) return '<div class="dict-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><p>موردی پیدا نشد</p></div>';
     var h = '';
     items.forEach(function (it) {
-        var color = CAT_COLORS[it.dict_category] || '#78716c';
+        var c = CAT_COLORS[it.dict_category] || '#78716c';
         h += '<div class="dict-card" data-id="' + it.id + '">'
             + '<div class="dc-name">' + esc(it.name) + '</div>'
-            + '<div class="dc-meta">'
-            + '<span class="dc-cat-dot" style="background:' + color + '"></span>'
+            + '<div class="dc-meta"><span class="dc-cat-dot" style="background:' + c + '"></span>'
             + '<span class="dc-cat-label">' + esc(gcl(it.dict_category)) + '</span>'
-            + '<span class="dc-unit-badge">' + esc(gul(it.unit)) + '</span>'
-            + '</div>'
+            + '<span class="dc-unit-badge">' + esc(gul(it.unit)) + '</span></div>'
             + (it.description ? '<div class="dc-desc">' + esc(it.description) + '</div>' : '')
             + '</div>';
     });
-    el.innerHTML = h;
-    el.querySelectorAll('.dict-card').forEach(function (card) {
-        card.addEventListener('click', function () {
+    return h;
+}
+
+function _refreshGrid(tabId) {
+    var block = document.querySelector('.dict-section-block[data-section="' + tabId + '"]');
+    if (!block) return;
+    var grid = block.querySelector('.dict-grid');
+    if (!grid) return;
+    grid.innerHTML = _gridHTML(getFilteredItems(tabId));
+    _bindCards(block, tabId);
+}
+
+function _refreshCatsAndGrid(tabId) {
+    var block = document.querySelector('.dict-section-block[data-section="' + tabId + '"]');
+    if (!block) return;
+    var sec = dictSections[tabId];
+    var meta = SECTIONS_META[tabId] || FALLBACK_META;
+    var color = meta.color || FALLBACK_META.color;
+
+    block.querySelectorAll('.dict-cat-pill').forEach(function (pill) {
+        var isActive = pill.dataset.cat === sec.activeCat;
+        pill.classList.toggle('active', isActive);
+        if (isActive && sec.activeCat !== 'all') {
+            var cc = CAT_COLORS[sec.activeCat] || color;
+            pill.style.background = cc;
+            pill.style.borderColor = cc;
+        } else {
+            pill.style.background = '';
+            pill.style.borderColor = '';
+        }
+    });
+    _refreshGrid(tabId);
+}
+
+function _bindCards(container, tabId) {
+    if (!container) return;
+    container.querySelectorAll('.dict-card').forEach(function (card) {
+        card.onclick = function () {
             var id = this.dataset.id;
-            var m = dictItems.find(function (x) { return String(x.id) === String(id); });
+            var sec = dictSections[tabId];
+            if (!sec) return;
+            var m = sec.items.find(function (x) { return String(x.id) === String(id); });
             if (!m) return;
             addRow({ item_name: m.name, unit: m.unit, dict_category: m.dict_category, quantity: '', unit_price: '', id: m.id });
             toast('«' + m.name + '» اضافه شد — قیمت واحد را وارد کنید.');
@@ -1214,84 +1396,8 @@ function renderDictGrid(id) {
             var self = this;
             setTimeout(function () { self.classList.remove('dc-added'); }, 800);
             if (tableWrap) setTimeout(function () { tableWrap.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
-        });
+        };
     });
-}
-
-function updateDictCount(id) { var el = $(id); if (el) el.textContent = pn(filteredItems().length); }
-
-function renderDictAll() {
-    renderDictCats('dict-cats'); renderDictGrid('dict-grid'); updateDictCount('dict-count');
-}
-
-/* ── ★ بسته‌بندی و جعبه ── */
-function filteredPackItems() {
-    var items = dictItemsPack;
-    if (dictActiveCatPack !== 'all') { var c = dictActiveCatPack; items = items.filter(function (m) { return m.dict_category === c; }); }
-    if (dictQueryPack) { var q = dictQueryPack.toLowerCase(); items = items.filter(function (m) { return m.name.toLowerCase().indexOf(q) !== -1; }); }
-    return items;
-}
-
-function renderPackCats() {
-    var el = $('dict-pack-cats'); if (!el) return;
-    var h = '<button type="button" class="dict-cat-pill' + (dictActiveCatPack === 'all' ? ' active' : '') + '" data-cat="all">همه <span class="pill-count">' + pn(dictItemsPack.length) + '</span></button>';
-
-    /* فقط دسته‌بندی‌هایی که آیتم دارن */
-    var usedCats = {};
-    dictItemsPack.forEach(function (m) { if (m.dict_category) usedCats[m.dict_category] = true; });
-
-    PACK_SUBCATS.forEach(function (cat) {
-        if (!usedCats[cat.value]) return;
-        var count = dictItemsPack.filter(function (m) { return m.dict_category === cat.value; }).length;
-        var color = CAT_COLORS[cat.value] || '#3b82f6', active = dictActiveCatPack === cat.value;
-        h += '<button type="button" class="dict-cat-pill' + (active ? ' active' : '') + '" data-cat="' + cat.value + '"' + (active ? ' style="background:' + color + ';border-color:' + color + '"' : '') + '>' + esc(cat.label) + ' <span class="pill-count">' + pn(count) + '</span></button>';
-    });
-    el.innerHTML = h;
-    el.querySelectorAll('.dict-cat-pill').forEach(function (pill) {
-        pill.addEventListener('click', function () { dictActiveCatPack = this.dataset.cat; renderPackAll(); });
-    });
-}
-
-function renderPackGrid() {
-    var el = $('dict-pack-grid'); if (!el) return;
-    var items = filteredPackItems();
-    if (!items.length) {
-        el.innerHTML = '<div class="dict-empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg><p>' + (dictItemsPack.length ? 'موردی پیدا نشد' : 'بسته‌بندی‌ای ثبت نشده') + '</p></div>';
-        return;
-    }
-    var h = '';
-    items.forEach(function (it) {
-        var color = CAT_COLORS[it.dict_category] || '#3b82f6';
-        h += '<div class="dict-card" data-id="' + it.id + '">'
-            + '<div class="dc-name">' + esc(it.name) + '</div>'
-            + '<div class="dc-meta">'
-            + '<span class="dc-cat-dot" style="background:' + color + '"></span>'
-            + '<span class="dc-cat-label">' + esc(gcl(it.dict_category)) + '</span>'
-            + '<span class="dc-unit-badge">' + esc(gul(it.unit)) + '</span>'
-            + '</div>'
-            + (it.description ? '<div class="dc-desc">' + esc(it.description) + '</div>' : '')
-            + '</div>';
-    });
-    el.innerHTML = h;
-    el.querySelectorAll('.dict-card').forEach(function (card) {
-        card.addEventListener('click', function () {
-            var id = this.dataset.id;
-            var m = dictItemsPack.find(function (x) { return String(x.id) === String(id); });
-            if (!m) return;
-            addRow({ item_name: m.name, unit: m.unit, dict_category: m.dict_category, quantity: '', unit_price: '', id: m.id });
-            toast('«' + m.name + '» اضافه شد — قیمت واحد را وارد کنید.');
-            this.classList.add('dc-added');
-            var self = this;
-            setTimeout(function () { self.classList.remove('dc-added'); }, 800);
-            if (tableWrap) setTimeout(function () { tableWrap.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
-        });
-    });
-}
-
-function renderPackAll() {
-    renderPackCats(); renderPackGrid();
-    var el = $('dict-pack-count');
-    if (el) el.textContent = pn(filteredPackItems().length);
 }
 
 /* ═══════════════════════════════════
@@ -1312,14 +1418,6 @@ if (form) form.addEventListener('submit', function (e) {
     op('submit');
 });
 
-/* ★ جستجوی مواد اولیه */
-var dsEl = $('dict-search');
-if (dsEl) dsEl.addEventListener('input', function () { dictQuery = this.value; renderDictAll(); });
-
-/* ★ جستجوی بسته‌بندی */
-var dsPackEl = $('dict-pack-search');
-if (dsPackEl) dsPackEl.addEventListener('input', function () { dictQueryPack = this.value; renderPackAll(); });
-
 document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
         cp(); csm(); closeCal(); hideDDs();
@@ -1333,7 +1431,7 @@ document.addEventListener('keydown', function (e) {
 initCal();
 loadDict();
 
-console.log('✅ Invoice script loaded — with packaging support');
+console.log('✅ Invoice script loaded — fully dynamic sections');
 });
 </script>
 {% endblock %}

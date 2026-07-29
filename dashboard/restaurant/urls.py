@@ -94,10 +94,15 @@ urlpatterns = [
     path("api/dictionary/create/",              views.dictionary_create,         name="dictionary_create"),
     path("api/dictionary/<int:pk>/update/",     views.dictionary_update,         name="dictionary_update"),
     path("api/dictionary/<int:pk>/delete/",     views.dictionary_delete,         name="dictionary_delete"),
-    path("api/dictionary/raw-materials/",       views.dictionary_raw_materials,  name="dict_raw_materials"),
+    path("api/dictionary/raw-materials/",       views.raw_materials_api,         name="raw_materials_api"),
     path("api/dictionary/semi-finished/",       views.dictionary_semi_finished,  name="dict_semi_finished"),
     path("api/dictionary/ready-materials/",     views.dictionary_ready_materials, name="dict_ready_materials"),
     path("api/dictionary/food-menu/",           views.dictionary_food_menu,       name="dict_food_menu"),
+
+    # ── Dictionary Groups ──
+    path("api/dictionary/groups/",        views.dictionary_group_list,   name="dictionary_group_list"),
+    path("api/dictionary/groups/save/",   views.dictionary_group_save,   name="dictionary_group_save"),
+    path("api/dictionary/groups/delete/", views.dictionary_group_delete, name="dictionary_group_delete"),
 
     # ── Kitchen ──
     path("api/kitchen/dashboard/",                  views.kitchen_dashboard_api,              name="kitchen_dashboard"),
@@ -154,6 +159,7 @@ urlpatterns = [
     # ══════════════════════════════════════════════════════════════
     #  Pages (HTML)
     # ══════════════════════════════════════════════════════════════
+
 
     # صفحه ورود
     path("dashboard/",                              views.auth_page,                 name="auth_page"),
