@@ -24,7 +24,7 @@ router.register("loyalty-transactions", views.LoyaltyTransactionViewSet, basenam
 router.register("reward-redemptions",   views.RewardRedemptionViewSet,   basename="reward-redemption")
 router.register("recipes",              views.RecipeViewSet,             basename="recipe")
 router.register("inventory-movements",  views.InventoryMovementViewSet,  basename="inventory-movement")
-router.register("packaging-materials",  views.PackagingMaterialViewSet,  basename="packaging-material")  # ★ جدید
+router.register("packaging-materials",  views.PackagingMaterialViewSet,  basename="packaging-material")
 
 urlpatterns = [
     # ── Auth ──
@@ -69,13 +69,10 @@ urlpatterns = [
     path("api/suppliers/suggestions/",     views.supplier_suggestions,     name="supplier_suggestions"),
 
     # ── Warehouse & Inventory ──
-    path("api/invoices/parse-excel/",                  views.parse_excel_file,              name="parse_excel"),
-    path("api/usage-log/json/",                        views.usage_log_json,                name="usage_log_json"),
-    path("api/usage-log/detail/",                      views.usage_log_detail_json,         name="usage_log_detail"),
-    path("api/semi-finished/save/",                    views.semi_finished_save,            name="semi_finished_save"),
-    path("api/semi-finished/delete/",                  views.semi_finished_delete,          name="semi_finished_delete"),
-    path("api/semi-finished/<int:pk>/produce-detail/", views.semi_finished_produce_detail,  name="semi-finished-produce-detail"),
-    path("api/warehouse-json/",                        views.warehouse_json,                name="warehouse-json"),
+    path("api/invoices/parse-excel/",      views.parse_excel_file,              name="parse_excel"),
+    path("api/usage-log/json/",            views.usage_log_json,                name="usage_log_json"),
+    path("api/usage-log/detail/",          views.usage_log_detail_json,         name="usage_log_detail"),
+    path("api/warehouse-json/",            views.warehouse_json,                name="warehouse-json"),
     path("api/ready-materials/save/",          views.ready_material_save,         name="ready_material_save"),
     path("api/ready-materials/delete/",        views.ready_material_delete,       name="ready_material_delete"),
     path("api/ready-materials/update-price/",  views.ready_material_update_price, name="ready_material_update_price"),
@@ -158,13 +155,13 @@ urlpatterns = [
     #  Pages (HTML)
     # ══════════════════════════════════════════════════════════════
 
-    # ★ صفحه ورود
+    # صفحه ورود
     path("dashboard/",                              views.auth_page,                 name="auth_page"),
     path("dashboard/auth/",                         views.redirect_to_dashboard,     name="auth_redirect"),
     path("dashboard/app/",                          views.home,                      name="dashboard_app"),
     path("dashboard/logout/",                       views.logout_page,               name="logout_page"),
 
-    # ★ پنل مدیریت کلان (فقط superuser)
+    # پنل مدیریت کلان (فقط superuser)
     path("api/super/login/",                        views.super_admin_login_api,     name="super_admin_login_api"),
     path("api/super/logout/",                       views.super_admin_logout_api,    name="super_admin_logout_api"),
     path("dashboard/super/",                        views.super_admin_page,          name="super_admin"),
@@ -175,13 +172,12 @@ urlpatterns = [
     path("api/super/services/",                     views.super_services_list_api,   name="super_services_list_api"),
     path("api/super/users/",                        views.super_users_api,           name="super_users_api"),
 
-    # ★ سایر صفحات
+    # سایر صفحات
     path("dashboard/invoices/",                     views.purchase_invoice_list,     name="invoice_list"),
     path("dashboard/invoices/create/",              views.create_purchase_invoice,   name="create_invoice"),
     path("dashboard/invoices/create/view/",         views.create_invoice_view,       name="create_invoice_view"),
     path("dashboard/invoices/<int:pk>/",            views.purchase_invoice_detail,   name="invoice_detail"),
     path("dashboard/raw-materials/",                views.raw_materials_view,        name="raw_materials"),
-    path("dashboard/semi-finished/",                views.semi_finished_view,        name="semi_finished"),
     path("dashboard/ready-materials/",              views.ready_materials_page,      name="ready_materials"),
     path("dashboard/usage-log/",                    views.usage_log_view,            name="usage_log"),
     path("dashboard/kitchen/",                      views.kitchen_page,              name="kitchen_page"),

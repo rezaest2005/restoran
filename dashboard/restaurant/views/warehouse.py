@@ -1,5 +1,5 @@
 """
-Warehouse, Raw Materials, Suppliers, Semi-Finished, Ready Materials API.
+Warehouse, Raw Materials, Suppliers, Ready Materials API.
 """
 import json as json_module
 import logging
@@ -13,13 +13,12 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_POST
 
 from ..models import (
-    RawMaterial, Supplier, SemiFinished, SemiFinishedIngredient,
-    ReadyMaterial, InventoryMovement, InventoryUsageLog, ItemDictionary,
+    RawMaterial, Supplier, ReadyMaterial,
+    InventoryMovement, InventoryUsageLog, ItemDictionary,
 )
 from .helpers import (
-    _detect_material_type,
     _read_file_rows, _extract_items_from_rows,
-    _get_or_sync_ingredients, _merge_warehouse_data,
+    _merge_warehouse_data,
 )
 
 logger = logging.getLogger(__name__)
@@ -199,156 +198,6 @@ def parse_excel_file(request: HttpRequest):
     except Exception as exc:
         logger.exception("Error parsing excel file")
         return JsonResponse({"success": False, "error": f"خطا: {exc}"})
-
-
-# ═══ Semi-Finished ═══
-
-@csrf_protect
-@require_POST
-def semi_finished_save(request: HttpRequest):
-    try:
-        data = json_module.loads(request.body)
-        name = data.get("name", "").strip()
-        if not name:
-            return JsonResponse({"success": False, "error": "نام الزامی است."})
-
-        sf = SemiFinished.objects.create(
-            name=name, unit=data.get("unit", "kg"),
-            category=data.get("category", "other"),
-            description=data.get("description", ""),
-            quantity_produced=float(data.get("quantity_produced", 1)),
-            profit_percentage=float(data.get("profit_percentage", 0)),
-        )
-
-        for ing in data.get("ingredients", []):
-            raw_id = ing.get("raw_material_id")
-            qty = float(ing["quantity"])
-            ing_name = ing.get("name", "").strip()
-
-            if not raw_id or raw_id == 0:
-                if ing_name:
-                    mat = RawMaterial.objects.filter(name__iexact=ing_name).first()
-                    if not mat:
-                        _mt = _detect_material_type(ing_name, sf.restaurant)
-                        mat = RawMaterial.objects.create(restaurant=request.restaurant,
-                            name=ing_name, label=ing.get("label", ""),
-                            price=int(float(ing.get("price", 0))),
-                            unit=ing.get("unit", "kg"), quantity=0, material_type=_mt,
-                        )
-                    raw_id = mat.id
-                else:
-                    continue
-
-            SemiFinishedIngredient.objects.create(semi_finished=sf, raw_material_id=raw_id, quantity=qty)
-
-            try:
-                raw_mat = RawMaterial.objects.get(id=raw_id)
-                raw_mat.quantity = max(0, raw_mat.quantity - Decimal(str(qty)))
-                raw_mat.save()
-                InventoryUsageLog.objects.create(
-                    raw_material=raw_mat, usage_type="semi_finished",
-                    quantity_used=qty, reference=f"ساخت: {name}",
-                    note=f"ماده نیمه‌آماده «{name}» — {qty} {raw_mat.get_unit_display()}",
-                )
-            except RawMaterial.DoesNotExist:
-                pass
-
-        return JsonResponse({"success": True, "msg": "ذخیره شد.", "id": sf.pk})
-    except Exception as exc:
-        logger.exception("Error saving semi-finished product")
-        return JsonResponse({"success": False, "error": str(exc)})
-
-
-@csrf_protect
-@require_POST
-@staff_member_required
-def semi_finished_delete(request: HttpRequest):
-    try:
-        data = json_module.loads(request.body)
-        sf_id = data.get("id")
-        if not sf_id:
-            return JsonResponse({"success": False, "error": "شناسه ارسال نشد."})
-        sf = SemiFinished.objects.get(id=sf_id)
-        sf_name = sf.name
-        for ing in sf.ingredients.all():
-            raw_mat = ing.raw_material
-            raw_mat.quantity += ing.quantity
-            raw_mat.save()
-        InventoryUsageLog.objects.filter(reference=f"ساخت: {sf_name}").delete()
-        sf.delete()
-        return JsonResponse({"success": True, "msg": f"«{sf_name}» حذف شد و موجودی انبار بازگردانی شد."})
-    except SemiFinished.DoesNotExist:
-        return JsonResponse({"success": False, "error": "ماده نیمه‌آماده پیدا نشد."})
-    except Exception as exc:
-        logger.exception("Error deleting semi-finished product")
-        return JsonResponse({"success": False, "error": str(exc)})
-
-
-@staff_member_required
-def semi_finished_produce(request: HttpRequest):
-    if request.method != "POST":
-        return JsonResponse({"success": False, "error": "POST only"})
-    try:
-        data = json_module.loads(request.body)
-        sf_id = data.get("semi_finished_id")
-        quantity = float(data.get("quantity", 0))
-        if not sf_id:
-            return JsonResponse({"success": False, "error": "شناسه ارسال نشد."})
-        if quantity <= 0:
-            return JsonResponse({"success": False, "error": "تعداد باید بیشتر از صفر باشد."})
-
-        sf = SemiFinished.objects.prefetch_related("ingredients__raw_material").get(id=sf_id)
-        ingredients = sf.ingredients.all()
-        if not ingredients.exists():
-            return JsonResponse({"success": False, "error": f"هیچ ماده اولیه‌ای برای «{sf.name}» تعریف نشده."})
-
-        shortages = []
-        for ing in ingredients:
-            needed = ing.quantity * Decimal(str(quantity))
-            if ing.raw_material.quantity < needed:
-                shortages.append(f"«{ing.raw_material.name}»: نیاز {needed} — موجودی {ing.raw_material.quantity}")
-        if shortages:
-            return JsonResponse({"success": False, "error": "موجودی کافی نیست:\n" + "\n".join(shortages)})
-
-        with transaction.atomic():
-            for ing in ingredients:
-                needed = ing.quantity * Decimal(str(quantity))
-                raw_mat = ing.raw_material
-                raw_mat.quantity -= needed
-                raw_mat.save()
-                InventoryUsageLog.objects.create(
-                    raw_material=raw_mat, usage_type="semi_finished",
-                    quantity_used=float(needed), reference=f"تولید: {sf.name} × {quantity}",
-                    note=f"تولید {quantity} واحد «{sf.name}»",
-                )
-            produced_amount = float(sf.quantity_produced) * quantity
-            sf.current_stock += Decimal(str(produced_amount))
-            sf.save(update_fields=['current_stock'])
-
-        return JsonResponse({
-            "success": True,
-            "msg": f"{int(quantity)} واحد «{sf.name}» تولید شد. ({produced_amount} {sf.get_unit_display()} به موجودی اضافه شد. موجودی فعلی: {sf.current_stock})",
-        })
-    except SemiFinished.DoesNotExist:
-        return JsonResponse({"success": False, "error": "ماده نیمه‌آماده پیدا نشد."})
-    except Exception as exc:
-        logger.exception("Error producing semi-finished")
-        return JsonResponse({"success": False, "error": str(exc)})
-
-
-@staff_member_required
-def semi_finished_produce_detail(request: HttpRequest, pk: int):
-    sf = get_object_or_404(SemiFinished, pk=pk)
-    ingredients = _get_or_sync_ingredients(sf)
-    return JsonResponse({
-        "id": sf.id, "name": sf.name, "category": sf.category,
-        "description": sf.description or "", "unit": sf.unit,
-        "quantity_produced": float(sf.quantity_produced or 1),
-        "profit_percentage": float(sf.profit_percentage or 0),
-        "cost_per_unit": int(sf.cost_per_unit or 0),
-        "suggested_price": int(sf.suggested_price or 0),
-        "ingredients": ingredients,
-    })
 
 
 # ═══ Ready Materials ═══
