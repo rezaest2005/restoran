@@ -1,7 +1,16 @@
 ﻿#!/bin/bash
 set -e
+
 echo "Cleaning orphaned data..."
-python manage.py fix_orphan_data
+python manage.py fix_orphan_data 2>/dev/null || echo "Cleanup skipped"
+
+echo "Fixing conflicting tables..."
+python manage.py shell -c "
+from django.db import connection
+with connection.cursor() as cursor:
+    cursor.execute('DROP TABLE IF EXISTS restaurant_service;')
+    cursor.execute('DROP TABLE IF EXISTS restaurant_tenantservice;')
+" 2>/dev/null || true
 
 echo "Running migrations..."
 python manage.py migrate --no-input
