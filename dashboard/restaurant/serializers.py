@@ -16,8 +16,8 @@ from .models import (
     ReadyMaterial,
     SemiFinished, SemiFinishedIngredient,
     Restaurant,
-    Recipe, RecipeIngredient, RecipeSemiFinished, RecipePackagingItem,  # ★ جدید
-    RawMaterial,  # ★ جدید
+    Recipe, RecipeIngredient, RecipeSemiFinished, RecipePackagingItem,  
+    RawMaterial,  
     MembershipLevel, CustomerProfile,
     LoyaltyTransaction,
     LoyaltyWallet, WalletTransaction,
@@ -27,6 +27,7 @@ from .models import (
     KitchenProduct, KitchenInventory, ProductionPlan,
     ProductionPlanItem, ProductionBatch, KitchenDiscount,
     CapacityAnalysis, ProductionLog,
+    DictionaryGroup, ItemDictionary,
 )
 
 User = get_user_model()
@@ -1382,3 +1383,20 @@ class PackagingMaterialSerializer(serializers.ModelSerializer):
             'is_active', 'created_at'
         ]
         read_only_fields = ['id', 'created_at']
+# ══════════════════════════════════════════════════════════════════════════════
+#  ★ DICTIONARY — برای API فاکتور خرید
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ItemDictionarySerializer(serializers.ModelSerializer):
+    group_slug  = serializers.CharField(source='group.slug', default='', read_only=True)
+    group_name  = serializers.CharField(source='group.name', default='', read_only=True)
+    group_color = serializers.CharField(source='group.color', default='#78716c', read_only=True)
+    group_icon  = serializers.CharField(source='group.icon', default='bi-archive', read_only=True)
+
+    class Meta:
+        model = ItemDictionary
+        fields = [
+            'id', 'name', 'unit', 'description',
+            'dict_category', 'material_type', 'category',
+            'group', 'group_slug', 'group_name', 'group_color', 'group_icon',
+        ]

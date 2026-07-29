@@ -1443,8 +1443,41 @@ class DayCloseLog(TenantModel):
     def __str__(self):
         return f'{self.get_action_display()} — {self.date} — {self.user}'
 
-
 # ─── 13. ITEM DICTIONARY ──────────────────
+
+class DictionaryGroup(TenantModel):
+    """گروه‌های دیکشنری — تب‌های قابل سفارشی‌سازی توسط کاربر"""
+
+    name       = name_field(verbose_name='نام گروه')
+    slug       = models.CharField(max_length=50, verbose_name='شناسه انگلیسی')
+    icon       = models.CharField(max_length=30, default='bi-archive', verbose_name='آیکون')
+    color      = models.CharField(max_length=7, default='#6b7280', verbose_name='رنگ (hex)')
+    sort_order = models.IntegerField(default=0, verbose_name='ترتیب نمایش')
+
+    # ── مصرف: کجا قابل استفاده باشه ──
+    usage_recipes   = models.BooleanField(default=False, verbose_name='رسپی')
+    usage_warehouse = models.BooleanField(default=False, verbose_name='انبار')
+    usage_pos       = models.BooleanField(default=False, verbose_name='POS')
+    usage_invoice   = models.BooleanField(default=False, verbose_name='فاکتور خرید')
+    usage_kitchen   = models.BooleanField(default=False, verbose_name='آشپزخانه')
+
+    is_system  = models.BooleanField(default=False, verbose_name='سیستمی (غیرقابل حذف)')
+    is_active  = is_active_field()
+    created_at = created_at_field()
+
+    class Meta:
+        verbose_name        = 'گروه دیکشنری'
+        verbose_name_plural = 'گروه‌های دیکشنری'
+        unique_together     = ['restaurant', 'slug']
+        ordering            = ['sort_order', 'name']
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def item_count(self):
+        return self.items.count()
+
 
 class ItemDictionary(TenantModel):
     CATEGORY_CHOICES = [
@@ -1454,14 +1487,32 @@ class ItemDictionary(TenantModel):
         ('final_product',  'محصول نهایی'),
     ]
 
-    name           = name_field(verbose_name='نام')
-    unit           = unit_field()
-    description    = description_field()
-    category       = models.CharField(max_length=20, choices=CATEGORY_CHOICES, verbose_name='دسته‌بندی', db_index=True)
-    dict_category  = models.CharField(max_length=50, blank=True, default='', verbose_name='زیردسته‌بندی')
-    material_type  = models.CharField(max_length=20, choices=[('raw','ماده اولیه'),('packaging','بسته‌بندی')], default='raw', verbose_name='نوع ماده')
-    is_active      = is_active_field()
-    created_at     = created_at_field()
+    name          = name_field(verbose_name='نام')
+    unit          = unit_field()
+    description   = description_field()
+
+    # ★ لینک به گروه دیکشنری
+    group         = models.ForeignKey(
+        DictionaryGroup, on_delete=models.CASCADE,
+        related_name='items', verbose_name='گروه',
+        null=True, blank=True,
+    )
+
+    # حفظ برای سازگاری با کد قبلی
+    category      = models.CharField(
+        max_length=20, choices=CATEGORY_CHOICES,
+        verbose_name='دسته‌بندی', db_index=True,
+        blank=True, default='',
+    )
+
+    dict_category = models.CharField(max_length=50, blank=True, default='', verbose_name='زیردسته‌بندی')
+    material_type = models.CharField(
+        max_length=20,
+        choices=[('raw', 'ماده اولیه'), ('packaging', 'بسته‌بندی')],
+        default='raw', verbose_name='نوع ماده',
+    )
+    is_active     = is_active_field()
+    created_at    = created_at_field()
 
     class Meta:
         verbose_name        = 'دیکشنری آیتم'
@@ -1470,7 +1521,10 @@ class ItemDictionary(TenantModel):
         ordering            = ['category', 'name']
 
     def __str__(self):
-        return f'{self.name} ({self.get_category_display()})'
+        group_name = self.group.name if self.group else self.get_category_display()
+        return f'{self.name} ({group_name})'
+
+
 
 
 # ═══════════════════════════════════════════
