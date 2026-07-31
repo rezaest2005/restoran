@@ -78,6 +78,7 @@ urlpatterns = [
     path("api/ready-materials/update-price/",  views.ready_material_update_price, name="ready_material_update_price"),
     path("api/convert-to-ready/",              views.convert_to_ready_material,   name="convert_to_ready_material"),
 
+
     # ── Recipes ──
     path("api/recipes/validate-inventory/",    views.validate_order_inventory_view,  name="validate_order_inventory"),
     path("api/recipes/deduct-inventory/",      views.deduct_inventory_view,          name="deduct_inventory"),
@@ -87,6 +88,7 @@ urlpatterns = [
     path("api/recipes/foods/suggest/",         views.food_suggestions_view,          name="food_suggestions"),
     path("api/recipes/raw-materials/suggest/", views.raw_material_suggestions_api,   name="recipe_raw_material_suggestions"),
     path("api/recipes/semi-finished/suggest/", views.semi_finished_suggestions_api,  name="semi_finished_suggestions"),
+    path("api/recipes/materials/",             views.recipe_materials_api,           name="recipe_materials"),
 
     # ── Dictionary ──
     path("api/dictionary/list/",                views.dictionary_list,           name="dictionary_list"),

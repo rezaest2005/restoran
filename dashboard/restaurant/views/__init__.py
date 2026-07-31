@@ -104,8 +104,8 @@ from .dictionary import (
     dictionary_create, dictionary_update, dictionary_delete,
     dictionary_raw_materials, dictionary_semi_finished,
     dictionary_ready_materials, dictionary_food_menu,
-    # ★ جدید — API فاکتور + گروه‌ها
     raw_materials_api,
+    recipe_materials_api,                          
     dictionary_group_list, dictionary_group_save, dictionary_group_delete,
 )
 
@@ -196,8 +196,9 @@ __all__ = [
     "dictionary_create", "dictionary_update", "dictionary_delete",
     "dictionary_raw_materials", "dictionary_semi_finished",
     "dictionary_ready_materials", "dictionary_food_menu",
-    # Dictionary Groups
+        # Dictionary Groups
     "raw_materials_api",
+    "recipe_materials_api",                      
     "dictionary_group_list", "dictionary_group_save",
     "dictionary_group_delete",
     # Page Views

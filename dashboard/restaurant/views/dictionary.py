@@ -198,11 +198,11 @@ def dictionary_group_delete(request):
     if g.is_system:
         return JsonResponse({'error': 'گروه سیستمی قابل حذف نیست'}, status=400)
 
-    ItemDictionary.objects.filter(group=g).update(group=None)
+    # حذف کامل آیتم‌های مرتبط
+    deleted_count = ItemDictionary.objects.filter(group=g).delete()[0]
     name = g.name
     g.delete()
-    return JsonResponse({'message': f'گروه «{name}» حذف شد'})
-
+    return JsonResponse({'message': f'گروه «{name}» و {deleted_count} آیتم حذف شد'})
 
 # ═══════════════════════════════════════════════════════════
 #  Dictionary — آیتم‌ها CRUD
@@ -475,3 +475,38 @@ def fix_assign_groups(request):
         'raw_assigned': raw_count,
         'pack_assigned': pack_count,
     })
+
+@login_required
+@require_GET
+def recipe_materials_api(request):
+    """فقط مواد نیمه‌آماده از تب‌هایی که usage_recipes=True"""
+    restaurant = getattr(request.user, 'restaurant', None)
+    if not restaurant:
+        return JsonResponse({'items': []})
+
+    items_qs = (
+        ItemDictionary.objects
+        .filter(
+            restaurant=restaurant,
+            is_active=True,
+            category='semi_finished',
+            group__isnull=False,
+            group__is_active=True,
+            group__usage_recipes=True,
+        )
+        .select_related('group')
+        .order_by('group__sort_order', 'name')
+    )
+
+    items_data = [{
+        'id': item.id,
+        'name': item.name,
+        'unit': item.unit,
+        'unit_display': item.get_unit_display(),
+        'description': item.description or '',
+        'dict_category': item.dict_category or '',
+        'group': item.group_id,
+        'group_name': item.group.name if item.group else '',
+    } for item in items_qs]
+
+    return JsonResponse({'items': items_data})
