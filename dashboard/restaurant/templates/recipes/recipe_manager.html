@@ -298,7 +298,6 @@ body{background:var(--rp-bg)}
 }
 </style>
 {% endblock %}
-
 {% block content %}
 <div class="rp-wrap">
 <div class="rp-container">
@@ -313,7 +312,6 @@ body{background:var(--rp-bg)}
         </div>
     </header>
 
-    <!-- ★★★ v6.1: سه تب — آشپزخانه + نیمه‌آماده + بسته‌بندی ★★★ -->
     <div style="display:flex;gap:4px;margin-bottom:24px;border-bottom:2px solid var(--rp-border);overflow-x:auto">
         <button class="rp-tab active" id="tabKitchen" onclick="switchTab(this,'kitchen')"><i class="bi bi-fire"></i> آشپزخانه (رسپی غذا)</button>
         <button class="rp-tab" id="tabSemi" onclick="switchTab(this,'semi')"><i class="bi bi-gear"></i> مواد نیمه‌آماده</button>
@@ -371,37 +369,32 @@ body{background:var(--rp-bg)}
                 </div>
                 <div class="rp-field" style="grid-column:1/-1"><label><i class="bi bi-card-list"></i> دستور پخت</label><div class="rp-instr-list" id="instrList"></div><textarea id="instructions" rows="2" style="display:none"></textarea></div>
 
-                <!-- مواد اولیه -->
-                <div class="rp-pick-wrap">
+                <!-- ★ مواد اولیه — data-group-type="raw" -->
+                <div class="rp-pick-wrap" data-group-type="raw">
                     <div class="rp-pick-header"><i class="bi bi-box-seam-fill"></i><span>مواد اولیه (به ازای ۱ واحد)</span><span class="rp-pick-count" id="rawPickCount">۰ انتخاب</span></div>
                     <div class="rp-pick-search"><i class="bi bi-search"></i><input type="text" id="rawPickSearch" placeholder="جستجو..." oninput="filterRawPickList()"></div>
                     <div id="rawPickGrid" class="rp-pick-grid"></div>
                 </div>
-                <div class="rp-ing-list" id="rawMaterialList"></div>
+                <div class="rp-ing-list" id="rawMaterialList" data-group-type="raw"></div>
 
-                <!-- نیمه‌آماده -->
-                <div class="rp-pick-wrap">
+                <!-- ★ نیمه‌آماده — data-group-type="semi" -->
+                <div class="rp-pick-wrap" data-group-type="semi">
                     <div class="rp-pick-header"><i class="bi bi-layers-fill" style="color:var(--rp-purple)"></i><span>مواد نیمه‌آماده (به ازای ۱ واحد)</span><span class="rp-pick-count" id="semiPickCount">۰ انتخاب</span></div>
                     <div class="rp-pick-search"><i class="bi bi-search"></i><input type="text" id="semiPickSearch" placeholder="جستجو..." oninput="filterSemiPickList()"></div>
                     <div id="semiPickGrid" class="rp-pick-grid"></div>
                 </div>
-                <div class="rp-ing-list" id="semiFinishedList"></div>
+                <div class="rp-ing-list" id="semiFinishedList" data-group-type="semi"></div>
 
-                <!-- بسته‌بندی و جعبه -->
-                <div class="rp-pick-wrap" style="border-color:var(--rp-pack-border)">
+                <!-- ★ بسته‌بندی — data-group-type="packaging" -->
+                <div class="rp-pick-wrap" data-group-type="packaging" style="border-color:var(--rp-pack-border)">
                     <div class="rp-pick-header"><i class="bi bi-box-seam" style="color:var(--rp-pack)"></i><span>بسته‌بندی و جعبه (به ازای ۱ واحد)</span><span class="rp-pick-count" id="packagingPickCount">۰ انتخاب</span></div>
                     <div class="rp-pick-search"><i class="bi bi-search"></i><input type="text" id="packagingPickSearch" placeholder="جستجوی بسته‌بندی (جعبه، کیسه، ظرف...)" oninput="filterPackagingPickList()"></div>
                     <div id="packagingPickGrid" class="rp-pick-grid"></div>
                 </div>
-                <div class="rp-ing-list" id="packagingList"></div>
+                <div class="rp-ing-list" id="packagingList" data-group-type="packaging"></div>
 
-                <!-- پیش‌نمایش هزینه -->
-                <div class="rp-cost-preview">
-                    <div class="rp-cost-row"><span class="rp-cost-label">هزینه مواد اولیه</span><span class="rp-cost-val" id="costRaw">۰</span></div>
-                    <div class="rp-cost-row"><span class="rp-cost-label">هزینه نیمه‌آماده</span><span class="rp-cost-val" id="costSemi">۰</span></div>
-                    <div class="rp-cost-row"><span class="rp-cost-label"><i class="bi bi-box-seam" style="color:var(--rp-pack)"></i> هزینه بسته‌بندی</span><span class="rp-cost-val pack-val" id="costPackaging">۰</span></div>
-                    <div class="rp-cost-row total"><span class="rp-cost-label">هزینه هر واحد</span><span class="rp-cost-val" id="costTotal">۰</span></div>
-                </div>
+                <!-- ★ پیش‌نمایش هزینه — داینامیک -->
+                <div class="rp-cost-preview" id="costPreview"></div>
 
                 <div class="rp-editor-actions">
                     <button class="rp-btn rp-btn-outline" onclick="closeEditor()">انصراف</button>
@@ -449,8 +442,8 @@ body{background:var(--rp-bg)}
         </div>
     </div>
 
-    <!-- ★★★ v6.1: TAB: PACKAGING ★★★ -->
-    <div class="tab-panel" id="panel-packaging">
+    <!-- TAB: PACKAGING -->
+    <div class="tab-panel" id="panel-packaging" data-group-type="packaging-tab">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px">
             <div class="rp-search-box" style="min-width:220px">
                 <i class="bi bi-search"></i>
@@ -462,8 +455,6 @@ body{background:var(--rp-bg)}
             </div>
         </div>
         <div id="packagingManageGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px"></div>
-
-        <!-- ویرایشگر بسته‌بندی -->
         <div id="packagingEditor" style="display:none">
             <div class="rp-semi-editor-wrap" style="border-color:var(--rp-pack-border)">
                 <h3 style="color:var(--rp-pack)"><i class="bi bi-box-seam"></i> <span id="pkEditorTitle">بسته‌بندی جدید</span></h3>
@@ -549,7 +540,8 @@ var API = {
     packaging: '/api/recipes/raw-materials/suggest/',
     packagingSuggest: '/api/recipes/raw-materials/suggest/',
     recalcAll: '/api/recipes/recalculate-all/',
-    produceSemi: '/api/recipes/produce-semi/'
+    produceSemi: '/api/recipes/produce-semi/',
+    groups: '/api/dictionary/groups/'
 };
 
 var allRecipes = [], allFoods = [], allRawMaterials = [], allPackagingMaterials = [];
@@ -557,6 +549,11 @@ var allSemiForPick = [], allSemi = [];
 var rawMaterialRowCounter = 0, semiFinishedRowCounter = 0, semiIngCounter = 0;
 var packagingRowCounter = 0;
 var selFood = null, selR = null;
+
+/* ★★★ داینامیک گروه‌ها ★★★ */
+var recipeGroups = [];
+var activeSections = { raw: true, semi: true, packaging: true };
+
 var uM = {
     kg: 'کیلوگرم', g: 'گرم', l: 'لیتر', ml: 'میلی‌لیتر',
     unit: 'عدد', bunch: 'دسته', pack: 'بسته',
@@ -814,12 +811,19 @@ function isOverStock(el, stock, qty) {
     el.style.borderColor = ''; el.style.background = ''; el.title = ''; return false;
 }
 
+/* ★★★ setAllCosts — مقاوم در برابر المان‌های غایب ★★★ */
 function setAllCosts(rawCost, semiCost, packagingCost, totalCost, perUnit) {
-    var els = ['costRaw', 'costSemi', 'costPackaging', 'costTotal', 'costPerServing'];
-    var vals = [rawCost, semiCost, packagingCost, totalCost, perUnit];
-    for (var i = 0; i < els.length; i++) {
-        var el = document.getElementById(els[i]); if (!el) continue;
-        var v = fmtPrice(Math.round(vals[i] || 0));
+    var pairs = [
+        ['costRaw', rawCost],
+        ['costSemi', semiCost],
+        ['costPackaging', packagingCost],
+        ['costTotal', totalCost],
+        ['costPerServing', perUnit]
+    ];
+    for (var i = 0; i < pairs.length; i++) {
+        var el = document.getElementById(pairs[i][0]);
+        if (!el) continue;
+        var v = fmtPrice(Math.round(pairs[i][1] || 0));
         if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') el.value = v; else el.textContent = v;
     }
 }
@@ -829,6 +833,85 @@ function queryRows(containerId) { var el = document.getElementById(containerId);
 function getRowValue(row, prefix, field) { var el = row.querySelector('[id^="' + prefix + field + '-"]'); return el ? el.value : ''; }
 function getRowInt(row, prefix, field) { return parseInt(getRowValue(row, prefix, field)) || 0; }
 function getRowFloat(row, prefix, field) { return parseFloat(getRowValue(row, prefix, field)) || 0; }
+
+/* ═══════════════════════════════════════════════════════════════
+   ★★★ DYNAMIC GROUPS — بارگذاری و مدیریت داینامیک ★★★
+   ═══════════════════════════════════════════════════════════════ */
+function loadRecipeGroups() {
+    return fetch(API.groups, { headers: { 'Accept': 'application/json', 'X-CSRFToken': getCSRF() } })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+        recipeGroups = (res.groups || res || []).filter(function(g) { return g.usage_recipes; });
+        updateActiveSections();
+        return recipeGroups;
+    }).catch(function() { recipeGroups = []; return []; });
+}
+
+function updateActiveSections() {
+    /* پیش‌فرض: همه فعال (اگر API جواب نداد) */
+    activeSections = { raw: true, semi: true, packaging: true };
+    if (!recipeGroups.length) return;
+
+    /* اول همه false کن */
+    activeSections = { raw: false, semi: false, packaging: false };
+
+    for (var i = 0; i < recipeGroups.length; i++) {
+        var g = recipeGroups[i];
+        var t = (g.type || g.item_type || g.slug || '').toLowerCase();
+        var n = (g.name || '').toLowerCase();
+
+        if (t === 'raw' || t === 'raw_material' || t === 'raw_materials' || n.indexOf('اولیه') !== -1)
+            activeSections.raw = true;
+        else if (t === 'semi' || t === 'semi_finished' || t === 'semifinished' || n.indexOf('نیمه') !== -1)
+            activeSections.semi = true;
+        else if (t === 'packaging' || t === 'pack' || n.indexOf('بسته') !== -1 || n.indexOf('جعبه') !== -1)
+            activeSections.packaging = true;
+    }
+}
+
+function applyGroupVisibility() {
+    var els = document.querySelectorAll('[data-group-type]');
+    for (var i = 0; i < els.length; i++) {
+        var type = els[i].getAttribute('data-group-type');
+        if (activeSections.hasOwnProperty(type)) {
+            els[i].style.display = activeSections[type] ? '' : 'none';
+        }
+    }
+}
+
+function renderCostPreviewRows() {
+    var container = document.getElementById('costPreview');
+    if (!container) return;
+    var html = '';
+    if (activeSections.raw)
+        html += '<div class="rp-cost-row"><span class="rp-cost-label">هزینه مواد اولیه</span><span class="rp-cost-val" id="costRaw">۰</span></div>';
+    if (activeSections.semi)
+        html += '<div class="rp-cost-row"><span class="rp-cost-label">هزینه نیمه‌آماده</span><span class="rp-cost-val" id="costSemi">۰</span></div>';
+    if (activeSections.packaging)
+        html += '<div class="rp-cost-row"><span class="rp-cost-label"><i class="bi bi-box-seam" style="color:var(--rp-pack)"></i> هزینه بسته‌بندی</span><span class="rp-cost-val pack-val" id="costPackaging">۰</span></div>';
+    html += '<div class="rp-cost-row total"><span class="rp-cost-label">هزینه هر واحد</span><span class="rp-cost-val" id="costTotal">۰</span></div>';
+    container.innerHTML = html;
+}
+
+function buildDynamicCostBox(totalRaw, totalSemi, totalPack) {
+    var total = totalRaw + totalSemi + totalPack;
+    var ci = '';
+    var sep = '<div class="rp-cost-bsep"></div>';
+    if (activeSections.raw) {
+        ci += '<div class="rp-cost-item"><div class="rp-cost-blabel">مواد اولیه</div><div class="rp-cost-bval">' + fmtPrice(Math.round(totalRaw)) + '</div></div>';
+    }
+    if (activeSections.semi) {
+        if (ci) ci += sep;
+        ci += '<div class="rp-cost-item"><div class="rp-cost-blabel">نیمه‌آماده</div><div class="rp-cost-bval" style="color:var(--rp-purple)">' + fmtPrice(Math.round(totalSemi)) + '</div></div>';
+    }
+    if (activeSections.packaging) {
+        if (ci) ci += sep;
+        ci += '<div class="rp-cost-item"><div class="rp-cost-blabel">بسته‌بندی</div><div class="rp-cost-bval" style="color:#0d9488">' + fmtPrice(Math.round(totalPack)) + '</div></div>';
+    }
+    if (ci) ci += sep;
+    ci += '<div class="rp-cost-item"><div class="rp-cost-blabel">هزینه هر واحد</div><div class="rp-cost-bval big" style="color:var(--rp-danger)">' + fmtPrice(Math.round(total)) + '</div></div>';
+    return ci;
+}
 
 /* ═══════════════════════════════════════════════════════════════
    ROW MANAGEMENT
@@ -918,7 +1001,6 @@ function removeSemiIng(id) {
     recalcSemiCost(); renderSemiIngPickGrid();
 }
 
-/* ★★★ v6.1: بسته‌بندی — با بررسی موجودی ★★★ */
 function addPackagingRow(data) {
     packagingRowCounter++;
     var id = packagingRowCounter;
@@ -1003,12 +1085,18 @@ function updateRecipeDesc() {
     if (!el) return;
     el.innerHTML = '';
     var count = 0;
-    var rows1 = queryRows('rawMaterialList');
-    for (var i = 0; i < rows1.length; i++) { var card = buildCard(rows1[i], 'raw', i); if (card) { count++; el.appendChild(card); } }
-    var rows2 = queryRows('semiFinishedList');
-    for (var j = 0; j < rows2.length; j++) { var card2 = buildCard(rows2[j], 'semi', j); if (card2) { count++; el.appendChild(card2); } }
-    var rows3 = queryRows('packagingList');
-    for (var k = 0; k < rows3.length; k++) { var card3 = buildCard(rows3[k], 'pack', k); if (card3) { count++; el.appendChild(card3); } }
+    if (activeSections.raw) {
+        var rows1 = queryRows('rawMaterialList');
+        for (var i = 0; i < rows1.length; i++) { var card = buildCard(rows1[i], 'raw', i); if (card) { count++; el.appendChild(card); } }
+    }
+    if (activeSections.semi) {
+        var rows2 = queryRows('semiFinishedList');
+        for (var j = 0; j < rows2.length; j++) { var card2 = buildCard(rows2[j], 'semi', j); if (card2) { count++; el.appendChild(card2); } }
+    }
+    if (activeSections.packaging) {
+        var rows3 = queryRows('packagingList');
+        for (var k = 0; k < rows3.length; k++) { var card3 = buildCard(rows3[k], 'pack', k); if (card3) { count++; el.appendChild(card3); } }
+    }
     if (count === 0) el.innerHTML = '<div class="rp-instr-empty">هنوز ماده‌ای انتخاب نشده</div>';
     syncInstructionsText();
 }
@@ -1017,42 +1105,53 @@ function syncInstructionsText() {
     var ta = document.getElementById('instructions');
     if (!ta || ta.dataset.manual === 'true') return;
     var parts = [];
-    var rows1 = queryRows('rawMaterialList');
-    for (var i = 0; i < rows1.length; i++) {
-        var nm = getRowValue(rows1[i], 'rm-', 'name'), qty = getRowValue(rows1[i], 'rm-', 'qty'), unit = getRowValue(rows1[i], 'rm-', 'unit');
-        if (nm && qty) parts.push(nm + ': ' + qty + ' ' + uLabel(unit));
+    if (activeSections.raw) {
+        var rows1 = queryRows('rawMaterialList');
+        for (var i = 0; i < rows1.length; i++) {
+            var nm = getRowValue(rows1[i], 'rm-', 'name'), qty = getRowValue(rows1[i], 'rm-', 'qty'), unit = getRowValue(rows1[i], 'rm-', 'unit');
+            if (nm && qty) parts.push(nm + ': ' + qty + ' ' + uLabel(unit));
+        }
     }
-    var rows2 = queryRows('semiFinishedList');
-    for (var j = 0; j < rows2.length; j++) {
-        var nm2 = getRowValue(rows2[j], 'sf-', 'name'), qty2 = getRowValue(rows2[j], 'sf-', 'qty'), unit2 = getRowValue(rows2[j], 'sf-', 'unit');
-        if (nm2 && qty2) parts.push('[نیمه] ' + nm2 + ': ' + qty2 + ' ' + uLabel(unit2));
+    if (activeSections.semi) {
+        var rows2 = queryRows('semiFinishedList');
+        for (var j = 0; j < rows2.length; j++) {
+            var nm2 = getRowValue(rows2[j], 'sf-', 'name'), qty2 = getRowValue(rows2[j], 'sf-', 'qty'), unit2 = getRowValue(rows2[j], 'sf-', 'unit');
+            if (nm2 && qty2) parts.push('[نیمه] ' + nm2 + ': ' + qty2 + ' ' + uLabel(unit2));
+        }
     }
-    var rows3 = queryRows('packagingList');
-    for (var k = 0; k < rows3.length; k++) {
-        var nm3 = getRowValue(rows3[k], 'pk-', 'name'), qty3 = getRowValue(rows3[k], 'pk-', 'qty'), unit3 = getRowValue(rows3[k], 'pk-', 'unit');
-        if (nm3 && qty3) parts.push('[بسته] ' + nm3 + ': ' + qty3 + ' ' + uLabel(unit3));
+    if (activeSections.packaging) {
+        var rows3 = queryRows('packagingList');
+        for (var k = 0; k < rows3.length; k++) {
+            var nm3 = getRowValue(rows3[k], 'pk-', 'name'), qty3 = getRowValue(rows3[k], 'pk-', 'qty'), unit3 = getRowValue(rows3[k], 'pk-', 'unit');
+            if (nm3 && qty3) parts.push('[بسته] ' + nm3 + ': ' + qty3 + ' ' + uLabel(unit3));
+        }
     }
     ta.value = parts.join('\n');
 }
 
+/* ★★★ recalcCostPreview — داینامیک ★★★ */
 function recalcCostPreview() {
-    var tr = 0;
-    var rows1 = queryRows('rawMaterialList');
-    for (var i = 0; i < rows1.length; i++) {
-        var rid = getRowInt(rows1[i], 'rm-', 'id'), qty = getRowFloat(rows1[i], 'rm-', 'qty');
-        if (rid && qty > 0) tr += qty * getRawPrice(rid);
+    var tr = 0, ts = 0, tp = 0;
+    if (activeSections.raw) {
+        var rows1 = queryRows('rawMaterialList');
+        for (var i = 0; i < rows1.length; i++) {
+            var rid = getRowInt(rows1[i], 'rm-', 'id'), qty = getRowFloat(rows1[i], 'rm-', 'qty');
+            if (rid && qty > 0) tr += qty * getRawPrice(rid);
+        }
     }
-    var ts = 0;
-    var rows2 = queryRows('semiFinishedList');
-    for (var k = 0; k < rows2.length; k++) {
-        var sid = getRowInt(rows2[k], 'sf-', 'id'), qty2 = getRowFloat(rows2[k], 'sf-', 'qty');
-        if (sid && qty2 > 0) ts += qty2 * getSemiCost(sid);
+    if (activeSections.semi) {
+        var rows2 = queryRows('semiFinishedList');
+        for (var k = 0; k < rows2.length; k++) {
+            var sid = getRowInt(rows2[k], 'sf-', 'id'), qty2 = getRowFloat(rows2[k], 'sf-', 'qty');
+            if (sid && qty2 > 0) ts += qty2 * getSemiCost(sid);
+        }
     }
-    var tp = 0;
-    var rows3 = queryRows('packagingList');
-    for (var m = 0; m < rows3.length; m++) {
-        var pid = getRowInt(rows3[m], 'pk-', 'id'), pqty = getRowFloat(rows3[m], 'pk-', 'qty');
-        if (pid && pqty > 0) tp += pqty * getPackagingPrice(pid);
+    if (activeSections.packaging) {
+        var rows3 = queryRows('packagingList');
+        for (var m = 0; m < rows3.length; m++) {
+            var pid = getRowInt(rows3[m], 'pk-', 'id'), pqty = getRowFloat(rows3[m], 'pk-', 'qty');
+            if (pid && pqty > 0) tp += pqty * getPackagingPrice(pid);
+        }
     }
     var t = tr + ts + tp;
     setAllCosts(tr, ts, tp, t, t);
@@ -1225,7 +1324,6 @@ function getFilteredSemiIngList() { var el = document.getElementById('semiIngPic
 function filterSemiIngPick() { renderSemiIngPickGrid(); }
 function updateSemiIngPickCount() { var el = document.getElementById('semiIngPickCount'); if (el) el.textContent = toP(getSemiIngPickedIds().length) + ' انتخاب'; }
 
-/* ★★★ v6.1: PICK GRID بسته‌بندی — ناموجود غیرفعال ★★★ */
 function renderPackagingPickGrid(materials) {
     var g = document.getElementById('packagingPickGrid');
     if (!g) return;
@@ -1238,7 +1336,6 @@ function renderPackagingPickGrid(materials) {
 
     var pids = getPackagingPickedIds();
 
-    /* مرتب‌سازی: اول موجود، بعد ناموجود */
     var sorted = materials.slice().sort(function (a, b) {
         var sa = parseFloat(a.quantity) || 0;
         var sb = parseFloat(b.quantity) || 0;
@@ -1257,7 +1354,6 @@ function renderPackagingPickGrid(materials) {
         var b = document.createElement('div');
         b.className = 'rp-pick-item' + (p ? ' picked' : '') + (!inStock && !p ? ' pk-unavailable' : '');
 
-        /* بج موجودی */
         var stockHtml;
         if (inStock) {
             var sc = stock < 5 ? 'var(--rp-warning)' : 'var(--rp-success)';
@@ -1285,7 +1381,6 @@ function renderPackagingPickGrid(materials) {
                 )
             );
 
-        /* فقط موجودها کلیک بشن */
         if (!p && inStock) {
             b.onclick = (function (mat) {
                 return function () {
@@ -1346,10 +1441,15 @@ function openNewRecipe() {
     document.getElementById('packagingPickSearch').value = '';
     rawMaterialRowCounter = 0; semiFinishedRowCounter = 0; packagingRowCounter = 0;
     document.getElementById('recipeEditor').style.display = '';
+
+    /* ★ گروه‌ها + visibility */
+    applyGroupVisibility();
+    renderCostPreviewRows();
+
     loadAllRawMaterials().then(function () { return loadAllSemiForPick(); }).then(function () { return loadAllPackagingMaterials(); }).then(function () {
-        renderRawPickGrid(allRawMaterials);
-        renderSemiPickGrid(allSemiForPick);
-        renderPackagingPickGrid(allPackagingMaterials);
+        if (activeSections.raw) renderRawPickGrid(allRawMaterials);
+        if (activeSections.semi) renderSemiPickGrid(allSemiForPick);
+        if (activeSections.packaging) renderPackagingPickGrid(allPackagingMaterials);
     });
     updateRecipeDesc(); recalcCostPreview();
     document.getElementById('recipeEditor').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1357,6 +1457,11 @@ function openNewRecipe() {
 
 function editRecipe(id) {
     document.getElementById('recipeEditor').style.display = '';
+
+    /* ★ گروه‌ها + visibility */
+    applyGroupVisibility();
+    renderCostPreviewRows();
+
     Promise.all([loadAllRawMaterials(), loadAllSemiForPick(), loadAllPackagingMaterials()])
     .then(function () {
         return fetch(API.recipes + id + '/', { headers: { 'Accept': 'application/json' } });
@@ -1386,56 +1491,62 @@ function editRecipe(id) {
             ingredients = parsed.raws; semiItems = parsed.semis; packagingItems = parsed.packs;
         }
 
-        ingredients.forEach(function (ig) {
-            var rid = ig.raw_material_id || (typeof ig.raw_material === 'object' ? (ig.raw_material && ig.raw_material.id) : ig.raw_material);
-            if (!rid) {
-                var name = ig.raw_material_name || (ig.raw_material && ig.raw_material.name) || ig.name || '';
-                for (var ri = 0; ri < allRawMaterials.length; ri++) { if (allRawMaterials[ri].name === name) { rid = allRawMaterials[ri].id; break; } }
-            }
-            addRawMaterialRow({
-                raw_material_id: rid,
-                raw_material_name: ig.raw_material_name || (typeof ig.raw_material === 'object' && ig.raw_material ? ig.raw_material.name : '') || ig.name || '',
-                quantity: safeVal(ig.quantity || ig.qty, 0), unit: ig.unit, stock: getRawStock(rid)
+        if (activeSections.raw) {
+            ingredients.forEach(function (ig) {
+                var rid = ig.raw_material_id || (typeof ig.raw_material === 'object' ? (ig.raw_material && ig.raw_material.id) : ig.raw_material);
+                if (!rid) {
+                    var name = ig.raw_material_name || (ig.raw_material && ig.raw_material.name) || ig.name || '';
+                    for (var ri = 0; ri < allRawMaterials.length; ri++) { if (allRawMaterials[ri].name === name) { rid = allRawMaterials[ri].id; break; } }
+                }
+                addRawMaterialRow({
+                    raw_material_id: rid,
+                    raw_material_name: ig.raw_material_name || (typeof ig.raw_material === 'object' && ig.raw_material ? ig.raw_material.name : '') || ig.name || '',
+                    quantity: safeVal(ig.quantity || ig.qty, 0), unit: ig.unit, stock: getRawStock(rid)
+                });
             });
-        });
+        }
 
-        semiItems.forEach(function (sf) {
-            var sfId = sf.semi_finished_id || (typeof sf.semi_finished === 'object' ? sf.semi_finished.id : sf.semi_finished);
-            if (!sfId) {
-                var name = sf.semi_finished_name || (typeof sf.semi_finished === 'object' && sf.semi_finished ? sf.semi_finished.name : '') || sf.name || '';
-                for (var si = 0; si < allSemiForPick.length; si++) { if (allSemiForPick[si].name === name) { sfId = allSemiForPick[si].id; break; } }
-            }
-            addSemiFinishedRow({
-                semi_finished_id: sfId,
-                semi_finished_name: sf.semi_finished_name || (typeof sf.semi_finished === 'object' && sf.semi_finished ? sf.semi_finished.name : '') || sf.name || '',
-                quantity: safeVal(sf.quantity || sf.qty, 0), unit: sf.unit
+        if (activeSections.semi) {
+            semiItems.forEach(function (sf) {
+                var sfId = sf.semi_finished_id || (typeof sf.semi_finished === 'object' ? sf.semi_finished.id : sf.semi_finished);
+                if (!sfId) {
+                    var name = sf.semi_finished_name || (typeof sf.semi_finished === 'object' && sf.semi_finished ? sf.semi_finished.name : '') || sf.name || '';
+                    for (var si = 0; si < allSemiForPick.length; si++) { if (allSemiForPick[si].name === name) { sfId = allSemiForPick[si].id; break; } }
+                }
+                addSemiFinishedRow({
+                    semi_finished_id: sfId,
+                    semi_finished_name: sf.semi_finished_name || (typeof sf.semi_finished === 'object' && sf.semi_finished ? sf.semi_finished.name : '') || sf.name || '',
+                    quantity: safeVal(sf.quantity || sf.qty, 0), unit: sf.unit
+                });
             });
-        });
+        }
 
-        packagingItems.forEach(function (pk) {
-            var pkId = pk.packaging_material_id || pk.raw_material_id ||
-                       (typeof pk.packaging_material === 'object' ? pk.packaging_material.id : pk.packaging_material) ||
-                       (typeof pk.raw_material === 'object' ? (pk.raw_material && pk.raw_material.id) : pk.raw_material);
-            if (!pkId) {
-                var name = pk.packaging_material_name || pk.raw_material_name ||
-                           (typeof pk.packaging_material === 'object' && pk.packaging_material ? pk.packaging_material.name : '') ||
-                           (typeof pk.raw_material === 'object' && pk.raw_material ? pk.raw_material.name : '') || pk.name || '';
-                for (var pi = 0; pi < allPackagingMaterials.length; pi++) { if (allPackagingMaterials[pi].name === name) { pkId = allPackagingMaterials[pi].id; break; } }
-            }
-            addPackagingRow({
-                packaging_material_id: pkId,
-                packaging_material_name: pk.packaging_material_name || pk.raw_material_name ||
-                    (typeof pk.packaging_material === 'object' && pk.packaging_material ? pk.packaging_material.name : '') ||
-                    (typeof pk.raw_material === 'object' && pk.raw_material ? pk.raw_material.name : '') || pk.name || '',
-                quantity: safeVal(pk.quantity || pk.qty, 0),
-                unit: pk.unit || 'unit',
-                stock: getPackagingStock(pkId)
+        if (activeSections.packaging) {
+            packagingItems.forEach(function (pk) {
+                var pkId = pk.packaging_material_id || pk.raw_material_id ||
+                           (typeof pk.packaging_material === 'object' ? pk.packaging_material.id : pk.packaging_material) ||
+                           (typeof pk.raw_material === 'object' ? (pk.raw_material && pk.raw_material.id) : pk.raw_material);
+                if (!pkId) {
+                    var name = pk.packaging_material_name || pk.raw_material_name ||
+                               (typeof pk.packaging_material === 'object' && pk.packaging_material ? pk.packaging_material.name : '') ||
+                               (typeof pk.raw_material === 'object' && pk.raw_material ? pk.raw_material.name : '') || pk.name || '';
+                    for (var pi = 0; pi < allPackagingMaterials.length; pi++) { if (allPackagingMaterials[pi].name === name) { pkId = allPackagingMaterials[pi].id; break; } }
+                }
+                addPackagingRow({
+                    packaging_material_id: pkId,
+                    packaging_material_name: pk.packaging_material_name || pk.raw_material_name ||
+                        (typeof pk.packaging_material === 'object' && pk.packaging_material ? pk.packaging_material.name : '') ||
+                        (typeof pk.raw_material === 'object' && pk.raw_material ? pk.raw_material.name : '') || pk.name || '',
+                    quantity: safeVal(pk.quantity || pk.qty, 0),
+                    unit: pk.unit || 'unit',
+                    stock: getPackagingStock(pkId)
+                });
             });
-        });
+        }
 
-        renderRawPickGrid(getFilteredRawList());
-        renderSemiPickGrid(getFilteredSemiPickList());
-        renderPackagingPickGrid(getFilteredPackagingList());
+        if (activeSections.raw) renderRawPickGrid(getFilteredRawList());
+        if (activeSections.semi) renderSemiPickGrid(getFilteredSemiPickList());
+        if (activeSections.packaging) renderPackagingPickGrid(getFilteredPackagingList());
         updateRecipeDesc();
 
         var savedRaw = parseFloat(r.total_raw_material_cost) || 0;
@@ -1456,38 +1567,44 @@ function saveRecipe() {
     if (!foodId || isNaN(parseInt(foodId))) { toast('غذا انتخاب کنید', 'error'); return; }
 
     var hasErr = false, ings = [];
-    var rows1 = queryRows('rawMaterialList');
-    for (var i = 0; i < rows1.length; i++) {
-        var rid = getRowInt(rows1[i], 'rm-', 'id'), qty = getRowFloat(rows1[i], 'rm-', 'qty'), unit = getRowValue(rows1[i], 'rm-', 'unit') || 'kg';
-        var qtyEl = rows1[i].querySelector('input[id^="rm-qty-"]');
-        if (rid && qty > 0) {
-            var st = getRawStock(rid);
-            if (st > 0 && qty > st) { hasErr = true; isOverStock(qtyEl, st, qty); toast('بیشتر از موجودی', 'error'); }
-            else { isOverStock(qtyEl, st, qty); ings.push({ raw_material: rid, quantity: qty, unit: unit }); }
+    if (activeSections.raw) {
+        var rows1 = queryRows('rawMaterialList');
+        for (var i = 0; i < rows1.length; i++) {
+            var rid = getRowInt(rows1[i], 'rm-', 'id'), qty = getRowFloat(rows1[i], 'rm-', 'qty'), unit = getRowValue(rows1[i], 'rm-', 'unit') || 'kg';
+            var qtyEl = rows1[i].querySelector('input[id^="rm-qty-"]');
+            if (rid && qty > 0) {
+                var st = getRawStock(rid);
+                if (st > 0 && qty > st) { hasErr = true; isOverStock(qtyEl, st, qty); toast('بیشتر از موجودی', 'error'); }
+                else { isOverStock(qtyEl, st, qty); ings.push({ raw_material: rid, quantity: qty, unit: unit }); }
+            }
         }
     }
 
     var semis = [];
-    var rows2 = queryRows('semiFinishedList');
-    for (var j = 0; j < rows2.length; j++) {
-        var sid = getRowInt(rows2[j], 'sf-', 'id'), qty2 = getRowFloat(rows2[j], 'sf-', 'qty'), unit2 = getRowValue(rows2[j], 'sf-', 'unit') || 'kg';
-        var qtyEl2 = rows2[j].querySelector('input[id^="sf-qty-"]');
-        if (sid && qty2 > 0) {
-            var st2 = getSemiStock(sid);
-            if (st2 > 0 && qty2 > st2) { hasErr = true; isOverStock(qtyEl2, st2, qty2); toast('بیشتر از موجودی', 'error'); }
-            else { isOverStock(qtyEl2, st2, qty2); semis.push({ semi_finished: sid, quantity: qty2, unit: unit2 }); }
+    if (activeSections.semi) {
+        var rows2 = queryRows('semiFinishedList');
+        for (var j = 0; j < rows2.length; j++) {
+            var sid = getRowInt(rows2[j], 'sf-', 'id'), qty2 = getRowFloat(rows2[j], 'sf-', 'qty'), unit2 = getRowValue(rows2[j], 'sf-', 'unit') || 'kg';
+            var qtyEl2 = rows2[j].querySelector('input[id^="sf-qty-"]');
+            if (sid && qty2 > 0) {
+                var st2 = getSemiStock(sid);
+                if (st2 > 0 && qty2 > st2) { hasErr = true; isOverStock(qtyEl2, st2, qty2); toast('بیشتر از موجودی', 'error'); }
+                else { isOverStock(qtyEl2, st2, qty2); semis.push({ semi_finished: sid, quantity: qty2, unit: unit2 }); }
+            }
         }
     }
 
     var packs = [];
-    var rows3 = queryRows('packagingList');
-    for (var k = 0; k < rows3.length; k++) {
-        var pid = getRowInt(rows3[k], 'pk-', 'id'), pqty = getRowFloat(rows3[k], 'pk-', 'qty'), punit = getRowValue(rows3[k], 'pk-', 'unit') || 'unit';
-        var pkqtyEl = rows3[k].querySelector('input[id^="pk-qty-"]');
-        if (pid && pqty > 0) {
-            var pst = getPackagingStock(pid);
-            if (pst > 0 && pqty > pst) { hasErr = true; isOverStock(pkqtyEl, pst, pqty); toast('بسته‌بندی: بیشتر از موجودی', 'error'); }
-            else { isOverStock(pkqtyEl, pst, pqty); packs.push({ packaging_material: pid, quantity: pqty, unit: punit }); }
+    if (activeSections.packaging) {
+        var rows3 = queryRows('packagingList');
+        for (var k = 0; k < rows3.length; k++) {
+            var pid = getRowInt(rows3[k], 'pk-', 'id'), pqty = getRowFloat(rows3[k], 'pk-', 'qty'), punit = getRowValue(rows3[k], 'pk-', 'unit') || 'unit';
+            var pkqtyEl = rows3[k].querySelector('input[id^="pk-qty-"]');
+            if (pid && pqty > 0) {
+                var pst = getPackagingStock(pid);
+                if (pst > 0 && pqty > pst) { hasErr = true; isOverStock(pkqtyEl, pst, pqty); toast('بسته‌بندی: بیشتر از موجودی', 'error'); }
+                else { isOverStock(pkqtyEl, pst, pqty); packs.push({ packaging_material: pid, quantity: pqty, unit: punit }); }
+            }
         }
     }
 
@@ -1581,26 +1698,32 @@ function renderRecipeGrid(recipes) {
         card.style.animationDelay = (i * 0.04) + 's';
 
         var chips = '';
-        (r.ingredients || []).forEach(function (ig) {
-            var n = ig.raw_material_name || (typeof ig.raw_material === 'object' && ig.raw_material ? ig.raw_material.name : '') || '';
-            var q = ig.quantity || 0;
-            var u = ig.unit || (typeof ig.raw_material === 'object' && ig.raw_material ? ig.raw_material.unit : '') || '';
-            if (n) chips += '<span class="rp-card-ing-chip rp-chip-raw">' + escHtml(n) + ': ' + toP(q) + (u ? ' ' + escHtml(u) : '') + '</span>';
-        });
-        (r.semi_finished_items || []).forEach(function (sf) {
-            var n = sf.semi_finished_name || (typeof sf.semi_finished === 'object' && sf.semi_finished ? sf.semi_finished.name : '') || '';
-            var q = sf.quantity || 0;
-            var u = sf.unit || (typeof sf.semi_finished === 'object' && sf.semi_finished ? sf.semi_finished.unit : '') || '';
-            if (n) chips += '<span class="rp-card-ing-chip rp-chip-semi"><i class="bi bi-layers"></i> ' + escHtml(n) + ': ' + toP(q) + (u ? ' ' + escHtml(u) : '') + '</span>';
-        });
-        (r.packaging_items || []).forEach(function (pk) {
-            var n = pk.packaging_material_name || pk.raw_material_name ||
-                    (typeof pk.packaging_material === 'object' && pk.packaging_material ? pk.packaging_material.name : '') ||
-                    (typeof pk.raw_material === 'object' && pk.raw_material ? pk.raw_material.name : '') || '';
-            var q = pk.quantity || 0;
-            var u = pk.unit || (typeof pk.packaging_material === 'object' && pk.packaging_material ? pk.packaging_material.unit : '') || '';
-            if (n) chips += '<span class="rp-card-ing-chip rp-chip-pack"><i class="bi bi-box-seam"></i> ' + escHtml(n) + ': ' + toP(q) + (u ? ' ' + escHtml(u) : '') + '</span>';
-        });
+        if (activeSections.raw) {
+            (r.ingredients || []).forEach(function (ig) {
+                var n = ig.raw_material_name || (typeof ig.raw_material === 'object' && ig.raw_material ? ig.raw_material.name : '') || '';
+                var q = ig.quantity || 0;
+                var u = ig.unit || (typeof ig.raw_material === 'object' && ig.raw_material ? ig.raw_material.unit : '') || '';
+                if (n) chips += '<span class="rp-card-ing-chip rp-chip-raw">' + escHtml(n) + ': ' + toP(q) + (u ? ' ' + escHtml(u) : '') + '</span>';
+            });
+        }
+        if (activeSections.semi) {
+            (r.semi_finished_items || []).forEach(function (sf) {
+                var n = sf.semi_finished_name || (typeof sf.semi_finished === 'object' && sf.semi_finished ? sf.semi_finished.name : '') || '';
+                var q = sf.quantity || 0;
+                var u = sf.unit || (typeof sf.semi_finished === 'object' && sf.semi_finished ? sf.semi_finished.unit : '') || '';
+                if (n) chips += '<span class="rp-card-ing-chip rp-chip-semi"><i class="bi bi-layers"></i> ' + escHtml(n) + ': ' + toP(q) + (u ? ' ' + escHtml(u) : '') + '</span>';
+            });
+        }
+        if (activeSections.packaging) {
+            (r.packaging_items || []).forEach(function (pk) {
+                var n = pk.packaging_material_name || pk.raw_material_name ||
+                        (typeof pk.packaging_material === 'object' && pk.packaging_material ? pk.packaging_material.name : '') ||
+                        (typeof pk.raw_material === 'object' && pk.raw_material ? pk.raw_material.name : '') || '';
+                var q = pk.quantity || 0;
+                var u = pk.unit || (typeof pk.packaging_material === 'object' && pk.packaging_material ? pk.packaging_material.unit : '') || '';
+                if (n) chips += '<span class="rp-card-ing-chip rp-chip-pack"><i class="bi bi-box-seam"></i> ' + escHtml(n) + ': ' + toP(q) + (u ? ' ' + escHtml(u) : '') + '</span>';
+            });
+        }
 
         card.innerHTML =
             '<div class="rp-card-top">' +
@@ -1629,7 +1752,7 @@ function filterRecipes() {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   RECIPE DETAIL VIEW
+   RECIPE DETAIL VIEW — ★★★ داینامیک ★★★
    ═══════════════════════════════════════════════════════════════ */
 function renderRecipeDetail(food, recipe) {
     var box = document.getElementById('rcpBox');
@@ -1650,89 +1773,88 @@ function renderRecipeDetail(food, recipe) {
     }
 
     var rawRows = '';
-    ings.forEach(function (ing) {
-        var rid = ing.raw_material_id || (typeof ing.raw_material === 'object' ? (ing.raw_material && ing.raw_material.id) : ing.raw_material);
-        var rawLookup = rid ? findRawById(rid) : null;
-        var name = ing.raw_material_name || (typeof ing.raw_material === 'object' && ing.raw_material ? ing.raw_material.name : '') || ing.name || (rawLookup ? rawLookup.name : '') || '-';
-        var qty = parseFloat(ing.quantity || ing.qty) || 0;
-        var unit = ing.unit || (typeof ing.raw_material === 'object' && ing.raw_material ? ing.raw_material.unit : '') || (rawLookup ? (rawLookup.unit_display || rawLookup.unit) : '');
-        var price = parseFloat(ing.price || (typeof ing.raw_material === 'object' && ing.raw_material ? ing.raw_material.price : 0)) || 0;
-        if (!price && rid) price = getRawPrice(rid);
-        if (!price && name) price = findRawPrice(name);
-        if (!price && rawLookup) price = parseFloat(rawLookup.price) || 0;
-        var cost = qty * price; totalRaw += cost;
-        var sv = rid ? getRawStock(rid) : 0, ok = sv >= qty;
-        rawRows +=
-            '<div class="rp-rcp-row raw-row"><div style="min-width:0;flex:1"><div class="rp-rcp-row-name">' + escHtml(name) + '</div>' +
-            '<div class="rp-rcp-row-meta">مقدار: <strong>' + toP(qty) + '</strong> ' + uLabel(unit) +
-            (price > 0 ? ' · قیمت: ' + fmtPrice(price) + '/' + uLabel(unit) : '') +
-            ' · <span style="font-weight:700;color:' + (ok ? 'var(--rp-success)' : 'var(--rp-danger)') + '">' +
-            (ok ? '✓ ' : '✗ ') + toP(sv) + ' ' + uLabel(unit) + '</span></div></div>' +
-            '<div class="rp-rcp-row-cost">' + fmtPrice(Math.round(cost)) + '</div></div>';
-    });
+    if (activeSections.raw) {
+        ings.forEach(function (ing) {
+            var rid = ing.raw_material_id || (typeof ing.raw_material === 'object' ? (ing.raw_material && ing.raw_material.id) : ing.raw_material);
+            var rawLookup = rid ? findRawById(rid) : null;
+            var name = ing.raw_material_name || (typeof ing.raw_material === 'object' && ing.raw_material ? ing.raw_material.name : '') || ing.name || (rawLookup ? rawLookup.name : '') || '-';
+            var qty = parseFloat(ing.quantity || ing.qty) || 0;
+            var unit = ing.unit || (typeof ing.raw_material === 'object' && ing.raw_material ? ing.raw_material.unit : '') || (rawLookup ? (rawLookup.unit_display || rawLookup.unit) : '');
+            var price = parseFloat(ing.price || (typeof ing.raw_material === 'object' && ing.raw_material ? ing.raw_material.price : 0)) || 0;
+            if (!price && rid) price = getRawPrice(rid);
+            if (!price && name) price = findRawPrice(name);
+            if (!price && rawLookup) price = parseFloat(rawLookup.price) || 0;
+            var cost = qty * price; totalRaw += cost;
+            var sv = rid ? getRawStock(rid) : 0, ok = sv >= qty;
+            rawRows +=
+                '<div class="rp-rcp-row raw-row"><div style="min-width:0;flex:1"><div class="rp-rcp-row-name">' + escHtml(name) + '</div>' +
+                '<div class="rp-rcp-row-meta">مقدار: <strong>' + toP(qty) + '</strong> ' + uLabel(unit) +
+                (price > 0 ? ' · قیمت: ' + fmtPrice(price) + '/' + uLabel(unit) : '') +
+                ' · <span style="font-weight:700;color:' + (ok ? 'var(--rp-success)' : 'var(--rp-danger)') + '">' +
+                (ok ? '✓ ' : '✗ ') + toP(sv) + ' ' + uLabel(unit) + '</span></div></div>' +
+                '<div class="rp-rcp-row-cost">' + fmtPrice(Math.round(cost)) + '</div></div>';
+        });
+    }
 
     var semiRows = '', semiIds = [];
-    semis.forEach(function (sf) {
-        var sfId = sf.semi_finished_id || (typeof sf.semi_finished === 'object' ? sf.semi_finished.id : sf.semi_finished);
-        var semiLookup = sfId ? findSemiById(sfId) : null;
-        var name = sf.semi_finished_name || (typeof sf.semi_finished === 'object' && sf.semi_finished ? sf.semi_finished.name : '') || sf.name || (semiLookup ? semiLookup.name : '') || '-';
-        var qty = parseFloat(sf.quantity || sf.qty) || 0;
-        var unit = sf.unit || (typeof sf.semi_finished === 'object' && sf.semi_finished ? sf.semi_finished.unit : '') || (semiLookup ? semiLookup.unit : '');
-        var cpu = parseFloat(sf.cost_per_unit || 0) || 0;
-        if (!cpu && sfId) cpu = getSemiCost(sfId);
-        if (!cpu && semiLookup) cpu = parseFloat(semiLookup.cost_per_unit) || 0;
-        var cost = qty * cpu; totalSemi += cost;
-        if (sfId) semiIds.push(sfId);
-        semiRows +=
-            '<div class="rp-rcp-row semi-row"><div style="min-width:0;flex:1"><div class="rp-rcp-row-name"><i class="bi bi-layers" style="color:var(--rp-purple)"></i> ' + escHtml(name) + '</div>' +
-            '<div class="rp-rcp-row-meta">مقدار: <strong>' + toP(qty) + '</strong> ' + uLabel(unit) + (cpu > 0 ? ' · واحدی: ' + fmtPrice(cpu) : '') + '</div>' +
-            '<div class="rp-semi-sub-ings" id="semi-sub-' + (sfId || 0) + '" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--rp-border);display:none"></div></div>' +
-            '<div class="rp-rcp-row-cost semi-cost">' + fmtPrice(Math.round(cost)) + '</div></div>';
-    });
+    if (activeSections.semi) {
+        semis.forEach(function (sf) {
+            var sfId = sf.semi_finished_id || (typeof sf.semi_finished === 'object' ? sf.semi_finished.id : sf.semi_finished);
+            var semiLookup = sfId ? findSemiById(sfId) : null;
+            var name = sf.semi_finished_name || (typeof sf.semi_finished === 'object' && sf.semi_finished ? sf.semi_finished.name : '') || sf.name || (semiLookup ? semiLookup.name : '') || '-';
+            var qty = parseFloat(sf.quantity || sf.qty) || 0;
+            var unit = sf.unit || (typeof sf.semi_finished === 'object' && sf.semi_finished ? sf.semi_finished.unit : '') || (semiLookup ? semiLookup.unit : '');
+            var cpu = parseFloat(sf.cost_per_unit || 0) || 0;
+            if (!cpu && sfId) cpu = getSemiCost(sfId);
+            if (!cpu && semiLookup) cpu = parseFloat(semiLookup.cost_per_unit) || 0;
+            var cost = qty * cpu; totalSemi += cost;
+            if (sfId) semiIds.push(sfId);
+            semiRows +=
+                '<div class="rp-rcp-row semi-row"><div style="min-width:0;flex:1"><div class="rp-rcp-row-name"><i class="bi bi-layers" style="color:var(--rp-purple)"></i> ' + escHtml(name) + '</div>' +
+                '<div class="rp-rcp-row-meta">مقدار: <strong>' + toP(qty) + '</strong> ' + uLabel(unit) + (cpu > 0 ? ' · واحدی: ' + fmtPrice(cpu) : '') + '</div>' +
+                '<div class="rp-semi-sub-ings" id="semi-sub-' + (sfId || 0) + '" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--rp-border);display:none"></div></div>' +
+                '<div class="rp-rcp-row-cost semi-cost">' + fmtPrice(Math.round(cost)) + '</div></div>';
+        });
+    }
 
     var packRows = '';
-    packs.forEach(function (pk) {
-        var pkId = pk.packaging_material_id || pk.raw_material_id ||
-                   (typeof pk.packaging_material === 'object' ? (pk.packaging_material && pk.packaging_material.id) : pk.packaging_material) ||
-                   (typeof pk.raw_material === 'object' ? (pk.raw_material && pk.raw_material.id) : pk.raw_material);
-        var pkLookup = pkId ? findPackagingById(pkId) : null;
-        var name = pk.packaging_material_name || pk.raw_material_name ||
-                   (typeof pk.packaging_material === 'object' && pk.packaging_material ? pk.packaging_material.name : '') ||
-                   (typeof pk.raw_material === 'object' && pk.raw_material ? pk.raw_material.name : '') ||
-                   pk.name || (pkLookup ? pkLookup.name : '') || '-';
-        var qty = parseFloat(pk.quantity || pk.qty) || 0;
-        var unit = pk.unit || (typeof pk.packaging_material === 'object' && pk.packaging_material ? pk.packaging_material.unit : '') || (pkLookup ? (pkLookup.unit_display || pkLookup.unit) : '');
-        var price = parseFloat(pk.price || (typeof pk.packaging_material === 'object' && pk.packaging_material ? pk.packaging_material.price : 0)) || 0;
-        if (!price && pkId) price = getPackagingPrice(pkId);
-        if (!price && name) price = findPackagingPrice(name);
-        if (!price && pkLookup) price = parseFloat(pkLookup.price) || 0;
-        var cost = qty * price; totalPack += cost;
-        var sv = pkId ? getPackagingStock(pkId) : 0, ok = sv >= qty;
-        packRows +=
-            '<div class="rp-rcp-row pack-row"><div style="min-width:0;flex:1"><div class="rp-rcp-row-name"><i class="bi bi-box-seam" style="color:#0d9488"></i> ' + escHtml(name) + '</div>' +
-            '<div class="rp-rcp-row-meta">مقدار: <strong>' + toP(qty) + '</strong> ' + uLabel(unit) +
-            (price > 0 ? ' · قیمت: ' + fmtPrice(price) + '/' + uLabel(unit) : '') +
-            ' · <span style="font-weight:700;color:' + (ok ? 'var(--rp-success)' : 'var(--rp-danger)') + '">' +
-            (ok ? '✓ ' : '✗ ') + toP(sv) + ' ' + uLabel(unit) + '</span></div></div>' +
-            '<div class="rp-rcp-row-cost" style="color:#0d9488">' + fmtPrice(Math.round(cost)) + '</div></div>';
-    });
-
-    var total = totalRaw + totalSemi + totalPack;
-    var ci = '';
-    if (totalRaw > 0) ci += '<div class="rp-cost-item"><div class="rp-cost-blabel">مواد اولیه</div><div class="rp-cost-bval">' + fmtPrice(Math.round(totalRaw)) + '</div></div>';
-    if (totalSemi > 0) {
-        if (totalRaw > 0) ci += '<div class="rp-cost-bsep"></div>';
-        ci += '<div class="rp-cost-item"><div class="rp-cost-blabel">نیمه‌آماده</div><div class="rp-cost-bval" style="color:var(--rp-purple)">' + fmtPrice(Math.round(totalSemi)) + '</div></div>';
+    if (activeSections.packaging) {
+        packs.forEach(function (pk) {
+            var pkId = pk.packaging_material_id || pk.raw_material_id ||
+                       (typeof pk.packaging_material === 'object' ? (pk.packaging_material && pk.packaging_material.id) : pk.packaging_material) ||
+                       (typeof pk.raw_material === 'object' ? (pk.raw_material && pk.raw_material.id) : pk.raw_material);
+            var pkLookup = pkId ? findPackagingById(pkId) : null;
+            var name = pk.packaging_material_name || pk.raw_material_name ||
+                       (typeof pk.packaging_material === 'object' && pk.packaging_material ? pk.packaging_material.name : '') ||
+                       (typeof pk.raw_material === 'object' && pk.raw_material ? pk.raw_material.name : '') ||
+                       pk.name || (pkLookup ? pkLookup.name : '') || '-';
+            var qty = parseFloat(pk.quantity || pk.qty) || 0;
+            var unit = pk.unit || (typeof pk.packaging_material === 'object' && pk.packaging_material ? pk.packaging_material.unit : '') || (pkLookup ? (pkLookup.unit_display || pkLookup.unit) : '');
+            var price = parseFloat(pk.price || (typeof pk.packaging_material === 'object' && pk.packaging_material ? pk.packaging_material.price : 0)) || 0;
+            if (!price && pkId) price = getPackagingPrice(pkId);
+            if (!price && name) price = findPackagingPrice(name);
+            if (!price && pkLookup) price = parseFloat(pkLookup.price) || 0;
+            var cost = qty * price; totalPack += cost;
+            var sv = pkId ? getPackagingStock(pkId) : 0, ok = sv >= qty;
+            packRows +=
+                '<div class="rp-rcp-row pack-row"><div style="min-width:0;flex:1"><div class="rp-rcp-row-name"><i class="bi bi-box-seam" style="color:#0d9488"></i> ' + escHtml(name) + '</div>' +
+                '<div class="rp-rcp-row-meta">مقدار: <strong>' + toP(qty) + '</strong> ' + uLabel(unit) +
+                (price > 0 ? ' · قیمت: ' + fmtPrice(price) + '/' + uLabel(unit) : '') +
+                ' · <span style="font-weight:700;color:' + (ok ? 'var(--rp-success)' : 'var(--rp-danger)') + '">' +
+                (ok ? '✓ ' : '✗ ') + toP(sv) + ' ' + uLabel(unit) + '</span></div></div>' +
+                '<div class="rp-rcp-row-cost" style="color:#0d9488">' + fmtPrice(Math.round(cost)) + '</div></div>';
+        });
     }
-    if (totalPack > 0) {
-        if (totalRaw > 0 || totalSemi > 0) ci += '<div class="rp-cost-bsep"></div>';
-        ci += '<div class="rp-cost-item"><div class="rp-cost-blabel">بسته‌بندی</div><div class="rp-cost-bval" style="color:#0d9488">' + fmtPrice(Math.round(totalPack)) + '</div></div>';
-    }
-    ci += '<div class="rp-cost-bsep"></div><div class="rp-cost-item"><div class="rp-cost-blabel">هزینه هر واحد</div><div class="rp-cost-bval big" style="color:var(--rp-danger)">' + fmtPrice(Math.round(total)) + '</div></div>';
 
-    var countText = toP(ings.length) + ' ماده';
-    if (semis.length) countText += ' + ' + toP(semis.length) + ' نیمه‌آماده';
-    if (packs.length) countText += ' + ' + toP(packs.length) + ' بسته‌بندی';
+    /* ★★★ جعبه هزینه داینامیک ★★★ */
+    var ci = buildDynamicCostBox(totalRaw, totalSemi, totalPack);
+
+    /* ★★★ شمارش داینامیک ★★★ */
+    var countText = '';
+    if (activeSections.raw) countText += toP(ings.length) + ' ماده';
+    if (activeSections.semi && semis.length) countText += (countText ? ' + ' : '') + toP(semis.length) + ' نیمه‌آماده';
+    if (activeSections.packaging && packs.length) countText += (countText ? ' + ' : '') + toP(packs.length) + ' بسته‌بندی';
+    if (!countText) countText = 'بدون ماده';
 
     box.innerHTML =
         '<div class="rp-rcp-top"><div><h3><i class="bi bi-egg-fried"></i> ' + escHtml(food.name) + '</h3><p>هزینه تولید یک واحد</p></div>' +
@@ -2243,7 +2365,7 @@ function loadAllSemiForPick() {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   INIT & EVENT DELEGATION
+   ★★★ INIT — با loadRecipeGroups ★★★
    ═══════════════════════════════════════════════════════════════ */
 var _debouncedUpdateDesc = debounce(updateRecipeDesc, 120);
 var _debouncedRecalcCost = debounce(recalcCostPreview, 120);
@@ -2265,9 +2387,20 @@ document.addEventListener('DOMContentLoaded', function () {
     var semiYieldEl = document.getElementById('semiYield');
     if (semiYieldEl) { semiYieldEl.value = '1'; semiYieldEl.disabled = true; }
 
-    Promise.all([loadAllRawMaterials(), loadAllSemiForPick(), loadAllPackagingMaterials()])
-    .then(function () { loadRecipes(); loadFoods(); })
-    .catch(function () { loadRecipes(); loadFoods(); });
+    /* ★★★ اول گروه‌ها رو بخون، بعد visibility اعمال کن، بعد بقیه ★★★ */
+    Promise.all([loadAllRawMaterials(), loadAllSemiForPick(), loadAllPackagingMaterials(), loadRecipeGroups()])
+    .then(function () {
+        applyGroupVisibility();
+        renderCostPreviewRows();
+        loadRecipes();
+        loadFoods();
+    })
+    .catch(function () {
+        applyGroupVisibility();
+        renderCostPreviewRows();
+        loadRecipes();
+        loadFoods();
+    });
 });
 
 document.addEventListener('input', function (e) {
