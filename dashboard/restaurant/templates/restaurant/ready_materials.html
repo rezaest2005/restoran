@@ -52,16 +52,6 @@ body { font-family: 'Vazirmatn', sans-serif; background: var(--rm-bg); color: va
 .rm-header h1 { font-size: 1.6rem; font-weight: 800; margin: 0 0 4px; }
 .rm-header p { color: var(--rm-text-sec); font-size: .92rem; margin: 0; }
 
-.rm-btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 12px 22px; border-radius: 12px; border: none;
-  font-family: inherit; font-size: .88rem; font-weight: 700; cursor: pointer;
-  transition: all .2s; white-space: nowrap;
-}
-.rm-btn svg { width: 17px; height: 17px; }
-.rm-btn-accent { background: var(--rm-accent); color: #fff; box-shadow: 0 4px 14px rgba(181,133,58,.3); }
-.rm-btn-accent:hover { background: var(--rm-accent-dark); transform: translateY(-1px); }
-
 /* ═══════════════════════════════════════════
    کارت‌های آمار
    ═══════════════════════════════════════════ */
@@ -76,49 +66,14 @@ body { font-family: 'Vazirmatn', sans-serif; background: var(--rm-bg); color: va
 }
 .rm-sc-val { font-size: 1.4rem; font-weight: 800; color: var(--rm-text); }
 .rm-sc-label { font-size: .8rem; color: var(--rm-text-sec); font-weight: 600; margin-top: 4px; }
-.rm-stat.warn { background: var(--rm-warn-bg); border-color: #fde68a; }
-.rm-stat.warn .rm-sc-val { color: var(--rm-warn); }
-.rm-stat.pulse { animation: rmPulseBox 1.2s ease infinite; }
 
 /* ═══════════════════════════════════════════
-   بنر هشدار
-   ═══════════════════════════════════════════ */
-.rm-alert-banner {
-  display: none; background: var(--rm-warn-bg); border: 1.5px solid #fde68a;
-  border-radius: var(--rm-radius); padding: 14px 18px; margin-bottom: 18px;
-}
-.rm-alert-banner.show { display: block; animation: rmFadeUp .3s ease both; }
-.rm-alert-head { display: flex; align-items: center; gap: 8px; font-weight: 700; color: #92400e; font-size: .88rem; margin-bottom: 10px; }
-.rm-alert-head svg { width: 18px; height: 18px; color: var(--rm-warn); flex-shrink: 0; }
-.rm-alert-list { display: flex; flex-wrap: wrap; gap: 8px; }
-.rm-alert-chip {
-  display: inline-flex; align-items: center; gap: 6px; background: #fff;
-  border: 1px solid #fde68a; border-radius: 20px; padding: 6px 12px;
-  font-size: .78rem; cursor: pointer; transition: all .2s;
-}
-.rm-alert-chip:hover { background: #fef3c7; transform: translateY(-1px); }
-.chip-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--rm-warn); flex-shrink: 0; }
-.chip-name { font-weight: 700; color: var(--rm-text); }
-.chip-qty { color: var(--rm-text-sec); font-size: .72rem; }
-
-/* ═══════════════════════════════════════════
-   نوار ابزار (فیلتر + جستجو)
+   نوار ابزار (جستجو)
    ═══════════════════════════════════════════ */
 .rm-toolbar {
   display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap;
   animation: rmFadeUp .5s ease both;
 }
-.rm-cat-filter-wrap { position: relative; min-width: 180px; }
-.rm-cat-filter-wrap select {
-  width: 100%; appearance: none; padding: 11px 36px 11px 14px;
-  border: 1.5px solid var(--rm-border); border-radius: 10px; background: #fff;
-  font-family: inherit; font-size: .85rem; color: var(--rm-text); outline: none;
-  cursor: pointer; transition: border-color .2s;
-}
-.rm-cat-filter-wrap select:focus { border-color: var(--rm-accent); }
-.rm-cat-filter-wrap select.rm-cat-active { border-color: var(--rm-accent); background: var(--rm-accent-light); font-weight: 700; color: var(--rm-accent-dark); }
-.rm-cat-filter-wrap svg { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); width: 16px; height: 16px; color: var(--rm-text-sec); pointer-events: none; }
-
 .rm-search { position: relative; flex: 1; min-width: 220px; }
 .rm-search svg { position: absolute; top: 50%; right: 14px; transform: translateY(-50%); width: 16px; height: 16px; color: var(--rm-text-sec); }
 .rm-search input {
@@ -129,22 +84,14 @@ body { font-family: 'Vazirmatn', sans-serif; background: var(--rm-bg); color: va
 .rm-search input:focus { border-color: var(--rm-accent); box-shadow: 0 0 0 3px rgba(181,133,58,.12); }
 
 /* ═══════════════════════════════════════════
-   بدنه اصلی: جدول + سایدبار
-   ═══════════════════════════════════════════ */
-.rm-body {
-  display: grid; grid-template-columns: 1fr 300px; gap: 18px; align-items: start;
-  animation: rmFadeUp .5s ease both;
-}
-.rm-main { min-width: 0; }
-
-/* ═══════════════════════════════════════════
    جدول
    ═══════════════════════════════════════════ */
+.rm-main { animation: rmFadeUp .5s ease both; }
 .rm-table-wrap {
   background: var(--rm-card-bg); border: 1px solid var(--rm-border-soft);
   border-radius: var(--rm-radius-lg); overflow-x: auto; box-shadow: var(--rm-shadow-sm);
 }
-.rm-table { width: 100%; border-collapse: collapse; min-width: 920px; }
+.rm-table { width: 100%; border-collapse: collapse; min-width: 700px; }
 .rm-table thead th {
   background: var(--rm-accent-light); color: var(--rm-accent-dark);
   font-size: .76rem; font-weight: 700; padding: 13px 10px; text-align: center;
@@ -157,40 +104,14 @@ body { font-family: 'Vazirmatn', sans-serif; background: var(--rm-bg); color: va
 }
 .rm-table tbody tr:last-child td { border-bottom: none; }
 .rm-table tbody tr:hover { background: #fffdf8; }
-.rm-table tbody tr.rm-row-low { background: #fff7ed; }
-.rm-table tbody tr.rm-row-low:hover { background: #fef3e6; }
 .rm-table td:nth-child(2) { text-align: right; }
-
-.rm-low-badge {
-  display: inline-flex; align-items: center; gap: 3px; background: var(--rm-danger);
-  color: #fff; font-size: .64rem; font-weight: 700; padding: 2px 7px; border-radius: 20px;
-  margin-inline-end: 6px; vertical-align: middle;
-}
-
-.rm-cat-badge {
-  display: inline-block; background: var(--rm-accent-light); color: var(--rm-accent-dark);
-  font-size: .74rem; font-weight: 700; padding: 4px 12px; border-radius: 20px;
-  cursor: pointer; transition: all .2s; white-space: nowrap;
-}
-.rm-cat-badge:hover { background: var(--rm-accent); color: #fff; }
 
 .rm-status {
   display: inline-block; font-size: .72rem; font-weight: 700; padding: 4px 12px;
   border-radius: 20px; white-space: nowrap;
 }
 .rm-status-ok { background: var(--rm-success-bg); color: var(--rm-success); }
-.rm-status-low { background: var(--rm-warn-bg); color: var(--rm-warn); }
 .rm-status-out { background: var(--rm-danger-bg); color: var(--rm-danger); }
-
-.rm-actions { display: flex; align-items: center; justify-content: center; gap: 6px; }
-.rm-btn-icon {
-  width: 30px; height: 30px; border: none; border-radius: 8px; background: var(--rm-bg);
-  color: var(--rm-text-sec); cursor: pointer; display: flex; align-items: center;
-  justify-content: center; transition: all .2s;
-}
-.rm-btn-icon svg { width: 15px; height: 15px; }
-.rm-edit-btn:hover { background: var(--rm-accent-light); color: var(--rm-accent-dark); }
-.rm-del:hover { background: var(--rm-danger-bg); color: var(--rm-danger); }
 
 .rm-empty-row td { padding: 0 !important; border: none !important; }
 .rm-empty { text-align: center; padding: 50px 20px; color: var(--rm-text-sec); }
@@ -198,40 +119,22 @@ body { font-family: 'Vazirmatn', sans-serif; background: var(--rm-bg); color: va
 .rm-empty p { font-size: .88rem; margin: 0; }
 
 /* ═══════════════════════════════════════════
-   سایدبار مواد اولیه
+   ردیف‌های ناموجود + کاور
    ═══════════════════════════════════════════ */
-.rm-side {
-  background: var(--rm-card-bg); border: 1px solid var(--rm-border-soft);
-  border-radius: var(--rm-radius-lg); box-shadow: var(--rm-shadow-sm);
-  display: flex; flex-direction: column; max-height: 640px;
-  position: sticky; top: 16px;
+.rm-row-unavailable { position: relative; }
+.rm-row-unavailable td:not(:last-child) { opacity: .35; }
+.rm-row-unavailable td:last-child { position: relative; }
+.rm-unavail-cover {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none; z-index: 2;
 }
-.rm-side-head { padding: 16px 18px 12px; border-bottom: 1px solid var(--rm-border-soft); flex-shrink: 0; }
-.rm-side-head h3 { margin: 0 0 10px; font-size: .96rem; font-weight: 700; }
-.rm-side-search { position: relative; }
-.rm-side-search svg { position: absolute; top: 50%; right: 12px; transform: translateY(-50%); width: 14px; height: 14px; color: var(--rm-text-sec); }
-.rm-side-search input {
-  width: 100%; padding: 9px 34px 9px 12px; border: 1.5px solid var(--rm-border-soft);
-  border-radius: 9px; font-family: inherit; font-size: .82rem; outline: none; transition: border-color .2s;
+.rm-unavail-tag {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  color: #fff; font-size: 11px; font-weight: 800;
+  padding: 4px 14px; border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(220,38,38,.3);
 }
-.rm-side-search input:focus { border-color: var(--rm-accent); }
-
-.rm-side-list { overflow-y: auto; padding: 8px; flex: 1; }
-.rm-side-item {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  padding: 11px 12px; border-radius: 10px; cursor: pointer; transition: background .15s;
-  border: 1px solid transparent;
-}
-.rm-side-item:hover { background: var(--rm-accent-light); border-color: var(--rm-border-soft); }
-.rm-side-item.disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }
-.rm-side-item-name { font-weight: 700; font-size: .84rem; color: var(--rm-text); }
-.rm-side-item-meta { display: flex; gap: 8px; margin-top: 3px; font-size: .72rem; color: var(--rm-text-sec); }
-.rm-side-item-meta .qty.low { color: var(--rm-warn); font-weight: 700; }
-.rm-side-item-meta .qty.out { color: var(--rm-danger); font-weight: 700; }
-.rm-side-arrow { color: var(--rm-accent); flex-shrink: 0; transition: transform .15s; }
-.rm-side-arrow svg { width: 16px; height: 16px; }
-.rm-side-item:hover .rm-side-arrow { transform: translateX(-3px); }
-.rm-side-empty { text-align: center; padding: 30px 14px; color: var(--rm-text-sec); font-size: .84rem; }
 
 /* ═══════════════════════════════════════════
    Toast
@@ -248,173 +151,31 @@ body { font-family: 'Vazirmatn', sans-serif; background: var(--rm-bg); color: va
 .rm-toast-warn { background: var(--rm-warn); }
 
 /* ═══════════════════════════════════════════
-   مودال افزودن/ویرایش
-   ═══════════════════════════════════════════ */
-.rm-modal-overlay {
-  position: fixed; inset: 0; background: rgba(41,37,36,.5); backdrop-filter: blur(2px);
-  display: flex; align-items: center; justify-content: center; z-index: 9999;
-  opacity: 0; visibility: hidden; transition: opacity .25s, visibility .25s; padding: 16px;
-}
-.rm-modal-overlay.active { opacity: 1; visibility: visible; }
-
-.rm-modal {
-  background: #fff; border-radius: var(--rm-radius-lg); width: 100%; max-width: 520px;
-  box-shadow: var(--rm-shadow-lg); transform: scale(.94) translateY(10px);
-  transition: transform .25s; max-height: 90vh; overflow-y: auto; padding: 24px;
-}
-.rm-modal-overlay.active .rm-modal { transform: scale(1) translateY(0); }
-.rm-modal h3 { margin: 0 0 18px; font-size: 1.1rem; font-weight: 800; }
-
-.rm-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
-.rm-field label { font-size: .82rem; font-weight: 600; color: var(--rm-text-sec); }
-.rm-field input, .rm-field select, .rm-field textarea {
-  padding: 11px 14px; border: 1.5px solid var(--rm-border); border-radius: 10px;
-  font-family: inherit; font-size: .88rem; color: var(--rm-text); outline: none;
-  background: #fff; transition: border-color .2s, box-shadow .2s; width: 100%;
-}
-.rm-field textarea { resize: vertical; min-height: 64px; }
-.rm-field input:focus, .rm-field select:focus, .rm-field textarea:focus {
-  border-color: var(--rm-accent); box-shadow: 0 0 0 3px rgba(181,133,58,.12);
-}
-
-.rm-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-
-/* باکس ماده اولیه منبع */
-.rm-source-box {
-  display: none; background: var(--rm-accent-light); border: 1.5px solid var(--rm-border);
-  border-radius: var(--rm-radius); padding: 16px; margin-bottom: 16px;
-}
-.rm-source-box.show { display: block; animation: rmFadeUp .3s ease both; }
-.rm-source-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-.rm-source-title { display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--rm-accent-dark); font-size: .9rem; }
-.rm-source-title svg { width: 17px; height: 17px; }
-.rm-source-remove {
-  border: none; background: transparent; color: var(--rm-danger); font-size: .76rem;
-  font-weight: 600; cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: background .2s;
-}
-.rm-source-remove:hover { background: var(--rm-danger-bg); }
-.rm-source-info { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
-.rm-source-info-item { font-size: .78rem; color: var(--rm-text-sec); background: #fff; padding: 6px 10px; border-radius: 8px; }
-.rm-source-info-item strong { color: var(--rm-text); }
-.rm-source-consume { display: flex; align-items: flex-end; gap: 10px; }
-.rm-source-consume .rm-field { flex: 1; margin-bottom: 0; }
-.rm-source-unit-label {
-  padding: 11px 14px; background: #fff; border: 1.5px solid var(--rm-border); border-radius: 10px;
-  font-size: .82rem; font-weight: 600; color: var(--rm-text-sec); white-space: nowrap;
-}
-.rm-source-remaining {
-  margin-top: 10px; font-size: .8rem; color: var(--rm-text-sec); background: #fff;
-  padding: 8px 12px; border-radius: 8px;
-}
-.rm-source-remaining strong { color: var(--rm-success); font-weight: 700; }
-.rm-source-remaining.warn { background: var(--rm-danger-bg); }
-.rm-source-remaining.warn strong { color: var(--rm-danger); }
-
-/* اسلایدر سود */
-.rm-profit-wrap {
-  background: var(--rm-bg); border: 1px solid var(--rm-border-soft); border-radius: var(--rm-radius);
-  padding: 14px 16px; margin-bottom: 16px;
-}
-.rm-profit-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.rm-profit-header label { font-size: .82rem; font-weight: 600; color: var(--rm-text-sec); }
-.rm-profit-badge {
-  background: var(--rm-accent); color: #fff; font-size: .78rem; font-weight: 800;
-  padding: 3px 12px; border-radius: 20px;
-}
-.rm-profit-slider {
-  -webkit-appearance: none; width: 100%; height: 6px; border-radius: 6px;
-  background: linear-gradient(to left, var(--rm-accent) 15%, var(--rm-border) 15%);
-  outline: none; margin: 10px 0; cursor: pointer;
-}
-.rm-profit-slider::-webkit-slider-thumb {
-  -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
-  background: var(--rm-accent); border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.25); cursor: pointer;
-}
-.rm-profit-slider::-moz-range-thumb {
-  width: 20px; height: 20px; border-radius: 50%; background: var(--rm-accent);
-  border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.25); cursor: pointer;
-}
-.rm-profit-result { display: flex; justify-content: space-between; font-size: .82rem; color: var(--rm-text-sec); }
-.rm-profit-result span:last-child { font-weight: 800; color: var(--rm-accent-dark); }
-
-.rm-selling-row { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 14px; }
-.rm-selling-row .rm-field { flex: 1; margin-bottom: 0; }
-.rm-lock-btn {
-  width: 44px; height: 44px; flex-shrink: 0; border: 1.5px solid var(--rm-border); border-radius: 10px;
-  background: #fff; color: var(--rm-text-sec); cursor: pointer; display: flex; align-items: center;
-  justify-content: center; transition: all .2s;
-}
-.rm-lock-btn svg { width: 18px; height: 18px; }
-.rm-lock-btn.locked { background: var(--rm-accent-light); border-color: var(--rm-border); color: var(--rm-accent-dark); }
-.rm-lock-btn:not(.locked) { background: var(--rm-success-bg); border-color: #bbf7d0; color: var(--rm-success); }
-
-.rm-btns { display: flex; gap: 10px; margin-top: 6px; }
-.rm-save, .rm-cancel {
-  flex: 1; padding: 12px 20px; border-radius: 10px; border: none;
-  font-family: inherit; font-weight: 700; font-size: .88rem; cursor: pointer; transition: all .2s;
-}
-.rm-save { background: var(--rm-accent); color: #fff; }
-.rm-save:hover { background: var(--rm-accent-dark); }
-.rm-cancel { background: var(--rm-bg); color: var(--rm-text-sec); border: 1.5px solid var(--rm-border); }
-.rm-cancel:hover { background: #fff; }
-
-/* ═══════════════════════════════════════════
    انیمیشن‌ها
    ═══════════════════════════════════════════ */
 @keyframes rmFadeUp {
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-@keyframes rmPulseBox {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,.35); }
-  50%      { box-shadow: 0 0 0 8px rgba(245,158,11,0); }
-}
 
 /* ═══════════════════════════════════════════
    ریسپانسیو
    ═══════════════════════════════════════════ */
-
-/* تبلت */
-@media (max-width: 1024px) {
-  .rm-body { grid-template-columns: 1fr; }
-  .rm-side { position: static; max-height: 420px; order: -1; }
-}
-
 @media (max-width: 860px) {
   .rm-stats { grid-template-columns: repeat(3, 1fr); gap: 10px; }
   .rm-sc-val { font-size: 1.15rem; }
-  .rm-form-row { grid-template-columns: 1fr; }
 }
 
-/* موبایل */
 @media (max-width: 640px) {
   .rm-container { padding: 16px 10px 40px; }
   .rm-header { flex-direction: column; align-items: stretch; }
   .rm-header h1 { font-size: 1.3rem; }
-  .rm-btn-accent { width: 100%; justify-content: center; }
-
   .rm-stats { grid-template-columns: 1fr 1fr; }
   .rm-stats .rm-stat:first-child { grid-column: 1 / -1; }
-
   .rm-toolbar { flex-direction: column; }
-  .rm-cat-filter-wrap { width: 100%; }
-
-  .rm-table { min-width: 760px; }
-
-  .rm-side { max-height: 320px; }
-
-  .rm-modal { padding: 18px; max-width: 100%; }
-  .rm-source-consume { flex-direction: column; align-items: stretch; }
-  .rm-selling-row { flex-direction: column; align-items: stretch; }
-  .rm-lock-btn { width: 100%; height: 40px; }
-
-  .rm-btns { flex-direction: column; }
-
+  .rm-table { min-width: 600px; }
   #rm-toast-box { left: 10px; right: 10px; transform: none; align-items: center; }
   .rm-toast { white-space: normal; text-align: center; }
-
-  .rm-alert-list { flex-direction: column; align-items: stretch; }
-  .rm-alert-chip { justify-content: space-between; }
 }
 
 @media (max-width: 420px) {
@@ -427,115 +188,6 @@ body { font-family: 'Vazirmatn', sans-serif; background: var(--rm-bg); color: va
 {% block content %}
 <div id="rm-toast-box"></div>
 
-<!-- ═══ Modal: Add/Edit ═══ -->
-<div class="rm-modal-overlay" id="rm-modal-overlay">
-    <div class="rm-modal">
-        <h3 id="rm-modal-title">افزودن ماده آماده</h3>
-        <input type="hidden" id="rm-m-id">
-        <input type="hidden" id="rm-m-raw-id">
-
-        <div class="rm-source-box" id="rm-source-box">
-            <div class="rm-source-head">
-                <span class="rm-source-title">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                    <span id="rm-source-name">—</span>
-                </span>
-                <button class="rm-source-remove" id="rm-source-remove" type="button">✕ حذف ماده اولیه</button>
-            </div>
-            <div class="rm-source-info">
-                <div class="rm-source-info-item">موجودی فعلی: <strong id="rm-source-qty">۰</strong></div>
-                <div class="rm-source-info-item">قیمت واحد: <strong id="rm-source-price">۰</strong> تومان</div>
-                <div class="rm-source-info-item">واحد: <strong id="rm-source-unit">—</strong></div>
-            </div>
-            <div class="rm-source-consume">
-                <div class="rm-field">
-                    <label>مقدار مصرف از ماده اولیه *</label>
-                    <input type="number" id="rm-m-consume" placeholder="مثلاً 5" min="0" step="0.001">
-                </div>
-                <span class="rm-source-unit-label" id="rm-source-unit-label">—</span>
-            </div>
-            <div class="rm-source-remaining" id="rm-source-remaining">
-                باقیمانده بعد از مصرف: <strong id="rm-source-remain-val">—</strong>
-            </div>
-        </div>
-
-        <div class="rm-field">
-            <label>نام ماده آماده *</label>
-            <input type="text" id="rm-m-name" placeholder="مثلاً نوشابه، دلستر، نان آماده">
-        </div>
-        <div class="rm-field">
-            <label>توضیحات</label>
-            <textarea id="rm-m-desc" placeholder="اختیاری"></textarea>
-        </div>
-        <div class="rm-field">
-            <label>دسته‌بندی</label>
-            <select id="rm-m-category">
-                <option value="">— بدون دسته‌بندی —</option>
-                {% for c in categories %}
-                <option value="{{ c.id }}">{{ c.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="rm-field">
-            <label>قیمت خرید (تومان)</label>
-            <input type="text" id="rm-m-purchase" placeholder="0" inputmode="numeric" autocomplete="off">
-        </div>
-        <div class="rm-profit-wrap">
-            <div class="rm-profit-header">
-                <label>تنظیم سود با اسلایدر</label>
-                <span class="rm-profit-badge" id="rm-profit-badge">۳۰٪</span>
-            </div>
-            <input type="range" class="rm-profit-slider" id="rm-profit-slider" min="0" max="200" value="30" step="1">
-            <div class="rm-profit-result">
-                <span>قیمت فروش محاسبه‌شده:</span>
-                <span id="rm-profit-calc">۰ تومان</span>
-            </div>
-        </div>
-        <div class="rm-selling-row">
-            <div class="rm-field">
-                <label>قیمت فروش (تومان) *</label>
-                <input type="text" id="rm-m-selling" placeholder="0" inputmode="numeric" autocomplete="off">
-            </div>
-            <button class="rm-lock-btn locked" id="rm-lock-btn" title="قفل/باز کردن قیمت فروش">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            </button>
-        </div>
-        <div class="rm-form-row">
-            <div class="rm-field">
-                <label>واحد</label>
-                <select id="rm-m-unit">
-                    {% for val, label in unit_choices %}
-                    <option value="{{ val }}">{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="rm-field">
-                <label>حداقل موجودی *</label>
-                <input type="number" id="rm-m-min" placeholder="مثلاً 10" min="0" step="1">
-            </div>
-        </div>
-        <div class="rm-form-row">
-            <div class="rm-field">
-                <label>تأمین‌کننده</label>
-                <select id="rm-m-supplier">
-                    <option value="">— بدون تأمین‌کننده —</option>
-                    {% for s in suppliers %}
-                    <option value="{{ s.id }}">{{ s.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="rm-field">
-                <label>بارکد</label>
-                <input type="text" id="rm-m-barcode" placeholder="اختیاری">
-            </div>
-        </div>
-        <div class="rm-btns">
-            <button class="rm-save" id="rm-modal-save">ذخیره</button>
-            <button class="rm-cancel" id="rm-modal-cancel">انصراف</button>
-        </div>
-    </div>
-</div>
-
 <div class="rm-wrap">
 <div class="rm-container">
 
@@ -543,183 +195,101 @@ body { font-family: 'Vazirmatn', sans-serif; background: var(--rm-bg); color: va
     <header class="rm-header" style="animation-delay:0s">
         <div>
             <h1>مواد آماده</h1>
-            <p>مدیریت مواد آماده — نوشابه، دلستر، نان آماده و...</p>
+            <p>لیست مواد آماده از دیکشنری — موجودی و قیمت از انبار</p>
         </div>
-        <button class="rm-btn rm-btn-accent" id="rm-add-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            افزودن ماده آماده
-        </button>
     </header>
 
     <!-- Stats -->
     <div class="rm-stats" style="animation-delay:.05s" id="rm-stats-bar">
         <div class="rm-stat">
-            <div class="rm-sc-val" id="rm-stat-total">{{ ready_materials|length }}</div>
+            <div class="rm-sc-val" id="rm-stat-total">{{ items|length }}</div>
             <div class="rm-sc-label">کل اقلام</div>
         </div>
         <div class="rm-stat">
-            <div class="rm-sc-val" id="rm-stat-sum">—</div>
-            <div class="rm-sc-label">ارزش کل</div>
+            <div class="rm-sc-val" id="rm-stat-instock">—</div>
+            <div class="rm-sc-label">موجود در انبار</div>
         </div>
-        <div class="rm-stat warn" id="rm-alert-stat">
-            <div class="rm-sc-val" id="rm-stat-alerts">—</div>
-            <div class="rm-sc-label">هشدار موجودی</div>
+        <div class="rm-stat">
+            <div class="rm-sc-val" id="rm-stat-outstock">—</div>
+            <div class="rm-sc-label">ناموجود</div>
         </div>
-    </div>
-
-    <!-- Alert Banner -->
-    <div class="rm-alert-banner" id="rm-alert-banner">
-        <div class="rm-alert-head">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            <span id="rm-alert-title">هشدار: موجودی برخی اقلام کمتر از حداقل تعیین‌شده است</span>
-        </div>
-        <div class="rm-alert-list" id="rm-alert-list"></div>
     </div>
 
     <!-- Toolbar -->
     <div class="rm-toolbar" style="animation-delay:.1s">
-        <!-- فیلتر دسته‌بندی -->
-        <div class="rm-cat-filter-wrap">
-            <select id="rm-cat-filter">
-                <option value="">همه دسته‌بندی‌ها</option>
-                {% for c in categories %}
-                <option value="{{ c.id }}">{{ c.name }}</option>
-                {% endfor %}
-            </select>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
-        </div>
-        <!-- جستجو -->
         <div class="rm-search">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-            <input type="text" id="rm-search-input" placeholder="جستجو در نام یا بارکد...">
+            <input type="text" id="rm-search-input" placeholder="جستجوی نام محصول...">
         </div>
     </div>
 
-    <!-- Body: Table + Side Panel -->
-    <div class="rm-body">
+    <!-- Table -->
+    <div class="rm-main">
+        <div class="rm-table-wrap">
+            <table class="rm-table">
+                <thead>
+                    <tr>
+                        <th style="width:40px">#</th>
+                        <th>نام محصول</th>
+                        <th>واحد</th>
+                        <th>موجودی انبار</th>
+                        <th>قیمت واحد (تومان)</th>
+                        <th>ارزش کل</th>
+                        <th>وضعیت</th>
+                    </tr>
+                </thead>
+                <tbody id="rm-tbody">
+                    {% for item in items %}
+                    <tr data-id="{{ item.id }}"
+                        data-name="{{ item.name }}"
+                        data-unit="{{ item.unit }}"
+                        data-unit-display="{{ item.unit_display }}"
+                        data-qty="{% if item.quantity is not None %}{{ item.quantity }}{% else %}-1{% endif %}"
+                        data-price="{% if item.price is not None %}{{ item.price }}{% else %}0{% endif %}"
+                        data-in-stock="{{ item.in_stock|yesno:'true,false' }}"
+                        class="{% if not item.in_stock %}rm-row-unavailable{% endif %}">
 
-        <!-- Table -->
-        <div class="rm-main">
-            <div class="rm-table-wrap">
-                <table class="rm-table">
-                    <thead>
-                        <tr>
-                            <th style="width:40px">#</th>
-                            <th>نام</th>
-                            <th>دسته</th>
-                            <th>موجودی</th>
-                            <th>حداقل</th>
-                            <th>واحد</th>
-                            <th>قیمت خرید</th>
-                            <th>قیمت فروش</th>
-                            <th>سود</th>
-                            <th>ارزش کل</th>
-                            <th>تأمین‌کننده</th>
-                            <th>وضعیت</th>
-                            <th style="width:90px">عملیات</th>
-                        </tr>
-                    </thead>
-                    <tbody id="rm-tbody">
-                        {% for m in ready_materials %}
-                        <tr data-id="{{ m.pk }}"
-                            data-name="{{ m.name }}"
-                            data-desc="{{ m.description }}"
-                            data-purchase="{{ m.purchase_price }}"
-                            data-selling="{{ m.selling_price }}"
-                            data-qty="{{ m.quantity }}"
-                            data-min="{{ m.minimum_stock }}"
-                            data-unit="{{ m.unit }}"
-                            data-supplier="{{ m.supplier_id|default:'' }}"
-                            data-barcode="{{ m.barcode }}"
-                            data-category="{{ m.category_id|default:'' }}"
-                            data-category-name="{{ m.category.name|default:'' }}">
-                            <td style="font-weight:600;color:var(--rm-text-sec)">{{ forloop.counter }}</td>
-                            <td style="font-weight:600">{{ m.name }}</td>
-                            <td>
-                                {% if m.category %}
-                                    <span class="rm-cat-badge" data-cat-id="{{ m.category_id }}">{{ m.category.name }}</span>
-                                {% else %}
-                                    <span style="color:var(--rm-text-sec);font-size:.78rem">—</span>
-                                {% endif %}
-                            </td>
-                            <td style="font-weight:600">{{ m.quantity|floatformat:0 }}</td>
-                            <td style="color:var(--rm-text-sec)">{{ m.minimum_stock|floatformat:0 }}</td>
-                            <td>{{ m.get_unit_display }}</td>
-                            <td>{{ m.purchase_price|floatformat:0 }}</td>
-                            <td>{{ m.selling_price|floatformat:0 }}</td>
-                            <td style="color:var(--rm-success);font-weight:700;">—</td>
-                            <td style="font-weight:700;color:var(--rm-accent)">{{ m.total_value|floatformat:0 }}</td>
-                            <td style="color:var(--rm-text-sec)">{{ m.supplier.name|default:"—" }}</td>
-                            <td>
-                                {% if m.quantity <= 0 %}
-                                    <span class="rm-status rm-status-out">ناموجود</span>
-                                {% elif m.minimum_stock > 0 and m.quantity <= m.minimum_stock %}
-                                    <span class="rm-status rm-status-low">کم</span>
-                                {% else %}
-                                    <span class="rm-status rm-status-ok">موجود</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="rm-actions">
-                                    <button class="rm-btn-icon rm-edit-btn" title="ویرایش">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                                    </button>
-                                    <button class="rm-btn-icon rm-del" title="حذف">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr class="rm-empty-row">
-                            <td colspan="13">
-                                <div class="rm-empty">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                                    <p>هنوز ماده آماده‌ای ثبت نشده — روی «افزودن ماده آماده» بزنید</p>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+                        <td style="font-weight:600;color:var(--rm-text-sec)">{{ forloop.counter }}</td>
+                        <td style="font-weight:700">{{ item.name }}</td>
+                        <td>{{ item.unit_display }}</td>
+
+                        {% if item.quantity is not None %}
+                            <td style="font-weight:700">{{ item.quantity|floatformat:0 }}</td>
+                        {% else %}
+                            <td style="color:var(--rm-text-sec)">—</td>
+                        {% endif %}
+
+                        {% if item.price is not None %}
+                            <td>{{ item.price|floatformat:0 }}</td>
+                        {% else %}
+                            <td style="color:var(--rm-text-sec)">—</td>
+                        {% endif %}
+
+                        <td style="color:var(--rm-text-sec)">—</td>
+
+                        <td>
+                            {% if item.quantity is not None and item.quantity > 0 %}
+                                <span class="rm-status rm-status-ok">موجود</span>
+                            {% elif item.quantity is not None and item.quantity <= 0 %}
+                                <span class="rm-status rm-status-out">ناموجود</span>
+                            {% else %}
+                                <span class="rm-status rm-status-out">بدون انبار</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr class="rm-empty-row">
+                        <td colspan="7">
+                            <div class="rm-empty">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                                <p>ماده آماده‌ای در دیکشنری ثبت نشده</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-
-        <!-- Side Panel: Raw Materials -->
-        <div class="rm-side">
-            <div class="rm-side-head">
-                <h3>مواد اولیه</h3>
-                <div class="rm-side-search">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                    <input type="text" id="rm-side-search" placeholder="جستجو...">
-                </div>
-            </div>
-            <div class="rm-side-list" id="rm-side-list">
-                {% for r in raw_materials %}
-                <div class="rm-side-item {% if r.quantity <= 0 %}disabled{% endif %}"
-                     data-id="{{ r.pk }}"
-                     data-name="{{ r.name }}"
-                     data-qty="{{ r.quantity }}"
-                     data-price="{{ r.price }}"
-                     data-unit="{{ r.unit }}"
-                     data-unit-display="{{ r.get_unit_display }}">
-                    <div class="rm-side-item-info">
-                        <div class="rm-side-item-name">{{ r.name }}</div>
-                        <div class="rm-side-item-meta">
-                            <span class="qty {% if r.quantity <= 0 %}out{% elif r.quantity < 5 %}low{% endif %}">موجودی: {{ r.quantity|floatformat:0 }}</span>
-                            <span>{{ r.get_unit_display }}</span>
-                        </div>
-                    </div>
-                    <div class="rm-side-arrow">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="rm-side-empty">ماده اولیه‌ای ثبت نشده</div>
-                {% endfor %}
-            </div>
-        </div>
-
     </div>
 
 </div>
@@ -729,52 +299,11 @@ body { font-family: 'Vazirmatn', sans-serif; background: var(--rm-bg); color: va
 {% block extra_js %}
 <script>
 // ═══════════════════════════════════════════
-//  بخش ۱: متغیرهای DOM
+//  کمکی
 // ═══════════════════════════════════════════
-var rmTbody = document.getElementById('rm-tbody');
-var rmOverlay = document.getElementById('rm-modal-overlay');
-var rmModalTitle = document.getElementById('rm-modal-title');
-var rmMId = document.getElementById('rm-m-id');
-var mRawId = document.getElementById('rm-m-raw-id');
-var rmMName = document.getElementById('rm-m-name');
-var rmMDesc = document.getElementById('rm-m-desc');
-var rmMPurchase = document.getElementById('rm-m-purchase');
-var rmMSelling = document.getElementById('rm-m-selling');
-var rmMConsume = document.getElementById('rm-m-consume');
-var rmMMin = document.getElementById('rm-m-min');
-var rmMUnit = document.getElementById('rm-m-unit');
-var rmMSupplier = document.getElementById('rm-m-supplier');
-var rmMBarcode = document.getElementById('rm-m-barcode');
-var rmMCategory = document.getElementById('rm-m-category');
-var rmSearch = document.getElementById('rm-search-input');
-var rmCatFilter = document.getElementById('rm-cat-filter');
-var rmProfitSlider = document.getElementById('rm-profit-slider');
-var rmProfitBadge = document.getElementById('rm-profit-badge');
-var rmProfitCalc = document.getElementById('rm-profit-calc');
-var rmLockBtn = document.getElementById('rm-lock-btn');
-var rmSellingLocked = true;
-
-var rmSourceBox = document.getElementById('rm-source-box');
-var rmSourceName = document.getElementById('rm-source-name');
-var rmSourceQty = document.getElementById('rm-source-qty');
-var rmSourcePrice = document.getElementById('rm-source-price');
-var rmSourceUnit = document.getElementById('rm-source-unit');
-var rmSourceUnitLabel = document.getElementById('rm-source-unit-label');
-var rmSourceRemaining = document.getElementById('rm-source-remaining');
-var rmSourceRemainVal = document.getElementById('rm-source-remain-val');
-
-var rmCurrentRaw = null;
-
-// ═══════════════════════════════════════════
-//  بخش ۲: توابع کمکی
-// ═══════════════════════════════════════════
-function rmGetCookie(name) {
-    var v = null;
-    document.cookie.split(';').forEach(function(c) {
-        c = c.trim();
-        if (c.startsWith(name + '=')) v = decodeURIComponent(c.slice(name.length + 1));
-    });
-    return v;
+function rmToPersian(n) {
+    var d = '\u06F0\u06F1\u06F2\u06F3\u06F4\u06F5\u06F6\u06F7\u06F8\u06F9';
+    return String(n).replace(/\d/g, function(c){ return d[c]; });
 }
 
 function rmToast(msg, type) {
@@ -788,541 +317,74 @@ function rmToast(msg, type) {
     setTimeout(function(){ t.classList.remove('show'); setTimeout(function(){ t.remove(); }, 350); }, 3500);
 }
 
-function rmToPersian(n) {
-    var d = '\u06F0\u06F1\u06F2\u06F3\u06F4\u06F5\u06F6\u06F7\u06F8\u06F9';
-    return String(n).replace(/\d/g, function(c){ return d[c]; });
-}
-
-function rmFormatPrice(n) { return Math.round(n).toLocaleString('en'); }
-
-function rmAddCommas(raw) {
-    if (!raw && raw !== '0') return '';
-    var s = String(raw).replace(/,/g, '');
-    return s.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-
-function rmStripCommas(s) { return parseInt(String(s).replace(/,/g, ''), 10) || 0; }
-
-function rmUpdateLockBtn(btn, locked) {
-    if (locked) {
-        btn.classList.add('locked');
-        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
-    } else {
-        btn.classList.remove('locked');
-        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>';
-    }
-}
-
 // ═══════════════════════════════════════════
-//  بخش ۳: منطق Source Box
-// ═══════════════════════════════════════════
-function rmShowSourceBox(rawData) {
-    rmCurrentRaw = rawData;
-    mRawId.value = rawData.id;
-    rmSourceName.textContent = rawData.name;
-    rmSourceQty.textContent = rmToPersian(parseFloat(rawData.qty).toLocaleString('en'));
-    rmSourcePrice.textContent = rmFormatPrice(parseInt(rawData.price));
-    rmSourceUnit.textContent = rawData.unitDisplay;
-    rmSourceUnitLabel.textContent = rawData.unitDisplay;
-    rmMConsume.value = '';
-    rmMConsume.max = rawData.qty;
-    rmSourceBox.classList.add('show');
-    rmUpdateRemaining();
-}
-
-function rmHideSourceBox() {
-    rmCurrentRaw = null;
-    mRawId.value = '';
-    rmSourceBox.classList.remove('show');
-    rmMConsume.value = '';
-}
-
-function rmUpdateRemaining() {
-    if (!rmCurrentRaw) return;
-    var consume = parseFloat(rmMConsume.value) || 0;
-    var available = parseFloat(rmCurrentRaw.qty) || 0;
-    var remain = available - consume;
-    rmSourceRemainVal.textContent = rmToPersian(remain.toLocaleString('en')) + ' ' + rmCurrentRaw.unitDisplay;
-    if (remain < 0) {
-        rmSourceRemaining.classList.add('warn');
-        rmSourceRemainVal.textContent = rmToPersian(remain.toLocaleString('en')) + ' ' + rmCurrentRaw.unitDisplay + ' ⚠️ موجودی کافی نیست!';
-    } else {
-        rmSourceRemaining.classList.remove('warn');
-    }
-}
-
-rmMConsume.addEventListener('input', rmUpdateRemaining);
-document.getElementById('rm-source-remove').addEventListener('click', rmHideSourceBox);
-
-// ═══════════════════════════════════════════
-//  بخش ۴: فرمت قیمت و اسلایدر سود
-// ═══════════════════════════════════════════
-[rmMPurchase, rmMSelling].forEach(function(el) {
-    el.addEventListener('input', function(e) {
-        var input = e.target, cursorPos = input.selectionStart, oldVal = input.value;
-        var raw = oldVal.replace(/[^\d]/g, '');
-        if (!raw) { input.value = ''; input.dataset.rawValue = '0'; return; }
-        var formatted = rmAddCommas(raw);
-        input.value = formatted;
-        input.dataset.rawValue = raw;
-        var diff = formatted.length - oldVal.length;
-        input.setSelectionRange(cursorPos + diff, cursorPos + diff);
-    });
-});
-
-function rmCalcSellingFromProfit() {
-    if (rmSellingLocked) {
-        var purchase = parseInt(rmMPurchase.dataset.rawValue || rmStripCommas(rmMPurchase.value)) || 0;
-        var pct = parseInt(rmProfitSlider.value) || 0;
-        var selling = Math.round(purchase * (1 + pct / 100));
-        rmMSelling.value = rmAddCommas(String(selling));
-        rmMSelling.dataset.rawValue = String(selling);
-    }
-    rmProfitBadge.textContent = rmToPersian(rmProfitSlider.value) + '٪';
-    rmProfitCalc.textContent = rmFormatPrice(parseInt(rmMSelling.dataset.rawValue || rmStripCommas(rmMSelling.value)) || 0) + ' تومان';
-    var ratio = rmProfitSlider.value / 200 * 100;
-    rmProfitSlider.style.background = 'linear-gradient(to left, var(--rm-accent) ' + ratio + '%, var(--rm-border) ' + ratio + '%)';
-}
-rmProfitSlider.addEventListener('input', rmCalcSellingFromProfit);
-rmMPurchase.addEventListener('input', function() { setTimeout(rmCalcSellingFromProfit, 50); });
-rmMSelling.addEventListener('input', function() {
-    if (!rmSellingLocked) {
-        rmProfitBadge.textContent = 'دستی';
-        rmProfitCalc.textContent = rmFormatPrice(parseInt(rmMSelling.dataset.rawValue || rmStripCommas(rmMSelling.value)) || 0) + ' تومان';
-    }
-});
-rmLockBtn.addEventListener('click', function() {
-    rmSellingLocked = !rmSellingLocked;
-    rmUpdateLockBtn(rmLockBtn, rmSellingLocked);
-    if (rmSellingLocked) rmCalcSellingFromProfit();
-});
-
-// ═══════════════════════════════════════════
-//  بخش ۵: آمار و هشدارها
+//  آمار
 // ═══════════════════════════════════════════
 function rmUpdateStats() {
-    var rows = rmTbody.querySelectorAll('tr[data-id]');
-    var totalVal = 0, alerts = 0, visibleCount = 0;
+    var rows = document.querySelectorAll('#rm-tbody tr[data-id]');
+    var inStock = 0, outStock = 0;
     rows.forEach(function(r) {
         if (r.style.display === 'none') return;
-        visibleCount++;
-        var qty = parseFloat(r.dataset.qty) || 0;
-        var purchase = parseInt(r.dataset.purchase) || 0;
-        var min = parseFloat(r.dataset.min) || 0;
-        totalVal += qty * purchase;
-        if (min > 0 && qty <= min) alerts++;
+        var inStockVal = r.dataset.inStock;
+        if (inStockVal === 'true') inStock++;
+        else outStock++;
     });
-    document.getElementById('rm-stat-total').textContent = rmToPersian(visibleCount);
-    document.getElementById('rm-stat-sum').textContent = rmFormatPrice(totalVal);
-    document.getElementById('rm-stat-alerts').textContent = rmToPersian(alerts);
-
-    var alertStat = document.getElementById('rm-alert-stat');
-    if (alerts > 0) alertStat.classList.add('pulse');
-    else alertStat.classList.remove('pulse');
-
-    rmUpdateAlertBanner();
-}
-
-var rmWarnSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:10px;height:10px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
-
-function rmUpdateAlertBanner() {
-    var banner = document.getElementById('rm-alert-banner');
-    var list = document.getElementById('rm-alert-list');
-    var title = document.getElementById('rm-alert-title');
-    list.innerHTML = '';
-    var lowItems = [];
-
-    rmTbody.querySelectorAll('tr[data-id]').forEach(function(tr) {
-        if (tr.style.display === 'none') return;
-        var qty = parseFloat(tr.dataset.qty) || 0;
-        var min = parseFloat(tr.dataset.min) || 0;
-        if (min > 0 && qty <= min) {
-            lowItems.push({ name: tr.dataset.name, qty: qty, min: min, id: tr.dataset.id });
-            tr.classList.add('rm-row-low');
-            var nameCell = tr.querySelectorAll('td')[1];
-            if (nameCell && !nameCell.querySelector('.rm-low-badge')) {
-                var badge = document.createElement('span');
-                badge.className = 'rm-low-badge';
-                badge.innerHTML = rmWarnSvg + ' کمبود';
-                nameCell.prepend(badge);
-            }
-        } else {
-            tr.classList.remove('rm-row-low');
-            var existingBadge = tr.querySelector('.rm-low-badge');
-            if (existingBadge) existingBadge.remove();
-        }
-    });
-
-    if (lowItems.length > 0) {
-        title.textContent = 'هشدار: ' + rmToPersian(lowItems.length) + ' قلم کمتر از حداقل موجودی';
-        lowItems.forEach(function(item) {
-            var chip = document.createElement('span');
-            chip.className = 'rm-alert-chip';
-            chip.innerHTML = '<span class="chip-dot"></span><span class="chip-name">' + item.name + '</span><span class="chip-qty">' + rmToPersian(item.qty) + ' / ' + rmToPersian(item.min) + '</span>';
-            chip.addEventListener('click', function() {
-                var tr = rmTbody.querySelector('tr[data-id="' + item.id + '"]');
-                if (tr) {
-                    tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    tr.style.transition = 'background .3s';
-                    tr.style.background = '#fee2e2';
-                    setTimeout(function(){ tr.style.background = ''; }, 1500);
-                }
-            });
-            list.appendChild(chip);
-        });
-        banner.classList.add('show');
-    } else {
-        banner.classList.remove('show');
-    }
+    document.getElementById('rm-stat-total').textContent = rmToPersian(inStock + outStock);
+    document.getElementById('rm-stat-instock').textContent = rmToPersian(inStock);
+    document.getElementById('rm-stat-outstock').textContent = rmToPersian(outStock);
 }
 
 // ═══════════════════════════════════════════
-//  بخش ۶: فیلتر دسته‌بندی + جستجو
+//  جستجو
 // ═══════════════════════════════════════════
-function rmFilterRows() {
-    var selectedCat = rmCatFilter ? rmCatFilter.value : '';
-    var q = rmSearch ? rmSearch.value.trim().toLowerCase() : '';
-
-    rmTbody.querySelectorAll('tr[data-id]').forEach(function(tr) {
-        var catId = tr.dataset.category || '';
+var rmSearch = document.getElementById('rm-search-input');
+rmSearch.addEventListener('input', function() {
+    var q = rmSearch.value.trim().toLowerCase();
+    document.querySelectorAll('#rm-tbody tr[data-id]').forEach(function(tr) {
         var nm = (tr.dataset.name || '').toLowerCase();
-        var bc = (tr.dataset.barcode || '').toLowerCase();
-
-        var matchSearch = !q || nm.indexOf(q) !== -1 || bc.indexOf(q) !== -1;
-        var matchCat = !selectedCat || catId === selectedCat;
-
-        tr.style.display = (matchSearch && matchCat) ? '' : 'none';
+        tr.style.display = (!q || nm.indexOf(q) !== -1) ? '' : 'none';
     });
-
-    // تغییر ظاهر select وقتی فیلتر فعاله
-    if (rmCatFilter) {
-        if (selectedCat) rmCatFilter.classList.add('rm-cat-active');
-        else rmCatFilter.classList.remove('rm-cat-active');
-    }
-
     rmUpdateStats();
-}
+});
 
-if (rmCatFilter) {
-    rmCatFilter.addEventListener('change', rmFilterRows);
-}
-
-rmSearch.addEventListener('input', rmFilterRows);
-
-// ── کلیک روی بج دسته‌بندی در جدول → فیلتر همون دسته ──
-rmTbody.addEventListener('click', function(e) {
-    var catBadge = e.target.closest('.rm-cat-badge');
-    if (catBadge) {
-        var catId = catBadge.dataset.catId || catBadge.closest('tr').dataset.category;
-        if (catId && rmCatFilter) {
-            rmCatFilter.value = catId;
-            rmFilterRows();
+// ═══════════════════════════════════════════
+//  کاور ناموجود
+// ═══════════════════════════════════════════
+function rmAddCovers() {
+    document.querySelectorAll('#rm-tbody tr.rm-row-unavailable').forEach(function(tr) {
+        var statusCell = tr.querySelector('td:last-child');
+        if (statusCell && !statusCell.querySelector('.rm-unavail-cover')) {
+            var cover = document.createElement('div');
+            cover.className = 'rm-unavail-cover';
+            cover.innerHTML = '<span class="rm-unavail-tag">ناموجود در انبار</span>';
+            statusCell.style.position = 'relative';
+            statusCell.appendChild(cover);
         }
-    }
-});
-
-// ═══════════════════════════════════════════
-//  بخش ۷: مودال
-// ═══════════════════════════════════════════
-function rmOpenModal(title, data) {
-    rmModalTitle.textContent = title;
-    rmMId.value = data ? data.id : '';
-    rmMName.value = data ? data.name : '';
-    rmMDesc.value = data ? data.desc : '';
-    rmMCategory.value = data ? (data.category || '') : '';
-    rmMPurchase.value = data ? rmAddCommas(data.purchase) : '';
-    if (data) rmMPurchase.dataset.rawValue = data.purchase;
-    rmMSelling.value = data ? rmAddCommas(data.selling) : '';
-    if (data) rmMSelling.dataset.rawValue = data.selling;
-    rmMMin.value = data ? data.min : '';
-    rmMUnit.value = data ? data.unit : 'unit';
-    rmMSupplier.value = data ? data.supplier : '';
-    rmMBarcode.value = data ? data.barcode : '';
-    rmSellingLocked = true;
-    rmUpdateLockBtn(rmLockBtn, rmSellingLocked);
-    rmProfitSlider.value = 30;
-    if (data && parseInt(data.purchase) > 0) {
-        var pct = Math.round((parseInt(data.selling) / parseInt(data.purchase) - 1) * 100);
-        if (pct >= 0 && pct <= 200) rmProfitSlider.value = pct;
-    }
-    rmCalcSellingFromProfit();
-
-    if (data && data.rawId) {
-        rmShowSourceBox({
-            id: data.rawId, name: data.rawName,
-            qty: data.rawQty, price: data.rawPrice,
-            unit: data.rawUnit, unitDisplay: data.rawUnitDisplay
-        });
-    } else {
-        rmHideSourceBox();
-    }
-
-    rmOverlay.classList.add('active');
-    rmMName.focus();
-}
-
-function rmCloseModal() { rmOverlay.classList.remove('active'); rmHideSourceBox(); }
-document.getElementById('rm-modal-cancel').addEventListener('click', rmCloseModal);
-rmOverlay.addEventListener('click', function(e) { if (e.target === rmOverlay) rmCloseModal(); });
-document.getElementById('rm-add-btn').addEventListener('click', function() { rmOpenModal('افزودن ماده آماده', null); });
-
-// ═══════════════════════════════════════════
-//  بخش ۸: Edit / Delete / Save
-// ═══════════════════════════════════════════
-rmTbody.addEventListener('click', function(e) {
-    var editBtn = e.target.closest('.rm-edit-btn');
-    var delBtn = e.target.closest('.rm-del');
-
-    if (editBtn) {
-        var tr = editBtn.closest('tr');
-        rmOpenModal('ویرایش ماده آماده', {
-            id: tr.dataset.id, name: tr.dataset.name, desc: tr.dataset.desc,
-            purchase: tr.dataset.purchase, selling: tr.dataset.selling,
-            qty: tr.dataset.qty, min: tr.dataset.min, unit: tr.dataset.unit,
-            supplier: tr.dataset.supplier, barcode: tr.dataset.barcode,
-            category: tr.dataset.category
-        });
-    }
-
-    if (delBtn) {
-        var tr = delBtn.closest('tr');
-        if (!confirm('آیا «' + tr.dataset.name + '» حذف شود؟')) return;
-        var fd = new FormData();
-        fd.append('id', tr.dataset.id);
-        fetch('/api/ready-materials/delete/', {
-            method: 'POST', body: fd,
-            headers: { 'X-CSRFToken': rmGetCookie('csrftoken') }
-        })
-        .then(function(r){ return r.json(); })
-        .then(function(d) {
-            if (d.success) {
-                tr.style.transition = 'opacity .3s';
-                tr.style.opacity = '0';
-                setTimeout(function(){ tr.remove(); rmRenumber(); rmUpdateStats(); }, 300);
-                rmToast(d.msg);
-            } else { rmToast(d.error, 'error'); }
-        })
-        .catch(function(){ rmToast('خطا در ارتباط', 'error'); });
-    }
-});
-
-document.getElementById('rm-modal-save').addEventListener('click', function() {
-    if (!rmMName.value.trim()) { rmToast('نام ماده الزامی است.', 'error'); return; }
-
-    if (rmCurrentRaw) {
-        var consumeQty = parseFloat(rmMConsume.value) || 0;
-        if (consumeQty <= 0) { rmToast('مقدار مصرف از ماده اولیه را وارد کنید.', 'error'); rmMConsume.focus(); return; }
-        if (consumeQty > parseFloat(rmCurrentRaw.qty)) { rmToast('مقدار مصرف بیشتر از موجودی ماده اولیه است!', 'error'); rmMConsume.focus(); return; }
-    }
-
-    var fd = new FormData();
-    fd.append('id', rmMId.value);
-    fd.append('name', rmMName.value.trim());
-    fd.append('description', rmMDesc.value.trim());
-    fd.append('purchase_price', rmMPurchase.dataset.rawValue || rmStripCommas(rmMPurchase.value) || 0);
-    fd.append('selling_price', rmMSelling.dataset.rawValue || rmStripCommas(rmMSelling.value) || 0);
-    fd.append('quantity', 0);
-    fd.append('minimum_stock', rmMMin.value || 0);
-    fd.append('unit', rmMUnit.value);
-    fd.append('supplier', rmMSupplier.value);
-    fd.append('barcode', rmMBarcode.value.trim());
-    fd.append('category', rmMCategory.value);
-
-    if (rmCurrentRaw) {
-        fd.append('raw_material_id', mRawId.value);
-        fd.append('consume_quantity', rmMConsume.value || 0);
-    }
-
-    fetch('/api/ready-materials/save/', {
-        method: 'POST', body: fd,
-        headers: { 'X-CSRFToken': rmGetCookie('csrftoken') }
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(d) {
-        if (d.success) {
-            rmCloseModal();
-            if (rmMId.value) {
-                var tr = rmTbody.querySelector('tr[data-id="' + rmMId.value + '"]');
-                rmUpdateRow(tr, d.item);
-                rmToast('ویرایش شد.');
-            } else {
-                var emptyRow = rmTbody.querySelector('.rm-empty-row');
-                if (emptyRow) emptyRow.remove();
-                var tr = rmCreateRow(d.item);
-                rmTbody.appendChild(tr);
-                rmToast('اضافه شد.');
-            }
-            rmRenumber();
-            rmUpdateStats();
-            rmFormatAllPrices();
-        } else { rmToast(d.error, 'error'); }
-    })
-    .catch(function(){ rmToast('خطا در ارتباط', 'error'); });
-});
-
-// ═══════════════════════════════════════════
-//  بخش ۹: ساخت و بروزرسانی ردیف
-// ═══════════════════════════════════════════
-function rmCreateRow(item) {
-    var tr = document.createElement('tr');
-    rmSetRowData(tr, item);
-    rmBuildCells(tr, item);
-    return tr;
-}
-
-function rmUpdateRow(tr, item) {
-    rmSetRowData(tr, item);
-    rmBuildCells(tr, item);
-}
-
-function rmSetRowData(tr, item) {
-    tr.dataset.id = item.id;
-    tr.dataset.name = item.name;
-    tr.dataset.desc = item.description || '';
-    tr.dataset.purchase = item.purchase_price;
-    tr.dataset.selling = item.selling_price;
-    tr.dataset.qty = item.quantity;
-    tr.dataset.min = item.minimum_stock;
-    tr.dataset.unit = item.unit;
-    tr.dataset.supplier = item.supplier_id || '';
-    tr.dataset.barcode = item.barcode || '';
-    tr.dataset.category = item.category_id || '';
-    tr.dataset.categoryName = item.category_name || '';
-}
-
-function rmBuildCells(tr, item) {
-    var statusHtml = '';
-    var isLow = item.minimum_stock > 0 && item.quantity <= item.minimum_stock;
-    if (item.quantity <= 0) statusHtml = '<span class="rm-status rm-status-out">ناموجود</span>';
-    else if (isLow) statusHtml = '<span class="rm-status rm-status-low">کم</span>';
-    else statusHtml = '<span class="rm-status rm-status-ok">موجود</span>';
-
-    var profitAmount = parseInt(item.selling_price) - parseInt(item.purchase_price);
-    var profitText = profitAmount > 0 ? profitAmount.toLocaleString('en') : '—';
-    var nameHtml = (isLow ? '<span class="rm-low-badge">' + rmWarnSvg + ' کمبود</span> ' : '') + item.name;
-
-    var catHtml = '';
-    if (item.category_name) {
-        catHtml = '<span class="rm-cat-badge" data-cat-id="' + (item.category_id || '') + '">' + item.category_name + '</span>';
-    } else {
-        catHtml = '<span style="color:var(--rm-text-sec);font-size:.78rem">—</span>';
-    }
-
-    tr.innerHTML =
-        '<td style="font-weight:600;color:var(--rm-text-sec)"></td>' +
-        '<td style="font-weight:600;text-align:right">' + nameHtml + '</td>' +
-        '<td>' + catHtml + '</td>' +
-        '<td style="font-weight:600">' + item.quantity.toLocaleString('en') + '</td>' +
-        '<td style="color:var(--rm-text-sec)">' + item.minimum_stock.toLocaleString('en') + '</td>' +
-        '<td>' + item.unit_display + '</td>' +
-        '<td>' + parseInt(item.purchase_price).toLocaleString('en') + '</td>' +
-        '<td>' + parseInt(item.selling_price).toLocaleString('en') + '</td>' +
-        '<td style="color:var(--rm-success);font-weight:700;">' + profitText + '</td>' +
-        '<td style="font-weight:700;color:var(--rm-accent)">' + item.total_value.toLocaleString('en') + '</td>' +
-        '<td style="color:var(--rm-text-sec)">' + (item.supplier_name || '—') + '</td>' +
-        '<td>' + statusHtml + '</td>' +
-        '<td><div class="rm-actions">' +
-            '<button class="rm-btn-icon rm-edit-btn" title="ویرایش"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
-            '<button class="rm-btn-icon rm-del" title="حذف"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>' +
-        '</div></td>';
-
-    if (isLow) tr.classList.add('rm-row-low');
-    else tr.classList.remove('rm-row-low');
-}
-
-function rmRenumber() {
-    rmTbody.querySelectorAll('tr[data-id]').forEach(function(tr, i) {
-        tr.querySelector('td').textContent = rmToPersian(i + 1);
     });
 }
 
 // ═══════════════════════════════════════════
-//  بخش ۱۰: جستجوی سایدبار
+//  محاسبه ارزش کل
 // ═══════════════════════════════════════════
-document.getElementById('rm-side-search').addEventListener('input', function() {
-    var q = this.value.trim().toLowerCase();
-    document.querySelectorAll('.rm-side-item').forEach(function(item) {
-        var nm = (item.dataset.name || '').toLowerCase();
-        item.style.display = (!q || nm.indexOf(q) !== -1) ? '' : 'none';
-    });
-});
-
-// ═══════════════════════════════════════════
-//  بخش ۱۱: کلیک روی ماده اولیه → مودال
-// ═══════════════════════════════════════════
-document.querySelectorAll('.rm-side-item:not(.disabled)').forEach(function(item) {
-    item.addEventListener('click', function() {
-        var rawPrice = parseInt(item.dataset.price) || 0;
-        rmOpenModal('افزودن ماده آماده (از ' + item.dataset.name + ')', {
-            id: '',
-            name: item.dataset.name,
-            desc: '',
-            purchase: String(rawPrice),
-            selling: String(Math.round(rawPrice * 1.3)),
-            qty: '0',
-            min: '',
-            unit: item.dataset.unit,
-            supplier: '',
-            barcode: '',
-            category: '',
-            rawId: item.dataset.id,
-            rawName: item.dataset.name,
-            rawQty: item.dataset.qty,
-            rawPrice: item.dataset.price,
-            rawUnit: item.dataset.unit,
-            rawUnitDisplay: item.dataset.unitDisplay
-        });
-    });
-});
-
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') rmCloseModal();
-});
-
-// ═══════════════════════════════════════════
-//  بخش ۱۲: فرمت اولیه + Init
-// ═══════════════════════════════════════════
-function rmFormatAllPrices() {
-    rmTbody.querySelectorAll('tr[data-id]').forEach(function(tr) {
+function rmCalcValues() {
+    document.querySelectorAll('#rm-tbody tr[data-id]').forEach(function(tr) {
+        var qty = parseFloat(tr.dataset.qty);
+        var price = parseInt(tr.dataset.price);
         var cells = tr.querySelectorAll('td');
-        var purchase = parseInt(tr.dataset.purchase) || 0;
-        var selling = parseInt(tr.dataset.selling) || 0;
-        var qty = parseFloat(tr.dataset.qty) || 0;
-        var min = parseFloat(tr.dataset.min) || 0;
-        var profit = selling - purchase;
-        var total = qty * purchase;
-        var isLow = min > 0 && qty <= min;
-
-        if (cells[3]) cells[3].textContent = qty.toLocaleString('en');
-        if (cells[4]) cells[4].textContent = min.toLocaleString('en');
-        if (cells[6]) cells[6].textContent = purchase.toLocaleString('en');
-        if (cells[7]) cells[7].textContent = selling.toLocaleString('en');
-        if (cells[8]) cells[8].textContent = profit > 0 ? profit.toLocaleString('en') : '—';
-        if (cells[9]) cells[9].textContent = total.toLocaleString('en');
-
-        if (isLow && cells[1] && !cells[1].querySelector('.rm-low-badge')) {
-            var badge = document.createElement('span');
-            badge.className = 'rm-low-badge';
-            badge.innerHTML = rmWarnSvg + ' کمبود';
-            cells[1].prepend(badge);
-            tr.classList.add('rm-row-low');
+        // ستون ۶ = ارزش کل (index 5)
+        if (cells[5] && qty >= 0 && price > 0) {
+            cells[5].textContent = (qty * price).toLocaleString('en');
+            cells[5].style.fontWeight = '700';
+            cells[5].style.color = 'var(--rm-accent)';
         }
-    });
-    document.querySelectorAll('.rm-side-item-meta .qty').forEach(function(el) {
-        var match = el.textContent.match(/(\d+)/);
-        if (match) el.textContent = 'موجودی: ' + parseInt(match[1]).toLocaleString('en');
     });
 }
 
-rmRenumber();
+// ═══════════════════════════════════════════
+//  Init
+// ═══════════════════════════════════════════
+rmCalcValues();
+rmAddCovers();
 rmUpdateStats();
-rmFormatAllPrices();
-
-setTimeout(function() {
-    var alertCount = document.querySelectorAll('#rm-alert-list .rm-alert-chip').length;
-    if (alertCount > 0) {
-        rmToast('⚠ ' + rmToPersian(alertCount) + ' قلم کمتر از حداقل موجودی!', 'warn');
-    }
-}, 800);
 </script>
 {% endblock %}
