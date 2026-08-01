@@ -303,16 +303,38 @@ def usage_log_view(request: HttpRequest):
         "order_stats": {"total_orders": 0, "total_revenue": 0, "top_foods": []},
     })
 
-
 @staff_member_required(login_url=LOGIN_URL)
 def ready_materials_page(request: HttpRequest):
+    from ..models import ItemDictionary, RawMaterial, Category
+
+    dict_items = (
+        ItemDictionary.objects
+        .filter(category='ready_material', is_active=True)
+        .order_by('name')
+    )
+
+    raw_map = {}
+    for rm in RawMaterial.objects.all():
+        raw_map[rm.name.strip().lower()] = rm
+
+    items = []
+    for d in dict_items:
+        matched = raw_map.get(d.name.strip().lower())
+        items.append({
+            'id': d.id,
+            'name': d.name,
+            'unit': d.unit,
+            'unit_display': d.get_unit_display(),
+            'quantity': float(matched.quantity) if matched else None,
+            'price': float(matched.price) if matched else None,
+            'in_stock': matched is not None and matched.quantity > 0,
+        })
+
     return render(request, 'restaurant/ready_materials.html', {
-        'ready_materials': ReadyMaterial.objects.select_related('supplier', 'category').all(),
-        'suppliers': Supplier.objects.all(),
-        'unit_choices': ReadyMaterial.UNIT_CHOICES,
-        'raw_materials': RawMaterial.objects.all().order_by('name'),
+        'items': items,
         'categories': Category.objects.filter(is_active=True).order_by('order'),
     })
+
 
 
 # ═══════════════════════════════════════════
