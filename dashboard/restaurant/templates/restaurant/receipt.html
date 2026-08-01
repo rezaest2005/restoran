@@ -1,460 +1,413 @@
-{% extends "admin/restaurant_base.html" %}
-{% load static %}
-
-{% block title %}مدیریت رسپی{% endblock %}
-{% block page_title %}مدیریت رسپی{% endblock %}
-{% block breadcrumb %}خانه / رسپی‌ها{% endblock %}
-
-{% block extra_css %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>رسید سفارش</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
 <style>
-  /* ═══ RECIPE PAGE ═══ */
-  .rp-header { padding: 20px 24px 0; display: flex; align-items: center; justify-content: space-between; }
-  .rp-header h2 { font-size: 20px; font-weight: 900; color: var(--text); display: flex; align-items: center; gap: 8px; }
-  .rp-header h2 i { font-size: 20px; color: #8b5cf6; background: rgba(139,92,246,0.12); width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-  .rp-sub { font-size: 12px; color: var(--muted); font-weight: 600; margin-top: 2px; }
+:root {
+  --rc-width: 320px;
+  --rc-bg: #fffdf8;
+  --rc-border: #1a1a1a;
+  --rc-text: #111;
+  --rc-muted: #666;
+  --rc-dash: #222;
+  --rc-highlight: #d32f2f;
+  --rc-accent: #1a6b3c;
+}
 
-  .rp-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 14px 24px; }
-  .rp-stat { background: var(--surface); border-radius: 12px; padding: 12px 14px; border: 2px solid var(--border); display: flex; align-items: center; gap: 10px; }
-  .rp-stat-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
-  .rp-stat:nth-child(1) .rp-stat-icon { background: rgba(255,107,53,0.12); color: #ff6b35; }
-  .rp-stat:nth-child(2) .rp-stat-icon { background: rgba(139,92,246,0.12); color: #8b5cf6; }
-  .rp-stat:nth-child(3) .rp-stat-icon { background: rgba(16,185,129,0.12); color: #10b981; }
-  .rp-stat-num { font-size: 22px; font-weight: 900; color: var(--text); line-height: 1; }
-  .rp-stat-label { font-size: 10px; color: var(--muted); font-weight: 700; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:'Vazirmatn',sans-serif;
+  background:#e8e8e8;
+  display:flex; flex-direction:column; align-items:center;
+  min-height:100vh; padding:80px 20px 40px; direction:rtl;
+}
 
-  .rp-panel { margin: 0 24px 24px; background: var(--surface); border-radius: 16px; border: 2px solid var(--border); overflow: hidden; box-shadow: var(--card-shadow, 0 2px 8px rgba(0,0,0,.04)); }
-  .rp-panel-head { padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid var(--border); background: #fafbfc; flex-wrap: wrap; gap: 8px; }
-  .rp-panel-head h3 { font-size: 14px; font-weight: 900; color: var(--text); display: flex; align-items: center; gap: 6px; }
-  .rp-panel-head h3 i { color: #8b5cf6; }
+/* ═══ Demo Buttons ═══ */
+.demo-bar {
+  position:fixed; top:0; left:0; right:0; z-index:100;
+  background:rgba(0,0,0,.92); backdrop-filter:blur(10px);
+  padding:14px 20px; display:flex; justify-content:center; gap:12px;
+  box-shadow:0 4px 24px rgba(0,0,0,.3);
+}
+.demo-btn {
+  padding:10px 24px; border:2px solid transparent; border-radius:10px;
+  font-family:inherit; font-size:13px; font-weight:800;
+  cursor:pointer; transition:all .2s; display:flex; align-items:center; gap:6px;
+}
+.demo-btn-customer { background:#fff; color:#111; }
+.demo-btn-customer:hover { background:#f0f0f0; transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,0,0,.3); }
+.demo-btn-kitchen { background:var(--rc-highlight); color:#fff; }
+.demo-btn-kitchen:hover { background:#b71c1c; transform:translateY(-2px); box-shadow:0 6px 20px rgba(211,47,47,.4); }
+.demo-btn-both { background:var(--rc-accent); color:#fff; }
+.demo-btn-both:hover { background:#155a30; transform:translateY(-2px); }
 
-  .rp-filters { display: flex; gap: 5px; flex-wrap: wrap; padding: 10px 18px; border-bottom: 2px solid var(--border); background: #fafbfc; }
-  .rp-chip { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; border-radius: 14px; border: 2px solid var(--border); background: var(--surface); font-family: inherit; font-size: 11px; font-weight: 700; color: var(--muted); cursor: pointer; transition: all 0.2s; touch-action: manipulation; }
-  .rp-chip:hover { border-color: #8b5cf6; color: #8b5cf6; }
-  .rp-chip.active { background: #8b5cf6; color: #fff; border-color: #8b5cf6; }
-  .rp-chip .chip-count { font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 8px; background: rgba(0,0,0,0.06); }
-  .rp-chip.active .chip-count { background: rgba(255,255,255,0.25); }
+/* ═══ Receipt Frame ═══ */
+.rc {
+  width:var(--rc-width);
+  background:var(--rc-bg);
+  border:3px solid var(--rc-border);
+  border-radius:2px;
+  font-size:12.5px;
+  color:var(--rc-text);
+  position:relative;
+  box-shadow:0 8px 40px rgba(0,0,0,.15);
+  /* subtle paper texture */
+  background-image:url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)' opacity='.03'/%3E%3C/svg%3E");
+}
 
-  .rp-semi-bar { padding: 10px 18px; background: #faf5ff; border-bottom: 2px solid var(--border); }
-  .rp-semi-title { font-size: 10px; font-weight: 800; color: #7b1fa2; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
-  .rp-semi-list { display: flex; flex-wrap: wrap; gap: 4px; }
-  .rp-semi-tag { display: inline-flex; align-items: center; gap: 3px; padding: 3px 10px; background: rgba(139,92,246,0.08); color: #7b1fa2; border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid rgba(139,92,246,0.15); }
-  .rp-semi-tag .semi-unit { font-size: 9px; color: #a78bfa; margin-right: 2px; }
+/* ── Header ── */
+.rc-header {
+  padding:18px 16px 14px;
+  text-align:center;
+  border-bottom:2px dashed var(--rc-dash);
+}
+.rc-logo {
+  font-size:19px; font-weight:900;
+  letter-spacing:-0.5px; margin-bottom:12px;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+}
+.rc-logo-icon { font-size:22px; }
+.rc-divider { border:none; border-top:2px dashed var(--rc-dash); margin:0; }
+.rc-info {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:5px 10px; text-align:right; font-size:11px;
+}
+.rc-info-item {
+  display:flex; align-items:center; gap:4px;
+}
+.rc-info-label { font-weight:600; color:var(--rc-muted); }
+.rc-info-val { font-weight:800; }
+.rc-info-full { grid-column:1/-1; }
+.rc-info-highlight {
+  color:var(--rc-highlight); font-weight:900;
+}
 
-  .rp-foods { padding: 12px 18px; display: flex; flex-direction: column; gap: 8px; }
-  .rp-food-card { border: 2px solid var(--border); border-radius: 12px; overflow: hidden; transition: all 0.2s; }
-  .rp-food-card:hover { border-color: rgba(139,92,246,0.3); }
-  .rp-food-card.has-recipe { border-color: rgba(16,185,129,0.3); }
-  .rp-food-head { padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: background 0.15s; gap: 8px; }
-  .rp-food-head:hover { background: #f8f9fb; }
-  .rp-food-info { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
-  .rp-food-num { width: 28px; height: 28px; border-radius: 8px; background: rgba(139,92,246,0.08); color: #8b5cf6; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
-  .rp-food-card.has-recipe .rp-food-num { background: rgba(16,185,129,0.1); color: #10b981; }
-  .rp-food-name { font-size: 13px; font-weight: 700; color: var(--text); }
-  .rp-food-cat { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 6px; background: rgba(245,158,11,0.1); color: #d97706; white-space: nowrap; }
-  .rp-food-status { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
-  .rp-food-status.no-recipe { background: #fef2f2; color: #ef4444; }
-  .rp-food-status.done { background: #ecfdf5; color: #10b981; }
-  .rp-food-toggle { width: 28px; height: 28px; border-radius: 7px; border: none; background: rgba(0,0,0,0.04); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); transition: all 0.2s; flex-shrink: 0; }
-  .rp-food-toggle:hover { background: rgba(139,92,246,0.1); color: #8b5cf6; }
-  .rp-food-card.open .rp-food-toggle { transform: rotate(180deg); }
+/* ── Main Table ── */
+.rc-main { padding:10px 14px; }
+.rc-table {
+  width:100%; border-collapse:collapse;
+}
+.rc-table thead th {
+  font-size:10.5px; font-weight:800;
+  padding:6px 2px 8px;
+  border-bottom:2px solid var(--rc-dash);
+  text-align:right; color:var(--rc-muted);
+  text-transform:uppercase; letter-spacing:.3px;
+}
+.rc-table thead th.rc-col-num { text-align:center; width:50px; }
+.rc-table thead th.rc-col-price { text-align:left; width:75px; }
 
-  .rp-food-body { display: none; border-top: 2px solid var(--border); }
-  .rp-food-card.open .rp-food-body { display: block; }
-  .rp-recipe-area { padding: 12px 14px; }
-  .rp-recipe-label { font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
-  .rp-recipe-textarea { width: 100%; min-height: 100px; padding: 10px 12px; border: 2px solid var(--border); border-radius: 10px; font-family: 'Vazirmatn', sans-serif; font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.8; resize: vertical; transition: border-color 0.2s; background: #fafbfc; }
-  .rp-recipe-textarea:focus { outline: none; border-color: #8b5cf6; background: #fff; }
-  .rp-recipe-textarea::placeholder { color: var(--muted); font-weight: 400; }
+.rc-table tbody td {
+  padding:7px 2px;
+  border-bottom:1px dashed #ccc;
+  font-size:12px; font-weight:600;
+}
+.rc-table tbody td.rc-col-num {
+  text-align:center; font-weight:800;
+  font-size:13px;
+}
+.rc-table tbody td.rc-col-price {
+  text-align:left; font-weight:700;
+  white-space:nowrap; direction:ltr;
+  font-variant-numeric:tabular-nums;
+}
+.rc-table tbody tr:last-child td { border-bottom:none; }
 
-  /* ★ بخش هزینه داینامیک */
-  .rp-cost-section { padding: 12px 14px; border-top: 1px solid #f0f0f2; background: #fefefe; }
-  .rp-cost-title { font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 4px; }
-  .rp-cost-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 8px; }
-  .rp-cost-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--surface); border: 2px solid var(--border); border-radius: 10px; transition: border-color 0.2s; }
-  .rp-cost-item:hover { border-color: rgba(139,92,246,0.3); }
-  .rp-cost-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .rp-cost-label { font-size: 11px; font-weight: 700; color: var(--text); white-space: nowrap; flex-shrink: 0; }
-  .rp-cost-input { flex: 1; min-width: 0; padding: 4px 8px; border: 1px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text); text-align: left; direction: ltr; background: #fafbfc; }
-  .rp-cost-input:focus { outline: none; border-color: #8b5cf6; }
-  .rp-cost-unit { font-size: 9px; color: var(--muted); font-weight: 600; flex-shrink: 0; }
-  .rp-cost-total { margin-top: 10px; padding: 10px 12px; background: linear-gradient(135deg, rgba(139,92,246,0.06), rgba(16,185,129,0.06)); border: 2px solid rgba(139,92,246,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: space-between; }
-  .rp-cost-total-label { font-size: 12px; font-weight: 800; color: var(--text); }
-  .rp-cost-total-value { font-size: 16px; font-weight: 900; color: #7b1fa2; direction: ltr; }
+/* ── Total ── */
+.rc-total {
+  padding:12px 14px;
+  border-top:2px dashed var(--rc-dash);
+  display:flex; justify-content:space-between; align-items:center;
+}
+.rc-total-label { font-size:14px; font-weight:900; }
+.rc-total-val {
+  font-size:17px; font-weight:900;
+  direction:ltr; display:flex; align-items:baseline; gap:4px;
+}
+.rc-total-unit { font-size:10px; font-weight:600; color:var(--rc-muted); }
 
-  .rp-food-actions { padding: 8px 14px 12px; display: flex; gap: 6px; border-top: 1px solid #f0f0f2; background: #fafbfc; }
-  .rp-save-btn { padding: 8px 16px; border: none; border-radius: 8px; background: #8b5cf6; color: #fff; font-family: inherit; font-size: 12px; font-weight: 800; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 4px; touch-action: manipulation; }
-  .rp-save-btn:hover { background: #7c3aed; box-shadow: 0 4px 12px rgba(139,92,246,0.3); }
-  .rp-print-btn { padding: 8px 16px; border: 2px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--muted); font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 4px; touch-action: manipulation; }
-  .rp-print-btn:hover { border-color: var(--brand); color: var(--brand); }
+/* ── Footer ── */
+.rc-footer {
+  padding:14px 16px;
+  text-align:center;
+  border-top:2px dashed var(--rc-dash);
+}
+.rc-thankyou {
+  font-size:14px; font-weight:900;
+  margin-bottom:3px;
+}
+.rc-footer-sub {
+  font-size:10px; color:var(--rc-muted); font-weight:600;
+}
+.rc-footer-icon {
+  font-size:20px; display:block; margin-bottom:6px;
+}
 
-  .rp-empty { text-align: center; padding: 40px 16px; color: var(--muted); }
-  .rp-empty i { font-size: 40px; display: block; margin-bottom: 10px; opacity: 0.2; }
-  .rp-empty p { font-size: 13px; font-weight: 700; }
-  .rp-empty span { font-size: 11px; font-weight: 500; display: block; margin-top: 4px; }
+/* ── Kitchen specific ── */
+.rc.kitchen .rc-header { background:#fff5f5; }
+.rc.kitchen .rc-logo { color:var(--rc-highlight); }
+.rc.kitchen .rc-total { justify-content:center; gap:10px; }
 
-  .rp-toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1f2937; color: #fff; padding: 10px 20px; border-radius: 10px; font-size: 12px; font-weight: 700; box-shadow: 0 8px 32px rgba(0,0,0,0.2); z-index: 600; opacity: 0; transition: all 0.35s cubic-bezier(.4,0,.2,1); display: flex; align-items: center; gap: 6px; max-width: 90vw; text-align: center; }
-  .rp-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-  .rp-toast.success { background: #059669; }
-  .rp-toast.error { background: #dc2626; }
+/* ═══ Print Overlay ═══ */
+.print-ov {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.55); z-index:500;
+  justify-content:center; align-items:flex-start;
+  padding:30px 16px; overflow-y:auto;
+  backdrop-filter:blur(4px);
+}
+.print-ov.show { display:flex; }
+.print-ov .rc {
+  animation:rcUp .3s ease;
+}
+@keyframes rcUp {
+  from { opacity:0; transform:translateY(20px); }
+  to { opacity:1; transform:translateY(0); }
+}
+.print-actions {
+  display:flex; gap:8px; justify-content:center; margin-top:14px;
+}
+.print-actions button {
+  padding:10px 24px; border:none; border-radius:8px;
+  font-family:inherit; font-size:13px; font-weight:700;
+  cursor:pointer; transition:all .2s;
+  display:flex; align-items:center; gap:6px;
+}
+.pa-print { background:#111; color:#fff; }
+.pa-print:hover { background:#333; }
+.pa-close { background:#eee; color:#333; }
+.pa-close:hover { background:#ddd; }
 
-  .rp-print-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 700; justify-content: center; align-items: flex-start; padding: 30px 16px; overflow-y: auto; backdrop-filter: blur(4px); }
-  .rp-print-overlay.show { display: flex; }
-  .rp-print-card { background: #fff; border-radius: 12px; width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); overflow: hidden; animation: rpSlideUp 0.3s ease; }
-  @keyframes rpSlideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-  .rp-print-card .receipt { padding: 24px 20px; font-family: 'Vazirmatn', sans-serif; }
-  .rp-print-card .receipt-header { text-align: center; padding-bottom: 14px; border-bottom: 2px dashed #e0e0e0; margin-bottom: 14px; }
-  .rp-print-card .recipe-title { font-size: 20px; font-weight: 900; color: #7b1fa2; margin-bottom: 4px; }
-  .rp-print-card .recipe-cat { font-size: 11px; color: #666; font-weight: 600; }
-  .rp-print-card .recipe-semi-section { padding: 10px 0; border-bottom: 1px solid #e0e0e0; margin-bottom: 14px; }
-  .rp-print-card .recipe-semi-label { font-size: 10px; font-weight: 800; color: #7b1fa2; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-  .rp-print-card .recipe-semi-items { display: flex; flex-wrap: wrap; gap: 4px; }
-  .rp-print-card .recipe-semi-chip { display: inline-block; padding: 2px 8px; background: rgba(139,92,246,0.08); color: #7b1fa2; border-radius: 5px; font-size: 11px; font-weight: 600; }
-  .rp-print-card .recipe-body { padding: 14px 0; font-size: 13px; line-height: 2; color: #1a1a1a; white-space: pre-wrap; border-bottom: 2px dashed #e0e0e0; }
-  .rp-print-card .recipe-cost-print { padding: 10px 0; border-bottom: 2px dashed #e0e0e0; margin-bottom: 10px; }
-  .rp-print-card .recipe-cost-print-title { font-size: 10px; font-weight: 800; color: #7b1fa2; text-transform: uppercase; margin-bottom: 6px; }
-  .rp-print-card .recipe-cost-print-row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 12px; }
-  .rp-print-card .recipe-cost-print-row .label { color: #555; font-weight: 600; }
-  .rp-print-card .recipe-cost-print-row .value { color: #1a1a1a; font-weight: 800; direction: ltr; }
-  .rp-print-card .recipe-cost-print-total { display: flex; justify-content: space-between; padding: 6px 0 0; border-top: 1px solid #ddd; margin-top: 4px; font-size: 14px; font-weight: 900; }
-  .rp-print-card .recipe-cost-print-total .value { color: #7b1fa2; direction: ltr; }
-  .rp-print-card .recipe-footer { text-align: center; padding-top: 12px; font-size: 10px; color: #999; }
-  .rp-print-close { position: absolute; top: 16px; left: 16px; width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(255,255,255,0.9); cursor: pointer; font-size: 16px; color: #333; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; }
-  .rp-print-toolbar { display: flex; gap: 6px; justify-content: center; padding: 12px 0 0; }
-  .rp-print-toolbar button { padding: 8px 20px; border: none; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
-  .rp-pt-print { background: #7b1fa2; color: #fff; }
-  .rp-pt-print:hover { background: #6a1b9a; }
-  .rp-pt-close { background: #eee; color: #333; }
-  .rp-pt-close:hover { background: #ddd; }
+/* ═══ Print ═══ */
+@media print {
+  body * { visibility:hidden; }
+  .rc, .rc * { visibility:visible; }
+  .rc { position:absolute; top:0; right:0; box-shadow:none; border-width:2px; }
+  .print-actions, .print-ov { display:none!important; }
+  @page { size:auto; margin:5mm; }
+}
 
-  @media print { body * { visibility: hidden; } .rp-print-card, .rp-print-card * { visibility: visible; } .rp-print-card { position: absolute; top: 0; right: 0; box-shadow: none; } .rp-print-toolbar { display: none !important; } .rp-print-close { display: none !important; } @page { size: auto; margin: 5mm; } }
-
-  @media (max-width: 900px) { .rp-stats { grid-template-columns: 1fr; } }
-  @media (max-width: 640px) {
-    .rp-header { padding: 12px 12px 0; flex-direction: column; align-items: flex-start; gap: 4px; }
-    .rp-header h2 { font-size: 16px; }
-    .rp-header h2 i { width: 30px; height: 30px; font-size: 16px; }
-    .rp-stats { grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 8px 12px; }
-    .rp-stat { padding: 8px 10px; gap: 6px; }
-    .rp-stat-icon { width: 28px; height: 28px; font-size: 13px; }
-    .rp-stat-num { font-size: 18px; }
-    .rp-stat-label { font-size: 9px; }
-    .rp-panel { margin: 0 12px 14px; border-radius: 12px; }
-    .rp-panel-head { padding: 10px 12px; }
-    .rp-filters { padding: 8px 12px; gap: 4px; }
-    .rp-chip { padding: 4px 9px; font-size: 10px; }
-    .rp-semi-bar { padding: 8px 12px; }
-    .rp-foods { padding: 8px 12px; gap: 6px; }
-    .rp-food-head { padding: 8px 10px; }
-    .rp-food-name { font-size: 12px; }
-    .rp-food-cat { font-size: 9px; padding: 1px 6px; }
-    .rp-recipe-area { padding: 10px; }
-    .rp-recipe-textarea { min-height: 80px; font-size: 12px; }
-    .rp-cost-section { padding: 10px; }
-    .rp-cost-grid { grid-template-columns: 1fr; }
-    .rp-food-actions { padding: 6px 10px 10px; }
-    .rp-save-btn, .rp-print-btn { padding: 6px 12px; font-size: 11px; }
-  }
+/* ═══ Responsive ═══ */
+@media (max-width:400px) {
+  .rc { width:100%; border-width:2px; }
+  .rc-header { padding:14px 12px 10px; }
+  .rc-logo { font-size:16px; }
+  .rc-main { padding:8px 10px; }
+  .rc-table thead th { font-size:10px; }
+  .rc-table tbody td { font-size:11px; padding:6px 2px; }
+}
 </style>
-{% endblock %}
+</head>
+<body>
 
-{% block content %}
-<div class="rp-header">
-  <div>
-    <h2><i class="bi bi-journal-text"></i>مدیریت رسپی</h2>
-    <div class="rp-sub">نوشتن دستور پخت غذاها با استفاده از مواد نیمه‌آماده دیکشنری</div>
-  </div>
+<!-- ═══ Demo Bar ═══ -->
+<div class="demo-bar">
+  <button class="demo-btn demo-btn-customer" onclick="showCustomer()">
+    <i class="bi bi-receipt-cutoff"></i> رسید مشتری
+  </button>
+  <button class="demo-btn demo-btn-kitchen" onclick="showKitchen()">
+    <i class="bi bi-fire"></i> رسید آشپزخانه
+  </button>
+  <button class="demo-btn demo-btn-both" onclick="showBoth()">
+    <i class="bi bi-printer"></i> هر دو
+  </button>
 </div>
 
-<div class="rp-stats">
-  <div class="rp-stat">
-    <div class="rp-stat-icon"><i class="bi bi-egg-fried"></i></div>
-    <div><div class="rp-stat-num" id="statFoods">0</div><div class="rp-stat-label">غذا</div></div>
-  </div>
-  <div class="rp-stat">
-    <div class="rp-stat-icon"><i class="bi bi-layers"></i></div>
-    <div><div class="rp-stat-num" id="statSemi">0</div><div class="rp-stat-label">نیمه‌آماده</div></div>
-  </div>
-  <div class="rp-stat">
-    <div class="rp-stat-icon"><i class="bi bi-check-circle"></i></div>
-    <div><div class="rp-stat-num" id="statRecipes">0</div><div class="rp-stat-label">رسپی نوشته شده</div></div>
-  </div>
+<!-- ═══ Print Overlay ═══ -->
+<div class="print-ov" id="printOv">
+  <div id="printArea"></div>
 </div>
 
-<div class="rp-panel">
-  <div class="rp-panel-head">
-    <h3><i class="bi bi-journal-bookmark"></i>لیست غذاها و رسپی‌ها</h3>
-  </div>
-  <div class="rp-filters" id="rpFilters"></div>
-  <div class="rp-semi-bar" id="rpSemiBar">
-    <div class="rp-semi-title"><i class="bi bi-layers"></i> مواد نیمه‌آماده (از دیکشنری)</div>
-    <div class="rp-semi-list" id="rpSemiList"></div>
-  </div>
-  <div class="rp-foods" id="rpFoods"></div>
-  <div class="rp-empty" id="rpEmpty" style="display:none;">
-    <i class="bi bi-journal-x"></i>
-    <p>غذایی یافت نشد</p>
-    <span>ابتدا از دیکشنری غذا اضافه کنید</span>
-  </div>
-</div>
-
-<div class="rp-print-overlay" id="rpPrintOverlay">
-  <button class="rp-print-close" onclick="RecipePage.closePrint()"><i class="bi bi-x-lg"></i></button>
-  <div id="rpPrintContent"></div>
-</div>
-<div class="rp-toast" id="rpToast"></div>
-{% endblock %}
-
-{% block extra_js %}
 <script>
-var RecipePage = (function() {
-  var URL_FOODS   = '/api/foods/management/';
-  var URL_SEMI    = '/api/recipes/materials/';
-  var URL_GROUPS  = '/api/dictionary/groups/';
-  var URL_SAVE    = "{% url 'recipe_save' %}";
+/* ═══════════════════════════════════
+   Helper Functions
+   ═══════════════════════════════════ */
 
-  var allFoods = [], allSemi = [], allCats = [], recipeGroups = [];
-  var filterCat = 'all';
-  var foodCosts = {};  // { foodId: { groupId: value } }
+var PERSIAN_DIGITS = ['۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'];
 
-  var elFoods = document.getElementById('rpFoods');
-  var elEmpty = document.getElementById('rpEmpty');
-  var elFilters = document.getElementById('rpFilters');
-  var elSemiList = document.getElementById('rpSemiList');
-  var elToast = document.getElementById('rpToast');
-  var elPrintOv = document.getElementById('rpPrintOverlay');
-  var elPrintCt = document.getElementById('rpPrintContent');
+function toPersianNum(n) {
+  return String(n).replace(/\d/g, function(d){ return PERSIAN_DIGITS[+d]; });
+}
 
-  function csrf() { var c = document.cookie.match(/csrftoken=([^;]+)/); return c ? c[1] : ''; }
-  function toast(msg, type) {
-    elToast.textContent = msg;
-    elToast.className = 'rp-toast ' + (type || '');
-    elToast.classList.add('show');
-    setTimeout(function() { elToast.classList.remove('show'); }, 2500);
-  }
-  function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
-  function fmtPrice(v) { return parseInt(v || 0).toLocaleString('fa-IR'); }
+function formatPrice(amount) {
+  var parts = Number(amount).toLocaleString('en-US').split(',');
+  return toPersianNum(parts.join(','));
+}
 
-  /* ═══ بارگذاری ═══ */
-  function loadAll() {
-    // غذاها
-    fetch(URL_FOODS, { headers: { 'X-CSRFToken': csrf() } })
-      .then(function(r) { return r.json(); })
-      .then(function(res) {
-        allFoods = res.foods || res || [];
-        document.getElementById('statFoods').textContent = allFoods.length;
-        var withRecipe = allFoods.filter(function(f) { return f.recipe_text && f.recipe_text.trim(); }).length;
-        document.getElementById('statRecipes').textContent = withRecipe;
-        buildFilters(); render();
-      }).catch(function(){});
+function formatTime(d) {
+  var h = d.getHours(), m = d.getMinutes();
+  return toPersianNum(h < 10 ? '0'+h : h) + ':' + toPersianNum(m < 10 ? '0'+m : m);
+}
 
-    // دسته‌بندی‌ها
-    fetch('/api/categories/', { headers: { 'X-CSRFToken': csrf() } })
-      .then(function(r) { return r.json(); })
-      .then(function(res) { allCats = res.categories || res || []; buildFilters(); render(); }).catch(function(){});
+function receiptNum(id) {
+  return toPersianNum(id || Math.floor(1000 + Math.random() * 9000));
+}
 
-    // مواد نیمه‌آماده
-    fetch(URL_SEMI, { headers: { 'X-CSRFToken': csrf() } })
-      .then(function(r) { return r.json(); })
-      .then(function(res) {
-        allSemi = res.items || [];
-        document.getElementById('statSemi').textContent = allSemi.length;
-        renderSemiBar();
-      }).catch(function(){});
+function esc(s) {
+  var d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
 
-    // ★ تب‌های رسپی (داینامیک)
-    fetch(URL_GROUPS, { headers: { 'X-CSRFToken': csrf() } })
-      .then(function(r) { return r.json(); })
-      .then(function(res) {
-        recipeGroups = (res.groups || []).filter(function(g) { return g.usage_recipes; });
-        render();
-      }).catch(function(){});
-  }
+/* ═══════════════════════════════════
+   Customer Receipt
+   ═══════════════════════════════════ */
 
-  /* ═══ نوار مواد نیمه‌آماده ═══ */
-  function renderSemiBar() {
-    var h = '';
-    allSemi.forEach(function(s) {
-      h += '<span class="rp-semi-tag">' + esc(s.name)
-        + (s.unit_display ? ' <span class="semi-unit">(' + esc(s.unit_display) + ')</span>' : '')
-        + '</span>';
-    });
-    elSemiList.innerHTML = h || '<span style="font-size:11px;color:var(--muted);">موردی ثبت نشده</span>';
-  }
+function printCustomerReceipt(order) {
+  var now = new Date();
+  var delivery = new Date(now.getTime() + 20 * 60 * 1000);
+  var totalQty = 0, totalPrice = 0;
 
-  /* ═══ فیلترها ═══ */
-  function buildFilters() {
-    var h = '<button class="rp-chip' + (filterCat === 'all' ? ' active' : '') + '" onclick="RecipePage.filter(\'all\')">همه <span class="chip-count">' + allFoods.length + '</span></button>';
-    allCats.forEach(function(c) {
-      var cnt = allFoods.filter(function(f) { return f.category_id === c.id; }).length;
-      h += '<button class="rp-chip' + (filterCat == c.id ? ' active' : '') + '" onclick="RecipePage.filter(' + c.id + ')">'
-        + esc(c.name) + ' <span class="chip-count">' + cnt + '</span></button>';
-    });
-    elFilters.innerHTML = h;
-  }
-  function filter(catId) { filterCat = catId; buildFilters(); render(); }
+  order.items.forEach(function(it) {
+    totalQty += it.qty;
+    totalPrice += it.qty * it.price;
+  });
 
-  /* ═══ ★ بخش هزینه داینامیک ═══ */
-  function renderCostSection(foodId) {
-    if (!recipeGroups.length) return '';
-    var costs = foodCosts[foodId] || {};
-    var total = 0;
+  var rows = '';
+  order.items.forEach(function(it, i) {
+    rows += '<tr>'
+      + '<td>' + esc(it.name) + '</td>'
+      + '<td class="rc-col-num">' + toPersianNum(it.qty) + '</td>'
+      + '<td class="rc-col-price">' + formatPrice(it.qty * it.price) + '</td>'
+      + '</tr>';
+  });
 
-    var h = '<div class="rp-cost-section">'
-      + '<div class="rp-cost-title"><i class="bi bi-calculator"></i> هزینه مواد</div>'
-      + '<div class="rp-cost-grid">';
+  var html = ''
+    + '<div class="rc">'
+    + '<div class="rc-header">'
+    + '  <div class="rc-logo"><span class="rc-logo-icon">🍕</span> رستوران پیتزا لند</div>'
+    + '  <div class="rc-info">'
+    + '    <div class="rc-info-item"><span class="rc-info-label">شماره فیش:</span><span class="rc-info-val rc-info-highlight">#' + receiptNum(order.id) + '</span></div>'
+    + '    <div class="rc-info-item"><span class="rc-info-label">میز:</span><span class="rc-info-val">' + toPersianNum(order.table || '—') + '</span></div>'
+    + '    <div class="rc-info-item"><span class="rc-info-label">ساعت سفارش:</span><span class="rc-info-val">' + formatTime(now) + '</span></div>'
+    + '    <div class="rc-info-item"><span class="rc-info-label">تخمین تحویل:</span><span class="rc-info-val rc-info-highlight">' + formatTime(delivery) + '</span></div>'
+    + '  </div>'
+    + '</div>'
+    + '<div class="rc-main">'
+    + '  <table class="rc-table">'
+    + '    <thead><tr>'
+    + '      <th>غذا</th>'
+    + '      <th class="rc-col-num">تعداد</th>'
+    + '      <th class="rc-col-price">مبلغ (تومان)</th>'
+    + '    </tr></thead>'
+    + '    <tbody>' + rows + '</tbody>'
+    + '  </table>'
+    + '</div>'
+    + '<div class="rc-total">'
+    + '  <div class="rc-total-label">جمع کل:</div>'
+    + '  <div class="rc-total-val">' + formatPrice(totalPrice) + ' <span class="rc-total-unit">تومان</span></div>'
+    + '</div>'
+    + '<div class="rc-footer">'
+    + '  <span class="rc-footer-icon">🙏</span>'
+    + '  <div class="rc-thankyou">از خرید شما متشکریم</div>'
+    + '  <div class="rc-footer-sub">منتظر حضور مجدد شما هستیم</div>'
+    + '</div>'
+    + '</div>';
 
-    recipeGroups.forEach(function(g) {
-      var val = costs[g.id] || 0;
-      total += val;
-      h += '<div class="rp-cost-item">'
-        + '<div class="rp-cost-dot" style="background:' + g.color + ';"></div>'
-        + '<span class="rp-cost-label">' + esc(g.name) + '</span>'
-        + '<input type="number" class="rp-cost-input" '
-        + 'data-food="' + foodId + '" data-group="' + g.id + '" '
-        + 'value="' + (val || '') + '" placeholder="0" '
-        + 'oninput="RecipePage.updateCost(' + foodId + ',' + g.id + ',this.value)">'
-        + '<span class="rp-cost-unit">تومان</span>'
-        + '</div>';
-    });
+  showReceipt(html);
+}
 
-    h += '</div>'
-      + '<div class="rp-cost-total">'
-      + '<span class="rp-cost-total-label">هزینه هر واحد</span>'
-      + '<span class="rp-cost-total-value" id="cost-total-' + foodId + '">' + fmtPrice(total) + ' تومان</span>'
-      + '</div>'
-      + '</div>';
+/* ═══════════════════════════════════
+   Kitchen Receipt
+   ═══════════════════════════════════ */
 
-    return h;
-  }
+function printKitchenReceipt(order) {
+  var now = new Date();
+  var totalQty = 0;
 
-  function updateCost(foodId, groupId, value) {
-    if (!foodCosts[foodId]) foodCosts[foodId] = {};
-    foodCosts[foodId][groupId] = parseInt(value) || 0;
+  order.items.forEach(function(it) { totalQty += it.qty; });
 
-    // محاسبه جمع کل
-    var total = 0;
-    var costs = foodCosts[foodId];
-    for (var key in costs) { total += costs[key]; }
-    var el = document.getElementById('cost-total-' + foodId);
-    if (el) el.textContent = fmtPrice(total) + ' تومان';
-  }
+  var rows = '';
+  order.items.forEach(function(it) {
+    rows += '<tr>'
+      + '<td>' + esc(it.name) + '</td>'
+      + '<td class="rc-col-num">' + toPersianNum(it.qty) + '</td>'
+      + '</tr>';
+  });
 
-  /* ═══ رندر غذاها ═══ */
-  function render() {
-    var foods = allFoods;
-    if (filterCat !== 'all') foods = foods.filter(function(f) { return f.category_id == filterCat; });
-    if (!foods.length) { elFoods.innerHTML = ''; elEmpty.style.display = 'block'; return; }
-    elEmpty.style.display = 'none';
+  var html = ''
+    + '<div class="rc kitchen">'
+    + '<div class="rc-header">'
+    + '  <div class="rc-logo"><span class="rc-logo-icon">🔥</span> آشپزخانه</div>'
+    + '  <div class="rc-info">'
+    + '    <div class="rc-info-item"><span class="rc-info-label">شماره فیش:</span><span class="rc-info-val rc-info-highlight">#' + receiptNum(order.id) + '</span></div>'
+    + '    <div class="rc-info-item"><span class="rc-info-label">میز:</span><span class="rc-info-val">' + toPersianNum(order.table || '—') + '</span></div>'
+    + '    <div class="rc-info-item rc-info-full"><span class="rc-info-label">ساعت:</span><span class="rc-info-val">' + formatTime(now) + '</span></div>'
+    + '  </div>'
+    + '</div>'
+    + '<div class="rc-main">'
+    + '  <table class="rc-table">'
+    + '    <thead><tr>'
+    + '      <th>غذا</th>'
+    + '      <th class="rc-col-num">تعداد</th>'
+    + '    </tr></thead>'
+    + '    <tbody>' + rows + '</tbody>'
+    + '  </table>'
+    + '</div>'
+    + '<div class="rc-total">'
+    + '  <div class="rc-total-label">تعداد کل آیتم‌ها:</div>'
+    + '  <div class="rc-total-val">' + toPersianNum(totalQty) + '</div>'
+    + '</div>'
+    + '</div>';
 
-    elFoods.innerHTML = foods.map(function(f, i) {
-      var hasRecipe = f.recipe_text && f.recipe_text.trim();
-      return '<div class="rp-food-card' + (hasRecipe ? ' has-recipe' : '') + '" data-id="' + f.id + '">'
-        + '<div class="rp-food-head" onclick="RecipePage.toggle(' + f.id + ')">'
-        + '<div class="rp-food-info">'
-        + '<div class="rp-food-num">' + (hasRecipe ? '<i class="bi bi-check-lg"></i>' : (i + 1)) + '</div>'
-        + '<span class="rp-food-name">' + esc(f.name) + '</span>'
-        + '</div>'
-        + '<span class="rp-food-cat">' + esc(f.category_name || '—') + '</span>'
-        + '<span class="rp-food-status ' + (hasRecipe ? 'done' : 'no-recipe') + '">'
-        + (hasRecipe ? 'رسپی دارد' : 'بدون رسپی') + '</span>'
-        + '<button class="rp-food-toggle"><i class="bi bi-chevron-down"></i></button>'
-        + '</div>'
-        + '<div class="rp-food-body">'
-        + '<div class="rp-recipe-area">'
-        + '<div class="rp-recipe-label"><i class="bi bi-pencil"></i> دستور پخت</div>'
-        + '<textarea class="rp-recipe-textarea" id="recipe-' + f.id + '" '
-        + 'placeholder="مواد لازم و دستور پخت را اینجا بنویسید...&#10;&#10;مثال:&#10;• نیمه‌آماده: سس مخصوص ۱۰۰ گرم&#10;• گوشت چرخ‌کرده ۲۰۰ گرم&#10;• ...">'
-        + esc(f.recipe_text || '') + '</textarea>'
-        + '</div>'
-        + renderCostSection(f.id)
-        + '<div class="rp-food-actions">'
-        + '<button class="rp-save-btn" onclick="RecipePage.save(' + f.id + ')"><i class="bi bi-check-lg"></i> ذخیره رسپی</button>'
-        + '<button class="rp-print-btn" onclick="RecipePage.printRecipe(' + f.id + ')"><i class="bi bi-printer"></i> چاپ رسپی</button>'
-        + '</div>'
-        + '</div></div>';
-    }).join('');
-  }
+  showReceipt(html);
+}
 
-  function toggle(id) {
-    var card = elFoods.querySelector('.rp-food-card[data-id="' + id + '"]');
-    if (card) card.classList.toggle('open');
-  }
+/* ═══════════════════════════════════
+   Show / Close
+   ═══════════════════════════════════ */
 
-  /* ═══ ذخیره ═══ */
-  function save(id) {
-    var textarea = document.getElementById('recipe-' + id);
-    if (!textarea) return;
-    fetch(URL_SAVE, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-      body: JSON.stringify({ food_id: id, recipe_text: textarea.value.trim() })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-      if (res.success) {
-        for (var i = 0; i < allFoods.length; i++) {
-          if (allFoods[i].id === id) { allFoods[i].recipe_text = textarea.value.trim(); break; }
-        }
-        document.getElementById('statRecipes').textContent = allFoods.filter(function(f) { return f.recipe_text && f.recipe_text.trim(); }).length;
-        render(); toast('رسپی ذخیره شد', 'success');
-      } else toast(res.error || 'خطا', 'error');
-    }).catch(function() { toast('خطا در ارتباط', 'error'); });
-  }
+function showReceipt(html) {
+  var area = document.getElementById('printArea');
+  var ov = document.getElementById('printOv');
 
-  /* ═══ چاپ ═══ */
-  function printRecipe(id) {
-    var food = null;
-    for (var i = 0; i < allFoods.length; i++) { if (allFoods[i].id === id) { food = allFoods[i]; break; } }
-    if (!food) return;
+  area.innerHTML = html
+    + '<div class="print-actions">'
+    + '  <button class="pa-print" onclick="window.print()"><i class="bi bi-printer"></i> چاپ</button>'
+    + '  <button class="pa-close" onclick="closePrint()"><i class="bi bi-x-lg"></i> بستن</button>'
+    + '</div>';
 
-    var recipeText = food.recipe_text || 'رسپی هنوز نوشته نشده';
-    var usedSemi = allSemi.filter(function(s) { return recipeText.indexOf(s.name) !== -1; });
+  ov.classList.add('show');
+}
 
-    var semiHtml = '';
-    if (usedSemi.length) {
-      semiHtml = '<div class="recipe-semi-section"><div class="recipe-semi-label">📦 مواد نیمه‌آماده مصرفی</div><div class="recipe-semi-items">';
-      usedSemi.forEach(function(s) { semiHtml += '<span class="recipe-semi-chip">' + esc(s.name) + (s.unit_display ? ' (' + esc(s.unit_display) + ')' : '') + '</span>'; });
-      semiHtml += '</div></div>';
-    }
+function closePrint() {
+  document.getElementById('printOv').classList.remove('show');
+}
 
-    // ★ بخش هزینه چاپ (داینامیک)
-    var costHtml = '';
-    if (recipeGroups.length) {
-      var costs = foodCosts[id] || {};
-      var total = 0;
-      costHtml = '<div class="recipe-cost-print"><div class="recipe-cost-print-title">💰 هزینه مواد</div>';
-      recipeGroups.forEach(function(g) {
-        var val = costs[g.id] || 0;
-        total += val;
-        costHtml += '<div class="recipe-cost-print-row"><span class="label">' + esc(g.name) + '</span><span class="value">' + fmtPrice(val) + ' تومان</span></div>';
-      });
-      costHtml += '<div class="recipe-cost-print-total"><span class="label">هزینه هر واحد</span><span class="value">' + fmtPrice(total) + ' تومان</span></div></div>';
-    }
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closePrint();
+});
+document.getElementById('printOv').addEventListener('click', function(e) {
+  if (e.target === this) closePrint();
+});
 
-    var html = '<div class="rp-print-card"><div class="receipt">'
-      + '<div class="receipt-header"><div class="recipe-title">' + esc(food.name) + '</div><div class="recipe-cat">دسته‌بندی: ' + esc(food.category_name || '—') + '</div></div>'
-      + semiHtml + costHtml
-      + '<div class="recipe-body">' + esc(recipeText) + '</div>'
-      + '<div class="recipe-footer"><div>تاریخ چاپ: ' + new Date().toLocaleDateString('fa-IR') + '</div>'
-      + '<div class="rp-print-toolbar"><button class="rp-pt-print" onclick="RecipePage.doPrint()"><i class="bi bi-printer"></i> چاپ</button><button class="rp-pt-close" onclick="RecipePage.closePrint()"><i class="bi bi-x-lg"></i> بستن</button></div></div></div></div>';
+/* ═══════════════════════════════════
+   Demo Data
+   ═══════════════════════════════════ */
 
-    elPrintCt.innerHTML = html;
-    elPrintOv.classList.add('show');
-  }
+var demoOrder = {
+  id: 4521,
+  table: 7,
+  items: [
+    { name: 'پیتزا مخصوص بزرگ', qty: 2, price: 285000 },
+    { name: 'همبرگر ویژه دوبل',  qty: 1, price: 195000 },
+    { name: 'سالاد سزار',        qty: 1, price: 85000  },
+    { name: 'نوشابه قوطی',       qty: 4, price: 25000  },
+    { name: 'سس مخصوص تک‌نفره',  qty: 3, price: 10000  },
+  ]
+};
 
-  function doPrint() { window.print(); }
-  function closePrint() { elPrintOv.classList.remove('show'); }
-  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closePrint(); });
-  elPrintOv.addEventListener('click', function(e) { if (e.target === elPrintOv) closePrint(); });
-
-  /* ═══ Init ═══ */
-  loadAll();
-
-  return {
-    toggle: toggle, filter: filter, save: save, updateCost: updateCost,
-    printRecipe: printRecipe, doPrint: doPrint, closePrint: closePrint
-  };
-})();
+function showCustomer() { printCustomerReceipt(demoOrder); }
+function showKitchen() { printKitchenReceipt(demoOrder); }
+function showBoth() {
+  printKitchenReceipt(demoOrder);
+  setTimeout(function() { closePrint(); printCustomerReceipt(demoOrder); }, 600);
+}
 </script>
-{% endblock %}
+</body>
+</html>
