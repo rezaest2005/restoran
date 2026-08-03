@@ -1,5 +1,5 @@
 """
-All DRF ModelViewSets.
+All DRF ModelViewSets. — ★ نسخه اصلاح‌شده
 """
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -11,7 +11,6 @@ from ..models import (
     MembershipLevel, CustomerProfile, Coupon, Reward, Referral,
     LoyaltyNotification, LoyaltyTransaction, LoyaltyWallet,
     RewardRedemption,
-    PackagingMaterial,  
 )
 from ..serializers import (
     CategorySerializer, FoodSerializer, TableSerializer,
@@ -29,8 +28,7 @@ from ..serializers import (
     EarnPointsSerializer, RedeemPointsSerializer,
     WalletSerializer, WalletTransactionSerializer,
     WalletDepositSerializer, WalletDebitSerializer,
-    ProfileSerializer,
-    PackagingMaterialSerializer,  
+    
 )
 from ..services import (
     register_customer, earn_points_for_order, redeem_points,
@@ -43,9 +41,22 @@ from django.db import transaction
 from django.db.models import Q
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  1. FOOD & CATEGORY
+# ══════════════════════════════════════════════════════════════════════════════
+
 class CategoryViewSet(viewsets.ModelViewSet):
-    queryset = Category.objects.filter(is_active=True)
+    queryset = Category.objects.all()  # ★FIX: حذف فیلتر is_active از queryset پایه
     serializer_class = CategorySerializer
+
+    def get_queryset(self):  # ★FIX: فیلتر اختیاری is_active
+        qs = Category.objects.all()
+        active = self.request.query_params.get("active")
+        if active is not None:
+            qs = qs.filter(is_active=active.lower() == "true")
+        else:
+            qs = qs.filter(is_active=True)
+        return qs.order_by("order")
 
 
 class FoodViewSet(viewsets.ModelViewSet):
@@ -53,12 +64,19 @@ class FoodViewSet(viewsets.ModelViewSet):
     serializer_class = FoodSerializer
 
     def get_queryset(self):
-        qs = Food.objects.all()
+        qs = Food.objects.select_related("category").all()  # ★FIX: اضافه کردن select_related
         category = self.request.query_params.get("category")
         if category:
             qs = qs.filter(category=category)
+        available = self.request.query_params.get("available")
+        if available is not None:
+            qs = qs.filter(is_available=available.lower() == "true")
         return qs
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  2. TABLES & RESERVATIONS
+# ══════════════════════════════════════════════════════════════════════════════
 
 class TableViewSet(viewsets.ModelViewSet):
     queryset = Table.objects.all()
@@ -69,6 +87,10 @@ class ReservationViewSet(viewsets.ModelViewSet):
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  3. ORDERS — ★FIX بحرانی: قیمت از دیتابیس خوانده می‌شود
+# ══════════════════════════════════════════════════════════════════════════════
 
 class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all().prefetch_related('items__food')
@@ -83,39 +105,78 @@ class OrderViewSet(viewsets.ModelViewSet):
                 {"error": "آیتمی ارسال نشد."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
         for field in ("customer_name", "phone"):
             if field not in request.data or not str(request.data[field]).strip():
                 return Response(
                     {"error": f"فیلد «{field}» الزامی است."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+
+        # ★FIX: واکشی قیمت غذاها از دیتابیس (جلوگیری از دستکاری کلاینت)
+        food_ids = [item.get("food") for item in items_data if item.get("food")]
+        foods_map = {f.id: f for f in Food.objects.filter(id__in=food_ids)}
+
+        for item in items_data:
+            fid = item.get("food")
+            if not fid or fid not in foods_map:
+                return Response(
+                    {"error": f"غذا با شناسه {fid} یافت نشد."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            qty = item.get("quantity", 0)
+            if not qty or int(qty) < 1:
+                return Response(
+                    {"error": f"تعداد غذا با شناسه {fid} نامعتبر است."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         with transaction.atomic():
-            total_price = sum(
-                item["price"] * item["quantity"] for item in items_data
-            )
+            total_price = 0
             order = Order.objects.create(
                 customer_name=request.data["customer_name"],
                 phone=request.data["phone"],
                 table_id=request.data.get("table"),
-                total_price=total_price,
+                total_price=0,
             )
             for item in items_data:
+                food = foods_map[item["food"]]
+                qty = int(item["quantity"])
+                # ★FIX: قیمت از دیتابیس — نه از کلاینت
+                price = getattr(food, "final_price", None) or food.price
+                total_price += price * qty
                 OrderItem.objects.create(
-                    order=order, food_id=item["food"],
-                    quantity=item["quantity"], price=item["price"],
+                    order=order, food=food,
+                    quantity=qty, price=price,
                 )
-        return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+            order.total_price = total_price
+            order.save(update_fields=["total_price"])
+
+        return Response(
+            OrderSerializer(order).data,
+            status=status.HTTP_201_CREATED,
+        )
 
     def partial_update(self, request, *args, **kwargs):
         order = self.get_object()
         new_status = request.data.get("status")
-        valid = ["pending", "confirmed", "preparing", "ready", "delivered", "cancelled"]
-        if new_status and new_status in valid:
-            order.status = new_status
-            order.save()
-            return Response(OrderSerializer(order).data)
-        return Response({"error": "وضعیت نامعتبر"}, status=status.HTTP_400_BAD_REQUEST)
+        valid = [
+            "pending", "confirmed", "preparing",
+            "ready", "delivered", "cancelled",
+        ]
+        if not new_status or new_status not in valid:
+            return Response(
+                {"error": f"وضعیت نامعتبر. مقادیر مجاز: {', '.join(valid)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        order.status = new_status
+        order.save(update_fields=["status"])  # ★FIX: save فقط فیلد تغییر‌یافته
+        return Response(OrderSerializer(order).data)
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  4. INVENTORY
+# ══════════════════════════════════════════════════════════════════════════════
 
 class SemiFinishedViewSet(viewsets.ModelViewSet):
     queryset = SemiFinished.objects.all()
@@ -123,16 +184,21 @@ class SemiFinishedViewSet(viewsets.ModelViewSet):
 
 
 class ReadyMaterialViewSet(viewsets.ModelViewSet):
-    queryset = ReadyMaterial.objects.all()
     serializer_class = ReadyMaterialSerializer
 
-    def get_queryset(self):
+    def get_queryset(self):  # ★FIX: حذف queryset کلاسی تکراری
         qs = ReadyMaterial.objects.select_related("supplier").all()
         search = self.request.query_params.get("search")
         if search:
-            qs = qs.filter(Q(name__icontains=search) | Q(barcode__icontains=search))
+            qs = qs.filter(
+                Q(name__icontains=search) | Q(barcode__icontains=search)
+            )
         return qs
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  5. MEMBERSHIP LEVEL
+# ══════════════════════════════════════════════════════════════════════════════
 
 class MembershipLevelViewSet(viewsets.ModelViewSet):
     queryset = MembershipLevel.objects.all()
@@ -142,6 +208,10 @@ class MembershipLevelViewSet(viewsets.ModelViewSet):
     def seed(self, request):
         return Response({"message": seed_membership_levels()})
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  6. CUSTOMER PROFILE
+# ══════════════════════════════════════════════════════════════════════════════
 
 class CustomerViewSet(viewsets.ModelViewSet):
 
@@ -174,9 +244,14 @@ class CustomerViewSet(viewsets.ModelViewSet):
         ser.is_valid(raise_exception=True)
         result = register_customer(**ser.validated_data)
         if not result["success"]:
-            return Response({"error": result["error"]}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": result["error"]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response(
-            CustomerDetailSerializer(result["customer"], context={"request": request}).data,
+            CustomerDetailSerializer(
+                result["customer"], context={"request": request}
+            ).data,
             status=status.HTTP_201_CREATED,
         )
 
@@ -184,19 +259,41 @@ class CustomerViewSet(viewsets.ModelViewSet):
     def earn_points(self, request, pk=None):
         ser = EarnPointsSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        result = earn_points_for_order(customer=self.get_object(), **ser.validated_data)
-        return Response(result, status=(status.HTTP_200_OK if result["success"] else status.HTTP_400_BAD_REQUEST))
+        result = earn_points_for_order(
+            customer=self.get_object(), **ser.validated_data
+        )
+        return Response(
+            result,
+            status=(
+                status.HTTP_200_OK
+                if result["success"]
+                else status.HTTP_400_BAD_REQUEST
+            ),
+        )
 
     @action(detail=True, methods=["post"], url_path="redeem-points")
     def redeem_points_action(self, request, pk=None):
         ser = RedeemPointsSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        result = redeem_points(customer=self.get_object(), points=ser.validated_data["points"], order_id=ser.validated_data.get("order_id"))
-        return Response(result, status=(status.HTTP_200_OK if result["success"] else status.HTTP_400_BAD_REQUEST))
+        result = redeem_points(
+            customer=self.get_object(),
+            points=ser.validated_data["points"],
+            order_id=ser.validated_data.get("order_id"),
+        )
+        return Response(
+            result,
+            status=(
+                status.HTTP_200_OK
+                if result["success"]
+                else status.HTTP_400_BAD_REQUEST
+            ),
+        )
 
     @action(detail=True, methods=["get"], url_path="wallet")
     def wallet(self, request, pk=None):
-        wallet_obj = LoyaltyWallet.objects.filter(customer=self.get_object()).first()
+        wallet_obj = LoyaltyWallet.objects.filter(
+            customer=self.get_object()
+        ).first()
         if not wallet_obj:
             return Response({"balance": 0, "transactions": []})
         txns = wallet_obj.transactions.all()[:20]
@@ -209,21 +306,48 @@ class CustomerViewSet(viewsets.ModelViewSet):
     def wallet_deposit_action(self, request, pk=None):
         ser = WalletDepositSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        result = wallet_deposit(customer=self.get_object(), amount=ser.validated_data["amount"], description=ser.validated_data.get("description", ""))
-        return Response(result, status=(status.HTTP_200_OK if result["success"] else status.HTTP_400_BAD_REQUEST))
+        result = wallet_deposit(
+            customer=self.get_object(),
+            amount=ser.validated_data["amount"],
+            description=ser.validated_data.get("description", ""),
+        )
+        return Response(
+            result,
+            status=(
+                status.HTTP_200_OK
+                if result["success"]
+                else status.HTTP_400_BAD_REQUEST
+            ),
+        )
 
     @action(detail=True, methods=["post"], url_path="wallet/debit")
     def wallet_debit_action(self, request, pk=None):
         ser = WalletDebitSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        result = wallet_debit(customer=self.get_object(), amount=ser.validated_data["amount"], description=ser.validated_data.get("description", ""), order_id=ser.validated_data.get("order_id"))
-        return Response(result, status=(status.HTTP_200_OK if result["success"] else status.HTTP_400_BAD_REQUEST))
+        result = wallet_debit(
+            customer=self.get_object(),
+            amount=ser.validated_data["amount"],
+            description=ser.validated_data.get("description", ""),
+            order_id=ser.validated_data.get("order_id"),
+        )
+        return Response(
+            result,
+            status=(
+                status.HTTP_200_OK
+                if result["success"]
+                else status.HTTP_400_BAD_REQUEST
+            ),
+        )
 
     @action(detail=True, methods=["post"], url_path="validate-coupon")
     def validate_coupon_action(self, request, pk=None):
         ser = CouponValidateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        result = validate_coupon(code=ser.validated_data["code"], customer=self.get_object(), order_amount=ser.validated_data["order_amount"])
+        result = validate_coupon(
+            code=ser.validated_data["code"],
+            customer=self.get_object(),
+            order_amount=ser.validated_data["order_amount"],
+        )
         if result.get("coupon"):
             result["coupon"] = CouponDetailSerializer(result["coupon"]).data
         return Response(result)
@@ -232,24 +356,48 @@ class CustomerViewSet(viewsets.ModelViewSet):
     def apply_coupon_action(self, request, pk=None):
         ser = CouponApplySerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        result = apply_coupon(code=ser.validated_data["code"], customer=self.get_object(), order_amount=ser.validated_data["order_amount"], order_id=ser.validated_data.get("order_id"))
-        return Response(result, status=(status.HTTP_200_OK if result["success"] else status.HTTP_400_BAD_REQUEST))
+        result = apply_coupon(
+            code=ser.validated_data["code"],
+            customer=self.get_object(),
+            order_amount=ser.validated_data["order_amount"],
+            order_id=ser.validated_data.get("order_id"),
+        )
+        return Response(
+            result,
+            status=(
+                status.HTTP_200_OK
+                if result["success"]
+                else status.HTTP_400_BAD_REQUEST
+            ),
+        )
 
     @action(detail=True, methods=["get"], url_path="redemptions")
     def redemptions(self, request, pk=None):
-        qs = self.get_object().reward_redemptions.select_related("reward").all()[:20]
+        qs = (
+            self.get_object()
+            .reward_redemptions.select_related("reward")
+            .all()[:20]
+        )
         return Response(RewardRedemptionSerializer(qs, many=True).data)
 
     @action(detail=True, methods=["get"], url_path="transactions")
     def transactions(self, request, pk=None):
-        return Response(LoyaltyTransactionSerializer(self.get_object().loyalty_transactions.all()[:50], many=True).data)
+        return Response(
+            LoyaltyTransactionSerializer(
+                self.get_object().loyalty_transactions.all()[:50], many=True
+            ).data
+        )
 
     @action(detail=True, methods=["get"], url_path="notifications")
     def notifications(self, request, pk=None):
         customer = self.get_object()
         return Response({
-            "notifications": NotificationSerializer(customer.notifications.all()[:30], many=True).data,
-            "unread_count": customer.notifications.filter(is_read=False).count(),
+            "notifications": NotificationSerializer(
+                customer.notifications.all()[:30], many=True
+            ).data,
+            "unread_count": customer.notifications.filter(
+                is_read=False
+            ).count(),
         })
 
     @action(detail=True, methods=["post"], url_path="check-birthday")
@@ -261,10 +409,22 @@ class CustomerViewSet(viewsets.ModelViewSet):
         result = check_level_upgrade(self.get_object())
         return Response({
             "upgraded": result["upgraded"],
-            "new_level": MembershipLevelSerializer(result["new_level"]).data if result["new_level"] else None,
-            "current_level": MembershipLevelSerializer(result["current_level"]).data if result["current_level"] else None,
+            "new_level": (
+                MembershipLevelSerializer(result["new_level"]).data
+                if result["new_level"]
+                else None
+            ),
+            "current_level": (
+                MembershipLevelSerializer(result["current_level"]).data
+                if result["current_level"]
+                else None
+            ),
         })
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  7. COUPONS
+# ══════════════════════════════════════════════════════════════════════════════
 
 class CouponViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
@@ -277,7 +437,9 @@ class CouponViewSet(viewsets.ModelViewSet):
             qs = qs.filter(coupon_type=coupon_type)
         search = self.request.query_params.get("search")
         if search:
-            qs = qs.filter(Q(code__icontains=search) | Q(name__icontains=search))
+            qs = qs.filter(
+                Q(code__icontains=search) | Q(name__icontains=search)
+            )
         return qs
 
     def get_serializer_class(self):
@@ -293,6 +455,10 @@ class CouponViewSet(viewsets.ModelViewSet):
         coupon.save(update_fields=["is_active"])
         return Response({"is_active": coupon.is_active})
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  8. REWARDS
+# ══════════════════════════════════════════════════════════════════════════════
 
 class RewardViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
@@ -313,15 +479,43 @@ class RewardViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="redeem")
     def redeem_action(self, request, pk=None):
-        phone = request.data.get("phone") or request.headers.get("X-Customer-Phone")
+        # ★FIX: بررسی وجود جایزه قبل از ارسال به سرویس
+        reward_obj = Reward.objects.filter(pk=pk).first()
+        if not reward_obj:
+            return Response(
+                {"error": "جایزه یافت نشد."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        phone = (
+            request.data.get("phone")
+            or request.headers.get("X-Customer-Phone")
+        )
         if not phone:
-            return Response({"error": "شماره موبایل لازم است."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "شماره موبایل لازم است."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         customer = CustomerProfile.objects.filter(phone=phone).first()
         if not customer:
-            return Response({"error": "مشتری یافت نشد."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "مشتری یافت نشد."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
         result = redeem_reward(customer=customer, reward_id=pk)
-        return Response(result, status=(status.HTTP_200_OK if result["success"] else status.HTTP_400_BAD_REQUEST))
+        return Response(
+            result,
+            status=(
+                status.HTTP_200_OK
+                if result["success"]
+                else status.HTTP_400_BAD_REQUEST
+            ),
+        )
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  9. REFERRALS
+# ══════════════════════════════════════════════════════════════════════════════
 
 class ReferralViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Referral.objects.select_related("referrer", "referred").all()
@@ -331,9 +525,15 @@ class ReferralViewSet(viewsets.ReadOnlyModelViewSet):
         qs = super().get_queryset()
         phone = self.request.query_params.get("phone")
         if phone:
-            qs = qs.filter(Q(referrer__phone=phone) | Q(referred__phone=phone))
+            qs = qs.filter(
+                Q(referrer__phone=phone) | Q(referred__phone=phone)
+            )
         return qs
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  10. NOTIFICATIONS
+# ══════════════════════════════════════════════════════════════════════════════
 
 class NotificationViewSet(viewsets.ModelViewSet):
     serializer_class = NotificationSerializer
@@ -355,16 +555,33 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def mark_read(self, request):
         ser = NotificationMarkReadSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        phone = request.data.get("phone") or request.headers.get("X-Customer-Phone")
+
+        # ★FIX: ابتدا فیلتر بر اساس سریالایزر، سپس phone از پارامتر جداگانه
+        phone = (
+            request.data.get("phone")
+            or request.headers.get("X-Customer-Phone")
+        )
         qs = LoyaltyNotification.objects.filter(is_read=False)
         if phone:
             qs = qs.filter(customer__phone=phone)
+
         if ser.validated_data.get("mark_all"):
             count = qs.update(is_read=True)
         else:
-            count = qs.filter(id__in=ser.validated_data["notification_ids"]).update(is_read=True)
+            ids = ser.validated_data.get("notification_ids", [])
+            if not ids:
+                return Response(
+                    {"error": "شناسه اعلان یا mark_all لازم است."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            count = qs.filter(id__in=ids).update(is_read=True)
+
         return Response({"marked_read": count})
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  11. LOYALTY TRANSACTIONS & REDEMPTIONS
+# ══════════════════════════════════════════════════════════════════════════════
 
 class LoyaltyTransactionViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = LoyaltyTransactionSerializer
@@ -384,36 +601,11 @@ class RewardRedemptionViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = RewardRedemptionSerializer
 
     def get_queryset(self):
-        qs = RewardRedemption.objects.select_related("customer", "reward").all()
+        qs = RewardRedemption.objects.select_related(
+            "customer", "reward"
+        ).all()
         phone = self.request.query_params.get("phone")
         if phone:
             qs = qs.filter(customer__phone=phone)
         return qs
 
-
-# ═══════════════ ★ جدید: Packaging Material ═══════════════
-
-class PackagingMaterialViewSet(viewsets.ModelViewSet):
-    serializer_class = PackagingMaterialSerializer
-
-    def get_queryset(self):
-        qs = PackagingMaterial.objects.filter(is_active=True)
-        rid = getattr(self.request, 'restaurant_id', None) or \
-              getattr(getattr(self.request, 'user', None), 'restaurant_id', None)
-        if rid:
-            qs = qs.filter(restaurant_id=rid)
-        q = self.request.query_params.get('q', '').strip()
-        if q:
-            qs = qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
-        return qs.order_by('name')
-
-    def perform_create(self, serializer):
-        rid = getattr(self.request, 'restaurant_id', None) or \
-              getattr(getattr(self.request, 'user', None), 'restaurant_id', None)
-        serializer.save(restaurant_id=rid)
-
-    @action(detail=False, methods=['get'])
-    def suggest(self, request):
-        qs = self.get_queryset()
-        data = self.get_serializer(qs, many=True).data
-        return Response(data)

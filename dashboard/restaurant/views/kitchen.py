@@ -1,6 +1,8 @@
 """
-Kitchen management API.
+Kitchen management API. — ★ نسخه اصلاح‌شده
+حذف: KitchenDiscount, CapacityAnalysis
 """
+
 import json as json_module
 import logging
 
@@ -18,14 +20,13 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.core.exceptions import ValidationError
 
 from ..models import (
-    KitchenProduct, KitchenInventory, KitchenDiscount,
+    KitchenProduct, KitchenInventory,
     ProductionPlan, ProductionLog, WasteLog,
     Food, Category, Recipe, ReadyMaterial,
 )
 from ..serializers import (
     KitchenProductSerializer, KitchenInventorySerializer,
-    KitchenDiscountSerializer, ProductionPlanSerializer,
-    ProductionLogSerializer,
+    ProductionPlanSerializer, ProductionLogSerializer,
 )
 from ..kitchen_services import (
     calculate_max_production, get_required_materials,
@@ -42,7 +43,6 @@ logger = logging.getLogger(__name__)
 
 @staff_member_required
 def kitchen_dashboard_api(request):
-    from rest_framework.decorators import api_view
     return JsonResponse(generate_kitchen_dashboard(), safe=False)
 
 
@@ -51,7 +51,7 @@ class KitchenProductListCreate(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        qs = KitchenProduct.objects.select_related("recipe").prefetch_related("discounts").all()
+        qs = KitchenProduct.objects.select_related("recipe").all()
         cat = self.request.query_params.get("category")
         if cat:
             qs = qs.filter(category=cat)
@@ -219,22 +219,8 @@ def production_plan_execute(request, pk: int):
         return Response({"error": msgs}, status=status.HTTP_400_BAD_REQUEST)
 
 
-class KitchenDiscountListCreate(generics.ListCreateAPIView):
-    serializer_class = KitchenDiscountSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        qs = KitchenDiscount.objects.select_related("kitchen_product").all()
-        active = self.request.query_params.get("active")
-        if active is not None:
-            qs = qs.filter(is_active=active.lower() == "true")
-        return qs
-
-
-class KitchenDiscountDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = KitchenDiscount.objects.select_related("kitchen_product").all()
-    serializer_class = KitchenDiscountSerializer
-    permission_classes = [permissions.IsAuthenticated]
+# ★ KitchenDiscountListCreate — حذف شد (مدل KitchenDiscount حذف شده)
+# ★ KitchenDiscountDetail — حذف شد
 
 
 class ProductionLogList(generics.ListAPIView):

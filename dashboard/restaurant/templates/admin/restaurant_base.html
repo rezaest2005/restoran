@@ -110,21 +110,16 @@
       background: linear-gradient(180deg, rgba(255,107,53,0.25) 0%, rgba(255,107,53,0.06) 100%);
       color: #ffb380; box-shadow: 0 -2px 12px rgba(255,107,53,0.1);
     }
-    .sb-tab[data-tab="loyalty"].active {
+    .sb-tab[data-tab="dashboards"].active {
       background: linear-gradient(180deg, rgba(139,92,246,0.25) 0%, rgba(139,92,246,0.06) 100%);
       color: #d4bbff; box-shadow: 0 -2px 12px rgba(139,92,246,0.1);
-    }
-    .sb-tab[data-tab="accounting"].active {
-      background: linear-gradient(180deg, rgba(16,185,129,0.25) 0%, rgba(16,185,129,0.06) 100%);
-      color: #86efac; box-shadow: 0 -2px 12px rgba(16,185,129,0.1);
     }
     .sb-tab.active::after {
       content: ''; position: absolute; bottom: 0;
       left: 20%; width: 60%; height: 3px; border-radius: 3px 3px 0 0;
     }
     .sb-tab[data-tab="restaurant"].active::after { background: linear-gradient(90deg, #ff6b35, #ff9a3c); box-shadow: 0 0 8px rgba(255,107,53,0.4); }
-    .sb-tab[data-tab="loyalty"].active::after    { background: linear-gradient(90deg, #8b5cf6, #a78bfa); box-shadow: 0 0 8px rgba(139,92,246,0.4); }
-    .sb-tab[data-tab="accounting"].active::after  { background: linear-gradient(90deg, #10b981, #34d399); box-shadow: 0 0 8px rgba(16,185,129,0.4); }
+    .sb-tab[data-tab="dashboards"].active::after { background: linear-gradient(90deg, #8b5cf6, #a78bfa); box-shadow: 0 0 8px rgba(139,92,246,0.4); }
     .sb-tab-ico {
       width: 34px; height: 34px; border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
@@ -165,8 +160,7 @@
       box-shadow: inset 0 0 0 1px rgba(255,107,53,0.15);
     }
     .nav-link[data-theme="restaurant"].active { color: #ffb380; background: rgba(255,107,53,0.1); box-shadow: inset 0 0 0 1px rgba(255,107,53,0.15); }
-    .nav-link[data-theme="loyalty"].active    { color: #d4bbff; background: rgba(139,92,246,0.1); box-shadow: inset 0 0 0 1px rgba(139,92,246,0.15); }
-    .nav-link[data-theme="accounting"].active  { color: #86efac; background: rgba(16,185,129,0.1); box-shadow: inset 0 0 0 1px rgba(16,185,129,0.15); }
+    .nav-link[data-theme="dashboards"].active { color: #d4bbff; background: rgba(139,92,246,0.1); box-shadow: inset 0 0 0 1px rgba(139,92,246,0.15); }
     .nav-link .ni {
       width: 30px; height: 30px; border-radius: 9px;
       display: flex; align-items: center; justify-content: center;
@@ -175,9 +169,40 @@
     }
     .nav-link:hover .ni { background: rgba(100,160,255,0.16); }
     .nav-link.active .ni { background: rgba(255,107,53,0.22); color: #ffb380; }
-    .nav-link[data-theme="loyalty"].active .ni    { background: rgba(139,92,246,0.22); color: #d4bbff; }
-    .nav-link[data-theme="accounting"].active .ni  { background: rgba(16,185,129,0.22); color: #86efac; }
+    .nav-link[data-theme="dashboards"].active .ni { background: rgba(139,92,246,0.22); color: #d4bbff; }
     .nav-sep { height: 1px; background: linear-gradient(90deg, transparent, rgba(100,160,255,0.1), transparent); margin: 8px 18px; }
+
+    /* ★ قفل بودن آیتم‌ها ★ */
+    .nav-link.locked {
+      opacity: .5; cursor: not-allowed; position: relative;
+    }
+    .nav-link.locked:hover {
+      background: rgba(255,71,87,0.06); color: rgba(255,200,200,0.7);
+      transform: none;
+    }
+    .nav-link.locked .lock-badge {
+      font-size: .6rem; font-weight: 700; color: #ff4757;
+      background: rgba(255,71,87,0.1); border: 1px solid rgba(255,71,87,0.2);
+      padding: 2px 7px; border-radius: 6px; margin-right: auto;
+      letter-spacing: .3px; white-space: nowrap;
+    }
+
+    /* ★ Toast قفل ★ */
+    .lock-toast {
+      position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: #1a1d26; color: #d4bbff;
+      border: 1px solid rgba(139,92,246,0.3);
+      padding: 14px 28px; border-radius: 14px;
+      font-size: .9rem; font-weight: 600; font-family: 'Vazirmatn', sans-serif;
+      z-index: 9999; display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 20px rgba(139,92,246,0.15);
+      opacity: 0; transition: all .4s cubic-bezier(.4,0,.2,1);
+      pointer-events: none; direction: rtl; white-space: nowrap;
+    }
+    .lock-toast.show {
+      opacity: 1; transform: translateX(-50%) translateY(0);
+    }
+    .lock-toast i { font-size: 1.1rem; color: #ff6b35; }
 
     .sidebar-foot { padding: 10px 14px 14px; border-top: 1px solid rgba(100,160,255,0.08); }
     .sidebar-foot a {
@@ -200,7 +225,7 @@
     /* ═══ MAIN ═══ */
     .main { margin-right: 0; transition: margin-right 0.35s cubic-bezier(.4,0,.2,1); }
 
-    /* ═══ TOPBAR — Glass Crystal ═══ */
+    /* ═══ TOPBAR ═══ */
     .topbar {
       background: rgba(255, 255, 255, 0.72);
       backdrop-filter: blur(24px) saturate(180%);
@@ -209,30 +234,15 @@
       display: flex; align-items: center; justify-content: space-between;
       border-bottom: 1px solid rgba(255,255,255,0.6);
       position: sticky; top: 0; z-index: 50;
-      box-shadow:
-        0 4px 24px rgba(0,0,0,0.06),
-        0 1px 4px rgba(0,0,0,0.04),
-        inset 0 -1px 0 rgba(255,255,255,0.9);
-      gap: 12px; min-height: 0;
-      flex-wrap: nowrap;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04), inset 0 -1px 0 rgba(255,255,255,0.9);
+      gap: 12px; min-height: 0; flex-wrap: nowrap;
       border-radius: 0 0 20px 20px;
     }
-
     .topbar::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: linear-gradient(
-        135deg,
-        rgba(255,255,255,0.4) 0%,
-        rgba(255,255,255,0.05) 40%,
-        rgba(255,255,255,0.15) 60%,
-        rgba(255,255,255,0) 100%
-      );
-      border-radius: inherit;
-      pointer-events: none;
-      z-index: -1;
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.05) 40%, rgba(255,255,255,0.15) 60%, rgba(255,255,255,0) 100%);
+      border-radius: inherit; pointer-events: none; z-index: -1;
     }
-
     .topbar-r {
       display: flex; align-items: center; gap: 12px;
       min-width: 0; flex: 1;
@@ -246,13 +256,10 @@
       font-size: 12px; color: var(--muted); font-weight: 600;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-
     .topbar-l {
       display: flex; align-items: flex-end; gap: 4px;
-      flex-shrink: 0;
-      overflow-x: auto; flex-wrap: nowrap;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
+      flex-shrink: 0; overflow-x: auto; flex-wrap: nowrap;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none;
       padding-bottom: 2px;
     }
     .topbar-l::-webkit-scrollbar { display: none; }
@@ -272,16 +279,13 @@
       font-size: 16px;
       border: 1.5px solid rgba(207,210,217,0.7);
       background: rgba(255,255,255,0.6);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      transition: all 0.25s;
-      flex-shrink: 0;
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      transition: all 0.25s; flex-shrink: 0;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
     .tb-btn:hover i {
       background: rgba(255,107,53,0.15); border-color: var(--brand);
-      color: var(--brand);
-      box-shadow: 0 3px 12px rgba(255,107,53,0.2);
+      color: var(--brand); box-shadow: 0 3px 12px rgba(255,107,53,0.2);
       transform: translateY(-1px);
     }
     .tb-btn:active i { transform: scale(0.93) translateY(0); }
@@ -295,29 +299,25 @@
     .tb-btn-dict i {
       background: rgba(255,107,53,0.08);
       border-color: rgba(255,107,53,0.4);
-      color: var(--brand);
-      box-shadow: 0 2px 8px rgba(255,107,53,0.1);
+      color: var(--brand); box-shadow: 0 2px 8px rgba(255,107,53,0.1);
     }
     .tb-btn-dict:hover i {
       background: var(--brand); color: #fff;
-      border-color: var(--brand);
-      box-shadow: 0 4px 16px rgba(255,107,53,0.35);
+      border-color: var(--brand); box-shadow: 0 4px 16px rgba(255,107,53,0.35);
     }
     .tb-btn-dict .tb-btn-label { color: var(--brand); font-weight: 800; }
 
     .tb-sep {
       width: 1px; height: 24px;
       background: linear-gradient(180deg, transparent, rgba(0,0,0,0.1), transparent);
-      margin: 0 2px; flex-shrink: 0;
-      align-self: center;
+      margin: 0 2px; flex-shrink: 0; align-self: center;
     }
 
     .hamburger {
       display: flex; width: 40px; height: 40px; border-radius: 12px;
       border: 1.5px solid rgba(207,210,217,0.7);
       background: rgba(255,255,255,0.6);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
       align-items: center; justify-content: center;
       font-size: 18px; cursor: pointer; color: var(--text);
       transition: all 0.25s; flex-shrink: 0;
@@ -335,7 +335,7 @@
       box-shadow: 0 3px 14px rgba(255,107,53,0.35);
     }
 
-    .content {}
+    .content { padding: 24px; }
 
     .ac-wrap { position: relative; }
     .ac-dropdown {
@@ -384,6 +384,7 @@
       .tb-btn i { width: 30px; height: 30px; font-size: 14px; border-radius: 8px; }
       .tb-sep { height: 20px; }
       .hamburger { width: 38px; height: 38px; font-size: 17px; border-radius: 10px; }
+      .content { padding: 16px; }
     }
     @media (max-width: 640px) {
       .topbar { padding: 8px 10px; gap: 6px; border-radius: 0 0 12px 12px; }
@@ -400,6 +401,7 @@
       .sb-icon { width: 38px; height: 38px; font-size: 17px; border-radius: 10px; }
       .sb-text { font-size: 14px; }
       .sb-sub { font-size: 9px; }
+      .content { padding: 12px; }
     }
     @media (max-width: 480px) {
       .topbar { padding: 7px 8px; gap: 4px; border-radius: 0 0 10px 10px; }
@@ -424,6 +426,7 @@
       .nav-link { padding: 8px 14px; font-size: 12.5px; gap: 10px; margin: 2px 6px; }
       .nav-link .ni { width: 26px; height: 26px; font-size: 12px; border-radius: 7px; }
       .nav-group-label { padding: 10px 14px 4px; font-size: 9px; }
+      .content { padding: 10px; }
     }
     @media (max-width: 360px) {
       .topbar { padding: 6px 6px; gap: 3px; border-radius: 0 0 8px 8px; }
@@ -437,183 +440,171 @@
       .hamburger { width: 32px; height: 32px; font-size: 14px; border-radius: 7px; }
       .sb-icon { width: 30px; height: 30px; font-size: 13px; border-radius: 7px; }
       .sb-text { font-size: 12px; }
+      .content { padding: 8px; }
     }
   </style>
   {% block extra_css %}{% endblock %}
 </head>
-<body data-restaurant-id="{{ restaurant.id|default:'' }}">
+
+<body>
+
+<!-- ═══ OVERLAY ═══ -->
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<!-- ★ Toast قفل ★ -->
+<div class="lock-toast" id="lockToast">
+  <i class="bi bi-lock-fill"></i>
+  <span id="lockToastMsg">در ورژن‌های بعدی باز خواهد شد</span>
+</div>
 
 <!-- ═══ SIDEBAR ═══ -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-brand">
     <div class="sb-icon"><i class="bi bi-shop"></i></div>
     <div>
-      <div class="sb-text">مدیریت رستوران</div>
-      <div class="sb-sub">Restaurant Management</div>
+      <div class="sb-text">رستوران</div>
+      <div class="sb-sub">RESTAURANT DASHBOARD</div>
     </div>
   </div>
 
-  {% if user.is_superuser %}
   <div class="sb-top-link">
-    <a href="{% url 'user_management' %}" id="sbUsersLink">
-      <span class="stl-ico"><i class="bi bi-shield-lock"></i></span>
-      <span>مدیریت کاربران</span>
+    <a href="{% url 'dashboard_app' %}">
+      <span class="stl-ico"><i class="bi bi-grid-1x2"></i></span>
+      <span>داشبورد اصلی</span>
     </a>
   </div>
-  {% endif %}
 
   <div class="sb-tabs">
     <button class="sb-tab active" data-tab="restaurant" onclick="switchSbTab(this)">
-      <span class="sb-tab-ico"><i class="bi bi-egg-fried"></i></span>
+      <span class="sb-tab-ico"><i class="bi bi-shop"></i></span>
       <span class="sb-tab-label">رستوران</span>
     </button>
-    <button class="sb-tab" data-tab="loyalty" onclick="switchSbTab(this)">
-      <span class="sb-tab-ico"><i class="bi bi-trophy"></i></span>
-      <span class="sb-tab-label">باشگاه</span>
-    </button>
-    <button class="sb-tab" data-tab="accounting" onclick="switchSbTab(this)">
-      <span class="sb-tab-ico"><i class="bi bi-bar-chart-line"></i></span>
-      <span class="sb-tab-label">حسابداری</span>
+    <button class="sb-tab" data-tab="dashboards" onclick="switchSbTab(this)">
+      <span class="sb-tab-ico"><i class="bi bi-grid-3x3-gap"></i></span>
+      <span class="sb-tab-label">داشبوردها</span>
     </button>
   </div>
 
   <div class="sidebar-scroll">
+    <!-- ── پنل رستوران ── -->
     <div class="sb-panel active" id="sbp-restaurant">
       <div class="nav-group">
-        <div class="nav-group-label">صندوق فروش</div>
+        <div class="nav-group-label">مدیریت</div>
+        <a href="{% url 'kitchen_page' %}" class="nav-link" data-theme="restaurant">
+          <span class="ni"><i class="bi bi-fire"></i></span> آشپزخانه
+        </a>
         <a href="{% url 'pos_page' %}" class="nav-link" data-theme="restaurant">
-          <span class="ni"><i class="bi bi-credit-card"></i></span><span>صندوق فروش (POS)</span>
+          <span class="ni"><i class="bi bi-laptop"></i></span> صندوق فروش
         </a>
         <a href="{% url 'orders_dashboard' %}" class="nav-link" data-theme="restaurant">
-          <span class="ni"><i class="bi bi-receipt-cutoff"></i></span><span>مدیریت سفارشات</span>
+          <span class="ni"><i class="bi bi-receipt"></i></span> سفارشات
         </a>
-      </div>
-      <div class="nav-sep"></div>
-      <div class="nav-group">
-        <div class="nav-group-label">غذا و منو</div>
         <a href="{% url 'food_management' %}" class="nav-link" data-theme="restaurant">
-          <span class="ni"><i class="bi bi-egg-fried"></i></span><span>غذاها و منو</span>
+          <span class="ni"><i class="bi bi-book"></i></span> منوی غذا
         </a>
-        <a href="{% url 'recipe_manager' %}" class="nav-link" data-theme="restaurant">
-          <span class="ni"><i class="bi bi-journal-text"></i></span><span>رسپی‌ها (دستور پخت)</span>
+        <a href="{% url 'recipes_page' %}" class="nav-link" data-theme="restaurant">
+          <span class="ni"><i class="bi bi-journal-text"></i></span> دستور پخت
         </a>
       </div>
       <div class="nav-sep"></div>
       <div class="nav-group">
-        <div class="nav-group-label">انبار و تأمین</div>
+        <div class="nav-group-label">انبار و مواد</div>
         <a href="{% url 'raw_materials' %}" class="nav-link" data-theme="restaurant">
-          <span class="ni"><i class="bi bi-archive"></i></span><span>مواد اولیه</span>
+          <span class="ni"><i class="bi bi-box-seam"></i></span> مواد اولیه
         </a>
         <a href="{% url 'ready_materials' %}" class="nav-link" data-theme="restaurant">
-          <span class="ni"><i class="bi bi-box2"></i></span><span>مواد آماده</span>
+          <span class="ni"><i class="bi bi-bag-check"></i></span> مواد آماده
         </a>
-        <a href="{% url 'create_invoice' %}" class="nav-link" data-theme="restaurant">
-          <span class="ni"><i class="bi bi-pencil-square"></i></span><span>ثبت فاکتور خرید</span>
+        <a href="{% url 'invoice_list' %}" class="nav-link" data-theme="restaurant">
+          <span class="ni"><i class="bi bi-file-earmark-text"></i></span> فاکتور خرید
         </a>
       </div>
       <div class="nav-sep"></div>
       <div class="nav-group">
-        <div class="nav-group-label">آشپزخانه و تولید</div>
-        <a href="{% url 'kitchen_page' %}" class="nav-link" data-theme="restaurant">
-          <span class="ni"><i class="bi bi-fire"></i></span><span>مدیریت آشپزخانه</span>
+        <div class="nav-group-label">ابزارها</div>
+        <a href="{% url 'usage_log' %}" class="nav-link" data-theme="restaurant">
+          <span class="ni"><i class="bi bi-clock-history"></i></span> تاریخچه مصرف
         </a>
-        <a href="/admin/" class="nav-link" data-theme="restaurant">
-          <span class="ni"><i class="bi bi-graph-up-arrow"></i></span><span>داشبورد</span>
+        <a href="{% url 'dictionary_page' %}" class="nav-link" data-theme="restaurant">
+          <span class="ni"><i class="bi bi-journal-bookmark-fill"></i></span> بخش تعاریف
+        </a>
+      </div>
+      <div class="nav-sep"></div>
+      <div class="nav-group">
+        <div class="nav-group-label">سیستم</div>
+        <a href="{% url 'user_management' %}" id="sbUsersLink" class="nav-link" data-theme="restaurant">
+          <span class="ni"><i class="bi bi-people"></i></span> کاربران
         </a>
       </div>
     </div>
 
-    <div class="sb-panel" id="sbp-loyalty">
+    <!-- ── ★ پنل داشبوردها (قفل‌شده) ── -->
+    <div class="sb-panel" id="sbp-dashboards">
       <div class="nav-group">
-        <a href="{% url 'loyalty_dashboard' %}" class="nav-link" data-theme="loyalty">
-          <span class="ni"><i class="bi bi-trophy"></i></span><span>داشبورد باشگاه</span>
-        </a>
-      </div>
-      <div class="nav-sep"></div>
-      <div class="nav-group">
-        <div class="nav-group-label">اعضا</div>
-        <a href="{% url 'loyalty_customers' %}" class="nav-link" data-theme="loyalty">
-          <span class="ni"><i class="bi bi-people"></i></span><span>مشتریان باشگاه</span>
-        </a>
-        <a href="{% url 'loyalty_register' %}" class="nav-link" data-theme="loyalty">
-          <span class="ni"><i class="bi bi-person-plus"></i></span><span>ثبت‌نام مشتری</span>
-        </a>
-      </div>
-      <div class="nav-sep"></div>
-      <div class="nav-group">
-        <div class="nav-group-label">کوپن و جایزه</div>
-        <a href="{% url 'loyalty_coupons' %}" class="nav-link" data-theme="loyalty">
-          <span class="ni"><i class="bi bi-ticket-perforated"></i></span><span>کوپن‌ها</span>
-        </a>
-        <a href="{% url 'loyalty_rewards' %}" class="nav-link" data-theme="loyalty">
-          <span class="ni"><i class="bi bi-gift"></i></span><span>جوایز</span>
-        </a>
-      </div>
-      <div class="nav-sep"></div>
-      <div class="nav-group">
-        <div class="nav-group-label">ارتباطات</div>
-        <a href="{% url 'loyalty_notifications' %}" class="nav-link" data-theme="loyalty">
-          <span class="ni"><i class="bi bi-bell"></i></span><span>اعلان‌ها</span>
-        </a>
-      </div>
-    </div>
+        <div class="nav-group-label">داشبوردها</div>
 
-    <div class="sb-panel" id="sbp-accounting">
-      <div class="nav-group">
-        <div class="nav-group-label">گزارش‌ها</div>
-        <a href="{% url 'invoice_list' %}" class="nav-link" data-theme="accounting">
-          <span class="ni"><i class="bi bi-file-earmark-text"></i></span><span>فاکتورهای خرید</span>
+        <a href="javascript:void(0)" class="nav-link locked" data-theme="dashboards" onclick="showLockedToast('داشبورد پیک')">
+          <span class="ni"><i class="bi bi-bicycle"></i></span> داشبورد پیک
+          <span class="lock-badge"><i class="bi bi-lock-fill"></i> به‌زودی</span>
         </a>
+
+        <a href="javascript:void(0)" class="nav-link locked" data-theme="dashboards" onclick="showLockedToast('داشبورد حسابداری')">
+          <span class="ni"><i class="bi bi-calculator"></i></span> داشبورد حسابداری
+          <span class="lock-badge"><i class="bi bi-lock-fill"></i> به‌زودی</span>
+        </a>
+
+        <a href="javascript:void(0)" class="nav-link locked" data-theme="dashboards" onclick="showLockedToast('داشبورد باشگاه مشتریان')">
+          <span class="ni"><i class="bi bi-gem"></i></span> داشبورد باشگاه مشتریان
+          <span class="lock-badge"><i class="bi bi-lock-fill"></i> به‌زودی</span>
+        </a>
+
       </div>
     </div>
   </div>
 
   <div class="sidebar-foot">
-    <a href="{% url 'home' %}"><i class="bi bi-house"></i><span>صفحه اصلی</span></a>
-    <a href="{% url 'logout_page' %}" style="color:#ef4444"><i class="bi bi-box-arrow-left"></i><span>خروج</span></a>
+    <a href="{% url 'logout_page' %}">
+      <i class="bi bi-box-arrow-right"></i> خروج
+    </a>
   </div>
 </aside>
 
-<!-- ═══ OVERLAY ═══ -->
-<div class="sidebar-overlay" id="sidebar-overlay"></div>
-
 <!-- ═══ MAIN ═══ -->
 <div class="main">
+
+  <!-- ── TOPBAR ── -->
   <div class="topbar">
     <div class="topbar-r">
-      <button class="hamburger" id="hamburgerBtn" aria-label="باز کردن منو">
+      <button class="hamburger" id="hamburgerBtn">
         <i class="bi bi-list" id="hamburgerIcon"></i>
       </button>
-      <div style="min-width:0; overflow:hidden;">
-        <div class="topbar-title">{% block page_title %}داشبورد{% endblock %}</div>
-        <div class="topbar-crumb">{% block breadcrumb %}خانه{% endblock %}</div>
+      <div style="min-width:0">
+        <div class="topbar-title">{% block topbar_title %}داشبورد{% endblock %}</div>
+        <div class="topbar-crumb">{% block topbar_crumb %}{% endblock %}</div>
       </div>
     </div>
-
     <div class="topbar-l">
-      <a href="{% url 'dictionary_page' %}" class="tb-btn tb-btn-dict">
-        <i class="bi bi-book"></i>
-        <span class="tb-btn-label">دیکشنری</span>
-      </a>
-      <div class="tb-sep"></div>
-      <a href="{% url 'pos_page' %}" class="tb-btn">
-        <i class="bi bi-credit-card"></i>
+      <a href="{% url 'pos_page' %}" class="tb-btn tb-btn-dict">
+        <i class="bi bi-laptop"></i>
         <span class="tb-btn-label">صندوق</span>
       </a>
-      <a href="{% url 'orders_dashboard' %}" class="tb-btn">
-        <i class="bi bi-box-seam"></i>
-        <span class="tb-btn-label">سفارشات</span>
+      <div class="tb-sep"></div>
+      <a href="{% url 'dictionary_page' %}" class="tb-btn">
+        <i class="bi bi-journal-bookmark-fill"></i>
+        <span class="tb-btn-label">بخش تعاریف</span>
       </a>
       <a href="{% url 'user_management' %}" class="tb-btn">
-        <i class="bi bi-people"></i>
+        <i class="bi bi-person-circle"></i>
         <span class="tb-btn-label">کاربران</span>
       </a>
     </div>
   </div>
 
+  <!-- ═══ CONTENT — فقط یک بار ═══ -->
   <div class="content">
     {% block content %}{% endblock %}
   </div>
+
 </div>
 
 <!-- ═══ SIDEBAR JS ═══ -->
@@ -649,6 +640,18 @@
     if (panel) panel.classList.add('active');
   };
 
+  /* ★ Toast قفل ★ */
+  var _lockToastTimer = null;
+  window.showLockedToast = function(name) {
+    var el = document.getElementById('lockToast');
+    var msg = document.getElementById('lockToastMsg');
+    if (!el || !msg) return;
+    msg.textContent = '«' + name + '» در ورژن‌های بعدی باز خواهد شد';
+    el.classList.add('show');
+    if (_lockToastTimer) clearTimeout(_lockToastTimer);
+    _lockToastTimer = setTimeout(function() { el.classList.remove('show'); }, 3000);
+  };
+
   hamburgerEl.addEventListener('click', toggleSidebar);
   overlayEl.addEventListener('click', closeSidebar);
   document.addEventListener('keydown', function(e) {
@@ -663,13 +666,9 @@
 
   document.addEventListener('DOMContentLoaded', function() {
     var path = window.location.pathname;
-    if (path === '/users/' || path.startsWith('/users')) {
-      var ul = document.getElementById('sbUsersLink');
-      if (ul) ul.classList.add('active');
-    }
     document.querySelectorAll('.sidebar .nav-link').forEach(function(a) {
       var href = a.getAttribute('href');
-      if (href === path || (href !== '/' && path.startsWith(href))) {
+      if (href === path || (href !== '/' && href !== '#' && href !== 'javascript:void(0)' && path.startsWith(href))) {
         a.classList.add('active');
         var panel = a.closest('.sb-panel');
         if (panel && !panel.classList.contains('active')) {
@@ -694,38 +693,22 @@ function toP(n) { return String(n).replace(/\d/g, function(c){ return pD[c]; });
 function fmtN(v) { return toP(parseInt(v||0).toLocaleString('en')); }
 </script>
 
-<!-- ★★★ NEW: RESTAURANT_ID GLOBAL ★★★ -->
 <script>
-/* ═══════════════ RESTAURANT ID ═══════════════
-   اولویت استخراج:
-   1. data-attribute روی <body>
-   2. Django context variable
-   3. hidden input
-   4. meta tag
-   ═══════════════════════════════════════════ */
 (function() {
     var rid = null;
-
-    /* روش ۱: data-restaurant-id روی body */
     var bodyAttr = document.body.getAttribute('data-restaurant-id');
     if (bodyAttr && bodyAttr !== '' && bodyAttr !== 'None' && bodyAttr !== 'null') {
         rid = parseInt(bodyAttr);
     }
-
-    /* روش ۲: hidden input */
     if (!rid) {
         var hidden = document.querySelector('input[name="restaurant_id"], input#restaurantId');
         if (hidden && hidden.value) rid = parseInt(hidden.value);
     }
-
-    /* روش ۳: meta tag */
     if (!rid) {
         var meta = document.querySelector('meta[name="restaurant-id"]');
         if (meta && meta.content) rid = parseInt(meta.content);
     }
-
     window.RESTAURANT_ID = rid || null;
-    console.log('[Base] RESTAURANT_ID =', window.RESTAURANT_ID);
 })();
 </script>
 

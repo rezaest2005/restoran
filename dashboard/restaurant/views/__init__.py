@@ -17,7 +17,6 @@ from .viewsets import (
     MembershipLevelViewSet, CustomerViewSet, CouponViewSet,
     RewardViewSet, ReferralViewSet, NotificationViewSet,
     LoyaltyTransactionViewSet, RewardRedemptionViewSet,
-    PackagingMaterialViewSet,
 )
 
 # ── Auth ──
@@ -53,7 +52,6 @@ from .kitchen import (
     ProductionPlanListCreate, ProductionPlanDetail,
     kitchen_calculate_materials,
     production_plan_approve, production_plan_execute,
-    KitchenDiscountListCreate, KitchenDiscountDetail,
     ProductionLogList,
     KitchenWasteListCreate, KitchenWasteDetail,
 )
