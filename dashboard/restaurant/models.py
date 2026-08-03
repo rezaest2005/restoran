@@ -332,7 +332,7 @@ class RawMaterial(TenantModel):
 
     MATERIAL_TYPE_CHOICES = [
         ('raw',       'ماده اولیه'),
-        ('packaging', 'بسته‌بندی و جعبه'),
+        ('packaging', 'بسته‌بندی و جعبه'),    # ← بسته‌بندی اینجا مدیریت می‌شود
     ]
 
     name          = name_field(verbose_name='نام ماده اولیه')
@@ -340,7 +340,7 @@ class RawMaterial(TenantModel):
     price         = price_field(default=0)
     unit          = unit_field()
     quantity      = qty_field(default=0)
-    material_type = models.CharField(                        
+    material_type = models.CharField(
         max_length=20,
         choices=MATERIAL_TYPE_CHOICES,
         default='raw',
@@ -348,10 +348,10 @@ class RawMaterial(TenantModel):
         db_index=True,
     )
 
-
     @property
     def total_price(self):
         return self.price * self.quantity
+
     class Meta:
         ordering            = ["name"]
         verbose_name        = "ماده اولیه"
@@ -359,6 +359,7 @@ class RawMaterial(TenantModel):
 
     def __str__(self) -> str:
         return f"{self.name} - {self.quantity} {self.get_unit_display()}"
+
 
 class InventoryUsageLog(TenantModel):
     USAGE_TYPE_CHOICES = [
@@ -512,6 +513,7 @@ class PurchaseInvoice(TenantModel):
     def item_count(self) -> int:
         return self.items.count()
 
+
 class PurchaseInvoiceItem(TenantModel):
     invoice      = models.ForeignKey(PurchaseInvoice, on_delete=models.CASCADE, related_name="items", verbose_name="فاکتور", db_index=True)
     item_name    = models.CharField(max_length=200, verbose_name="نام کالا")
@@ -519,8 +521,6 @@ class PurchaseInvoiceItem(TenantModel):
     unit         = unit_field()
     unit_price   = price_field(default=0)
     category     = models.ForeignKey("Category", on_delete=models.SET_NULL, null=True, blank=True, verbose_name="دسته‌بندی")
-
-    # ★ فیلد جدید — لینک به ماده اولیه انبار
     raw_material = models.ForeignKey(
         "RawMaterial", on_delete=models.SET_NULL,
         null=True, blank=True,
@@ -538,7 +538,6 @@ class PurchaseInvoiceItem(TenantModel):
     @property
     def line_total(self):
         return self.quantity * self.unit_price
-
 
 
 # ─── 7. READY MATERIALS ──────────────────
@@ -985,7 +984,7 @@ class Recipe(TenantModel):
 
     total_raw_material_cost  = price_field(max_digits=14, verbose_name='هزینه مواد اولیه', default=0)
     total_semi_finished_cost = price_field(max_digits=14, verbose_name='هزینه مواد نیم‌آماده', default=0)
-    total_packaging_cost     = price_field(max_digits=14, verbose_name='هزینه بسته‌بندی', default=0)  # ★ جدید
+    total_packaging_cost     = price_field(max_digits=14, verbose_name='هزینه بسته‌بندی', default=0)
     total_cost               = price_field(max_digits=14, verbose_name='هزینه کل', default=0)
     cost_per_serving         = price_field(max_digits=14, verbose_name='هزینه هر سرو', default=0)
     suggested_price          = price_field(max_digits=14, verbose_name='قیمت پیشنهادی', default=0)
@@ -1060,7 +1059,6 @@ class RecipeSemiFinished(TenantModel):
         return Decimal(str(self.quantity)) * self.semi_finished.cost_per_unit
 
 
-# ★ مدل جدید — آیتم‌های بسته‌بندی رسپی
 class RecipePackagingItem(TenantModel):
     recipe       = models.ForeignKey(
         Recipe, on_delete=models.CASCADE,
@@ -1071,6 +1069,7 @@ class RecipePackagingItem(TenantModel):
         RawMaterial, on_delete=models.CASCADE,
         related_name='packaging_usages',
         verbose_name='ماده بسته‌بندی',
+        limit_choices_to={'material_type': 'packaging'},     # ← فقط بسته‌بندی
     )
     quantity     = models.DecimalField('مقدار', max_digits=10, decimal_places=3)
     unit         = unit_field(default='unit')
@@ -1132,6 +1131,13 @@ class InventoryMovement(TenantModel):
 
 
 # ─── 11. KITCHEN MANAGEMENT ──────────────
+#
+#  ★ تغییرات اصلی این بخش:
+#    ۱. KitchenProduct → اضافه شدن min_stock
+#    ۲. WasteLog → reason choices + notes + created_by + cost
+#    ۳. KitchenDiscount → حذف کامل
+#    ۴. CapacityAnalysis → حذف (قابل محاسبه در لحظه)
+#
 
 
 class KitchenProduct(TenantModel):
@@ -1155,6 +1161,14 @@ class KitchenProduct(TenantModel):
     description   = description_field()
     image         = models.ImageField(upload_to='kitchen/products/', blank=True, null=True, verbose_name='تصویر')
     selling_price = models.PositiveIntegerField(default=0, verbose_name='قیمت فروش (تومان)')
+
+    # ★ فیلد جدید — حداقل موجودی تعیین‌شده توسط کاربر
+    min_stock     = models.PositiveIntegerField(
+        default=0,
+        verbose_name='حداقل موجودی',
+        help_text='صفر = بدون محدودیت. کمتر از این مقدار = ارور در سیستم',
+    )
+
     is_active     = is_active_field()
     created_at    = created_at_field()
     updated_at    = updated_at_field()
@@ -1185,12 +1199,24 @@ class KitchenProduct(TenantModel):
         )
         return inv
 
+    def check_min_stock(self):
+        """بررسی آیا موجودی زیر حداقل تعیین‌شده هست"""
+        if self.min_stock <= 0:
+            return {'ok': True, 'message': ''}
+        inv = self.get_inventory()
+        if inv.available_quantity < self.min_stock:
+            return {
+                'ok': False,
+                'message': f'{self.name}: موجودی ({inv.available_quantity}) زیر حداقل ({self.min_stock})',
+            }
+        return {'ok': True, 'message': ''}
+
 
 class KitchenInventory(TenantModel):
     kitchen_product     = models.OneToOneField(KitchenProduct, on_delete=models.CASCADE, related_name='inventory_record', verbose_name='محصول')
     quantity            = models.PositiveIntegerField(default=0, verbose_name='موجودی کل')
     reserved_quantity   = models.PositiveIntegerField(default=0, verbose_name='رزرو شده')
-    low_stock_threshold = models.PositiveIntegerField(default=5, verbose_name='آستانه کمبود')
+    low_stock_threshold = models.PositiveIntegerField(default=5, verbose_name='آستانه کمبود (سیستمی)')
     updated_at          = updated_at_field(verbose_name='بروزرسانی')
 
     class Meta:
@@ -1207,6 +1233,7 @@ class KitchenInventory(TenantModel):
 
     @property
     def is_low_stock(self):
+        """آستانه سیستمی — از min_stock محصول مستقل است"""
         return self.available_quantity <= self.low_stock_threshold
 
     def increase_stock(self, amount):
@@ -1279,71 +1306,8 @@ class ProductionBatch(TenantModel):
         return f'{self.kitchen_product.name} × {self.quantity_produced}'
 
 
-class KitchenDiscount(TenantModel):
-    DISCOUNT_TYPE_CHOICES = [
-        ('percentage',   'درصدی'),
-        ('fixed_amount', 'مبلغ ثابت'),
-    ]
-    SCOPE_CHOICES = [
-        ('all_items',       'همه اقلام'),
-        ('first_n_items',   'N قلم اول'),
-        ('inventory_based', 'بر اساس موجودی'),
-        ('happy_hour',      'ساعت خوش'),
-    ]
-
-    name            = name_field(verbose_name='نام تخفیف')
-    kitchen_product = models.ForeignKey(KitchenProduct, on_delete=models.CASCADE, null=True, blank=True, related_name='discounts', verbose_name='محصول')
-    discount_type   = models.CharField(max_length=20, choices=DISCOUNT_TYPE_CHOICES, default='percentage', verbose_name='نوع تخفیف')
-    scope           = models.CharField(max_length=20, choices=SCOPE_CHOICES, default='all_items', verbose_name='دامنه')
-    value           = models.DecimalField(max_digits=12, decimal_places=0, default=0, verbose_name='مقدار')
-    max_quantity    = models.PositiveIntegerField(null=True, blank=True, verbose_name='حداکثر تعداد')
-    start_time      = models.TimeField(null=True, blank=True, verbose_name='ساعت شروع')
-    end_time        = models.TimeField(null=True, blank=True, verbose_name='ساعت پایان')
-    minimum_stock   = models.PositiveIntegerField(null=True, blank=True, verbose_name='حداقل موجودی')
-    expires_at      = models.DateTimeField(null=True, blank=True, verbose_name='زمان انقضا')
-    is_active       = is_active_field()
-    created_at      = created_at_field()
-
-    class Meta:
-        verbose_name        = 'تخفیف آشپزخانه'
-        verbose_name_plural = 'تخفیف‌های آشپزخانه'
-        ordering            = ['-created_at']
-
-    def __str__(self):
-        product_label = self.kitchen_product.name if self.kitchen_product else 'همه'
-        return f'{self.name} — {product_label}'
-
-    def get_discounted_price(self, original_price, quantity=1, current_stock=0):
-        from .kitchen_services import apply_discount
-        return apply_discount(self, original_price, quantity, current_stock)
-
-    def is_expired(self):
-        if self.expires_at and self.expires_at <= timezone.now():
-            return True
-        return False
-
-    def check_and_deactivate(self):
-        if self.is_expired() and self.is_active:
-            self.is_active = False
-            self.save(update_fields=['is_active'])
-            return True
-        return False
-
-
-class CapacityAnalysis(TenantModel):
-    kitchen_product         = models.ForeignKey(KitchenProduct, on_delete=models.CASCADE, related_name='capacity_snapshots', verbose_name='محصول')
-    max_production_quantity = models.PositiveIntegerField(default=0, verbose_name='حداکثر تولید')
-    limiting_material_name  = models.CharField(max_length=200, blank=True, default='', verbose_name='ماده محدودکننده')
-    limiting_material_type  = models.CharField(max_length=30, blank=True, default='', verbose_name='نوع ماده')
-    calculated_at           = created_at_field(verbose_name='زمان محاسبه')
-
-    class Meta:
-        verbose_name        = 'تحلیل ظرفیت'
-        verbose_name_plural = 'تحلیل‌های ظرفیت'
-        ordering            = ['-calculated_at']
-
-    def __str__(self):
-        return f'{self.kitchen_product.name} — max: {self.max_production_quantity}'
+# ★ KitchenDiscount حذف شد — ماژول تخفیف از آشپزخانه برداشته شد
+# ★ CapacityAnalysis حذف شد — قابل محاسبه در لحظه از طریق calculate_max_production
 
 
 class ProductionLog(TenantModel):
@@ -1374,22 +1338,65 @@ class ProductionLog(TenantModel):
         return f'{self.get_action_display()} — {product_name}'
 
 
+# ★ WasteLog — اصلاح‌شده برای سازگاری با JS آشپزخانه
 class WasteLog(TenantModel):
+    """ضایعات آشپزخانه — با دلایل مشخص و هزینه"""
+
+    REASON_CHOICES = [
+        ('expired',       'تاریخ گذشته'),
+        ('damaged',       'آسیب‌دیده'),
+        ('overcooked',    'بیش‌پخت'),
+        ('quality_issue', 'مشکل کیفیت'),
+        ('returned',      'برگشتی مشتری'),
+        ('other',         'سایر'),
+    ]
+
     kitchen_product = models.ForeignKey(
         KitchenProduct, on_delete=models.CASCADE,
         related_name='waste_logs', verbose_name='محصول آشپزخانه',
     )
-    quantity   = models.PositiveIntegerField(verbose_name='تعداد')
-    reason     = models.CharField(max_length=255, blank=True, verbose_name='دلیل')
-    created_at = created_at_field()
+    quantity     = models.PositiveIntegerField(verbose_name='تعداد')
+    reason       = models.CharField(
+        max_length=20,
+        choices=REASON_CHOICES,
+        default='other',
+        verbose_name='دلیل',
+    )
+    cost_per_unit = models.PositiveIntegerField(
+        default=0,
+        verbose_name='هزینه هر واحد (تومان)',
+        help_text='خودکار از هزینه تولید محصول پر می‌شود',
+    )
+    notes       = models.TextField(blank=True, verbose_name='یادداشت')
+    created_by  = models.ForeignKey(
+        User, on_delete=models.SET_NULL,
+        null=True, blank=True,
+        verbose_name='ثبت‌کننده',
+    )
+    created_at  = created_at_field()
 
     class Meta:
         ordering            = ['-created_at']
         verbose_name        = 'ضایعات'
         verbose_name_plural = 'ضایعات'
+        indexes = [
+            models.Index(fields=['kitchen_product', 'reason']),
+            models.Index(fields=['-created_at']),
+        ]
 
     def __str__(self):
-        return f"{self.kitchen_product.name} × {self.quantity}"
+        return f"{self.kitchen_product.name} × {self.quantity} ({self.get_reason_display()})"
+
+    @property
+    def total_cost(self):
+        """هزینه کل ضایعات"""
+        return self.cost_per_unit * self.quantity
+
+    def save(self, *args, **kwargs):
+        # اگر cost_per_unit ست نشده، از هزینه تولید محصول پر کن
+        if not self.cost_per_unit and self.kitchen_product_id:
+            self.cost_per_unit = int(self.kitchen_product.calculate_cost())
+        super().save(*args, **kwargs)
 
 
 # ─── 12. DAY CLOSE ───────────────────────
@@ -1443,18 +1450,17 @@ class DayCloseLog(TenantModel):
     def __str__(self):
         return f'{self.get_action_display()} — {self.date} — {self.user}'
 
+
 # ─── 13. ITEM DICTIONARY ──────────────────
 
-class DictionaryGroup(TenantModel):
-    """گروه‌های دیکشنری — تب‌های قابل سفارشی‌سازی توسط کاربر"""
 
+class DictionaryGroup(TenantModel):
     name       = name_field(verbose_name='نام گروه')
     slug       = models.CharField(max_length=50, verbose_name='شناسه انگلیسی')
     icon       = models.CharField(max_length=30, default='bi-archive', verbose_name='آیکون')
     color      = models.CharField(max_length=7, default='#6b7280', verbose_name='رنگ (hex)')
     sort_order = models.IntegerField(default=0, verbose_name='ترتیب نمایش')
 
-    # ── مصرف: کجا قابل استفاده باشه ──
     usage_recipes   = models.BooleanField(default=False, verbose_name='رسپی')
     usage_warehouse = models.BooleanField(default=False, verbose_name='انبار')
     usage_pos       = models.BooleanField(default=False, verbose_name='POS')
@@ -1491,14 +1497,12 @@ class ItemDictionary(TenantModel):
     unit          = unit_field()
     description   = description_field()
 
-    # ★ لینک به گروه دیکشنری
     group         = models.ForeignKey(
         DictionaryGroup, on_delete=models.CASCADE,
         related_name='items', verbose_name='گروه',
         null=True, blank=True,
     )
 
-    # حفظ برای سازگاری با کد قبلی
     category      = models.CharField(
         max_length=20, choices=CATEGORY_CHOICES,
         verbose_name='دسته‌بندی', db_index=True,
@@ -1525,21 +1529,19 @@ class ItemDictionary(TenantModel):
         return f'{self.name} ({group_name})'
 
 
-
-
 # ═══════════════════════════════════════════
-#  پنل مدیریت کلان — مدل‌ها
+#  پنل مدیریت کلان
 # ═══════════════════════════════════════════
+
 
 class Service(models.Model):
-    """سرویس‌های قابل فروش"""
-    code        = models.CharField(max_length=50, unique=True)
-    label       = models.CharField(max_length=100)
-    description = models.TextField(blank=True, default="")
-    icon        = models.CharField(max_length=10, blank=True, default="")
+    code          = models.CharField(max_length=50, unique=True)
+    label         = models.CharField(max_length=100)
+    description   = models.TextField(blank=True, default="")
+    icon          = models.CharField(max_length=10, blank=True, default="")
     default_price = models.BigIntegerField(default=0, help_text="قیمت پیش‌فرض ماهانه (تومان)")
-    is_active   = models.BooleanField(default=True)
-    order       = models.IntegerField(default=0)
+    is_active     = models.BooleanField(default=True)
+    order         = models.IntegerField(default=0)
 
     class Meta:
         ordering = ['order', 'id']
@@ -1549,15 +1551,14 @@ class Service(models.Model):
 
 
 class Tenant(models.Model):
-    """رستوران / مشتری"""
-    name      = models.CharField(max_length=200, verbose_name="نام رستوران")
-    owner     = models.ForeignKey(
+    name       = models.CharField(max_length=200, verbose_name="نام رستوران")
+    owner      = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name='owned_tenants', verbose_name="مالک"
     )
-    phone     = models.CharField(max_length=20, blank=True, default="")
-    address   = models.TextField(blank=True, default="")
-    is_active = models.BooleanField(default=True, verbose_name="فعال")
+    phone      = models.CharField(max_length=20, blank=True, default="")
+    address    = models.TextField(blank=True, default="")
+    is_active  = models.BooleanField(default=True, verbose_name="فعال")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -1576,7 +1577,6 @@ class Tenant(models.Model):
 
 
 class TenantService(models.Model):
-    """سرویس‌های فعال هر مشتری + قیمت سفارشی"""
     tenant       = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='services')
     service      = models.ForeignKey(Service, on_delete=models.CASCADE, related_name='tenant_services')
     is_enabled   = models.BooleanField(default=False)
@@ -1591,46 +1591,3 @@ class TenantService(models.Model):
     def __str__(self):
         status = "✅" if self.is_enabled else "❌"
         return f"{self.tenant.name} — {self.service.label} {status}"
-
-class PackagingMaterial(models.Model):
-    """مواد بسته‌بندی مستقل از مواد اولیه"""
-    restaurant = models.ForeignKey(
-        'Restaurant', on_delete=models.CASCADE,
-        related_name='packaging_materials'
-    )
-    name = models.CharField(max_length=200)
-    unit = models.CharField(
-        max_length=20,
-        choices=[
-            ('unit', 'عدد'),
-            ('pack', 'بسته'),
-            ('roll', 'رول'),
-            ('sheet', 'شیت'),
-            ('box', 'جعبه'),
-            ('bag', 'کیسه'),
-            ('cup', 'لیوان'),
-            ('lid', 'درب'),
-            ('container', 'ظرف'),
-        ],
-        default='unit'
-    )
-    quantity = models.DecimalField(
-        max_digits=12, decimal_places=3, default=0,
-        help_text='موجودی انبار'
-    )
-    price = models.DecimalField(
-        max_digits=12, decimal_places=0, default=0,
-        help_text='قیمت هر واحد (تومان)'
-    )
-    description = models.TextField(blank=True, default='')
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ['name']
-        verbose_name = 'ماده بسته‌بندی'
-        verbose_name_plural = 'مواد بسته‌بندی'
-
-    def __str__(self):
-        return f'{self.name} ({self.get_unit_display()})'

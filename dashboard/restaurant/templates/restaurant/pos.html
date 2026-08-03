@@ -1368,7 +1368,7 @@
 {% endblock %}
 {% block extra_js %}
 <script>
-/* ═══ فیکس اسکرول ═══ */
+    /* ═══ فیکس اسکرول ═══ */
 (function(){
     function fix() {
         var main = document.querySelector('.main');
@@ -1395,7 +1395,9 @@
 })();
 
 /* ═══════════════════════════════════════════════════════════════
-   SHARED UTILITIES — توابع مشترک
+   SHARED UTILITIES
+   ★ pD/toP/fmtN هم در base template تعریف شدن — اینجا overwrite
+     می‌شن (بی‌ضرر چون یکسانن). fmtP/fmtComma/esc مختص همین صفحه.
 ═══════════════════════════════════════════════════════════════ */
 var pD = '\u06F0\u06F1\u06F2\u06F3\u06F4\u06F5\u06F6\u06F7\u06F8\u06F9';
 function toP(n) { return String(n).replace(/\d/g, function(c) { return pD[c]; }); }
@@ -1419,6 +1421,18 @@ async function apiFetch(url, options) {
     return r.json();
 }
 
+/* ── Paginated Fetch Helper — تمام صفحات رو می‌خونه ── */
+async function fetchAllPages(url) {
+    var all = [], cur = url;
+    while (cur) {
+        var res = await apiFetch(cur);
+        var items = res.results || res || [];
+        all = all.concat(items);
+        cur = res.next || null;
+    }
+    return all;
+}
+
 /* ═══ Toast ═══ */
 var _toastTimer = null;
 function showToast(msg, type) {
@@ -1438,17 +1452,15 @@ function showToast(msg, type) {
     _toastTimer = setTimeout(function() { el.classList.remove('show'); }, 3000);
 }
 
-/* ── Confirm Helper ── */
 function confirmAction(msg) { return confirm(msg); }
 
-/* ═══ Mobile Cart Drawer ═══ */
 function toggleMobileCart() {
     var cart = document.querySelector('.pos-cart');
     if (cart) cart.classList.toggle('open');
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   ★ FAB SYSTEM — جایگزین cart-toggle-btn قدیمی ★
+   FAB SYSTEM
 ═══════════════════════════════════════════════════════════════ */
 var _fabOpen = false;
 
@@ -1458,25 +1470,16 @@ function toggleFabMenu() {
     var btn   = $('mobileFabBtn');
     var menu  = $('mobileFabMenu');
     if (!wrap) return;
-    if (_fabOpen) {
-        wrap.classList.add('open');
-        btn.classList.add('open');
-        menu.classList.add('show');
-    } else {
-        closeFabMenu();
-    }
+    if (_fabOpen) { wrap.classList.add('open'); btn.classList.add('open'); menu.classList.add('show'); }
+    else { closeFabMenu(); }
 }
-
 function closeFabMenu() {
     _fabOpen = false;
-    var wrap = $('mobileFabWrap');
-    var btn  = $('mobileFabBtn');
-    var menu = $('mobileFabMenu');
+    var wrap = $('mobileFabWrap'), btn = $('mobileFabBtn'), menu = $('mobileFabMenu');
     if (wrap) wrap.classList.remove('open');
     if (btn)  btn.classList.remove('open');
     if (menu) menu.classList.remove('show');
 }
-
 function fabOpenCart() {
     closeFabMenu();
     if (window.innerWidth <= 768) {
@@ -1485,32 +1488,23 @@ function fabOpenCart() {
     }
 }
 
-/* ── sync FAB badges + price ── */
 function syncFabCart(count) {
     var badge = $('mobileFabBadge');
     if (badge) {
         badge.textContent = toP(count);
         if (count > 0) badge.classList.remove('hide'); else badge.classList.add('hide');
     }
-    /* price label inside FAB menu */
     var priceEl = $('fabCartPrice');
     if (priceEl) {
         var total = 0;
-        Object.keys(posCart).forEach(function(id) {
-            var f = getFood(id);
-            if (f) total += posGetPrice(f) * posCart[id];
-        });
+        Object.keys(posCart).forEach(function(id) { var f = getFood(id); if (f) total += posGetPrice(f) * posCart[id]; });
         if (_appliedCoupon) {
-            var cs = _appliedCoupon.discount_type === 'percentage'
-                ? Math.round(total * _appliedCoupon.value / 100)
-                : Math.min(_appliedCoupon.value, total);
+            var cs = _appliedCoupon.discount_type === 'percentage' ? Math.round(total * _appliedCoupon.value / 100) : Math.min(_appliedCoupon.value, total);
             total = Math.max(0, total - cs);
         }
         priceEl.textContent = count > 0 ? fmtN(total) + ' تومان' : '۰ تومان';
     }
 }
-
-/* ── sync orders FAB badge ── */
 function syncFabOrders(active) {
     var badge = $('fabOrdersBadge');
     if (badge) {
@@ -1519,19 +1513,12 @@ function syncFabOrders(active) {
     }
 }
 
-/* ═══ click-outside handlers ═══ */
 document.addEventListener('click', function(e) {
     if (window.innerWidth > 768) return;
-
-    /* close cart drawer when clicking outside */
     var cart = document.querySelector('.pos-cart');
     if (cart && cart.classList.contains('open') && !cart.contains(e.target)) {
-        /* don't close if clicking the FAB cart item */
-        var fabCart = e.target.closest('.fab-cart-item');
-        if (!fabCart) cart.classList.remove('open');
+        if (!e.target.closest('.fab-cart-item')) cart.classList.remove('open');
     }
-
-    /* close FAB menu when clicking outside */
     if (_fabOpen) {
         var wrap = $('mobileFabWrap');
         if (wrap && !wrap.contains(e.target)) closeFabMenu();
@@ -1541,73 +1528,159 @@ document.addEventListener('click', function(e) {
 /* ═══════════════════════════════════════════════════════════════
    API URLs
 ═══════════════════════════════════════════════════════════════ */
-var PAY_API = "{% url 'card_reader_pay' %}";
+var PAY_API        = "{% url 'card_reader_pay' %}";
 var PAY_CANCEL_API = "{% url 'card_reader_cancel' %}";
-var DISCOUNT_API = "/api/pos/set-discount/";
-var RECEIPT_URL = "{% url 'pos_receipt' 0 %}".replace('/0/', '/ORDER_ID/');
+var DISCOUNT_API   = "/api/pos/set-discount/";
+var RECEIPT_URL    = "{% url 'pos_receipt' 0 %}".replace('/0/', '/ORDER_ID/');
 var ORDERS_LIST_API = "/api/orders/";
-var ORDERS_STATUS_API = "/api/orders/ORDER_ID/status/".replace('ORDER_ID', '');
-var ORDERS_KITCHEN_API = "/api/orders/ORDER_ID/send-to-kitchen/".replace('ORDER_ID', '');
+
+/* ★ APIهای جدید برای بارگذاری محصولات ★ */
+var KITCHEN_PRODUCTS_API = "{% url 'kitchen-products-list' %}";
+var DICT_FOOD_MENU_API   = "{% url 'dict_food_menu' %}";
 
 var _pendingOrder = null;
 var _appliedCoupon = null;
 
 /* ═══════════════════════════════════════════════════════════════
-   ★ TAB SWITCHING — ★ اصلاح شده برای FAB (btn اختیاری)
+   TAB SWITCHING
 ═══════════════════════════════════════════════════════════════ */
 var _loadedTabs = {};
 function switchTab(tab, btn) {
     document.querySelectorAll('.pos-tab').forEach(function(t) { t.classList.remove('active'); });
     document.querySelectorAll('.pos-panel').forEach(function(p) { p.classList.remove('active'); });
-
-    /* ★ btn ممکنه undefined باشه وقتی FAB صدا می‌زنه ★ */
-    if (btn) {
-        btn.classList.add('active');
-    } else {
-        /* پیدا کردن دکمه متناظر با data-tab */
-        var matchBtn = document.querySelector('.pos-tab[data-tab="' + tab + '"]');
-        if (matchBtn) matchBtn.classList.add('active');
-    }
-
+    if (btn) { btn.classList.add('active'); }
+    else { var m = document.querySelector('.pos-tab[data-tab="' + tab + '"]'); if (m) m.classList.add('active'); }
     $('panel-' + tab).classList.add('active');
-
-    /* close FAB menu if open */
     closeFabMenu();
-
     var actions = {
-        'pos': function() { posFilter(); },
-        'orders': function() { loadOrders(); },
+        'pos':      function() { posFilter(); },
+        'orders':   function() { loadOrders(); },
         'discount': function() { refreshDiscountTab(); },
-        'report': function() { loadReport(); },
-        'close': function() { loadCloseData(); },
-        'history': function() { if (!_loadedTabs.history) { _loadedTabs.history = true; loadHistory(); } }
+        'report':   function() { loadReport(); },
+        'close':    function() { loadCloseData(); },
+        'history':  function() { if (!_loadedTabs.history) { _loadedTabs.history = true; loadHistory(); } }
     };
     if (actions[tab]) actions[tab]();
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   POS STATE + FOOD MAP
+   ★ POS STATE + DATA LOADING — اصلاح شده
+   اسم و دسته‌بندی از دیکشنری، قیمت و موجودی از آشپزخانه
 ═══════════════════════════════════════════════════════════════ */
-var posFoods = {{ foods_json|safe }};
-var posCategories = {{ categories_json|safe }};
+var posFoods = [];           /* ★ قبلاً {{ foods_json|safe }} بود */
+var posCategories = [];      /* ★ قبلاً {{ categories_json|safe }} بود */
 var posCart = {};
 var _foodMap = {};
-
-(function buildFoodMap() {
-    posFoods.forEach(function(f) { _foodMap[String(f.id)] = f; });
-})();
+var _posDataLoaded = false;
 
 function getFood(id) { return _foodMap[String(id)] || null; }
 function posGetPrice(f) { return f.discount ? f.discount.discounted_price : (f.kitchen_price || 0); }
 function posGetOriginalPrice(f) { return f.kitchen_price || 0; }
 
+/* ★ تابع اصلی بارگذاری — از دو API می‌خونه و merge می‌کنه ★ */
+async function loadPosData() {
+    var grid = $('posGrid');
+    if (grid) grid.innerHTML = '<div style="text-align:center;padding:60px;color:var(--pos-text-sec)"><div class="pos-spinner" style="margin:0 auto 16px;width:36px;height:36px;border:3px solid var(--pos-border);border-top-color:var(--pos-accent);border-radius:50%;animation:spin .6s linear infinite"></div><p style="font-weight:700;font-size:.95rem">در حال بارگذاری محصولات...</p></div>';
+
+    var kitchenItems = [];
+    var dictItems = [];
+
+    try {
+        /* ★ دو API همزمان — اگه یکی fail بشه اون یکی کار می‌کنه ★ */
+        var results = await Promise.allSettled([
+            fetchAllPages(KITCHEN_PRODUCTS_API + '?page_size=500'),
+            apiFetch(DICT_FOOD_MENU_API)
+        ]);
+
+        if (results[0].status === 'fulfilled') {
+            kitchenItems = results[0].value;
+        } else {
+            console.error('[POS] Kitchen API error:', results[0].reason);
+        }
+
+        if (results[1].status === 'fulfilled') {
+            var d = results[1].value;
+            dictItems = d.items || d.results || d || [];
+        } else {
+            console.error('[POS] Dictionary API error:', results[1].reason);
+        }
+
+        /* ── ساخت Map از آشپزخانه (key = id) ── */
+        var kMap = {};
+        kitchenItems.forEach(function(k) { kMap[String(k.id)] = k; });
+
+        /* ── ساخت Map از دیکشنری ── */
+        var dMap = {};
+        dictItems.forEach(function(d) { dMap[String(d.id)] = d; });
+
+        /* ── Merge: اول دیکشنری (اسم + دسته)، بعد آشپزخانه (قیمت + موجودی) ── */
+        posFoods = [];
+        var doneIds = {};
+
+        dictItems.forEach(function(dict) {
+            var k = kMap[String(dict.id)] || null;
+            posFoods.push(_buildFood(dict, k));
+            doneIds[String(dict.id)] = true;
+        });
+
+        /* آیتم‌های آشپزخانه که توی دیکشنری نبودن */
+        kitchenItems.forEach(function(k) {
+            if (!doneIds[String(k.id)]) {
+                posFoods.push(_buildFood(null, k));
+            }
+        });
+
+        /* ── Food Map ── */
+        _foodMap = {};
+        posFoods.forEach(function(f) { _foodMap[String(f.id)] = f; });
+
+        /* ── دسته‌بندی‌ها رو از داده‌های merge‌شده بساز ── */
+        var catMap = {};
+        posFoods.forEach(function(f) {
+            var cid = String(f.category_id || '');
+            if (cid && !catMap[cid]) catMap[cid] = { id: f.category_id, name: f.category_name || 'بدون دسته' };
+        });
+        posCategories = [];
+        Object.keys(catMap).forEach(function(k) { posCategories.push(catMap[k]); });
+
+        _posDataLoaded = true;
+
+    } catch(e) {
+        console.error('[POS] loadPosData error:', e);
+        if (grid) grid.innerHTML = '<div style="text-align:center;padding:60px;color:var(--pos-danger)"><i class="bi bi-exclamation-triangle" style="font-size:2.5rem;display:block;margin-bottom:12px"></i><p style="font-weight:700">خطا در بارگذاری اطلاعات</p><p style="font-size:.85rem;margin-top:6px">' + esc(e.message) + '</p><button onclick="loadPosData()" style="margin-top:16px;padding:8px 20px;border-radius:10px;border:2px solid var(--pos-accent);background:transparent;color:var(--pos-accent);font-weight:700;cursor:pointer">تلاش مجدد</button></div>';
+        showToast('خطا در بارگذاری محصولات', 'error');
+    }
+}
+
+/* ★ ساخت آبجکت food از دیکشنری + آشپزخانه ★ */
+function _buildFood(dict, kitchen) {
+    return {
+        id:            dict ? dict.id : kitchen.id,
+        name:          dict ? (dict.name || '') : (kitchen.name || ''),
+        category_id:   dict ? (dict.category_id || null) : (kitchen.category_id || null),
+        category_name: dict ? (dict.category_name || '') : (kitchen.category_name || ''),
+        /* ★ قیمت: از آشپزخانه (selling_price > price > kitchen_price) ★ */
+        kitchen_price: kitchen
+            ? (kitchen.selling_price || kitchen.price || kitchen.kitchen_price || 0)
+            : (dict ? (dict.price || 0) : 0),
+        /* ★ موجودی: از آشپزخانه (stock > current_stock) ★ */
+        stock:         kitchen
+            ? (kitchen.stock != null ? kitchen.stock : (kitchen.current_stock != null ? kitchen.current_stock : null))
+            : null,
+        image:         kitchen ? (kitchen.image || null) : (dict ? (dict.image || null) : null),
+        is_ready:      kitchen ? (kitchen.is_ready || false) : false,
+        discount:      null
+    };
+}
+
 /* ═══════════════════════════════════════════════════════════════
-   POS CATEGORIES + FILTER
+   CATEGORIES + FILTER
 ═══════════════════════════════════════════════════════════════ */
 function posBuildCats() {
     var h = '<button class="pos-cat-btn active" data-cat="all" onclick="posSelectCat(this)">همه</button>';
     posCategories.forEach(function(c) { h += '<button class="pos-cat-btn" data-cat="' + c.id + '" onclick="posSelectCat(this)">' + esc(c.name) + '</button>'; });
-    $('posCats').innerHTML = h;
+    var el = $('posCats');
+    if (el) el.innerHTML = h;
 }
 function posSelectCat(btn) {
     document.querySelectorAll('.pos-cat-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -1695,7 +1768,6 @@ function posUpdateCart() {
     if (!ids.length) {
         box.innerHTML = '<div class="pos-cart-empty"><i class="bi bi-cart-x"></i><p>غذایی انتخاب نشده</p></div>';
         $('posCartCount').textContent = toP(0);
-        /* ★ sync FAB ★ */
         syncFabCart(0);
         $('posTotal').textContent = fmtP(0);
         $('posCheckout').disabled = true;
@@ -1722,7 +1794,6 @@ function posUpdateCart() {
     });
     box.innerHTML = h;
     $('posCartCount').textContent = toP(count);
-    /* ★ sync FAB ★ */
     syncFabCart(count);
     $('posCheckout').disabled = false;
     updateCartTotals(); updateDiscountTabBadge();
@@ -1749,8 +1820,6 @@ function updateCartTotals() {
         $('originalTotal').textContent = fmtP(originalTotal);
         $('savingsTotal').textContent = '-' + fmtN(totalSaving) + ' تومان';
     } else { origRow.classList.remove('show'); savRow.classList.remove('show'); }
-
-    /* ★ sync FAB price ★ */
     var priceEl = $('fabCartPrice');
     if (priceEl) priceEl.textContent = fmtN(finalTotal);
 }
@@ -1775,9 +1844,7 @@ function loadOrders() {
         .then(function(data) {
             _ordersData = data.results || data || [];
             if (!Array.isArray(_ordersData)) _ordersData = [];
-            renderOrders();
-            updateOrdersStats();
-            updateOrdersTabBadge();
+            renderOrders(); updateOrdersStats(); updateOrdersTabBadge();
         })
         .catch(function(e) {
             $('ordersList').innerHTML = '<div class="orders-empty"><i class="bi bi-exclamation-circle"></i><h3>خطا در بارگذاری</h3><p>' + esc(e.message) + '</p></div>';
@@ -1804,12 +1871,11 @@ function updateOrdersStats() {
 function updateOrdersTabBadge() {
     var active = 0;
     _ordersData.forEach(function(o) {
-        if (o.status === 'pending' || o.status === 'confirmed' || o.status === 'preparing' || o.status === 'ready') active++;
+        if (['pending','confirmed','preparing','ready'].indexOf(o.status) !== -1) active++;
     });
     var badge = $('ordersTabBadge');
     badge.textContent = toP(active);
     if (active > 0) badge.classList.add('show'); else badge.classList.remove('show');
-    /* ★ sync FAB orders badge ★ */
     syncFabOrders(active);
 }
 
@@ -1824,47 +1890,32 @@ function renderOrders() {
         $('ordersList').innerHTML = '<div class="orders-empty"><i class="bi bi-inbox"></i><h3>سفارشی یافت نشد</h3><p>فیلتر یا جستجو را تغییر دهید</p></div>';
         return;
     }
+    var statusLabel = { pending:'در انتظار', confirmed:'تأیید شده', preparing:'در حال آماده‌سازی', ready:'آماده', delivered:'تحویل شده', cancelled:'لغو شده' };
     var h = '';
-    filtered.forEach(function(o, i) {
-        var statusLabel = { pending: 'در انتظار', confirmed: 'تأیید شده', preparing: 'در حال آماده‌سازی', ready: 'آماده', delivered: 'تحویل شده', cancelled: 'لغو شده' };
+    filtered.forEach(function(o) {
         h += '<div class="order-card s-' + o.status + '" data-status="' + o.status + '" data-id="' + o.id + '">';
-        h += '<div class="oc-header">';
-        h += '<span class="oc-id">سفارش #' + toP(o.id) + '</span>';
-        h += '<span class="oc-status st-' + o.status + '"><span class="s-dot"></span> ' + (statusLabel[o.status] || o.status) + '</span>';
-        h += '<span class="oc-time"><i class="bi bi-clock"></i> ' + esc(o.time || o.created_at || '') + '</span>';
-        h += '</div>';
-
+        h += '<div class="oc-header"><span class="oc-id">سفارش #' + toP(o.id) + '</span>';
+        h += '<span class="oc-status st-' + o.status + '"><span class="s-dot"></span> ' + (statusLabel[o.status]||o.status) + '</span>';
+        h += '<span class="oc-time"><i class="bi bi-clock"></i> ' + esc(o.time||o.created_at||'') + '</span></div>';
         h += '<div class="oc-body"><div class="oc-items">';
         var items = o.items || [];
-        if (items.length) {
-            items.forEach(function(item) {
-                h += '<div class="oc-item"><span class="oi-name">' + esc(item.name || item.food_name || 'غذا') + '</span><span class="oi-qty">×' + toP(item.quantity) + '</span></div>';
-            });
-        } else {
-            h += '<span style="color:var(--pos-text-sec);font-size:.85rem">آیتمی ثبت نشده</span>';
+        if (items.length) { items.forEach(function(item) { h += '<div class="oc-item"><span class="oi-name">' + esc(item.name||item.food_name||'غذا') + '</span><span class="oi-qty">×' + toP(item.quantity) + '</span></div>'; }); }
+        else { h += '<span style="color:var(--pos-text-sec);font-size:.85rem">آیتمی ثبت نشده</span>'; }
+        h += '</div></div><div class="oc-footer"><div class="oc-total">' + fmtN(o.total_price||0) + ' <span class="toman">تومان</span></div><div class="oc-actions">';
+        if (o.status==='pending'||o.status==='confirmed') {
+            h += '<button class="oc-btn oc-btn-kitchen" onclick="sendToKitchen('+o.id+')"><i class="bi bi-fire"></i> ارسال به آشپزخانه</button>';
+            h += '<button class="oc-btn oc-btn-cancel" onclick="changeOrderStatus('+o.id+',\'cancelled\')">لغو</button>';
+        } else if (o.status==='preparing') {
+            h += '<button class="oc-btn oc-btn-ready" onclick="changeOrderStatus('+o.id+',\'ready\')"><i class="bi bi-check-lg"></i> آماده است</button>';
+        } else if (o.status==='ready') {
+            h += '<button class="oc-btn oc-btn-deliver" onclick="changeOrderStatus('+o.id+',\'delivered\')"><i class="bi bi-geo-alt"></i> تحویل شد</button>';
         }
-        h += '</div></div>';
-
-        h += '<div class="oc-footer">';
-        h += '<div class="oc-total">' + fmtN(o.total_price || 0) + ' <span class="toman">تومان</span></div>';
-        h += '<div class="oc-actions">';
-
-        if (o.status === 'pending' || o.status === 'confirmed') {
-            h += '<button class="oc-btn oc-btn-kitchen" onclick="sendToKitchen(' + o.id + ')"><i class="bi bi-fire"></i> ارسال به آشپزخانه</button>';
-            h += '<button class="oc-btn oc-btn-cancel" onclick="changeOrderStatus(' + o.id + ',\'cancelled\')">لغو</button>';
-        } else if (o.status === 'preparing') {
-            h += '<button class="oc-btn oc-btn-ready" onclick="changeOrderStatus(' + o.id + ',\'ready\')"><i class="bi bi-check-lg"></i> آماده است</button>';
-        } else if (o.status === 'ready') {
-            h += '<button class="oc-btn oc-btn-deliver" onclick="changeOrderStatus(' + o.id + ',\'delivered\')"><i class="bi bi-geo-alt"></i> تحویل شد</button>';
-        }
-
-        h += '<button class="oc-btn oc-btn-detail" onclick="showOrderDetail(' + o.id + ')">جزئیات</button>';
+        h += '<button class="oc-btn oc-btn-detail" onclick="showOrderDetail('+o.id+')">جزئیات</button>';
         h += '</div></div></div>';
     });
     $('ordersList').innerHTML = h;
 }
 
-/* ── Orders Pill Filter ── */
 document.addEventListener('DOMContentLoaded', function() {
     var pills = $('ordersPills');
     if (pills) {
@@ -1887,62 +1938,54 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-/* ── Send to Kitchen ── */
 window.sendToKitchen = function(orderId) {
     if (!confirmAction('سفارش #' + orderId + ' به آشپزخانه ارسال شود؟\nمواد اولیه از انبار کم خواهد شد.')) return;
     var card = document.querySelector('.order-card[data-id="' + orderId + '"]');
-    if (card) { card.style.opacity = '.5'; card.style.pointerEvents = 'none'; }
-    apiFetch(ORDERS_LIST_API + orderId + '/send-to-kitchen/', { method: 'POST' })
+    if (card) { card.style.opacity='.5'; card.style.pointerEvents='none'; }
+    apiFetch(ORDERS_LIST_API + orderId + '/send-to-kitchen/', { method:'POST' })
         .then(function(data) {
-            if (data.success) { showToast(data.msg, 'success'); loadOrders(); }
-            else { if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; } showToast(Array.isArray(data.error) ? data.error.join('، ') : (data.error || 'خطا'), 'error'); }
+            if (data.success) { showToast(data.msg,'success'); loadOrders(); }
+            else { if(card){card.style.opacity='1';card.style.pointerEvents='';} showToast(Array.isArray(data.error)?data.error.join('، '):(data.error||'خطا'),'error'); }
         })
-        .catch(function() { if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; } showToast('خطا در ارتباط با سرور', 'error'); });
+        .catch(function(){ if(card){card.style.opacity='1';card.style.pointerEvents='';} showToast('خطا در ارتباط با سرور','error'); });
 };
 
-/* ── Change Order Status ── */
 window.changeOrderStatus = function(orderId, newStatus) {
-    var labels = { ready: 'آماده', delivered: 'تحویل', cancelled: 'لغو' };
-    if (newStatus === 'cancelled' && !confirmAction('آیا از لغو سفارش #' + orderId + ' مطمئن هستید؟')) return;
-    var card = document.querySelector('.order-card[data-id="' + orderId + '"]');
-    if (card) { card.style.opacity = '.5'; card.style.pointerEvents = 'none'; }
-    apiFetch(ORDERS_LIST_API + orderId + '/status/', { method: 'POST', body: JSON.stringify({ status: newStatus }) })
+    var labels = { ready:'آماده', delivered:'تحویل', cancelled:'لغو' };
+    if (newStatus==='cancelled' && !confirmAction('آیا از لغو سفارش #'+orderId+' مطمئن هستید؟')) return;
+    var card = document.querySelector('.order-card[data-id="'+orderId+'"]');
+    if (card) { card.style.opacity='.5'; card.style.pointerEvents='none'; }
+    apiFetch(ORDERS_LIST_API + orderId + '/status/', { method:'POST', body:JSON.stringify({status:newStatus}) })
         .then(function(data) {
-            if (data.success || data.id) { showToast('سفارش #' + orderId + ': ' + (labels[newStatus] || newStatus) + ' شد.'); loadOrders(); }
-            else { if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; } showToast(data.error || 'خطا', 'error'); }
+            if (data.success||data.id) { showToast('سفارش #'+orderId+': '+(labels[newStatus]||newStatus)+' شد.'); loadOrders(); }
+            else { if(card){card.style.opacity='1';card.style.pointerEvents='';} showToast(data.error||'خطا','error'); }
         })
-        .catch(function() { if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; } showToast('خطا در ارتباط با سرور', 'error'); });
+        .catch(function(){ if(card){card.style.opacity='1';card.style.pointerEvents='';} showToast('خطا در ارتباط با سرور','error'); });
 };
 
-/* ── Order Detail Modal ── */
 window.showOrderDetail = function(id) {
     var o = null;
-    _ordersData.forEach(function(item) { if (item.id == id) o = item; });
-    if (!o) { showToast('اطلاعات سفارش یافت نشد', 'error'); return; }
-    var statusLabel = { pending: 'در انتظار', confirmed: 'تأیید شده', preparing: 'در حال آماده‌سازی', ready: 'آماده', delivered: 'تحویل شده', cancelled: 'لغو شده' };
-    var html = '';
-    html += '<div class="od-row"><span class="od-label">شماره سفارش</span><span class="od-value">#' + toP(o.id) + '</span></div>';
-    html += '<div class="od-row"><span class="od-label">وضعیت</span><span class="od-value">' + (statusLabel[o.status] || o.status) + '</span></div>';
-    html += '<div class="od-row"><span class="od-label">زمان ثبت</span><span class="od-value">' + esc(o.time || o.created_at || '') + '</span></div>';
-    if (o.customer_name) html += '<div class="od-row"><span class="od-label">مشتری</span><span class="od-value">' + esc(o.customer_name) + '</span></div>';
-    html += '<div class="od-items-title">اقلام سفارش:</div>';
-    html += '<div class="od-items-box">';
-    var items = o.items || [];
-    items.forEach(function(item, i) {
-        html += '<div class="od-item-row"><span style="font-weight:600">' + esc(item.name || item.food_name || 'غذا') + '</span><span style="color:var(--pos-accent);font-weight:700">×' + toP(item.quantity) + ' — ' + fmtN(item.price || 0) + ' ت</span></div>';
+    _ordersData.forEach(function(item) { if (item.id==id) o=item; });
+    if (!o) { showToast('اطلاعات سفارش یافت نشد','error'); return; }
+    var statusLabel = { pending:'در انتظار', confirmed:'تأیید شده', preparing:'در حال آماده‌سازی', ready:'آماده', delivered:'تحویل شده', cancelled:'لغو شده' };
+    var html = '<div class="od-row"><span class="od-label">شماره سفارش</span><span class="od-value">#'+toP(o.id)+'</span></div>';
+    html += '<div class="od-row"><span class="od-label">وضعیت</span><span class="od-value">'+(statusLabel[o.status]||o.status)+'</span></div>';
+    html += '<div class="od-row"><span class="od-label">زمان ثبت</span><span class="od-value">'+esc(o.time||o.created_at||'')+'</span></div>';
+    if (o.customer_name) html += '<div class="od-row"><span class="od-label">مشتری</span><span class="od-value">'+esc(o.customer_name)+'</span></div>';
+    html += '<div class="od-items-title">اقلام سفارش:</div><div class="od-items-box">';
+    (o.items||[]).forEach(function(item) {
+        html += '<div class="od-item-row"><span style="font-weight:600">'+esc(item.name||item.food_name||'غذا')+'</span><span style="color:var(--pos-accent);font-weight:700">×'+toP(item.quantity)+' — '+fmtN(item.price||0)+' ت</span></div>';
     });
-    html += '</div>';
-    html += '<div class="od-total-box"><div class="od-total-label">جمع کل</div><div class="od-total-val">' + fmtN(o.total_price || 0) + ' تومان</div></div>';
-    $('odTitle').textContent = 'جزئیات سفارش #' + toP(o.id);
+    html += '</div><div class="od-total-box"><div class="od-total-label">جمع کل</div><div class="od-total-val">'+fmtN(o.total_price||0)+' تومان</div></div>';
+    $('odTitle').textContent = 'جزئیات سفارش #'+toP(o.id);
     $('odBody').innerHTML = html;
     $('orderDetailModal').classList.add('active');
 };
 (function() {
-    var modal = $('orderDetailModal');
-    if (!modal) return;
-    $('odClose').addEventListener('click', function() { modal.classList.remove('active'); });
-    $('odCloseBtn').addEventListener('click', function() { modal.classList.remove('active'); });
-    modal.addEventListener('click', function(e) { if (e.target === modal) modal.classList.remove('active'); });
+    var modal = $('orderDetailModal'); if (!modal) return;
+    $('odClose').addEventListener('click', function(){ modal.classList.remove('active'); });
+    $('odCloseBtn').addEventListener('click', function(){ modal.classList.remove('active'); });
+    modal.addEventListener('click', function(e){ if(e.target===modal) modal.classList.remove('active'); });
 })();
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1951,19 +1994,19 @@ window.showOrderDetail = function(id) {
 function refreshDiscountTab() { discBuildCats(); discFilter(); discUpdateStats(); }
 function discBuildCats() {
     var h = '<button class="disc-cat-btn active" data-cat="all" onclick="discSelectCat(this)">همه</button>';
-    posCategories.forEach(function(c) { h += '<button class="disc-cat-btn" data-cat="' + c.id + '" onclick="discSelectCat(this)">' + esc(c.name) + '</button>'; });
+    posCategories.forEach(function(c) { h += '<button class="disc-cat-btn" data-cat="'+c.id+'" onclick="discSelectCat(this)">'+esc(c.name)+'</button>'; });
     $('discCats').innerHTML = h;
 }
 function discSelectCat(btn) {
-    document.querySelectorAll('.disc-cat-btn').forEach(function(b) { b.classList.remove('active'); });
+    document.querySelectorAll('.disc-cat-btn').forEach(function(b){ b.classList.remove('active'); });
     btn.classList.add('active'); discFilter();
 }
 function discFilter() {
-    var q = ($('discSearch').value || '').toLowerCase();
+    var q = ($('discSearch').value||'').toLowerCase();
     var catBtn = document.querySelector('.disc-cat-btn.active');
     var catId = catBtn ? catBtn.dataset.cat : 'all';
     renderDiscGrid(posFoods.filter(function(f) {
-        return (!q || f.name.toLowerCase().indexOf(q) !== -1) && (catId === 'all' || String(f.category_id) === catId);
+        return (!q||f.name.toLowerCase().indexOf(q)!==-1)&&(catId==='all'||String(f.category_id)===catId);
     }));
 }
 function renderDiscGrid(data) {
@@ -1976,25 +2019,23 @@ function renderDiscGrid(data) {
         var saving = hasDisc ? (f.kitchen_price - finalPrice) : 0;
         var savingPct = hasDisc && f.kitchen_price > 0 ? Math.round(saving / f.kitchen_price * 100) : 0;
         var displayVal = '';
-        if (discVal !== '' && discVal !== null && discVal !== undefined) {
-            displayVal = discType === 'fixed' ? fmtComma(parseInt(discVal)) : String(discVal);
-        }
-        h += '<div class="disc-card' + (hasDisc ? ' has-discount' : '') + '" data-disc-id="' + f.id + '">';
+        if (discVal!==''&&discVal!==null&&discVal!==undefined) displayVal = discType==='fixed'?fmtComma(parseInt(discVal)):String(discVal);
+
+        h += '<div class="disc-card'+(hasDisc?' has-discount':'')+'" data-disc-id="'+f.id+'">';
         h += '<div class="disc-card-img">';
-        if (f.image) h += '<img src="' + esc(f.image) + '">';
-        else h += '<i class="bi bi-cup-straw"></i>';
-        h += '<div class="disc-card-active-badge"><i class="bi bi-lightning-fill"></i> ' + (discType === 'percentage' ? discVal + '%' : fmtN(discVal) + ' ت') + '</div>';
+        if (f.image) h += '<img src="'+esc(f.image)+'">'; else h += '<i class="bi bi-cup-straw"></i>';
+        h += '<div class="disc-card-active-badge"><i class="bi bi-lightning-fill"></i> '+(discType==='percentage'?discVal+'%':fmtN(discVal)+' ت')+'</div>';
         h += '</div><div class="disc-card-body">';
-        h += '<div class="disc-card-top"><div class="disc-card-name">' + esc(f.name) + '</div><span class="disc-card-cat-tag">' + esc(f.category_name) + '</span></div>';
-        h += '<div class="disc-card-prices"><div class="disc-card-orig-price">' + fmtN(f.kitchen_price) + ' تومان</div>';
-        h += '<div class="disc-card-final-price">' + fmtN(finalPrice) + ' تومان</div>';
-        if (hasDisc) h += '<div class="disc-card-saving"><i class="bi bi-arrow-down-short"></i> صرفه‌جویی: ' + fmtN(saving) + ' ت (' + toP(savingPct) + '%)</div>';
+        h += '<div class="disc-card-top"><div class="disc-card-name">'+esc(f.name)+'</div><span class="disc-card-cat-tag">'+esc(f.category_name)+'</span></div>';
+        h += '<div class="disc-card-prices"><div class="disc-card-orig-price">'+fmtN(f.kitchen_price)+' تومان</div>';
+        h += '<div class="disc-card-final-price">'+fmtN(finalPrice)+' تومان</div>';
+        if (hasDisc) h += '<div class="disc-card-saving"><i class="bi bi-arrow-down-short"></i> صرفه‌جویی: '+fmtN(saving)+' ت ('+toP(savingPct)+'%)</div>';
         h += '</div><div class="disc-card-controls"><div class="disc-control-row">';
-        h += '<div class="disc-type-toggle"><button class="disc-type-btn' + (discType === 'percentage' ? ' active' : '') + '" onclick="discTypeClick(this,\'percentage\')">٪</button>';
-        h += '<button class="disc-type-btn' + (discType === 'fixed' ? ' active' : '') + '" onclick="discTypeClick(this,\'fixed\')">ت</button></div>';
-        h += '<input type="text" class="disc-value-input" placeholder="مقدار تخفیف..." value="' + esc(displayVal) + '" data-raw="' + esc(String(discVal)) + '" onfocus="discInputFocus(this)" oninput="onDiscInput(this)" onblur="formatDiscInput(this)">';
-        h += '<button class="disc-apply-btn" onclick="applyDisc(\'' + f.id + '\')"><i class="bi bi-check-lg"></i> اعمال</button></div>';
-        h += '<button class="disc-remove-btn" onclick="removeDisc(\'' + f.id + '\')"><i class="bi bi-x-lg"></i> حذف تخفیف</button>';
+        h += '<div class="disc-type-toggle"><button class="disc-type-btn'+(discType==='percentage'?' active':'')+'" onclick="discTypeClick(this,\'percentage\')">٪</button>';
+        h += '<button class="disc-type-btn'+(discType==='fixed'?' active':'')+'" onclick="discTypeClick(this,\'fixed\')">ت</button></div>';
+        h += '<input type="text" class="disc-value-input" placeholder="مقدار تخفیف..." value="'+esc(displayVal)+'" data-raw="'+esc(String(discVal))+'" onfocus="discInputFocus(this)" oninput="onDiscInput(this)" onblur="formatDiscInput(this)">';
+        h += '<button class="disc-apply-btn" onclick="applyDisc(\''+f.id+'\')"><i class="bi bi-check-lg"></i> اعمال</button></div>';
+        h += '<button class="disc-remove-btn" onclick="removeDisc(\''+f.id+'\')"><i class="bi bi-x-lg"></i> حذف تخفیف</button>';
         h += '</div></div></div>';
     });
     $('discGrid').innerHTML = h || '<div style="text-align:center;color:var(--pos-text-sec);padding:40px;grid-column:1/-1">محصولی یافت نشد</div>';
@@ -2002,86 +2043,82 @@ function renderDiscGrid(data) {
 function discInputFocus(inp) {
     var card = inp.closest('.disc-card'); if (!card) return;
     var typeBtn = card.querySelector('.disc-type-btn.active');
-    if (typeBtn && typeBtn.textContent.trim() !== '٪') inp.value = inp.dataset.raw || '';
+    if (typeBtn && typeBtn.textContent.trim()!=='٪') inp.value = inp.dataset.raw||'';
 }
 function discTypeClick(btn, type) {
-    btn.parentElement.querySelectorAll('.disc-type-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.parentElement.querySelectorAll('.disc-type-btn').forEach(function(b){ b.classList.remove('active'); });
     btn.classList.add('active');
     var card = btn.closest('.disc-card');
-    if (card) { var inp = card.querySelector('.disc-value-input'); if (inp) { inp.value = ''; inp.dataset.raw = ''; } }
+    if (card) { var inp=card.querySelector('.disc-value-input'); if(inp){inp.value='';inp.dataset.raw='';} }
 }
 function onDiscInput(inp) {
     var card = inp.closest('.disc-card'); if (!card) return;
     var typeBtn = card.querySelector('.disc-type-btn.active');
-    var isPercent = typeBtn && typeBtn.textContent.trim() === '٪';
-    if (isPercent) { inp.value = inp.value.replace(/[^\d.]/g, ''); var parts = inp.value.split('.'); if (parts.length > 2) inp.value = parts[0] + '.' + parts.slice(1).join(''); }
-    else { inp.value = inp.value.replace(/[^\d]/g, ''); }
+    var isPercent = typeBtn && typeBtn.textContent.trim()==='٪';
+    if (isPercent) { inp.value=inp.value.replace(/[^\d.]/g,''); var parts=inp.value.split('.'); if(parts.length>2) inp.value=parts[0]+'.'+parts.slice(1).join(''); }
+    else { inp.value=inp.value.replace(/[^\d]/g,''); }
     inp.dataset.raw = inp.value;
 }
 function formatDiscInput(inp) {
     var card = inp.closest('.disc-card'); if (!card) return;
     var typeBtn = card.querySelector('.disc-type-btn.active');
-    var isPercent = typeBtn && typeBtn.textContent.trim() === '٪';
-    var raw = inp.dataset.raw || inp.value.replace(/[^\d.]/g, '');
+    var isPercent = typeBtn && typeBtn.textContent.trim()==='٪';
+    var raw = inp.dataset.raw||inp.value.replace(/[^\d.]/g,'');
     inp.dataset.raw = raw;
     if (!isPercent && raw) inp.value = fmtComma(parseInt(raw));
     else if (!isPercent) inp.value = '';
     else inp.value = raw;
 }
 async function applyDisc(productId) {
-    var card = document.querySelector('[data-disc-id="' + productId + '"]'); if (!card) return;
+    var card = document.querySelector('[data-disc-id="'+productId+'"]'); if (!card) return;
     var typeBtn = card.querySelector('.disc-type-btn.active');
-    var type = typeBtn ? (typeBtn.textContent.trim() === '٪' ? 'percentage' : 'fixed') : 'percentage';
+    var type = typeBtn?(typeBtn.textContent.trim()==='٪'?'percentage':'fixed'):'percentage';
     var inp = card.querySelector('.disc-value-input');
-    var value = type === 'fixed' ? parseFloat(inp.dataset.raw || '0') : parseFloat((inp.dataset.raw || inp.value).replace(/[^\d.]/g, ''));
-    if (!value || value <= 0) { showToast('مقدار تخفیف را وارد کنید', 'error'); return; }
-    if (type === 'percentage' && value > 100) { showToast('درصد نمی‌تواند بیش از ۱۰۰ باشد', 'error'); return; }
+    var value = type==='fixed'?parseFloat(inp.dataset.raw||'0'):parseFloat((inp.dataset.raw||inp.value).replace(/[^\d.]/g,''));
+    if (!value||value<=0) { showToast('مقدار تخفیف را وارد کنید','error'); return; }
+    if (type==='percentage'&&value>100) { showToast('درصد نمی‌تواند بیش از ۱۰۰ باشد','error'); return; }
     var f = getFood(productId); if (!f) return;
-    if (type === 'fixed' && value >= f.kitchen_price) { showToast('مبلغ تخفیف بیشتر از قیمت اصلی است', 'error'); return; }
-    var discPrice = type === 'percentage' ? Math.round(f.kitchen_price * (1 - value / 100)) : Math.max(0, f.kitchen_price - value);
-    var oldDiscount = f.discount ? Object.assign({}, f.discount) : null;
-    f.discount = { discount_type: type, value: value, discounted_price: discPrice };
+    if (type==='fixed'&&value>=f.kitchen_price) { showToast('مبلغ تخفیف بیشتر از قیمت اصلی است','error'); return; }
+    var discPrice = type==='percentage'?Math.round(f.kitchen_price*(1-value/100)):Math.max(0,f.kitchen_price-value);
+    var oldDiscount = f.discount?Object.assign({},f.discount):null;
+    f.discount = {discount_type:type,value:value,discounted_price:discPrice};
     card.classList.remove('just-applied'); void card.offsetWidth; card.classList.add('just-applied');
-    setTimeout(function() { card.classList.remove('just-applied'); }, 700);
+    setTimeout(function(){card.classList.remove('just-applied');},700);
     discFilter(); discUpdateStats(); posUpdateCart(); posFilter(); updateDiscountTabBadge();
-    showToast('تخفیف ' + (type === 'percentage' ? toP(value) + '%' : fmtN(value) + ' تومان') + ' اعمال شد', 'success');
+    showToast('تخفیف '+(type==='percentage'?toP(value)+'%':fmtN(value)+' تومان')+' اعمال شد','success');
     try {
-        var d = await apiFetch(DISCOUNT_API, { method: 'POST', body: JSON.stringify({ action: 'set', product_id: parseInt(productId), discount_type: type, value: value }) });
-        if (d.success && d.discounted_price) f.discount.discounted_price = d.discounted_price;
-        else if (!d.success) { f.discount = oldDiscount; discFilter(); discUpdateStats(); posUpdateCart(); posFilter(); updateDiscountTabBadge(); showToast('خطا: ' + (d.error || 'نامشخص'), 'error'); }
-    } catch(e) { f.discount = oldDiscount; discFilter(); discUpdateStats(); posUpdateCart(); posFilter(); updateDiscountTabBadge(); showToast('خطا در ارتباط با سرور', 'error'); }
+        var d = await apiFetch(DISCOUNT_API,{method:'POST',body:JSON.stringify({action:'set',product_id:parseInt(productId),discount_type:type,value:value})});
+        if (d.success&&d.discounted_price) f.discount.discounted_price = d.discounted_price;
+        else if (!d.success) { f.discount=oldDiscount; discFilter(); discUpdateStats(); posUpdateCart(); posFilter(); updateDiscountTabBadge(); showToast('خطا: '+(d.error||'نامشخص'),'error'); }
+    } catch(e) { f.discount=oldDiscount; discFilter(); discUpdateStats(); posUpdateCart(); posFilter(); updateDiscountTabBadge(); showToast('خطا در ارتباط با سرور','error'); }
 }
 async function removeDisc(productId) {
     var f = getFood(productId); if (!f) return;
     f.discount = null;
-    var card = document.querySelector('[data-disc-id="' + productId + '"]');
+    var card = document.querySelector('[data-disc-id="'+productId+'"]');
     if (card) { card.classList.remove('just-removed'); void card.offsetWidth; card.classList.add('just-removed'); }
-    setTimeout(function() { if (card) card.classList.remove('just-removed'); }, 700);
+    setTimeout(function(){if(card)card.classList.remove('just-removed');},700);
     discFilter(); discUpdateStats(); posUpdateCart(); posFilter(); updateDiscountTabBadge();
-    showToast('تخفیف حذف شد', 'warning');
-    try { await apiFetch(DISCOUNT_API, { method: 'POST', body: JSON.stringify({ action: 'remove', product_id: parseInt(productId) }) }); } catch(e) {}
+    showToast('تخفیف حذف شد','warning');
+    try { await apiFetch(DISCOUNT_API,{method:'POST',body:JSON.stringify({action:'remove',product_id:parseInt(productId)})}); } catch(e){}
 }
 async function removeAllDiscounts() {
     if (!confirmAction('همه تخفیف‌ها حذف شوند؟')) return;
-    posFoods.forEach(function(f) { f.discount = null; });
+    posFoods.forEach(function(f){f.discount=null;});
     discFilter(); discUpdateStats(); posUpdateCart(); posFilter(); updateDiscountTabBadge();
-    showToast('همه تخفیف‌ها حذف شدند', 'warning');
-    try { await apiFetch(DISCOUNT_API, { method: 'POST', body: JSON.stringify({ action: 'remove_all' }) }); } catch(e) {}
+    showToast('همه تخفیف‌ها حذف شدند','warning');
+    try { await apiFetch(DISCOUNT_API,{method:'POST',body:JSON.stringify({action:'remove_all'})}); } catch(e){}
 }
 function discUpdateStats() {
-    var activeCount = 0, totalPct = 0, totalSaving = 0;
-    posFoods.forEach(function(f) {
-        if (f.discount) {
-            activeCount++;
-            var saving = f.kitchen_price - f.discount.discounted_price;
-            totalSaving += saving;
-            if (f.discount.discount_type === 'percentage') totalPct += f.discount.value;
-            else if (f.kitchen_price > 0) totalPct += Math.round(saving / f.kitchen_price * 100);
-        }
+    var activeCount=0,totalPct=0,totalSaving=0;
+    posFoods.forEach(function(f){
+        if(f.discount){activeCount++;var saving=f.kitchen_price-f.discount.discounted_price;totalSaving+=saving;
+        if(f.discount.discount_type==='percentage')totalPct+=f.discount.value;
+        else if(f.kitchen_price>0)totalPct+=Math.round(saving/f.kitchen_price*100);}
     });
-    $('discActiveCount').textContent = toP(activeCount);
-    $('discAvgPercent').textContent = activeCount > 0 ? toP(Math.round(totalPct / activeCount)) + '%' : '—';
-    $('discTotalSaving').textContent = totalSaving > 0 ? fmtN(totalSaving) + ' ت' : '—';
+    $('discActiveCount').textContent=toP(activeCount);
+    $('discAvgPercent').textContent=activeCount>0?toP(Math.round(totalPct/activeCount))+'%':'—';
+    $('discTotalSaving').textContent=totalSaving>0?fmtN(totalSaving)+' ت':'—';
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -2090,25 +2127,25 @@ function discUpdateStats() {
 async function posCheckout() {
     var ids = Object.keys(posCart); if (!ids.length) return;
     var stockErrors = [];
-    ids.forEach(function(id) { var f = getFood(id); if (f && f.stock != null && posCart[id] > f.stock) stockErrors.push(f.name); });
-    if (stockErrors.length) { showToast('موجودی کافی نیست: ' + stockErrors.join('، '), 'error'); return; }
+    ids.forEach(function(id) { var f=getFood(id); if(f&&f.stock!=null&&posCart[id]>f.stock) stockErrors.push(f.name); });
+    if (stockErrors.length) { showToast('موجودی کافی نیست: '+stockErrors.join('، '),'error'); return; }
     var btn = $('posCheckout');
-    btn.disabled = true; btn.innerHTML = '<i class="bi bi-hourglass-split"></i> در حال ثبت...';
-    var items = [], totalAmount = 0;
-    ids.forEach(function(id) { var f = getFood(id); if (f) { var p = posGetPrice(f); items.push({ food_id: id, is_ready: f.is_ready || false, quantity: posCart[id], price: p }); totalAmount += p * posCart[id]; } });
-    if (_appliedCoupon) { var cs = _appliedCoupon.discount_type === 'percentage' ? Math.round(totalAmount * _appliedCoupon.value / 100) : Math.min(_appliedCoupon.value, totalAmount); totalAmount = Math.max(0, totalAmount - cs); }
+    btn.disabled=true; btn.innerHTML='<i class="bi bi-hourglass-split"></i> در حال ثبت...';
+    var items=[],totalAmount=0;
+    ids.forEach(function(id){ var f=getFood(id); if(f){var p=posGetPrice(f);items.push({food_id:id,is_ready:f.is_ready||false,quantity:posCart[id],price:p});totalAmount+=p*posCart[id];} });
+    if (_appliedCoupon){var cs=_appliedCoupon.discount_type==='percentage'?Math.round(totalAmount*_appliedCoupon.value/100):Math.min(_appliedCoupon.value,totalAmount);totalAmount=Math.max(0,totalAmount-cs);}
     try {
-        var data = await apiFetch("{% url 'pos_create_order' %}", { method: 'POST', body: JSON.stringify({ customer_name: $('posCustName').value.trim(), phone: $('posCustPhone').value.trim(), items: items, coupon_code: _appliedCoupon ? _appliedCoupon.code : null }) });
+        var data = await apiFetch("{% url 'pos_create_order' %}",{method:'POST',body:JSON.stringify({customer_name:$('posCustName').value.trim(),phone:$('posCustPhone').value.trim(),items:items,coupon_code:_appliedCoupon?_appliedCoupon.code:null})});
         if (data.success) {
-            _pendingOrder = { data: data, amount: totalAmount, cartSnapshot: {} };
-            ids.forEach(function(id) { _pendingOrder.cartSnapshot[id] = posCart[id]; });
-            posCart = {}; _appliedCoupon = null; posUpdateCart(); posFilter();
+            _pendingOrder={data:data,amount:totalAmount,cartSnapshot:{}};
+            ids.forEach(function(id){_pendingOrder.cartSnapshot[id]=posCart[id];});
+            posCart={};_appliedCoupon=null;posUpdateCart();posFilter();
             syncFabCart(0);
-            $('posCustName').value = ''; $('posCustPhone').value = '';
-            showPayModal(totalAmount, data);
-        } else { if (data.error && data.error.indexOf('موجودی') !== -1) { showToast(data.error, 'error'); posFilter(); } else showToast(data.error || 'خطای نامشخص', 'error'); }
-    } catch(e) { showToast('خطا: ' + e.message, 'error'); }
-    btn.disabled = false; btn.innerHTML = '<i class="bi bi-credit-card-2-front"></i> ثبت سفارش و پرداخت';
+            $('posCustName').value='';$('posCustPhone').value='';
+            showPayModal(totalAmount,data);
+        } else { if(data.error&&data.error.indexOf('موجودی')!==-1){showToast(data.error,'error');posFilter();}else showToast(data.error||'خطای نامشخص','error'); }
+    } catch(e) { showToast('خطا: '+e.message,'error'); }
+    btn.disabled=false; btn.innerHTML='<i class="bi bi-credit-card-2-front"></i> ثبت سفارش و پرداخت';
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -2116,71 +2153,71 @@ async function posCheckout() {
 ═══════════════════════════════════════════════════════════════ */
 function showPayModal(amount, orderData) {
     var box = $('payBox');
-    box.innerHTML = '<div class="pay-header"><div class="pay-header-icon"><i class="bi bi-credit-card-2-front"></i></div><div class="pay-header-title">پرداخت سفارش #' + toP(orderData.order_id) + '</div>' + (orderData.customer_name ? '<div class="pay-header-sub">' + esc(orderData.customer_name) + '</div>' : '') + '</div><div class="pay-amount-section"><div class="pay-amount-label">مبلغ ارسال شده به کارتخوان</div><div class="pay-amount-box"><div class="pay-amount-val">' + fmtN(amount) + '<span class="pay-amount-unit">تومان</span></div></div></div><div class="pay-info-box" id="payInfoBox"></div><div class="pay-status-section"><div class="pay-status waiting" id="payStatus"><span class="pay-spinner"></span><span>منتظر کشیدن کارت...</span></div><div class="pay-status-sub" id="payStatusSub">مشتری کارت بکشه و رمز رو وارد کنه</div></div><div class="pay-actions" id="payActions"><button class="pay-btn pay-btn-cancel" onclick="payCancel()"><i class="bi bi-x-lg"></i> لغو</button></div>';
+    box.innerHTML = '<div class="pay-header"><div class="pay-header-icon"><i class="bi bi-credit-card-2-front"></i></div><div class="pay-header-title">پرداخت سفارش #'+toP(orderData.order_id)+'</div>'+(orderData.customer_name?'<div class="pay-header-sub">'+esc(orderData.customer_name)+'</div>':'')+'</div><div class="pay-amount-section"><div class="pay-amount-label">مبلغ ارسال شده به کارتخوان</div><div class="pay-amount-box"><div class="pay-amount-val">'+fmtN(amount)+'<span class="pay-amount-unit">تومان</span></div></div></div><div class="pay-info-box" id="payInfoBox"></div><div class="pay-status-section"><div class="pay-status waiting" id="payStatus"><span class="pay-spinner"></span><span>منتظر کشیدن کارت...</span></div><div class="pay-status-sub" id="payStatusSub">مشتری کارت بکشه و رمز رو وارد کنه</div></div><div class="pay-actions" id="payActions"><button class="pay-btn pay-btn-cancel" onclick="payCancel()"><i class="bi bi-x-lg"></i> لغو</button></div>';
     $('payModal').classList.add('show');
     sendToCardReader(amount, orderData.order_id);
 }
 async function sendToCardReader(amount, orderId) {
-    try { var d = await apiFetch(PAY_API, { method: 'POST', body: JSON.stringify({ amount: amount, order_id: orderId }) }); if (d.success) paySuccess(d); else payFail(d.error || 'ناموفق'); } catch(e) { payFail(e.message); }
+    try { var d = await apiFetch(PAY_API,{method:'POST',body:JSON.stringify({amount:amount,order_id:orderId})}); if(d.success) paySuccess(d); else payFail(d.error||'ناموفق'); } catch(e) { payFail(e.message); }
 }
 function paySuccess(data) {
-    _pendingOrder.trace = data.trace_number || ''; _pendingOrder.ref = data.ref_number || ''; _pendingOrder.card4 = data.card_last4 || '';
-    if (_pendingOrder.cartSnapshot) { Object.keys(_pendingOrder.cartSnapshot).forEach(function(id) { var f = getFood(id); if (f && f.stock != null) f.stock = Math.max(0, f.stock - (_pendingOrder.cartSnapshot[id] || 0)); }); }
-    var st = $('payStatus'); if (st) { st.className = 'pay-status success'; st.innerHTML = '<i class="bi bi-check-circle-fill" style="font-size:1.5rem"></i><span>پرداخت موفق!</span>'; }
-    var sub = $('payStatusSub'); if (sub) sub.textContent = 'رسید چاپ کنید.';
-    var ib = $('payInfoBox');
-    if (ib && (_pendingOrder.card4 || _pendingOrder.trace)) {
-        var ih = '<div style="padding:16px 24px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
-        if (_pendingOrder.card4) ih += '<div style="background:var(--pos-bg);border:1px solid var(--pos-border);border-radius:10px;padding:12px"><div style="font-size:.72rem;color:var(--pos-text-sec);margin-bottom:4px">کارت</div><div style="font-size:.95rem;font-weight:800">**** ' + esc(_pendingOrder.card4) + '</div></div>';
-        if (_pendingOrder.trace) ih += '<div style="background:var(--pos-bg);border:1px solid var(--pos-border);border-radius:10px;padding:12px"><div style="font-size:.72rem;color:var(--pos-text-sec);margin-bottom:4px">پیگیری</div><div style="font-size:.95rem;font-weight:800;direction:ltr">' + esc(_pendingOrder.trace) + '</div></div>';
-        ib.innerHTML = ih + '</div></div>';
+    _pendingOrder.trace=data.trace_number||'';_pendingOrder.ref=data.ref_number||'';_pendingOrder.card4=data.card_last4||'';
+    if(_pendingOrder.cartSnapshot){Object.keys(_pendingOrder.cartSnapshot).forEach(function(id){var f=getFood(id);if(f&&f.stock!=null)f.stock=Math.max(0,f.stock-(_pendingOrder.cartSnapshot[id]||0));});}
+    var st=$('payStatus');if(st){st.className='pay-status success';st.innerHTML='<i class="bi bi-check-circle-fill" style="font-size:1.5rem"></i><span>پرداخت موفق!</span>';}
+    var sub=$('payStatusSub');if(sub)sub.textContent='رسید چاپ کنید.';
+    var ib=$('payInfoBox');
+    if(ib&&(_pendingOrder.card4||_pendingOrder.trace)){
+        var ih='<div style="padding:16px 24px"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+        if(_pendingOrder.card4)ih+='<div style="background:var(--pos-bg);border:1px solid var(--pos-border);border-radius:10px;padding:12px"><div style="font-size:.72rem;color:var(--pos-text-sec);margin-bottom:4px">کارت</div><div style="font-size:.95rem;font-weight:800">**** '+esc(_pendingOrder.card4)+'</div></div>';
+        if(_pendingOrder.trace)ih+='<div style="background:var(--pos-bg);border:1px solid var(--pos-border);border-radius:10px;padding:12px"><div style="font-size:.72rem;color:var(--pos-text-sec);margin-bottom:4px">پیگیری</div><div style="font-size:.95rem;font-weight:800;direction:ltr">'+esc(_pendingOrder.trace)+'</div></div>';
+        ib.innerHTML=ih+'</div></div>';
     }
-    var acts = $('payActions');
-    if (acts) acts.innerHTML = '<button class="pay-btn pay-btn-print" onclick="payPrint()"><i class="bi bi-printer"></i> چاپ رسید</button><button class="pay-btn pay-btn-confirm" onclick="payClose()"><i class="bi bi-check-lg"></i> بستن</button>';
+    var acts=$('payActions');
+    if(acts)acts.innerHTML='<button class="pay-btn pay-btn-print" onclick="payPrint()"><i class="bi bi-printer"></i> چاپ رسید</button><button class="pay-btn pay-btn-confirm" onclick="payClose()"><i class="bi bi-check-lg"></i> بستن</button>';
 }
 function payFail(msg) {
-    var st = $('payStatus'); if (st) { st.className = 'pay-status error'; st.innerHTML = '<i class="bi bi-x-circle-fill" style="font-size:1.5rem"></i><span>' + esc(msg) + '</span>'; }
-    var sub = $('payStatusSub'); if (sub) sub.textContent = 'تلاش مجدد یا انصراف.';
-    var acts = $('payActions'); if (acts) acts.innerHTML = '<button class="pay-btn pay-btn-cancel" onclick="payCancel()"><i class="bi bi-x-lg"></i> انصراف</button><button class="pay-btn pay-btn-retry" onclick="payRetry()"><i class="bi bi-arrow-clockwise"></i> تلاش مجدد</button>';
+    var st=$('payStatus');if(st){st.className='pay-status error';st.innerHTML='<i class="bi bi-x-circle-fill" style="font-size:1.5rem"></i><span>'+esc(msg)+'</span>';}
+    var sub=$('payStatusSub');if(sub)sub.textContent='تلاش مجدد یا انصراف.';
+    var acts=$('payActions');if(acts)acts.innerHTML='<button class="pay-btn pay-btn-cancel" onclick="payCancel()"><i class="bi bi-x-lg"></i> انصراف</button><button class="pay-btn pay-btn-retry" onclick="payRetry()"><i class="bi bi-arrow-clockwise"></i> تلاش مجدد</button>';
 }
-function payRetry() { if (_pendingOrder) showPayModal(_pendingOrder.amount, _pendingOrder.data); }
-async function payCancel() {
-    if (!confirmAction('لغو پرداخت؟')) return;
-    try { await apiFetch(PAY_CANCEL_API, { method: 'POST' }); } catch(e){}
-    if (_pendingOrder && _pendingOrder.cartSnapshot) {
-        Object.keys(_pendingOrder.cartSnapshot).forEach(function(id) { if (!posCart[id]) posCart[id] = 0; posCart[id] += _pendingOrder.cartSnapshot[id]; });
-        posUpdateCart(); posFilter();
+function payRetry(){if(_pendingOrder)showPayModal(_pendingOrder.amount,_pendingOrder.data);}
+async function payCancel(){
+    if(!confirmAction('لغو پرداخت؟'))return;
+    try{await apiFetch(PAY_CANCEL_API,{method:'POST'});}catch(e){}
+    if(_pendingOrder&&_pendingOrder.cartSnapshot){
+        Object.keys(_pendingOrder.cartSnapshot).forEach(function(id){if(!posCart[id])posCart[id]=0;posCart[id]+=_pendingOrder.cartSnapshot[id];});
+        posUpdateCart();posFilter();
     }
-    _pendingOrder = null; $('payModal').classList.remove('show');
+    _pendingOrder=null;$('payModal').classList.remove('show');
 }
-function payPrint() { if (!_pendingOrder) return; openReceipt(_pendingOrder.data.order_id); $('payModal').classList.remove('show'); _pendingOrder = null; }
-function payClose() { if (!_pendingOrder) return; openReceipt(_pendingOrder.data.order_id); $('payModal').classList.remove('show'); _pendingOrder = null; }
-function openReceipt(orderId) { var url = RECEIPT_URL.replace('ORDER_ID', orderId); var win = window.open(url, '_blank', 'width=440,height=700,scrollbars=yes'); if (!win) window.location.href = url; }
-function posPrintReceipt() { window.print(); }
-function posCloseReceipt() { $('posReceiptModal').classList.remove('show'); _pendingOrder = null; }
+function payPrint(){if(!_pendingOrder)return;openReceipt(_pendingOrder.data.order_id);$('payModal').classList.remove('show');_pendingOrder=null;}
+function payClose(){if(!_pendingOrder)return;openReceipt(_pendingOrder.data.order_id);$('payModal').classList.remove('show');_pendingOrder=null;}
+function openReceipt(orderId){var url=RECEIPT_URL.replace('ORDER_ID',orderId);var win=window.open(url,'_blank','width=440,height=700,scrollbars=yes');if(!win)window.location.href=url;}
+function posPrintReceipt(){window.print();}
+function posCloseReceipt(){$('posReceiptModal').classList.remove('show');_pendingOrder=null;}
 
 /* ═══════════════════════════════════════════════════════════════
    REPORT
 ═══════════════════════════════════════════════════════════════ */
 async function loadReport() {
     var date = $('reportDate').value;
-    if (!date) { var t = new Date(); date = t.getFullYear() + '-' + String(t.getMonth()+1).padStart(2,'0') + '-' + String(t.getDate()).padStart(2,'0'); $('reportDate').value = date; }
+    if (!date) { var t=new Date(); date=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); $('reportDate').value=date; }
     try {
-        var d = await apiFetch("{% url 'pos_daily_report' %}?date=" + date);
-        if (!d.success) { showToast(d.error || 'خطا', 'error'); return; }
-        $('repTotalSales').textContent = fmtN(d.total_sales) + ' ت';
-        $('repOrderCount').textContent = toP(d.order_count);
-        $('repDiscountTotal').textContent = fmtN(d.discount_total) + ' ت';
-        $('repWasteTotal').textContent = fmtN(d.waste_total) + ' ت';
-        var th = '';
-        if (d.top_items && d.top_items.length) { d.top_items.forEach(function(it, i) { th += '<tr><td>' + toP(i+1) + '</td><td>' + esc(it.name) + '</td><td>' + toP(it.qty) + '</td><td>' + fmtN(it.total) + ' ت</td></tr>'; }); }
-        else { th = '<tr><td colspan="4" style="text-align:center;color:var(--pos-text-sec)">—</td></tr>'; }
-        $('repTopItems').innerHTML = th;
-        var oh = '';
-        if (d.orders && d.orders.length) { d.orders.forEach(function(o) { oh += '<tr><td>#' + toP(o.id) + '</td><td>' + esc(o.customer) + '</td><td>' + toP(o.items_count) + '</td><td>' + fmtN(o.total) + ' ت</td><td>' + esc(o.time) + '</td></tr>'; }); $('repOrderBadge').textContent = toP(d.orders.length) + ' سفارش'; }
-        else { oh = '<tr><td colspan="5" style="text-align:center;color:var(--pos-text-sec)">—</td></tr>'; $('repOrderBadge').textContent = '۰'; }
-        $('repOrdersList').innerHTML = oh;
-    } catch(e) { showToast('خطا: ' + e.message, 'error'); }
+        var d = await apiFetch("{% url 'pos_daily_report' %}?date="+date);
+        if (!d.success) { showToast(d.error||'خطا','error'); return; }
+        $('repTotalSales').textContent=fmtN(d.total_sales)+' ت';
+        $('repOrderCount').textContent=toP(d.order_count);
+        $('repDiscountTotal').textContent=fmtN(d.discount_total)+' ت';
+        $('repWasteTotal').textContent=fmtN(d.waste_total)+' ت';
+        var th='';
+        if(d.top_items&&d.top_items.length){d.top_items.forEach(function(it,i){th+='<tr><td>'+toP(i+1)+'</td><td>'+esc(it.name)+'</td><td>'+toP(it.qty)+'</td><td>'+fmtN(it.total)+' ت</td></tr>';});}
+        else{th='<tr><td colspan="4" style="text-align:center;color:var(--pos-text-sec)">—</td></tr>';}
+        $('repTopItems').innerHTML=th;
+        var oh='';
+        if(d.orders&&d.orders.length){d.orders.forEach(function(o){oh+='<tr><td>#'+toP(o.id)+'</td><td>'+esc(o.customer)+'</td><td>'+toP(o.items_count)+'</td><td>'+fmtN(o.total)+' ت</td><td>'+esc(o.time)+'</td></tr>';});$('repOrderBadge').textContent=toP(d.orders.length)+' سفارش';}
+        else{oh='<tr><td colspan="5" style="text-align:center;color:var(--pos-text-sec)">—</td></tr>';$('repOrderBadge').textContent='۰';}
+        $('repOrdersList').innerHTML=oh;
+    } catch(e) { showToast('خطا: '+e.message,'error'); }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -2189,133 +2226,141 @@ async function loadReport() {
 async function loadCloseData() {
     try {
         var d = await apiFetch("{% url 'pos_close_summary' %}");
-        if (!d.success) { showToast(d.error || 'خطا', 'error'); return; }
-        $('closeTotalSales').textContent = fmtN(d.total_sales) + ' تومان';
-        $('closeOrderCount').textContent = toP(d.order_count);
-        $('closeDelivered').textContent = toP(d.delivered_count);
-        $('closePending').textContent = toP(d.pending_count);
-        var card = $('closeOpenOrdersCard'), box = $('closeOpenOrders');
-        if (d.pending_orders && d.pending_orders.length) {
-            card.style.display = 'block';
-            var h = ''; d.pending_orders.forEach(function(o) { h += '<div class="close-row"><span class="close-row-label">#' + toP(o.id) + ' — ' + esc(o.customer) + '</span><span class="close-row-val yellow">' + fmtN(o.total) + ' ت</span></div>'; });
-            box.innerHTML = h;
-        } else { card.style.display = 'none'; }
-        var sel = document.querySelector('.close-waste-food');
-        if (sel && d.kitchen_items) { var opts = '<option value="">— انتخاب غذا —</option>'; d.kitchen_items.forEach(function(item) { opts += '<option value="' + item.id + '">' + esc(item.name) + ' (موجودی: ' + toP(item.stock) + ')</option>'; }); sel.innerHTML = opts; }
-    } catch(e) { showToast('خطا: ' + e.message, 'error'); }
+        if (!d.success) { showToast(d.error||'خطا','error'); return; }
+        $('closeTotalSales').textContent=fmtN(d.total_sales)+' تومان';
+        $('closeOrderCount').textContent=toP(d.order_count);
+        $('closeDelivered').textContent=toP(d.delivered_count);
+        $('closePending').textContent=toP(d.pending_count);
+        var card=$('closeOpenOrdersCard'),box=$('closeOpenOrders');
+        if(d.pending_orders&&d.pending_orders.length){
+            card.style.display='block';
+            var h='';d.pending_orders.forEach(function(o){h+='<div class="close-row"><span class="close-row-label">#'+toP(o.id)+' — '+esc(o.customer)+'</span><span class="close-row-val yellow">'+fmtN(o.total)+' ت</span></div>';});
+            box.innerHTML=h;
+        }else{card.style.display='none';}
+        var sel=document.querySelector('.close-waste-food');
+        if(sel&&d.kitchen_items){var opts='<option value="">— انتخاب غذا —</option>';d.kitchen_items.forEach(function(item){opts+='<option value="'+item.id+'">'+esc(item.name)+' (موجودی: '+toP(item.stock)+')</option>';});sel.innerHTML=opts;}
+    } catch(e) { showToast('خطا: '+e.message,'error'); }
 }
 function addWasteRow() {
-    var wrap = $('closeWasteItems');
-    var first = wrap.querySelector('.close-waste-food');
-    var opts = first ? first.innerHTML : '';
-    var div = document.createElement('div');
-    div.className = 'close-waste-item';
-    div.innerHTML = '<select class="close-select close-waste-food">' + opts + '</select><input type="number" class="close-input close-waste-qty" placeholder="تعداد" min="1" value="1"><input type="text" class="close-input close-waste-note" placeholder="دلیل"><button class="close-btn-remove" onclick="removeWasteRow(this)"><i class="bi bi-x"></i></button>';
+    var wrap=$('closeWasteItems');
+    var first=wrap.querySelector('.close-waste-food');
+    var opts=first?first.innerHTML:'';
+    var div=document.createElement('div');
+    div.className='close-waste-item';
+    div.innerHTML='<select class="close-select close-waste-food">'+opts+'</select><input type="number" class="close-input close-waste-qty" placeholder="تعداد" min="1" value="1"><input type="text" class="close-input close-waste-note" placeholder="دلیل"><button class="close-btn-remove" onclick="removeWasteRow(this)"><i class="bi bi-x"></i></button>';
     wrap.appendChild(div);
 }
-function removeWasteRow(btn) { var wrap = $('closeWasteItems'); if (wrap.children.length > 1) btn.closest('.close-waste-item').remove(); }
-async function submitWaste() {
-    var rows = document.querySelectorAll('.close-waste-item'); var items = [];
-    rows.forEach(function(row) { var fid = row.querySelector('.close-waste-food').value; var qty = parseInt(row.querySelector('.close-waste-qty').value); var note = row.querySelector('.close-waste-note').value.trim(); if (fid && qty > 0) items.push({ kitchen_product_id: parseInt(fid), quantity: qty, note: note }); });
-    if (!items.length) { showToast('آیتمی انتخاب نشده', 'error'); return; }
-    try { var d = await apiFetch("{% url 'pos_register_waste' %}", { method: 'POST', body: JSON.stringify({ items: items }) }); if (d.success) { showToast(d.msg, 'success'); loadCloseData(); } else showToast(d.error || 'خطا', 'error'); } catch(e) { showToast('خطا: ' + e.message, 'error'); }
+function removeWasteRow(btn){var wrap=$('closeWasteItems');if(wrap.children.length>1)btn.closest('.close-waste-item').remove();}
+async function submitWaste(){
+    var rows=document.querySelectorAll('.close-waste-item');var items=[];
+    rows.forEach(function(row){var fid=row.querySelector('.close-waste-food').value;var qty=parseInt(row.querySelector('.close-waste-qty').value);var note=row.querySelector('.close-waste-note').value.trim();if(fid&&qty>0)items.push({kitchen_product_id:parseInt(fid),quantity:qty,note:note});});
+    if(!items.length){showToast('آیتمی انتخاب نشده','error');return;}
+    try{var d=await apiFetch("{% url 'pos_register_waste' %}",{method:'POST',body:JSON.stringify({items:items})});if(d.success){showToast(d.msg,'success');loadCloseData();}else showToast(d.error||'خطا','error');}catch(e){showToast('خطا: '+e.message,'error');}
 }
-async function closeAllPending() { try { var d = await apiFetch("{% url 'pos_close_all_pending' %}", { method: 'POST' }); if (d.success) { showToast(d.msg, 'success'); loadCloseData(); } else showToast(d.error || 'خطا', 'error'); } catch(e) { showToast('خطا: ' + e.message, 'error'); } }
-async function closeDay() { if (!confirmAction('مطمئنید؟')) return; try { var d = await apiFetch("{% url 'pos_close_day' %}", { method: 'POST' }); if (d.success) $('closeSuccessMsg').classList.add('show'); else showToast(d.error || 'خطا', 'error'); } catch(e) { showToast('خطا: ' + e.message, 'error'); } }
+async function closeAllPending(){try{var d=await apiFetch("{% url 'pos_close_all_pending' %}",{method:'POST'});if(d.success){showToast(d.msg,'success');loadCloseData();}else showToast(d.error||'خطا','error');}catch(e){showToast('خطا: '+e.message,'error');}}
+async function closeDay(){if(!confirmAction('مطمئنید؟'))return;try{var d=await apiFetch("{% url 'pos_close_day' %}",{method:'POST'});if(d.success)$('closeSuccessMsg').classList.add('show');else showToast(d.error||'خطا','error');}catch(e){showToast('خطا: '+e.message,'error');}}
 
 /* ═══════════════════════════════════════════════════════════════
    HISTORY
 ═══════════════════════════════════════════════════════════════ */
 async function loadHistory() {
     try {
-        var d = await apiFetch('/api/pos/close-history/');
-        var tbody = $('historyBody'); tbody.innerHTML = '';
-        if (d.success && d.reports.length) {
-            var ts = 0; d.reports.forEach(function(r) { ts += r.total_sales; });
-            $('histTotalDays').textContent = toP(d.reports.length);
-            $('histTotalSales').textContent = fmtN(ts) + ' ت';
-            $('histAvgSales').textContent = fmtN(Math.round(ts / d.reports.length)) + ' ت';
-            $('historyCountBadge').textContent = toP(d.reports.length) + ' گزارش';
-            d.reports.forEach(function(rep) {
-                var tr = document.createElement('tr'); var pc = rep.total_profit >= 0 ? 'var(--pos-success)' : 'var(--pos-danger)';
-                tr.innerHTML = '<td style="font-weight:700">' + esc(rep.date) + '</td><td>' + fmtN(rep.total_sales) + ' ت</td><td style="color:' + pc + ';font-weight:700">' + fmtN(rep.total_profit) + ' ت</td><td>' + toP(rep.order_count) + '</td><td>' + toP(rep.waste_count) + '</td><td>' + esc(rep.closed_by) + '</td><td><button class="history-btn history-btn-detail" onclick="viewReportDetail(' + rep.id + ')"><i class="bi bi-eye"></i> جزئیات</button></td>';
+        var d = await apiFetch("{% url 'pos_close_history' %}");
+        var tbody=$('historyBody');tbody.innerHTML='';
+        if(d.success&&d.reports.length){
+            var ts=0;d.reports.forEach(function(r){ts+=r.total_sales;});
+            $('histTotalDays').textContent=toP(d.reports.length);
+            $('histTotalSales').textContent=fmtN(ts)+' ت';
+            $('histAvgSales').textContent=fmtN(Math.round(ts/d.reports.length))+' ت';
+            $('historyCountBadge').textContent=toP(d.reports.length)+' گزارش';
+            d.reports.forEach(function(rep){
+                var tr=document.createElement('tr');var pc=rep.total_profit>=0?'var(--pos-success)':'var(--pos-danger)';
+                tr.innerHTML='<td style="font-weight:700">'+esc(rep.date)+'</td><td>'+fmtN(rep.total_sales)+' ت</td><td style="color:'+pc+';font-weight:700">'+fmtN(rep.total_profit)+' ت</td><td>'+toP(rep.order_count)+'</td><td>'+toP(rep.waste_count)+'</td><td>'+esc(rep.closed_by)+'</td><td><button class="history-btn history-btn-detail" onclick="viewReportDetail('+rep.id+')"><i class="bi bi-eye"></i> جزئیات</button></td>';
                 tbody.appendChild(tr);
             });
-        } else { tbody.innerHTML = '<tr><td colspan="7"><div class="history-empty-state"><i class="bi bi-inbox"></i><p>گزارشی ثبت نشده</p></div></td></tr>'; $('histTotalDays').textContent = '۰'; $('histTotalSales').textContent = '۰ ت'; $('histAvgSales').textContent = '۰ ت'; $('historyCountBadge').textContent = '۰'; }
-    } catch(e) { showToast('خطا: ' + e.message, 'error'); }
+        }else{
+            tbody.innerHTML='<tr><td colspan="7"><div class="history-empty-state"><i class="bi bi-inbox"></i><p>گزارشی ثبت نشده</p></div></td></tr>';
+            $('histTotalDays').textContent='۰';$('histTotalSales').textContent='۰ ت';$('histAvgSales').textContent='۰ ت';$('historyCountBadge').textContent='۰';
+        }
+    } catch(e) { showToast('خطا: '+e.message,'error'); }
     try {
-        var d2 = await apiFetch('/api/pos/close-logs/');
-        var lb = $('logsBody'); lb.innerHTML = '';
-        if (d2.success && d2.logs.length) {
-            $('logsCountBadge').textContent = toP(d2.logs.length) + ' لاگ';
-            d2.logs.forEach(function(log) { var tr = document.createElement('tr'); var det = typeof log.details === 'object' ? JSON.stringify(log.details) : (log.details || '—'); var ac = log.action === 'close' ? 'close' : 'open'; tr.innerHTML = '<td class="history-log-time">' + esc(log.created_at) + '</td><td>' + esc(log.date) + '</td><td><span class="history-action-tag ' + ac + '">' + esc(log.action_display || log.action) + '</span></td><td>' + esc(log.user) + '</td><td><span class="history-log-details" title="' + esc(det) + '">' + esc(det) + '</span></td>'; lb.appendChild(tr); });
-        } else { lb.innerHTML = '<tr><td colspan="5"><div class="history-empty-state"><i class="bi bi-shield-lock"></i><p>لاگی ثبت نشده</p></div></td></tr>'; $('logsCountBadge').textContent = '۰'; }
-    } catch(e) { showToast('خطا: ' + e.message, 'error'); }
+        var d2 = await apiFetch("{% url 'pos_close_logs' %}");
+        var lb=$('logsBody');lb.innerHTML='';
+        if(d2.success&&d2.logs.length){
+            $('logsCountBadge').textContent=toP(d2.logs.length)+' لاگ';
+            d2.logs.forEach(function(log){
+                var tr=document.createElement('tr');
+                var det=typeof log.details==='object'?JSON.stringify(log.details):(log.details||'—');
+                var ac=log.action==='close'?'close':'open';
+                tr.innerHTML='<td class="history-log-time">'+esc(log.created_at)+'</td><td>'+esc(log.date)+'</td><td><span class="history-action-tag '+ac+'">'+esc(log.action_display||log.action)+'</span></td><td>'+esc(log.user)+'</td><td><span class="history-log-details" title="'+esc(det)+'">'+esc(det)+'</span></td>';
+                lb.appendChild(tr);
+            });
+        }else{lb.innerHTML='<tr><td colspan="5"><div class="history-empty-state"><i class="bi bi-shield-lock"></i><p>لاگی ثبت نشده</p></div></td></tr>';$('logsCountBadge').textContent='۰';}
+    } catch(e) { showToast('خطا: '+e.message,'error'); }
 }
 async function viewReportDetail(reportId) {
     try {
-        var d = await apiFetch('/api/pos/close-report/' + reportId + '/');
-        if (!d.success) { showToast(d.error || 'خطا', 'error'); return; }
-        var rep = d.report; var html = '<div class="detail-grid">';
-        var fields = [
-            ['تاریخ', rep.date, ''],
-            ['بسته شده توسط', rep.closed_by, ''],
-            ['فروش کل', fmtN(rep.total_sales) + ' تومان', 'green'],
-            ['سود خالص', fmtN(rep.total_profit) + ' تومان', rep.total_profit >= 0 ? 'green' : 'red'],
-            ['تعداد سفارش', toP(rep.order_count), ''],
-            ['تحویل‌شده', toP(rep.delivered_count), 'green'],
-            ['ضایعات', toP(rep.waste_count) + ' عدد — ' + fmtN(rep.waste_value) + ' تومان', 'red'],
-            ['تخفیف کل', fmtN(rep.discount_total) + ' تومان', 'yellow']
-        ];
-        fields.forEach(function(f) {
-            var cs = f[2] === 'green' ? 'color:var(--pos-success)' : f[2] === 'red' ? 'color:var(--pos-danger)' : f[2] === 'yellow' ? 'color:var(--pos-warning)' : '';
-            html += '<div class="detail-field"><div class="detail-field-label">' + esc(f[0]) + '</div><div class="detail-field-val" style="' + cs + '">' + esc(String(f[1])) + '</div></div>';
+        var detailUrl = "{% url 'pos_close_report_detail' 0 %}".replace('/0/','/'+reportId+'/');
+        var d = await apiFetch(detailUrl);
+        if (!d.success) { showToast(d.error||'خطا','error'); return; }
+        var rep=d.report;var html='<div class="detail-grid">';
+        var fields=[['تاریخ',rep.date,''],['بسته شده توسط',rep.closed_by,''],['فروش کل',fmtN(rep.total_sales)+' تومان','green'],['سود خالص',fmtN(rep.total_profit)+' تومان',rep.total_profit>=0?'green':'red'],['تعداد سفارش',toP(rep.order_count),''],['تحویل‌شده',toP(rep.delivered_count),'green'],['ضایعات',toP(rep.waste_count)+' عدد — '+fmtN(rep.waste_value)+' تومان','red'],['تخفیف کل',fmtN(rep.discount_total)+' تومان','yellow']];
+        fields.forEach(function(f){
+            var cs=f[2]==='green'?'color:var(--pos-success)':f[2]==='red'?'color:var(--pos-danger)':f[2]==='yellow'?'color:var(--pos-warning)':'';
+            html+='<div class="detail-field"><div class="detail-field-label">'+esc(f[0])+'</div><div class="detail-field-val" style="'+cs+'">'+esc(String(f[1]))+'</div></div>';
         });
-        html += '</div>';
-        if (rep.top_items && rep.top_items.length) {
-            html += '<div class="detail-sub-section"><div class="detail-sub-header"><i class="bi bi-trophy" style="color:var(--pos-warning)"></i> پرفروش‌ترین‌ها</div><div class="detail-sub-body"><table class="detail-mini-table"><thead><tr><th>#</th><th>نام</th><th>تعداد</th><th>فروش</th></tr></thead><tbody>';
-            rep.top_items.forEach(function(it, i) { html += '<tr><td>' + toP(i+1) + '</td><td>' + esc(it.name) + '</td><td>' + toP(it.qty) + '</td><td>' + fmtN(it.revenue) + ' ت</td></tr>'; });
-            html += '</tbody></table></div></div>';
+        html+='</div>';
+        if(rep.top_items&&rep.top_items.length){
+            html+='<div class="detail-sub-section"><div class="detail-sub-header"><i class="bi bi-trophy" style="color:var(--pos-warning)"></i> پرفروش‌ترین‌ها</div><div class="detail-sub-body"><table class="detail-mini-table"><thead><tr><th>#</th><th>نام</th><th>تعداد</th><th>فروش</th></tr></thead><tbody>';
+            rep.top_items.forEach(function(it,i){html+='<tr><td>'+toP(i+1)+'</td><td>'+esc(it.name)+'</td><td>'+toP(it.qty)+'</td><td>'+fmtN(it.revenue)+' ت</td></tr>';});
+            html+='</tbody></table></div></div>';
         }
-        $('historyDetailTitle').textContent = 'گزارش ' + rep.date;
-        $('historyDetailContent').innerHTML = html;
+        $('historyDetailTitle').textContent='گزارش '+rep.date;
+        $('historyDetailContent').innerHTML=html;
         $('historyDetailModal').classList.add('show');
-    } catch(e) { showToast('خطا: ' + e.message, 'error'); }
+    } catch(e) { showToast('خطا: '+e.message,'error'); }
 }
-function closeHistoryDetail() { $('historyDetailModal').classList.remove('show'); }
+function closeHistoryDetail(){$('historyDetailModal').classList.remove('show');}
 
 /* ═══════════════════════════════════════════════════════════════
    EVENTS
 ═══════════════════════════════════════════════════════════════ */
 (function() {
     var receiptModalEl = $('posReceiptModal');
-    if (receiptModalEl) receiptModalEl.addEventListener('click', function(e) { if (e.target === this) posCloseReceipt(); });
-    $('historyDetailModal').addEventListener('click', function(e) { if (e.target === this) closeHistoryDetail(); });
-    $('payModal').addEventListener('click', function(e) { if (e.target === this) payCancel(); });
+    if (receiptModalEl) receiptModalEl.addEventListener('click', function(e){if(e.target===this)posCloseReceipt();});
+    $('historyDetailModal').addEventListener('click', function(e){if(e.target===this)closeHistoryDetail();});
+    $('payModal').addEventListener('click', function(e){if(e.target===this)payCancel();});
     document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            if (_fabOpen) { closeFabMenu(); return; }
-            if ($('payModal').classList.contains('show')) { payCancel(); return; }
-            if ($('historyDetailModal').classList.contains('show')) { closeHistoryDetail(); return; }
-            if ($('posReceiptModal').classList.contains('show')) { posCloseReceipt(); return; }
-            if ($('orderDetailModal').classList.contains('show')) { $('orderDetailModal').classList.remove('active'); return; }
-            /* ★ close cart drawer on Escape ★ */
-            var cart = document.querySelector('.pos-cart');
-            if (cart && cart.classList.contains('open')) { cart.classList.remove('open'); return; }
+        if (e.key==='Escape') {
+            if(_fabOpen){closeFabMenu();return;}
+            if($('payModal').classList.contains('show')){payCancel();return;}
+            if($('historyDetailModal').classList.contains('show')){closeHistoryDetail();return;}
+            if($('posReceiptModal').classList.contains('show')){posCloseReceipt();return;}
+            if($('orderDetailModal').classList.contains('show')){$('orderDetailModal').classList.remove('active');return;}
+            var cart=document.querySelector('.pos-cart');
+            if(cart&&cart.classList.contains('open')){cart.classList.remove('open');return;}
         }
     });
 })();
 
 /* ═══════════════════════════════════════════════════════════════
-   INIT
+   ★ INIT — اصلاح شده: اول داده بارگذاری بشه بعد UI
 ═══════════════════════════════════════════════════════════════ */
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    /* ★ اول داده از API بارگذاری بشه ★ */
+    await loadPosData();
+
+    /* بعد UI رو بساز */
     posBuildCats();
     posFilter();
     updateDiscountTabBadge();
     syncFabCart(0);
-    $('posSearch').addEventListener('input', _posFilterDebounced);
-    $('discSearch').addEventListener('input', debounce(discFilter, 200));
+
+    /* event listener ها */
+    var searchEl = $('posSearch');
+    if (searchEl) searchEl.addEventListener('input', _posFilterDebounced);
+    var discSearchEl = $('discSearch');
+    if (discSearchEl) discSearchEl.addEventListener('input', debounce(discFilter, 200));
 });
 </script>
 {% endblock %}
