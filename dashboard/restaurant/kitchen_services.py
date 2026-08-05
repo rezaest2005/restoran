@@ -1,14 +1,22 @@
 """
-Kitchen business-logic layer. — ★ نسخه اصلاح‌شده
+Kitchen business-logic layer — ★ نسخه اصلاحی نهایی
 """
-
 from decimal import Decimal
 from django.db import transaction
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from .tenancy import get_current_restaurant
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _resolve_tenant(fallback_obj=None):
+    """★ ابتدا get_current_restaurant، سپس fallback از خود آبجکت"""
+    tenant = get_current_restaurant()
+    if not tenant and fallback_obj:
+        tenant = getattr(fallback_obj, 'restaurant', None)
+    return tenant
 
 
 # ═══════════════════════════════════════
@@ -20,58 +28,64 @@ def get_recipe_ingredients(recipe):
     if recipe is None:
         return ingredients
 
-    qs = recipe.ingredients.all()
+    for item in recipe.ingredients.select_related('raw_material').all():
+        rm = item.raw_material
+        if not rm:
+            continue
+        ingredients.append({
+            'type': 'raw_material',
+            'id': rm.id,
+            'name': rm.name,
+            'unit': rm.unit,
+            'unit_display': rm.get_unit_display(),
+            'available': float(rm.quantity),
+            'price': float(rm.price),
+            'quantity': float(item.effective_quantity),
+        })
 
-    for item in qs:
-        entry = {'quantity': float(item.quantity)}
+    for item in recipe.semi_finished_items.select_related('semi_finished').all():
+        sf = item.semi_finished
+        if not sf:
+            continue
+        sf_stock = float(getattr(sf, 'current_stock', 0))
+        sf_qty = float(getattr(sf, 'quantity_produced', 1)) or 1
+        sf_cost = float(getattr(sf, 'total_cost', 0))
+        ingredients.append({
+            'type': 'semi_finished',
+            'id': sf.id,
+            'name': sf.name,
+            'unit': sf.unit,
+            'unit_display': sf.get_unit_display(),
+            'available': sf_stock,
+            'price': sf_cost / sf_qty,
+            'quantity': float(item.quantity),
+        })
 
-        if getattr(item, 'raw_material_id', None) and item.raw_material:
-            rm = item.raw_material
-            entry.update(
-                type='raw_material',
-                id=rm.id,
-                name=rm.name,
-                unit=rm.unit,
-                unit_display=rm.get_unit_display(),
-                available=float(rm.quantity),
-                price=float(rm.price),
-            )
-            ingredients.append(entry)
-
-        elif getattr(item, 'semi_finished_id', None) and item.semi_finished:
-            sf = item.semi_finished
-            sf_stock = float(getattr(sf, 'current_stock', 0))
-            sf_qty   = float(getattr(sf, 'quantity_produced', 1)) or 1
-            sf_cost  = float(getattr(sf, 'total_cost', 0))
-            entry.update(
-                type='semi_finished',
-                id=sf.id,
-                name=sf.name,
-                unit=sf.unit,
-                unit_display=sf.get_unit_display(),
-                available=sf_stock,
-                price=sf_cost / sf_qty,
-            )
-            ingredients.append(entry)
+    for item in recipe.packaging_items.select_related('raw_material').all():
+        rm = item.raw_material
+        if not rm:
+            continue
+        ingredients.append({
+            'type': 'packaging',
+            'id': rm.id,
+            'name': rm.name,
+            'unit': rm.unit,
+            'unit_display': rm.get_unit_display(),
+            'available': float(rm.quantity),
+            'price': float(rm.price),
+            'quantity': float(item.quantity),
+        })
 
     return ingredients
 
 
-# ═══════════════════════════════════════
-#  Cost
-# ═══════════════════════════════════════
-
 def calculate_recipe_cost(kitchen_product):
-    """Production cost for ONE unit (float, Toman)."""
+    recipe = kitchen_product.recipe
     return sum(
         ing['quantity'] * ing['price']
-        for ing in get_recipe_ingredients(kitchen_product.recipe)
+        for ing in get_recipe_ingredients(recipe)
     )
 
-
-# ═══════════════════════════════════════
-#  Required Materials
-# ═══════════════════════════════════════
 
 def get_required_materials(kitchen_product, quantity=1):
     recipe = kitchen_product.recipe
@@ -106,12 +120,22 @@ def get_required_materials(kitchen_product, quantity=1):
             'unit_display': sf.get_unit_display(),
         })
 
+    for pkg in recipe.packaging_items.select_related('raw_material').all():
+        rm = pkg.raw_material
+        needed = float(pkg.quantity) * quantity
+        result.append({
+            'type': 'packaging',
+            'id': rm.id,
+            'name': rm.name,
+            'required_per_unit': float(pkg.quantity),
+            'total_needed': round(needed, 3),
+            'available': float(rm.quantity),
+            'unit': rm.unit,
+            'unit_display': rm.get_unit_display(),
+        })
+
     return result
 
-
-# ═══════════════════════════════════════
-#  Capacity
-# ═══════════════════════════════════════
 
 def calculate_max_production(kitchen_product):
     recipe = kitchen_product.recipe
@@ -127,8 +151,7 @@ def calculate_max_production(kitchen_product):
         if can_make < max_qty:
             max_qty = can_make
             limiting = {
-                'name': rm.name,
-                'type': 'raw_material',
+                'name': rm.name, 'type': 'raw_material',
                 'available': float(rm.quantity),
                 'required_per_unit': effective,
             }
@@ -143,41 +166,45 @@ def calculate_max_production(kitchen_product):
         if can_make < max_qty:
             max_qty = can_make
             limiting = {
-                'name': sf.name,
-                'type': 'semi_finished',
-                'available': stock,
+                'name': sf.name, 'type': 'semi_finished',
+                'available': stock, 'required_per_unit': needed,
+            }
+
+    for pkg in recipe.packaging_items.select_related('raw_material').all():
+        rm = pkg.raw_material
+        needed = float(pkg.quantity)
+        if needed <= 0:
+            continue
+        can_make = float(rm.quantity) / needed
+        if can_make < max_qty:
+            max_qty = can_make
+            limiting = {
+                'name': rm.name, 'type': 'packaging',
+                'available': float(rm.quantity),
                 'required_per_unit': needed,
             }
 
     if max_qty == float('inf'):
         return 0, None
-
     return int(max_qty), limiting
 
-
-# ═══════════════════════════════════════
-#  Validation
-# ═══════════════════════════════════════
 
 def validate_production(kitchen_product, quantity):
     required = get_required_materials(kitchen_product, quantity)
     errors = []
-
     for req in required:
         if req['available'] < req['total_needed']:
             errors.append(
                 f"«{req['name']}»: نیاز {req['total_needed']} {req['unit_display']} — "
                 f"موجودی {req['available']}"
             )
-
     if errors:
         raise ValidationError("موجودی کافی نیست:\n" + "\n".join(errors))
-
     return required
 
 
 # ═══════════════════════════════════════
-#  Produce
+#  ★ Produce — اصلاح‌شده
 # ═══════════════════════════════════════
 
 @transaction.atomic
@@ -191,14 +218,15 @@ def produce_item(kitchen_product, quantity, user=None,
     # 1 — validate
     required = validate_production(kitchen_product, quantity)
 
-    # 2 — deduct
+    # 2 — deduct raw materials
     consumed = []
     for req in required:
         total = req['total_needed']
 
         if req['type'] == 'raw_material':
             rm = RawMaterial.objects.select_for_update().get(pk=req['id'])
-            rm.quantity = float(rm.quantity) - total
+            prev = float(rm.quantity)
+            rm.quantity = prev - total
             rm.save(update_fields=['quantity'])
             consumed.append(dict(
                 type='raw_material', id=rm.id, name=rm.name,
@@ -207,10 +235,21 @@ def produce_item(kitchen_product, quantity, user=None,
 
         elif req['type'] == 'semi_finished':
             sf = SemiFinished.objects.select_for_update().get(pk=req['id'])
-            sf.current_stock = float(sf.current_stock) - total
+            prev = float(sf.current_stock)
+            sf.current_stock = prev - total
             sf.save(update_fields=['current_stock'])
             consumed.append(dict(
                 type='semi_finished', id=sf.id, name=sf.name,
+                quantity_used=total, unit=req['unit'],
+            ))
+
+        elif req['type'] == 'packaging':
+            rm = RawMaterial.objects.select_for_update().get(pk=req['id'])
+            prev = float(rm.quantity)
+            rm.quantity = prev - total
+            rm.save(update_fields=['quantity'])
+            consumed.append(dict(
+                type='packaging', id=rm.id, name=rm.name,
                 quantity_used=total, unit=req['unit'],
             ))
 
@@ -222,8 +261,11 @@ def produce_item(kitchen_product, quantity, user=None,
     inv.quantity += quantity
     inv.save(update_fields=['quantity', 'updated_at'])
 
-    # 4 — batch
-    unit_cost  = calculate_recipe_cost(kitchen_product)
+    # ★★★ 4 — tenant: اول get_current_restaurant، سپس fallback از خود محصول ★★★
+    tenant = _resolve_tenant(kitchen_product)
+
+    # 5 — batch
+    unit_cost = calculate_recipe_cost(kitchen_product)
     total_cost = int(unit_cost * quantity)
     batch = ProductionBatch.objects.create(
         production_plan=production_plan,
@@ -232,9 +274,10 @@ def produce_item(kitchen_product, quantity, user=None,
         production_cost=total_cost,
         produced_by=user,
         notes=notes,
+        restaurant=tenant,     # ★ هرگز None نیست
     )
 
-    # 5 — log
+    # 6 — log
     ProductionLog.objects.create(
         user=user,
         kitchen_product=kitchen_product,
@@ -243,10 +286,77 @@ def produce_item(kitchen_product, quantity, user=None,
         materials_consumed=consumed,
         production_batch=batch,
         details=f'تولید {quantity} واحد {kitchen_product.name}',
+        restaurant=tenant,     # ★ هرگز None نیست
     )
 
     logger.info('Produced %d × %s by %s', quantity, kitchen_product.name, user)
     return batch
+
+
+# ═══════════════════════════════════════
+#  Deduct / Restore for orders
+# ═══════════════════════════════════════
+
+@transaction.atomic
+def deduct_for_order_ready(order):
+    from .models import KitchenInventory, KitchenProduct
+
+    deducted = []
+    for item in order.items.select_related('food', 'food__recipe').all():
+        if not item.food:
+            continue
+        recipe = getattr(item.food, 'recipe', None)
+        if not recipe:
+            continue
+
+        kps = KitchenProduct.objects.filter(recipe=recipe, is_active=True)
+        for kp in kps:
+            inv, _ = KitchenInventory.objects.select_for_update().get_or_create(
+                kitchen_product=kp,
+                defaults={'low_stock_threshold': 5},
+            )
+            qty = int(item.quantity)
+            actual_deduct = min(inv.quantity, qty)
+            inv.quantity = max(0, inv.quantity - qty)
+            inv.save(update_fields=['quantity', 'updated_at'])
+            deducted.append({
+                'kitchen_product_id': kp.id,
+                'kitchen_product_name': kp.name,
+                'order_item_qty': qty,
+                'actually_deducted': actual_deduct,
+            })
+
+    return deducted
+
+
+@transaction.atomic
+def restore_for_order_cancel(order):
+    from .models import KitchenInventory, KitchenProduct
+
+    restored = []
+    for item in order.items.select_related('food', 'food__recipe').all():
+        if not item.food:
+            continue
+        recipe = getattr(item.food, 'recipe', None)
+        if not recipe:
+            continue
+
+        kps = KitchenProduct.objects.filter(recipe=recipe, is_active=True)
+        for kp in kps:
+            inv, _ = KitchenInventory.objects.get_or_create(
+                kitchen_product=kp,
+                defaults={'low_stock_threshold': 5},
+            )
+            qty = int(item.quantity)
+            inv.quantity += qty
+            inv.save(update_fields=['quantity', 'updated_at'])
+            restored.append({
+                'kitchen_product_id': kp.id,
+                'kitchen_product_name': kp.name,
+                'quantity_restored': qty,
+            })
+
+    return restored
 
 
 # ═══════════════════════════════════════
@@ -257,17 +367,23 @@ def produce_item(kitchen_product, quantity, user=None,
 def create_production_plan(date, items_data, user=None, notes=''):
     from .models import ProductionPlan, ProductionPlanItem, KitchenProduct, ProductionLog
 
-    plan = ProductionPlan.objects.create(date=date, created_by=user, notes=notes)
+    tenant = _resolve_tenant()
+    plan = ProductionPlan.objects.create(
+        date=date, created_by=user, notes=notes,
+        restaurant=tenant,
+    )
     for d in items_data:
         product = KitchenProduct.objects.get(pk=d['kitchen_product_id'])
         ProductionPlanItem.objects.create(
             production_plan=plan,
             kitchen_product=product,
             quantity=d['quantity'],
+            restaurant=tenant,
         )
     ProductionLog.objects.create(
         user=user, action='plan_create', quantity=len(items_data),
         details=f'ایجاد برنامه تولید {date}',
+        restaurant=tenant,
     )
     return plan
 
@@ -285,7 +401,7 @@ def approve_production_plan(plan, user=None):
         except ValidationError as e:
             errors.append(str(e))
         except Exception as e:
-            errors.append(f'{item.kitchen_product.name}: خطای غیرمنتظره — {str(e)}')
+            errors.append(f'{item.kitchen_product.name}: {str(e)}')
 
     if errors:
         raise ValidationError('\n'.join(errors))
@@ -293,9 +409,11 @@ def approve_production_plan(plan, user=None):
     plan.status = 'approved'
     plan.save(update_fields=['status', 'updated_at'])
 
+    tenant = _resolve_tenant(plan)
     ProductionLog.objects.create(
         user=user, action='plan_approve',
         details=f'تأیید برنامه {plan.date}',
+        restaurant=tenant,
     )
     return plan
 
@@ -319,21 +437,17 @@ def execute_production_plan(plan, user=None):
     plan.status = 'completed'
     plan.save(update_fields=['status', 'updated_at'])
 
+    tenant = _resolve_tenant(plan)
     ProductionLog.objects.create(
         user=user, action='plan_execute', quantity=len(batches),
         details=f'اجرای برنامه {plan.date} — {len(batches)} محصول',
+        restaurant=tenant,
     )
     return batches
 
 
 # ═══════════════════════════════════════
-#  Discount Engine — ★ حذف شد
-#  مدل KitchenDiscount دیگر وجود ندارد
-# ═══════════════════════════════════════
-
-
-# ═══════════════════════════════════════
-#  Stock helpers
+#  Stock / Capacity / Dashboard
 # ═══════════════════════════════════════
 
 def get_current_stock(kitchen_product):
@@ -344,10 +458,6 @@ def get_current_stock(kitchen_product):
     except KitchenInventory.DoesNotExist:
         return 0
 
-
-# ═══════════════════════════════════════
-#  Capacity Report
-# ═══════════════════════════════════════
 
 def get_capacity_report():
     from .models import KitchenProduct
@@ -368,21 +478,15 @@ def get_capacity_report():
     return report
 
 
-# ═══════════════════════════════════════
-#  Dashboard — ★ اصلاح‌شده
-# ═══════════════════════════════════════
-
 def generate_kitchen_dashboard():
     from .models import (
         KitchenProduct, KitchenInventory, ProductionBatch,
-        ProductionLog, ProductionPlan,
-        WasteLog,
+        ProductionLog, ProductionPlan, WasteLog,
     )
     from django.db.models import Sum
 
     today = timezone.now().date()
 
-    # ---- products ----
     products = KitchenProduct.objects.select_related('recipe').all()
     products_data = []
     inventory_data = []
@@ -392,7 +496,7 @@ def generate_kitchen_dashboard():
     for p in products:
         cost = calculate_recipe_cost(p)
         mx, lim = calculate_max_production(p)
-        inv  = p.get_inventory()
+        inv = p.get_inventory()
         stock_val = inv.available_quantity * cost
         total_inv_value += stock_val
 
@@ -444,14 +548,12 @@ def generate_kitchen_dashboard():
                 threshold=inv.low_stock_threshold,
             ))
 
-    # ---- today's production ----
     today_qs = ProductionBatch.objects.filter(produced_at__date=today)
     today_agg = today_qs.aggregate(
         total_qty=Sum('quantity_produced'),
         total_cost=Sum('production_cost'),
     )
 
-    # ---- plans (last 20) ----
     plans = ProductionPlan.objects.prefetch_related(
         'items__kitchen_product').order_by('-date', '-created_at')[:20]
     plans_data = []
@@ -475,7 +577,6 @@ def generate_kitchen_dashboard():
             created_at=pl.created_at.strftime('%Y-%m-%d %H:%M'),
         ))
 
-    # ---- batches (last 30) ----
     batches = ProductionBatch.objects.select_related(
         'kitchen_product', 'produced_by').order_by('-produced_at')[:30]
     batches_data = []
@@ -490,7 +591,6 @@ def generate_kitchen_dashboard():
             notes=b.notes,
         ))
 
-    # ---- logs (last 20) ----
     logs = ProductionLog.objects.select_related(
         'kitchen_product', 'user').order_by('-created_at')[:20]
     logs_data = []
@@ -507,7 +607,6 @@ def generate_kitchen_dashboard():
             created_at=lg.created_at.strftime('%Y-%m-%d %H:%M'),
         ))
 
-    # ---- waste ----
     waste_qs = WasteLog.objects.select_related(
         'kitchen_product').order_by('-created_at')[:50]
     waste_data = []

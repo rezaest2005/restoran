@@ -4,6 +4,17 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 
+def create_default_restaurant(apps, schema_editor):
+    Restaurant = apps.get_model('restaurant', 'Restaurant')
+    if not Restaurant.objects.filter(pk=1).exists():
+        Restaurant.objects.create(pk=1, name='رستوران پیش‌فرض')
+
+
+def reverse_restaurant(apps, schema_editor):
+    Restaurant = apps.get_model('restaurant', 'Restaurant')
+    Restaurant.objects.filter(pk=1).delete()
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -11,6 +22,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunPython(create_default_restaurant, reverse_restaurant),
         migrations.CreateModel(
             name='ItemDictionary',
             fields=[

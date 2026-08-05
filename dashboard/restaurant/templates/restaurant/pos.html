@@ -265,6 +265,138 @@
     }
 
     /* ═══════════════════════════════════════════════
+       ★★★  ONLINE ORDERS TAB  ★★★
+    ════════════════════════════════════════════════ */
+
+    /* ── آلرت بالای لیست ── */
+    .online-alert-box {
+        display: flex; align-items: center; gap: 14px;
+        padding: 16px 20px; margin-bottom: 20px;
+        background: linear-gradient(135deg, #fffbeb, #fef3c7);
+        border: 2px solid var(--pos-warning);
+        border-radius: var(--pos-radius);
+        animation: alertSlideIn .5s cubic-bezier(.22,1,.36,1);
+        box-shadow: 0 4px 20px rgba(243,156,18,.15);
+    }
+    .online-alert-icon {
+        width: 48px; height: 48px; flex-shrink: 0;
+        background: var(--pos-warning); border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        color: #fff; font-size: 20px;
+        animation: alertPulse 1.5s ease-in-out infinite;
+    }
+    .online-alert-text { flex: 1; }
+    .online-alert-text strong {
+        display: block; font-size: 15px; color: #92400e;
+        margin-bottom: 2px;
+    }
+    .online-alert-text span {
+        font-size: 13px; color: #a16207;
+    }
+    .online-alert-close {
+        width: 32px; height: 32px; border: none; border-radius: 8px;
+        background: rgba(243,156,18,.12); color: #92400e;
+        cursor: pointer; display: flex; align-items: center;
+        justify-content: center; font-size: 14px; flex-shrink: 0;
+        transition: all .2s;
+    }
+    .online-alert-close:hover { background: rgba(231,76,60,.2); color: var(--pos-danger); }
+
+    @keyframes alertSlideIn {
+        from { opacity: 0; transform: translateY(-20px) scale(.95); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes alertPulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(243,156,18,.5); }
+        50%      { box-shadow: 0 0 0 12px rgba(243,156,18,0); }
+    }
+
+    /* ── کارت‌های سفارش آنلاین ── */
+    .online-order-card {
+        background: var(--pos-surface);
+        border: 1px solid var(--pos-border);
+        border-right: 4px solid var(--pos-warning);
+        border-radius: var(--pos-radius);
+        overflow: hidden; transition: all .25s;
+        position: relative;
+        box-shadow: 0 2px 8px rgba(27,42,74,.05);
+        animation: orderCardIn .4s cubic-bezier(.22,1,.36,1);
+    }
+    .online-order-card.new-order {
+        border-right-color: var(--pos-success);
+        animation: newOrderFlash .6s ease;
+    }
+    .online-order-card:hover {
+        box-shadow: 0 6px 20px rgba(27,42,74,.1);
+        transform: translateY(-1px);
+    }
+    .online-order-card.confirmed { border-right-color: var(--pos-success); opacity: .7; }
+    .online-order-card.cancelled { border-right-color: var(--pos-danger); opacity: .5; }
+
+    @keyframes orderCardIn {
+        from { opacity: 0; transform: translateX(30px); }
+        to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes newOrderFlash {
+        0%  { box-shadow: 0 0 0 0 rgba(243,156,18,.6); }
+        50% { box-shadow: 0 0 0 16px rgba(243,156,18,0); }
+        100%{ box-shadow: 0 0 0 0 rgba(243,156,18,0); }
+    }
+
+    /* ── بج وضعیت آنلاین ── */
+    .online-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 3px 10px; border-radius: 20px;
+        font-size: .72rem; font-weight: 700;
+        background: rgba(243,156,18,.1); color: #b45309;
+        white-space: nowrap;
+    }
+    .online-badge.pending { background: rgba(243,156,18,.1); color: #b45309; }
+    .online-badge.confirmed { background: rgba(46,204,113,.1); color: #047857; }
+    .online-badge.cancelled { background: rgba(231,76,60,.08); color: var(--pos-danger); }
+    .online-badge .s-dot {
+        width: 7px; height: 7px; border-radius: 50%;
+        background: currentColor; animation: blink 1s infinite;
+    }
+
+    /* ── تایمر ── */
+    .online-timer {
+        font-size: .78rem; color: var(--pos-text-sec);
+        display: flex; align-items: center; gap: 4px;
+        direction: ltr;
+    }
+    .online-timer.late { color: var(--pos-danger); font-weight: 700; }
+
+    /* ── دکمه‌های تأیید / رد ── */
+    .oc-btn-confirm {
+        background: rgba(46,204,113,.12); color: #047857;
+        border: 1.5px solid rgba(46,204,113,.3);
+    }
+    .oc-btn-confirm:hover {
+        background: var(--pos-success); color: #fff;
+        border-color: var(--pos-success);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(46,204,113,.3);
+    }
+    .oc-btn-reject {
+        background: rgba(231,76,60,.08); color: var(--pos-danger);
+        border: 1.5px solid rgba(231,76,60,.2);
+    }
+    .oc-btn-reject:hover {
+        background: var(--pos-danger); color: #fff;
+        border-color: var(--pos-danger);
+    }
+
+    /* ── آمار بالای تب آنلاین ── */
+    .os-online {
+        border-top: 3px solid var(--pos-warning);
+    }
+    .os-online .os-icon {
+        background: rgba(243,156,18,.1);
+        color: var(--pos-warning);
+    }
+
+    /* ═══════════════════════════════════════════════
        DISCOUNT TAB
     ════════════════════════════════════════════════ */
     .disc-wrap { padding: 24px; }
@@ -848,7 +980,6 @@
     ════════════════════════════════════════════════ */
     @media (max-width: 768px) {
 
-        /* ── مخفی کردن تب‌ها + فیکس گرید ── */
         .pos-tabs { display: none; }
         .pos-wrap { grid-template-columns: minmax(0, 1fr); min-height: auto; }
         .pos-menu { padding: 12px; max-height: none; overflow-y: visible; min-width: 0; }
@@ -1023,6 +1154,12 @@
         .detail-mini-table { min-width: 300px; }
         .detail-mini-table th { font-size: 11px; padding: 6px 8px; }
         .detail-mini-table td { font-size: 12px; padding: 6px 8px; }
+
+        /* ★ موبایل: آنلاین ★ */
+        .online-alert-box { padding: 12px 14px; gap: 10px; margin-bottom: 14px; }
+        .online-alert-icon { width: 38px; height: 38px; font-size: 16px; }
+        .online-alert-text strong { font-size: 13px; }
+        .online-alert-text span { font-size: 12px; }
     }
 
     /* ═══════════════════════════════════════════════
@@ -1118,6 +1255,7 @@
             background: var(--pos-warning); color: #fff; font-size: 10px; font-weight: 800;
             padding: 1px 7px; border-radius: 8px; margin-right: auto; display: none;
         }
+        .fmi-badge2.show { display: inline-block; }
 
         .fab-cart-item { background: var(--pos-accent); color: #fff; border-color: var(--pos-accent); }
         .fab-cart-item .fmi-icon { color: #fff; }
@@ -1131,20 +1269,24 @@
 {% block content %}
 <!-- ═══════════ TABS ═══════════ -->
 <div class="pos-tabs">
-    <button class="pos-tab active" data-tab="pos" onclick="switchTab('pos', this)">          
+    <button class="pos-tab active" data-tab="pos" onclick="switchTab('pos', this)">
         <i class="bi bi-cart3"></i> صندوق فروش
     </button>
-    <button class="pos-tab" data-tab="discount" onclick="switchTab('discount', this)">       
+    <button class="pos-tab" data-tab="online" onclick="switchTab('online', this)">
+        <i class="bi bi-globe"></i> فروش آنلاین
+        <span class="tab-badge-orders" id="onlineTabBadge">۰</span>
+    </button>
+    <button class="pos-tab" data-tab="discount" onclick="switchTab('discount', this)">
         <i class="bi bi-percent"></i> تخفیف
         <span class="tab-badge" id="discountTabBadge">۰</span>
     </button>
-    <button class="pos-tab" data-tab="report" onclick="switchTab('report', this)">           
+    <button class="pos-tab" data-tab="report" onclick="switchTab('report', this)">
         <i class="bi bi-bar-chart-line"></i> گزارش روز
     </button>
-    <button class="pos-tab" data-tab="close" onclick="switchTab('close', this)">            
+    <button class="pos-tab" data-tab="close" onclick="switchTab('close', this)">
         <i class="bi bi-moon-stars"></i> بستن روز
     </button>
-    <button class="pos-tab" data-tab="history" onclick="switchTab('history', this)">         
+    <button class="pos-tab" data-tab="history" onclick="switchTab('history', this)">
         <i class="bi bi-clock-history"></i> تاریخچه
     </button>
 </div>
@@ -1190,7 +1332,49 @@
     </div>
 </div>
 
-<!-- ═══════════ TAB 2: تخفیف ═══════════ -->
+<!-- ═══════════ TAB 2: فروش آنلاین ═══════════ -->
+<div class="pos-panel" id="panel-online">
+    <div class="orders-wrap">
+        <div class="orders-stats" id="onlineStats">
+            <div class="orders-stat-card os-online">
+                <div class="os-icon"><i class="bi bi-hourglass-split"></i></div>
+                <div class="os-label">در انتظار تأیید</div>
+                <div class="os-value" id="onlinePendingCount">۰</div>
+            </div>
+            <div class="orders-stat-card os-ready">
+                <div class="os-icon"><i class="bi bi-check-circle"></i></div>
+                <div class="os-label">تأیید شده امروز</div>
+                <div class="os-value" id="onlineConfirmedCount">۰</div>
+            </div>
+            <div class="orders-stat-card os-total">
+                <div class="os-icon"><i class="bi bi-cash-stack"></i></div>
+                <div class="os-label">فروش آنلاین امروز</div>
+                <div class="os-value" id="onlineTodaySales">۰</div>
+            </div>
+        </div>
+        <div class="online-alert-box" id="onlineAlertBox" style="display:none">
+            <div class="online-alert-icon">
+                <i class="bi bi-bell-fill"></i>
+            </div>
+            <div class="online-alert-text">
+                <strong id="onlineAlertTitle">سفارش جدید!</strong>
+                <span id="onlineAlertMsg"></span>
+            </div>
+            <button class="online-alert-close" onclick="dismissOnlineAlert()">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <div class="orders-list" id="onlineOrdersList">
+            <div class="orders-empty">
+                <i class="bi bi-globe"></i>
+                <h3>سفارش آنلاینی ثبت نشده</h3>
+                <p>سفارشات جدید اینجا نمایش داده می‌شوند</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════ TAB 3: تخفیف ═══════════ -->
 <div class="pos-panel" id="panel-discount">
     <div class="disc-wrap">
         <div class="disc-header">
@@ -1328,7 +1512,7 @@
     </div>
 </div>
 
-<!-- ═══ FAB موبایل — جایگزین دکمه سبد قدیمی ═══ -->
+<!-- ═══ FAB موبایل ═══ -->
 <div class="mobile-fab-wrap" id="mobileFabWrap">
     <div class="fab-overlay" id="fabOverlay" onclick="closeFabMenu()"></div>
 
@@ -1349,6 +1533,11 @@
             <span class="fmi-icon"><i class="bi bi-percent"></i></span>
             <span class="fmi-label">تخفیف</span>
         </button>
+        <button class="fab-menu-item" data-tab="online" onclick="switchTab('online')">
+            <span class="fmi-icon"><i class="bi bi-globe"></i></span>
+            <span class="fmi-label">فروش آنلاین</span>
+            <span class="fmi-badge2" id="fabOnlineBadge">۰</span>
+        </button>
         <button class="fab-menu-item" data-tab="pos" onclick="switchTab('pos')">
             <span class="fmi-icon"><i class="bi bi-shop"></i></span>
             <span class="fmi-label">صندوق فروش</span>
@@ -1368,7 +1557,7 @@
 {% endblock %}
 {% block extra_js %}
 <script>
-    /* ═══ فیکس اسکرول ═══ */
+/* ═══ فیکس اسکرول ═══ */
 (function(){
     function fix() {
         var main = document.querySelector('.main');
@@ -1396,8 +1585,6 @@
 
 /* ═══════════════════════════════════════════════════════════════
    SHARED UTILITIES
-   ★ pD/toP/fmtN هم در base template تعریف شدن — اینجا overwrite
-     می‌شن (بی‌ضرر چون یکسانن). fmtP/fmtComma/esc مختص همین صفحه.
 ═══════════════════════════════════════════════════════════════ */
 var pD = '\u06F0\u06F1\u06F2\u06F3\u06F4\u06F5\u06F6\u06F7\u06F8\u06F9';
 function toP(n) { return String(n).replace(/\d/g, function(c) { return pD[c]; }); }
@@ -1421,7 +1608,7 @@ async function apiFetch(url, options) {
     return r.json();
 }
 
-/* ── Paginated Fetch Helper — تمام صفحات رو می‌خونه ── */
+/* ── Paginated Fetch Helper ── */
 async function fetchAllPages(url) {
     var all = [], cur = url;
     while (cur) {
@@ -1534,15 +1721,19 @@ var DISCOUNT_API   = "/api/pos/set-discount/";
 var RECEIPT_URL    = "{% url 'pos_receipt' 0 %}".replace('/0/', '/ORDER_ID/');
 var ORDERS_LIST_API = "/api/orders/";
 
-/* ★ APIهای جدید برای بارگذاری محصولات ★ */
 var KITCHEN_PRODUCTS_API = "{% url 'kitchen-products-list' %}";
 var DICT_FOOD_MENU_API   = "{% url 'dict_food_menu' %}";
+
+/* ★ APIهای فروش آنلاین ★ */
+var ONLINE_ORDERS_API     = "{% url 'pos_online_orders' %}";
+var ONLINE_CONFIRM_API    = "/api/pos/confirm-online/";
+var ONLINE_REJECT_API     = "/api/pos/reject-online/";
 
 var _pendingOrder = null;
 var _appliedCoupon = null;
 
 /* ═══════════════════════════════════════════════════════════════
-   TAB SWITCHING
+   TAB SWITCHING — ★ آپدیت شده: تب آنلاین اضافه شد
 ═══════════════════════════════════════════════════════════════ */
 var _loadedTabs = {};
 function switchTab(tab, btn) {
@@ -1554,6 +1745,7 @@ function switchTab(tab, btn) {
     closeFabMenu();
     var actions = {
         'pos':      function() { posFilter(); },
+        'online':   function() { loadOnlineOrders(); },        /* ★ اضافه شد */
         'orders':   function() { loadOrders(); },
         'discount': function() { refreshDiscountTab(); },
         'report':   function() { loadReport(); },
@@ -1564,11 +1756,10 @@ function switchTab(tab, btn) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   ★ POS STATE + DATA LOADING — اصلاح شده
-   اسم و دسته‌بندی از دیکشنری، قیمت و موجودی از آشپزخانه
+   POS STATE + DATA LOADING
 ═══════════════════════════════════════════════════════════════ */
-var posFoods = [];           /* ★ قبلاً {{ foods_json|safe }} بود */
-var posCategories = [];      /* ★ قبلاً {{ categories_json|safe }} بود */
+var posFoods = [];
+var posCategories = [];
 var posCart = {};
 var _foodMap = {};
 var _posDataLoaded = false;
@@ -1577,7 +1768,6 @@ function getFood(id) { return _foodMap[String(id)] || null; }
 function posGetPrice(f) { return f.discount ? f.discount.discounted_price : (f.kitchen_price || 0); }
 function posGetOriginalPrice(f) { return f.kitchen_price || 0; }
 
-/* ★ تابع اصلی بارگذاری — از دو API می‌خونه و merge می‌کنه ★ */
 async function loadPosData() {
     var grid = $('posGrid');
     if (grid) grid.innerHTML = '<div style="text-align:center;padding:60px;color:var(--pos-text-sec)"><div class="pos-spinner" style="margin:0 auto 16px;width:36px;height:36px;border:3px solid var(--pos-border);border-top-color:var(--pos-accent);border-radius:50%;animation:spin .6s linear infinite"></div><p style="font-weight:700;font-size:.95rem">در حال بارگذاری محصولات...</p></div>';
@@ -1586,34 +1776,22 @@ async function loadPosData() {
     var dictItems = [];
 
     try {
-        /* ★ دو API همزمان — اگه یکی fail بشه اون یکی کار می‌کنه ★ */
         var results = await Promise.allSettled([
             fetchAllPages(KITCHEN_PRODUCTS_API + '?page_size=500'),
             apiFetch(DICT_FOOD_MENU_API)
         ]);
 
-        if (results[0].status === 'fulfilled') {
-            kitchenItems = results[0].value;
-        } else {
-            console.error('[POS] Kitchen API error:', results[0].reason);
-        }
+        if (results[0].status === 'fulfilled') kitchenItems = results[0].value;
+        else console.error('[POS] Kitchen API error:', results[0].reason);
 
         if (results[1].status === 'fulfilled') {
             var d = results[1].value;
             dictItems = d.items || d.results || d || [];
-        } else {
-            console.error('[POS] Dictionary API error:', results[1].reason);
-        }
+        } else console.error('[POS] Dictionary API error:', results[1].reason);
 
-        /* ── ساخت Map از آشپزخانه (key = id) ── */
         var kMap = {};
         kitchenItems.forEach(function(k) { kMap[String(k.id)] = k; });
 
-        /* ── ساخت Map از دیکشنری ── */
-        var dMap = {};
-        dictItems.forEach(function(d) { dMap[String(d.id)] = d; });
-
-        /* ── Merge: اول دیکشنری (اسم + دسته)، بعد آشپزخانه (قیمت + موجودی) ── */
         posFoods = [];
         var doneIds = {};
 
@@ -1623,18 +1801,13 @@ async function loadPosData() {
             doneIds[String(dict.id)] = true;
         });
 
-        /* آیتم‌های آشپزخانه که توی دیکشنری نبودن */
         kitchenItems.forEach(function(k) {
-            if (!doneIds[String(k.id)]) {
-                posFoods.push(_buildFood(null, k));
-            }
+            if (!doneIds[String(k.id)]) posFoods.push(_buildFood(null, k));
         });
 
-        /* ── Food Map ── */
         _foodMap = {};
         posFoods.forEach(function(f) { _foodMap[String(f.id)] = f; });
 
-        /* ── دسته‌بندی‌ها رو از داده‌های merge‌شده بساز ── */
         var catMap = {};
         posFoods.forEach(function(f) {
             var cid = String(f.category_id || '');
@@ -1652,18 +1825,15 @@ async function loadPosData() {
     }
 }
 
-/* ★ ساخت آبجکت food از دیکشنری + آشپزخانه ★ */
 function _buildFood(dict, kitchen) {
     return {
         id:            dict ? dict.id : kitchen.id,
         name:          dict ? (dict.name || '') : (kitchen.name || ''),
         category_id:   dict ? (dict.category_id || null) : (kitchen.category_id || null),
         category_name: dict ? (dict.category_name || '') : (kitchen.category_name || ''),
-        /* ★ قیمت: از آشپزخانه (selling_price > price > kitchen_price) ★ */
         kitchen_price: kitchen
             ? (kitchen.selling_price || kitchen.price || kitchen.kitchen_price || 0)
             : (dict ? (dict.price || 0) : 0),
-        /* ★ موجودی: از آشپزخانه (stock > current_stock) ★ */
         stock:         kitchen
             ? (kitchen.stock != null ? kitchen.stock : (kitchen.current_stock != null ? kitchen.current_stock : null))
             : null,
@@ -1830,6 +2000,259 @@ function updateDiscountTabBadge() {
     var badge = $('discountTabBadge');
     badge.textContent = toP(count);
     if (count > 0) badge.classList.add('show'); else badge.classList.remove('show');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ★★★  فروش آنلاین — تب جدید  ★★★
+   polling هر ۵ ثانیه + نوتیفیکیشن + صدای بوق
+═══════════════════════════════════════════════════════════════ */
+var _onlineOrders = [];
+var _lastOnlineId = 0;
+var _onlinePollTimer = null;
+var _onlineAllOrders = [];         /* برای آمار تأیید شده‌ها */
+
+/* ── صدای بوق ── */
+function _beepSound() {
+    try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        /* بوق اول */
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 880;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.4);
+        /* بوق دوم */
+        var osc2 = ctx.createOscillator();
+        var gain2 = ctx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.frequency.value = 1100;
+        osc2.type = 'sine';
+        gain2.gain.setValueAtTime(0.25, ctx.currentTime + 0.2);
+        gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+        osc2.start(ctx.currentTime + 0.2);
+        osc2.stop(ctx.currentTime + 0.6);
+    } catch(e) { /* مرورگر صدا رو بلاک کرده */ }
+}
+
+/* ── لود سفارشات آنلاین pending ── */
+async function loadOnlineOrders() {
+    try {
+        var d = await apiFetch(ONLINE_ORDERS_API + '?status=pending&t=' + Date.now());
+        if (!d.success) return;
+
+        var newOrders = d.orders || [];
+        var maxId = _lastOnlineId;
+        newOrders.forEach(function(o) { if (o.id > maxId) maxId = o.id; });
+
+        /* سفارش جدید؟ بوق + نوتیف */
+        if (maxId > _lastOnlineId && _lastOnlineId > 0) {
+            _beepSound();
+            _showOnlineAlert(newOrders);
+            showToast('🔔 سفارش آنلاین جدید!', 'warning');
+        }
+
+        _lastOnlineId = maxId;
+        _onlineOrders = newOrders;
+        _renderOnlineOrders();
+        _updateOnlineBadge();
+        _updateOnlineStats();
+
+    } catch(e) {
+        console.error('[Online] Poll error:', e);
+    }
+}
+
+/* ── نمایش آلرت بالای لیست ── */
+function _showOnlineAlert(orders) {
+    var box = $('onlineAlertBox');
+    if (!box) return;
+    var count = orders.length;
+    var latest = orders[0];
+    $('onlineAlertTitle').textContent = count === 1
+        ? 'سفارش جدید از مشتری آنلاین!'
+        : toP(count) + ' سفارش جدید!';
+    $('onlineAlertMsg').textContent = latest
+        ? (latest.customer_name || 'مشتری') + ' — ' + fmtN(latest.total_price) + ' تومان'
+        : '';
+    box.style.display = 'flex';
+}
+
+function dismissOnlineAlert() {
+    var box = $('onlineAlertBox');
+    if (box) box.style.display = 'none';
+}
+
+/* ── رندر لیست سفارشات آنلاین ── */
+function _renderOnlineOrders() {
+    var list = $('onlineOrdersList');
+    if (!list) return;
+
+    if (!_onlineOrders.length) {
+        list.innerHTML = '<div class="orders-empty"><i class="bi bi-globe"></i><h3>سفارش آنلاین جدیدی نیست</h3><p>سفارشات جدید اینجا نمایش داده می‌شوند</p></div>';
+        return;
+    }
+
+    var h = '';
+    _onlineOrders.forEach(function(o) {
+        var elapsed = Math.floor((Date.now() / 1000) - o.created_at_ts);
+        var isLate = elapsed > 300;
+        var timeStr = elapsed < 60 ? toP(elapsed) + ' ثانیه پیش'
+            : elapsed < 3600 ? toP(Math.floor(elapsed / 60)) + ' دقیقه پیش'
+            : toP(Math.floor(elapsed / 3600)) + ' ساعت پیش';
+
+        h += '<div class="online-order-card" data-id="' + o.id + '">';
+        h += '<div class="oc-header">';
+        h += '<span class="oc-id"><i class="bi bi-globe" style="color:var(--pos-warning);margin-left:6px"></i>سفارش #' + toP(o.id) + '</span>';
+        h += '<span class="online-badge ' + o.status + '"><span class="s-dot"></span> در انتظار تأیید</span>';
+        h += '<span class="online-timer' + (isLate ? ' late' : '') + '"><i class="bi bi-clock"></i> ' + timeStr + '</span>';
+        h += '</div>';
+
+        h += '<div class="oc-body">';
+        h += '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px">';
+        if (o.customer_name) h += '<div style="font-size:.85rem;color:var(--pos-text)"><i class="bi bi-person" style="margin-left:4px"></i><strong>' + esc(o.customer_name) + '</strong></div>';
+        if (o.phone) h += '<div style="font-size:.85rem;color:var(--pos-text-sec)"><i class="bi bi-telephone" style="margin-left:4px"></i>' + esc(o.phone) + '</div>';
+        h += '</div>';
+        h += '<div class="oc-items">';
+        (o.items || []).forEach(function(item) {
+            h += '<div class="oc-item"><span class="oi-name">' + esc(item.food_name) + '</span><span class="oi-qty">×' + toP(item.quantity) + '</span></div>';
+        });
+        h += '</div></div>';
+
+        h += '<div class="oc-footer">';
+        h += '<div class="oc-total">' + fmtN(o.total_price) + ' <span class="toman">تومان</span></div>';
+        h += '<div class="oc-actions">';
+        h += '<button class="oc-btn oc-btn-confirm" onclick="confirmOnlineOrder(' + o.id + ')"><i class="bi bi-check-lg"></i> تأیید سفارش</button>';
+        h += '<button class="oc-btn oc-btn-reject" onclick="rejectOnlineOrder(' + o.id + ')"><i class="bi bi-x-lg"></i> رد</button>';
+        h += '<button class="oc-btn oc-btn-detail" onclick="showOnlineOrderDetail(' + o.id + ')"><i class="bi bi-eye"></i> جزئیات</button>';
+        h += '</div></div></div>';
+    });
+    list.innerHTML = h;
+}
+
+/* ── بج تب آنلاین ── */
+function _updateOnlineBadge() {
+    var count = _onlineOrders.filter(function(o) { return o.status === 'pending'; }).length;
+    var badge = $('onlineTabBadge');
+    if (badge) {
+        badge.textContent = toP(count);
+        if (count > 0) badge.classList.add('show');
+        else badge.classList.remove('show');
+    }
+    /* بج FAB موبایل */
+    var fabBadge = $('fabOnlineBadge');
+    if (fabBadge) {
+        fabBadge.textContent = toP(count);
+        if (count > 0) fabBadge.classList.remove('hide');
+        else fabBadge.classList.add('hide');
+    }
+}
+
+/* ── آمار بالای تب آنلاین ── */
+async function _updateOnlineStats() {
+    var pending = _onlineOrders.filter(function(o) { return o.status === 'pending'; }).length;
+    var pEl = $('onlinePendingCount');
+    if (pEl) pEl.textContent = toP(pending);
+
+    try {
+        var d = await apiFetch(ONLINE_ORDERS_API + '?status=all&t=' + Date.now());
+        if (d.success) {
+            var today = new Date().toISOString().slice(0, 10);
+            var confirmed = 0, sales = 0;
+            (d.orders || []).forEach(function(o) {
+                if (o.status === 'confirmed' && o.created_at && o.created_at.startsWith(today)) {
+                    confirmed++;
+                    sales += o.total_price;
+                }
+            });
+            var cEl = $('onlineConfirmedCount');
+            if (cEl) cEl.textContent = toP(confirmed);
+            var sEl = $('onlineTodaySales');
+            if (sEl) sEl.textContent = fmtN(sales) + ' ت';
+        }
+    } catch(e) {}
+}
+
+/* ── تأیید سفارش آنلاین ── */
+async function confirmOnlineOrder(orderId) {
+    if (!confirmAction('سفارش #' + orderId + ' تأیید شود؟\nموجودی آشپزخانه کسر خواهد شد.')) return;
+    var card = document.querySelector('.online-order-card[data-id="' + orderId + '"]');
+    if (card) { card.style.opacity = '.5'; card.style.pointerEvents = 'none'; }
+
+    try {
+        var d = await apiFetch(ONLINE_CONFIRM_API + orderId + '/', {
+            method: 'POST',
+            body: JSON.stringify({ payment_method: 'online' }),
+        });
+        if (d.success) {
+            showToast('سفارش #' + orderId + ' تأیید شد ✓', 'success');
+            loadOnlineOrders();
+            loadOrders();
+        } else {
+            if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; }
+            showToast(d.error || 'خطا', 'error');
+        }
+    } catch(e) {
+        if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; }
+        showToast('خطا در ارتباط با سرور', 'error');
+    }
+}
+
+/* ── رد سفارش آنلاین ── */
+async function rejectOnlineOrder(orderId) {
+    if (!confirmAction('سفارش #' + orderId + ' رد شود؟')) return;
+    var card = document.querySelector('.online-order-card[data-id="' + orderId + '"]');
+    if (card) { card.style.opacity = '.5'; card.style.pointerEvents = 'none'; }
+
+    try {
+        var d = await apiFetch(ONLINE_REJECT_API + orderId + '/', { method: 'POST' });
+        if (d.success) {
+            showToast('سفارش #' + orderId + ' رد شد', 'warning');
+            loadOnlineOrders();
+        } else {
+            if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; }
+            showToast(d.error || 'خطا', 'error');
+        }
+    } catch(e) {
+        if (card) { card.style.opacity = '1'; card.style.pointerEvents = ''; }
+        showToast('خطا در ارتباط با سرور', 'error');
+    }
+}
+
+/* ── جزئیات سفارش آنلاین (مدال مشترک) ── */
+function showOnlineOrderDetail(orderId) {
+    var o = null;
+    _onlineOrders.forEach(function(item) { if (item.id == orderId) o = item; });
+    if (!o) { showToast('اطلاعات سفارش یافت نشد', 'error'); return; }
+
+    var html = '<div class="od-row"><span class="od-label">شماره</span><span class="od-value">#' + toP(o.id) + '</span></div>';
+    html += '<div class="od-row"><span class="od-label">مشتری</span><span class="od-value">' + esc(o.customer_name || '—') + '</span></div>';
+    html += '<div class="od-row"><span class="od-label">تلفن</span><span class="od-value">' + esc(o.phone || '—') + '</span></div>';
+    html += '<div class="od-row"><span class="od-label">منبع</span><span class="od-value"><span class="online-badge pending"><span class="s-dot"></span> آنلاین</span></span></div>';
+    html += '<div class="od-row"><span class="od-label">وضعیت پرداخت</span><span class="od-value">' + esc(o.payment_status || '—') + '</span></div>';
+    html += '<div class="od-row"><span class="od-label">زمان</span><span class="od-value">' + esc(o.created_at) + '</span></div>';
+    html += '<div class="od-items-title">اقلام:</div><div class="od-items-box">';
+    (o.items || []).forEach(function(item) {
+        html += '<div class="od-item-row"><span style="font-weight:600">' + esc(item.food_name) + '</span><span style="color:var(--pos-accent);font-weight:700">×' + toP(item.quantity) + ' — ' + fmtN(item.price) + ' ت</span></div>';
+    });
+    html += '</div><div class="od-total-box"><div class="od-total-label">جمع کل</div><div class="od-total-val">' + fmtN(o.total_price) + ' تومان</div></div>';
+    $('odTitle').textContent = 'جزئیات سفارش آنلاین #' + toP(o.id);
+    $('odBody').innerHTML = html;
+    $('orderDetailModal').classList.add('active');
+}
+
+/* ── شروع / توقف polling ── */
+function startOnlinePolling() {
+    loadOnlineOrders();
+    _onlinePollTimer = setInterval(loadOnlineOrders, 5000);
+}
+function stopOnlinePolling() {
+    if (_onlinePollTimer) { clearInterval(_onlinePollTimer); _onlinePollTimer = null; }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -2344,23 +2767,23 @@ function closeHistoryDetail(){$('historyDetailModal').classList.remove('show');}
 })();
 
 /* ═══════════════════════════════════════════════════════════════
-   ★ INIT — اصلاح شده: اول داده بارگذاری بشه بعد UI
+   ★ INIT — اول داده بارگذاری بشه بعد UI
 ═══════════════════════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', async function() {
-    /* ★ اول داده از API بارگذاری بشه ★ */
     await loadPosData();
 
-    /* بعد UI رو بساز */
     posBuildCats();
     posFilter();
     updateDiscountTabBadge();
     syncFabCart(0);
 
-    /* event listener ها */
     var searchEl = $('posSearch');
     if (searchEl) searchEl.addEventListener('input', _posFilterDebounced);
     var discSearchEl = $('discSearch');
     if (discSearchEl) discSearchEl.addEventListener('input', debounce(discFilter, 200));
+
+    /* ★ شروع polling سفارشات آنلاین */
+    startOnlinePolling();
 });
 </script>
 {% endblock %}

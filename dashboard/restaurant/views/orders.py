@@ -1,15 +1,10 @@
-"""
-Order management API.
-"""
+
 import json as json_module
 import logging
 from decimal import Decimal
 
-from django.contrib.admin.views.decorators import staff_member_required
 from django.db import transaction
-from django.http import HttpRequest, JsonResponse
-from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.http import require_POST
+from django.http import JsonResponse
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -18,28 +13,72 @@ from ..models import (
     Order, OrderItem, Recipe, RawMaterial, SemiFinished,
     InventoryMovement, InventoryUsageLog,
 )
+from ..kitchen_services import (
+    deduct_for_order_ready,
+    restore_for_order_cancel,
+)
 
 logger = logging.getLogger(__name__)
 
 
+# ═══════════════════════════════════════
+#  ★★★ تغییر وضعیت سفارش — نقطه حیاتی ★★★
+# ═══════════════════════════════════════
+
+
 @api_view(["POST"])
-@staff_member_required
+@permission_classes([IsAuthenticated])             
 def order_change_status(request, pk):
     try:
-        order = Order.objects.get(pk=pk)
+        order = Order.objects.prefetch_related(      
+            'items__food__recipe'
+        ).get(pk=pk)
     except Order.DoesNotExist:
         return JsonResponse({"error": "سفارش یافت نشد."}, status=404)
+
     new_status = request.data.get("status")
     valid = ['pending', 'preparing', 'ready', 'delivered', 'cancelled']
     if new_status not in valid:
         return JsonResponse({"error": "وضعیت نامعتبر."}, status=400)
+
+    old_status = order.status
     order.status = new_status
     order.save(update_fields=['status'])
-    return JsonResponse({"success": True, "id": order.id, "status": new_status})
 
+    # ★★★ کلید اصلی: کسر/بازگشت موجودی آشپزخانه ★★★
+    if new_status == 'ready':
+        try:
+            deducted = deduct_for_order_ready(order)
+            logger.info(
+                'Order #%d: %s → ready, deducted %d kitchen items',
+                order.id, old_status, len(deducted),
+            )
+        except Exception as e:
+            logger.exception('Error deducting stock for order #%d', order.id)
+
+    elif new_status == 'cancelled':
+        try:
+            restored = restore_for_order_cancel(order)
+            logger.info(
+                'Order #%d: %s → cancelled, restored %d kitchen items',
+                order.id, old_status, len(restored),
+            )
+        except Exception as e:
+            logger.exception('Error restoring stock for order #%d', order.id)
+
+    return JsonResponse({
+        "success": True,
+        "id": order.id,
+        "status": new_status,
+    })
+
+
+# ═══════════════════════════════════════
+#  ارسال سفارش به آشپزخانه
+# ═══════════════════════════════════════
 
 @api_view(["POST"])
-@staff_member_required
+@permission_classes([IsAuthenticated])               
 def order_send_to_kitchen(request, pk):
     try:
         order = Order.objects.prefetch_related(
@@ -50,7 +89,10 @@ def order_send_to_kitchen(request, pk):
         return JsonResponse({"error": "سفارش یافت نشد."}, status=404)
 
     if order.status not in ('pending', 'confirmed'):
-        return JsonResponse({"error": "فقط سفارشات «در انتظار» یا «تأیید شده» قابل ارسال هستند."}, status=400)
+        return JsonResponse(
+            {"error": "فقط سفارشات «در انتظار» یا «تأیید شده» قابل ارسال هستند."},
+            status=400,
+        )
 
     errors = []
     materials_used = []
@@ -71,18 +113,27 @@ def order_send_to_kitchen(request, pk):
             for ri in recipe.ingredients.all():
                 needed = Decimal(str(ri.effective_quantity)) * qty
                 if ri.raw_material.quantity < needed:
-                    errors.append(f"«{food.name}»: {ri.raw_material.name} کم است (نیاز: {needed}، موجود: {ri.raw_material.quantity})")
+                    errors.append(
+                        f"«{food.name}»: {ri.raw_material.name} کم است "
+                        f"(نیاز: {needed}، موجود: {ri.raw_material.quantity})"
+                    )
 
             for rsf in recipe.semi_finished_items.all():
                 sf = rsf.semi_finished
                 needed_sf = Decimal(str(rsf.quantity)) * qty
                 if sf.current_stock < needed_sf:
-                    errors.append(f"«{food.name}»: نیم‌آماده «{sf.name}» کم است (نیاز: {needed_sf}، موجود: {sf.current_stock})")
+                    errors.append(
+                        f"«{food.name}»: نیم‌آماده «{sf.name}» کم است "
+                        f"(نیاز: {needed_sf}، موجود: {sf.current_stock})"
+                    )
                     continue
                 for sfi in sf.ingredients.all():
                     needed_raw = sfi.quantity * needed_sf
                     if sfi.raw_material.quantity < needed_raw:
-                        errors.append(f"«{food.name}» ← «{sf.name}»: {sfi.raw_material.name} کم است (نیاز: {needed_raw}، موجود: {sfi.raw_material.quantity})")
+                        errors.append(
+                            f"«{food.name}» ← «{sf.name}»: {sfi.raw_material.name} کم است "
+                            f"(نیاز: {needed_raw}، موجود: {sfi.raw_material.quantity})"
+                        )
 
         if errors:
             return JsonResponse({"error": errors}, status=400)
@@ -105,7 +156,8 @@ def order_send_to_kitchen(request, pk):
                     raw_material=rm, movement_type='order_usage',
                     quantity=needed, previous_stock=prev_stock,
                     new_stock=rm.quantity, reference_type='order',
-                    reference_id=order.id, notes=f'سفارش #{order.id} — {food.name} ×{qty}',
+                    reference_id=order.id,
+                    notes=f'سفارش #{order.id} — {food.name} ×{qty}',
                     created_by=request.user,
                 )
                 InventoryUsageLog.objects.create(
@@ -113,7 +165,10 @@ def order_send_to_kitchen(request, pk):
                     quantity_used=needed, reference=f'سفارش #{order.id}',
                     note=f'{food.name} ×{qty}',
                 )
-                materials_used.append({'name': rm.name, 'quantity': float(needed), 'unit': rm.get_unit_display(), 'type': 'direct'})
+                materials_used.append({
+                    'name': rm.name, 'quantity': float(needed),
+                    'unit': rm.get_unit_display(), 'type': 'direct',
+                })
 
             for rsf in recipe.semi_finished_items.all():
                 sf = rsf.semi_finished
@@ -130,7 +185,8 @@ def order_send_to_kitchen(request, pk):
                         raw_material=rm, movement_type='order_usage',
                         quantity=needed_raw, previous_stock=prev_stock,
                         new_stock=rm.quantity, reference_type='order',
-                        reference_id=order.id, notes=f'سفارش #{order.id} — {sf.name} ← {food.name} ×{qty}',
+                        reference_id=order.id,
+                        notes=f'سفارش #{order.id} — {sf.name} ← {food.name} ×{qty}',
                         created_by=request.user,
                     )
                     InventoryUsageLog.objects.create(
@@ -138,27 +194,51 @@ def order_send_to_kitchen(request, pk):
                         quantity_used=needed_raw, reference=f'سفارش #{order.id}',
                         note=f'{sf.name} ← {food.name} ×{qty}',
                     )
-                    materials_used.append({'name': rm.name, 'quantity': float(needed_raw), 'unit': rm.get_unit_display(), 'type': f'semi:{sf.name}'})
+                    materials_used.append({
+                        'name': rm.name, 'quantity': float(needed_raw),
+                        'unit': rm.get_unit_display(), 'type': f'semi:{sf.name}',
+                    })
 
         # مرحله ۳: تغییر وضعیت
         order.status = 'preparing'
         order.save(update_fields=['status'])
 
-    return JsonResponse({"success": True, "msg": f"سفارش #{order.id} به آشپزخانه ارسال شد.", "materials_used": materials_used})
+    return JsonResponse({
+        "success": True,
+        "msg": f"سفارش #{order.id} به آشپزخانه ارسال شد.",
+        "materials_used": materials_used,
+    })
 
+
+# ═══════════════════════════════════════
+#  لیست سفارشات آشپزخانه
+# ═══════════════════════════════════════
 
 @api_view(["GET"])
-@staff_member_required
+@permission_classes([IsAuthenticated])               # ★ 302 → 401
 def kitchen_orders_api(request):
     status_filter = request.GET.get("status", "preparing")
-    orders = Order.objects.prefetch_related('items__food').filter(status=status_filter).order_by('created_at')[:50]
+    orders = Order.objects.prefetch_related(
+        'items__food'
+    ).filter(
+        status=status_filter
+    ).order_by('created_at')[:50]
+
     data = []
     for order in orders:
-        items = [{"food_name": item.food.name if item.food else "—", "quantity": item.quantity} for item in order.items.all()]
+        items = [
+            {
+                "food_name": item.food.name if item.food else "—",
+                "quantity": item.quantity,
+            }
+            for item in order.items.all()
+        ]
         data.append({
-            "id": order.id, "status": order.status,
+            "id": order.id,
+            "status": order.status,
             "customer_name": order.customer_name or "—",
-            "items": items, "total_price": int(order.total_price),
+            "items": items,
+            "total_price": int(order.total_price),
             "created_at": order.created_at.strftime("%H:%M"),
         })
     return JsonResponse({"orders": data}, safe=False)

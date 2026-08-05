@@ -5,6 +5,7 @@ Restaurant Management System — URLs (★ نسخه اصلاح‌شده)
   ★FIX-1  حذف foods و categories از router (تقاطع با function-based views)
   ★FIX-2  گروه‌بندی منظم‌تر URLها + کامنت‌های بهتر
   ★FIX-3  اضافه شدن trailing-slash consistency
+  ★FIX-4  اضافه شدن مسیرهای فروش آنلاین
 """
 
 from django.urls import include, path
@@ -100,7 +101,7 @@ urlpatterns = [
 
     # ┌─────────────────────────────────────────────────────────┐
     # │  RECIPES                                                │
-    #  ★ مسیرهای خاص‌تر باید قبل از router باشند                │
+    # ── مسیرهای خاص‌تر باید قبل از router باشند ────────────── │
     # └─────────────────────────────────────────────────────────┘
 
     path("api/recipes/validate-inventory/",    views.validate_order_inventory_view,  name="validate_order_inventory"),
@@ -175,6 +176,11 @@ urlpatterns = [
     path("api/pos/close-report/<int:report_id>/", views.pos_close_report_detail, name="pos_close_report_detail"),
     path("api/pos/close-logs/",       views.pos_close_logs,        name="pos_close_logs"),
     path("pos/receipt/<int:pk>/",     views.pos_receipt,           name="pos_receipt"),
+
+    # ★ فروش آنلاین — تب جدید صندوق
+    path("api/pos/online-orders/",                       views.pos_online_orders,        name="pos_online_orders"),
+    path("api/pos/confirm-online/<int:order_id>/",       views.pos_confirm_online_order, name="pos_confirm_online"),
+    path("api/pos/reject-online/<int:order_id>/",        views.pos_reject_online_order,  name="pos_reject_online"),
 
     # ┌─────────────────────────────────────────────────────────┐
     # │  CARD READER                                            │
