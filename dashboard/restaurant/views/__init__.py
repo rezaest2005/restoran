@@ -26,13 +26,6 @@ from .auth import (
     UserListView, UserDetailView, SetSessionView,
 )
 
-# ── Foods API ──
-from .foods import (
-    public_food_list, public_category_list,
-    food_save, food_delete, food_management_api,
-    category_save, category_delete, product_category_lookup,
-)
-
 # ── Warehouse API ──
 from .warehouse import (
     raw_material_save, raw_material_delete, raw_material_suggestions,
@@ -72,6 +65,8 @@ from .pos import (
     toggle_online_orders,
     # منو عمومی — آینه صندوق
     public_menu_api,
+    # ★ ویرایش قیمت از صندوق
+    pos_update_food_price,
 )
 
 # ── Orders API ──
@@ -126,7 +121,7 @@ from .restaurant_page_views import (
     raw_materials_view,
     usage_log_view, ready_materials_page,
     kitchen_page, pos_page, pos_receipt,
-    food_management_page, orders_dashboard,
+     orders_dashboard,
     recipe_manager_page,
     loyalty_dashboard_page, loyalty_customers_page,
     loyalty_customer_detail_page, loyalty_coupons_page,
@@ -151,10 +146,6 @@ __all__ = [
     "LoginView", "RefreshView", "RegisterView", "LogoutView",
     "CurrentUserView", "ChangePasswordView", "ResetPasswordView",
     "UserListView", "UserDetailView", "SetSessionView",
-    # Foods
-    "public_food_list", "public_category_list",
-    "food_save", "food_delete", "food_management_api",
-    "category_save", "category_delete", "product_category_lookup",
     # Warehouse
     "raw_material_save", "raw_material_delete", "raw_material_suggestions",
     "supplier_list", "supplier_suggestions", "supplier_save", "supplier_delete",
@@ -187,6 +178,8 @@ __all__ = [
     "toggle_online_orders",
     # منو عمومی
     "public_menu_api",
+    # ★ ویرایش قیمت از صندوق
+    "pos_update_food_price",
     # Orders
     "order_change_status", "order_send_to_kitchen", "kitchen_orders_api",
     # Loyalty
@@ -223,7 +216,7 @@ __all__ = [
     "raw_materials_view",
     "usage_log_view", "ready_materials_page",
     "kitchen_page", "pos_page", "pos_receipt",
-    "food_management_page", "orders_dashboard",
+    "orders_dashboard",
     "recipe_manager_page",
     "loyalty_dashboard_page", "loyalty_customers_page",
     "loyalty_customer_detail_page", "loyalty_coupons_page",

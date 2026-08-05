@@ -459,18 +459,6 @@ def pos_receipt(request: HttpRequest, pk: int):
     })
 
 
-# ═══════════════════════════════════════════
-#  مدیریت غذا و سفارشات
-# ═══════════════════════════════════════════
-
-@staff_member_required(login_url=LOGIN_URL)
-def food_management_page(request: HttpRequest):
-    foods_data, categories_data = _build_foods_with_discounts()
-    return render(request, "restaurant/food_management.html", {
-        "foods_json": json_module.dumps(foods_data, ensure_ascii=False),
-        "categories_json": json_module.dumps(categories_data, ensure_ascii=False),
-    })
-
 
 @staff_member_required(login_url=LOGIN_URL)
 def orders_dashboard(request):
