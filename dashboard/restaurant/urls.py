@@ -6,6 +6,7 @@ Restaurant Management System — URLs (★ نسخه اصلاح‌شده)
   ★FIX-2  گروه‌بندی منظم‌تر URLها + کامنت‌های بهتر
   ★FIX-3  اضافه شدن trailing-slash consistency
   ★FIX-4  اضافه شدن مسیرهای فروش آنلاین
+  ★FIX-5  اضافه شدن API عمومی محصولات آشپزخانه
 """
 
 from django.urls import include, path
@@ -138,6 +139,7 @@ urlpatterns = [
     # └─────────────────────────────────────────────────────────┘
 
     path("api/kitchen/dashboard/",                  views.kitchen_dashboard_api,              name="kitchen_dashboard"),
+    path("api/kitchen/public-products/",            views.public_kitchen_products,            name="public_kitchen_products"),  # ★ عمومی — بدون لاگین
     path("api/kitchen/products/",                   views.KitchenProductListCreate.as_view(), name="kitchen-products-list"),
     path("api/kitchen/products/<int:pk>/",          views.KitchenProductDetail.as_view(),     name="kitchen-products-detail"),
     path("api/kitchen/products/<int:pk>/capacity/", views.kitchen_product_capacity,           name="kitchen-product-capacity"),
