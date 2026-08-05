@@ -1,14 +1,16 @@
-import json as json_module
-import logging
+"""
+Kitchen — آشپزخانه API. ★ نسخه اصلاحی تمیز
 
-from django.db.models import F
-from django.http import HttpRequest, JsonResponse
-from django.views.decorators.csrf import csrf_protect
-from django.views.decorators.http import require_POST
+تغییرات:
+  ★ حذف public_kitchen_products → حالا در pos.py به عنوان public_menu_api
+  ★ حذف import‌های اضافی
+"""
+
+import logging
 
 from rest_framework import generics, permissions, status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from django.core.exceptions import ValidationError
@@ -34,9 +36,7 @@ from ..tenancy import (
     get_current_restaurant, set_current_restaurant,
     get_restaurant_from_request,
 )
-from .helpers import _build_foods_with_discounts, _get_food_discount_info, VALID_WASTE_REASONS
-
-import json as json_lib
+from .helpers import VALID_WASTE_REASONS
 
 logger = logging.getLogger(__name__)
 
@@ -138,49 +138,6 @@ class KitchenInventoryList(generics.ListAPIView):
     queryset = KitchenInventory.objects.select_related("kitchen_product").all()
     serializer_class = KitchenInventorySerializer
     permission_classes = [permissions.IsAuthenticated]
-
-
-# ═══════════════════════════════════════
-#  ★★★ Public Kitchen Products — بدون لاگین ★★★
-# ═══════════════════════════════════════
-
-@api_view(["GET"])
-@permission_classes([AllowAny])
-def public_kitchen_products(request):
-    """API عمومی محصولات آشپزخانه — بدون نیاز به لاگین"""
-    qs = KitchenProduct.objects.filter(is_active=True)
-
-    cat = request.GET.get("category")
-    if cat:
-        qs = qs.filter(category_id=cat)
-
-    page_size = int(request.GET.get("page_size", 100))
-    page = int(request.GET.get("page", 1))
-    start = (page - 1) * page_size
-    total = qs.count()
-    items = qs[start:start + page_size]
-
-    data = []
-    for kp in items:
-        inv = KitchenInventory.objects.filter(kitchen_product_id=kp.id).first()
-        data.append({
-            "id": kp.id,
-            "name": kp.name,
-            "category_id": kp.category_id,
-            "category_name": getattr(kp, "category_name", ""),
-            "selling_price": int(kp.selling_price or 0),
-            "price": int(kp.selling_price or kp.price or 0),
-            "stock": int(inv.quantity) if inv else None,
-            "current_stock": int(inv.quantity) if inv else None,
-            "image": kp.image.url if getattr(kp, "image", None) else None,
-            "is_ready": getattr(kp, "is_ready", False),
-        })
-
-    return Response({
-        "count": total,
-        "results": data,
-        "next": f"?page={page + 1}&page_size={page_size}" if start + page_size < total else None,
-    })
 
 
 # ═══════════════════════════════════════

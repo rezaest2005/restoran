@@ -8,6 +8,8 @@ POS — صندوق فروش API. ★ نسخه اصلاحی نهایی
   ۴. ★ food_id validation → 400
   ۵. ★ restaurant= برای همه create ها
   ۶. ★ resolve_restaurant fallback اگه context خالی بود
+  ۷. ★ باز/بستن سفارش آنلاین
+  ۸. ★ public_menu_api — آینه صندوق برای منو آنلاین
 """
 import json
 import datetime
@@ -20,12 +22,14 @@ from django.http import HttpRequest, JsonResponse
 from django.utils import timezone
 
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.response import Response as DRFResponse
 
 from ..models import (
     Order, OrderItem, Food, KitchenProduct, KitchenInventory,
     ReadyMaterial, Coupon, Category, WasteLog,
     DayCloseReport, DayCloseLog,
+    OnlineOrderSettings,
 )
 from ..tenancy import get_current_restaurant, set_current_restaurant, get_restaurant_from_request
 
@@ -156,7 +160,7 @@ def pos_create_order(request: HttpRequest):
             return JsonResponse({"success": False, "error": "هیچ آیتم معتبری وجود ندارد"})
 
         with transaction.atomic():
-            restaurant = _resolve_restaurant(request)      # ★ changed
+            restaurant = _resolve_restaurant(request)
             if not restaurant:
                 return JsonResponse(
                     {"success": False, "error": "رستوران مشخص نشده — لطفاً وارد شوید"},
@@ -231,7 +235,7 @@ def pos_create_order(request: HttpRequest):
 
 
 # ═══════════════════════════════════════
-#  گزارش روزانه — ★ بدون discounts
+#  گزارش روزانه
 # ═══════════════════════════════════════
 
 @api_view(["GET"])
@@ -274,7 +278,6 @@ def pos_daily_report(request: HttpRequest):
         waste_logs = WasteLog.objects.filter(created_at__range=(start, end))
         waste_total = sum(w.quantity for w in waste_logs)
 
-        # ★ تخفیف‌ها حذف شد — KitchenDiscount model removed
         discount_total = 0
 
         return JsonResponse({
@@ -404,7 +407,7 @@ def pos_close_summary(request):
 
 
 # ═══════════════════════════════════════
-#  ثبت ضایعات از صندوق — ★ restaurant=
+#  ثبت ضایعات از صندوق
 # ═══════════════════════════════════════
 
 @api_view(["POST"])
@@ -416,7 +419,7 @@ def pos_register_waste(request):
         if not items:
             return JsonResponse({'success': False, 'error': 'آیتمی ارسال نشد'})
         registered = []
-        restaurant = _resolve_restaurant(request)          # ★ changed
+        restaurant = _resolve_restaurant(request)
         if not restaurant:
             return JsonResponse(
                 {"success": False, "error": "رستوران مشخص نشده"},
@@ -447,7 +450,7 @@ def pos_register_waste(request):
                     kitchen_product_id=kp.id,
                     quantity=actual_qty,
                     reason=note,
-                    restaurant=restaurant,      # ★ explicit
+                    restaurant=restaurant,
                 )
                 registered.append(f'{kp.name}×{actual_qty}')
         return JsonResponse({
@@ -474,7 +477,7 @@ def pos_close_all_pending(request):
 
 
 # ═══════════════════════════════════════
-#  ★★★ بستن روز — ★ restaurant= برای همه createها ★★★
+#  ★★★ بستن روز ★★★
 # ═══════════════════════════════════════
 
 @api_view(["POST"])
@@ -482,7 +485,7 @@ def pos_close_all_pending(request):
 def pos_close_day(request):
     today = timezone.localdate()
     user = request.user
-    restaurant = _resolve_restaurant(request)              # ★ changed
+    restaurant = _resolve_restaurant(request)
     if not restaurant:
         return JsonResponse(
             {"success": False, "error": "رستوران مشخص نشده"},
@@ -543,7 +546,7 @@ def pos_close_day(request):
         waste_value=waste_value, discount_total=discount_total,
         inventory_snapshot=inventory_snapshot, items_detail=items_detail,
         top_items=top_items, closed_by=user,
-        restaurant=restaurant,          # ★ explicit
+        restaurant=restaurant,
     )
 
     DayCloseLog.objects.create(
@@ -553,7 +556,7 @@ def pos_close_day(request):
             'order_count': order_count, 'waste_count': waste_count,
             'pending_delivered': pending_count,
         },
-        restaurant=restaurant,          # ★ explicit
+        restaurant=restaurant,
     )
 
     return JsonResponse({
@@ -620,6 +623,99 @@ def pos_close_logs(request):
         'created_at': log.created_at.strftime('%Y-%m-%d %H:%M:%S'),
     } for log in logs]
     return JsonResponse({'success': True, 'logs': data})
+
+
+# ═══════════════════════════════════════════════════════
+#  ★★★ Public Menu API — آینه صندوق (بدون لاگین) ★★★
+#  هر تغییر صندوق (تخفیف، قیمت، آیتم جدید) اینجا هم میاد
+# ═══════════════════════════════════════════════════════
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def public_menu_api(request):
+    """
+    API عمومی منو — آینه صندوق
+    از Food model می‌خونه (همون منبع صندوق)
+    + بررسی باز/بسته بودن سایت
+    """
+
+    # ── ۱. بررسی باز/بسته بودن ──
+    restaurant = _resolve_restaurant(request)
+    is_open = True
+    closed_message = ""
+
+    if restaurant:
+        try:
+            settings_obj, _ = OnlineOrderSettings.objects.get_or_create(
+                restaurant=restaurant,
+                defaults={"is_open": True},
+            )
+            is_open = settings_obj.is_open
+            closed_message = settings_obj.closed_message if not settings_obj.is_open else ""
+        except Exception:
+            pass
+
+    # ── ۲. خواندن غذاها از POS (Food model — همون منبع صندوق) ──
+    qs = Food.objects.select_related("category").filter(is_available=True)
+
+    cat = request.GET.get("category")
+    if cat:
+        qs = qs.filter(category_id=cat)
+
+    search = request.GET.get("search")
+    if search:
+        qs = qs.filter(name__icontains=search)
+
+    foods = qs.order_by("category__name", "name")
+
+    # ── ۳. صفحه‌بندی ──
+    page_size = int(request.GET.get("page_size", 100))
+    page = int(request.GET.get("page", 1))
+    start = (page - 1) * page_size
+    total = foods.count()
+    items = foods[start:start + page_size]
+
+    # ── ۴. ساخت خروجی (قیمت + تخفیف — از همون فیلدهای صندوق) ──
+    data = []
+    for food in items:
+        price = int(food.price or 0)
+        final = int(food.final_price or price)
+
+        # تخفیف — اگه final_price < price یعنی صندوق تخفیف زده
+        discount_info = None
+        if final < price and price > 0:
+            diff = price - final
+            pct = round(diff / price * 100)
+            discount_info = {
+                "type": "percentage",
+                "value": pct,
+                "label": f"{pct}% تخفیف",
+            }
+
+        # وقتی سایت بسته‌ست، همه ناموجود
+        available = True if is_open else False
+
+        data.append({
+            "id": food.id,
+            "name": food.name,
+            "description": getattr(food, "description", "") or "",
+            "category_id": food.category_id,
+            "category_name": food.category.name if food.category else "",
+            "price": price,
+            "final_price": final,
+            "image": food.image.url if getattr(food, "image", None) else None,
+            "discount": discount_info,
+            "is_available": available,
+        })
+
+    return DRFResponse({
+        "is_open": is_open,
+        "closed_message": closed_message,
+        "count": total,
+        "results": data,
+        "next": f"?page={page + 1}&page_size={page_size}" if start + page_size < total else None,
+    })
+
 
 # ═══════════════════════════════════════════════
 #  ★★★ فروش آنلاین — تب جدید صندوق ★★★
@@ -760,4 +856,65 @@ def pos_reject_online_order(request, order_id):
         "success": True,
         "msg": f"سفارش #{order.id} رد شد",
         "order_id": order.id,
+    })
+
+
+# ═══════════════════════════════════════════════════════
+#  ★★★ باز/بستن سفارش آنلاین از صندوق ★★★
+# ═══════════════════════════════════════════════════════
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def online_orders_status(request):
+    """صندوق‌دار وضعیت فعلی رو ببینه"""
+    restaurant = _resolve_restaurant(request)
+    if not restaurant:
+        return JsonResponse({"error": "رستوران یافت نشد"}, status=400)
+
+    settings_obj, _ = OnlineOrderSettings.objects.get_or_create(
+        restaurant=restaurant,
+        defaults={"is_open": True},
+    )
+    return JsonResponse({
+        "is_open": settings_obj.is_open,
+        "closed_message": settings_obj.closed_message,
+        "updated_at": settings_obj.updated_at.isoformat() if settings_obj.updated_at else None,
+        "updated_by": settings_obj.updated_by.username if settings_obj.updated_by else None,
+    })
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def toggle_online_orders(request):
+    """صندوق‌دار سایت رو باز یا بسته می‌کنه"""
+    restaurant = _resolve_restaurant(request)
+    if not restaurant:
+        return JsonResponse({"error": "رستوران یافت نشد"}, status=400)
+
+    settings_obj, _ = OnlineOrderSettings.objects.get_or_create(
+        restaurant=restaurant,
+        defaults={"is_open": True},
+    )
+
+    # toggle یا ست مستقیم
+    new_state = request.data.get("is_open")
+    if new_state is None:
+        settings_obj.is_open = not settings_obj.is_open
+    else:
+        settings_obj.is_open = bool(new_state)
+
+    # پیام اختصاصی
+    msg = request.data.get("closed_message")
+    if msg is not None:
+        settings_obj.closed_message = msg
+
+    settings_obj.updated_by = request.user
+    settings_obj.save()
+
+    status_text = "باز شد" if settings_obj.is_open else "بسته شد"
+    return JsonResponse({
+        "success": True,
+        "is_open": settings_obj.is_open,
+        "msg": f"سفارش آنلاین {status_text}",
+        "closed_message": settings_obj.closed_message,
     })

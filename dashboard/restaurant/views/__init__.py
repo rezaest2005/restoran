@@ -54,7 +54,6 @@ from .kitchen import (
     production_plan_approve, production_plan_execute,
     ProductionLogList,
     KitchenWasteListCreate, KitchenWasteDetail,
-    public_kitchen_products,          # ★ اضافه شد
 )
 
 # ── POS API ──
@@ -64,10 +63,15 @@ from .pos import (
     pos_close_all_pending, pos_close_day,
     pos_validate_coupon,
     pos_close_history, pos_close_report_detail, pos_close_logs,
-    # ★ فروش آنلاین
+    # فروش آنلاین
     pos_online_orders,
     pos_confirm_online_order,
     pos_reject_online_order,
+    # باز/بستن سایت
+    online_orders_status,
+    toggle_online_orders,
+    # منو عمومی — آینه صندوق
+    public_menu_api,
 )
 
 # ── Orders API ──
@@ -143,7 +147,6 @@ __all__ = [
     "MembershipLevelViewSet", "CustomerViewSet", "CouponViewSet",
     "RewardViewSet", "ReferralViewSet", "NotificationViewSet",
     "LoyaltyTransactionViewSet", "RewardRedemptionViewSet",
-    "PackagingMaterialViewSet",
     # Auth
     "LoginView", "RefreshView", "RegisterView", "LogoutView",
     "CurrentUserView", "ChangePasswordView", "ResetPasswordView",
@@ -167,20 +170,23 @@ __all__ = [
     "ProductionPlanListCreate", "ProductionPlanDetail",
     "kitchen_calculate_materials",
     "production_plan_approve", "production_plan_execute",
-    "KitchenDiscountListCreate", "KitchenDiscountDetail",
     "ProductionLogList",
     "KitchenWasteListCreate", "KitchenWasteDetail",
-    "public_kitchen_products",        # ★ اضافه شد
     # POS
     "pos_create_order", "pos_daily_report",
     "pos_close_summary", "pos_register_waste",
     "pos_close_all_pending", "pos_close_day",
     "pos_validate_coupon",
     "pos_close_history", "pos_close_report_detail", "pos_close_logs",
-    # ★ فروش آنلاین
+    # فروش آنلاین
     "pos_online_orders",
     "pos_confirm_online_order",
     "pos_reject_online_order",
+    # باز/بستن سایت
+    "online_orders_status",
+    "toggle_online_orders",
+    # منو عمومی
+    "public_menu_api",
     # Orders
     "order_change_status", "order_send_to_kitchen", "kitchen_orders_api",
     # Loyalty
