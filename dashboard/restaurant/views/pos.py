@@ -10,11 +10,13 @@ POS — صندوق فروش API. ★ نسخه اصلاحی نهایی
   ۶. ★ resolve_restaurant fallback اگه context خالی بود
   ۷. ★ باز/بستن سفارش آنلاین
   ۸. ★ public_menu_api — آینه صندوق برای منو آنلاین
+  ۹. ★ pos_update_food_price — ویرایش قیمت از صندوق
+  ۱۰. ★ رفع crash قیمت‌های خراب (NaN) با try/except
 """
 import json
 import datetime
 import logging
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
 from django.db.models import F, Sum
@@ -41,10 +43,6 @@ logger = logging.getLogger(__name__)
 # ═══════════════════════════════════════
 
 def _resolve_restaurant(request):
-    """
-    ۱. اول از context بخون (middleware باید ست کرده باشه)
-    ۲. اگه نبود، از request.user استخراج کن
-    """
     r = get_current_restaurant()
     if r:
         return r
@@ -60,21 +58,12 @@ def _resolve_restaurant(request):
 # ═══════════════════════════════════════
 
 def _find_kp_for_food(food):
-    """
-    ★ اصلاح‌شده: مستقیم از طریق join query
-    نه food.recipe.kitchen_products (که ممکنه AttributeError بده)
-    """
-    # روش ۱: join مستقیم
     kp = KitchenProduct.objects.filter(recipe__food=food).first()
     if kp:
         return kp
-
-    # روش ۲: اسم یکسان
     kp = KitchenProduct.objects.filter(name=food.name).first()
     if kp:
         return kp
-
-    # روش ۳: all_objects (اگه TenantManager فیلتر اشتباه زد)
     kp = KitchenProduct.all_objects.filter(recipe__food=food).first()
     return kp
 
@@ -105,7 +94,6 @@ def pos_create_order(request: HttpRequest):
             raw_id = item.get("food_id") or item.get("id")
             is_ready = item.get("is_ready", False)
 
-            # ── نوشیدنی آماده ──
             if is_ready or (isinstance(raw_id, str) and str(raw_id).startswith("ready_")):
                 rm_id = int(str(raw_id).replace("ready_", ""))
                 rm = ReadyMaterial.objects.filter(id=rm_id).first()
@@ -118,10 +106,7 @@ def pos_create_order(request: HttpRequest):
                     "type": "ready", "obj": rm, "qty": qty,
                     "price": int(rm.selling_price),
                 })
-
-            # ── غذای پخته ──
             else:
-                # ★ اعتبارسنجی food_id
                 food_id = int(raw_id) if raw_id else 0
                 food = Food.objects.filter(id=food_id).first() if food_id > 0 else None
                 if not food:
@@ -129,12 +114,12 @@ def pos_create_order(request: HttpRequest):
                         {"success": False, "error": f"غذا با شناسه {raw_id} پیدا نشد"},
                         status=400,
                     )
+                try:
+                    db_price = int(food.final_price)
+                except (ValueError, TypeError, InvalidOperation):
+                    db_price = int(food.price or 0)
 
-                db_price = int(food.final_price)
-
-                # ★ پیدا کردن محصول آشپزخانه — lookup اصلاح‌شده
                 kp = _find_kp_for_food(food)
-
                 if kp:
                     try:
                         inv = KitchenInventory.objects.get(kitchen_product=kp)
@@ -183,7 +168,6 @@ def pos_create_order(request: HttpRequest):
 
                 if vi["type"] == "ready":
                     rm = vi["obj"]
-                    # ★ کسر موجودی آماده — atomic
                     updated = ReadyMaterial.objects.filter(
                         id=rm.id, quantity__gte=qty,
                     ).update(quantity=F('quantity') - qty)
@@ -202,7 +186,6 @@ def pos_create_order(request: HttpRequest):
                     food = vi["obj"]
                     kp_id = vi["kp_id"]
                     if kp_id:
-                        # ★ اتمیک با F()
                         updated = KitchenInventory.objects.filter(
                             kitchen_product_id=kp_id,
                             quantity__gte=qty,
@@ -625,9 +608,64 @@ def pos_close_logs(request):
     return JsonResponse({'success': True, 'logs': data})
 
 
+# ═══════════════════════════════════════════════
+#  ★★★ ویرایش قیمت غذا از صندوق ★★★
+# ═══════════════════════════════════════════════
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def pos_update_food_price(request):
+    """
+    صندوقدار قیمت غذا رو ویرایش می‌کنه
+    POST /api/pos/update-food-price/
+    body: { "food_id": 7, "price": 300000, "final_price": 250000 }
+           final_price اختیاری — اگه نباشه از price میاد
+    """
+    try:
+        data = request.data
+        food_id = data.get("food_id")
+        price = data.get("price")
+        final_price = data.get("final_price")
+
+        if not food_id:
+            return JsonResponse({"success": False, "error": "food_id الزامی است"}, status=400)
+
+        food = Food.objects.filter(id=food_id).first()
+        if not food:
+            return JsonResponse({"success": False, "error": "غذا پیدا نشد"}, status=404)
+
+        # ★ بروزرسانی قیمت
+        if price is not None:
+            food.price = max(0, int(price))
+
+        if final_price is not None:
+            food.final_price = max(0, int(final_price))
+        elif price is not None:
+            # اگه final_price ارسال نشده، از price استفاده کن
+            food.final_price = food.price
+
+        # اگه final_price بیشتر از price بود → بدون تخفیف
+        if food.final_price > food.price and food.price > 0:
+            food.final_price = food.price
+
+        food.save(update_fields=["price", "final_price"])
+
+        return JsonResponse({
+            "success": True,
+            "food_id": food.id,
+            "name": food.name,
+            "price": int(food.price),
+            "final_price": int(food.final_price),
+            "msg": f"قیمت {food.name} بروزرسانی شد",
+        })
+
+    except Exception as exc:
+        logger.exception("Error updating food price")
+        return JsonResponse({"success": False, "error": str(exc)})
+
+
 # ═══════════════════════════════════════════════════════
 #  ★★★ Public Menu API — آینه صندوق (بدون لاگین) ★★★
-#  هر تغییر صندوق (تخفیف، قیمت، آیتم جدید) اینجا هم میاد
 # ═══════════════════════════════════════════════════════
 
 @api_view(["GET"])
@@ -656,7 +694,7 @@ def public_menu_api(request):
             pass
 
     # ── ۲. خواندن غذاها از POS (Food model — همون منبع صندوق) ──
-    qs = Food.objects.select_related("category").filter(is_available=True)
+    qs = Food.objects.select_related("category").all()
 
     cat = request.GET.get("category")
     if cat:
@@ -675,13 +713,32 @@ def public_menu_api(request):
     total = foods.count()
     items = foods[start:start + page_size]
 
-    # ── ۴. ساخت خروجی (قیمت + تخفیف — از همون فیلدهای صندوق) ──
+    # ── ۴. ساخت خروجی ──
     data = []
     for food in items:
-        price = int(food.price or 0)
-        final = int(food.final_price or price)
+        # ★ try/except برای قیمت‌های خراب (NaN, None, ...)
+        try:
+            raw_price = int(food.price or 0)
+        except (ValueError, TypeError, InvalidOperation):
+            raw_price = 0
 
-        # تخفیف — اگه final_price < price یعنی صندوق تخفیف زده
+        try:
+            raw_final = int(food.final_price or 0)
+        except (ValueError, TypeError, InvalidOperation):
+            raw_final = 0
+
+        # قیمت نهایی
+        if raw_price > 0:
+            price = raw_price
+            final = raw_final if raw_final > 0 else raw_price
+        elif raw_final > 0:
+            price = raw_final
+            final = raw_final
+        else:
+            price = 0
+            final = 0
+
+        # تخفیف
         discount_info = None
         if final < price and price > 0:
             diff = price - final
@@ -693,7 +750,16 @@ def public_menu_api(request):
             }
 
         # وقتی سایت بسته‌ست، همه ناموجود
-        available = True if is_open else False
+        available = is_open and getattr(food, "is_available", True)
+
+        # تصویر: اول Food، بعد KitchenProduct
+        image_url = None
+        if getattr(food, "image", None) and food.image:
+            image_url = food.image.url
+        else:
+            kp = _find_kp_for_food(food)
+            if kp and getattr(kp, "image", None) and kp.image:
+                image_url = kp.image.url
 
         data.append({
             "id": food.id,
@@ -703,7 +769,7 @@ def public_menu_api(request):
             "category_name": food.category.name if food.category else "",
             "price": price,
             "final_price": final,
-            "image": food.image.url if getattr(food, "image", None) else None,
+            "image": image_url,
             "discount": discount_info,
             "is_available": available,
         })
@@ -711,7 +777,7 @@ def public_menu_api(request):
     return DRFResponse({
         "is_open": is_open,
         "closed_message": closed_message,
-        "count": total,
+        "count": len(data),
         "results": data,
         "next": f"?page={page + 1}&page_size={page_size}" if start + page_size < total else None,
     })
@@ -724,12 +790,6 @@ def public_menu_api(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def pos_online_orders(request):
-    """
-    سفارشات آنلاین در انتظار تأیید صندوقدار
-    ?status=pending → فقط در انتظار (پیش‌فرض)
-    ?status=all     → همه سفارشات آنلاین
-    ?since=ID       → فقط سفارشات جدیدتر از این ID (برای polling)
-    """
     status_filter = request.GET.get("status", "pending")
     since_id = request.GET.get("since")
 
@@ -772,11 +832,6 @@ def pos_online_orders(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def pos_confirm_online_order(request, order_id):
-    """
-    تأیید سفارش آنلاین توسط صندوقدار
-    → status='confirmed', payment_status='paid'
-    → کسر موجودی آشپزخانه
-    """
     try:
         order = Order.objects.prefetch_related("items__food").get(
             id=order_id, source="online",
@@ -805,7 +860,6 @@ def pos_confirm_online_order(request, order_id):
                 "confirmed_by", "confirmed_at",
             ])
 
-            # ★ کسر موجودی آشپزخانه
             for item in order.items.all():
                 if item.food_id:
                     kp = _find_kp_for_food(item.food)
@@ -829,10 +883,6 @@ def pos_confirm_online_order(request, order_id):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def pos_reject_online_order(request, order_id):
-    """
-    رد سفارش آنلاین
-    → status='cancelled'
-    """
     try:
         order = Order.objects.get(id=order_id, source="online")
     except Order.DoesNotExist:
@@ -866,7 +916,6 @@ def pos_reject_online_order(request, order_id):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def online_orders_status(request):
-    """صندوق‌دار وضعیت فعلی رو ببینه"""
     restaurant = _resolve_restaurant(request)
     if not restaurant:
         return JsonResponse({"error": "رستوران یافت نشد"}, status=400)
@@ -886,7 +935,6 @@ def online_orders_status(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def toggle_online_orders(request):
-    """صندوق‌دار سایت رو باز یا بسته می‌کنه"""
     restaurant = _resolve_restaurant(request)
     if not restaurant:
         return JsonResponse({"error": "رستوران یافت نشد"}, status=400)
@@ -896,14 +944,12 @@ def toggle_online_orders(request):
         defaults={"is_open": True},
     )
 
-    # toggle یا ست مستقیم
     new_state = request.data.get("is_open")
     if new_state is None:
         settings_obj.is_open = not settings_obj.is_open
     else:
         settings_obj.is_open = bool(new_state)
 
-    # پیام اختصاصی
     msg = request.data.get("closed_message")
     if msg is not None:
         settings_obj.closed_message = msg

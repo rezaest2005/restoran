@@ -8,6 +8,8 @@ Restaurant Management System — URLs (★ نسخه نهایی)
   ★FIX-4  اضافه شدن مسیرهای فروش آنلاین
   ★FIX-5  منو عمومی از POS (آینه صندوق) — حذف از آشپزخانه
   ★FIX-6  باز/بستن سفارش آنلاین از صندوق
+  ★FIX-7  ویرایش قیمت غذا از صندوق
+  ★FIX-8  سازگاری با React قدیمی — /api/kitchen/public-products/ → public_menu_api
 """
 
 from django.urls import include, path
@@ -67,14 +69,6 @@ urlpatterns = [
     path("api/users/approve/",          views.approve_user_api,         name="approve_user"),
     path("api/users/reject/",           views.reject_user_api,          name="reject_user"),
     path("api/users/delete/",           views.user_delete,              name="user_delete"),
-
-    path("api/foods/",                     views.public_food_list,     name="public_food_list"),
-    path("api/foods/save/",                views.food_save,            name="food_save"),
-    path("api/foods/delete/",              views.food_delete,          name="food_delete"),
-    path("api/foods/management/",          views.food_management_api,  name="food_management_api"),
-    path("api/categories/",                views.public_category_list, name="public_category_list"),
-    path("api/categories/save/",           views.category_save,        name="category_save"),
-    path("api/categories/delete/",         views.category_delete,      name="category_delete"),
 
     # ┌─────────────────────────────────────────────────────────┐
     # │  RAW MATERIALS & SUPPLIERS                              │
@@ -140,6 +134,8 @@ urlpatterns = [
     # └─────────────────────────────────────────────────────────┘
 
     path("api/kitchen/dashboard/",                  views.kitchen_dashboard_api,              name="kitchen_dashboard"),
+    # ★ سازگاری با React قدیمی — همون view جدید (public_menu_api) رو صدا میزنه
+    path("api/kitchen/public-products/",            views.public_menu_api,                    name="public_kitchen_products_compat"),
     path("api/kitchen/products/",                   views.KitchenProductListCreate.as_view(), name="kitchen-products-list"),
     path("api/kitchen/products/<int:pk>/",          views.KitchenProductDetail.as_view(),     name="kitchen-products-detail"),
     path("api/kitchen/products/<int:pk>/capacity/", views.kitchen_product_capacity,           name="kitchen-product-capacity"),
@@ -179,6 +175,9 @@ urlpatterns = [
     path("api/pos/close-logs/",       views.pos_close_logs,        name="pos_close_logs"),
     path("pos/receipt/<int:pk>/",     views.pos_receipt,           name="pos_receipt"),
 
+    # ★ ویرایش قیمت غذا از صندوق
+    path("api/pos/update-food-price/", views.pos_update_food_price, name="pos_update_food_price"),
+
     # ★ منو عمومی — آینه صندوق (بدون لاگین)
     path("api/menu/",                             views.public_menu_api,            name="public_menu"),
 
@@ -205,12 +204,6 @@ urlpatterns = [
     path("api/orders/<int:pk>/status/",          views.order_change_status,    name="order_change_status"),
     path("api/orders/<int:pk>/send-to-kitchen/", views.order_send_to_kitchen,  name="order_send_to_kitchen"),
     path("api/orders/kitchen/",                  views.kitchen_orders_api,     name="kitchen_orders_api"),
-
-    # ┌─────────────────────────────────────────────────────────┐
-    # │  MISC                                                   │
-    # └─────────────────────────────────────────────────────────┘
-
-    path("api/product-category-lookup/", views.product_category_lookup, name="product_category_lookup"),
 
     # ┌─────────────────────────────────────────────────────────┐
     # │  SUPER ADMIN                                            │
@@ -243,7 +236,6 @@ urlpatterns = [
     path("dashboard/usage-log/",                        views.usage_log_view,                name="usage_log"),
     path("dashboard/kitchen/",                          views.kitchen_page,                  name="kitchen_page"),
     path("dashboard/pos/",                              views.pos_page,                      name="pos_page"),
-    path("dashboard/foods/",                            views.food_management_page,          name="food_management"),
     path("dashboard/orders/",                           views.orders_dashboard,              name="orders_dashboard"),
     path("dashboard/recipes/",                          views.recipe_manager_page,           name="recipes_page"),
     path("dashboard/recipes/manager/",                  views.recipe_manager_page,           name="recipe_manager"),
