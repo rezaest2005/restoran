@@ -520,51 +520,35 @@ function Menu({ onAddToCart, cartCount = 0 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
 
-  const loadData = useCallback(async () => {
+const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      /* ★ API عمومی — بدون لاگین ★ */
-      const [kitchenRes, dictRes] = await Promise.allSettled([
-        fetchAllPages(`${API}/api/kitchen/public-products/?page_size=500`),
-        axios.get(`${API}/api/dictionary/food-menu/`).catch(() => null),
-      ]);
+      /* ★ API عمومی — یک فراخوانی، همه داده ★ */
+      const { data } = await axios.get(`${API}/api/menu/`);
 
-      const kitchenItems = kitchenRes.status === 'fulfilled' ? kitchenRes.value : [];
-      let dictItems = [];
-      if (dictRes.status === 'fulfilled' && dictRes.value) {
-        const d = dictRes.value.data;
-        dictItems = d.items || d.results || d || [];
-      }
+      const items = data.results || data || [];
 
-      /* ── اگه هیچ داده‌ای نبود → خطا ── */
-      if (kitchenItems.length === 0 && dictItems.length === 0) {
+      if (items.length === 0) {
         throw new Error('هیچ محصولی یافت نشد — لطفاً بعداً تلاش کنید');
       }
 
-      /* ── Maps ── */
-      const kMap = {};
-      kitchenItems.forEach(k => { kMap[String(k.id)] = k; });
+      /* ★ نگاشت مستقیم — نیازی به merge نیست ★ */
+      const merged = items.map(f => ({
+        id:            f.id,
+        name:          f.name || '',
+        category_id:   f.category_id ?? null,
+        category_name: f.category_name || '',
+        description:   f.description || '',
+        kitchen_price: f.price || 0,
+        final_price:   f.final_price || f.price || 0,
+        stock:         f.is_available ? 99 : 0,
+        image:         f.image || null,
+        is_ready:      false,
+        discount:      f.discount || null,
+      }));
 
-      const dMap = {};
-      dictItems.forEach(d => { dMap[String(d.id)] = d; });
-
-      /* ── Merge: dictionary (name+category) + kitchen (price+stock) ── */
-      const merged = [];
-      const doneIds = {};
-
-      dictItems.forEach(dict => {
-        const k = kMap[String(dict.id)] || null;
-        merged.push(buildFood(dict, k));
-        doneIds[String(dict.id)] = true;
-      });
-      kitchenItems.forEach(k => {
-        if (!doneIds[String(k.id)]) {
-          merged.push(buildFood(null, k));
-        }
-      });
-
-      /* ── Categories از merged data ── */
+      /* ── Categories ── */
       const catMap = {};
       merged.forEach(f => {
         const cid = String(f.category_id || '');
