@@ -1443,6 +1443,40 @@ class WasteLog(TenantModel):
             self.cost_per_unit = int(self.kitchen_product.calculate_cost())
         super().save(*args, **kwargs)
 
+# ─── 11.5. ONLINE ORDER SETTINGS ────────
+
+
+class OnlineOrderSettings(models.Model):
+    """صندوق‌دار سایت سفارش آنلاین رو باز/بسته می‌کنه"""
+    restaurant = models.OneToOneField(
+        Restaurant,
+        on_delete=models.CASCADE,
+        related_name='online_settings',
+        verbose_name="رستوران",
+    )
+    is_open = models.BooleanField(default=True, verbose_name="سفارش آنلاین فعال")
+    closed_message = models.TextField(
+        default="رستوران بسته است",
+        verbose_name="پیام بسته بودن",
+    )
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین بروزرسانی")
+    updated_by = models.ForeignKey(
+        User, null=True, blank=True,
+        on_delete=models.SET_NULL,
+        verbose_name="آخرین تغییر توسط",
+    )
+
+    class Meta:
+        verbose_name = "تنظیمات سفارش آنلاین"
+        verbose_name_plural = "تنظیمات سفارش آنلاین"
+
+    def __str__(self):
+        status = "باز" if self.is_open else "بسته"
+        return f"سفارش آنلاین: {status}"
+
+    @property
+    def status_text(self):
+        return "باز" if self.is_open else "بسته"
 
 # ─── 12. DAY CLOSE ───────────────────────
 

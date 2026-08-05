@@ -256,7 +256,7 @@ const css = `
   border: 1px solid rgba(255,255,255,0.08);
 }
 
-/* ── ★ Discount Badge on Card ── */
+/* ── Discount Badge on Card ── */
 .disc-badge {
   position: absolute; top: 16px; left: 16px; z-index: 5;
   background: linear-gradient(135deg, ${T.accentHot}, ${T.accent});
@@ -265,7 +265,7 @@ const css = `
   display: flex; align-items: center; gap: 4px;
 }
 
-/* ── ★ Stock Badge ── */
+/* ── Stock Badge ── */
 .stock-badge {
   position: absolute; bottom: 16px; left: 16px; z-index: 5;
   font-size: .7rem; font-weight: 600; padding: 4px 10px; border-radius: 6px;
@@ -281,7 +281,7 @@ const css = `
 .bp { font-size: 1.35rem; font-weight: 800; color: ${T.text}; display: flex; align-items: baseline; gap: 4px; }
 .bu { font-size: .8rem; font-weight: 400; color: ${T.textMuted}; margin-right: 2px; }
 
-/* ── ★ Old Price Strikethrough ── */
+/* ── Old Price Strikethrough ── */
 .bp-old {
   font-size: .9rem; font-weight: 500; color: ${T.textDim};
   text-decoration: line-through; margin-left: 8px; direction: ltr;
@@ -389,7 +389,7 @@ async function fetchAllPages(url) {
 const emojis = ['🍔','🍕','🌮','🍟','🍗','🥩','🥗','🌯','🌭','🥪','🍜','🍝','🍛','🍱'];
 
 /* ═══════════════════════════════════════════════════════
- * ★ FoodCard — با پشتیبانی تخفیف و موجودی
+ * FoodCard — با پشتیبانی تخفیف و موجودی
  * ═══════════════════════════════════════════════════════ */
 function FoodCard({ food, catName, onAdd }) {
   const [ok, setOk] = useState(false);
@@ -424,7 +424,6 @@ function FoodCard({ food, catName, onAdd }) {
         <div className="ci-ov" />
         {catName && <span className="cb">{catName}</span>}
 
-        {/* ★ Discount Badge */}
         {hasDiscount && (
           <span className="disc-badge">
             <FireSVG />
@@ -434,7 +433,6 @@ function FoodCard({ food, catName, onAdd }) {
           </span>
         )}
 
-        {/* ★ Stock Badge */}
         {outOfStock && (
           <span className="stock-badge stock-out">ناموجود</span>
         )}
@@ -479,7 +477,40 @@ function FoodCard({ food, catName, onAdd }) {
 }
 
 /* ═══════════════════════════════════════════════════════
- * ★ Main Menu — API از صندوق (dictionary + kitchen)
+ * buildFood — dictionary + kitchen merge
+ * ═══════════════════════════════════════════════════════ */
+function buildFood(dict, kitchen) {
+  const kitchenPrice = kitchen
+    ? (kitchen.selling_price || kitchen.price || kitchen.kitchen_price || 0)
+    : (dict ? (dict.price || 0) : 0);
+
+  const stock = kitchen
+    ? (kitchen.stock != null ? kitchen.stock
+      : kitchen.current_stock != null ? kitchen.current_stock : null)
+    : null;
+
+  const discount = kitchen?.discount || null;
+  const finalPrice = discount
+    ? (discount.discounted_price || kitchenPrice)
+    : kitchenPrice;
+
+  return {
+    id:            dict ? dict.id : kitchen.id,
+    name:          dict ? (dict.name || '') : (kitchen.name || ''),
+    category_id:   dict ? (dict.category_id ?? null) : (kitchen.category_id ?? null),
+    category_name: dict ? (dict.category_name || '') : (kitchen.category_name || ''),
+    description:   dict ? (dict.description || '') : (kitchen.description || ''),
+    kitchen_price: kitchenPrice,
+    final_price:   finalPrice,
+    stock:         stock,
+    image:         kitchen ? (kitchen.image || null) : (dict ? (dict.image || null) : null),
+    is_ready:      kitchen ? (kitchen.is_ready || false) : false,
+    discount:      discount,
+  };
+}
+
+/* ═══════════════════════════════════════════════════════
+ * ★ Main Menu — ★ اصلاح شده: public API + fallback
  * ═══════════════════════════════════════════════════════ */
 function Menu({ onAddToCart, cartCount = 0 }) {
   const [foods, setFoods] = useState([]);
@@ -489,22 +520,26 @@ function Menu({ onAddToCart, cartCount = 0 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
 
-  /* ── بارگذاری: dictionary + kitchen (مثل صندوق) ── */
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      /* ★ دو API همزمان — مثل POS ★ */
+      /* ★ API عمومی — بدون لاگین ★ */
       const [kitchenRes, dictRes] = await Promise.allSettled([
-        fetchAllPages(`${API}/api/kitchen/products/?page_size=500`),
-        axios.get(`${API}/api/dictionary/food-menu/`)
+        fetchAllPages(`${API}/api/kitchen/public-products/?page_size=500`),
+        axios.get(`${API}/api/dictionary/food-menu/`).catch(() => null),
       ]);
 
       const kitchenItems = kitchenRes.status === 'fulfilled' ? kitchenRes.value : [];
-      let dictItems      = [];
-      if (dictRes.status === 'fulfilled') {
+      let dictItems = [];
+      if (dictRes.status === 'fulfilled' && dictRes.value) {
         const d = dictRes.value.data;
         dictItems = d.items || d.results || d || [];
+      }
+
+      /* ── اگه هیچ داده‌ای نبود → خطا ── */
+      if (kitchenItems.length === 0 && dictItems.length === 0) {
+        throw new Error('هیچ محصولی یافت نشد — لطفاً بعداً تلاش کنید');
       }
 
       /* ── Maps ── */
@@ -600,7 +635,7 @@ function Menu({ onAddToCart, cartCount = 0 }) {
       <AmbientBackground />
 
       <div className="w">
-        {/* 👑 Hero */}
+        {/* Hero */}
         <div className="hp">
           <div className="hero-content">
             <div className="hb"><SparklesSVG /> طعم اصیل و به‌یادماندنی</div>
@@ -626,7 +661,7 @@ function Menu({ onAddToCart, cartCount = 0 }) {
           </div>
         </div>
 
-        {/* 🔍 Search */}
+        {/* Search */}
         <div className="search-container">
           <div className="sr">
             <SearchSVG />
@@ -639,7 +674,7 @@ function Menu({ onAddToCart, cartCount = 0 }) {
           </div>
         </div>
 
-        {/* ★ Categories */}
+        {/* Categories */}
         {!loading && cats.length > 0 && (
           <div className="tabs">
             {cats.map(c => (
@@ -654,7 +689,7 @@ function Menu({ onAddToCart, cartCount = 0 }) {
           </div>
         )}
 
-        {/* ★ Stats */}
+        {/* Stats */}
         {!loading && sel !== null && (
           <div className="st">
             <span className="st-n">یافت شد: <strong>{list.length} گزینه</strong></span>
@@ -662,7 +697,7 @@ function Menu({ onAddToCart, cartCount = 0 }) {
           </div>
         )}
 
-        {/* ★ Content */}
+        {/* Content */}
         {loading ? (
           <div className="ld">
             <div className="sp" />
@@ -692,7 +727,7 @@ function Menu({ onAddToCart, cartCount = 0 }) {
         )}
       </div>
 
-      {/* ★ Floating Cart */}
+      {/* Floating Cart */}
       {cartCount > 0 && (
         <Link to="/cart" className="cf">
           <CartSVG /> مشاهده سبد خرید
@@ -702,40 +737,6 @@ function Menu({ onAddToCart, cartCount = 0 }) {
       )}
     </div>
   );
-}
-
-/* ═══════════════════════════════════════════════════════
- * ★ buildFood — دقیقاً مثل POS: dictionary + kitchen merge
- * ═══════════════════════════════════════════════════════ */
-function buildFood(dict, kitchen) {
-  const kitchenPrice = kitchen
-    ? (kitchen.selling_price || kitchen.price || kitchen.kitchen_price || 0)
-    : (dict ? (dict.price || 0) : 0);
-
-  const stock = kitchen
-    ? (kitchen.stock != null ? kitchen.stock
-      : kitchen.current_stock != null ? kitchen.current_stock : null)
-    : null;
-
-  /* ★ تخفیف اگه kitchen برمیگردونه ★ */
-  const discount = kitchen?.discount || null;
-  const finalPrice = discount
-    ? (discount.discounted_price || kitchenPrice)
-    : kitchenPrice;
-
-  return {
-    id:            dict ? dict.id : kitchen.id,
-    name:          dict ? (dict.name || '') : (kitchen.name || ''),
-    category_id:   dict ? (dict.category_id ?? null) : (kitchen.category_id ?? null),
-    category_name: dict ? (dict.category_name || '') : (kitchen.category_name || ''),
-    description:   dict ? (dict.description || '') : (kitchen.description || ''),
-    kitchen_price: kitchenPrice,
-    final_price:   finalPrice,
-    stock:         stock,
-    image:         kitchen ? (kitchen.image || null) : (dict ? (dict.image || null) : null),
-    is_ready:      kitchen ? (kitchen.is_ready || false) : false,
-    discount:      discount,
-  };
 }
 
 export default Menu;

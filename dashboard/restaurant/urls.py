@@ -1,12 +1,13 @@
 """
-Restaurant Management System — URLs (★ نسخه اصلاح‌شده)
+Restaurant Management System — URLs (★ نسخه نهایی)
 
 تغییرات:
   ★FIX-1  حذف foods و categories از router (تقاطع با function-based views)
   ★FIX-2  گروه‌بندی منظم‌تر URLها + کامنت‌های بهتر
   ★FIX-3  اضافه شدن trailing-slash consistency
   ★FIX-4  اضافه شدن مسیرهای فروش آنلاین
-  ★FIX-5  اضافه شدن API عمومی محصولات آشپزخانه
+  ★FIX-5  منو عمومی از POS (آینه صندوق) — حذف از آشپزخانه
+  ★FIX-6  باز/بستن سفارش آنلاین از صندوق
 """
 
 from django.urls import include, path
@@ -139,7 +140,6 @@ urlpatterns = [
     # └─────────────────────────────────────────────────────────┘
 
     path("api/kitchen/dashboard/",                  views.kitchen_dashboard_api,              name="kitchen_dashboard"),
-    path("api/kitchen/public-products/",            views.public_kitchen_products,            name="public_kitchen_products"),  # ★ عمومی — بدون لاگین
     path("api/kitchen/products/",                   views.KitchenProductListCreate.as_view(), name="kitchen-products-list"),
     path("api/kitchen/products/<int:pk>/",          views.KitchenProductDetail.as_view(),     name="kitchen-products-detail"),
     path("api/kitchen/products/<int:pk>/capacity/", views.kitchen_product_capacity,           name="kitchen-product-capacity"),
@@ -179,10 +179,17 @@ urlpatterns = [
     path("api/pos/close-logs/",       views.pos_close_logs,        name="pos_close_logs"),
     path("pos/receipt/<int:pk>/",     views.pos_receipt,           name="pos_receipt"),
 
+    # ★ منو عمومی — آینه صندوق (بدون لاگین)
+    path("api/menu/",                             views.public_menu_api,            name="public_menu"),
+
     # ★ فروش آنلاین — تب جدید صندوق
     path("api/pos/online-orders/",                       views.pos_online_orders,        name="pos_online_orders"),
     path("api/pos/confirm-online/<int:order_id>/",       views.pos_confirm_online_order, name="pos_confirm_online"),
     path("api/pos/reject-online/<int:order_id>/",        views.pos_reject_online_order,  name="pos_reject_online"),
+
+    # ★ باز/بستن سفارش آنلاین
+    path("api/pos/online-orders-status/",    views.online_orders_status,   name="online_orders_status"),
+    path("api/pos/toggle-online-orders/",    views.toggle_online_orders,   name="toggle_online_orders"),
 
     # ┌─────────────────────────────────────────────────────────┐
     # │  CARD READER                                            │
