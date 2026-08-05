@@ -161,6 +161,15 @@ const BankSVG = () => (
   </svg>
 );
 
+const GlobeSVG = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="2" y1="12" x2="22" y2="12" />
+    <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+  </svg>
+);
+
 /* ═══════════════════════════════════════════
  *  Embers
  * ═══════════════════════════════════════════ */
@@ -248,6 +257,7 @@ function Toast({ message, type, onClose }) {
   const colors = {
     success: { bg: 'linear-gradient(135deg,#16a34a,#15803d)', shadow: 'rgba(34,197,94,0.4)' },
     error: { bg: 'linear-gradient(135deg,#dc2626,#b91c1c)', shadow: 'rgba(220,38,38,0.4)' },
+    warning: { bg: 'linear-gradient(135deg,#f59e0b,#d97706)', shadow: 'rgba(245,158,11,0.4)' },
   };
   const c = colors[type] || colors.success;
 
@@ -800,6 +810,25 @@ const css = `
 }
 .c-success-btn:hover{transform:translateY(-2px);box-shadow:0 12px 36px ${T.accent}45;color:#fff}
 
+.c-online-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:linear-gradient(135deg,${T.accent}18,${T.gold}12);
+  border:1px solid ${T.accent}28;
+  color:${T.goldBright};font-weight:600;font-size:.72rem;
+  padding:5px 14px;border-radius:50px;
+  margin-bottom:16px;
+}
+
+.c-pending-box{
+  background:linear-gradient(135deg,${T.gold}10,${T.accent}08);
+  border:1.5px solid ${T.gold}25;
+  border-radius:18px;padding:20px;text-align:center;margin-bottom:24px;
+}
+.c-pending-box p{
+  color:${T.textMuted};font-size:.88rem;line-height:1.8;
+}
+.c-pending-box strong{color:${T.goldBright}}
+
 @keyframes fd{from{opacity:0;transform:translateY(-22px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fu{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
 @keyframes shm{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
@@ -905,6 +934,8 @@ function Cart({ cart, onIncrease, onDecrease, onRemove, onClearCart }) {
           customer_name: name.trim(),
           phone: phone.trim(),
           total_price: total,
+          source: 'online',
+          payment_method: 'online',
           items: cart.map((it) => ({
             food: it.id,
             quantity: it.quantity,
@@ -1067,6 +1098,9 @@ function Cart({ cart, onIncrease, onDecrease, onRemove, onClearCart }) {
                 <h2>خلاصه سفارش</h2>
               </div>
               <div className="c-summ-body">
+                <div className="c-online-badge">
+                  <GlobeSVG /> سفارش آنلاین
+                </div>
                 <div className="c-inp">
                   <UserSVG />
                   <input

@@ -269,7 +269,6 @@ class Reservation(TenantModel):
 
 # ─── 3. ORDERS ────────────────────────────
 
-
 class Order(TenantModel):
     STATUS_CHOICES = [
         ("pending",   "در انتظار"),
@@ -280,12 +279,59 @@ class Order(TenantModel):
         ("cancelled", "لغو شده"),
     ]
 
-    table         = models.ForeignKey(Table, on_delete=models.SET_NULL, null=True, blank=True)
-    customer_name = models.CharField(max_length=200, blank=True, default="")
-    phone         = models.CharField(max_length=20, blank=True, default="")
-    status        = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True)
-    total_price   = models.DecimalField(max_digits=10, decimal_places=0, default=0)
-    created_at    = created_at_field()
+    SOURCE_CHOICES = [
+        ("pos",     "صندوق"),
+        ("online",  "آنلاین"),
+        ("phone",   "تلفنی"),
+    ]
+
+    PAYMENT_STATUS_CHOICES = [
+        ("pending", "در انتظار پرداخت"),
+        ("paid",    "پرداخت شده"),
+        ("failed",  "ناموفق"),
+        ("refunded","بازگشت وجه"),
+    ]
+
+    PAYMENT_METHOD_CHOICES = [
+        ("cash",   "نقدی"),
+        ("card",   "کارتخوان"),
+        ("online", "آنلاین"),
+    ]
+
+    table           = models.ForeignKey(Table, on_delete=models.SET_NULL, null=True, blank=True)
+    customer_name   = models.CharField(max_length=200, blank=True, default="")
+    phone           = models.CharField(max_length=20, blank=True, default="")
+    status          = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True)
+    total_price     = models.DecimalField(max_digits=10, decimal_places=0, default=0)
+
+    # ★ فیلدهای جدید — فروش آنلاین
+    source          = models.CharField(
+        max_length=20, choices=SOURCE_CHOICES,
+        default="pos", db_index=True,
+        verbose_name="منبع سفارش",
+    )
+    payment_status  = models.CharField(
+        max_length=20, choices=PAYMENT_STATUS_CHOICES,
+        default="pending", db_index=True,
+        verbose_name="وضعیت پرداخت",
+    )
+    payment_method  = models.CharField(
+        max_length=20, choices=PAYMENT_METHOD_CHOICES,
+        default="cash",
+        verbose_name="روش پرداخت",
+    )
+    confirmed_by    = models.ForeignKey(
+        User, on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="confirmed_orders",
+        verbose_name="تأیید شده توسط",
+    )
+    confirmed_at    = models.DateTimeField(
+        null=True, blank=True,
+        verbose_name="زمان تأیید",
+    )
+
+    created_at = created_at_field()
 
     class Meta:
         verbose_name        = "سفارش"
@@ -294,11 +340,9 @@ class Order(TenantModel):
         indexes = [
             models.Index(fields=["status", "-created_at"]),
             models.Index(fields=["table", "-created_at"]),
+            models.Index(fields=["source", "status", "-created_at"]),
+            models.Index(fields=["payment_status"]),
         ]
-
-    def __str__(self) -> str:
-        return f"سفارش {self.id} - {self.customer_name}"
-
 
 class OrderItem(TenantModel):
     order    = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
@@ -1233,7 +1277,6 @@ class KitchenInventory(TenantModel):
 
     @property
     def is_low_stock(self):
-        """آستانه سیستمی — از min_stock محصول مستقل است"""
         return self.available_quantity <= self.low_stock_threshold
 
     def increase_stock(self, amount):
@@ -1242,9 +1285,11 @@ class KitchenInventory(TenantModel):
 
     def decrease_stock(self, amount):
         if amount > self.quantity:
+            from django.core.exceptions import ValidationError
             raise ValidationError('موجودی کافی نیست.')
         self.quantity -= amount
         self.save(update_fields=['quantity', 'updated_at'])
+
 
 
 class ProductionPlan(TenantModel):

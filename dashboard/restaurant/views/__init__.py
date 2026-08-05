@@ -63,6 +63,10 @@ from .pos import (
     pos_close_all_pending, pos_close_day,
     pos_validate_coupon,
     pos_close_history, pos_close_report_detail, pos_close_logs,
+    # ★ فروش آنلاین
+    pos_online_orders,
+    pos_confirm_online_order,
+    pos_reject_online_order,
 )
 
 # ── Orders API ──
@@ -103,7 +107,7 @@ from .dictionary import (
     dictionary_raw_materials, dictionary_semi_finished,
     dictionary_ready_materials, dictionary_food_menu,
     raw_materials_api,
-    recipe_materials_api,                          
+    recipe_materials_api,
     dictionary_group_list, dictionary_group_save, dictionary_group_delete,
 )
 
@@ -171,6 +175,10 @@ __all__ = [
     "pos_close_all_pending", "pos_close_day",
     "pos_validate_coupon",
     "pos_close_history", "pos_close_report_detail", "pos_close_logs",
+    # ★ فروش آنلاین
+    "pos_online_orders",
+    "pos_confirm_online_order",
+    "pos_reject_online_order",
     # Orders
     "order_change_status", "order_send_to_kitchen", "kitchen_orders_api",
     # Loyalty
@@ -194,9 +202,8 @@ __all__ = [
     "dictionary_create", "dictionary_update", "dictionary_delete",
     "dictionary_raw_materials", "dictionary_semi_finished",
     "dictionary_ready_materials", "dictionary_food_menu",
-        # Dictionary Groups
     "raw_materials_api",
-    "recipe_materials_api",                      
+    "recipe_materials_api",
     "dictionary_group_list", "dictionary_group_save",
     "dictionary_group_delete",
     # Page Views
