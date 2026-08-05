@@ -8,7 +8,7 @@ from django.views.decorators.http import require_POST
 
 from rest_framework import generics, permissions, status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
 from django.core.exceptions import ValidationError
@@ -46,10 +46,6 @@ logger = logging.getLogger(__name__)
 # ═══════════════════════════════════════
 
 def _resolve_restaurant(request):
-    """
-    ۱. اول از context بخون (middleware باید ست کرده باشه)
-    ۲. اگه نبود، از request.user استخراج کن
-    """
     r = get_current_restaurant()
     if r:
         return r
@@ -61,7 +57,7 @@ def _resolve_restaurant(request):
 
 
 # ═══════════════════════════════════════
-#  ★ Dashboard — اصلاح 302 → 401
+#  Dashboard
 # ═══════════════════════════════════════
 
 @api_view(["GET"])
@@ -142,6 +138,49 @@ class KitchenInventoryList(generics.ListAPIView):
     queryset = KitchenInventory.objects.select_related("kitchen_product").all()
     serializer_class = KitchenInventorySerializer
     permission_classes = [permissions.IsAuthenticated]
+
+
+# ═══════════════════════════════════════
+#  ★★★ Public Kitchen Products — بدون لاگین ★★★
+# ═══════════════════════════════════════
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def public_kitchen_products(request):
+    """API عمومی محصولات آشپزخانه — بدون نیاز به لاگین"""
+    qs = KitchenProduct.objects.filter(is_active=True)
+
+    cat = request.GET.get("category")
+    if cat:
+        qs = qs.filter(category_id=cat)
+
+    page_size = int(request.GET.get("page_size", 100))
+    page = int(request.GET.get("page", 1))
+    start = (page - 1) * page_size
+    total = qs.count()
+    items = qs[start:start + page_size]
+
+    data = []
+    for kp in items:
+        inv = KitchenInventory.objects.filter(kitchen_product_id=kp.id).first()
+        data.append({
+            "id": kp.id,
+            "name": kp.name,
+            "category_id": kp.category_id,
+            "category_name": getattr(kp, "category_name", ""),
+            "selling_price": int(kp.selling_price or 0),
+            "price": int(kp.selling_price or kp.price or 0),
+            "stock": int(inv.quantity) if inv else None,
+            "current_stock": int(inv.quantity) if inv else None,
+            "image": kp.image.url if getattr(kp, "image", None) else None,
+            "is_ready": getattr(kp, "is_ready", False),
+        })
+
+    return Response({
+        "count": total,
+        "results": data,
+        "next": f"?page={page + 1}&page_size={page_size}" if start + page_size < total else None,
+    })
 
 
 # ═══════════════════════════════════════
@@ -281,7 +320,7 @@ class ProductionLogList(generics.ListAPIView):
 
 
 # ═══════════════════════════════════════
-#  Kitchen Waste — ★ _resolve_restaurant
+#  Kitchen Waste
 # ═══════════════════════════════════════
 
 class KitchenWasteListCreate(generics.GenericAPIView):
@@ -332,7 +371,6 @@ class KitchenWasteListCreate(generics.GenericAPIView):
         except KitchenProduct.DoesNotExist:
             return Response({'error': 'محصول یافت نشد'}, status=404)
 
-        # ★ resolve restaurant — fallback اگه context خالی بود
         restaurant = _resolve_restaurant(request)
         if not restaurant:
             return Response(
@@ -351,7 +389,7 @@ class KitchenWasteListCreate(generics.GenericAPIView):
             reason=reason,
             notes=notes,
             created_by=request.user,
-            restaurant=restaurant,                    # ★ resolved
+            restaurant=restaurant,
         )
 
         inv.quantity -= actual_qty
@@ -389,7 +427,7 @@ class KitchenWasteDetail(generics.GenericAPIView):
 
 
 # ═══════════════════════════════════════
-#  ★★★ تغییر وضعیت سفارش ★★★
+#  تغییر وضعیت سفارش
 # ═══════════════════════════════════════
 
 @api_view(["POST"])

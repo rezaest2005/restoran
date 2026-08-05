@@ -54,6 +54,7 @@ from .kitchen import (
     production_plan_approve, production_plan_execute,
     ProductionLogList,
     KitchenWasteListCreate, KitchenWasteDetail,
+    public_kitchen_products,          # ★ اضافه شد
 )
 
 # ── POS API ──
@@ -169,6 +170,7 @@ __all__ = [
     "KitchenDiscountListCreate", "KitchenDiscountDetail",
     "ProductionLogList",
     "KitchenWasteListCreate", "KitchenWasteDetail",
+    "public_kitchen_products",        # ★ اضافه شد
     # POS
     "pos_create_order", "pos_daily_report",
     "pos_close_summary", "pos_register_waste",
