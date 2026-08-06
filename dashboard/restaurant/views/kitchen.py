@@ -457,30 +457,60 @@ def order_status_change(request, pk: int):
 # ★ موقت — بعد از اجرا حذف کن
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.db import connection
 
 @csrf_exempt
 def clear_sample_data_temp(request):
     try:
-        # Raw SQL — بدون هیچ manager یا فیلتری
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT id, name FROM restaurant_restaurant")
-            restaurants = cursor.fetchall()
+        from ..models import Restaurant
 
-            cursor.execute("SELECT id, name, restaurant_id FROM restaurant_kitchenproduct")
-            kps = cursor.fetchall()
+        rest = Restaurant.objects.first()
+        if not rest:
+            return JsonResponse({'error': 'رستوران وجود ندارد'}, status=404)
 
-            cursor.execute("SELECT id, name, restaurant_id FROM restaurant_food")
-            foods = cursor.fetchall()
+        cat_data = [
+            {'name': 'پیتزا',    'order': 1},
+            {'name': 'برگر',     'order': 2},
+            {'name': 'نوشیدنی',  'order': 3},
+        ]
 
-            cursor.execute("SELECT id, name, restaurant_id FROM restaurant_category")
-            cats = cursor.fetchall()
+        cats = {}
+        cats_created = 0
+        for cd in cat_data:
+            cat, created = Category.all_objects.get_or_create(
+                restaurant=rest, name=cd['name'],
+                defaults={'is_active': True, 'order': cd['order']}
+            )
+            cats[cd['name']] = cat
+            if created:
+                cats_created += 1
+
+        foods_data = [
+            {'name': 'پیتزا مخصوص',  'cat': 'پیتزا',   'price': 250000},
+            {'name': 'برگر کلاسیک',  'cat': 'برگر',    'price': 180000},
+            {'name': 'نوشابه',        'cat': 'نوشیدنی', 'price': 25000},
+        ]
+
+        foods_created = 0
+        for fd in foods_data:
+            _, created = Food.all_objects.get_or_create(
+                restaurant=rest, name=fd['name'],
+                defaults={
+                    'category': cats[fd['cat']],
+                    'price': fd['price'],
+                    'final_price': fd['price'],
+                    'is_available': True,
+                }
+            )
+            if created:
+                foods_created += 1
 
         return JsonResponse({
-            'restaurants': [{'id': r[0], 'name': r[1]} for r in restaurants],
-            'kitchen_products': [{'id': r[0], 'name': r[1], 'rest_id': r[2]} for r in kps],
-            'foods': [{'id': r[0], 'name': r[1], 'rest_id': r[2]} for r in foods],
-            'categories': [{'id': r[0], 'name': r[1], 'rest_id': r[2]} for r in cats],
+            'success': True,
+            'restaurant': rest.name,
+            'categories_created': cats_created,
+            'foods_created': foods_created,
+            'total_categories': Category.all_objects.filter(restaurant=rest).count(),
+            'total_foods': Food.all_objects.filter(restaurant=rest).count(),
         })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
