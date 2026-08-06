@@ -454,22 +454,35 @@ def order_status_change(request, pk: int):
             {'error': f'خطای سرور: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+
+
 # ★ موقت — بعد از اجرا حذف کن
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
 def clear_sample_data_temp(request):
-    from restaurant.models import Food, Category, KitchenProduct
-    from django.http import JsonResponse
+    try:
+        # ترتیب مهم: اول KitchenProduct (PROTECT روی Recipe)، بعد Recipe، بعد Food، بعد Category
+        kp_count = KitchenProduct.objects.count()
+        KitchenProduct.objects.all().delete()  # CASCADE → KitchenInventory, WasteLog, ProductionPlanItem, ProductionBatch
 
-    foods_count = Food.objects.count()
-    cats_count = Category.objects.count()
-    kitchen_count = KitchenProduct.objects.count()
+        recipe_count = Recipe.objects.count()
+        Recipe.objects.all().delete()  # CASCADE → RecipeIngredient, RecipeSemiFinished
 
-    KitchenProduct.objects.all().delete()
-    Food.objects.all().delete()
-    Category.objects.all().delete()
+        food_count = Food.objects.count()
+        Food.objects.all().delete()
 
-    return JsonResponse({
-        'deleted_foods': foods_count,
-        'deleted_categories': cats_count,
-        'deleted_kitchen_products': kitchen_count,
-        'message': 'همه داده‌های نمونه حذف شدند'
-    })
+        cat_count = Category.objects.count()
+        Category.objects.all().delete()
+
+        return JsonResponse({
+            'success': True,
+            'deleted_kitchen_products': kp_count,
+            'deleted_recipes': recipe_count,
+            'deleted_foods': food_count,
+            'deleted_categories': cat_count,
+            'message': f'حذف شد: {kp_count} محصول، {recipe_count} دستور، {food_count} غذا، {cat_count} دسته‌بندی',
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
