@@ -47,7 +47,6 @@ from .kitchen import (
     production_plan_approve, production_plan_execute,
     ProductionLogList,
     KitchenWasteListCreate, KitchenWasteDetail,
-    clear_sample_data_temp,
 )
 
 # ── POS API ──
@@ -224,5 +223,4 @@ __all__ = [
     "loyalty_rewards_page", "loyalty_notifications_page",
     "loyalty_register_page",
     "user_management_page", "dictionary_page",
-    "clear_sample_data_temp",
 ]
