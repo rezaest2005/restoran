@@ -109,6 +109,7 @@ from .dictionary import (
     raw_materials_api,
     recipe_materials_api,
     dictionary_group_list, dictionary_group_save, dictionary_group_delete,
+    dictionary_food_create, dictionary_food_update, dictionary_food_delete,
 )
 
 # ── Page Views (HTML) ──
@@ -207,6 +208,7 @@ __all__ = [
     "recipe_materials_api",
     "dictionary_group_list", "dictionary_group_save",
     "dictionary_group_delete",
+    "dictionary_food_create", "dictionary_food_update", "dictionary_food_delete",
     # Page Views
     "home", "auth_page", "logout_page",
     "redirect_to_dashboard",
