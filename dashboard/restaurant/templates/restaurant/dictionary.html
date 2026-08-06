@@ -1075,9 +1075,9 @@ var PageDict = (function() {
   }
 
   /* ═══ CRUD واحد ═══ */
-  function save() {
+    function save() {
     var name = nameEl.value.trim();
-    var unit = hasUnit() ? unitEl.value : '';
+    var unit = hasUnit() ? unitEl.value : 'unit';
     var desc = descEl.value.trim();
 
     if (!name) { nameEl.focus(); toast('نام آیتم را وارد کنید', 'error'); return; }
@@ -1086,34 +1086,35 @@ var PageDict = (function() {
       if (!unit) { unitEl.focus(); toast('واحد را انتخاب کنید', 'error'); return; }
     }
 
-    var body = { name: name, description: desc, dict_category: selectedDictCat || '' };
-    if (hasUnit()) body.unit = unit;
-
-    /* category: برای غذا از آیتم‌های موجود استخراج شده، برای بقیه از currentSlug */
-    body.category = isFood() ? (foodActualCat || FOOD_SLUG) : currentSlug;
+    /* ★ دقیقاً مثل کد اصلی که کار میکرد */
+    var body = {
+      name: name,
+      unit: unit,
+      category: currentSlug,
+      description: desc,
+      dict_category: selectedDictCat || ''
+    };
 
     var group = getActiveGroup();
     if (group) body.group_id = group.id;
 
     if (editingId) {
-      /* ویرایش */
       api('/api/dictionary/' + editingId + '/update/', 'POST', body).then(function(res) {
         if (res.error) { toast(res.error, 'error'); return; }
         var arr = allItems[currentSlug] || [];
         for (var i = 0; i < arr.length; i++) {
           if (arr[i].id === editingId) {
             arr[i] = Object.assign(arr[i], res);
-            if (hasUnit()) arr[i].unit_display = unitLabel(unit);
+            arr[i].unit_display = unitLabel(unit);
             break;
           }
         }
         cancelEdit(); renderDictCatBar(); render(); toast('ویرایش شد', 'success');
       }).catch(function() { toast('خطا', 'error'); });
     } else {
-      /* ساخت */
       api(URL_DICT_CREATE, 'POST', body).then(function(res) {
         if (res.error) { toast(res.error, 'error'); return; }
-        if (hasUnit() && !res.unit_display) res.unit_display = unitLabel(unit);
+        if (!res.unit_display) res.unit_display = unitLabel(unit);
         if (!allItems[currentSlug]) allItems[currentSlug] = [];
         allItems[currentSlug].push(res);
         updateStats(); renderDictCatBar(); render();
@@ -1121,9 +1122,14 @@ var PageDict = (function() {
         if (hasUnit()) { unitEl.value = ''; customUnitWrap.style.display = 'none'; }
         selectedDictCat = ''; renderDictCatDropdown();
         nameEl.focus(); toast('آیتم اضافه شد', 'success');
-      }).catch(function() { toast('خطا', 'error'); });
+      }).catch(function(e) {
+        /* ★ نمایش خطای سرور برای دیباگ */
+        console.error('Create failed:', e);
+        toast('خطا: سرور داده رو رد کرد', 'error');
+      });
     }
   }
+
 
   function edit(id) {
     var item = (allItems[currentSlug] || []).find(function(x) { return x.id === id; });
