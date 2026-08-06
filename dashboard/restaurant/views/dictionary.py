@@ -441,40 +441,140 @@ def dictionary_food_menu(request):
 
     return JsonResponse({'items': items})
 
+
+# ═══════════════════════════════════════════════════════════
+#  Food CRUD — تب غذا و منو (★ با cascade delete)
+# ═══════════════════════════════════════════════════════════
+
 @login_required
-@require_GET
-def fix_assign_groups(request):
-    """موقت: آیتم‌های بدون گروه رو به گروه‌ها وصل کن"""
+@require_POST
+def dictionary_food_create(request):
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'داده نامعتبر'}, status=400)
+
+    from ..models import Food, Category
+
+    name = (data.get('name') or '').strip()
+    if not name:
+        return JsonResponse({'error': 'نام غذا الزامی است'}, status=400)
+
     restaurant = getattr(request.user, 'restaurant', None)
     if not restaurant:
-        return JsonResponse({'error': 'no restaurant'})
+        return JsonResponse({'error': 'رستوران یافت نشد'}, status=400)
 
-    try:
-        raw_group = DictionaryGroup.objects.get(slug='raw_material', restaurant=restaurant)
-        pack_group = DictionaryGroup.objects.get(slug='packaging', restaurant=restaurant)
-    except DictionaryGroup.DoesNotExist:
-        return JsonResponse({'error': 'گروه‌ها پیدا نشد'})
+    cat_name = (data.get('category_name') or '').strip()
+    category = None
+    if cat_name:
+        category, _ = Category.objects.get_or_create(
+            restaurant=restaurant, name=cat_name,
+            defaults={'is_active': True, 'order': 0}
+        )
 
-    # آیتم‌های مواد اولیه
-    raw_names = ['ارد', 'روغن مایع', 'گوشت چرخ‌کرده', 'گوجه فرنگی',
-                 'پنیر پیتزا', 'خمیر پیتز', 'سس مارینارا', 'مایه برگر',
-                 'موز', 'پرتقال', 'سس تک‌نفره', 'نوشابه قوطی', 'ماشعیر']
-    raw_count = ItemDictionary.objects.filter(
-        restaurant=restaurant, name__in=raw_names, group__isnull=True
-    ).update(group=raw_group)
+    price = int(data.get('price', 0))
 
-    # آیتم‌های بسته‌بندی
-    pack_names = ['جعبه پیتزا', 'جعبه پیتزا 5 نفره', 'جعبه اسنک',
-                  'جعبه سنیوسه', 'بسته بندی ساندویج فلافل',
-                  'ظرف سالاد', 'دستمال کاغذی']
-    pack_count = ItemDictionary.objects.filter(
-        restaurant=restaurant, name__in=pack_names, group__isnull=True
-    ).update(group=pack_group)
+    food = Food.objects.create(
+        restaurant=restaurant, name=name, category=category,
+        price=price, final_price=price,
+        description=data.get('description', ''),
+        is_available=True,
+    )
 
     return JsonResponse({
-        'raw_assigned': raw_count,
-        'pack_assigned': pack_count,
+        'id': food.id,
+        'name': food.name,
+        'price': food.price,
+        'final_price': food.final_price,
+        'category_id': food.category_id,
+        'category_name': food.category.name if food.category else '',
+        'description': food.description,
+        'is_available': food.is_available,
     })
+
+
+@login_required
+@require_POST
+def dictionary_food_update(request, pk):
+    from ..models import Food
+
+    try:
+        food = Food.objects.get(pk=pk)
+    except Food.DoesNotExist:
+        return JsonResponse({'error': 'غذا یافت نشد'}, status=404)
+
+    try:
+        data = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'داده نامعتبر'}, status=400)
+
+    if 'name' in data:
+        food.name = (data['name'] or '').strip()
+    if 'description' in data:
+        food.description = (data['description'] or '').strip()
+    if 'price' in data:
+        food.price = int(data['price'])
+        food.final_price = int(data['price'])
+    if 'is_available' in data:
+        food.is_available = data['is_available']
+
+    food.save()
+
+    return JsonResponse({
+        'id': food.id,
+        'name': food.name,
+        'price': food.price,
+        'final_price': food.final_price,
+        'category_id': food.category_id,
+        'category_name': food.category.name if food.category else '',
+        'description': food.description,
+        'is_available': food.is_available,
+    })
+
+
+@login_required
+@require_POST
+def dictionary_food_delete(request, pk):
+    """★ حذف غذا + cascade: Recipe → KitchenProduct → KitchenInventory"""
+    from ..models import Food, Recipe, KitchenProduct
+
+    try:
+        food = Food.objects.get(pk=pk)
+    except Food.DoesNotExist:
+        return JsonResponse({'error': 'غذا یافت نشد'}, status=404)
+
+    deleted = {'food': food.name, 'recipes': 0, 'kitchen_products': 0}
+
+    # ۱. پیدا کردن Recipe مرتبط
+    try:
+        recipe = Recipe.objects.get(food=food)
+
+        # ۲. حذف KitchenProduct (CASCADE → KitchenInventory, WasteLog, ProductionPlanItem)
+        kps = KitchenProduct.objects.filter(recipe=recipe)
+        deleted['kitchen_products'] = kps.count()
+        kps.delete()
+
+        # ۳. حذف Recipe (CASCADE → RecipeIngredient, RecipeSemiFinished, RecipePackagingItem)
+        recipe.delete()
+        deleted['recipes'] = 1
+
+    except Recipe.DoesNotExist:
+        pass  # غذا بدون Recipe — فقط Food حذف میشه
+
+    # ۴. حذف Food (از منو، صندوق، همه جا حذف میشه)
+    food.delete()
+
+    parts = [f"غذا «{deleted['food']}»"]
+    if deleted['recipes']:
+        parts.append(f"{deleted['recipes']} دستور پخت")
+    if deleted['kitchen_products']:
+        parts.append(f"{deleted['kitchen_products']} محصول آشپزخانه")
+
+    return JsonResponse({
+        'success': True,
+        'message': ' و '.join(parts) + ' حذف شد',
+    })
+
 
 @login_required
 @require_GET
