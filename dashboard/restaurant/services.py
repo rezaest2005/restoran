@@ -6,11 +6,18 @@ Restaurant — Loyalty System Services
   - اجرای منطق
   - ثبت تراکنش / نوتیفیکیشن
   - برگشت نتیجه
+
+★ تغییرات نسبت به نسخه قبل:
+  ۱. order_id (int) → order (Order instance) — سازگار با ForeignKey
+  ۲. پارامتر restaurant برای عملیات ساخت اشیاء
+  ۳. seed_membership_levels پذیرای restaurant
+  ۴. get_loyalty_dashboard فیلتر بر اساس restaurant
 """
 
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import Optional, Union
 
 from django.db import transaction as db_transaction
 from django.db.models import Sum, Count, F
@@ -29,6 +36,7 @@ from .models import (
     Referral,
     LoyaltyNotification,
     Order,
+    Restaurant,
     LOYALTY_POINTS_PER_TOMAN,
     LOYALTY_POINTS_PER_ORDER_BONUS,
     LOYALTY_BIRTHDAY_BONUS,
@@ -42,6 +50,7 @@ from .models import (
 # ══════════════════════════════════════════════════════════════════════════════
 
 def register_customer(
+    restaurant: Restaurant,
     phone: str,
     first_name: str = '',
     last_name: str = '',
@@ -60,6 +69,7 @@ def register_customer(
 
     with db_transaction.atomic():
         customer = CustomerProfile.objects.create(
+            restaurant=restaurant,  # ★ FIXED
             phone=phone,
             first_name=first_name,
             last_name=last_name,
@@ -67,7 +77,11 @@ def register_customer(
             birth_date=birth_date,
         )
 
-        LoyaltyWallet.objects.create(customer=customer, balance=0)
+        LoyaltyWallet.objects.create(
+            restaurant=restaurant,  # ★ FIXED
+            customer=customer,
+            balance=0,
+        )
 
         default_level = MembershipLevel.objects.filter(name='bronze').first()
         if default_level:
@@ -93,14 +107,21 @@ def register_customer(
     }
 
 
-def get_or_create_customer(phone: str) -> tuple:
+def get_or_create_customer(restaurant: Restaurant, phone: str) -> tuple:
     """دریافت مشتری موجود یا ایجاد خودکار."""
     customer, created = CustomerProfile.objects.get_or_create(
         phone=phone,
-        defaults={'first_name': ''},
+        defaults={
+            'restaurant': restaurant,  # ★ FIXED
+            'first_name': '',
+        },
     )
     if created:
-        LoyaltyWallet.objects.create(customer=customer, balance=0)
+        LoyaltyWallet.objects.create(
+            restaurant=restaurant,  # ★ FIXED
+            customer=customer,
+            balance=0,
+        )
         default_level = MembershipLevel.objects.filter(name='bronze').first()
         if default_level:
             customer.membership_level = default_level
@@ -112,7 +133,11 @@ def get_or_create_customer(phone: str) -> tuple:
 #  2. EARN POINTS
 # ══════════════════════════════════════════════════════════════════════════════
 
-def earn_points_for_order(customer: CustomerProfile, order_id: int, order_amount: Decimal) -> dict:
+def earn_points_for_order(
+    customer: CustomerProfile,
+    order: Union[Order, int, None],
+    order_amount: Decimal,
+) -> dict:
     """اعطای امتیاز بابت سفارش تکمیل‌شده."""
     if order_amount <= 0:
         return {'success': False, 'error': 'مبلغ سفارش نامعتبر است.'}
@@ -135,13 +160,17 @@ def earn_points_for_order(customer: CustomerProfile, order_id: int, order_amount
         ])
         customer.refresh_from_db()
 
+        order_display = _order_display(order)
+
         LoyaltyTransaction.objects.create(
+            restaurant=customer.restaurant,  # ★ FIXED
             customer=customer,
             transaction_type='earn',
             points=total_earned,
             balance_after=customer.available_points,
-            description=f'کسب امتیاز از سفارش #{order_id}',
-            order_id=order_id,
+            description=f'کسب امتیاز از سفارش #{order_display}',
+            order=order if isinstance(order, Order) else None,  # ★ FIXED
+            order_id=order if isinstance(order, int) else None,  # fallback
         )
 
         level_result = check_level_upgrade(customer)
@@ -150,8 +179,8 @@ def earn_points_for_order(customer: CustomerProfile, order_id: int, order_amount
             customer=customer,
             notification_type='points_earned',
             title='امتیاز کسب کردید!',
-            message=f'{total_earned} امتیاز از سفارش #{order_id} کسب کردید.',
-            data={'order_id': order_id, 'points': total_earned},
+            message=f'{total_earned} امتیاز از سفارش #{order_display} کسب کردید.',
+            data={'order_id': order_display, 'points': total_earned},
         )
 
     return {
@@ -167,7 +196,11 @@ def earn_points_for_order(customer: CustomerProfile, order_id: int, order_amount
 #  3. REDEEM POINTS
 # ══════════════════════════════════════════════════════════════════════════════
 
-def redeem_points(customer: CustomerProfile, points: int, order_id: int = None) -> dict:
+def redeem_points(
+    customer: CustomerProfile,
+    points: int,
+    order: Union[Order, int, None] = None,
+) -> dict:
     """استفاده از امتیاز. هر ۱۰۰ امتیاز = ۱۰,۰۰۰ تومان."""
     if points <= 0:
         return {'success': False, 'error': 'مقدار امتیاز نامعتبر است.'}
@@ -188,13 +221,17 @@ def redeem_points(customer: CustomerProfile, points: int, order_id: int = None) 
         customer.save(update_fields=['available_points'])
         customer.refresh_from_db()
 
+        order_display = _order_display(order)
+
         LoyaltyTransaction.objects.create(
+            restaurant=customer.restaurant,  # ★ FIXED
             customer=customer,
             transaction_type='redeem',
             points=points,
             balance_after=customer.available_points,
             description=f'استفاده {points} امتیاز ({discount_amount:,} تومان تخفیف)',
-            order_id=order_id,
+            order=order if isinstance(order, Order) else None,  # ★ FIXED
+            order_id=order if isinstance(order, int) else None,
         )
 
         _create_notification(
@@ -223,7 +260,13 @@ def wallet_deposit(customer: CustomerProfile, amount: Decimal, description: str 
         return {'success': False, 'error': 'مبلغ نامعتبر است.'}
 
     with db_transaction.atomic():
-        wallet, _ = LoyaltyWallet.objects.get_or_create(customer=customer, defaults={'balance': 0})
+        wallet, created = LoyaltyWallet.objects.get_or_create(
+            customer=customer,
+            defaults={
+                'restaurant': customer.restaurant,  # ★ FIXED
+                'balance': 0,
+            },
+        )
 
         new_balance = wallet.balance + amount
         if new_balance > LOYALTY_MAX_WALLET:
@@ -237,6 +280,7 @@ def wallet_deposit(customer: CustomerProfile, amount: Decimal, description: str 
         wallet.refresh_from_db()
 
         WalletTransaction.objects.create(
+            restaurant=customer.restaurant,  # ★ FIXED
             wallet=wallet,
             transaction_type='deposit',
             amount=amount,
@@ -255,7 +299,12 @@ def wallet_deposit(customer: CustomerProfile, amount: Decimal, description: str 
     return {'success': True, 'amount': amount, 'new_balance': wallet.balance}
 
 
-def wallet_debit(customer: CustomerProfile, amount: Decimal, description: str = '', order_id: int = None) -> dict:
+def wallet_debit(
+    customer: CustomerProfile,
+    amount: Decimal,
+    description: str = '',
+    order: Union[Order, int, None] = None,
+) -> dict:
     """برداشت از کیف پول."""
     if amount <= 0:
         return {'success': False, 'error': 'مبلغ نامعتبر است.'}
@@ -275,19 +324,27 @@ def wallet_debit(customer: CustomerProfile, amount: Decimal, description: str = 
         wallet.save(update_fields=['balance'])
         wallet.refresh_from_db()
 
+        order_display = _order_display(order)
+
         WalletTransaction.objects.create(
+            restaurant=customer.restaurant,  # ★ FIXED
             wallet=wallet,
             transaction_type='purchase',
             amount=amount,
             balance_after=wallet.balance,
             description=description or f'پرداخت از کیف پول — {amount:,} تومان',
-            order_id=order_id,
+            order=order if isinstance(order, Order) else None,  # ★ FIXED
+            order_id=order if isinstance(order, int) else None,
         )
 
     return {'success': True, 'amount': amount, 'new_balance': wallet.balance}
 
 
-def add_cashback(customer: CustomerProfile, order_amount: Decimal, order_id: int = None) -> dict:
+def add_cashback(
+    customer: CustomerProfile,
+    order_amount: Decimal,
+    order: Union[Order, int, None] = None,
+) -> dict:
     """کش‌بک بر اساس سطح مشتری — با رعایت سقف کیف پول."""
     if not customer.membership_level:
         return {'success': False, 'error': 'سطح عضویت تعیین نشده.'}
@@ -299,9 +356,14 @@ def add_cashback(customer: CustomerProfile, order_amount: Decimal, order_id: int
     cashback_amount = int(order_amount * rate)
 
     with db_transaction.atomic():
-        wallet, _ = LoyaltyWallet.objects.get_or_create(customer=customer, defaults={'balance': 0})
+        wallet, _ = LoyaltyWallet.objects.get_or_create(
+            customer=customer,
+            defaults={
+                'restaurant': customer.restaurant,  # ★ FIXED
+                'balance': 0,
+            },
+        )
 
-        # ★ فیکس: بررسی سقف کیف پول قبل از واریز کش‌بک
         if wallet.balance + cashback_amount > LOYALTY_MAX_WALLET:
             cashback_amount = max(0, LOYALTY_MAX_WALLET - wallet.balance)
             if cashback_amount <= 0:
@@ -316,13 +378,17 @@ def add_cashback(customer: CustomerProfile, order_amount: Decimal, order_id: int
         wallet.save(update_fields=['balance'])
         wallet.refresh_from_db()
 
+        order_display = _order_display(order)
+
         WalletTransaction.objects.create(
+            restaurant=customer.restaurant,  # ★ FIXED
             wallet=wallet,
             transaction_type='cashback',
             amount=cashback_amount,
             balance_after=wallet.balance,
-            description=f'کش‌بک سفارش #{order_id} — نرخ {rate * 100}%',
-            order_id=order_id,
+            description=f'کش‌بک سفارش #{order_display} — نرخ {rate * 100}%',
+            order=order if isinstance(order, Order) else None,  # ★ FIXED
+            order_id=order if isinstance(order, int) else None,
         )
 
     return {'success': True, 'cashback': cashback_amount, 'new_balance': wallet.balance}
@@ -366,7 +432,12 @@ def validate_coupon(code: str, customer: CustomerProfile, order_amount: Decimal)
     }
 
 
-def apply_coupon(code: str, customer: CustomerProfile, order_amount: Decimal, order_id: int = None) -> dict:
+def apply_coupon(
+    code: str,
+    customer: CustomerProfile,
+    order_amount: Decimal,
+    order: Union[Order, int, None] = None,
+) -> dict:
     """اعمال کوپن — فقط ثبت استفاده، تخفیف از validate میاد."""
     validation = validate_coupon(code, customer, order_amount)
     if not validation['valid']:
@@ -379,7 +450,11 @@ def apply_coupon(code: str, customer: CustomerProfile, order_amount: Decimal, or
         coupon.used_count = F('used_count') + 1
         coupon.save(update_fields=['used_count'])
 
-        usage, created = CustomerCoupon.objects.get_or_create(customer=customer, coupon=coupon)
+        usage, created = CustomerCoupon.objects.get_or_create(
+            restaurant=customer.restaurant,  # ★ FIXED
+            customer=customer,
+            coupon=coupon,
+        )
         usage.used_count = F('used_count') + 1
         if not usage.first_used_at:
             usage.first_used_at = timezone.now()
@@ -437,6 +512,7 @@ def redeem_reward(customer: CustomerProfile, reward_id: int) -> dict:
         customer.refresh_from_db()
 
         redemption = RewardRedemption.objects.create(
+            restaurant=customer.restaurant,  # ★ FIXED
             customer=customer,
             reward=reward,
             points_spent=reward.points_required,
@@ -448,6 +524,7 @@ def redeem_reward(customer: CustomerProfile, reward_id: int) -> dict:
             reward.save(update_fields=['quantity_available'])
 
         LoyaltyTransaction.objects.create(
+            restaurant=customer.restaurant,  # ★ FIXED
             customer=customer,
             transaction_type='redeem',
             points=reward.points_required,
@@ -488,7 +565,6 @@ def check_level_upgrade(customer: CustomerProfile) -> dict:
         meets_points = customer.total_points >= level.min_points
 
         if meets_spending and meets_points:
-            # ★ فقط اگه سطح جدید بالاتر از فعلی باشه
             if not current_level or level.order > current_level.order:
                 customer.membership_level = level
                 customer.save(update_fields=['membership_level'])
@@ -510,7 +586,7 @@ def check_level_upgrade(customer: CustomerProfile) -> dict:
                         },
                     },
                 )
-            break  # بالاترین سطح واجد شرط پیدا شد
+            break
 
     return {
         'upgraded': upgraded,
@@ -540,6 +616,7 @@ def _process_referral(new_customer: CustomerProfile, referral_code: str) -> dict
         bonus = Decimal(str(LOYALTY_REFERRAL_BONUS))
 
         referral = Referral.objects.create(
+            restaurant=new_customer.restaurant,  # ★ FIXED
             referrer=referrer,
             referred=new_customer,
             referral_code=referral_code,
@@ -558,6 +635,7 @@ def _process_referral(new_customer: CustomerProfile, referral_code: str) -> dict
         referrer.refresh_from_db()
 
         LoyaltyTransaction.objects.create(
+            restaurant=referrer.restaurant,  # ★ FIXED
             customer=referrer,
             transaction_type='referral',
             points=bonus,
@@ -572,6 +650,7 @@ def _process_referral(new_customer: CustomerProfile, referral_code: str) -> dict
         new_customer.refresh_from_db()
 
         LoyaltyTransaction.objects.create(
+            restaurant=new_customer.restaurant,  # ★ FIXED
             customer=new_customer,
             transaction_type='referral',
             points=bonus,
@@ -618,6 +697,7 @@ def check_and_grant_birthday_bonus(customer: CustomerProfile) -> dict:
         customer.refresh_from_db()
 
         LoyaltyTransaction.objects.create(
+            restaurant=customer.restaurant,  # ★ FIXED
             customer=customer,
             transaction_type='birthday',
             points=bonus,
@@ -636,7 +716,7 @@ def check_and_grant_birthday_bonus(customer: CustomerProfile) -> dict:
     return {'success': True, 'bonus': int(bonus), 'remaining_points': customer.available_points}
 
 
-def run_birthday_check_all() -> int:
+def run_birthday_check_all(restaurant: Restaurant) -> int:  # ★ FIXED: اضافه شدن restaurant
     """بررسی تولد تمام مشتریان — برای cron job."""
     today = timezone.now().date()
     birthday_customers = CustomerProfile.objects.filter(
@@ -647,29 +727,30 @@ def run_birthday_check_all() -> int:
     count = 0
     for customer in birthday_customers:
         result = check_and_grant_birthday_bonus(customer)
-        if result['success']:
+        if result.get('success'):
             count += 1
     return count
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  10. ★ FULL ORDER PROCESSING — فیکس اصلی
+#  10. FULL ORDER PROCESSING
 # ══════════════════════════════════════════════════════════════════════════════
 
 def process_order_loyalty(
+    restaurant: Restaurant,           # ★ FIXED: اضافه شدن restaurant
     phone: str,
-    order_id: int,
+    order: Union[Order, int, None],   # ★ FIXED: Order instance به‌جای int
     order_amount: Decimal,
     coupon_code: str = '',
     use_wallet: Decimal = Decimal('0'),
     redeem_points_count: int = 0,
 ) -> dict:
     """
-    ★ پردازش کامل باشگاه مشتریان — در یک تراکنش اتمیک
+    پردازش کامل باشگاه مشتریان — در یک تراکنش اتمیک
 
     ترتیب: ولیدیشن → کوپن → امتیاز → کیف پول → ثبت نهایی → کسب امتیاز → کش‌بک
     """
-    customer, created = get_or_create_customer(phone)
+    customer, created = get_or_create_customer(restaurant, phone)
 
     result = {
         'customer_id': customer.id,
@@ -684,14 +765,13 @@ def process_order_loyalty(
         'errors': [],
     }
 
-    # ★ فیکس: کل عملیات در یک تراکنش اتمیک
     try:
         with db_transaction.atomic():
             remaining = order_amount
 
             # ── ۱. اعمال کوپن
             if coupon_code:
-                coupon_result = apply_coupon(coupon_code, customer, remaining, order_id)
+                coupon_result = apply_coupon(coupon_code, customer, remaining, order)
                 if coupon_result['success']:
                     result['coupon'] = {
                         'code': coupon_result['coupon_code'],
@@ -703,7 +783,7 @@ def process_order_loyalty(
 
             # ── ۲. استفاده از امتیاز
             if redeem_points_count > 0:
-                points_result = redeem_points(customer, redeem_points_count, order_id)
+                points_result = redeem_points(customer, redeem_points_count, order)
                 if points_result['success']:
                     result['points_redeemed'] = {
                         'points': redeem_points_count,
@@ -717,7 +797,7 @@ def process_order_loyalty(
             if use_wallet > 0:
                 wallet_amount = min(use_wallet, remaining)
                 if wallet_amount > 0:
-                    wallet_result = wallet_debit(customer, wallet_amount, f'پرداخت سفارش #{order_id}', order_id)
+                    wallet_result = wallet_debit(customer, wallet_amount, '', order)
                     if wallet_result['success']:
                         result['wallet'] = {
                             'amount': int(wallet_amount),
@@ -729,10 +809,9 @@ def process_order_loyalty(
 
             result['final_amount'] = max(0, int(remaining))
 
-            # ── ۴. کسب امتیاز (از مبلغ نهایی)
-            # ★ فیکس: فقط اگه مبلغی پرداخت شده امتیاز بده
+            # ── ۴. کسب امتیاز (از مبلغ نهایی پرداخت‌شده)
             if remaining > 0:
-                points_result = earn_points_for_order(customer, order_id, remaining)
+                points_result = earn_points_for_order(customer, order, remaining)
                 if points_result['success']:
                     result['points_earned'] = {
                         'points': points_result['points_earned'],
@@ -742,7 +821,7 @@ def process_order_loyalty(
 
             # ── ۵. کش‌بک
             if remaining > 0:
-                cashback_result = add_cashback(customer, remaining, order_id)
+                cashback_result = add_cashback(customer, remaining, order)
                 if cashback_result.get('cashback', 0) > 0:
                     result['cashback'] = {
                         'amount': cashback_result['cashback'],
@@ -750,7 +829,6 @@ def process_order_loyalty(
                     }
 
     except Exception as e:
-        # ★ فیکس: اگه خطای غیرمنتظره بود، کل تراکنش rollback میشه
         result['errors'].append(f'خطای غیرمنتظره: {str(e)}')
 
     return result
@@ -760,36 +838,44 @@ def process_order_loyalty(
 #  11. DASHBOARD & ANALYTICS
 # ══════════════════════════════════════════════════════════════════════════════
 
-def get_loyalty_dashboard() -> dict:
-    """آمار کلی باشگاه مشتریان."""
+def get_loyalty_dashboard(restaurant: Restaurant) -> dict:  # ★ FIXED: اضافه شدن restaurant
+    """آمار کلی باشگاه مشتریان — برای یک رستوران خاص."""
     now = timezone.now()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-    total_customers = CustomerProfile.objects.filter(is_active=True).count()
-    new_this_month = CustomerProfile.objects.filter(joined_at__gte=month_start).count()
+    customers_qs = CustomerProfile.objects.filter(restaurant=restaurant, is_active=True)  # ★ FIXED
+    transactions_qs = LoyaltyTransaction.objects.filter(restaurant=restaurant)  # ★ FIXED
 
-    total_points_issued = LoyaltyTransaction.objects.filter(
+    total_customers = customers_qs.count()
+    new_this_month = customers_qs.filter(joined_at__gte=month_start).count()
+
+    total_points_issued = transactions_qs.filter(
         transaction_type__in=['earn', 'referral', 'birthday', 'cashback', 'bonus']
     ).aggregate(total=Sum('points'))['total'] or 0
 
-    total_points_redeemed = LoyaltyTransaction.objects.filter(
+    total_points_redeemed = transactions_qs.filter(
         transaction_type='redeem'
     ).aggregate(total=Sum('points'))['total'] or 0
 
     level_distribution = list(
         MembershipLevel.objects
+        .filter(restaurant=restaurant)  # ★ FIXED
         .annotate(customer_count=Count('customers'))
         .values('name', 'title', 'customer_count')
         .order_by('order')
     )
 
-    wallet_total = LoyaltyWallet.objects.aggregate(total=Sum('balance'))['total'] or 0
+    wallet_total = LoyaltyWallet.objects.filter(
+        restaurant=restaurant,  # ★ FIXED
+    ).aggregate(total=Sum('balance'))['total'] or 0
 
     top_customers = list(
-        CustomerProfile.objects
-        .filter(is_active=True)
+        customers_qs
         .order_by('-total_spending')[:10]
-        .values('phone', 'first_name', 'last_name', 'total_spending', 'total_points', 'membership_level__title')
+        .values(
+            'phone', 'first_name', 'last_name',
+            'total_spending', 'total_points', 'membership_level__title',
+        )
     )
 
     return {
@@ -818,6 +904,7 @@ def _create_notification(
 ) -> LoyaltyNotification:
     """ایجاد اعلان داخلی."""
     return LoyaltyNotification.objects.create(
+        restaurant=customer.restaurant,  # ★ FIXED
         customer=customer,
         channel=channel,
         notification_type=notification_type,
@@ -828,11 +915,24 @@ def _create_notification(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  13. SEED DATA
+#  13. HELPER — Utility
 # ══════════════════════════════════════════════════════════════════════════════
 
-def seed_membership_levels():
-    """ساخت/بروزرسانی ۴ سطح عضویت پیش‌فرض."""
+def _order_display(order: Union[Order, int, None]) -> str:
+    """برگشت شناسه سفارش برای نمایش در پیام‌ها."""
+    if order is None:
+        return '—'
+    if isinstance(order, Order):
+        return str(order.pk)
+    return str(order)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  14. SEED DATA
+# ══════════════════════════════════════════════════════════════════════════════
+
+def seed_membership_levels(restaurant: Restaurant) -> str:  # ★ FIXED: اضافه شدن restaurant
+    """ساخت/بروزرسانی ۴ سطح عضویت پیش‌فرض — برای یک رستوران."""
     levels = [
         {
             'name': 'bronze', 'title': 'برنز', 'icon': '🥉', 'color': '#CD7F32',
@@ -870,8 +970,9 @@ def seed_membership_levels():
 
     for data in levels:
         MembershipLevel.objects.update_or_create(
+            restaurant=restaurant,  # ★ FIXED: lookup بر اساس restaurant + name
             name=data['name'],
             defaults=data,
         )
 
-    return f"{len(levels)} سطح عضویت ساخته/بروزرسانی شد."
+    return f"{len(levels)} سطح عضویت برای رستوران «{restaurant.name}» ساخته/بروزرسانی شد."

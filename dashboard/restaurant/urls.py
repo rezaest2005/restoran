@@ -1,16 +1,13 @@
 """
-Restaurant Management System — URLs (★ نسخه نهایی)
+Restaurant Management System — URLs (★ نسخه اصلاح‌شده v4)
 
-تغییرات:
-  ★FIX-1  حذف foods و categories از router (تقاطع با function-based views)
-  ★FIX-2  گروه‌بندی منظم‌تر URLها + کامنت‌های بهتر
-  ★FIX-3  اضافه شدن trailing-slash consistency
-  ★FIX-4  اضافه شدن مسیرهای فروش آنلاین
-  ★FIX-5  منو عمومی از POS (آینه صندوق) — حذف از آشپزخانه
-  ★FIX-6  باز/بستن سفارش آنلاین از صندوق
-  ★FIX-7  ویرایش قیمت غذا از صندوق
-  ★FIX-8  سازگاری با React قدیمی — /api/kitchen/public-products/ → public_menu_api
-  ★FIX-9  ★ جدید — CRUD غذا از دیکشنری (create/update/delete)
+★ تغییرات نسبت به نسخه قبل:
+  ۱. api/recipes/materials/ → <int:pk>/ اضافه شد (recipe_materials_api pk می‌خواهد)
+  ۲. api/orders/list/ اضافه شد (order_list_api)
+  ۳. api/dictionary/recipe-materials/ اضافه شد (dictionary_recipe_materials_api)
+  ۴. import‌ها: از __init__.py سازگار شد
+  ۵. کامنتهای RTL فارسی حذف شد (encoding issues)
+  ۶. duplicate path برای public_menu_api حذف شد
 """
 
 from django.urls import include, path
@@ -19,12 +16,15 @@ from rest_framework.routers import DefaultRouter
 from . import views
 
 
+# ═══════════════════════════════════════
+#  Router — ViewSet-based endpoints
+# ═══════════════════════════════════════
 
 router = DefaultRouter()
 
 router.register("tables",               views.TableViewSet,               basename="table")
 router.register("reservations",         views.ReservationViewSet,          basename="reservation")
-router.register("orders",               views.OrderViewSet,                basename="order")
+router.register("orders",               views.OrderViewSet,               basename="order")
 router.register("semi-finished",        views.SemiFinishedViewSet,         basename="semi-finished")
 router.register("ready-materials",      views.ReadyMaterialViewSet,        basename="ready-material")
 router.register("membership-levels",    views.MembershipLevelViewSet,      basename="membership-level")
@@ -39,12 +39,9 @@ router.register("recipes",              views.RecipeViewSet,               basen
 router.register("inventory-movements",  views.InventoryMovementViewSet,    basename="inventory-movement")
 
 
-
 urlpatterns = [
 
-    # ┌─────────────────────────────────────────────────────────┐
-    # │  AUTHENTICATION                                         │
-    # └─────────────────────────────────────────────────────────┘
+    # ── Authentication ──────────────────────────────────────
 
     path("api/auth/login/",             views.LoginView.as_view(),          name="login"),
     path("api/auth/refresh/",           views.RefreshView.as_view(),        name="refresh"),
@@ -57,9 +54,7 @@ urlpatterns = [
     path("api/auth/users/<int:pk>/",    views.UserDetailView.as_view(),     name="user_detail"),
     path("api/auth/set-session/",       views.SetSessionView.as_view(),     name="set_session"),
 
-    # ┌─────────────────────────────────────────────────────────┐
-    # │  USER MANAGEMENT                                        │
-    # └─────────────────────────────────────────────────────────┘
+    # ── User Management ─────────────────────────────────────
 
     path("users/",                      views.user_management_page,     name="user_management"),
     path("api/users/management/",       views.user_management_api,      name="user_management_api"),
@@ -71,9 +66,7 @@ urlpatterns = [
     path("api/users/reject/",           views.reject_user_api,          name="reject_user"),
     path("api/users/delete/",           views.user_delete,              name="user_delete"),
 
-    # ┌─────────────────────────────────────────────────────────┐
-    # │  RAW MATERIALS & SUPPLIERS                              │
-    # └─────────────────────────────────────────────────────────┘
+    # ── Raw Materials & Suppliers ───────────────────────────
 
     path("api/raw-materials/save/",         views.raw_material_save,        name="raw_material_save"),
     path("api/raw-materials/delete/",       views.raw_material_delete,      name="raw_material_delete"),
@@ -83,9 +76,7 @@ urlpatterns = [
     path("api/suppliers/delete/",           views.supplier_delete,          name="supplier_delete"),
     path("api/suppliers/suggestions/",      views.supplier_suggestions,     name="supplier_suggestions"),
 
-    # ┌─────────────────────────────────────────────────────────┐
-    # │  WAREHOUSE & INVENTORY                                  │
-    # └─────────────────────────────────────────────────────────┘
+    # ── Warehouse & Inventory ───────────────────────────────
 
     path("api/invoices/parse-excel/",          views.parse_excel_file,              name="parse_excel"),
     path("api/usage-log/json/",                views.usage_log_json,                name="usage_log_json"),
@@ -96,10 +87,7 @@ urlpatterns = [
     path("api/ready-materials/update-price/",  views.ready_material_update_price,   name="ready_material_update_price"),
     path("api/convert-to-ready/",              views.convert_to_ready_material,     name="convert_to_ready_material"),
 
-    # ┌─────────────────────────────────────────────────────────┐
-    # │  RECIPES                                                │
-    # ── مسیرهای خاص‌تر باید قبل از router باشند ────────────── │
-    # └─────────────────────────────────────────────────────────┘
+    # ── Recipes (specific paths BEFORE router) ──────────────
 
     path("api/recipes/validate-inventory/",    views.validate_order_inventory_view,  name="validate_order_inventory"),
     path("api/recipes/deduct-inventory/",      views.deduct_inventory_view,          name="deduct_inventory"),
@@ -109,23 +97,26 @@ urlpatterns = [
     path("api/recipes/foods/suggest/",         views.food_suggestions_view,          name="food_suggestions"),
     path("api/recipes/raw-materials/suggest/", views.raw_material_suggestions_api,   name="recipe_raw_material_suggestions"),
     path("api/recipes/semi-finished/suggest/", views.semi_finished_suggestions_api,  name="semi_finished_suggestions"),
-    path("api/recipes/materials/",             views.recipe_materials_api,           name="recipe_materials"),
 
-    # ┌─────────────────────────────────────────────────────────┐
-    # │  DICTIONARY                                             │
-    # └─────────────────────────────────────────────────────────┘
+    # ★ FIXED: recipe_materials_api needs <int:pk>
+    path("api/recipes/<int:pk>/materials/",    views.recipe_materials_api,           name="recipe_materials"),
 
-    path("api/dictionary/list/",                views.dictionary_list,            name="dictionary_list"),
-    path("api/dictionary/autocomplete/",        views.dictionary_autocomplete,    name="dictionary_autocomplete"),
-    path("api/dictionary/create/",              views.dictionary_create,          name="dictionary_create"),
-    path("api/dictionary/<int:pk>/update/",     views.dictionary_update,          name="dictionary_update"),
-    path("api/dictionary/<int:pk>/delete/",     views.dictionary_delete,          name="dictionary_delete"),
-    path("api/dictionary/raw-materials/",       views.raw_materials_api,          name="raw_materials_api"),
-    path("api/dictionary/semi-finished/",       views.dictionary_semi_finished,   name="dict_semi_finished"),
-    path("api/dictionary/ready-materials/",     views.dictionary_ready_materials, name="dict_ready_materials"),
-    path("api/dictionary/food-menu/",           views.dictionary_food_menu,       name="dict_food_menu"),
+    # ── Dictionary ──────────────────────────────────────────
 
-    # ★★★ جدید — CRUD غذا از دیکشنری ★★★
+    path("api/dictionary/list/",                views.dictionary_list,                    name="dictionary_list"),
+    path("api/dictionary/autocomplete/",        views.dictionary_autocomplete,            name="dictionary_autocomplete"),
+    path("api/dictionary/create/",              views.dictionary_create,                  name="dictionary_create"),
+    path("api/dictionary/<int:pk>/update/",     views.dictionary_update,                  name="dictionary_update"),
+    path("api/dictionary/<int:pk>/delete/",     views.dictionary_delete,                  name="dictionary_delete"),
+    path("api/dictionary/raw-materials/",       views.raw_materials_api,                  name="raw_materials_api"),
+    path("api/dictionary/semi-finished/",       views.dictionary_semi_finished,           name="dict_semi_finished"),
+    path("api/dictionary/ready-materials/",     views.dictionary_ready_materials,         name="dict_ready_materials"),
+    path("api/dictionary/food-menu/",           views.dictionary_food_menu,               name="dict_food_menu"),
+
+    # ★ NEW: recipe materials from dictionary (for recipe editor)
+    path("api/dictionary/recipe-materials/",    views.dictionary_recipe_materials_api,    name="dict_recipe_materials"),
+
+    # Food CRUD from dictionary
     path("api/dictionary/food/create/",          views.dictionary_food_create,    name="dict_food_create"),
     path("api/dictionary/food/<int:pk>/update/", views.dictionary_food_update,    name="dict_food_update"),
     path("api/dictionary/food/<int:pk>/delete/", views.dictionary_food_delete,    name="dict_food_delete"),
@@ -135,12 +126,9 @@ urlpatterns = [
     path("api/dictionary/groups/save/",         views.dictionary_group_save,      name="dictionary_group_save"),
     path("api/dictionary/groups/delete/",       views.dictionary_group_delete,    name="dictionary_group_delete"),
 
-    # ┌─────────────────────────────────────────────────────────┐
-    # │  KITCHEN                                                │
-    # └─────────────────────────────────────────────────────────┘
+    # ── Kitchen ─────────────────────────────────────────────
 
     path("api/kitchen/dashboard/",                  views.kitchen_dashboard_api,              name="kitchen_dashboard"),
-    path("api/kitchen/public-products/",            views.public_menu_api,                    name="public_kitchen_products_compat"),
     path("api/kitchen/products/",                   views.KitchenProductListCreate.as_view(), name="kitchen-products-list"),
     path("api/kitchen/products/<int:pk>/",          views.KitchenProductDetail.as_view(),     name="kitchen-products-detail"),
     path("api/kitchen/products/<int:pk>/capacity/", views.kitchen_product_capacity,           name="kitchen-product-capacity"),
@@ -151,22 +139,18 @@ urlpatterns = [
     path("api/kitchen/plans/<int:pk>/",             views.ProductionPlanDetail.as_view(),     name="production-plans-detail"),
     path("api/kitchen/plans/<int:pk>/approve/",     views.production_plan_approve,            name="production-plan-approve"),
     path("api/kitchen/plans/<int:pk>/execute/",     views.production_plan_execute,            name="production-plan-execute"),
-    path("api/kitchen/logs/",                       views.ProductionLogList.as_view(),         name="production-logs-list"),
-    path("api/kitchen/waste/",                      views.KitchenWasteListCreate.as_view(),    name="kitchen-waste-list"),
-    path("api/kitchen/waste/<int:pk>/",             views.KitchenWasteDetail.as_view(),        name="kitchen-waste-detail"),
+    path("api/kitchen/logs/",                       views.ProductionLogList.as_view(),        name="production-logs-list"),
+    path("api/kitchen/waste/",                      views.KitchenWasteListCreate.as_view(),   name="kitchen-waste-list"),
+    path("api/kitchen/waste/<int:pk>/",             views.KitchenWasteDetail.as_view(),       name="kitchen-waste-detail"),
 
-    # ┌─────────────────────────────────────────────────────────┐
-    # │  LOYALTY                                                │
-    # └─────────────────────────────────────────────────────────┘
+    # ── Loyalty ─────────────────────────────────────────────
 
     path("api/loyalty/process-order/",  views.process_order_loyalty_view, name="process_order_loyalty"),
     path("api/loyalty/dashboard/",      views.loyalty_dashboard_view,     name="loyalty_dashboard_api"),
     path("api/loyalty/birthday-check/", views.birthday_check_view,        name="birthday_check"),
     path("api/loyalty/seed-levels/",    views.seed_levels_view,           name="seed_levels"),
 
-    # ┌─────────────────────────────────────────────────────────┐
-    # │  POS                                                    │
-    # └─────────────────────────────────────────────────────────┘
+    # ── POS ─────────────────────────────────────────────────
 
     path("api/pos/create-order/",     views.pos_create_order,      name="pos_create_order"),
     path("api/pos/daily-report/",     views.pos_daily_report,      name="pos_daily_report"),
@@ -178,37 +162,34 @@ urlpatterns = [
     path("api/pos/close-history/",    views.pos_close_history,     name="pos_close_history"),
     path("api/pos/close-report/<int:report_id>/", views.pos_close_report_detail, name="pos_close_report_detail"),
     path("api/pos/close-logs/",       views.pos_close_logs,        name="pos_close_logs"),
-    path("pos/receipt/<int:pk>/",     views.pos_receipt,           name="pos_receipt"),
-
     path("api/pos/update-food-price/", views.pos_update_food_price, name="pos_update_food_price"),
 
-    path("api/menu/",                             views.public_menu_api,            name="public_menu"),
+    # Public menu (single source — from pos.py)
+    path("api/menu/",                              views.public_menu_api,            name="public_menu"),
 
-    path("api/pos/online-orders/",                       views.pos_online_orders,        name="pos_online_orders"),
-    path("api/pos/confirm-online/<int:order_id>/",       views.pos_confirm_online_order, name="pos_confirm_online"),
-    path("api/pos/reject-online/<int:order_id>/",        views.pos_reject_online_order,  name="pos_reject_online"),
+    # Online orders management
+    path("api/pos/online-orders/",                  views.pos_online_orders,        name="pos_online_orders"),
+    path("api/pos/confirm-online/<int:order_id>/",  views.pos_confirm_online_order, name="pos_confirm_online"),
+    path("api/pos/reject-online/<int:order_id>/",   views.pos_reject_online_order,  name="pos_reject_online"),
 
+    # Online orders settings
     path("api/pos/online-orders-status/",    views.online_orders_status,   name="online_orders_status"),
     path("api/pos/toggle-online-orders/",    views.toggle_online_orders,   name="toggle_online_orders"),
 
-    # ┌─────────────────────────────────────────────────────────┐
-    # │  CARD READER                                            │
-    # └─────────────────────────────────────────────────────────┘
+    # ── Card Reader ─────────────────────────────────────────
 
     path("api/card-reader/pay/",       views.send_to_card_reader,  name="card_reader_pay"),
     path("api/card-reader/cancel/",    views.cancel_card_payment,  name="card_reader_cancel"),
 
-    # ┌─────────────────────────────────────────────────────────┐
-    # │  ORDERS (function-based — خاص‌تر از router)              │
-    # └─────────────────────────────────────────────────────────┘
+    # ── Orders (function-based — more specific than router) ─
 
-    path("api/orders/<int:pk>/status/",          views.order_change_status,    name="order_change_status"),
-    path("api/orders/<int:pk>/send-to-kitchen/", views.order_send_to_kitchen,  name="order_send_to_kitchen"),
-    path("api/orders/kitchen/",                  views.kitchen_orders_api,     name="kitchen_orders_api"),
+    # ★ NEW: order list with filters
+    path("api/orders/list/",                   views.order_list_api,         name="order_list_api"),
+    path("api/orders/<int:pk>/status/",        views.order_change_status,    name="order_change_status"),
+    path("api/orders/<int:pk>/send-to-kitchen/", views.order_send_to_kitchen, name="order_send_to_kitchen"),
+    path("api/orders/kitchen/",                views.kitchen_orders_api,     name="kitchen_orders_api"),
 
-    # ┌─────────────────────────────────────────────────────────┐
-    # │  SUPER ADMIN                                            │
-    # └─────────────────────────────────────────────────────────┘
+    # ── Super Admin ─────────────────────────────────────────
 
     path("api/super/login/",                        views.super_admin_login_api,     name="super_admin_login_api"),
     path("api/super/logout/",                       views.super_admin_logout_api,    name="super_admin_logout_api"),
@@ -219,9 +200,7 @@ urlpatterns = [
     path("api/super/services/",                     views.super_services_list_api,   name="super_services_list_api"),
     path("api/super/users/",                        views.super_users_api,           name="super_users_api"),
 
-    # ┌─────────────────────────────────────────────────────────┐
-    # │  HTML PAGES (Dashboard)                                 │
-    # └─────────────────────────────────────────────────────────┘
+    # ── HTML Pages (Dashboard) ──────────────────────────────
 
     path("dashboard/",                                  views.auth_page,                     name="auth_page"),
     path("dashboard/auth/",                             views.redirect_to_dashboard,         name="auth_redirect"),
@@ -237,6 +216,7 @@ urlpatterns = [
     path("dashboard/usage-log/",                        views.usage_log_view,                name="usage_log"),
     path("dashboard/kitchen/",                          views.kitchen_page,                  name="kitchen_page"),
     path("dashboard/pos/",                              views.pos_page,                      name="pos_page"),
+    path("dashboard/pos/receipt/<int:pk>/",             views.pos_receipt,                   name="pos_receipt"),
     path("dashboard/orders/",                           views.orders_dashboard,              name="orders_dashboard"),
     path("dashboard/recipes/",                          views.recipe_manager_page,           name="recipes_page"),
     path("dashboard/recipes/manager/",                  views.recipe_manager_page,           name="recipe_manager"),
@@ -249,6 +229,7 @@ urlpatterns = [
     path("dashboard/loyalty/register/",                 views.loyalty_register_page,         name="loyalty_register"),
     path("dashboard/dictionary/",                       views.dictionary_page,               name="dictionary_page"),
 
+    # ── Router (ViewSet-based endpoints) — MUST BE LAST ─────
 
     path("api/", include(router.urls)),
 ]

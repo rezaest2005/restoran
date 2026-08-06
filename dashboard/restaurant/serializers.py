@@ -1,6 +1,14 @@
 """
-Restaurant Management System — Serializers (★ نسخه اصلاح‌شده v2)
-تغییرات مشخص شده با ★FIX
+Restaurant Management System — Serializers (★ نسخه اصلاح‌شده v3)
+
+★ تغییرات نسبت به نسخه قبل:
+  ۱. OrderSerializer: فیلدهای source, payment_status, payment_method, confirmed_by اضافه شد
+  ۲. OrderItemSerializer: فیلدهای item_name, display_name اضافه شد
+  ۳. LoyaltyTransactionSerializer: order_id → order (FK) سازگار شد
+  ۴. WalletTransactionSerializer: مشابه بالا
+  ۵. ProcessOrderLoyaltySerializer: order_id سازگار با service layer
+  ۶. سریالایزر جدید: RawMaterial, Supplier, PurchaseInvoice, InventoryMovement,
+     WasteLog, DayCloseReport, OnlineOrderSettings
 """
 
 from rest_framework import serializers
@@ -12,11 +20,12 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import (
     Category, Food, Table, Reservation, Order, OrderItem,
+    RawMaterial, InventoryUsageLog, InventoryMovement,
+    Supplier, PurchaseInvoice, PurchaseInvoiceItem,
     ReadyMaterial,
     SemiFinished, SemiFinishedIngredient,
     Restaurant,
     Recipe, RecipeIngredient, RecipeSemiFinished, RecipePackagingItem,
-    RawMaterial,
     MembershipLevel, CustomerProfile,
     LoyaltyTransaction,
     LoyaltyWallet, WalletTransaction,
@@ -25,6 +34,9 @@ from .models import (
     Referral, LoyaltyNotification,
     KitchenProduct, KitchenInventory, ProductionPlan,
     ProductionPlanItem, ProductionBatch, ProductionLog,
+    WasteLog,
+    OnlineOrderSettings,
+    DayCloseReport, DayCloseLog,
     DictionaryGroup, ItemDictionary,
 )
 
@@ -50,6 +62,31 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'name', 'image', 'is_active', 'order']
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  1.5 RAW MATERIALS — ★ جدید
+# ══════════════════════════════════════════════════════════════════════════════
+
+class RawMaterialSerializer(serializers.ModelSerializer):
+    total_price = serializers.SerializerMethodField()
+    unit_display = serializers.CharField(source='get_unit_display', read_only=True)
+    material_type_display = serializers.CharField(source='get_material_type_display', read_only=True)
+
+    class Meta:
+        model = RawMaterial
+        fields = [
+            'id', 'name', 'label', 'price', 'unit', 'unit_display',
+            'quantity', 'material_type', 'material_type_display',
+            'total_price', 'created_at', 'updated_at',
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+
+    def get_total_price(self, obj):
+        try:
+            return int(obj.total_price)
+        except (TypeError, ValueError):
+            return 0
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -300,27 +337,173 @@ class ReservationSerializer(serializers.ModelSerializer):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  3. ORDERS
+#  3. ORDERS — ★ اصلاح‌شده
 # ══════════════════════════════════════════════════════════════════════════════
 
 class OrderItemSerializer(serializers.ModelSerializer):
-    food_name = serializers.CharField(source='food.name', read_only=True)
+    # ★ FIXED: فیلدهای جدید
+    food_name = serializers.CharField(source='food.name', read_only=True, default='')
+    display_name = serializers.CharField(read_only=True)
+    line_total = serializers.SerializerMethodField()
 
     class Meta:
         model = OrderItem
-        fields = ['id', 'food', 'food_name', 'quantity', 'price']
+        fields = ['id', 'food', 'food_name', 'item_name', 'display_name', 'quantity', 'price', 'line_total']
+
+    def get_line_total(self, obj):
+        if obj.price and obj.quantity:
+            return int(obj.price * obj.quantity)
+        return 0
 
 
 class OrderSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+    # ★ FIXED: فیلدهای جدید
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    source_display = serializers.CharField(source='get_source_display', read_only=True)
+    payment_status_display = serializers.CharField(source='get_payment_status_display', read_only=True)
+    payment_method_display = serializers.CharField(source='get_payment_method_display', read_only=True)
+    confirmed_by_name = serializers.SerializerMethodField()
+    items_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Order
+        fields = [
+            'id', 'customer_name', 'phone', 'table',
+            'status', 'status_display',
+            'source', 'source_display',
+            'payment_status', 'payment_status_display',
+            'payment_method', 'payment_method_display',
+            'confirmed_by', 'confirmed_by_name', 'confirmed_at',
+            'total_price', 'items_count', 'items',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'total_price', 'created_at', 'updated_at', 'confirmed_at']
+
+    def get_confirmed_by_name(self, obj):
+        try:
+            return obj.confirmed_by.get_full_name() if obj.confirmed_by else ''
+        except Exception:
+            return ''
+
+    def get_items_count(self, obj):
+        return obj.items.count()
+
+
+class OrderCreateSerializer(serializers.ModelSerializer):
+    """سریالایزر برای ایجاد سفارش — آیتم‌ها به‌صورت جداگانه اضافه می‌شوند"""
     items = OrderItemSerializer(many=True, read_only=True)
 
     class Meta:
         model = Order
         fields = [
             'id', 'customer_name', 'phone', 'table',
-            'status', 'total_price', 'created_at', 'items',
+            'status', 'source', 'payment_method',
+            'total_price', 'items', 'created_at',
         ]
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'total_price', 'created_at']
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  3.5 SUPPLIERS & PURCHASE INVOICES — ★ جدید
+# ══════════════════════════════════════════════════════════════════════════════
+
+class SupplierSerializer(serializers.ModelSerializer):
+    invoices_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Supplier
+        fields = [
+            'id', 'name', 'phone', 'address', 'contact_person',
+            'description', 'invoices_count', 'created_at',
+        ]
+        read_only_fields = ['created_at']
+
+    def get_invoices_count(self, obj):
+        return obj.invoices.count()
+
+
+class PurchaseInvoiceItemSerializer(serializers.ModelSerializer):
+    line_total = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PurchaseInvoiceItem
+        fields = [
+            'id', 'item_name', 'quantity', 'unit', 'unit_price',
+            'category', 'raw_material', 'line_total',
+        ]
+
+    def get_line_total(self, obj):
+        try:
+            return int(obj.line_total)
+        except (TypeError, ValueError):
+            return 0
+
+
+class PurchaseInvoiceSerializer(serializers.ModelSerializer):
+    items = PurchaseInvoiceItemSerializer(many=True, read_only=True)
+    total_amount = serializers.SerializerMethodField()
+    item_count = serializers.SerializerMethodField()
+    supplier_detail = SupplierSerializer(source='supplier', read_only=True)
+
+    class Meta:
+        model = PurchaseInvoice
+        fields = [
+            'id', 'supplier', 'supplier_detail', 'supplier_name',
+            'invoice_number', 'date', 'description', 'file',
+            'items', 'total_amount', 'item_count', 'created_at',
+        ]
+        read_only_fields = ['created_at']
+
+    def get_total_amount(self, obj):
+        try:
+            return int(obj.total_amount)
+        except (TypeError, ValueError):
+            return 0
+
+    def get_item_count(self, obj):
+        return obj.items.count()
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  3.6 INVENTORY TRACKING — ★ جدید
+# ══════════════════════════════════════════════════════════════════════════════
+
+class InventoryMovementSerializer(serializers.ModelSerializer):
+    raw_material_name = serializers.CharField(source='raw_material.name', read_only=True)
+    movement_type_display = serializers.CharField(source='get_movement_type_display', read_only=True)
+    created_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = InventoryMovement
+        fields = [
+            'id', 'raw_material', 'raw_material_name',
+            'movement_type', 'movement_type_display',
+            'quantity', 'previous_stock', 'new_stock',
+            'reference_type', 'reference_id',
+            'notes', 'created_by', 'created_by_name', 'created_at',
+        ]
+        read_only_fields = ['created_at']
+
+    def get_created_by_name(self, obj):
+        try:
+            return obj.created_by.get_full_name() if obj.created_by else ''
+        except Exception:
+            return ''
+
+
+class InventoryUsageLogSerializer(serializers.ModelSerializer):
+    raw_material_name = serializers.CharField(source='raw_material.name', read_only=True)
+    usage_type_display = serializers.CharField(source='get_usage_type_display', read_only=True)
+
+    class Meta:
+        model = InventoryUsageLog
+        fields = [
+            'id', 'raw_material', 'raw_material_name',
+            'usage_type', 'usage_type_display',
+            'quantity_used', 'reference', 'note', 'used_at',
+        ]
+        read_only_fields = ['used_at']
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -392,7 +575,55 @@ class SemiFinishedSerializer(serializers.ModelSerializer):
         try:
             return obj.can_produce
         except Exception:
-            return False
+            return 0
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  5. READY MATERIALS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ReadyMaterialSerializer(serializers.ModelSerializer):
+    total_value = serializers.SerializerMethodField()
+    stock_status = serializers.SerializerMethodField()
+    unit_display = serializers.CharField(source='get_unit_display', read_only=True)
+    supplier_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ReadyMaterial
+        fields = [
+            'id', 'name', 'description', 'unit', 'unit_display',
+            'quantity', 'purchase_price', 'selling_price',
+            'minimum_stock', 'supplier', 'supplier_name',
+            'barcode', 'is_active', 'total_value', 'stock_status',
+            'created_at', 'updated_at',
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+
+    def get_total_value(self, obj):
+        try:
+            return int(obj.total_value) if hasattr(obj, 'total_value') else (
+                int(obj.quantity * obj.purchase_price) if obj.purchase_price else 0
+            )
+        except (TypeError, AttributeError):
+            return 0
+
+    def get_stock_status(self, obj):
+        try:
+            if hasattr(obj, 'stock_status'):
+                return obj.stock_status
+            if obj.quantity <= 0:
+                return 'out'
+            if obj.minimum_stock and obj.quantity <= obj.minimum_stock:
+                return 'low'
+            return 'ok'
+        except (TypeError, AttributeError):
+            return 'unknown'
+
+    def get_supplier_name(self, obj):
+        try:
+            return obj.supplier.name if obj.supplier else ''
+        except Exception:
+            return ''
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -401,9 +632,7 @@ class SemiFinishedSerializer(serializers.ModelSerializer):
 
 class KitchenProductSerializer(serializers.ModelSerializer):
     recipe_name = serializers.SerializerMethodField()
-    category_display = serializers.CharField(
-        source='get_category_display', read_only=True
-    )
+    category_display = serializers.CharField(source='get_category_display', read_only=True)
     cost = serializers.SerializerMethodField()
     profit = serializers.SerializerMethodField()
     max_production = serializers.SerializerMethodField()
@@ -486,15 +715,9 @@ class KitchenProductSerializer(serializers.ModelSerializer):
 
 
 class KitchenInventorySerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(
-        source='kitchen_product.name', read_only=True
-    )
-    available = serializers.IntegerField(
-        source='available_quantity', read_only=True
-    )
-    is_low = serializers.BooleanField(
-        source='is_low_stock', read_only=True
-    )
+    product_name = serializers.CharField(source='kitchen_product.name', read_only=True)
+    available = serializers.IntegerField(source='available_quantity', read_only=True)
+    is_low = serializers.BooleanField(source='is_low_stock', read_only=True)
 
     class Meta:
         model = KitchenInventory
@@ -502,9 +725,7 @@ class KitchenInventorySerializer(serializers.ModelSerializer):
 
 
 class ProductionPlanItemSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(
-        source='kitchen_product.name', read_only=True
-    )
+    product_name = serializers.CharField(source='kitchen_product.name', read_only=True)
     required_materials = serializers.SerializerMethodField()
 
     class Meta:
@@ -523,12 +744,10 @@ class ProductionPlanItemSerializer(serializers.ModelSerializer):
 
 class ProductionPlanSerializer(serializers.ModelSerializer):
     items = ProductionPlanItemSerializer(many=True, read_only=True)
-    status_display = serializers.CharField(
-        source='get_status_display', read_only=True
-    )
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
     created_by_name = serializers.SerializerMethodField()
     items_data = serializers.ListField(
-        child=serializers.DictField(), write_only=True, required=False
+        child=serializers.DictField(), write_only=True, required=False,
     )
 
     class Meta:
@@ -552,18 +771,14 @@ class ProductionPlanSerializer(serializers.ModelSerializer):
         for d in items:
             ProductionPlanItem.objects.create(
                 production_plan=plan,
-                kitchen_product_id=(
-                    d.get('kitchen_product_id') or d.get('kitchen_product')
-                ),
+                kitchen_product_id=(d.get('kitchen_product_id') or d.get('kitchen_product')),
                 quantity=d.get('quantity', 0),
             )
         return plan
 
 
 class ProductionBatchSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(
-        source='kitchen_product.name', read_only=True
-    )
+    product_name = serializers.CharField(source='kitchen_product.name', read_only=True)
     produced_by_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -598,6 +813,111 @@ class ProductionLogSerializer(serializers.ModelSerializer):
             return '—'
 
 
+class ProduceSerializer(serializers.Serializer):
+    quantity = serializers.FloatField(min_value=0.01, max_value=10000, default=1)
+
+    def validate_quantity(self, value):
+        if value != round(value, 2):
+            raise serializers.ValidationError('حداکثر ۲ رقم اعشار مجاز است.')
+        return value
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  6.5 WASTE LOG — ★ جدید
+# ══════════════════════════════════════════════════════════════════════════════
+
+class WasteLogSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source='kitchen_product.name', read_only=True)
+    reason_display = serializers.CharField(source='get_reason_display', read_only=True)
+    total_cost = serializers.SerializerMethodField()
+    created_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WasteLog
+        fields = [
+            'id', 'kitchen_product', 'product_name',
+            'quantity', 'reason', 'reason_display',
+            'cost_per_unit', 'total_cost',
+            'notes', 'created_by', 'created_by_name', 'created_at',
+        ]
+        read_only_fields = ['created_at', 'cost_per_unit']
+
+    def get_total_cost(self, obj):
+        try:
+            return obj.total_cost
+        except (TypeError, AttributeError):
+            return 0
+
+    def get_created_by_name(self, obj):
+        try:
+            return obj.created_by.get_full_name() if obj.created_by else ''
+        except Exception:
+            return ''
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  6.6 ONLINE ORDER SETTINGS — ★ جدید
+# ══════════════════════════════════════════════════════════════════════════════
+
+class OnlineOrderSettingsSerializer(serializers.ModelSerializer):
+    status_text = serializers.CharField(read_only=True)
+    restaurant_name = serializers.CharField(source='restaurant.name', read_only=True)
+
+    class Meta:
+        model = OnlineOrderSettings
+        fields = [
+            'id', 'restaurant', 'restaurant_name',
+            'is_open', 'status_text', 'closed_message',
+            'updated_at', 'updated_by',
+        ]
+        read_only_fields = ['updated_at', 'updated_by']
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  6.7 DAY CLOSE — ★ جدید
+# ══════════════════════════════════════════════════════════════════════════════
+
+class DayCloseReportSerializer(serializers.ModelSerializer):
+    closed_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DayCloseReport
+        fields = [
+            'id', 'date',
+            'total_sales', 'total_cost', 'total_profit',
+            'order_count', 'delivered_count',
+            'waste_count', 'waste_value', 'discount_total',
+            'inventory_snapshot', 'items_detail', 'top_items',
+            'closed_by', 'closed_by_name', 'closed_at',
+        ]
+        read_only_fields = ['closed_at']
+
+    def get_closed_by_name(self, obj):
+        try:
+            return obj.closed_by.get_full_name() if obj.closed_by else ''
+        except Exception:
+            return ''
+
+
+class DayCloseLogSerializer(serializers.ModelSerializer):
+    user_name = serializers.SerializerMethodField()
+    action_display = serializers.CharField(source='get_action_display', read_only=True)
+
+    class Meta:
+        model = DayCloseLog
+        fields = [
+            'id', 'date', 'action', 'action_display',
+            'user', 'user_name', 'details', 'created_at',
+        ]
+        read_only_fields = ['created_at']
+
+    def get_user_name(self, obj):
+        try:
+            return obj.user.get_full_name() if obj.user else ''
+        except Exception:
+            return ''
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  7. MEMBERSHIP LEVEL
 # ══════════════════════════════════════════════════════════════════════════════
@@ -626,15 +946,9 @@ class MembershipLevelSerializer(serializers.ModelSerializer):
 
 class CustomerListSerializer(serializers.ModelSerializer):
     full_name = serializers.ReadOnlyField()
-    membership_title = serializers.CharField(
-        source='membership_level.title', default='', read_only=True
-    )
-    membership_icon = serializers.CharField(
-        source='membership_level.icon', default='', read_only=True
-    )
-    membership_color = serializers.CharField(
-        source='membership_level.color', default='', read_only=True
-    )
+    membership_title = serializers.CharField(source='membership_level.title', default='', read_only=True)
+    membership_icon = serializers.CharField(source='membership_level.icon', default='', read_only=True)
+    membership_color = serializers.CharField(source='membership_level.color', default='', read_only=True)
     wallet_balance = serializers.ReadOnlyField()
 
     class Meta:
@@ -677,10 +991,7 @@ class CustomerDetailSerializer(serializers.ModelSerializer):
     def get_referral_link(self, obj):
         request = self.context.get('request')
         if request and obj.referral_code:
-            return (
-                f"{request.build_absolute_uri('/').rstrip('/')}"
-                f"/loyalty/register?ref={obj.referral_code}"
-            )
+            return f"{request.build_absolute_uri('/').rstrip('/')}/loyalty/register?ref={obj.referral_code}"
         return None
 
     def get_recent_transactions(self, obj):
@@ -689,11 +1000,7 @@ class CustomerDetailSerializer(serializers.ModelSerializer):
 
     def get_recent_coupons(self, obj):
         try:
-            usages = (
-                obj.customer_coupons
-                .select_related('coupon')
-                .order_by('-last_used_at')[:5]
-            )
+            usages = obj.customer_coupons.select_related('coupon').order_by('-last_used_at')[:5]
             return CustomerCouponSerializer(usages, many=True).data
         except Exception:
             return []
@@ -701,48 +1008,35 @@ class CustomerDetailSerializer(serializers.ModelSerializer):
 
 class CustomerCreateSerializer(serializers.Serializer):
     phone = serializers.CharField(max_length=11)
-    first_name = serializers.CharField(
-        max_length=100, required=False, default=''
-    )
-    last_name = serializers.CharField(
-        max_length=100, required=False, default=''
-    )
+    first_name = serializers.CharField(max_length=100, required=False, default='')
+    last_name = serializers.CharField(max_length=100, required=False, default='')
     email = serializers.EmailField(required=False, default='')
     birth_date = serializers.DateField(required=False, allow_null=True)
-    referral_code = serializers.CharField(
-        max_length=12, required=False, default=''
-    )
+    referral_code = serializers.CharField(max_length=12, required=False, default='')
 
     def validate_phone(self, value):
         if not value.isdigit() or len(value) != 11:
-            raise serializers.ValidationError(
-                'شماره موبایل باید ۱۱ رقم باشد.'
-            )
+            raise serializers.ValidationError('شماره موبایل باید ۱۱ رقم باشد.')
         if not value.startswith('09'):
-            raise serializers.ValidationError(
-                'شماره موبایل باید با ۰۹ شروع شود.'
-            )
+            raise serializers.ValidationError('شماره موبایل باید با ۰۹ شروع شود.')
         return value
 
 
 class CustomerUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomerProfile
-        fields = [
-            'first_name', 'last_name', 'email',
-            'birth_date', 'profile_image', 'notes',
-        ]
+        fields = ['first_name', 'last_name', 'email', 'birth_date', 'profile_image', 'notes']
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  9. LOYALTY TRANSACTION
+#  9. LOYALTY TRANSACTION — ★ اصلاح‌شده
 # ══════════════════════════════════════════════════════════════════════════════
 
 class LoyaltyTransactionSerializer(serializers.ModelSerializer):
-    type_display = serializers.CharField(
-        source='get_transaction_type_display', read_only=True
-    )
+    type_display = serializers.CharField(source='get_transaction_type_display', read_only=True)
     sign = serializers.SerializerMethodField()
+    # ★ FIXED: order حالا FK است — order_id مقدار PK را برمی‌گرداند
+    order_id = serializers.IntegerField(source='order_id', read_only=True, default=None)
 
     class Meta:
         model = LoyaltyTransaction
@@ -753,13 +1047,7 @@ class LoyaltyTransactionSerializer(serializers.ModelSerializer):
         ]
 
     def get_sign(self, obj):
-        return (
-            '+'
-            if obj.transaction_type in (
-                'earn', 'referral', 'birthday', 'cashback', 'bonus'
-            )
-            else '-'
-        )
+        return '+' if obj.transaction_type in ('earn', 'referral', 'birthday', 'cashback', 'bonus') else '-'
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -832,9 +1120,7 @@ class CouponCreateSerializer(serializers.ModelSerializer):
     def validate(self, data):
         if data.get('valid_from') and data.get('valid_until'):
             if data['valid_from'] >= data['valid_until']:
-                raise serializers.ValidationError(
-                    {'valid_until': 'تاریخ پایان باید بعد از شروع باشد.'}
-                )
+                raise serializers.ValidationError({'valid_until': 'تاریخ پایان باید بعد از شروع باشد.'})
         return data
 
     def create(self, validated_data):
@@ -862,18 +1148,16 @@ class CouponValidateSerializer(serializers.Serializer):
 class CouponApplySerializer(serializers.Serializer):
     code = serializers.CharField(max_length=30)
     order_amount = serializers.DecimalField(max_digits=12, decimal_places=0)
+    # ★ FIXED: حالا order FK است — view باید instance پاس بدهد
     order_id = serializers.IntegerField(required=False, allow_null=True)
 
 
 class CustomerCouponSerializer(serializers.ModelSerializer):
     coupon_code = serializers.CharField(source='coupon.code', read_only=True)
     coupon_name = serializers.CharField(source='coupon.name', read_only=True)
-    discount_type = serializers.CharField(
-        source='coupon.discount_type', read_only=True
-    )
+    discount_type = serializers.CharField(source='coupon.discount_type', read_only=True)
     discount_value = serializers.DecimalField(
-        source='coupon.discount_value',
-        max_digits=12, decimal_places=0, read_only=True,
+        source='coupon.discount_value', max_digits=12, decimal_places=0, read_only=True,
     )
 
     class Meta:
@@ -886,30 +1170,23 @@ class CustomerCouponSerializer(serializers.ModelSerializer):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  11. WALLET
+#  11. WALLET — ★ اصلاح‌شده
 # ══════════════════════════════════════════════════════════════════════════════
 
 class WalletSerializer(serializers.ModelSerializer):
-    customer_phone = serializers.CharField(
-        source='customer.phone', read_only=True
-    )
-    customer_name = serializers.CharField(
-        source='customer.full_name', read_only=True
-    )
+    customer_phone = serializers.CharField(source='customer.phone', read_only=True)
+    customer_name = serializers.CharField(source='customer.full_name', read_only=True)
 
     class Meta:
         model = LoyaltyWallet
-        fields = [
-            'id', 'customer_phone', 'customer_name',
-            'balance', 'updated_at',
-        ]
+        fields = ['id', 'customer_phone', 'customer_name', 'balance', 'updated_at']
 
 
 class WalletTransactionSerializer(serializers.ModelSerializer):
-    type_display = serializers.CharField(
-        source='get_transaction_type_display', read_only=True
-    )
+    type_display = serializers.CharField(source='get_transaction_type_display', read_only=True)
     sign = serializers.SerializerMethodField()
+    # ★ FIXED: order حالا FK است
+    order_id = serializers.IntegerField(source='order_id', read_only=True, default=None)
 
     class Meta:
         model = WalletTransaction
@@ -920,41 +1197,28 @@ class WalletTransactionSerializer(serializers.ModelSerializer):
         ]
 
     def get_sign(self, obj):
-        return (
-            '+'
-            if obj.transaction_type in (
-                'deposit', 'cashback', 'refund', 'reward'
-            )
-            else '-'
-        )
+        return '+' if obj.transaction_type in ('deposit', 'cashback', 'refund', 'reward') else '-'
 
 
 class WalletDepositSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=14, decimal_places=0)
-    description = serializers.CharField(
-        max_length=300, required=False, default=''
-    )
+    description = serializers.CharField(max_length=300, required=False, default='')
 
     def validate_amount(self, value):
         if value <= 0:
-            raise serializers.ValidationError(
-                'مبلغ باید بزرگ‌تر از صفر باشد.'
-            )
+            raise serializers.ValidationError('مبلغ باید بزرگ‌تر از صفر باشد.')
         return value
 
 
 class WalletDebitSerializer(serializers.Serializer):
     amount = serializers.DecimalField(max_digits=14, decimal_places=0)
-    description = serializers.CharField(
-        max_length=300, required=False, default=''
-    )
+    description = serializers.CharField(max_length=300, required=False, default='')
+    # ★ FIXED: view باید order instance resolve کند
     order_id = serializers.IntegerField(required=False, allow_null=True)
 
     def validate_amount(self, value):
         if value <= 0:
-            raise serializers.ValidationError(
-                'مبلغ باید بزرگ‌تر از صفر باشد.'
-            )
+            raise serializers.ValidationError('مبلغ باید بزرگ‌تر از صفر باشد.')
         return value
 
 
@@ -963,18 +1227,10 @@ class WalletDebitSerializer(serializers.Serializer):
 # ══════════════════════════════════════════════════════════════════════════════
 
 class RewardListSerializer(serializers.ModelSerializer):
-    is_available_now = serializers.BooleanField(
-        source='is_available', read_only=True
-    )
-    category_display = serializers.CharField(
-        source='get_category_display', read_only=True
-    )
-    min_level_title = serializers.CharField(
-        source='min_membership_level.title', default=None, read_only=True
-    )
-    min_level_icon = serializers.CharField(
-        source='min_membership_level.icon', default=None, read_only=True
-    )
+    is_available_now = serializers.BooleanField(source='is_available', read_only=True)
+    category_display = serializers.CharField(source='get_category_display', read_only=True)
+    min_level_title = serializers.CharField(source='min_membership_level.title', default=None, read_only=True)
+    min_level_icon = serializers.CharField(source='min_membership_level.icon', default=None, read_only=True)
 
     class Meta:
         model = Reward
@@ -982,8 +1238,7 @@ class RewardListSerializer(serializers.ModelSerializer):
             'id', 'name', 'description', 'category', 'category_display',
             'image', 'points_required', 'value',
             'quantity_available', 'is_available_now',
-            'min_level_title', 'min_level_icon',
-            'is_active',
+            'min_level_title', 'min_level_icon', 'is_active',
         ]
 
 
@@ -991,21 +1246,14 @@ class RewardDetailSerializer(RewardListSerializer):
     can_afford = serializers.SerializerMethodField()
 
     class Meta(RewardListSerializer.Meta):
-        fields = RewardListSerializer.Meta.fields + [
-            'can_afford', 'created_at'
-        ]
+        fields = RewardListSerializer.Meta.fields + ['can_afford', 'created_at']
 
     def get_can_afford(self, obj):
         request = self.context.get('request')
         if request:
-            phone = (
-                request.query_params.get('phone')
-                or request.headers.get('X-Customer-Phone')
-            )
+            phone = request.query_params.get('phone') or request.headers.get('X-Customer-Phone')
             if phone:
-                customer = CustomerProfile.objects.filter(
-                    phone=phone
-                ).first()
+                customer = CustomerProfile.objects.filter(phone=phone).first()
                 if customer:
                     return customer.available_points >= obj.points_required
         return None
@@ -1026,22 +1274,15 @@ class RewardRedeemSerializer(serializers.Serializer):
 
 
 class RewardRedemptionSerializer(serializers.ModelSerializer):
-    reward_name = serializers.CharField(
-        source='reward.name', read_only=True
-    )
-    reward_category = serializers.CharField(
-        source='reward.category', read_only=True
-    )
-    status_display = serializers.CharField(
-        source='get_status_display', read_only=True
-    )
+    reward_name = serializers.CharField(source='reward.name', read_only=True)
+    reward_category = serializers.CharField(source='reward.category', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
 
     class Meta:
         model = RewardRedemption
         fields = [
             'id', 'reward_name', 'reward_category',
-            'points_spent', 'status', 'status_display',
-            'redeemed_at',
+            'points_spent', 'status', 'status_display', 'redeemed_at',
         ]
 
 
@@ -1050,18 +1291,10 @@ class RewardRedemptionSerializer(serializers.ModelSerializer):
 # ══════════════════════════════════════════════════════════════════════════════
 
 class ReferralSerializer(serializers.ModelSerializer):
-    referrer_name = serializers.CharField(
-        source='referrer.full_name', read_only=True
-    )
-    referrer_phone = serializers.CharField(
-        source='referrer.phone', read_only=True
-    )
-    referred_name = serializers.CharField(
-        source='referred.full_name', read_only=True
-    )
-    referred_phone = serializers.CharField(
-        source='referred.phone', read_only=True
-    )
+    referrer_name = serializers.CharField(source='referrer.full_name', read_only=True)
+    referrer_phone = serializers.CharField(source='referrer.phone', read_only=True)
+    referred_name = serializers.CharField(source='referred.full_name', read_only=True)
+    referred_phone = serializers.CharField(source='referred.phone', read_only=True)
 
     class Meta:
         model = Referral
@@ -1078,12 +1311,8 @@ class ReferralSerializer(serializers.ModelSerializer):
 # ══════════════════════════════════════════════════════════════════════════════
 
 class NotificationSerializer(serializers.ModelSerializer):
-    channel_display = serializers.CharField(
-        source='get_channel_display', read_only=True
-    )
-    type_display = serializers.CharField(
-        source='get_notification_type_display', read_only=True
-    )
+    channel_display = serializers.CharField(source='get_channel_display', read_only=True)
+    type_display = serializers.CharField(source='get_notification_type_display', read_only=True)
 
     class Meta:
         model = LoyaltyNotification
@@ -1096,24 +1325,21 @@ class NotificationSerializer(serializers.ModelSerializer):
 
 
 class NotificationMarkReadSerializer(serializers.Serializer):
-    notification_ids = serializers.ListField(
-        child=serializers.IntegerField(), required=False
-    )
+    notification_ids = serializers.ListField(child=serializers.IntegerField(), required=False)
     mark_all = serializers.BooleanField(required=False, default=False)
 
     def validate(self, data):
         if not data.get('mark_all') and not data.get('notification_ids'):
-            raise serializers.ValidationError(
-                'حداقل یکی از notification_ids یا mark_all لازم است.'
-            )
+            raise serializers.ValidationError('حداقل یکی از notification_ids یا mark_all لازم است.')
         return data
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  15. POINTS — EARN & REDEEM
+#  15. POINTS — EARN & REDEEM — ★ اصلاح‌شده
 # ══════════════════════════════════════════════════════════════════════════════
 
 class EarnPointsSerializer(serializers.Serializer):
+    # ★ FIXED: order_id — view باید به Order instance تبدیل کند
     order_id = serializers.IntegerField()
     order_amount = serializers.DecimalField(max_digits=14, decimal_places=0)
 
@@ -1125,30 +1351,26 @@ class EarnPointsSerializer(serializers.Serializer):
 
 class RedeemPointsSerializer(serializers.Serializer):
     points = serializers.IntegerField(min_value=1)
+    # ★ FIXED: order_id — view باید به Order instance تبدیل کند
     order_id = serializers.IntegerField(required=False, allow_null=True)
 
     def validate_points(self, value):
         if value < 100:
-            raise serializers.ValidationError(
-                'حداقل ۱۰۰ امتیاز قابل استفاده است.'
-            )
+            raise serializers.ValidationError('حداقل ۱۰۰ امتیاز قابل استفاده است.')
         return value
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  16. FULL ORDER PROCESSING
+#  16. FULL ORDER PROCESSING — ★ اصلاح‌شده
 # ══════════════════════════════════════════════════════════════════════════════
 
 class ProcessOrderLoyaltySerializer(serializers.Serializer):
     phone = serializers.CharField(max_length=11)
+    # ★ FIXED: order_id — view باید به Order instance تبدیل کند و به service بدهد
     order_id = serializers.IntegerField()
     order_amount = serializers.DecimalField(max_digits=14, decimal_places=0)
-    coupon_code = serializers.CharField(
-        max_length=30, required=False, default=''
-    )
-    use_wallet = serializers.DecimalField(
-        max_digits=14, decimal_places=0, required=False, default=0
-    )
+    coupon_code = serializers.CharField(max_length=30, required=False, default='')
+    use_wallet = serializers.DecimalField(max_digits=14, decimal_places=0, required=False, default=0)
     redeem_points = serializers.IntegerField(required=False, default=0)
 
     def validate_phone(self, value):
@@ -1194,9 +1416,7 @@ class CustomTokenObtainSerializer(TokenObtainPairSerializer):
         password = attrs.get('password')
 
         if not username and not phone:
-            raise serializers.ValidationError(
-                {'error': 'نام کاربری یا شماره موبایل الزامی است.'}
-            )
+            raise serializers.ValidationError({'error': 'نام کاربری یا شماره موبایل الزامی است.'})
 
         user = None
         if phone:
@@ -1207,14 +1427,10 @@ class CustomTokenObtainSerializer(TokenObtainPairSerializer):
             user = User.objects.filter(username=username).first()
 
         if not user or not user.check_password(password):
-            raise serializers.ValidationError(
-                {'error': 'نام کاربری یا رمز عبور اشتباه است.'}
-            )
+            raise serializers.ValidationError({'error': 'نام کاربری یا رمز عبور اشتباه است.'})
 
         if not user.is_active:
-            raise serializers.ValidationError(
-                {'error': 'حساب کاربری غیرفعال است.'}
-            )
+            raise serializers.ValidationError({'error': 'حساب کاربری غیرفعال است.'})
 
         if not user.is_approved:
             raise serializers.ValidationError({
@@ -1250,23 +1466,17 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def validate_phone_number(self, value):
         if value and User.objects.filter(phone_number=value).exists():
-            raise serializers.ValidationError(
-                'این شماره موبایل قبلاً ثبت شده.'
-            )
+            raise serializers.ValidationError('این شماره موبایل قبلاً ثبت شده.')
         return value
 
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError(
-                'این نام کاربری قبلاً وجود دارد.'
-            )
+            raise serializers.ValidationError('این نام کاربری قبلاً وجود دارد.')
         return value
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password_confirm']:
-            raise serializers.ValidationError(
-                {'password_confirm': 'رمزهای عبور مطابقت ندارند.'}
-            )
+            raise serializers.ValidationError({'password_confirm': 'رمزهای عبور مطابقت ندارند.'})
         password_validation.validate_password(attrs['password'])
         return attrs
 
@@ -1281,12 +1491,8 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class UserDetailSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
-    role_display = serializers.CharField(
-        source='get_role_display', read_only=True
-    )
-    restaurant_name = serializers.CharField(
-        source='restaurant.name', read_only=True, default=None
-    )
+    role_display = serializers.CharField(source='get_role_display', read_only=True)
+    restaurant_name = serializers.CharField(source='restaurant.name', read_only=True, default=None)
 
     class Meta:
         model = User
@@ -1296,10 +1502,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'restaurant_name', 'profile_image', 'is_verified', 'is_active',
             'created_at', 'updated_at',
         ]
-        read_only_fields = [
-            'id', 'username', 'role', 'is_verified',
-            'created_at', 'updated_at',
-        ]
+        read_only_fields = ['id', 'username', 'role', 'is_verified', 'created_at', 'updated_at']
 
     def get_full_name(self, obj):
         return obj.get_full_name() or obj.username
@@ -1307,9 +1510,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
 class UserListSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
-    role_display = serializers.CharField(
-        source='get_role_display', read_only=True
-    )
+    role_display = serializers.CharField(source='get_role_display', read_only=True)
 
     class Meta:
         model = User
@@ -1325,10 +1526,7 @@ class UserListSerializer(serializers.ModelSerializer):
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = [
-            'id', 'username', 'phone_number', 'first_name',
-            'last_name', 'email', 'profile_image',
-        ]
+        fields = ['id', 'username', 'phone_number', 'first_name', 'last_name', 'email', 'profile_image']
         read_only_fields = ['id', 'username']
 
 
@@ -1340,16 +1538,12 @@ class ChangePasswordSerializer(serializers.Serializer):
     def validate_old_password(self, value):
         user = self.context['request'].user
         if not user.check_password(value):
-            raise serializers.ValidationError(
-                'رمز عبور فعلی اشتباه است.'
-            )
+            raise serializers.ValidationError('رمز عبور فعلی اشتباه است.')
         return value
 
     def validate(self, attrs):
         if attrs['new_password'] != attrs['new_password_confirm']:
-            raise serializers.ValidationError(
-                {'new_password_confirm': 'رمزهای عبور جدید مطابقت ندارند.'}
-            )
+            raise serializers.ValidationError({'new_password_confirm': 'رمزهای عبور جدید مطابقت ندارند.'})
         password_validation.validate_password(attrs['new_password'])
         return attrs
 
@@ -1361,16 +1555,12 @@ class ResetPasswordSerializer(serializers.Serializer):
 
     def validate_phone_number(self, value):
         if not User.objects.filter(phone_number=value).exists():
-            raise serializers.ValidationError(
-                'کاربری با این شماره یافت نشد.'
-            )
+            raise serializers.ValidationError('کاربری با این شماره یافت نشد.')
         return value
 
     def validate(self, attrs):
         if attrs['new_password'] != attrs['new_password_confirm']:
-            raise serializers.ValidationError(
-                {'new_password_confirm': 'رمزهای عبور مطابقت ندارند.'}
-            )
+            raise serializers.ValidationError({'new_password_confirm': 'رمزهای عبور مطابقت ندارند.'})
         return attrs
 
 
@@ -1379,10 +1569,7 @@ class RestaurantAuthSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Restaurant
-        fields = [
-            'id', 'name', 'phone', 'address', 'logo',
-            'is_active', 'user_count', 'created_at',
-        ]
+        fields = ['id', 'name', 'phone', 'address', 'logo', 'is_active', 'user_count', 'created_at']
 
     def get_user_count(self, obj):
         return obj.users.filter(is_active=True).count()
@@ -1391,82 +1578,15 @@ class RestaurantAuthSerializer(serializers.ModelSerializer):
 RestaurantSerializer = RestaurantAuthSerializer
 
 
-class ReadyMaterialSerializer(serializers.ModelSerializer):
-    total_value = serializers.SerializerMethodField()
-    stock_status = serializers.SerializerMethodField()
-    unit_display = serializers.CharField(
-        source='get_unit_display', read_only=True
-    )
-    supplier_name = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ReadyMaterial
-        fields = [
-            'id', 'name', 'description', 'unit', 'unit_display',
-            'quantity', 'purchase_price', 'selling_price',
-            'minimum_stock', 'supplier', 'supplier_name',
-            'barcode', 'is_active', 'total_value', 'stock_status',
-        ]
-
-    def get_total_value(self, obj):
-        try:
-            return int(obj.total_value) if hasattr(obj, 'total_value') else (
-                int(obj.quantity * obj.purchase_price)
-                if obj.purchase_price
-                else 0
-            )
-        except (TypeError, AttributeError):
-            return 0
-
-    def get_stock_status(self, obj):
-        try:
-            if hasattr(obj, 'stock_status'):
-                return obj.stock_status
-            if obj.quantity <= 0:
-                return 'out_of_stock'
-            if obj.minimum_stock and obj.quantity <= obj.minimum_stock:
-                return 'low_stock'
-            return 'in_stock'
-        except (TypeError, AttributeError):
-            return 'unknown'
-
-    def get_supplier_name(self, obj):
-        try:
-            return obj.supplier.name if obj.supplier else ''
-        except Exception:
-            return ''
-
-
-class ProduceSerializer(serializers.Serializer):
-    quantity = serializers.FloatField(
-        min_value=0.01, max_value=10000, default=1
-    )
-
-    def validate_quantity(self, value):
-        if value != round(value, 2):
-            raise serializers.ValidationError(
-                'حداکثر ۲ رقم اعشار مجاز است.'
-            )
-        return value
-
-
 # ══════════════════════════════════════════════════════════════════════════════
 #  DICTIONARY
 # ══════════════════════════════════════════════════════════════════════════════
 
 class ItemDictionarySerializer(serializers.ModelSerializer):
-    group_slug = serializers.CharField(
-        source='group.slug', default='', read_only=True
-    )
-    group_name = serializers.CharField(
-        source='group.name', default='', read_only=True
-    )
-    group_color = serializers.CharField(
-        source='group.color', default='#78716c', read_only=True
-    )
-    group_icon = serializers.CharField(
-        source='group.icon', default='bi-archive', read_only=True
-    )
+    group_slug = serializers.CharField(source='group.slug', default='', read_only=True)
+    group_name = serializers.CharField(source='group.name', default='', read_only=True)
+    group_color = serializers.CharField(source='group.color', default='#78716c', read_only=True)
+    group_icon = serializers.CharField(source='group.icon', default='bi-archive', read_only=True)
 
     class Meta:
         model = ItemDictionary
@@ -1476,3 +1596,17 @@ class ItemDictionarySerializer(serializers.ModelSerializer):
             'group', 'group_slug', 'group_name',
             'group_color', 'group_icon',
         ]
+
+
+class DictionaryGroupSerializer(serializers.ModelSerializer):
+    item_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = DictionaryGroup
+        fields = [
+            'id', 'name', 'slug', 'icon', 'color', 'sort_order',
+            'usage_recipes', 'usage_warehouse', 'usage_pos',
+            'usage_invoice', 'usage_kitchen',
+            'is_system', 'is_active', 'item_count', 'created_at',
+        ]
+        read_only_fields = ['created_at']

@@ -1,5 +1,11 @@
 """
 Restaurant Views Package — Re-export everything so urls.py stays unchanged.
+
+★ تغییرات نسبت به نسخه قبل:
+  ۱. اضافه شدن order_list_api از orders.py
+  ۲. اضافه شدن dictionary_recipe_materials_api از dictionary.py
+  ۳. recipe_materials_api: فقط از recipe.py (نه dictionary.py)
+  ۴. سازگاری کامل با فایل‌های اصلاح‌شده
 """
 
 # ── Super Admin API ──
@@ -56,22 +62,19 @@ from .pos import (
     pos_close_all_pending, pos_close_day,
     pos_validate_coupon,
     pos_close_history, pos_close_report_detail, pos_close_logs,
-    # فروش آنلاین
     pos_online_orders,
     pos_confirm_online_order,
     pos_reject_online_order,
-    # باز/بستن سایت
     online_orders_status,
     toggle_online_orders,
-    # منو عمومی — آینه صندوق
     public_menu_api,
-    # ★ ویرایش قیمت از صندوق
     pos_update_food_price,
 )
 
 # ── Orders API ──
 from .orders import (
-    order_change_status, order_send_to_kitchen, kitchen_orders_api,
+    order_change_status, order_send_to_kitchen,
+    kitchen_orders_api, order_list_api,
 )
 
 # ── Loyalty API ──
@@ -97,7 +100,7 @@ from .recipe import (
     recalculate_costs_view, inventory_analytics_view,
     produce_semi_finished_view,
     food_suggestions_view, raw_material_suggestions_api,
-    semi_finished_suggestions_api,
+    semi_finished_suggestions_api, recipe_materials_api,
 )
 
 # ── Dictionary API ──
@@ -107,7 +110,7 @@ from .dictionary import (
     dictionary_raw_materials, dictionary_semi_finished,
     dictionary_ready_materials, dictionary_food_menu,
     raw_materials_api,
-    recipe_materials_api,
+    dictionary_recipe_materials_api,
     dictionary_group_list, dictionary_group_save, dictionary_group_delete,
     dictionary_food_create, dictionary_food_update, dictionary_food_delete,
 )
@@ -122,7 +125,7 @@ from .restaurant_page_views import (
     raw_materials_view,
     usage_log_view, ready_materials_page,
     kitchen_page, pos_page, pos_receipt,
-     orders_dashboard,
+    orders_dashboard,
     recipe_manager_page,
     loyalty_dashboard_page, loyalty_customers_page,
     loyalty_customer_detail_page, loyalty_coupons_page,
@@ -170,19 +173,12 @@ __all__ = [
     "pos_close_all_pending", "pos_close_day",
     "pos_validate_coupon",
     "pos_close_history", "pos_close_report_detail", "pos_close_logs",
-    # فروش آنلاین
-    "pos_online_orders",
-    "pos_confirm_online_order",
-    "pos_reject_online_order",
-    # باز/بستن سایت
-    "online_orders_status",
-    "toggle_online_orders",
-    # منو عمومی
-    "public_menu_api",
-    # ★ ویرایش قیمت از صندوق
-    "pos_update_food_price",
+    "pos_online_orders", "pos_confirm_online_order", "pos_reject_online_order",
+    "online_orders_status", "toggle_online_orders",
+    "public_menu_api", "pos_update_food_price",
     # Orders
-    "order_change_status", "order_send_to_kitchen", "kitchen_orders_api",
+    "order_change_status", "order_send_to_kitchen",
+    "kitchen_orders_api", "order_list_api",
     # Loyalty
     "process_order_loyalty_view", "loyalty_dashboard_view",
     "birthday_check_view", "seed_levels_view",
@@ -198,28 +194,23 @@ __all__ = [
     "recalculate_costs_view", "inventory_analytics_view",
     "produce_semi_finished_view",
     "food_suggestions_view", "raw_material_suggestions_api",
-    "semi_finished_suggestions_api",
+    "semi_finished_suggestions_api", "recipe_materials_api",
     # Dictionary
     "dictionary_list", "dictionary_autocomplete",
     "dictionary_create", "dictionary_update", "dictionary_delete",
     "dictionary_raw_materials", "dictionary_semi_finished",
     "dictionary_ready_materials", "dictionary_food_menu",
-    "raw_materials_api",
-    "recipe_materials_api",
-    "dictionary_group_list", "dictionary_group_save",
-    "dictionary_group_delete",
+    "raw_materials_api", "dictionary_recipe_materials_api",
+    "dictionary_group_list", "dictionary_group_save", "dictionary_group_delete",
     "dictionary_food_create", "dictionary_food_update", "dictionary_food_delete",
     # Page Views
     "home", "auth_page", "logout_page",
-    "redirect_to_dashboard",
-    "super_admin_page",
+    "redirect_to_dashboard", "super_admin_page",
     "purchase_invoice_list", "purchase_invoice_detail",
     "create_purchase_invoice", "create_invoice_view",
-    "raw_materials_view",
-    "usage_log_view", "ready_materials_page",
+    "raw_materials_view", "usage_log_view", "ready_materials_page",
     "kitchen_page", "pos_page", "pos_receipt",
-    "orders_dashboard",
-    "recipe_manager_page",
+    "orders_dashboard", "recipe_manager_page",
     "loyalty_dashboard_page", "loyalty_customers_page",
     "loyalty_customer_detail_page", "loyalty_coupons_page",
     "loyalty_rewards_page", "loyalty_notifications_page",

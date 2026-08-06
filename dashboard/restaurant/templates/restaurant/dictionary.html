@@ -1245,10 +1245,16 @@ var PageDict = (function() {
 
   /* ★ ساخت/ویرایش غذا — Food API */
   function saveFoodItem(name, desc) {
+    /* ★ زیردسته انتخاب‌شده کاربر */
+    var catName = '';
+    if (selectedDictCat && DICT_CATS[currentSlug] && DICT_CATS[currentSlug][selectedDictCat]) {
+        catName = DICT_CATS[currentSlug][selectedDictCat];
+    }
+
     if (editingId) {
-      api('/api/dictionary/food/' + editingId + '/update/', 'POST', {
-        name: name, description: desc
-      }).then(function(res) {
+      var updateBody = { name: name };
+      if (catName) updateBody.category_name = catName;
+      api('/api/dictionary/food/' + editingId + '/update/', 'POST', updateBody).then(function(res) {
         if (res.error) { toast(res.error, 'error'); return; }
         var arr = allItems['__food_menu__'] || [];
         for (var i = 0; i < arr.length; i++) {
@@ -1257,12 +1263,9 @@ var PageDict = (function() {
         cancelEdit(); renderDictCatBar(); render(); toast('ویرایش شد', 'success');
       }).catch(function() { toast('خطا', 'error'); });
     } else {
-      var catName = '';
-      var existing = allItems['__food_menu__'] || [];
-      if (existing.length) catName = existing[0].category_name || '';
-
+      if (!catName) { toast('زیردسته را انتخاب کنید', 'error'); return; }
       api('/api/dictionary/food/create/', 'POST', {
-        name: name, description: desc, category_name: catName || 'عمومی'
+        name: name, category_name: catName
       }).then(function(res) {
         if (res.error) { toast(res.error, 'error'); return; }
         if (!allItems['__food_menu__']) allItems['__food_menu__'] = [];
@@ -1272,7 +1275,7 @@ var PageDict = (function() {
         toast('غذا اضافه شد', 'success');
       }).catch(function() { toast('خطا در ساخت غذا', 'error'); });
     }
-  }
+}
 
   /* ★ ساخت/ویرایش آیتم دیکشنری (مواد اولیه، آماده، سفارشی) */
   function saveDictItem(name, unit, desc) {

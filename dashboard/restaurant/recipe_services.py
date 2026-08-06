@@ -1,15 +1,26 @@
 """
 Restaurant — Recipe Engine Services
 محاسبه هزینه، کسر انبار، ولیدیشن
+
+★ تغییرات نسبت به نسخه قبل:
+  ۱. validate_recipe_inventory: quantity_produced → current_stock
+  ۲. deduct_inventory_for_order: اضافه شدن restaurant به تمام TenantModelها
+  ۳. produce_semi_finished_enhanced: بروزرسانی current_stock + restaurant
+  ۴. get_inventory_analytics: فیلتر restaurant
+  ۵. تمام InventoryMovement / InventoryUsageLog: اضافه شدن restaurant
 """
 from decimal import Decimal
+from typing import Optional
+
 from django.db import transaction
+from django.db.models import Sum
 from django.utils import timezone
 
 from .models import (
     Recipe, RecipeIngredient, RecipeSemiFinished, RecipePackagingItem,
     RawMaterial, SemiFinished, Food,
     InventoryMovement, InventoryUsageLog,
+    Restaurant,
 )
 
 
@@ -48,7 +59,7 @@ def calculate_recipe_cost(recipe: Recipe) -> dict:
             'cost': cost,
         })
 
-    # ── بسته‌بندی (جدید)
+    # ── بسته‌بندی
     packaging_cost = 0
     packaging_details = []
     for pk in recipe.packaging_items.select_related('raw_material').all():
@@ -120,7 +131,7 @@ def calculate_food_profit_margin(food_id: int) -> dict:
     return result
 
 
-def recalculate_all_food_costs(restaurant=None) -> dict:
+def recalculate_all_food_costs(restaurant: Optional[Restaurant] = None) -> dict:
     """محاسبه مجدد هزینه تمام غذاها"""
     qs = Recipe.objects.filter(is_active=True)
     if restaurant:
@@ -160,10 +171,10 @@ def validate_recipe_inventory(recipe: Recipe, quantity: float = 1) -> dict:
                 'shortage': needed - available,
             })
 
-    # ── مواد نیم‌آماده
+    # ── مواد نیم‌آماده — ★ FIXED: current_stock به‌جای quantity_produced
     for item in recipe.semi_finished_items.select_related('semi_finished'):
         needed = float(item.quantity) * quantity
-        available = float(item.semi_finished.quantity_produced)
+        available = float(item.semi_finished.current_stock)  # ★ FIXED
         if available < needed:
             insufficient.append({
                 'type': 'semi_finished',
@@ -174,7 +185,7 @@ def validate_recipe_inventory(recipe: Recipe, quantity: float = 1) -> dict:
                 'shortage': needed - available,
             })
 
-    # ── بسته‌بندی (جدید)
+    # ── بسته‌بندی
     for pk in recipe.packaging_items.select_related('raw_material').all():
         needed = float(pk.quantity) * quantity
         available = float(pk.raw_material.quantity)
@@ -234,14 +245,17 @@ def validate_order_inventory(order_items: list) -> dict:
 @transaction.atomic
 def deduct_inventory_for_order(order, created_by=None) -> dict:
     """کسر خودکار انبار برای سفارش تکمیل‌شده"""
+    restaurant = getattr(order, 'restaurant', None)  # ★ FIXED
 
     deductions = []
     errors = []
 
     for order_item in order.items.select_related('food').all():
         food = order_item.food
-        recipe = getattr(food, 'recipe', None)
+        if not food:
+            continue
 
+        recipe = getattr(food, 'recipe', None)
         if not recipe:
             continue
 
@@ -258,7 +272,7 @@ def deduct_inventory_for_order(order, created_by=None) -> dict:
             raw_mat.save(update_fields=['quantity'])
 
             InventoryMovement.objects.create(
-                restaurant=getattr(order, 'restaurant', None),
+                restaurant=restaurant,  # ★ FIXED
                 raw_material=raw_mat,
                 movement_type=InventoryMovement.MovementType.ORDER_USAGE,
                 quantity=needed,
@@ -271,6 +285,7 @@ def deduct_inventory_for_order(order, created_by=None) -> dict:
             )
 
             InventoryUsageLog.objects.create(
+                restaurant=restaurant,  # ★ FIXED
                 raw_material=raw_mat,
                 usage_type='order',
                 quantity_used=float(needed),
@@ -285,22 +300,24 @@ def deduct_inventory_for_order(order, created_by=None) -> dict:
                 'new_stock': float(new_stock),
             })
 
-        # ── کسر مواد نیم‌آماده
+        # ── کسر مواد نیم‌آماده — ★ FIXED: current_stock به‌جای quantity_produced
         for semi_item in recipe.semi_finished_items.select_related('semi_finished'):
             needed = Decimal(str(semi_item.quantity)) * qty
             sf = semi_item.semi_finished
 
-            sf.quantity_produced = max(Decimal('0'), sf.quantity_produced - needed)
-            sf.save(update_fields=['quantity_produced'])
+            previous_stock = sf.current_stock  # ★ FIXED
+            new_stock = max(Decimal('0'), previous_stock - needed)
+            sf.current_stock = new_stock  # ★ FIXED
+            sf.save(update_fields=['current_stock'])  # ★ FIXED
 
             deductions.append({
                 'material': f'{sf.name} (نیم‌آماده)',
                 'quantity': float(needed),
-                'previous_stock': float(sf.quantity_produced + needed),
-                'new_stock': float(sf.quantity_produced),
+                'previous_stock': float(previous_stock),
+                'new_stock': float(new_stock),
             })
 
-        # ── کسر بسته‌بندی (جدید)
+        # ── کسر بسته‌بندی
         for pk_item in recipe.packaging_items.select_related('raw_material').all():
             needed = Decimal(str(pk_item.quantity)) * qty
             raw_mat = pk_item.raw_material
@@ -311,7 +328,7 @@ def deduct_inventory_for_order(order, created_by=None) -> dict:
             raw_mat.save(update_fields=['quantity'])
 
             InventoryMovement.objects.create(
-                restaurant=getattr(order, 'restaurant', None),
+                restaurant=restaurant,  # ★ FIXED
                 raw_material=raw_mat,
                 movement_type=InventoryMovement.MovementType.ORDER_USAGE,
                 quantity=needed,
@@ -324,6 +341,7 @@ def deduct_inventory_for_order(order, created_by=None) -> dict:
             )
 
             InventoryUsageLog.objects.create(
+                restaurant=restaurant,  # ★ FIXED
                 raw_material=raw_mat,
                 usage_type='order',
                 quantity_used=float(needed),
@@ -347,17 +365,24 @@ def deduct_inventory_for_order(order, created_by=None) -> dict:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  6. SEMI-FINISHED PRODUCTION (Enhanced)
+#  4. SEMI-FINISHED PRODUCTION
 # ══════════════════════════════════════════════════════════════════════════════
 
 @transaction.atomic
-def produce_semi_finished_enhanced(semi_finished_id: int, quantity: float,
-                                    created_by=None, restaurant=None) -> dict:
+def produce_semi_finished_enhanced(
+    semi_finished_id: int,
+    quantity: float,
+    created_by=None,
+    restaurant=None,
+) -> dict:
     """تولید ماده نیم‌آماده با کسر انبار + لاگ جابجایی"""
     try:
         sf = SemiFinished.objects.get(id=semi_finished_id)
     except SemiFinished.DoesNotExist:
         return {'success': False, 'error': 'ماده نیم‌آماده یافت نشد.'}
+
+    if not restaurant:
+        restaurant = getattr(sf, 'restaurant', None)  # ★ FIXED: fallback
 
     # بررسی موجودی
     insufficient = []
@@ -387,7 +412,7 @@ def produce_semi_finished_enhanced(semi_finished_id: int, quantity: float,
         raw_mat.save(update_fields=['quantity'])
 
         InventoryMovement.objects.create(
-            restaurant=restaurant,
+            restaurant=restaurant,  # ★ FIXED
             raw_material=raw_mat,
             movement_type=InventoryMovement.MovementType.PRODUCTION,
             quantity=needed,
@@ -400,6 +425,7 @@ def produce_semi_finished_enhanced(semi_finished_id: int, quantity: float,
         )
 
         InventoryUsageLog.objects.create(
+            restaurant=restaurant,  # ★ FIXED
             raw_material=raw_mat,
             usage_type='semi_finished',
             quantity_used=float(needed),
@@ -413,9 +439,10 @@ def produce_semi_finished_enhanced(semi_finished_id: int, quantity: float,
             'remaining': float(raw_mat.quantity),
         })
 
-    # افزایش موجودی نیم‌آماده
+    # ★ FIXED: بروزرسانی هر دو فیلد
     sf.quantity_produced += Decimal(str(quantity))
-    sf.save(update_fields=['quantity_produced'])
+    sf.current_stock += Decimal(str(quantity))
+    sf.save(update_fields=['quantity_produced', 'current_stock'])
 
     return {
         'success': True,
@@ -426,14 +453,20 @@ def produce_semi_finished_enhanced(semi_finished_id: int, quantity: float,
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  8. ANALYTICS
+#  5. ANALYTICS
 # ══════════════════════════════════════════════════════════════════════════════
 
-def get_inventory_analytics(restaurant=None) -> dict:
+def get_inventory_analytics(restaurant: Optional[Restaurant] = None) -> dict:
     """آمار و تحلیل انبار"""
 
     raw_qs = RawMaterial.objects.all()
     recipe_qs = Recipe.objects.filter(is_active=True)
+    usage_qs = InventoryUsageLog.objects.all()
+
+    if restaurant:  # ★ FIXED: فیلتر بر اساس رستوران
+        raw_qs = raw_qs.filter(restaurant=restaurant)
+        recipe_qs = recipe_qs.filter(restaurant=restaurant)
+        usage_qs = usage_qs.filter(restaurant=restaurant)
 
     # ارزش کل انبار
     total_value = sum(int(m.total_price) for m in raw_qs)
@@ -448,9 +481,8 @@ def get_inventory_analytics(restaurant=None) -> dict:
     } for r in expensive_recipes]
 
     # پر مصرف‌ترین مواد
-    from django.db.models import Sum
     top_materials = (
-        InventoryUsageLog.objects
+        usage_qs
         .values('raw_material__name')
         .annotate(total_used=Sum('quantity_used'))
         .order_by('-total_used')[:5]

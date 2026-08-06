@@ -1,5 +1,15 @@
 """
 restaurant/admin.py — Multi-tenant Admin
+
+★ تغییرات نسبت به نسخه قبل:
+  ۱. Order: فیلدهای source, payment_status, payment_method, confirmed_by, updated_at اضافه شد
+  ۲. OrderItem: فیلد item_name + display_name اضافه شد
+  ۳. PurchaseInvoice: FK جدید supplier اضافه شد
+  ۴. RawMaterial: فیلدهای created_at, updated_at نمایش داده می‌شود
+  ۵. LoyaltyTransaction: order از IntegerField به ForeignKey تغییر کرد
+  ۶. WalletTransaction: مشابه بالا
+  ۷. مدل‌های جدید OnlineOrderSettings, Service, Tenant, TenantService ثبت شدند
+  ۸. OrderAdmin: فیلدهای به‌روز شده در fieldsets و list_display
 """
 
 from django.contrib import admin
@@ -37,10 +47,14 @@ from .models import (
     KitchenProduct, KitchenInventory,
     ProductionPlan, ProductionPlanItem, ProductionBatch,
     ProductionLog, WasteLog,
+    # 12.5 Online Settings
+    OnlineOrderSettings,
     # 13. Day Close
     DayCloseReport, DayCloseLog,
     # 14. Dictionary
     DictionaryGroup, ItemDictionary,
+    # 15. Super Admin Panel
+    Service, Tenant, TenantService,
 )
 from .models import UNIT_CHOICES  # ثابت سطح ماژول
 
@@ -59,6 +73,7 @@ admin.site.index_title = "داشبورد"
 # ═══════════════════════════════════════════
 
 class TenantModelAdmin(admin.ModelAdmin):
+    """ادمین پایه برای مدل‌های Tenant — نمایش all_objects"""
     def get_queryset(self, request):
         return self.model.all_objects.get_queryset()
 
@@ -119,13 +134,14 @@ class ReservationAdmin(TenantModelAdmin):
 
 
 # ═══════════════════════════════════════════
-#  3. ORDERS
+#  3. ORDERS — ★ اصلاح‌شده
 # ═══════════════════════════════════════════
 
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
-    fields = ("food", "quantity", "price", "line_total_display")
+    # ★ FIXED: item_name اضافه شد
+    fields = ("food", "item_name", "quantity", "price", "line_total_display")
     readonly_fields = ("price", "line_total_display")
     autocomplete_fields = ("food",)
 
@@ -138,24 +154,33 @@ class OrderItemInline(admin.TabularInline):
 
 @admin.register(Order)
 class OrderAdmin(TenantModelAdmin):
+    # ★ FIXED: فیلدهای جدید اضافه شد
     list_display = (
         "id", "restaurant", "customer_name", "table",
-        "status_colored", "items_count",
-        "total_price_display", "created_at",
+        "status_colored", "source_badge", "payment_badge",
+        "items_count", "total_price_display", "created_at",
     )
-    list_filter     = ("restaurant", "status", "created_at", "table")
+    list_filter     = ("restaurant", "status", "source", "payment_status", "payment_method", "created_at", "table")
     search_fields   = ("customer_name", "phone")
-    readonly_fields = ("total_price", "created_at")
+    readonly_fields = ("total_price", "created_at", "updated_at", "confirmed_at")
     inlines         = [OrderItemInline]
     list_per_page   = 25
 
+    # ★ FIXED: فیلدهای جدید در fieldsets
     fieldsets = (
         ("مشتری", {"fields": ("restaurant", "customer_name", "phone")}),
         ("سفارش", {"fields": ("table", "status", "total_price")}),
-        ("تاریخ", {"fields": ("created_at",)}),
+        ("منبع و پرداخت", {
+            "fields": ("source", "payment_status", "payment_method"),
+        }),
+        ("تأیید", {
+            "fields": ("confirmed_by", "confirmed_at"),
+            "classes": ("collapse",),
+        }),
+        ("تاریخ", {"fields": ("created_at", "updated_at")}),
     )
 
-    actions = ["mark_preparing", "mark_ready", "mark_delivered"]
+    actions = ["mark_preparing", "mark_ready", "mark_delivered", "mark_confirmed", "mark_paid"]
 
     def status_colored(self, obj):
         colors = {
@@ -169,6 +194,26 @@ class OrderAdmin(TenantModelAdmin):
         )
     status_colored.short_description = "وضعیت"
 
+    # ★ FIXED: badge برای منبع سفارش
+    def source_badge(self, obj):
+        icons = {"pos": "💳", "online": "🌐", "phone": "📞"}
+        icon = icons.get(obj.source, "")
+        return f"{icon} {obj.get_source_display()}"
+    source_badge.short_description = "منبع"
+
+    # ★ FIXED: badge برای وضعیت پرداخت
+    def payment_badge(self, obj):
+        colors = {
+            "pending": "#f39c12", "paid": "#2ecc71",
+            "failed": "#e74c3c", "refunded": "#3498db",
+        }
+        c = colors.get(obj.payment_status, "#333")
+        return format_html(
+            '<span style="color:{};font-weight:600;">{}</span>',
+            c, obj.get_payment_status_display(),
+        )
+    payment_badge.short_description = "پرداخت"
+
     def items_count(self, obj):
         return obj.items.count()
     items_count.short_description = "اقلام"
@@ -177,9 +222,10 @@ class OrderAdmin(TenantModelAdmin):
         return f"{int(obj.total_price):,} ت"
     total_price_display.short_description = "مبلغ کل"
 
+    # ★ FIXED: اکشن‌های جدید
     @admin.action(description="در حال آماده‌سازی")
     def mark_preparing(self, request, queryset):
-        queryset.filter(status="pending").update(status="preparing")
+        queryset.filter(status__in=["pending", "confirmed"]).update(status="preparing")
 
     @admin.action(description="آماده")
     def mark_ready(self, request, queryset):
@@ -189,13 +235,31 @@ class OrderAdmin(TenantModelAdmin):
     def mark_delivered(self, request, queryset):
         queryset.filter(status="ready").update(status="delivered")
 
+    @admin.action(description="تأیید سفارش")
+    def mark_confirmed(self, request, queryset):
+        from django.utils import timezone as tz
+        queryset.filter(status="pending").update(
+            status="confirmed",
+            confirmed_by=request.user,
+            confirmed_at=tz.now(),
+        )
+
+    @admin.action(description="پرداخت شده")
+    def mark_paid(self, request, queryset):
+        queryset.filter(payment_status="pending").update(payment_status="paid")
+
 
 @admin.register(OrderItem)
 class OrderItemAdmin(TenantModelAdmin):
-    list_display        = ("order", "restaurant", "food", "quantity", "price_display")
-    search_fields       = ("food__name", "order__customer_name")
+    # ★ FIXED: item_name اضافه شد
+    list_display        = ("order", "restaurant", "display_name_col", "food", "quantity", "price_display")
+    search_fields       = ("food__name", "item_name", "order__customer_name")
     autocomplete_fields = ("order", "food")
     list_per_page       = 30
+
+    def display_name_col(self, obj):
+        return obj.display_name
+    display_name_col.short_description = "نام آیتم"
 
     def price_display(self, obj):
         return f"{int(obj.price):,} ت" if obj.price else "—"
@@ -208,17 +272,20 @@ class OrderItemAdmin(TenantModelAdmin):
 
 @admin.register(RawMaterial)
 class RawMaterialAdmin(TenantModelAdmin):
+    # ★ FIXED: created_at, updated_at اضافه شد
     list_display = (
-        "name", "restaurant", "label", "price_display", "unit",
-        "quantity", "total_price_display", "stock_badge",
+        "name", "restaurant", "label", "material_type", "price_display", "unit",
+        "quantity", "total_price_display", "stock_badge", "updated_at",
     )
-    list_filter   = ("restaurant", "unit", "material_type")
-    search_fields = ("name", "label")
-    list_per_page = 30
+    list_filter     = ("restaurant", "unit", "material_type")
+    search_fields   = ("name", "label")
+    readonly_fields = ("created_at", "updated_at")  # ★ FIXED
+    list_per_page   = 30
 
     fieldsets = (
         ("اطلاعات", {"fields": ("restaurant", "name", "label", "material_type")}),
         ("موجودی", {"fields": ("price", "unit", "quantity")}),
+        ("تاریخ", {"fields": ("created_at", "updated_at")}),  # ★ FIXED
     )
 
     actions = ["reset_quantity"]
@@ -283,7 +350,7 @@ class SemiFinishedIngredientInline(admin.TabularInline):
 class SemiFinishedAdmin(TenantModelAdmin):
     list_display = (
         "name", "restaurant", "category", "unit", "quantity_produced",
-        "ingredients_count", "cost_display", "profit_percentage",
+        "current_stock", "ingredients_count", "cost_display", "profit_percentage",
         "suggested_display", "can_produce_display", "created_at",
     )
     list_filter     = ("restaurant", "category", "created_at")
@@ -333,12 +400,12 @@ class SemiFinishedIngredientAdmin(TenantModelAdmin):
 
 
 # ═══════════════════════════════════════════
-#  6. PROCUREMENT
+#  6. PROCUREMENT — ★ اصلاح‌شده
 # ═══════════════════════════════════════════
 
 @admin.register(Supplier)
 class SupplierAdmin(TenantModelAdmin):
-    list_display    = ("name", "restaurant", "phone", "contact_person", "created_at")
+    list_display    = ("name", "restaurant", "phone", "contact_person", "invoices_count", "created_at")
     list_filter     = ("restaurant",)
     search_fields   = ("name", "phone", "contact_person")
     readonly_fields = ("created_at",)
@@ -349,12 +416,18 @@ class SupplierAdmin(TenantModelAdmin):
         ("تاریخ", {"fields": ("created_at",)}),
     )
 
+    # ★ FIXED: تعداد فاکتورهای تأمین‌کننده
+    def invoices_count(self, obj):
+        return obj.invoices.count()
+    invoices_count.short_description = "فاکتورها"
+
 
 class PurchaseInvoiceItemInline(admin.TabularInline):
     model = PurchaseInvoiceItem
     extra = 1
-    fields = ("item_name", "quantity", "unit", "unit_price", "line_display")
+    fields = ("item_name", "quantity", "unit", "unit_price", "raw_material", "line_display")
     readonly_fields = ("line_display",)
+    autocomplete_fields = ("raw_material",)
 
     def line_display(self, obj):
         return f"{int(obj.line_total):,} ت" if obj.pk else "—"
@@ -363,18 +436,35 @@ class PurchaseInvoiceItemInline(admin.TabularInline):
 
 @admin.register(PurchaseInvoice)
 class PurchaseInvoiceAdmin(TenantModelAdmin):
-    list_display    = ("supplier_name", "restaurant", "invoice_number", "date", "items_count", "total_display", "created_at")
-    list_filter     = ("restaurant", "date", "created_at")
+    # ★ FIXED: supplier FK اضافه شد
+    list_display    = (
+        "supplier_name", "supplier_link", "restaurant", "invoice_number",
+        "date", "items_count", "total_display", "created_at",
+    )
+    list_filter     = ("restaurant", "date", "supplier", "created_at")
     search_fields   = ("supplier_name", "invoice_number", "description")
     readonly_fields = ("created_at",)
+    autocomplete_fields = ("supplier",)  # ★ FIXED
     inlines         = [PurchaseInvoiceItemInline]
     list_per_page   = 20
 
     fieldsets = (
-        ("فاکتور", {"fields": ("restaurant", "supplier_name", "invoice_number", "date")}),
+        ("فاکتور", {
+            "fields": ("restaurant", "supplier", "supplier_name", "invoice_number", "date"),
+        }),
         ("توضیحات و فایل", {"fields": ("description", "file")}),
         ("تاریخ", {"fields": ("created_at",)}),
     )
+
+    # ★ FIXED: لینک به تأمین‌کننده
+    def supplier_link(self, obj):
+        if obj.supplier:
+            return format_html(
+                '<a href="/admin/restaurant/supplier/{}/change/">{}</a>',
+                obj.supplier.pk, obj.supplier.name,
+            )
+        return "—"
+    supplier_link.short_description = "تأمین‌کننده"
 
     def items_count(self, obj):
         return obj.items.count()
@@ -387,8 +477,9 @@ class PurchaseInvoiceAdmin(TenantModelAdmin):
 
 @admin.register(PurchaseInvoiceItem)
 class PurchaseInvoiceItemAdmin(TenantModelAdmin):
-    list_display  = ("invoice", "restaurant", "item_name", "quantity", "unit", "unit_price_display", "line_display")
+    list_display  = ("invoice", "restaurant", "item_name", "quantity", "unit", "unit_price_display", "line_display", "raw_material")
     search_fields = ("item_name", "invoice__supplier_name")
+    autocomplete_fields = ("invoice", "raw_material")
     list_per_page = 30
 
     def unit_price_display(self, obj):
@@ -436,7 +527,7 @@ class ReadyMaterialAdmin(TenantModelAdmin):
 
 
 # ═══════════════════════════════════════════
-#  8. LOYALTY SYSTEM
+#  8. LOYALTY SYSTEM — ★ اصلاح‌شده
 # ═══════════════════════════════════════════
 
 @admin.register(MembershipLevel)
@@ -466,6 +557,7 @@ class MembershipLevelAdmin(TenantModelAdmin):
 class LoyaltyTxInline(admin.TabularInline):
     model = LoyaltyTransaction
     extra = 0
+    # ★ FIXED: order حالا FK است
     fields = ("transaction_type", "points", "balance_after", "description", "created_at")
     readonly_fields = ("created_at",)
     ordering = ("-created_at",)
@@ -529,6 +621,7 @@ class CustomerProfileAdmin(TenantModelAdmin):
 
 @admin.register(LoyaltyTransaction)
 class LoyaltyTransactionAdmin(TenantModelAdmin):
+    # ★ FIXED: order حالا FK است
     list_display    = ("customer", "restaurant", "type_badge", "points", "balance_after", "description", "created_at")
     list_filter     = ("restaurant", "transaction_type", "created_at")
     search_fields   = ("customer__phone", "customer__first_name", "description")
@@ -594,6 +687,7 @@ class CustomerCouponAdmin(TenantModelAdmin):
 class WalletTxInline(admin.TabularInline):
     model = WalletTransaction
     extra = 0
+    # ★ FIXED: order حالا FK است
     fields = ("transaction_type", "amount", "balance_after", "description", "created_at")
     readonly_fields = ("created_at",)
     ordering = ("-created_at",)
@@ -617,6 +711,7 @@ class LoyaltyWalletAdmin(TenantModelAdmin):
 
 @admin.register(WalletTransaction)
 class WalletTransactionAdmin(TenantModelAdmin):
+    # ★ FIXED: order حالا FK است
     list_display    = ("wallet", "restaurant", "type_badge", "amount_display", "balance_display", "description", "created_at")
     list_filter     = ("restaurant", "transaction_type", "created_at")
     search_fields   = ("wallet__customer__phone", "description")
@@ -1166,7 +1261,6 @@ class ProductionLogAdmin(TenantModelAdmin):
     details_short.short_description = "جزئیات"
 
 
-# ★ WasteLog — اصلاح‌شده با فیلدهای جدید
 @admin.register(WasteLog)
 class WasteLogAdmin(TenantModelAdmin):
     list_display = (
@@ -1210,6 +1304,29 @@ class WasteLogAdmin(TenantModelAdmin):
         text = obj.notes or "—"
         return text[:40] + "..." if len(text) > 40 else text
     notes_short.short_description = "یادداشت"
+
+
+# ═══════════════════════════════════════════
+#  12.5. ONLINE ORDER SETTINGS — ★ جدید
+# ═══════════════════════════════════════════
+
+@admin.register(OnlineOrderSettings)
+class OnlineOrderSettingsAdmin(admin.ModelAdmin):
+    list_display    = ("restaurant", "status_badge", "closed_message_short", "updated_at", "updated_by")
+    list_filter     = ("is_open",)
+    search_fields   = ("restaurant__name",)
+    readonly_fields = ("updated_at",)
+
+    def status_badge(self, obj):
+        if obj.is_open:
+            return format_html('<span style="color:#2ecc71;font-weight:700;">🟢 باز</span>')
+        return format_html('<span style="color:#e74c3c;font-weight:700;">🔴 بسته</span>')
+    status_badge.short_description = "وضعیت"
+
+    def closed_message_short(self, obj):
+        text = obj.closed_message or ""
+        return text[:40] + "..." if len(text) > 40 else text
+    closed_message_short.short_description = "پیام بسته بودن"
 
 
 # ═══════════════════════════════════════════
@@ -1315,3 +1432,66 @@ class ItemDictionaryAdmin(TenantModelAdmin):
     search_fields = ("name", "description")
     list_editable = ("is_active",)
     list_per_page = 30
+
+
+# ═══════════════════════════════════════════
+#  15. SUPER ADMIN PANEL — ★ جدید
+# ═══════════════════════════════════════════
+
+@admin.register(Service)
+class ServiceAdmin(admin.ModelAdmin):
+    list_display    = ("icon_label", "code", "default_price_display", "is_active", "order")
+    list_filter     = ("is_active",)
+    search_fields   = ("code", "label", "description")
+    list_editable   = ("is_active", "order")
+    list_per_page   = 20
+
+    def icon_label(self, obj):
+        return f"{obj.icon} {obj.label}"
+    icon_label.short_description = "سرویس"
+
+    def default_price_display(self, obj):
+        return f"{obj.default_price:,} ت"
+    default_price_display.short_description = "قیمت ماهانه"
+
+
+class TenantServiceInline(admin.TabularInline):
+    model = TenantService
+    extra = 0
+    fields = ("service", "is_enabled", "price", "activated_at", "expires_at")
+    readonly_fields = ("activated_at",)
+
+
+@admin.register(Tenant)
+class TenantAdmin(admin.ModelAdmin):
+    list_display    = ("name", "owner", "phone", "is_active", "services_count", "revenue_display", "created_at")
+    list_filter     = ("is_active",)
+    search_fields   = ("name", "phone", "owner__username", "owner__first_name")
+    list_editable   = ("is_active",)
+    readonly_fields = ("created_at",)
+    inlines         = [TenantServiceInline]
+
+    fieldsets = (
+        ("اطلاعات", {"fields": ("name", "owner", "phone", "address")}),
+        ("وضعیت", {"fields": ("is_active", "created_at")}),
+    )
+
+    def services_count(self, obj):
+        return obj.active_services_count
+    services_count.short_description = "سرویس‌های فعال"
+
+    def revenue_display(self, obj):
+        return f"{obj.monthly_revenue:,} ت"
+    revenue_display.short_description = "درآمد ماهانه"
+
+
+@admin.register(TenantService)
+class TenantServiceAdmin(admin.ModelAdmin):
+    list_display    = ("tenant", "service", "is_enabled", "price_display", "activated_at", "expires_at")
+    list_filter     = ("is_enabled", "service")
+    search_fields   = ("tenant__name", "service__label")
+    list_per_page   = 30
+
+    def price_display(self, obj):
+        return f"{obj.price:,} ت"
+    price_display.short_description = "قیمت"
