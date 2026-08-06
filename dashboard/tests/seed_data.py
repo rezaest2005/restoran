@@ -1,52 +1,39 @@
-import os, django
-import sys; sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))); os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
+import os, django, sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 
 from restaurant.models import Food, Category, Restaurant
 
 rest = Restaurant.objects.first()
-print(f"???????: {rest.name}")
+print(f"رستوران: {rest.name}")
 
-# ????????????
+# ★ دسته‌بندی‌های واقعی خودت رو اینجا بذار
 cat_data = [
-    {'name': '????', 'order': 1},
-    {'name': '???', 'order': 2},
-    {'name': '?????', 'order': 3},
-    {'name': '???????', 'order': 4},
-    {'name': '???????', 'order': 5},
+    {'name': 'پیتزا',     'order': 1},
+    {'name': 'برگر',      'order': 2},
+    {'name': 'نوشیدنی',   'order': 3},
 ]
 
 cats = {}
 for cd in cat_data:
     cat, created = Category.objects.get_or_create(
-        restaurant=rest,
-        name=cd['name'],
+        restaurant=rest, name=cd['name'],
         defaults={'is_active': True, 'order': cd['order']}
     )
     cats[cd['name']] = cat
-    s = '????? ??' if created else '???? ????'
-    print(f"  {s}: ???? {cat.name}")
+    print(f"  {'ساخته شد' if created else 'وجود داشت'}: {cat.name}")
 
-# ?????
+# ★ غذاهای واقعی خودت رو اینجا بذار
 foods_data = [
-    {'name': '??????? ??????',  'cat': '????',    'price': 185000, 'available': True},
-    {'name': '??????? ???',    'cat': '????',    'price': 245000, 'available': True},
-    {'name': '?????????',       'cat': '????',    'price': 210000, 'available': True},
-    {'name': '???????? ?? ???', 'cat': '???',     'price': 165000, 'available': True},
-    {'name': '??? ??????',     'cat': '???',     'price': 295000, 'available': True},
-    {'name': '??????????',      'cat': '?????',   'price': 145000, 'available': True},
-    {'name': '????????????',    'cat': '?????',   'price': 135000, 'available': True},
-    {'name': '??????',         'cat': '?????',   'price': 175000, 'available': True},
-    {'name': '????? ??????',   'cat': '???????', 'price': 45000,  'available': True},
-    {'name': '???? ? ????',    'cat': '???????', 'price': 40000,  'available': True},
-    {'name': '???',            'cat': '???????', 'price': 25000,  'available': True},
-    {'name': '??????',         'cat': '???????', 'price': 20000,  'available': False},
+    {'name': 'پیتزا مخصوص',    'cat': 'پیتزا',   'price': 250000, 'available': True},
+    {'name': 'برگر کلاسیک',    'cat': 'برگر',    'price': 180000, 'available': True},
+    {'name': 'نوشابه',          'cat': 'نوشیدنی', 'price': 25000,  'available': True},
 ]
 
 for fd in foods_data:
     food, created = Food.objects.get_or_create(
-        restaurant=rest,
-        name=fd['name'],
+        restaurant=rest, name=fd['name'],
         defaults={
             'category': cats[fd['cat']],
             'price': fd['price'],
@@ -54,10 +41,7 @@ for fd in foods_data:
             'is_available': fd['available'],
         }
     )
-    s = '????? ??' if created else '???? ????'
-    print(f"  {s}: {food.name} - {food.price:,} ?????")
+    print(f"  {'ساخته شد' if created else 'وجود داشت'}: {food.name} - {food.price:,} تومان")
 
-print(f"\n?? ???????: {Category.objects.filter(restaurant=rest).count()}")
-print(f"?? ?????:   {Food.objects.filter(restaurant=rest).count()}")
-print(f"?????:      {Food.objects.filter(restaurant=rest, is_available=True).count()}")
-print(f"???????:    {Food.objects.filter(restaurant=rest, is_available=False).count()}")
+print(f"\n✅ دسته‌بندی: {Category.objects.filter(restaurant=rest).count()}")
+print(f"✅ غذاها:     {Food.objects.filter(restaurant=rest).count()}")
