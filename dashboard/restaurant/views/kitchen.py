@@ -457,35 +457,30 @@ def order_status_change(request, pk: int):
 # ★ موقت — بعد از اجرا حذف کن
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.db import connection
 
 @csrf_exempt
 def clear_sample_data_temp(request):
     try:
-        from ..models import Restaurant
-        rest = Restaurant.objects.first()
-        if not rest:
-            return JsonResponse({'error': 'هیچ رستورانی وجود ندارد'}, status=404)
+        # Raw SQL — بدون هیچ manager یا فیلتری
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id, name FROM restaurant_restaurant")
+            restaurants = cursor.fetchall()
 
-        kp_count = KitchenProduct.all_objects.filter(restaurant=rest).count()
-        KitchenProduct.all_objects.filter(restaurant=rest).delete()
+            cursor.execute("SELECT id, name, restaurant_id FROM restaurant_kitchenproduct")
+            kps = cursor.fetchall()
 
-        recipe_count = Recipe.all_objects.filter(restaurant=rest).count()
-        Recipe.all_objects.filter(restaurant=rest).delete()
+            cursor.execute("SELECT id, name, restaurant_id FROM restaurant_food")
+            foods = cursor.fetchall()
 
-        food_count = Food.all_objects.filter(restaurant=rest).count()
-        Food.all_objects.filter(restaurant=rest).delete()
-
-        cat_count = Category.all_objects.filter(restaurant=rest).count()
-        Category.all_objects.filter(restaurant=rest).delete()
+            cursor.execute("SELECT id, name, restaurant_id FROM restaurant_category")
+            cats = cursor.fetchall()
 
         return JsonResponse({
-            'success': True,
-            'restaurant': rest.name,
-            'deleted_kitchen_products': kp_count,
-            'deleted_recipes': recipe_count,
-            'deleted_foods': food_count,
-            'deleted_categories': cat_count,
-            'message': f'حذف شد: {kp_count} محصول، {recipe_count} دستور، {food_count} غذا، {cat_count} دسته‌بندی',
+            'restaurants': [{'id': r[0], 'name': r[1]} for r in restaurants],
+            'kitchen_products': [{'id': r[0], 'name': r[1], 'rest_id': r[2]} for r in kps],
+            'foods': [{'id': r[0], 'name': r[1], 'rest_id': r[2]} for r in foods],
+            'categories': [{'id': r[0], 'name': r[1], 'rest_id': r[2]} for r in cats],
         })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
