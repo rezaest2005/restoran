@@ -414,7 +414,7 @@ def dictionary_ready_materials(request):
 @login_required
 @require_GET
 def dictionary_food_menu(request):
-    """فقط غذا و منو"""
+    """فقط غذا و منو — با قیمت و وضعیت"""
     from ..models import Food, Category
 
     restaurant = getattr(request.user, 'restaurant', None)
@@ -435,8 +435,11 @@ def dictionary_food_menu(request):
         items.append({
             'id':            f.id,
             'name':          f.name,
+            'price':         f.price,
+            'final_price':   f.final_price,
             'category_id':   f.category_id,
             'category_name': categories.get(f.category_id, ''),
+            'is_available':  f.is_available,
         })
 
     return JsonResponse({'items': items})
@@ -477,7 +480,6 @@ def dictionary_food_create(request):
     food = Food.objects.create(
         restaurant=restaurant, name=name, category=category,
         price=price, final_price=price,
-        description=data.get('description', ''),
         is_available=True,
     )
 
@@ -488,7 +490,6 @@ def dictionary_food_create(request):
         'final_price': food.final_price,
         'category_id': food.category_id,
         'category_name': food.category.name if food.category else '',
-        'description': food.description,
         'is_available': food.is_available,
     })
 
@@ -510,8 +511,6 @@ def dictionary_food_update(request, pk):
 
     if 'name' in data:
         food.name = (data['name'] or '').strip()
-    if 'description' in data:
-        food.description = (data['description'] or '').strip()
     if 'price' in data:
         food.price = int(data['price'])
         food.final_price = int(data['price'])
@@ -527,7 +526,6 @@ def dictionary_food_update(request, pk):
         'final_price': food.final_price,
         'category_id': food.category_id,
         'category_name': food.category.name if food.category else '',
-        'description': food.description,
         'is_available': food.is_available,
     })
 
