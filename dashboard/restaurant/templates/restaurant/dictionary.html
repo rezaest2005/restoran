@@ -555,9 +555,10 @@
       <span class="cat-dot" id="catDot" style="background:#6b7280;"></span>
       <span id="catTitle">—</span>
     </h3>
+    <!-- ★ کلاس grp-edit-btn و grp-del-btn اضافه شد -->
     <div class="group-actions" id="groupActions" style="display:none;">
-      <button onclick="PageDict.editCurrentGroup()" title="ویرایش تب"><i class="bi bi-pencil"></i></button>
-      <button class="ga-del" onclick="PageDict.deleteCurrentGroup()" title="حذف تب"><i class="bi bi-trash3"></i></button>
+      <button class="grp-edit-btn" onclick="PageDict.editCurrentGroup()" title="ویرایش تب"><i class="bi bi-pencil"></i></button>
+      <button class="grp-del-btn" onclick="PageDict.deleteCurrentGroup()" title="حذف تب"><i class="bi bi-trash3"></i></button>
     </div>
     <div class="dict-search">
       <input type="text" id="pageDictSearch" placeholder="جستجو..." oninput="PageDict.filterList()">
@@ -673,11 +674,18 @@ var PageDict = (function() {
   var URL_DICT_LIST   = '/api/dictionary/list/';
   var URL_DICT_CREATE = '/api/dictionary/create/';
   var URL_FOOD_LIST   = '/api/dictionary/food-menu/';
-  var FOOD_SLUG       = '__food_menu__';
+
+  /* ═══ تب‌های پیش‌فرض (همیشه نمایش داده میشن) ═══ */
+  var PRESETS = [
+    { slug: '__raw_material__',   name: 'مواد اولیه',  icon: 'bi-box2',      color: '#10b981', cat: 'raw_material' },
+    { slug: '__ready_material__', name: 'مواد آماده',  icon: 'bi-box-seam',  color: '#f59e0b', cat: 'ready_material' },
+    { slug: '__food_menu__',      name: 'غذا و منو',   icon: 'bi-egg-fried', color: '#3b82f6', cat: 'food' },
+  ];
 
   /* ═══ State ═══ */
-  var allGroups = [], currentSlug = null, allItems = {}, foodActualCat = null;
+  var allGroups = [], currentSlug = null, allItems = {};
   var editingId = null, editingGroupId = null;
+  var _editingPresetSlug = null; /* ★ تشخیص ویرایش تب پیش‌فرض */
   var searchQuery = '', dictFilterCat = 'all', selectedDictCat = '';
   var DICT_CATS = {}, _dictCatEditing = null;
 
@@ -716,8 +724,22 @@ var PageDict = (function() {
   }
   function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
   function escAttr(s) { return esc(s).replace(/'/g, "\\'"); }
-  function isFood() { return currentSlug === FOOD_SLUG; }
-  function hasUnit() { return !isFood(); }
+
+  /* ★ تشخیص نوع تب */
+  function getPreset(slug) {
+    return PRESETS.find(function(p) { return p.slug === (slug || currentSlug); });
+  }
+  function isPreset() { return !!getPreset(currentSlug); }
+  function isFood()  { return currentSlug === '__food_menu__'; }
+  function hasUnit() { return !isFood(); } /* غذا واحد نداره، بقیه دارن */
+
+  /* دسته‌بندی واقعی برای ذخیره در دیتابیس */
+  function getDbCategory() {
+    var p = getPreset(currentSlug);
+    if (p) return p.cat;
+    return currentSlug;
+  }
+
   function getActiveGroup() { return allGroups.find(function(g) { return g.slug === currentSlug; }); }
   function getActiveItems() { return allItems[currentSlug] || []; }
   function onEnter(el, fn) { el.addEventListener('keydown', function(e) { if (e.key === 'Enter') fn(); }); }
@@ -727,6 +749,48 @@ var PageDict = (function() {
       + '<button class="chip-edit" onclick="event.stopPropagation(); PageDict.' + editFn + '" title="ویرایش"><i class="bi bi-pencil"></i></button>'
       + '<button class="chip-del" onclick="event.stopPropagation(); PageDict.' + delFn + '" title="حذف"><i class="bi bi-trash3"></i></button>'
       + '</span>';
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     ★ تنظیمات دسترسی تب‌های پیش‌فرض (localStorage)
+     ═══════════════════════════════════════════════════════════ */
+  var PRESET_SETTINGS = {};
+
+  function _defaultPresetUsage() {
+    return { usage_recipes: true, usage_warehouse: true, usage_invoice: true, usage_kitchen: true, usage_pos: true };
+  }
+
+  function loadPresetSettings() {
+    try {
+      var saved = localStorage.getItem('kt_preset_usage_v2');
+      if (saved) PRESET_SETTINGS = JSON.parse(saved);
+    } catch(e) {}
+    PRESETS.forEach(function(p) {
+      if (!PRESET_SETTINGS[p.slug]) PRESET_SETTINGS[p.slug] = _defaultPresetUsage();
+    });
+  }
+
+  function savePresetSettings() {
+    try { localStorage.setItem('kt_preset_usage_v2', JSON.stringify(PRESET_SETTINGS)); } catch(e) {}
+  }
+
+  /* ★ تابع عمومی: تنظیمات دسترسی هر تبی (پیش‌فرض یا سفارشی) */
+  function getUsage(slug) {
+    var preset = getPreset(slug);
+    if (preset) {
+      return PRESET_SETTINGS[slug] || _defaultPresetUsage();
+    }
+    var g = allGroups.find(function(x) { return x.slug === slug; });
+    if (g) {
+      return {
+        usage_recipes:   g.usage_recipes,
+        usage_warehouse: g.usage_warehouse,
+        usage_invoice:   g.usage_invoice,
+        usage_kitchen:   g.usage_kitchen,
+        usage_pos:       g.usage_pos,
+      };
+    }
+    return _defaultPresetUsage();
   }
 
   /* ═══ زیردسته‌ها (localStorage) ═══ */
@@ -746,26 +810,37 @@ var PageDict = (function() {
     api(URL_GRP_LIST, 'GET').then(function(res) {
       allGroups = res.groups || [];
       renderStats();
-      if (!currentSlug && allGroups.length) selectTab(allGroups[0].slug);
-      else if (currentSlug) renderPanelHead();
+      if (currentSlug) renderPanelHead();
+      render();
     }).catch(function() {});
   }
 
+  /* ★ تب‌های پیش‌فرض + سفارشی */
   function renderStats() {
-    var h = allGroups.map(function(g) {
+    var h = '';
+
+    /* تب‌های پیش‌فرض — همیشه اول */
+    PRESETS.forEach(function(p) {
+      var active = (currentSlug === p.slug) ? ' active' : '';
+      var cnt = (allItems[p.slug] || []).length;
+      h += '<div class="dict-stat-card' + active + '" data-slug="' + p.slug + '" onclick="PageDict.switchTab(this)"'
+        + (active ? ' style="border-color:' + p.color + ';"' : '') + '>'
+        + '<div class="dict-stat-icon" style="background:' + p.color + '18;color:' + p.color + ';"><i class="bi ' + p.icon + '"></i></div>'
+        + '<div class="dict-stat-num" id="stat-' + p.slug + '">' + cnt + '</div>'
+        + '<div class="dict-stat-label">' + p.name + '</div></div>';
+    });
+
+    /* تب‌های سفارشی */
+    allGroups.forEach(function(g) {
       var active = (currentSlug === g.slug) ? ' active' : '';
       var cnt = (allItems[g.slug] || []).length;
-      var styleAttr = active ? ' style="border-color:' + g.color + ';"' : '';
-      var styleTag = active ? '<style>.dict-stat-card[data-slug=\'' + g.slug + '\'].active::before{background:linear-gradient(90deg,' + g.color + ',' + g.color + '88);}</style>' : '';
-      return styleTag + '<div class="dict-stat-card' + active + '" data-slug="' + g.slug + '" onclick="PageDict.switchTab(this)"' + styleAttr + '>'
+      h += '<div class="dict-stat-card' + active + '" data-slug="' + g.slug + '" onclick="PageDict.switchTab(this)"'
+        + (active ? ' style="border-color:' + g.color + ';"' : '') + '>'
         + '<div class="dict-stat-icon" style="background:' + g.color + '18;color:' + g.color + ';"><i class="bi ' + esc(g.icon) + '"></i></div>'
         + '<div class="dict-stat-num" id="stat-' + g.slug + '">' + cnt + '</div>'
         + '<div class="dict-stat-label">' + esc(g.name) + (g.is_system ? ' <span class="sys-badge">سیستمی</span>' : '') + '</div></div>';
-    }).join('');
+    });
 
-    h += '<div class="dict-stat-card' + (isFood() ? ' active' : '') + '" data-slug="' + FOOD_SLUG + '" onclick="PageDict.switchTab(this)">'
-      + '<div class="dict-stat-icon" style="background:rgba(59,130,246,0.12);color:#3b82f6;"><i class="bi bi-egg-fried"></i></div>'
-      + '<div class="dict-stat-num">' + (allItems[FOOD_SLUG] || []).length + '</div><div class="dict-stat-label">غذا و منو</div></div>';
     h += '<div class="dict-stat-add" onclick="PageDict.showGroupForm()"><i class="bi bi-plus-lg"></i><span>تب جدید</span></div>';
     statsWrap.innerHTML = h;
   }
@@ -775,7 +850,7 @@ var PageDict = (function() {
   function selectTab(slug) {
     currentSlug = slug;
     cancelEdit(); cancelDictCatEdit();
-    _dictCatEditing = null; editingGroupId = null;
+    _dictCatEditing = null; editingGroupId = null; _editingPresetSlug = null;
     searchEl.value = ''; searchQuery = ''; dictFilterCat = 'all'; selectedDictCat = '';
     cancelGroupForm();
     renderStats(); renderPanelHead(); toggleFormFields();
@@ -789,11 +864,18 @@ var PageDict = (function() {
     nameEl.placeholder = isFood() ? 'مثال: پیتزا مارگاریتا' : 'مثال: آرد سفید';
   }
 
+  /* ★ تب‌های پیش‌فرض: ویرایش داره (دسترسی) ولی حذف نداره */
   function renderPanelHead() {
-    if (isFood()) {
-      catTitle.textContent = 'غذا و منو';
-      catDot.style.background = '#3b82f6';
-      groupActDiv.style.display = 'none';
+    var preset = getPreset(currentSlug);
+    if (preset) {
+      catTitle.textContent = preset.name;
+      catDot.style.background = preset.color;
+      /* دکمه ویرایش نشون بده، حذف مخفی */
+      groupActDiv.style.display = '';
+      var delBtns = groupActDiv.querySelectorAll('.grp-del-btn');
+      delBtns.forEach(function(b) { b.style.display = 'none'; });
+      var editBtns = groupActDiv.querySelectorAll('.grp-edit-btn');
+      editBtns.forEach(function(b) { b.style.display = ''; });
       return;
     }
     var g = getActiveGroup();
@@ -801,6 +883,11 @@ var PageDict = (function() {
     catTitle.innerHTML = esc(g.name) + (g.is_system ? ' <span class="sys-badge">سیستمی</span>' : '');
     catDot.style.background = g.color;
     groupActDiv.style.display = '';
+    /* همه دکمه‌ها نمایش */
+    var delBtns = groupActDiv.querySelectorAll('.grp-del-btn');
+    delBtns.forEach(function(b) { b.style.display = ''; });
+    var editBtns = groupActDiv.querySelectorAll('.grp-edit-btn');
+    editBtns.forEach(function(b) { b.style.display = ''; });
   }
 
   /* ═══ فرم گروه ═══ */
@@ -821,6 +908,7 @@ var PageDict = (function() {
   });
 
   function showGroupForm(group) {
+    _editingPresetSlug = null;
     editingGroupId = group ? group.id : null;
     grpNameEl.value = group ? group.name : '';
     grpIconEl.value = group ? group.icon : 'bi-archive';
@@ -839,11 +927,58 @@ var PageDict = (function() {
     var sys = group && group.is_system;
     grpNameEl.disabled = sys; grpIconEl.disabled = sys; grpColorEl.disabled = sys;
   }
+
+  /* ★ فرم دسترسی تب پیش‌فرض */
+  function showPresetForm(preset) {
+    _editingPresetSlug = preset.slug;
+    editingGroupId = null;
+    var settings = PRESET_SETTINGS[preset.slug] || _defaultPresetUsage();
+
+    grpNameEl.value = preset.name;
+    grpIconEl.value = preset.icon;
+    grpIconPrev.className = 'bi ' + preset.icon;
+    grpIconLbl.textContent = preset.icon;
+    grpColorEl.value = preset.color;
+    grpURecipes.checked   = settings.usage_recipes   !== false;
+    grpUWarehouse.checked = settings.usage_warehouse !== false;
+    grpUInvoice.checked   = settings.usage_invoice   !== false;
+    grpUKitchen.checked   = settings.usage_kitchen   !== false;
+    grpUPOS.checked       = settings.usage_pos       !== false;
+
+    $('groupFormTitle').textContent = 'تنظیمات دسترسی «' + preset.name + '»';
+    grpSaveBtn.innerHTML = '<i class="bi bi-check-lg"></i> ذخیره';
+    grpSaveBtn.classList.add('editing');
+
+    groupPanel.classList.add('show'); renderIconGrid();
+
+    /* فقط چک‌باکس‌ها قابل ویرایش */
+    grpNameEl.disabled = true; grpIconEl.disabled = true; grpColorEl.disabled = true;
+  }
+
   function cancelGroupForm() {
-    editingGroupId = null; groupPanel.classList.remove('show');
+    editingGroupId = null; _editingPresetSlug = null;
+    groupPanel.classList.remove('show');
     grpNameEl.disabled = false; grpIconEl.disabled = false; grpColorEl.disabled = false;
   }
+
   function saveGroup() {
+    /* ★ ذخیره تنظیمات تب پیش‌فرض */
+    if (_editingPresetSlug) {
+      PRESET_SETTINGS[_editingPresetSlug] = {
+        usage_recipes:   grpURecipes.checked,
+        usage_warehouse: grpUWarehouse.checked,
+        usage_invoice:   grpUInvoice.checked,
+        usage_kitchen:   grpUKitchen.checked,
+        usage_pos:       grpUPOS.checked,
+      };
+      savePresetSettings();
+      var pName = getPreset(_editingPresetSlug);
+      toast('دسترسی «' + (pName ? pName.name : '') + '» ذخیره شد', 'success');
+      cancelGroupForm();
+      return;
+    }
+
+    /* ذخیره تب سفارشی (مثل قبل) */
     var name = grpNameEl.value.trim();
     if (!name && !editingGroupId) { grpNameEl.focus(); toast('نام تب الزامی است', 'error'); return; }
     var body = {
@@ -858,8 +993,16 @@ var PageDict = (function() {
       cancelGroupForm(); loadGroups();
     }).catch(function() { toast('خطا در ارتباط', 'error'); });
   }
-  function editCurrentGroup() { var g = getActiveGroup(); if (g) showGroupForm(g); }
+
+  /* ★ ویرایش — برای تب پیش‌فرض فرم دسترسی، برای سفارشی فرم عادی */
+  function editCurrentGroup() {
+    var preset = getPreset(currentSlug);
+    if (preset) { showPresetForm(preset); return; }
+    var g = getActiveGroup(); if (g) showGroupForm(g);
+  }
+
   function deleteCurrentGroup() {
+    if (isPreset()) { toast('تب پیش‌فرض قابل حذف نیست', 'error'); return; }
     var g = getActiveGroup(); if (!g) return;
     if (g.is_system) { toast('تب سیستمی قابل حذف نیست', 'error'); return; }
     var items = allItems[g.slug] || [];
@@ -976,41 +1119,46 @@ var PageDict = (function() {
 
   /* ═══ بارگذاری ═══ */
   function loadAll() {
-    /* همه آیتم‌های دیکشنری */
+    /* همه آیتم‌های دیکشنری → تفکیک بر اساس category */
     api(URL_DICT_LIST, 'GET').then(function(res) {
-      allItems = {};
-      (res.items || []).forEach(function(item) {
+      var dictItems = res.items || [];
+      dictItems.forEach(function(item) {
         if (!item.unit_display) item.unit_display = unitLabel(item.unit);
-        var key = item.category || 'other';
-        if (!allItems[key]) allItems[key] = [];
-        allItems[key].push(item);
       });
+
+      /* ★ تب‌های پیش‌فرض — فیلتر بر اساس category */
+      allItems['__raw_material__']   = dictItems.filter(function(it) { return it.category === 'raw_material'; });
+      allItems['__ready_material__'] = dictItems.filter(function(it) { return it.category === 'ready_material'; });
+
+      /* تب‌های سفارشی */
+      allGroups.forEach(function(g) {
+        allItems[g.slug] = dictItems.filter(function(it) { return it.category === g.slug; });
+      });
+
       updateStats(); render();
     }).catch(function(){});
 
-    /* ★ آیتم‌های غذا — از endpoint دیکشنری (نه /api/menu/) */
+    /* ★ آیتم‌های غذا */
     apiGet(URL_FOOD_LIST).then(function(res) {
-      var items = res.items || res.results || res.foods || (Array.isArray(res) ? res : []);
-      items.forEach(function(item) {
-        if (!item.unit_display) item.unit_display = unitLabel(item.unit);
-        if (item.category && !foodActualCat) foodActualCat = item.category;
-      });
-      allItems[FOOD_SLUG] = items;
+      var items = res.items || res.results || (Array.isArray(res) ? res : []);
+      allItems['__food_menu__'] = items;
       updateStats(); render();
     }).catch(function(){});
   }
 
   function updateStats() {
+    PRESETS.forEach(function(p) {
+      var el = $('stat-' + p.slug);
+      if (el) el.textContent = (allItems[p.slug] || []).length;
+    });
     allGroups.forEach(function(g) {
       var el = $('stat-' + g.slug);
       if (el) el.textContent = (allItems[g.slug] || []).length;
     });
-    var foodNum = document.querySelector('.dict-stat-card[data-slug="' + FOOD_SLUG + '"] .dict-stat-num');
-    if (foodNum) foodNum.textContent = (allItems[FOOD_SLUG] || []).length;
   }
   function filterList() { searchQuery = searchEl.value.trim().toLowerCase(); render(); }
 
-  /* ═══ رندر واحد — همه تب‌ها ═══ */
+  /* ═══ رندر واحد ═══ */
   function render() {
     var items = getActiveItems();
     var cats = getActiveCats();
@@ -1029,7 +1177,9 @@ var PageDict = (function() {
     }
     pdEmpty.style.display = 'none';
 
-    var g = getActiveGroup(), gColor = g ? g.color : '#6b7280';
+    var g = getActiveGroup();
+    var preset = getPreset(currentSlug);
+    var gColor = preset ? preset.color : (g ? g.color : '#6b7280');
     var catKeys = Object.keys(cats);
     var catColors = ['#ff6b35','#8b5cf6','#10b981','#f59e0b','#3b82f6','#ec4899','#14b8a6','#6366f1','#ef4444','#84cc16','#a855f7'];
 
@@ -1075,7 +1225,7 @@ var PageDict = (function() {
   }
 
   /* ═══ CRUD واحد ═══ */
-    function save() {
+  function save() {
     var name = nameEl.value.trim();
     var unit = hasUnit() ? unitEl.value : 'unit';
     var desc = descEl.value.trim();
@@ -1086,15 +1236,52 @@ var PageDict = (function() {
       if (!unit) { unitEl.focus(); toast('واحد را انتخاب کنید', 'error'); return; }
     }
 
-    /* ★ دقیقاً مثل کد اصلی که کار میکرد */
+    if (isFood()) {
+      saveFoodItem(name, desc);
+    } else {
+      saveDictItem(name, unit, desc);
+    }
+  }
+
+  /* ★ ساخت/ویرایش غذا — Food API */
+  function saveFoodItem(name, desc) {
+    if (editingId) {
+      api('/api/dictionary/food/' + editingId + '/update/', 'POST', {
+        name: name, description: desc
+      }).then(function(res) {
+        if (res.error) { toast(res.error, 'error'); return; }
+        var arr = allItems['__food_menu__'] || [];
+        for (var i = 0; i < arr.length; i++) {
+          if (arr[i].id === editingId) { arr[i] = Object.assign(arr[i], res); break; }
+        }
+        cancelEdit(); renderDictCatBar(); render(); toast('ویرایش شد', 'success');
+      }).catch(function() { toast('خطا', 'error'); });
+    } else {
+      var catName = '';
+      var existing = allItems['__food_menu__'] || [];
+      if (existing.length) catName = existing[0].category_name || '';
+
+      api('/api/dictionary/food/create/', 'POST', {
+        name: name, description: desc, category_name: catName || 'عمومی'
+      }).then(function(res) {
+        if (res.error) { toast(res.error, 'error'); return; }
+        if (!allItems['__food_menu__']) allItems['__food_menu__'] = [];
+        allItems['__food_menu__'].push(res);
+        updateStats(); renderDictCatBar(); render();
+        nameEl.value = ''; descEl.value = ''; nameEl.focus();
+        toast('غذا اضافه شد', 'success');
+      }).catch(function() { toast('خطا در ساخت غذا', 'error'); });
+    }
+  }
+
+  /* ★ ساخت/ویرایش آیتم دیکشنری (مواد اولیه، آماده، سفارشی) */
+  function saveDictItem(name, unit, desc) {
     var body = {
-      name: name,
-      unit: unit,
-      category: currentSlug,
+      name: name, unit: unit,
+      category: getDbCategory(),
       description: desc,
       dict_category: selectedDictCat || ''
     };
-
     var group = getActiveGroup();
     if (group) body.group_id = group.id;
 
@@ -1105,8 +1292,7 @@ var PageDict = (function() {
         for (var i = 0; i < arr.length; i++) {
           if (arr[i].id === editingId) {
             arr[i] = Object.assign(arr[i], res);
-            arr[i].unit_display = unitLabel(unit);
-            break;
+            arr[i].unit_display = unitLabel(unit); break;
           }
         }
         cancelEdit(); renderDictCatBar(); render(); toast('ویرایش شد', 'success');
@@ -1122,14 +1308,9 @@ var PageDict = (function() {
         if (hasUnit()) { unitEl.value = ''; customUnitWrap.style.display = 'none'; }
         selectedDictCat = ''; renderDictCatDropdown();
         nameEl.focus(); toast('آیتم اضافه شد', 'success');
-      }).catch(function(e) {
-        /* ★ نمایش خطای سرور برای دیباگ */
-        console.error('Create failed:', e);
-        toast('خطا: سرور داده رو رد کرد', 'error');
-      });
+      }).catch(function() { toast('خطا در ساخت', 'error'); });
     }
   }
-
 
   function edit(id) {
     var item = (allItems[currentSlug] || []).find(function(x) { return x.id === id; });
@@ -1161,24 +1342,18 @@ var PageDict = (function() {
     renderDictCatDropdown();
   }
 
-  /* ═══ حذف — برای غذا از kitchen API استفاده کن ═══ */
+  /* ═══ حذف ═══ */
   function remove(id) {
     if (!confirm('آیا از حذف این آیتم مطمئنید؟')) return;
 
     if (isFood()) {
-      /* آیتم‌های غذا KitchenProduct هستن → kitchen API */
-      fetch('/api/kitchen/products/' + id + '/', {
-        method: 'DELETE',
-        headers: { 'X-CSRFToken': csrf() }
-      }).then(function(r) {
-        if (r.ok || r.status === 204 || r.status === 200) {
-          handleDeleteSuccess(id);
-        } else {
-          toast('خطا: سرور حذف رو رد کرد (' + r.status + ')', 'error');
-        }
-      }).catch(function() { toast('خطا در ارتباط', 'error'); });
+      /* ★ غذا → cascade delete (Food → Recipe → KitchenProduct) */
+      api('/api/dictionary/food/' + id + '/delete/', 'POST').then(function(res) {
+        if (res.error) { toast(res.error, 'error'); return; }
+        handleDeleteSuccess(id, res.message);
+      }).catch(function() { toast('خطا', 'error'); });
     } else {
-      /* آیتم‌های معمولی → dictionary API */
+      /* مواد اولیه / آماده / سفارشی → dictionary API */
       api('/api/dictionary/' + id + '/delete/', 'POST').then(function(res) {
         if (res.error) { toast(res.error, 'error'); return; }
         handleDeleteSuccess(id);
@@ -1186,102 +1361,11 @@ var PageDict = (function() {
     }
   }
 
-  function handleDeleteSuccess(id) {
+  function handleDeleteSuccess(id, msg) {
     allItems[currentSlug] = (allItems[currentSlug] || []).filter(function(x) { return x.id !== id; });
     if (editingId === id) cancelEdit();
     updateStats(); renderDictCatBar(); render();
-    toast('حذف شد', 'success');
-  }
-
-  /* ═══ ساخت/ویرایش — برای غذا از kitchen API ═══ */
-  function save() {
-    var name = nameEl.value.trim();
-    var unit = hasUnit() ? unitEl.value : 'unit';
-    var desc = descEl.value.trim();
-
-    if (!name) { nameEl.focus(); toast('نام آیتم را وارد کنید', 'error'); return; }
-    if (hasUnit()) {
-      if (unit === 'custom') { unit = customUnitEl.value.trim(); if (!unit) { customUnitEl.focus(); toast('واحد سفارشی را وارد کنید', 'error'); return; } }
-      if (!unit) { unitEl.focus(); toast('واحد را انتخاب کنید', 'error'); return; }
-    }
-
-    if (isFood()) {
-      /* ★ غذا → kitchen API */
-      saveAsKitchenProduct(name, desc);
-    } else {
-      /* ★ دیکشنری معمولی → dictionary API */
-      saveAsDictItem(name, unit, desc);
-    }
-  }
-
-  function saveAsKitchenProduct(name, desc) {
-    if (editingId) {
-      /* ویرایش غذا */
-      fetch('/api/kitchen/products/' + editingId + '/', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-        body: JSON.stringify({ name: name, description: desc })
-      }).then(function(r) { return r.json(); }).then(function(res) {
-        if (res.error || res.detail) { toast(res.error || res.detail, 'error'); return; }
-        var arr = allItems[currentSlug] || [];
-        for (var i = 0; i < arr.length; i++) {
-          if (arr[i].id === editingId) { arr[i].name = name; arr[i].description = desc; break; }
-        }
-        cancelEdit(); renderDictCatBar(); render(); toast('ویرایش شد', 'success');
-      }).catch(function() { toast('خطا', 'error'); });
-    } else {
-      /* ساخت غذا */
-      var catName = '';
-      var existing = allItems[currentSlug] || [];
-      if (existing.length) catName = existing[0].category_name || '';
-
-      fetch('/api/kitchen/products/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf() },
-        body: JSON.stringify({ name: name, description: desc, category_name: catName || 'عمومی' })
-      }).then(function(r) { return r.json(); }).then(function(res) {
-        if (res.error || res.detail) { toast(res.error || res.detail, 'error'); return; }
-        if (!allItems[currentSlug]) allItems[currentSlug] = [];
-        allItems[currentSlug].push(res);
-        updateStats(); renderDictCatBar(); render();
-        nameEl.value = ''; descEl.value = ''; nameEl.focus();
-        toast('آیتم اضافه شد', 'success');
-      }).catch(function(e) {
-        console.error('Kitchen create error:', e);
-        toast('خطا در ساخت', 'error');
-      });
-    }
-  }
-
-  function saveAsDictItem(name, unit, desc) {
-    var body = { name: name, unit: unit, category: currentSlug, description: desc, dict_category: selectedDictCat || '' };
-    var group = getActiveGroup();
-    if (group) body.group_id = group.id;
-
-    if (editingId) {
-      api('/api/dictionary/' + editingId + '/update/', 'POST', body).then(function(res) {
-        if (res.error) { toast(res.error, 'error'); return; }
-        var arr = allItems[currentSlug] || [];
-        for (var i = 0; i < arr.length; i++) {
-          if (arr[i].id === editingId) {
-            arr[i] = Object.assign(arr[i], res);
-            arr[i].unit_display = unitLabel(unit); break;
-          }
-        }
-        cancelEdit(); renderDictCatBar(); render(); toast('ویرایش شد', 'success');
-      }).catch(function() { toast('خطا', 'error'); });
-    } else {
-      api(URL_DICT_CREATE, 'POST', body).then(function(res) {
-        if (res.error) { toast(res.error, 'error'); return; }
-        if (!res.unit_display) res.unit_display = unitLabel(unit);
-        if (!allItems[currentSlug]) allItems[currentSlug] = [];
-        allItems[currentSlug].push(res);
-        updateStats(); renderDictCatBar(); render();
-        nameEl.value = ''; descEl.value = ''; unitEl.value = '';
-        selectedDictCat = ''; renderDictCatDropdown();
-        nameEl.focus(); toast('آیتم اضافه شد', 'success');
-      }).catch(function() { toast('خطا', 'error'); });
-    }
+    toast(msg || 'حذف شد', 'success');
   }
 
   /* ═══ Events ═══ */
@@ -1293,8 +1377,13 @@ var PageDict = (function() {
     else { customUnitWrap.style.display = 'none'; customUnitEl.value = ''; }
   });
 
-  /* ═══ Init ═══ */
-  loadDictCats(); loadGroups(); loadAll();
+  /* ═══ Init — تب پیش‌فرض: مواد اولیه ═══ */
+  loadPresetSettings();
+  loadDictCats();
+  currentSlug = PRESETS[0].slug;
+  renderStats(); renderPanelHead(); toggleFormFields();
+  loadGroups();
+  loadAll();
 
   return {
     switchTab: switchTab, filterList: filterList,
@@ -1308,6 +1397,9 @@ var PageDict = (function() {
     removeDictCatBar: removeDictCatBar, saveDictCat: saveDictCatFn, cancelDictCatEdit: cancelDictCatEdit,
     toggleDictCat: toggleDictCat, pickDictCat: pickDictCat, addDictCat: addDictCat,
     renderDictCatDropdown: renderDictCatDropdown,
+    /* ★ تابع عمومی — صفحات دیگه استفاده میکنن */
+    getUsage: getUsage,
+    getPresets: function() { return PRESETS; },
   };
 })();
 </script>
