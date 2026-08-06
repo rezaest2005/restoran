@@ -10,6 +10,7 @@ Restaurant Management System — URLs (★ نسخه نهایی)
   ★FIX-6  باز/بستن سفارش آنلاین از صندوق
   ★FIX-7  ویرایش قیمت غذا از صندوق
   ★FIX-8  سازگاری با React قدیمی — /api/kitchen/public-products/ → public_menu_api
+  ★FIX-9  ★ جدید — CRUD غذا از دیکشنری (create/update/delete)
 """
 
 from django.urls import include, path
@@ -124,6 +125,11 @@ urlpatterns = [
     path("api/dictionary/ready-materials/",     views.dictionary_ready_materials, name="dict_ready_materials"),
     path("api/dictionary/food-menu/",           views.dictionary_food_menu,       name="dict_food_menu"),
 
+    # ★★★ جدید — CRUD غذا از دیکشنری ★★★
+    path("api/dictionary/food/create/",          views.dictionary_food_create,    name="dict_food_create"),
+    path("api/dictionary/food/<int:pk>/update/", views.dictionary_food_update,    name="dict_food_update"),
+    path("api/dictionary/food/<int:pk>/delete/", views.dictionary_food_delete,    name="dict_food_delete"),
+
     # Dictionary Groups
     path("api/dictionary/groups/",              views.dictionary_group_list,      name="dictionary_group_list"),
     path("api/dictionary/groups/save/",         views.dictionary_group_save,      name="dictionary_group_save"),
@@ -134,7 +140,6 @@ urlpatterns = [
     # └─────────────────────────────────────────────────────────┘
 
     path("api/kitchen/dashboard/",                  views.kitchen_dashboard_api,              name="kitchen_dashboard"),
-    # ★ سازگاری با React قدیمی — همون view جدید (public_menu_api) رو صدا میزنه
     path("api/kitchen/public-products/",            views.public_menu_api,                    name="public_kitchen_products_compat"),
     path("api/kitchen/products/",                   views.KitchenProductListCreate.as_view(), name="kitchen-products-list"),
     path("api/kitchen/products/<int:pk>/",          views.KitchenProductDetail.as_view(),     name="kitchen-products-detail"),
@@ -175,18 +180,14 @@ urlpatterns = [
     path("api/pos/close-logs/",       views.pos_close_logs,        name="pos_close_logs"),
     path("pos/receipt/<int:pk>/",     views.pos_receipt,           name="pos_receipt"),
 
-    # ★ ویرایش قیمت غذا از صندوق
     path("api/pos/update-food-price/", views.pos_update_food_price, name="pos_update_food_price"),
 
-    # ★ منو عمومی — آینه صندوق (بدون لاگین)
     path("api/menu/",                             views.public_menu_api,            name="public_menu"),
 
-    # ★ فروش آنلاین — تب جدید صندوق
     path("api/pos/online-orders/",                       views.pos_online_orders,        name="pos_online_orders"),
     path("api/pos/confirm-online/<int:order_id>/",       views.pos_confirm_online_order, name="pos_confirm_online"),
     path("api/pos/reject-online/<int:order_id>/",        views.pos_reject_online_order,  name="pos_reject_online"),
 
-    # ★ باز/بستن سفارش آنلاین
     path("api/pos/online-orders-status/",    views.online_orders_status,   name="online_orders_status"),
     path("api/pos/toggle-online-orders/",    views.toggle_online_orders,   name="toggle_online_orders"),
 
