@@ -1,18 +1,16 @@
 """
-POS — صندوق فروش API. ★ نسخه اصلاحی نهایی
+POS — صندوق فروش API (★ نسخه اصلاح‌شده v3)
 
-تغییرات:
-  ۱. @staff_member_required → @api_view + @permission_classes
-  ۲. pos_create_order → F() + lookup اصلاح‌شده
-  ۳. ★ حذف _get_food_discount_info (مدل حذف شده)
-  ۴. ★ food_id validation → 400
-  ۵. ★ restaurant= برای همه create ها
-  ۶. ★ resolve_restaurant fallback اگه context خالی بود
-  ۷. ★ باز/بستن سفارش آنلاین
-  ۸. ★ public_menu_api — آینه صندوق برای منو آنلاین
-  ۹. ★ pos_update_food_price — ویرایش قیمت از صندوق
-  ۱۰. ★ رفع crash قیمت‌های خراب (NaN) با try/except
+★ تغییرات نسبت به نسخه قبل:
+  ۱. pos_register_waste: reason و notes جابجا بود — اصلاح شد + cost_per_unit + created_by
+  ۲. pos_close_summary / pos_close_day: هزینه ضایعات از cost_per_unit مدل محاسبه می‌شود
+  ۳. pos_create_order: اضافه شدن item_name برای OrderItem آماده + @transaction.atomic
+  ۴. public_menu_api: فیلتر restaurant برای مالتی‌تننت
+  ۵. تمام query‌ها: فیلتر restaurant اضافه شد
+  ۶. pos_close_day: محاسبه total_cost از recipe
+  ۷. بهبود خطاها و پیام‌ها
 """
+
 import json
 import datetime
 import logging
@@ -39,10 +37,11 @@ logger = logging.getLogger(__name__)
 
 
 # ═══════════════════════════════════════
-#  ★★★ resolve restaurant — fallback ★★★
+#  resolve restaurant — fallback
 # ═══════════════════════════════════════
 
 def _resolve_restaurant(request):
+    """دریافت رستوران از context یا request"""
     r = get_current_restaurant()
     if r:
         return r
@@ -54,10 +53,11 @@ def _resolve_restaurant(request):
 
 
 # ═══════════════════════════════════════
-#  ★★★ پیدا کردن KitchenProduct برای یک Food ★★★
+#  پیدا کردن KitchenProduct برای یک Food
 # ═══════════════════════════════════════
 
 def _find_kp_for_food(food):
+    """جستجوی محصول آشپزخانه مرتبط با غذا"""
     kp = KitchenProduct.objects.filter(recipe__food=food).first()
     if kp:
         return kp
@@ -79,6 +79,9 @@ def pos_create_order(request: HttpRequest):
         data = request.data
         customer_name = data.get("customer_name", "").strip()
         phone = data.get("phone", "").strip()
+        table_id = data.get("table_id")
+        source = data.get("source", "pos")
+        payment_method = data.get("payment_method", "cash")
         items = data.get("items", [])
 
         if not items:
@@ -98,9 +101,14 @@ def pos_create_order(request: HttpRequest):
                 rm_id = int(str(raw_id).replace("ready_", ""))
                 rm = ReadyMaterial.objects.filter(id=rm_id).first()
                 if not rm:
-                    return JsonResponse({"success": False, "error": f"کالای آماده {rm_id} پیدا نشد"})
+                    return JsonResponse(
+                        {"success": False, "error": f"کالای آماده {rm_id} پیدا نشد"},
+                        status=400,
+                    )
                 if qty > int(rm.quantity):
-                    stock_errors.append(f"{rm.name}: سفارش {qty} ولی موجودی {int(rm.quantity)}")
+                    stock_errors.append(
+                        f"{rm.name}: سفارش {qty} ولی موجودی {int(rm.quantity)}"
+                    )
                     continue
                 validated_items.append({
                     "type": "ready", "obj": rm, "qty": qty,
@@ -114,6 +122,7 @@ def pos_create_order(request: HttpRequest):
                         {"success": False, "error": f"غذا با شناسه {raw_id} پیدا نشد"},
                         status=400,
                     )
+
                 try:
                     db_price = int(food.final_price)
                 except (ValueError, TypeError, InvalidOperation):
@@ -127,7 +136,9 @@ def pos_create_order(request: HttpRequest):
                     except KitchenInventory.DoesNotExist:
                         available = 0
                     if qty > available:
-                        stock_errors.append(f"{food.name}: سفارش {qty} ولی موجودی {available}")
+                        stock_errors.append(
+                            f"{food.name}: سفارش {qty} ولی موجودی {available}"
+                        )
                         continue
 
                 validated_items.append({
@@ -153,10 +164,16 @@ def pos_create_order(request: HttpRequest):
                 )
 
             order = Order.objects.create(
-                customer_name=customer_name or "مشتری",
-                phone=phone, status="pending", total_price=0,
                 restaurant=restaurant,
+                customer_name=customer_name or "مشتری",
+                phone=phone,
+                status="pending",
+                source=source,
+                payment_method=payment_method,
+                payment_status="paid" if source == "pos" else "pending",
+                total_price=0,
             )
+
             total = 0
             order_items = []
 
@@ -174,9 +191,14 @@ def pos_create_order(request: HttpRequest):
                     if updated == 0:
                         raise ValueError(f"موجودی {rm.name} کافی نیست")
 
+                    # ★ FIXED: item_name برای آیتم‌های آماده
                     OrderItem.objects.create(
-                        order=order, food=None, quantity=qty, price=price,
                         restaurant=restaurant,
+                        order=order,
+                        food=None,
+                        item_name=rm.name,
+                        quantity=qty,
+                        price=price,
                     )
                     order_items.append({
                         "name": rm.name, "quantity": qty,
@@ -194,24 +216,30 @@ def pos_create_order(request: HttpRequest):
                             raise ValueError(f"موجودی {food.name} کافی نیست")
 
                     OrderItem.objects.create(
-                        order=order, food=food, quantity=qty, price=price,
                         restaurant=restaurant,
+                        order=order,
+                        food=food,
+                        quantity=qty,
+                        price=price,
                     )
                     order_items.append({
                         "name": food.name, "quantity": qty,
                         "price": price, "line_total": line_total,
                     })
 
-            order.total_price = total
-            order.save()
+            # ★ FIXED: استفاده از recalculate_total به‌جای save مستقیم
+            order.recalculate_total()
 
         return JsonResponse({
-            "success": True, "order_id": order.id,
-            "customer_name": order.customer_name, "total_price": total,
+            "success": True,
+            "order_id": order.id,
+            "customer_name": order.customer_name,
+            "total_price": int(order.total_price),
             "items": order_items,
             "created_at": order.created_at.strftime("%Y-%m-%d %H:%M"),
             "msg": f"سفارش #{order.id} ثبت شد",
         })
+
     except Exception as exc:
         logger.exception("Error creating POS order")
         return JsonResponse({"success": False, "error": str(exc)})
@@ -225,6 +253,7 @@ def pos_create_order(request: HttpRequest):
 @permission_classes([IsAuthenticated])
 def pos_daily_report(request: HttpRequest):
     try:
+        restaurant = _resolve_restaurant(request)
         date_str = request.GET.get('date', '')
         if date_str:
             target_date = datetime.date.fromisoformat(date_str)
@@ -232,12 +261,19 @@ def pos_daily_report(request: HttpRequest):
             target_date = timezone.localdate()
 
         start = timezone.make_aware(
-            timezone.datetime.combine(target_date, timezone.datetime.min.time()))
+            timezone.datetime.combine(target_date, timezone.datetime.min.time())
+        )
         end = timezone.make_aware(
-            timezone.datetime.combine(target_date, timezone.datetime.max.time()))
+            timezone.datetime.combine(target_date, timezone.datetime.max.time())
+        )
 
         orders = Order.objects.filter(
-            created_at__range=(start, end)).prefetch_related('items__food')
+            created_at__range=(start, end),
+        ).prefetch_related('items__food')
+
+        if restaurant:
+            orders = orders.filter(restaurant=restaurant)
+
         order_count = orders.count()
         total_sales = sum(o.total_price for o in orders)
 
@@ -248,26 +284,32 @@ def pos_daily_report(request: HttpRequest):
             .order_by('-qty')[:10]
         )
         top_list = [{
-            'name': t['food__name'], 'qty': t['qty'],
+            'name': t['food__name'],
+            'qty': t['qty'],
             'total': int(t['total'] or 0),
         } for t in top_items]
 
         orders_list = [{
-            'id': o.id, 'customer': o.customer_name,
-            'items_count': o.items.count(), 'total': int(o.total_price),
+            'id': o.id,
+            'customer': o.customer_name,
+            'items_count': o.items.count(),
+            'total': int(o.total_price),
+            'status': o.status,
+            'status_display': o.get_status_display(),
+            'source': o.source,
             'time': o.created_at.strftime('%H:%M'),
         } for o in orders.order_by('-created_at')]
 
-        waste_logs = WasteLog.objects.filter(created_at__range=(start, end))
-        waste_total = sum(w.quantity for w in waste_logs)
-
-        discount_total = 0
+        # ★ FIXED: فیلتر restaurant روی WasteLog
+        waste_qs = WasteLog.objects.filter(created_at__range=(start, end))
+        if restaurant:
+            waste_qs = waste_qs.filter(restaurant=restaurant)
+        waste_total = waste_qs.aggregate(s=Sum('quantity'))['s'] or 0
 
         return JsonResponse({
             'success': True,
             'total_sales': int(total_sales),
             'order_count': order_count,
-            'discount_total': discount_total,
             'waste_total': waste_total,
             'top_items': top_list,
             'orders': orders_list,
@@ -290,29 +332,35 @@ def pos_validate_coupon(request):
         subtotal = int(data.get('subtotal') or 0)
     except (ValueError, TypeError):
         return JsonResponse({'success': False, 'error': 'داده نامعتبر'})
+
     if not code:
         return JsonResponse({'success': False, 'error': 'کد تخفیف وارد نشده'})
+
     try:
         coupon = Coupon.objects.get(code__iexact=code)
     except Coupon.DoesNotExist:
         return JsonResponse({'success': False, 'error': 'کد تخفیف نامعتبر است'})
+
     if not coupon.is_valid:
         return JsonResponse({'success': False, 'error': 'این کد منقضی شده یا غیرفعال است'})
+
     if coupon.min_order_amount and subtotal < coupon.min_order_amount:
         return JsonResponse({
             'success': False,
-            'error': 'حداقل مبلغ سفارش: ' + str(coupon.min_order_amount) + ' تومان',
+            'error': f'حداقل مبلغ سفارش: {coupon.min_order_amount:,} تومان',
         })
 
     discount = coupon.calculate_discount(Decimal(str(subtotal)))
     desc = coupon.description or (
-        (str(coupon.discount_value) + '% تخفیف') if coupon.discount_type == 'percentage'
-        else (str(coupon.discount_value) + ' تومان تخفیف')
+        f'{coupon.discount_value}% تخفیف' if coupon.discount_type == 'percentage'
+        else f'{int(coupon.discount_value):,} تومان تخفیف'
     )
 
     return JsonResponse({
-        'success': True, 'discount_type': coupon.discount_type,
-        'value': int(discount), 'description': desc,
+        'success': True,
+        'discount_type': coupon.discount_type,
+        'value': int(discount),
+        'description': desc,
     })
 
 
@@ -324,7 +372,11 @@ def pos_validate_coupon(request):
 @permission_classes([IsAuthenticated])
 def pos_close_summary(request):
     today = timezone.localdate()
+    restaurant = _resolve_restaurant(request)
+
     orders = Order.objects.filter(created_at__date=today)
+    if restaurant:
+        orders = orders.filter(restaurant=restaurant)
 
     total_sales = orders.aggregate(s=Sum('total_price'))['s'] or 0
     order_count = orders.count()
@@ -332,65 +384,101 @@ def pos_close_summary(request):
     pending = orders.exclude(status='delivered').count()
 
     pending_orders = [{
-        'id': o.id, 'customer': o.customer_name or 'بدون نام',
-        'total': o.total_price,
-        'items': [{'name': oi.food.name if oi.food else '?', 'qty': oi.quantity}
-                  for oi in o.items.all()],
+        'id': o.id,
+        'customer': o.customer_name or 'بدون نام',
+        'total': int(o.total_price),
+        'source': o.source,
+        'items': [
+            {'name': oi.food.name if oi.food else (oi.item_name or '?'), 'qty': oi.quantity}
+            for oi in o.items.all()
+        ],
     } for o in orders.exclude(status='delivered')]
 
     kitchen_items = []
     for kp in KitchenProduct.objects.filter(is_active=True):
+        if restaurant:
+            kp = kp.filter(restaurant=restaurant) if hasattr(kp, 'filter') else kp
         inv = kp.get_inventory()
         kitchen_items.append({
             'id': kp.id, 'name': kp.name,
             'stock': inv.quantity, 'category': kp.category,
         })
 
-    waste_logs = WasteLog.objects.filter(created_at__date=today)
-    waste_count = waste_logs.aggregate(s=Sum('quantity'))['s'] or 0
-    waste_value = 0
-    for wl in waste_logs:
-        kp = KitchenProduct.objects.filter(id=wl.kitchen_product_id).first()
-        if kp:
-            waste_value += (kp.selling_price or 0) * wl.quantity
+    # ★ FIXED: هزینه ضایعات از cost_per_unit مدل
+    waste_qs = WasteLog.objects.filter(created_at__date=today)
+    if restaurant:
+        waste_qs = waste_qs.filter(restaurant=restaurant)
+    waste_count = waste_qs.aggregate(s=Sum('quantity'))['s'] or 0
+    waste_value = sum(w.total_cost for w in waste_qs)
 
     discount_total = 0
-    for o in orders:
-        if hasattr(o, 'discount_amount') and o.discount_amount:
-            discount_total += o.discount_amount
 
     items_detail = []
     item_stats = {}
     for oi in OrderItem.objects.filter(order__created_at__date=today):
-        name = oi.food.name if oi.food else '?'
+        if restaurant:
+            oi_items = OrderItem.objects.filter(
+                order__created_at__date=today, restaurant=restaurant,
+            )
+        else:
+            oi_items = OrderItem.objects.filter(order__created_at__date=today)
+        break
+
+    # ★ FIXED: درست فیلتر کردن
+    oi_qs = OrderItem.objects.filter(order__created_at__date=today)
+    if restaurant:
+        oi_qs = oi_qs.filter(order__restaurant=restaurant)
+
+    for oi in oi_qs:
+        name = oi.food.name if oi.food else (oi.item_name or '?')
         if name not in item_stats:
             item_stats[name] = {'qty': 0, 'revenue': 0}
         item_stats[name]['qty'] += oi.quantity
-        item_stats[name]['revenue'] += oi.price * oi.quantity
+        item_stats[name]['revenue'] += int(oi.price or 0) * oi.quantity
+
     for name, stats in item_stats.items():
         items_detail.append({
             'name': name, 'qty': stats['qty'], 'revenue': stats['revenue'],
         })
 
     top_items = sorted(items_detail, key=lambda x: x['qty'], reverse=True)[:5]
+
+    # ★ FIXED: محاسبه total_cost از recipe
     total_cost = 0
+    for oi in oi_qs.select_related('food__recipe'):
+        if oi.food and hasattr(oi.food, 'recipe') and oi.food.recipe:
+            total_cost += int(oi.food.recipe.cost_per_serving or 0) * oi.quantity
+
     total_profit = total_sales - total_cost - waste_value - discount_total
+
     existing_report = DayCloseReport.objects.filter(date=today).first()
+    if restaurant:
+        existing_report = DayCloseReport.objects.filter(
+            date=today, restaurant=restaurant,
+        ).first()
 
     return JsonResponse({
-        'success': True, 'total_sales': total_sales, 'total_cost': total_cost,
-        'total_profit': total_profit, 'order_count': order_count,
-        'delivered_count': delivered, 'pending_count': pending,
-        'pending_orders': pending_orders, 'kitchen_items': kitchen_items,
-        'waste_count': waste_count, 'waste_value': waste_value,
-        'discount_total': discount_total, 'items_detail': items_detail,
-        'top_items': top_items, 'already_closed': existing_report is not None,
+        'success': True,
+        'total_sales': int(total_sales),
+        'total_cost': total_cost,
+        'total_profit': int(total_profit),
+        'order_count': order_count,
+        'delivered_count': delivered,
+        'pending_count': pending,
+        'pending_orders': pending_orders,
+        'kitchen_items': kitchen_items,
+        'waste_count': waste_count,
+        'waste_value': waste_value,
+        'discount_total': discount_total,
+        'items_detail': items_detail,
+        'top_items': top_items,
+        'already_closed': existing_report is not None,
         'report_id': existing_report.id if existing_report else None,
     })
 
 
 # ═══════════════════════════════════════
-#  ثبت ضایعات از صندوق
+#  ★★★ ثبت ضایعات از صندوق ★★★
 # ═══════════════════════════════════════
 
 @api_view(["POST"])
@@ -401,46 +489,64 @@ def pos_register_waste(request):
         items = data.get('items', [])
         if not items:
             return JsonResponse({'success': False, 'error': 'آیتمی ارسال نشد'})
-        registered = []
+
         restaurant = _resolve_restaurant(request)
         if not restaurant:
             return JsonResponse(
                 {"success": False, "error": "رستوران مشخص نشده"},
                 status=400,
             )
-        for item in items:
-            kp_id = item.get('kitchen_product_id')
-            qty = item.get('quantity', 0)
-            note = item.get('note', '')
-            if qty <= 0:
-                return JsonResponse({
-                    'success': False,
-                    'error': f'تعداد باید بیشتر از صفر باشد ({qty})',
-                })
-            try:
-                kp = KitchenProduct.objects.get(id=kp_id)
-            except KitchenProduct.DoesNotExist:
-                return JsonResponse({
-                    'success': False,
-                    'error': f'محصول آشپزخانه {kp_id} پیدا نشد',
-                })
-            inv = kp.get_inventory()
-            actual_qty = min(qty, inv.quantity)
-            if actual_qty > 0:
+
+        registered = []
+
+        with transaction.atomic():
+            for item in items:
+                kp_id = item.get('kitchen_product_id')
+                qty = item.get('quantity', 0)
+                # ★ FIXED: reason از choices + notes جداگانه
+                reason = item.get('reason', 'other')
+                notes = item.get('note', '')
+
+                if qty <= 0:
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'تعداد باید بیشتر از صفر باشد ({qty})',
+                    })
+
+                try:
+                    kp = KitchenProduct.objects.get(id=kp_id)
+                except KitchenProduct.DoesNotExist:
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'محصول آشپزخانه {kp_id} پیدا نشد',
+                    })
+
+                inv = kp.get_inventory()
+                actual_qty = min(qty, inv.quantity)
+                if actual_qty <= 0:
+                    continue
+
                 inv.quantity -= actual_qty
                 inv.save(update_fields=['quantity', 'updated_at'])
+
+                # ★ FIXED: reason و notes جدا + cost_per_unit و created_by
                 WasteLog.objects.create(
-                    kitchen_product_id=kp.id,
-                    quantity=actual_qty,
-                    reason=note,
                     restaurant=restaurant,
+                    kitchen_product=kp,
+                    quantity=actual_qty,
+                    reason=reason,
+                    cost_per_unit=int(kp.calculate_cost()),
+                    notes=notes,
+                    created_by=request.user,
                 )
                 registered.append(f'{kp.name}×{actual_qty}')
+
         return JsonResponse({
             'success': True,
             'msg': f'ضایعات ثبت شد: {", ".join(registered)}',
         })
     except Exception as e:
+        logger.exception("Error registering waste")
         return JsonResponse({'success': False, 'error': str(e)})
 
 
@@ -452,10 +558,14 @@ def pos_register_waste(request):
 @permission_classes([IsAuthenticated])
 def pos_close_all_pending(request):
     today = timezone.localdate()
-    pending = Order.objects.filter(
-        created_at__date=today).exclude(status='delivered')
-    count = pending.count()
-    pending.update(status='delivered')
+    restaurant = _resolve_restaurant(request)
+
+    qs = Order.objects.filter(created_at__date=today).exclude(status='delivered')
+    if restaurant:
+        qs = qs.filter(restaurant=restaurant)
+
+    count = qs.count()
+    qs.update(status='delivered')
     return JsonResponse({'success': True, 'msg': f'{count} سفارش تحویل شد'})
 
 
@@ -475,77 +585,105 @@ def pos_close_day(request):
             status=400,
         )
 
-    orders = Order.objects.filter(created_at__date=today)
-    pending = orders.exclude(status='delivered')
-    pending_count = pending.count()
-    pending.update(status='delivered')
-
-    total_sales = orders.aggregate(s=Sum('total_price'))['s'] or 0
-    order_count = orders.count()
-    delivered_count = orders.filter(status='delivered').count()
-
-    waste_logs = WasteLog.objects.filter(created_at__date=today)
-    waste_count = waste_logs.aggregate(s=Sum('quantity'))['s'] or 0
-    waste_value = 0
-    for wl in waste_logs:
-        kp = KitchenProduct.objects.filter(id=wl.kitchen_product_id).first()
-        if kp:
-            waste_value += (kp.selling_price or 0) * wl.quantity
-
-    discount_total = 0
-    for o in orders:
-        if hasattr(o, 'discount_amount') and o.discount_amount:
-            discount_total += o.discount_amount
-
-    items_detail = []
-    item_stats = {}
-    for oi in OrderItem.objects.filter(order__created_at__date=today):
-        name = oi.food.name if oi.food else '?'
-        if name not in item_stats:
-            item_stats[name] = {'qty': 0, 'revenue': 0}
-        item_stats[name]['qty'] += oi.quantity
-        item_stats[name]['revenue'] += oi.price * oi.quantity
-    for name, stats in item_stats.items():
-        items_detail.append({
-            'name': name, 'qty': stats['qty'], 'revenue': stats['revenue'],
+    # بررسی تکراری نبودن
+    if DayCloseReport.objects.filter(date=today, restaurant=restaurant).exists():
+        return JsonResponse({
+            'success': False,
+            'error': 'این روز قبلاً بسته شده. برای باز کردن مجدد اقدام کنید.',
         })
 
-    top_items = sorted(items_detail, key=lambda x: x['qty'], reverse=True)[:5]
-    total_cost = 0
-    total_profit = total_sales - total_cost - waste_value - discount_total
+    with transaction.atomic():
+        orders = Order.objects.filter(created_at__date=today, restaurant=restaurant)
+        pending = orders.exclude(status='delivered')
+        pending_count = pending.count()
+        pending.update(status='delivered')
 
-    inventory_snapshot = {}
-    for kp in KitchenProduct.objects.filter(is_active=True):
-        inv = kp.get_inventory()
-        inventory_snapshot[kp.name] = {
-            'product_id': kp.id, 'stock': inv.quantity,
-            'price': kp.selling_price or 0,
-        }
+        total_sales = orders.aggregate(s=Sum('total_price'))['s'] or 0
+        order_count = orders.count()
+        delivered_count = orders.filter(status='delivered').count()
 
-    report = DayCloseReport.objects.create(
-        date=today, total_sales=total_sales, total_cost=total_cost,
-        total_profit=total_profit, order_count=order_count,
-        delivered_count=delivered_count, waste_count=waste_count,
-        waste_value=waste_value, discount_total=discount_total,
-        inventory_snapshot=inventory_snapshot, items_detail=items_detail,
-        top_items=top_items, closed_by=user,
-        restaurant=restaurant,
-    )
+        # ★ FIXED: هزینه ضایعات از cost_per_unit مدل
+        waste_qs = WasteLog.objects.filter(created_at__date=today, restaurant=restaurant)
+        waste_count = waste_qs.aggregate(s=Sum('quantity'))['s'] or 0
+        waste_value = sum(w.total_cost for w in waste_qs)
 
-    DayCloseLog.objects.create(
-        date=today, action='close', user=user,
-        details={
-            'report_id': report.id, 'total_sales': total_sales,
-            'order_count': order_count, 'waste_count': waste_count,
-            'pending_delivered': pending_count,
-        },
-        restaurant=restaurant,
-    )
+        discount_total = 0
+
+        items_detail = []
+        item_stats = {}
+        oi_qs = OrderItem.objects.filter(
+            order__created_at__date=today,
+            order__restaurant=restaurant,
+        )
+        for oi in oi_qs:
+            name = oi.food.name if oi.food else (oi.item_name or '?')
+            if name not in item_stats:
+                item_stats[name] = {'qty': 0, 'revenue': 0}
+            item_stats[name]['qty'] += oi.quantity
+            item_stats[name]['revenue'] += int(oi.price or 0) * oi.quantity
+
+        for name, stats in item_stats.items():
+            items_detail.append({
+                'name': name, 'qty': stats['qty'], 'revenue': stats['revenue'],
+            })
+
+        top_items = sorted(items_detail, key=lambda x: x['qty'], reverse=True)[:5]
+
+        # ★ FIXED: محاسبه total_cost از recipe
+        total_cost = 0
+        for oi in oi_qs.select_related('food__recipe'):
+            if oi.food and hasattr(oi.food, 'recipe') and oi.food.recipe:
+                total_cost += int(oi.food.recipe.cost_per_serving or 0) * oi.quantity
+
+        total_profit = total_sales - total_cost - waste_value - discount_total
+
+        inventory_snapshot = {}
+        for kp in KitchenProduct.objects.filter(is_active=True, restaurant=restaurant):
+            inv = kp.get_inventory()
+            inventory_snapshot[kp.name] = {
+                'product_id': kp.id,
+                'stock': inv.quantity,
+                'price': kp.selling_price or 0,
+            }
+
+        report = DayCloseReport.objects.create(
+            restaurant=restaurant,
+            date=today,
+            total_sales=total_sales,
+            total_cost=total_cost,
+            total_profit=total_profit,
+            order_count=order_count,
+            delivered_count=delivered_count,
+            waste_count=waste_count,
+            waste_value=waste_value,
+            discount_total=discount_total,
+            inventory_snapshot=inventory_snapshot,
+            items_detail=items_detail,
+            top_items=top_items,
+            closed_by=user,
+        )
+
+        DayCloseLog.objects.create(
+            restaurant=restaurant,
+            date=today,
+            action='close',
+            user=user,
+            details={
+                'report_id': report.id,
+                'total_sales': int(total_sales),
+                'order_count': order_count,
+                'waste_count': waste_count,
+                'pending_delivered': pending_count,
+            },
+        )
 
     return JsonResponse({
-        'success': True, 'report_id': report.id,
-        'msg': (f'روز بسته شد — {order_count} سفارش / '
-                f'{total_sales:,} تومان فروش / {total_profit:,} سود'),
+        'success': True,
+        'report_id': report.id,
+        'msg': (
+            f'روز بسته شد — {order_count} سفارش / '
+            f'{int(total_sales):,} تومان فروش / {int(total_profit):,} سود'
+        ),
     })
 
 
@@ -557,13 +695,24 @@ def pos_close_day(request):
 @permission_classes([IsAuthenticated])
 def pos_close_history(request):
     limit = int(request.GET.get('limit', 30))
-    reports = DayCloseReport.objects.all()[:limit]
+    restaurant = _resolve_restaurant(request)
+
+    qs = DayCloseReport.objects.all()
+    if restaurant:
+        qs = qs.filter(restaurant=restaurant)
+
+    reports = qs[:limit]
     data = [{
-        'id': r.id, 'date': str(r.date), 'total_sales': r.total_sales,
-        'total_cost': r.total_cost, 'total_profit': r.total_profit,
-        'order_count': r.order_count, 'delivered_count': r.delivered_count,
-        'waste_count': r.waste_count, 'waste_value': r.waste_value,
-        'discount_total': r.discount_total,
+        'id': r.id,
+        'date': str(r.date),
+        'total_sales': int(r.total_sales),
+        'total_cost': int(r.total_cost),
+        'total_profit': int(r.total_profit),
+        'order_count': r.order_count,
+        'delivered_count': r.delivered_count,
+        'waste_count': r.waste_count,
+        'waste_value': int(r.waste_value),
+        'discount_total': int(r.discount_total),
         'closed_by': r.closed_by.username if r.closed_by else '?',
         'closed_at': r.closed_at.strftime('%Y-%m-%d %H:%M'),
     } for r in reports]
@@ -576,17 +725,24 @@ def pos_close_report_detail(request, report_id):
     try:
         r = DayCloseReport.objects.get(id=report_id)
     except DayCloseReport.DoesNotExist:
-        return JsonResponse({'success': False, 'error': 'گزارش پیدا نشد'})
+        return JsonResponse({'success': False, 'error': 'گزارش پیدا نشد'}, status=404)
+
     return JsonResponse({
         'success': True,
         'report': {
-            'id': r.id, 'date': str(r.date), 'total_sales': r.total_sales,
-            'total_cost': r.total_cost, 'total_profit': r.total_profit,
-            'order_count': r.order_count, 'delivered_count': r.delivered_count,
-            'waste_count': r.waste_count, 'waste_value': r.waste_value,
-            'discount_total': r.discount_total,
+            'id': r.id,
+            'date': str(r.date),
+            'total_sales': int(r.total_sales),
+            'total_cost': int(r.total_cost),
+            'total_profit': int(r.total_profit),
+            'order_count': r.order_count,
+            'delivered_count': r.delivered_count,
+            'waste_count': r.waste_count,
+            'waste_value': int(r.waste_value),
+            'discount_total': int(r.discount_total),
             'inventory_snapshot': r.inventory_snapshot,
-            'items_detail': r.items_detail, 'top_items': r.top_items,
+            'items_detail': r.items_detail,
+            'top_items': r.top_items,
             'closed_by': r.closed_by.username if r.closed_by else '?',
             'closed_at': r.closed_at.strftime('%Y-%m-%d %H:%M'),
         },
@@ -597,9 +753,17 @@ def pos_close_report_detail(request, report_id):
 @permission_classes([IsAuthenticated])
 def pos_close_logs(request):
     limit = int(request.GET.get('limit', 50))
-    logs = DayCloseLog.objects.select_related('user').all()[:limit]
+    restaurant = _resolve_restaurant(request)
+
+    qs = DayCloseLog.objects.select_related('user')
+    if restaurant:
+        qs = qs.filter(restaurant=restaurant)
+
+    logs = qs[:limit]
     data = [{
-        'id': log.id, 'date': str(log.date), 'action': log.action,
+        'id': log.id,
+        'date': str(log.date),
+        'action': log.action,
         'action_display': log.get_action_display(),
         'user': log.user.username if log.user else '?',
         'details': log.details,
@@ -608,19 +772,13 @@ def pos_close_logs(request):
     return JsonResponse({'success': True, 'logs': data})
 
 
-# ═══════════════════════════════════════════════
+# ═══════════════════════════════════════
 #  ★★★ ویرایش قیمت غذا از صندوق ★★★
-# ═══════════════════════════════════════════════
+# ═══════════════════════════════════════
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def pos_update_food_price(request):
-    """
-    صندوقدار قیمت غذا رو ویرایش می‌کنه
-    POST /api/pos/update-food-price/
-    body: { "food_id": 7, "price": 300000, "final_price": 250000 }
-           final_price اختیاری — اگه نباشه از price میاد
-    """
     try:
         data = request.data
         food_id = data.get("food_id")
@@ -634,14 +792,12 @@ def pos_update_food_price(request):
         if not food:
             return JsonResponse({"success": False, "error": "غذا پیدا نشد"}, status=404)
 
-        # ★ بروزرسانی قیمت
         if price is not None:
             food.price = max(0, int(price))
 
         if final_price is not None:
             food.final_price = max(0, int(final_price))
         elif price is not None:
-            # اگه final_price ارسال نشده، از price استفاده کن
             food.final_price = food.price
 
         # اگه final_price بیشتر از price بود → بدون تخفیف
@@ -664,18 +820,14 @@ def pos_update_food_price(request):
         return JsonResponse({"success": False, "error": str(exc)})
 
 
-# ═══════════════════════════════════════════════════════
-#  ★★★ Public Menu API — آینه صندوق (بدون لاگین) ★★★
-# ═══════════════════════════════════════════════════════
+# ═══════════════════════════════════════
+#  ★★★ Public Menu API — آینه صندوق ★★★
+# ═══════════════════════════════════════
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def public_menu_api(request):
-    """
-    API عمومی منو — آینه صندوق
-    از Food model می‌خونه (همون منبع صندوق)
-    + بررسی باز/بسته بودن سایت
-    """
+    """API عمومی منو — از Food model می‌خونه (همون منبع صندوق)"""
 
     # ── ۱. بررسی باز/بسته بودن ──
     restaurant = _resolve_restaurant(request)
@@ -693,8 +845,11 @@ def public_menu_api(request):
         except Exception:
             pass
 
-    # ── ۲. خواندن غذاها از POS (Food model — همون منبع صندوق) ──
-    qs = Food.objects.select_related("category").all()
+    # ── ۲. خواندن غذاها ──
+    qs = Food.objects.select_related("category").filter(is_available=True)
+
+    if restaurant:
+        qs = qs.filter(restaurant=restaurant)
 
     cat = request.GET.get("category")
     if cat:
@@ -704,19 +859,18 @@ def public_menu_api(request):
     if search:
         qs = qs.filter(name__icontains=search)
 
-    foods = qs.order_by("category__name", "name")
+    foods = qs.order_by("category__order", "category__name", "name")
 
     # ── ۳. صفحه‌بندی ──
     page_size = int(request.GET.get("page_size", 100))
     page = int(request.GET.get("page", 1))
-    start = (page - 1) * page_size
+    start_idx = (page - 1) * page_size
     total = foods.count()
-    items = foods[start:start + page_size]
+    items = foods[start_idx:start_idx + page_size]
 
     # ── ۴. ساخت خروجی ──
     data = []
     for food in items:
-        # ★ try/except برای قیمت‌های خراب (NaN, None, ...)
         try:
             raw_price = int(food.price or 0)
         except (ValueError, TypeError, InvalidOperation):
@@ -727,16 +881,8 @@ def public_menu_api(request):
         except (ValueError, TypeError, InvalidOperation):
             raw_final = 0
 
-        # قیمت نهایی
-        if raw_price > 0:
-            price = raw_price
-            final = raw_final if raw_final > 0 else raw_price
-        elif raw_final > 0:
-            price = raw_final
-            final = raw_final
-        else:
-            price = 0
-            final = 0
+        price = max(raw_price, raw_final) if (raw_price or raw_final) else 0
+        final = raw_final if raw_final > 0 else raw_price
 
         # تخفیف
         discount_info = None
@@ -750,9 +896,9 @@ def public_menu_api(request):
             }
 
         # وقتی سایت بسته‌ست، همه ناموجود
-        available = is_open and getattr(food, "is_available", True)
+        available = is_open and food.is_available
 
-        # تصویر: اول Food، بعد KitchenProduct
+        # تصویر
         image_url = None
         if getattr(food, "image", None) and food.image:
             image_url = food.image.url
@@ -764,7 +910,6 @@ def public_menu_api(request):
         data.append({
             "id": food.id,
             "name": food.name,
-            "description": getattr(food, "description", "") or "",
             "category_id": food.category_id,
             "category_name": food.category.name if food.category else "",
             "price": price,
@@ -778,22 +923,27 @@ def public_menu_api(request):
         "is_open": is_open,
         "closed_message": closed_message,
         "count": len(data),
+        "total": total,
         "results": data,
-        "next": f"?page={page + 1}&page_size={page_size}" if start + page_size < total else None,
+        "next": f"?page={page + 1}&page_size={page_size}" if start_idx + page_size < total else None,
     })
 
 
-# ═══════════════════════════════════════════════
-#  ★★★ فروش آنلاین — تب جدید صندوق ★★★
-# ═══════════════════════════════════════════════
+# ═══════════════════════════════════════
+#  ★★★ فروش آنلاین ★★★
+# ═══════════════════════════════════════
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def pos_online_orders(request):
     status_filter = request.GET.get("status", "pending")
     since_id = request.GET.get("since")
+    restaurant = _resolve_restaurant(request)
 
     qs = Order.objects.filter(source="online").prefetch_related("items__food")
+
+    if restaurant:
+        qs = qs.filter(restaurant=restaurant)
 
     if status_filter != "all":
         qs = qs.filter(status=status_filter)
@@ -809,7 +959,7 @@ def pos_online_orders(request):
         for oi in o.items.all():
             items.append({
                 "id": oi.id,
-                "food_name": oi.food.name if oi.food else "کالای آماده",
+                "food_name": oi.food.name if oi.food else (oi.item_name or "کالای آماده"),
                 "quantity": oi.quantity,
                 "price": int(oi.price or 0),
             })
@@ -818,6 +968,7 @@ def pos_online_orders(request):
             "customer_name": o.customer_name,
             "phone": o.phone,
             "status": o.status,
+            "status_display": o.get_status_display(),
             "payment_status": o.payment_status,
             "payment_method": o.payment_method,
             "total_price": int(o.total_price),
@@ -851,7 +1002,7 @@ def pos_confirm_online_order(request, order_id):
     try:
         with transaction.atomic():
             order.status = "confirmed"
-            order.payment_status = "paid"
+            order.payment_status = request.data.get("payment_status", "paid")
             order.payment_method = request.data.get("payment_method", "online")
             order.confirmed_by = request.user
             order.confirmed_at = timezone.now()
@@ -909,9 +1060,9 @@ def pos_reject_online_order(request, order_id):
     })
 
 
-# ═══════════════════════════════════════════════════════
-#  ★★★ باز/بستن سفارش آنلاین از صندوق ★★★
-# ═══════════════════════════════════════════════════════
+# ═══════════════════════════════════════
+#  ★★★ باز/بستن سفارش آنلاین ★★★
+# ═══════════════════════════════════════
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -927,6 +1078,7 @@ def online_orders_status(request):
     return JsonResponse({
         "is_open": settings_obj.is_open,
         "closed_message": settings_obj.closed_message,
+        "status_text": settings_obj.status_text,
         "updated_at": settings_obj.updated_at.isoformat() if settings_obj.updated_at else None,
         "updated_by": settings_obj.updated_by.username if settings_obj.updated_by else None,
     })

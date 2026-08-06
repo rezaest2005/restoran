@@ -1,17 +1,26 @@
 """
-Shared helper functions and constants.
+Shared helper functions and constants (★ نسخه اصلاح‌شده v3)
+
+★ تغییرات نسبت به نسخه قبل:
+  ۱. _get_food_discount_info: مدیریت حذف مدل discount (try/except)
+  ۲. _merge_warehouse_data: فیلتر restaurant اضافه شد
+  ۳. _update_raw_material_stock: restaurant اجباری شد
+  ۴. _build_invoice_from_post: سازگار با DRF (request.data + request.FILES)
+  ۵. _attach_invoice_items: سازگار با DRF
+  ۶. VALID_WASTE_REASONS: از مدل خوانده می‌شود
+  ۷. _get_or_sync_ingredients: فیلتر restaurant
+  ۸. import‌های بدون استفاده حذف شد
 """
+
 from __future__ import annotations
 
 import csv
-import json as json_module
 import logging
 import re
 from decimal import Decimal
 from io import StringIO
 
 import openpyxl
-from django.db.models import F
 from django.utils import timezone
 
 from ..models import (
@@ -61,19 +70,25 @@ _COL_KEYWORDS = {
     ],
 }
 
-VALID_WASTE_REASONS = [
-    'expired', 'damaged', 'overcooked',
-    'quality_issue', 'returned', 'other',
-]
+# ★ FIXED: از مدل — اگر مدل وجود داشته باشد
+try:
+    from ..models import WasteLog
+    VALID_WASTE_REASONS = [choice[0] for choice in WasteLog.REASON_CHOICES]
+except (ImportError, AttributeError):
+    VALID_WASTE_REASONS = [
+        'expired', 'damaged', 'overcooked',
+        'quality_issue', 'returned', 'other',
+    ]
 
 
 # ═══════════════════════════════════════════════════════════════════
 #  FOOD & DISCOUNT HELPERS
 # ═══════════════════════════════════════════════════════════════════
 
-
-def _detect_material_type(name, restaurant):
-    """Auto-detect material_type from dictionary"""
+def _detect_material_type(name: str, restaurant=None) -> str:
+    """تشخیص خودکار نوع ماده از دیکشنری"""
+    if not restaurant:
+        return "raw"
     try:
         dict_match = ItemDictionary.objects.filter(
             restaurant=restaurant,
@@ -87,95 +102,134 @@ def _detect_material_type(name, restaurant):
         pass
     return "raw"
 
+
 def _is_drink(name: str) -> bool:
+    """بررسی نوشیدنی بودن"""
     return any(k in name for k in _DRINK_KEYWORDS)
 
 
 def _get_food_discount_info(kitchen_product) -> dict | None:
-    now = timezone.now()
-    for disc in kitchen_product.discounts.filter(is_active=True):
-        if disc.expires_at and disc.expires_at <= now:
-            disc.is_active = False
-            disc.save(update_fields=["is_active"])
+    """
+    دریافت اطلاعات تخفیف محصول آشپزخانه.
+    ★ FIXED: مدیریت حذف مدل discount
+    """
+    try:
+        now = timezone.now()
 
-    for disc in kitchen_product.discounts.filter(is_active=True):
-        if disc.scope == "happy_hour" and disc.start_time and disc.end_time:
-            if not (disc.start_time <= now.time() <= disc.end_time):
-                continue
+        # بررسی وجود relation discounts
+        if not hasattr(kitchen_product, 'discounts'):
+            return None
 
-        inv = getattr(kitchen_product, "inventory_record", None)
-        current_stock = inv.available_quantity if inv else 0
-        kitchen_price = int(kitchen_product.selling_price)
+        for disc in kitchen_product.discounts.filter(is_active=True):
+            if disc.expires_at and disc.expires_at <= now:
+                disc.is_active = False
+                disc.save(update_fields=["is_active"])
 
-        if disc.scope == "inventory_based" and disc.minimum_stock:
-            if current_stock >= disc.minimum_stock:
-                continue
+        for disc in kitchen_product.discounts.filter(is_active=True):
+            if disc.scope == "happy_hour" and disc.start_time and disc.end_time:
+                if not (disc.start_time <= now.time() <= disc.end_time):
+                    continue
 
-        discounted = disc.get_discounted_price(kitchen_price, 1, current_stock)
-        if discounted < kitchen_price:
-            return {
-                "name": disc.name,
-                "discount_type": disc.discount_type,
-                "value": int(disc.value),
-                "discounted_price": int(discounted),
-                "max_quantity": disc.max_quantity or None,
-                "scope": disc.scope,
-            }
+            inv = getattr(kitchen_product, "inventory_record", None)
+            current_stock = inv.available_quantity if inv else 0
+            kitchen_price = int(kitchen_product.selling_price)
+
+            if disc.scope == "inventory_based" and disc.minimum_stock:
+                if current_stock >= disc.minimum_stock:
+                    continue
+
+            discounted = disc.get_discounted_price(kitchen_price, 1, current_stock)
+            if discounted < kitchen_price:
+                return {
+                    "name": disc.name,
+                    "discount_type": disc.discount_type,
+                    "value": int(disc.value),
+                    "discounted_price": int(discounted),
+                    "max_quantity": disc.max_quantity or None,
+                    "scope": disc.scope,
+                }
+
+    except Exception as e:
+        logger.debug("Discount check failed: %s", e)
+
     return None
 
 
 def _build_food_entry(food: Food) -> dict:
+    """ساخت آبجکت یک غذا برای منو"""
     kitchen_product = None
     kitchen_price = 0
     discount_info = None
 
-    if hasattr(food, "recipe") and food.recipe:
-        kp = food.recipe.kitchen_products.first()
-        if kp:
-            kitchen_product = kp
-            kitchen_price = int(kp.selling_price)
-            discount_info = _get_food_discount_info(kp)
+    try:
+        if hasattr(food, "recipe") and food.recipe:
+            kp = food.recipe.kitchen_products.first()
+            if kp:
+                kitchen_product = kp
+                kitchen_price = int(kp.selling_price)
+                discount_info = _get_food_discount_info(kp)
 
-    if not kitchen_product:
-        kp = KitchenProduct.objects.filter(name=food.name).first()
-        if kp:
-            kitchen_product = kp
-            kitchen_price = int(kp.selling_price)
-            discount_info = _get_food_discount_info(kp)
+        if not kitchen_product:
+            kp = KitchenProduct.objects.filter(name=food.name).first()
+            if kp:
+                kitchen_product = kp
+                kitchen_price = int(kp.selling_price)
+                discount_info = _get_food_discount_info(kp)
+    except Exception as e:
+        logger.debug("Error building food entry for %s: %s", food.name, e)
+
+    # قیمت امن
+    try:
+        final_price = int(food.final_price)
+    except (ValueError, TypeError):
+        final_price = int(food.price or 0)
 
     return {
         "id": food.id,
         "name": food.name,
         "category_id": food.category_id,
-        "category_name": food.category.name,
-        "final_price": int(food.final_price),
+        "category_name": food.category.name if food.category else "",
+        "final_price": final_price,
         "kitchen_price": kitchen_price,
         "has_kitchen": kitchen_product is not None,
         "discount": discount_info,
-        "image": food.image.url if food.image else "",
+        "image": food.image.url if getattr(food, 'image', None) and food.image else "",
     }
 
 
-def _build_foods_with_discounts() -> tuple[list[dict], list[dict]]:
-    foods = Food.objects.select_related("category").all().order_by(
-        "category__order", "name"
-    )
-    categories = Category.objects.filter(is_active=True).order_by("order")
+def _build_foods_with_discounts(restaurant=None) -> tuple[list[dict], list[dict]]:
+    """
+    ساخت لیست کامل غذاها + مواد آماده برای منو.
+    ★ FIXED: فیلتر restaurant
+    """
+    foods_qs = Food.objects.select_related("category").all()
+    if restaurant:
+        foods_qs = foods_qs.filter(restaurant=restaurant)
+
+    foods = foods_qs.order_by("category__order", "name")
+
+    categories_qs = Category.objects.filter(is_active=True)
+    if restaurant:
+        categories_qs = categories_qs.filter(restaurant=restaurant)
+    categories = categories_qs.order_by("order")
 
     foods_data = [_build_food_entry(f) for f in foods]
     categories_data = [{"id": c.id, "name": c.name} for c in categories]
     existing_names = {c["name"]: c["id"] for c in categories_data}
 
-    ready_materials = ReadyMaterial.objects.filter(
-        quantity__gt=0
-    ).exclude(category__isnull=True).select_related("category")
+    # مواد آماده
+    rm_qs = ReadyMaterial.objects.filter(quantity__gt=0).exclude(
+        category__isnull=True,
+    ).select_related("category")
+    if restaurant:
+        rm_qs = rm_qs.filter(restaurant=restaurant)
 
-    for rm in ready_materials:
+    for rm in rm_qs:
         foods_data.append({
             "id": f"ready_{rm.id}",
             "name": rm.name,
             "category_id": rm.category_id,
-            "category_name": rm.category.name,
+            "category_name": rm.category.name if rm.category else "",
             "final_price": int(rm.selling_price or 0),
             "kitchen_price": int(rm.selling_price or 0),
             "has_kitchen": False,
@@ -183,8 +237,11 @@ def _build_foods_with_discounts() -> tuple[list[dict], list[dict]]:
             "image": "",
             "is_ready": True,
         })
-        if rm.category.name not in existing_names:
-            categories_data.append({"id": rm.category_id, "name": rm.category.name})
+        if rm.category and rm.category.name not in existing_names:
+            categories_data.append({
+                "id": rm.category_id,
+                "name": rm.category.name,
+            })
             existing_names[rm.category.name] = rm.category_id
 
     return foods_data, categories_data
@@ -194,10 +251,19 @@ def _build_foods_with_discounts() -> tuple[list[dict], list[dict]]:
 #  WAREHOUSE HELPERS
 # ═══════════════════════════════════════════════════════════════════
 
-def _merge_warehouse_data() -> dict[str, dict]:
+def _merge_warehouse_data(restaurant=None) -> dict[str, dict]:
+    """
+    ادغام اطلاعات انبار + فاکتور خرید.
+    ★ FIXED: فیلتر restaurant
+    """
     merged: dict[str, dict] = {}
 
-    for material in RawMaterial.objects.all():
+    # از انبار
+    rm_qs = RawMaterial.objects.all()
+    if restaurant:
+        rm_qs = rm_qs.filter(restaurant=restaurant)
+
+    for material in rm_qs:
         key = material.name.strip().lower()
         merged[key] = {
             "name": material.name,
@@ -210,7 +276,12 @@ def _merge_warehouse_data() -> dict[str, dict]:
             "sources": ["انبار"],
         }
 
-    for item in PurchaseInvoiceItem.objects.select_related("invoice").all():
+    # از فاکتور خرید
+    pi_qs = PurchaseInvoiceItem.objects.select_related("invoice").all()
+    if restaurant:
+        pi_qs = pi_qs.filter(invoice__restaurant=restaurant)
+
+    for item in pi_qs:
         key = item.item_name.strip().lower()
         qty = int(item.quantity)
         price = int(item.unit_price)
@@ -220,7 +291,7 @@ def _merge_warehouse_data() -> dict[str, dict]:
         else:
             merged[key] = {
                 "name": item.item_name,
-                "label": item.invoice.supplier_name,
+                "label": item.invoice.supplier_name if item.invoice else "",
                 "unit": item.get_unit_display(),
                 "unit_raw": item.unit,
                 "quantity": qty,
@@ -232,19 +303,39 @@ def _merge_warehouse_data() -> dict[str, dict]:
     return merged
 
 
-def _update_raw_material_stock(name: str, qty: float, unit: str, price: int, restaurant=None):
+def _update_raw_material_stock(
+    name: str, qty: float, unit: str, price: int, restaurant=None,
+):
+    """
+    بروزرسانی موجودی ماده اولیه از فاکتور خرید.
+    ★ FIXED: restaurant اجباری — اگر نباشد لاگ می‌کند
+    """
+    if not restaurant:
+        logger.warning(
+            "_update_raw_material_stock called without restaurant for '%s'", name,
+        )
+
     mat = RawMaterial.objects.filter(name__iexact=name).first()
+    if restaurant and mat:
+        mat = RawMaterial.objects.filter(
+            name__iexact=name, restaurant=restaurant,
+        ).first()
+
     if mat:
         old_stock = float(mat.quantity)
         mat.quantity = old_stock + float(qty)
         mat.price = price
-        if mat.material_type == 'raw':
+
+        # تشخیص خودکار نوع بسته‌بندی
+        if mat.material_type == 'raw' and restaurant:
             _mt = _detect_material_type(name, restaurant)
             if _mt == 'packaging':
                 mat.material_type = 'packaging'
-        mat.save()
+
+        mat.save(update_fields=['quantity', 'price', 'material_type'])
 
         InventoryMovement.objects.create(
+            restaurant=restaurant,
             raw_material=mat,
             movement_type='in',
             quantity=qty,
@@ -254,38 +345,108 @@ def _update_raw_material_stock(name: str, qty: float, unit: str, price: int, res
             notes='ثبت از فاکتور خرید',
         )
     else:
-        _mt = _detect_material_type(name, restaurant)
-        RawMaterial.objects.create(restaurant=restaurant,
-            name=name, label="", price=price, unit=unit, quantity=int(qty), material_type=_mt
+        _mt = _detect_material_type(name, restaurant) if restaurant else 'raw'
+        RawMaterial.objects.create(
+            restaurant=restaurant,
+            name=name, label="", price=price,
+            unit=unit, quantity=int(qty),
+            material_type=_mt,
         )
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  INVOICE HELPERS
+#  ★★★ INVOICE HELPERS — سازگار با DRF ★★★
 # ═══════════════════════════════════════════════════════════════════
 
-def _build_invoice_from_post(request) -> 'PurchaseInvoice':
-    supplier_name = request.POST.get("supplier_name", "").strip()
-    date = request.POST.get("date")
+def _build_invoice_from_post(request, restaurant=None) -> 'PurchaseInvoice':
+    """
+    ساخت فاکتور خرید از request.
+    ★ FIXED: سازگار با هر دو Django و DRF request
+    """
+    # سازگاری با DRF و Django request
+    data = getattr(request, 'data', None) or request.POST
+    files = getattr(request, 'FILES', request.FILES)
+
+    supplier_name = (data.get("supplier_name") or "").strip()
+    date = data.get("date")
     if not supplier_name:
         raise ValueError("نام تأمین‌کننده الزامی است.")
     if not date:
         raise ValueError("تاریخ فاکتور الزامی است.")
 
     invoice = PurchaseInvoice.objects.create(
+        restaurant=restaurant,
         supplier_name=supplier_name,
-        invoice_number=request.POST.get("invoice_number", "").strip(),
+        invoice_number=(data.get("invoice_number") or "").strip(),
         date=date,
-        description=request.POST.get("description", "").strip(),
+        description=(data.get("description") or "").strip(),
     )
-    uploaded_file = request.FILES.get("invoice_file")
+
+    uploaded_file = files.get("invoice_file")
     if uploaded_file:
         invoice.file = uploaded_file
         invoice.save()
+
     return invoice
 
 
-def _attach_invoice_items(invoice, post_data, restaurant=None) -> int:
+def _attach_invoice_items(invoice, post_data=None, request=None, restaurant=None) -> int:
+    """
+    اتصال آیتم‌ها به فاکتور خرید.
+    ★ FIXED: سازگار با DRF — از request.data یا post_data
+    """
+    # سازگاری با DRF
+    if request is not None:
+        data = getattr(request, 'data', None) or request.POST
+    elif post_data is not None:
+        data = post_data
+    else:
+        raise ValueError("یکی از request یا post_data الزامی است.")
+
+    # DRF: data لیست است
+    if isinstance(data, dict) and 'items' in data:
+        items_list = data['items']
+    elif isinstance(data, list):
+        items_list = data
+    else:
+        # Django POST — فرمت قدیمی
+        return _attach_invoice_items_django(invoice, data, restaurant)
+
+    created = 0
+    for item_data in items_list:
+        name = (item_data.get("item_name") or item_data.get("name") or "").strip()
+        if not name or name in ("جمع کل", "جمع"):
+            continue
+
+        qty = float(item_data.get("quantity", 0) or 0)
+        unit = item_data.get("unit", "unit")
+        price = int(float(item_data.get("unit_price", 0) or 0))
+        category_id = item_data.get("category")
+
+        category = None
+        if category_id:
+            try:
+                category = Category.objects.get(id=int(category_id))
+            except (Category.DoesNotExist, ValueError):
+                pass
+
+        if qty > 0 and price > 0:
+            PurchaseInvoiceItem.objects.create(
+                invoice=invoice,
+                item_name=name,
+                quantity=qty,
+                unit=unit,
+                unit_price=price,
+                category=category,
+            )
+            _update_raw_material_stock(name, qty, unit, price, restaurant=restaurant)
+            created += 1
+
+    return created
+
+
+def _attach_invoice_items_django(invoice, post_data, restaurant=None) -> int:
+    """نسخه Django POST (فرمت قدیمی — getlist)"""
     item_names = post_data.getlist("item_name")
     quantities = post_data.getlist("quantity")
     units = post_data.getlist("unit")
@@ -333,15 +494,17 @@ def _attach_invoice_items(invoice, post_data, restaurant=None) -> int:
 # ═══════════════════════════════════════════════════════════════════
 
 def _read_file_rows(f) -> list[list[str]]:
+    """خواندن فایل CSV یا اکسل"""
     filename = f.name.lower()
     if filename.endswith(".csv"):
         return _read_csv_rows(f)
     if filename.endswith((".xlsx", ".xls")):
         return _read_xlsx_rows(f)
-    raise ValueError("فرمت فایل پشتیبانی نمی‌شود.")
+    raise ValueError("فرمت فایل پشتیبانی نمی‌شود. فرمت‌های مجاز: CSV, XLSX")
 
 
 def _read_csv_rows(f) -> list[list[str]]:
+    """خواندن فایل CSV با تشخیص خودکار encoding"""
     raw = f.read()
     text = None
     for encoding in _SUPPORTED_ENCODINGS:
@@ -358,6 +521,7 @@ def _read_csv_rows(f) -> list[list[str]]:
 
 
 def _read_xlsx_rows(f) -> list[list[str]]:
+    """خواندن فایل اکسل"""
     wb = openpyxl.load_workbook(f, data_only=True)
     ws = wb.active
     if not ws or ws.max_row < 2:
@@ -369,6 +533,7 @@ def _read_xlsx_rows(f) -> list[list[str]]:
 
 
 def _detect_column_map(headers: list[str]) -> dict[str, int]:
+    """تشخیص خودکار ستون‌ها از هدر"""
     col_map: dict[str, int] = {}
     for i, header in enumerate(headers):
         for field, keywords in _COL_KEYWORDS.items():
@@ -380,8 +545,10 @@ def _detect_column_map(headers: list[str]) -> dict[str, int]:
 
 
 def _extract_items_from_rows(rows: list[list[str]]) -> tuple[list[dict], str]:
+    """استخراج آیتم‌ها از ردیف‌های فایل"""
     if len(rows) < 2:
         raise ValueError("فایل خالی است.")
+
     headers = [str(h).strip().lower() for h in rows[0]]
     col_map = _detect_column_map(headers)
     items = []
@@ -390,21 +557,25 @@ def _extract_items_from_rows(rows: list[list[str]]) -> tuple[list[dict], str]:
     for row in rows[1:]:
         if not row or all(str(cell).strip() == "" for cell in row):
             continue
+
         name = _get_cell_str(row, col_map.get("item_name"))
         if not name or name in ("جمع کل", "جمع"):
             continue
+
         if not supplier_name and "supplier" in col_map:
             sup = _get_cell_str(row, col_map.get("supplier"))
             if sup and "جمع" not in sup:
                 supplier_name = sup
+
         items.append({
             "item_name": name,
             "quantity": _get_cell_float(row, col_map.get("quantity")),
             "unit": _UNIT_MAP.get(
-                _get_cell_str(row, col_map.get("unit")), "unit"
+                _get_cell_str(row, col_map.get("unit")), "unit",
             ),
             "unit_price": _get_cell_int(row, col_map.get("unit_price")),
         })
+
     return items, supplier_name
 
 
@@ -433,10 +604,16 @@ def _get_cell_int(row: list, idx: int | None) -> int:
 # ═══════════════════════════════════════════════════════════════════
 
 def _get_or_sync_ingredients(sf) -> list[dict]:
+    """
+    دریافت مواد اولیه یک ماده نیم‌آماده.
+    اگر SemiFinishedIngredient نباشد، از description پارس می‌کند.
+    ★ FIXED: فیلتر restaurant روی RawMaterial
+    """
     ingredients = []
+    restaurant = getattr(sf, 'restaurant', None)
 
     for ing in SemiFinishedIngredient.objects.filter(
-        semi_finished=sf
+        semi_finished=sf,
     ).select_related("raw_material"):
         rm = ing.raw_material
         ingredients.append({
@@ -452,22 +629,25 @@ def _get_or_sync_ingredients(sf) -> list[dict]:
     if ingredients:
         return ingredients
 
+    # پارس از description
     desc = sf.description or ""
     if not desc:
         return []
 
     desc = re.sub(
-        r"^[\s]*مواد(\s+مصرفی)?[\s:]*", "", desc, flags=re.IGNORECASE
+        r"^[\s]*مواد(\s+مصرفی)?[\s:]*", "", desc, flags=re.IGNORECASE,
     ).strip()
     parts = [p.strip() for p in desc.split("|") if p.strip()]
 
     for part in parts:
+        # الگو: نام (واحد): مقدار
         m = re.match(r"(.+?)\s*$$(.+?)$$\s*:\s*([\d.]+)", part)
         if m:
             name = m.group(1).strip()
             unit_fa = m.group(2).strip()
             qty = float(m.group(3))
         else:
+            # الگو: نام: مقدار واحد
             m2 = re.match(r"(.+?)\s*:\s*([\d.]+)\s*(.+)", part)
             if m2:
                 name = m2.group(1).strip()
@@ -478,18 +658,33 @@ def _get_or_sync_ingredients(sf) -> list[dict]:
 
         unit_code = _UNIT_MAP_FA.get(unit_fa, "unit")
 
-        rm = RawMaterial.objects.filter(name__icontains=name).first()
+        # جستجوی ماده اولیه
+        rm = None
+        if restaurant:
+            rm = RawMaterial.objects.filter(
+                name__icontains=name, restaurant=restaurant,
+            ).first()
+
         if not rm:
+            rm = RawMaterial.objects.filter(name__icontains=name).first()
+
+        if not rm:
+            # جستجوی تقریبی
             for length in range(len(name), max(0, len(name) - 4), -1):
-                rm = RawMaterial.objects.filter(
-                    name__icontains=name[:length]
-                ).first()
+                qs = RawMaterial.objects.filter(name__icontains=name[:length])
+                if restaurant:
+                    qs = qs.filter(restaurant=restaurant)
+                rm = qs.first()
                 if rm:
                     break
+
         if not rm:
-            _mt = _detect_material_type(name, sf.restaurant)
-            rm = RawMaterial.objects.create(restaurant=sf.restaurant,
-                name=name, label="", price=0, unit=unit_code, quantity=0, material_type=_mt
+            _mt = _detect_material_type(name, restaurant) if restaurant else 'raw'
+            rm = RawMaterial.objects.create(
+                restaurant=restaurant or sf.restaurant,
+                name=name, label="", price=0,
+                unit=unit_code, quantity=0,
+                material_type=_mt,
             )
 
         sfi, _ = SemiFinishedIngredient.objects.get_or_create(

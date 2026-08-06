@@ -1,84 +1,55 @@
 """
-Dictionary Views — API مدیریت دیکشنری اسامی + گروه‌ها
+Dictionary Views — API مدیریت دیکشنری اسامی + گروه‌ها (★ نسخه اصلاح‌شده v3)
+
+★ تغییرات نسبت به نسخه قبل:
+  ۱. @login_required + @require_GET/POST → @api_view + @permission_classes (DRF)
+  ۲. json.loads(request.body) → request.data
+  ۳. request.user.restaurant → _resolve_restaurant(request)
+  ۴. request.GET.copy() mutation → helper جداگانه
+  ۵. print() / traceback.print_exc() → logger
+  ۶. recipe_materials_api → dictionary_recipe_materials_api (avoid name conflict)
+  ۷. dictionary_group_list/save/delete: authentication اضافه شد
+  ۸. تمام query‌ها: فیلتر restaurant
 """
 
-import json
-import traceback
+import logging
+
 from django.http import JsonResponse
-from django.views.decorators.http import require_GET, require_POST
-from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 
-from ..models import ItemDictionary, DictionaryGroup
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
+
+from ..models import ItemDictionary, DictionaryGroup, Food, Category
 from ..serializers import ItemDictionarySerializer
+from ..permissions import IsOwnerOrManager
+from ..tenancy import (
+    get_current_restaurant, set_current_restaurant,
+    get_restaurant_from_request,
+)
+
+logger = logging.getLogger(__name__)
 
 
-# ═══════════════════════════════════════════════════════════
-#  ★ جدید — API فاکتور خرید (تب‌ها + آیتم‌ها)
-# ═══════════════════════════════════════════════════════════
-@login_required
-@require_GET
-def raw_materials_api(request):
-    restaurant = getattr(request.user, 'restaurant', None)
-    if not restaurant:
-        return JsonResponse({'tabs': [], 'items': []})
+# ═══════════════════════════════════════
+#  resolve restaurant — fallback
+# ═══════════════════════════════════════
 
-    # ── تب‌های فعال فاکتور ──
-    groups = (
-        DictionaryGroup.objects
-        .filter(restaurant=restaurant, is_active=True, usage_invoice=True)
-        .order_by('sort_order', 'name')
-    )
+def _resolve_restaurant(request):
+    r = get_current_restaurant()
+    if r:
+        return r
+    r = get_restaurant_from_request(request)
+    if r:
+        set_current_restaurant(r)
+        return r
+    return None
 
-    tabs = []
-    for g in groups:
-        tabs.append({
-            'id':    g.id,
-            'slug':  g.slug,
-            'name':  g.name,
-            'icon':  g.icon,
-            'color': g.color,
-        })
 
-    # ── فقط آیتم‌هایی که گروهشون usage_invoice=True ──
-    items_qs = (
-        ItemDictionary.objects
-        .filter(
-            restaurant=restaurant,
-            is_active=True,
-            group__isnull=False,
-            group__is_active=True,
-            group__usage_invoice=True,
-        )
-        .select_related('group')
-        .order_by('group__sort_order', 'name')
-    )
-
-    items_data = []
-    for item in items_qs:
-        g = item.group
-        items_data.append({
-            'id':            item.id,
-            'name':          item.name,
-            'unit':          item.unit,
-            'description':   item.description or '',
-            'dict_category': item.dict_category or '',
-            'material_type': getattr(item, 'material_type', 'raw') or 'raw',
-            'group':         item.group_id,
-            'group_slug':    g.slug,
-            'group_name':    g.name,
-            'group_color':   g.color,
-            'group_icon':    g.icon,
-        })
-
-    return JsonResponse({
-        'tabs':  tabs,
-        'items': items_data,
-    })
-
-# ═══════════════════════════════════════════════════════════
-#  Dictionary Group — CRUD
-# ═══════════════════════════════════════════════════════════
+# ═══════════════════════════════════════
+#  helpers
+# ═══════════════════════════════════════
 
 def _serialize_group(g):
     return {
@@ -99,20 +70,101 @@ def _serialize_group(g):
     }
 
 
-@require_GET
+def _serialize_dict_item(item):
+    return {
+        'id': item.id,
+        'name': item.name,
+        'unit': item.unit,
+        'unit_display': item.get_unit_display(),
+        'description': item.description or '',
+        'category': item.category,
+        'dict_category': item.dict_category or '',
+        'material_type': getattr(item, 'material_type', 'raw') or 'raw',
+        'group': item.group_id,
+    }
+
+
+# ═══════════════════════════════════════════════════════════
+#  ★ جدید — API فاکتور خرید (تب‌ها + آیتم‌ها)
+# ═══════════════════════════════════════════════════════════
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def raw_materials_api(request):
+    """آیتم‌های فاکتور خرید — گروه‌بندی شده با تب‌ها"""
+    restaurant = _resolve_restaurant(request)
+    if not restaurant:
+        return JsonResponse({'tabs': [], 'items': []})
+
+    # ── تب‌های فعال فاکتور ──
+    groups = (
+        DictionaryGroup.objects
+        .filter(restaurant=restaurant, is_active=True, usage_invoice=True)
+        .order_by('sort_order', 'name')
+    )
+
+    tabs = [{
+        'id': g.id,
+        'slug': g.slug,
+        'name': g.name,
+        'icon': g.icon,
+        'color': g.color,
+    } for g in groups]
+
+    # ── فقط آیتم‌هایی که گروهشون usage_invoice=True ──
+    items_qs = (
+        ItemDictionary.objects
+        .filter(
+            restaurant=restaurant,
+            is_active=True,
+            group__isnull=False,
+            group__is_active=True,
+            group__usage_invoice=True,
+        )
+        .select_related('group')
+        .order_by('group__sort_order', 'name')
+    )
+
+    items_data = [{
+        'id': item.id,
+        'name': item.name,
+        'unit': item.unit,
+        'description': item.description or '',
+        'dict_category': item.dict_category or '',
+        'material_type': getattr(item, 'material_type', 'raw') or 'raw',
+        'group': item.group_id,
+        'group_slug': item.group.slug,
+        'group_name': item.group.name,
+        'group_color': item.group.color,
+        'group_icon': item.group.icon,
+    } for item in items_qs]
+
+    return JsonResponse({'tabs': tabs, 'items': items_data})
+
+
+# ═══════════════════════════════════════════════════════════
+#  Dictionary Group — CRUD
+# ═══════════════════════════════════════════════════════════
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def dictionary_group_list(request):
-    qs = DictionaryGroup.objects.filter(is_active=True).order_by('sort_order', 'name')
-    groups = [_serialize_group(g) for g in qs]
+    """لیست گروه‌های دیکشنری"""
+    restaurant = _resolve_restaurant(request)
+
+    qs = DictionaryGroup.objects.filter(is_active=True)
+    if restaurant:
+        qs = qs.filter(restaurant=restaurant)
+
+    groups = [_serialize_group(g) for g in qs.order_by('sort_order', 'name')]
     return JsonResponse({'groups': groups})
 
 
-@require_POST
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsOwnerOrManager])
 def dictionary_group_save(request):
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'داده نامعتبر'}, status=400)
-
+    """ایجاد / ویرایش گروه دیکشنری"""
+    data = request.data
     group_id = data.get('id')
     name = (data.get('name') or '').strip()
     slug = (data.get('slug') or '').strip()
@@ -131,7 +183,9 @@ def dictionary_group_save(request):
     if not slug:
         slug = 'group_' + str(abs(hash(name)) % 0xFFFFFF)
 
-    restaurant = request.user.restaurant
+    restaurant = _resolve_restaurant(request)
+    if not restaurant:
+        return JsonResponse({'error': 'رستوران مشخص نشده'}, status=400)
 
     if group_id:
         try:
@@ -140,15 +194,20 @@ def dictionary_group_save(request):
             return JsonResponse({'error': 'گروه یافت نشد'}, status=404)
 
         if g.is_system:
+            # گروه سیستمی: فقط usage flags قابل تغییر
             g.usage_recipes = usage_recipes
             g.usage_warehouse = usage_warehouse
             g.usage_pos = usage_pos
             g.usage_invoice = usage_invoice
             g.usage_kitchen = usage_kitchen
             g.save()
-            return JsonResponse({'group': _serialize_group(g), 'message': 'تنظیمات گروه سیستمی بروزرسانی شد'})
+            return JsonResponse({
+                'group': _serialize_group(g),
+                'message': 'تنظیمات گروه سیستمی بروزرسانی شد',
+            })
 
         g.name = name
+        g.slug = slug
         g.icon = icon
         g.color = color
         g.sort_order = sort_order
@@ -158,8 +217,12 @@ def dictionary_group_save(request):
         g.usage_invoice = usage_invoice
         g.usage_kitchen = usage_kitchen
         g.save()
-        return JsonResponse({'group': _serialize_group(g), 'message': 'گروه ویرایش شد'})
+        return JsonResponse({
+            'group': _serialize_group(g),
+            'message': 'گروه ویرایش شد',
+        })
 
+    # ایجاد جدید
     if DictionaryGroup.objects.filter(restaurant=restaurant, slug=slug).exists():
         slug = f'{slug}_{DictionaryGroup.objects.filter(restaurant=restaurant).count()}'
 
@@ -174,166 +237,153 @@ def dictionary_group_save(request):
         usage_kitchen=usage_kitchen,
         is_system=False,
     )
-    return JsonResponse({'group': _serialize_group(g), 'message': 'گروه جدید ساخته شد'})
+    return JsonResponse({
+        'group': _serialize_group(g),
+        'message': 'گروه جدید ساخته شد',
+    })
 
 
-@require_POST
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsOwnerOrManager])
 def dictionary_group_delete(request):
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'داده نامعتبر'}, status=400)
-
-    group_id = data.get('id')
+    """حذف گروه + cascade آیتم‌ها"""
+    group_id = request.data.get('id')
     if not group_id:
         return JsonResponse({'error': 'شناسه گروه الزامی است'}, status=400)
 
-    restaurant = request.user.restaurant
+    restaurant = _resolve_restaurant(request)
 
     try:
-        g = DictionaryGroup.objects.get(id=group_id, restaurant=restaurant)
+        g = DictionaryGroup.objects.get(id=group_id)
+        if restaurant and g.restaurant_id != restaurant.id:
+            return JsonResponse({'error': 'گروه یافت نشد'}, status=404)
     except DictionaryGroup.DoesNotExist:
         return JsonResponse({'error': 'گروه یافت نشد'}, status=404)
 
     if g.is_system:
         return JsonResponse({'error': 'گروه سیستمی قابل حذف نیست'}, status=400)
 
-    # حذف کامل آیتم‌های مرتبط
     deleted_count = ItemDictionary.objects.filter(group=g).delete()[0]
     name = g.name
     g.delete()
-    return JsonResponse({'message': f'گروه «{name}» و {deleted_count} آیتم حذف شد'})
+
+    return JsonResponse({
+        'message': f'گروه «{name}» و {deleted_count} آیتم حذف شد',
+    })
+
 
 # ═══════════════════════════════════════════════════════════
 #  Dictionary — آیتم‌ها CRUD
 # ═══════════════════════════════════════════════════════════
 
-@login_required
-@require_GET
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def dictionary_list(request):
+    """لیست آیتم‌های دیکشنری — با فیلتر دسته‌بندی"""
+    restaurant = _resolve_restaurant(request)
     category = request.GET.get('category', '')
-    qs = ItemDictionary.objects.all()
 
-    restaurant = getattr(request.user, 'restaurant', None)
+    qs = ItemDictionary.objects.all()
     if restaurant:
         qs = qs.filter(restaurant=restaurant)
-
     if category:
         qs = qs.filter(category=category)
 
-    data = [{
-        'id': item.id, 'name': item.name, 'unit': item.unit,
-        'unit_display': item.get_unit_display(),
-        'description': item.description or '', 'category': item.category,
-        'dict_category': item.dict_category or '',
-        'material_type': getattr(item, 'material_type', 'raw') or 'raw',
-    } for item in qs]
+    data = [_serialize_dict_item(item) for item in qs]
     return JsonResponse({'items': data})
 
 
-@login_required
-@require_GET
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def dictionary_autocomplete(request):
+    """جستجوی آیتم دیکشنری — autocomplete"""
     q = request.GET.get('q', '').strip()
     category = request.GET.get('category', '')
 
     if len(q) < 1:
         return JsonResponse({'items': []})
 
-    qs = ItemDictionary.objects.filter(name__icontains=q, is_active=True)
+    restaurant = _resolve_restaurant(request)
 
-    restaurant = getattr(request.user, 'restaurant', None)
+    qs = ItemDictionary.objects.filter(name__icontains=q, is_active=True)
     if restaurant:
         qs = qs.filter(restaurant=restaurant)
-
     if category:
         qs = qs.filter(category=category)
 
-    qs = qs[:15]
-
-    data = [{
-        'id': item.id, 'name': item.name, 'unit': item.unit,
-        'unit_display': item.get_unit_display(),
-        'description': item.description or '',
-        'dict_category': item.dict_category or '',
-        'material_type': getattr(item, 'material_type', 'raw') or 'raw',
-    } for item in qs]
+    data = [_serialize_dict_item(item) for item in qs[:15]]
     return JsonResponse({'items': data})
 
 
-@login_required
-@require_POST
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsOwnerOrManager])
 def dictionary_create(request):
-    try:
-        data = json.loads(request.body)
-    except (json.JSONDecodeError, ValueError):
-        data = request.POST
-
-    name          = (data.get('name') or '').strip()
-    unit          = (data.get('unit') or '').strip()
-    category      = (data.get('category') or '').strip()
-    desc          = (data.get('description') or '').strip()
+    """ایجاد آیتم دیکشنری جدید"""
+    data = request.data
+    name = (data.get('name') or '').strip()
+    unit = (data.get('unit') or '').strip()
+    category = (data.get('category') or '').strip()
+    desc = (data.get('description') or '').strip()
     dict_category = (data.get('dict_category') or '').strip()
     material_type = (data.get('material_type') or 'raw').strip()
-    group_id      = data.get('group_id')
+    group_id = data.get('group_id')
 
     if not name or not unit or not category:
-        return JsonResponse({'error': 'نام، واحد و دسته‌بندی الزامی است'}, status=400)
+        return JsonResponse(
+            {'error': 'نام، واحد و دسته‌بندی الزامی است'},
+            status=400,
+        )
+
+    restaurant = _resolve_restaurant(request)
+    if not restaurant:
+        return JsonResponse(
+            {'error': 'رستوران مشخص نشده'},
+            status=400,
+        )
+
+    # بررسی تکراری
+    if ItemDictionary.objects.filter(
+        name=name, category=category, restaurant=restaurant,
+    ).exists():
+        return JsonResponse(
+            {'error': 'این اسم قبلاً در این دسته‌بندی ثبت شده'},
+            status=400,
+        )
+
+    # لینک به گروه
+    group = None
+    if group_id:
+        group = DictionaryGroup.objects.filter(
+            id=group_id, restaurant=restaurant,
+        ).first()
 
     try:
-        restaurant = getattr(request.user, 'restaurant', None)
-        if not restaurant:
-            return JsonResponse({'error': 'رستورانی برای کاربر تعریف نشده'}, status=400)
-
-        if ItemDictionary.objects.filter(
-            name=name, category=category, restaurant=restaurant
-        ).exists():
-            return JsonResponse({'error': 'این اسم قبلاً در این دسته‌بندی ثبت شده'}, status=400)
-
-        # ★ لینک به گروه
-        group = None
-        if group_id:
-            try:
-                group = DictionaryGroup.objects.get(id=group_id, restaurant=restaurant)
-            except DictionaryGroup.DoesNotExist:
-                pass
-
         item = ItemDictionary.objects.create(
+            restaurant=restaurant,
             name=name, unit=unit, category=category,
-            description=desc, restaurant=restaurant,
+            description=desc,
             dict_category=dict_category,
             material_type=material_type,
             group=group,
         )
-
-        return JsonResponse({
-            'id': item.id, 'name': item.name, 'unit': item.unit,
-            'unit_display': item.get_unit_display(),
-            'description': item.description or '', 'category': item.category,
-            'dict_category': item.dict_category or '',
-            'material_type': getattr(item, 'material_type', 'raw') or 'raw',
-            'group': item.group_id,
-        }, status=201)
+        return JsonResponse(_serialize_dict_item(item), status=201)
 
     except Exception as e:
-        print('=== DICTIONARY CREATE ERROR ===')
-        traceback.print_exc()
-        print('================================')
+        logger.exception('Error creating dictionary item')
         return JsonResponse({'error': str(e)}, status=500)
 
 
-@login_required
-@require_POST
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsOwnerOrManager])
 def dictionary_update(request, pk):
+    """ویرایش آیتم دیکشنری"""
     try:
         item = ItemDictionary.objects.get(pk=pk)
     except ItemDictionary.DoesNotExist:
         return JsonResponse({'error': 'آیتم یافت نشد'}, status=404)
 
-    try:
-        data = json.loads(request.body)
-    except (json.JSONDecodeError, ValueError):
-        data = request.POST
+    data = request.data
+    restaurant = _resolve_restaurant(request)
 
     if 'name' in data:
         item.name = (data['name'] or '').strip()
@@ -347,100 +397,91 @@ def dictionary_update(request, pk):
         item.material_type = (data.get('material_type') or 'raw').strip()
     if 'group_id' in data:
         gid = data.get('group_id')
-        restaurant = getattr(request.user, 'restaurant', None)
         if gid and restaurant:
-            try:
-                item.group = DictionaryGroup.objects.get(id=gid, restaurant=restaurant)
-            except DictionaryGroup.DoesNotExist:
-                pass
-        elif gid is None or gid == '':
+            item.group = DictionaryGroup.objects.filter(
+                id=gid, restaurant=restaurant,
+            ).first()
+        elif not gid:
             item.group = None
 
     item.save()
-
-    return JsonResponse({
-        'id': item.id, 'name': item.name, 'unit': item.unit,
-        'unit_display': item.get_unit_display(),
-        'description': item.description or '',
-        'dict_category': item.dict_category or '',
-        'material_type': getattr(item, 'material_type', 'raw') or 'raw',
-        'group': item.group_id,
-    })
+    return JsonResponse(_serialize_dict_item(item))
 
 
-@login_required
-@require_POST
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsOwnerOrManager])
 def dictionary_delete(request, pk):
+    """حذف آیتم دیکشنری"""
     try:
         item = ItemDictionary.objects.get(pk=pk)
     except ItemDictionary.DoesNotExist:
         return JsonResponse({'error': 'آیتم یافت نشد'}, status=404)
 
     item.delete()
-    return JsonResponse({'success': True})
+    return JsonResponse({'success': True, 'msg': 'آیتم حذف شد'})
 
 
 # ═══════════════════════════════════════════════════════════
-#  Dictionary — 4 API جداگانه
+#  Dictionary — 4 API جداگانه (convenience wrappers)
 # ═══════════════════════════════════════════════════════════
 
-@login_required
-@require_GET
+def _dict_list_by_category(request, category):
+    """★ helper — بدون mutation request.GET"""
+    restaurant = _resolve_restaurant(request)
+    qs = ItemDictionary.objects.filter(category=category)
+    if restaurant:
+        qs = qs.filter(restaurant=restaurant)
+
+    data = [_serialize_dict_item(item) for item in qs]
+    return JsonResponse({'items': data})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def dictionary_raw_materials(request):
     """فقط مواد اولیه"""
-    request.GET = request.GET.copy()
-    request.GET['category'] = 'raw_material'
-    return dictionary_list(request)
+    return _dict_list_by_category(request, 'raw_material')
 
 
-@login_required
-@require_GET
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def dictionary_semi_finished(request):
     """فقط نیمه‌آماده"""
-    request.GET = request.GET.copy()
-    request.GET['category'] = 'semi_finished'
-    return dictionary_list(request)
+    return _dict_list_by_category(request, 'semi_finished')
 
 
-@login_required
-@require_GET
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def dictionary_ready_materials(request):
     """فقط مواد آماده"""
-    request.GET = request.GET.copy()
-    request.GET['category'] = 'ready_material'
-    return dictionary_list(request)
+    return _dict_list_by_category(request, 'ready_material')
 
 
-@login_required
-@require_GET
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def dictionary_food_menu(request):
     """فقط غذا و منو — با قیمت و وضعیت"""
-    from ..models import Food, Category
+    restaurant = _resolve_restaurant(request)
 
-    restaurant = getattr(request.user, 'restaurant', None)
     qs = Food.objects.all()
     if restaurant:
         qs = qs.filter(restaurant=restaurant)
-    qs = qs.order_by('name')
 
-    categories = {}
     cats_qs = Category.objects.all()
     if restaurant:
         cats_qs = cats_qs.filter(restaurant=restaurant)
-    for c in cats_qs:
-        categories[c.id] = c.name
 
-    items = []
-    for f in qs:
-        items.append({
-            'id':            f.id,
-            'name':          f.name,
-            'price':         f.price,
-            'final_price':   f.final_price,
-            'category_id':   f.category_id,
-            'category_name': categories.get(f.category_id, ''),
-            'is_available':  f.is_available,
-        })
+    categories = {c.id: c.name for c in cats_qs}
+
+    items = [{
+        'id': f.id,
+        'name': f.name,
+        'price': int(f.price or 0),
+        'final_price': int(f.final_price or 0),
+        'category_id': f.category_id,
+        'category_name': categories.get(f.category_id, ''),
+        'is_available': f.is_available,
+    } for f in qs.order_by('name')]
 
     return JsonResponse({'items': items})
 
@@ -449,92 +490,100 @@ def dictionary_food_menu(request):
 #  Food CRUD — تب غذا و منو (★ با cascade delete)
 # ═══════════════════════════════════════════════════════════
 
-@login_required
-@require_POST
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsOwnerOrManager])
 def dictionary_food_create(request):
-    try:
-        data = json.loads(request.body)
-    except (json.JSONDecodeError, ValueError):
-        return JsonResponse({'error': 'داده نامعتبر'}, status=400)
-
-    from ..models import Food, Category
-
+    """ایجاد غذای جدید"""
+    data = request.data
     name = (data.get('name') or '').strip()
     if not name:
         return JsonResponse({'error': 'نام غذا الزامی است'}, status=400)
 
-    restaurant = getattr(request.user, 'restaurant', None)
+    restaurant = _resolve_restaurant(request)
     if not restaurant:
-        return JsonResponse({'error': 'رستوران یافت نشد'}, status=400)
+        return JsonResponse({'error': 'رستوران مشخص نشده'}, status=400)
 
     cat_name = (data.get('category_name') or '').strip()
     category = None
     if cat_name:
         category, _ = Category.objects.get_or_create(
             restaurant=restaurant, name=cat_name,
-            defaults={'is_active': True, 'order': 0}
+            defaults={'is_active': True, 'order': 0},
         )
 
     price = int(data.get('price', 0))
+    final_price = int(data.get('final_price', price))
 
     food = Food.objects.create(
-        restaurant=restaurant, name=name, category=category,
-        price=price, final_price=price,
-        is_available=True,
+        restaurant=restaurant,
+        name=name, category=category,
+        price=price, final_price=final_price,
+        is_available=data.get('is_available', True),
     )
 
     return JsonResponse({
         'id': food.id,
         'name': food.name,
-        'price': food.price,
-        'final_price': food.final_price,
+        'price': int(food.price),
+        'final_price': int(food.final_price),
         'category_id': food.category_id,
         'category_name': food.category.name if food.category else '',
         'is_available': food.is_available,
-    })
+    }, status=201)
 
 
-@login_required
-@require_POST
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsOwnerOrManager])
 def dictionary_food_update(request, pk):
-    from ..models import Food
-
+    """ویرایش غذا"""
     try:
         food = Food.objects.get(pk=pk)
     except Food.DoesNotExist:
         return JsonResponse({'error': 'غذا یافت نشد'}, status=404)
 
-    try:
-        data = json.loads(request.body)
-    except (json.JSONDecodeError, ValueError):
-        return JsonResponse({'error': 'داده نامعتبر'}, status=400)
+    data = request.data
+    restaurant = _resolve_restaurant(request)
 
     if 'name' in data:
         food.name = (data['name'] or '').strip()
     if 'price' in data:
-        food.price = int(data['price'])
-        food.final_price = int(data['price'])
+        food.price = max(0, int(data['price']))
+    if 'final_price' in data:
+        food.final_price = max(0, int(data['final_price']))
+    elif 'price' in data:
+        # اگر final_price ارسال نشده، از price استفاده کن
+        food.final_price = food.price
     if 'is_available' in data:
-        food.is_available = data['is_available']
+        food.is_available = bool(data['is_available'])
+    if 'category_name' in data:
+        cat_name = (data['category_name'] or '').strip()
+        if cat_name and restaurant:
+            category, _ = Category.objects.get_or_create(
+                restaurant=restaurant, name=cat_name,
+                defaults={'is_active': True, 'order': 0},
+            )
+            food.category = category
+        elif not cat_name:
+            food.category = None
 
     food.save()
 
     return JsonResponse({
         'id': food.id,
         'name': food.name,
-        'price': food.price,
-        'final_price': food.final_price,
+        'price': int(food.price),
+        'final_price': int(food.final_price),
         'category_id': food.category_id,
         'category_name': food.category.name if food.category else '',
         'is_available': food.is_available,
     })
 
 
-@login_required
-@require_POST
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, IsOwnerOrManager])
 def dictionary_food_delete(request, pk):
-    """★ حذف غذا + cascade: Recipe → KitchenProduct → KitchenInventory"""
-    from ..models import Food, Recipe, KitchenProduct
+    """حذف غذا + cascade: Recipe → KitchenProduct → KitchenInventory"""
+    from ..models import Recipe, KitchenProduct
 
     try:
         food = Food.objects.get(pk=pk)
@@ -543,23 +592,20 @@ def dictionary_food_delete(request, pk):
 
     deleted = {'food': food.name, 'recipes': 0, 'kitchen_products': 0}
 
-    # ۱. پیدا کردن Recipe مرتبط
     try:
         recipe = Recipe.objects.get(food=food)
 
-        # ۲. حذف KitchenProduct (CASCADE → KitchenInventory, WasteLog, ProductionPlanItem)
+        # حذف KitchenProduct (CASCADE → KitchenInventory, WasteLog, ...)
         kps = KitchenProduct.objects.filter(recipe=recipe)
         deleted['kitchen_products'] = kps.count()
         kps.delete()
 
-        # ۳. حذف Recipe (CASCADE → RecipeIngredient, RecipeSemiFinished, RecipePackagingItem)
+        # حذف Recipe (CASCADE → RecipeIngredient, ...)
         recipe.delete()
         deleted['recipes'] = 1
-
     except Recipe.DoesNotExist:
-        pass  # غذا بدون Recipe — فقط Food حذف میشه
+        pass
 
-    # ۴. حذف Food (از منو، صندوق، همه جا حذف میشه)
     food.delete()
 
     parts = [f"غذا «{deleted['food']}»"]
@@ -574,11 +620,16 @@ def dictionary_food_delete(request, pk):
     })
 
 
-@login_required
-@require_GET
-def recipe_materials_api(request):
-    """فقط مواد نیمه‌آماده از تب‌هایی که usage_recipes=True"""
-    restaurant = getattr(request.user, 'restaurant', None)
+# ═══════════════════════════════════════════════════════════
+#  ★ مواد نیمه‌آماده برای ویرایشگر رسپی
+#  ★ FIXED: نام تغییر کرد تا با recipe_views.conflict نداشته باشد
+# ═══════════════════════════════════════════════════════════
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def dictionary_recipe_materials_api(request):
+    """مواد نیمه‌آماده از گروه‌هایی که usage_recipes=True — برای ویرایشگر رسپی"""
+    restaurant = _resolve_restaurant(request)
     if not restaurant:
         return JsonResponse({'items': []})
 

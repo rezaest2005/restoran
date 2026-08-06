@@ -1,6 +1,14 @@
 """
 Authentication views.
+
+★ تغییرات نسبت به نسخه قبل:
+  ۱. SetSessionView: حذف import داخلی — استفاده از AuthUser
+  ۲. RegisterView: بررسی دقیق‌تر خروجی register_user
+  ۳. UserListView: مدیریت کاربر بدون restaurant
+  ۴. بهبود خطاهای validation و پیام‌ها
+  ۵. اضافه شدن امنیت به SetSessionView (فقط superuser)
 """
+
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -34,18 +42,24 @@ class RegisterView(generics.CreateAPIView):
         ser = self.get_serializer(data=request.data)
         ser.is_valid(raise_exception=True)
         result = register_user(ser.validated_data)
-        if not result["user"].is_approved:
+
+        user = result.get("user")
+        if not user:
+            return api_error(result.get("error", "خطا در ثبت‌نام."))
+
+        if not user.is_approved:
             return api_success(
                 data={"pending": True},
                 message="ثبت‌نام شما با موفقیت انجام شد. پس از تأیید مدیر می‌توانید وارد شوید.",
                 status_code=201,
             )
+
         return api_success(
             data={
-                "user": UserDetailSerializer(result["user"]).data,
-                "tokens": result["tokens"],
+                "user": UserDetailSerializer(user).data,
+                "tokens": result.get("tokens"),
             },
-            message=result["message"],
+            message=result.get("message", "ثبت‌نام موفقیت‌آمیز بود."),
             status_code=201,
         )
 
@@ -84,7 +98,11 @@ class ChangePasswordView(APIView):
     def post(self, request):
         ser = ChangePasswordSerializer(data=request.data, context={"request": request})
         ser.is_valid(raise_exception=True)
-        result = change_password(request.user, ser.validated_data["old_password"], ser.validated_data["new_password"])
+        result = change_password(
+            request.user,
+            ser.validated_data["old_password"],
+            ser.validated_data["new_password"],
+        )
         if result["success"]:
             return api_success(message=result["message"])
         return api_error(result["error"])
@@ -96,7 +114,10 @@ class ResetPasswordView(APIView):
     def post(self, request):
         ser = ResetPasswordSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        result = reset_password(ser.validated_data["phone_number"], ser.validated_data["new_password"])
+        result = reset_password(
+            ser.validated_data["phone_number"],
+            ser.validated_data["new_password"],
+        )
         if result["success"]:
             return api_success(message=result["message"])
         return api_error(result["error"])
@@ -107,15 +128,31 @@ class UserListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        qs = AuthUser.objects.filter(restaurant=self.request.user.restaurant)
+        qs = AuthUser.objects.all()
+
+        # ★ FIXED: بررسی وجود restaurant قبل از فیلتر
+        restaurant = getattr(self.request.user, 'restaurant', None)
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
+        elif not self.request.user.is_superuser:
+            # کاربر عادی بدون رستوران = هیچ‌چیز نبیند
+            return qs.none()
+
         role = self.request.query_params.get("role")
         if role:
             qs = qs.filter(role=role)
+
         search = self.request.query_params.get("search")
         if search:
             from django.db.models import Q
-            qs = qs.filter(Q(username__icontains=search) | Q(phone_number__icontains=search))
-        return qs
+            qs = qs.filter(
+                Q(username__icontains=search)
+                | Q(phone_number__icontains=search)
+                | Q(first_name__icontains=search)
+                | Q(last_name__icontains=search)
+            )
+
+        return qs.order_by("-created_at")
 
 
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -123,21 +160,33 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return AuthUser.objects.filter(restaurant=self.request.user.restaurant)
+        qs = AuthUser.objects.all()
+        restaurant = getattr(self.request.user, 'restaurant', None)
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
+        elif not self.request.user.is_superuser:
+            return qs.none()
+        return qs
 
 
 class SetSessionView(APIView):
-    permission_classes = [permissions.AllowAny]
+    """
+    ★ FIXED: فقط superuser می‌تواند session بسازد.
+    برای سناریوهای خاص مثل SSO یا پنل مدیریت.
+    """
+    permission_classes = [permissions.IsAdminUser]
 
     def post(self, request):
-        access_token = request.data.get('access_token')
         user_id = request.data.get('user_id')
         if not user_id:
-            return Response({'success': False}, status=400)
+            return api_error('user_id الزامی است.')
         try:
-            from ..models import User
-            user = User.objects.get(id=user_id)
+            user = AuthUser.objects.get(pk=user_id, is_active=True)
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-            return Response({'success': True})
-        except Exception:
-            return Response({'success': False, 'error': 'کاربر یافت نشد'}, status=404)
+            return api_success(data={
+                'user_id': user.pk,
+                'username': user.username,
+                'role': user.role,
+            })
+        except AuthUser.DoesNotExist:
+            return api_error('کاربر یافت نشد.', status_code=404)
