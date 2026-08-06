@@ -454,3 +454,22 @@ def order_status_change(request, pk: int):
             {'error': f'خطای سرور: {str(e)}'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+# ★ موقت — بعد از اجرا حذف کن
+def clear_sample_data_temp(request):
+    from restaurant.models import Food, Category, KitchenProduct
+    from django.http import JsonResponse
+
+    foods_count = Food.objects.count()
+    cats_count = Category.objects.count()
+    kitchen_count = KitchenProduct.objects.count()
+
+    KitchenProduct.objects.all().delete()
+    Food.objects.all().delete()
+    Category.objects.all().delete()
+
+    return JsonResponse({
+        'deleted_foods': foods_count,
+        'deleted_categories': cats_count,
+        'deleted_kitchen_products': kitchen_count,
+        'message': 'همه داده‌های نمونه حذف شدند'
+    })

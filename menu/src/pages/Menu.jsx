@@ -524,16 +524,16 @@ const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      /* ★ API عمومی — یک فراخوانی، همه داده ★ */
       const { data } = await axios.get(`${API}/api/menu/`);
-
       const items = data.results || data || [];
 
+      /* ★ اگه خالی بود → خطا نده، فقط لیست خالی نشون بده */
       if (items.length === 0) {
-        throw new Error('هیچ محصولی یافت نشد — لطفاً بعداً تلاش کنید');
+        setFoods([]);
+        setCats([]);
+        return;
       }
 
-      /* ★ نگاشت مستقیم — نیازی به merge نیست ★ */
       const merged = items.map(f => ({
         id:            f.id,
         name:          f.name || '',
@@ -548,7 +548,6 @@ const loadData = useCallback(async () => {
         discount:      f.discount || null,
       }));
 
-      /* ── Categories ── */
       const catMap = {};
       merged.forEach(f => {
         const cid = String(f.category_id || '');
@@ -564,7 +563,13 @@ const loadData = useCallback(async () => {
 
     } catch (e) {
       console.error('[Menu] load error:', e);
-      setError(e.message || 'خطا در بارگذاری');
+      /* ★ خطای شبکه → نمایش خطا. ولی خالی بودن = خطا نیست */
+      if (e.response && e.response.status === 404) {
+        setFoods([]);
+        setCats([]);
+      } else {
+        setError(e.message || 'خطا در بارگذاری');
+      }
     } finally {
       setLoading(false);
     }

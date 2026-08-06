@@ -250,4 +250,6 @@ urlpatterns = [
 
 
     path("api/", include(router.urls)),
+    path("api/admin/clear-sample/", views.clear_sample_data_temp, name="clear_sample_temp"),
+
 ]
