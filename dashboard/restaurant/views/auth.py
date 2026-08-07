@@ -1,19 +1,17 @@
 """
-Authentication views.
+Authentication views — v6
 
-★ تغییرات نسبت به نسخه قبل:
-  ۱. SetSessionView: حذف import داخلی — استفاده از AuthUser
-  ۲. RegisterView: بررسی دقیق‌تر خروجی register_user
-  ۳. UserListView: مدیریت کاربر بدون restaurant
-  ۴. بهبود خطاهای validation و پیام‌ها
-  ۵. اضافه شدن امنیت به SetSessionView (فقط superuser)
+★ v6 تغییرات:
+  1. LoginView: JWT + Django session هر دو ساخته می‌شه
+  2. SetSessionView: IsAuthenticated به‌جای IsAdminUser
 """
 
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from django.contrib.auth import login, get_user_model
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import login as django_login, get_user_model
 
 from ..serializers import (
     CustomTokenObtainSerializer, RegisterSerializer,
@@ -36,10 +34,10 @@ class LoginView(TokenObtainPairView):
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             user = serializer.user
-            from django.contrib.auth import login as django_login
             django_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
         return response
-    
+
+
 class RefreshView(TokenRefreshView):
     pass
 
@@ -82,7 +80,6 @@ class LogoutView(APIView):
             refresh_token = request.data.get("refresh")
             if not refresh_token:
                 return api_error("refresh token الزامی است.")
-            from rest_framework_simplejwt.tokens import RefreshToken
             RefreshToken(refresh_token).blacklist()
             return api_success(message="خروج موفقیت‌آمیز بود.")
         except Exception:
@@ -140,12 +137,10 @@ class UserListView(generics.ListAPIView):
     def get_queryset(self):
         qs = AuthUser.objects.all()
 
-        # ★ FIXED: بررسی وجود restaurant قبل از فیلتر
         restaurant = getattr(self.request.user, 'restaurant', None)
         if restaurant:
             qs = qs.filter(restaurant=restaurant)
         elif not self.request.user.is_superuser:
-            # کاربر عادی بدون رستوران = هیچ‌چیز نبیند
             return qs.none()
 
         role = self.request.query_params.get("role")
@@ -180,23 +175,13 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class SetSessionView(APIView):
-    """
-    ★ FIXED: فقط superuser می‌تواند session بسازد.
-    برای سناریوهای خاص مثل SSO یا پنل مدیریت.
-    """
-    permission_classes = [permissions.IsAdminUser]
+    """★ v6: IsAuthenticated — هر کاربر لاگین‌شده می‌تونه session بسازه"""
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        user_id = request.data.get('user_id')
-        if not user_id:
-            return api_error('user_id الزامی است.')
-        try:
-            user = AuthUser.objects.get(pk=user_id, is_active=True)
-            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-            return api_success(data={
-                'user_id': user.pk,
-                'username': user.username,
-                'role': user.role,
-            })
-        except AuthUser.DoesNotExist:
-            return api_error('کاربر یافت نشد.', status_code=404)
+        django_login(request, request.user, backend='django.contrib.auth.backends.ModelBackend')
+        return api_success(data={
+            'user_id': request.user.pk,
+            'username': request.user.username,
+            'role': getattr(request.user, 'role', ''),
+        })
