@@ -27,9 +27,19 @@ AuthUser = get_user_model()
 
 
 class LoginView(TokenObtainPairView):
+    """JWT + Django session — هر دو ساخته می‌شه"""
     serializer_class = CustomTokenObtainSerializer
 
-
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == 200:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            user = serializer.user
+            from django.contrib.auth import login as django_login
+            django_login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+        return response
+    
 class RefreshView(TokenRefreshView):
     pass
 
