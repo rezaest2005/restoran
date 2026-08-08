@@ -1,10 +1,12 @@
 """
-Restaurant Management — Page Views (★ نسخه v8 — اصلاح شده)
+Restaurant Management — Page Views (★ نسخه v13 — Django auth بازگشت)
 
-★ v8 تغییرات:
-  - purchase_invoice_detail: فیلتر restaurant
-  - pos_receipt: فیلتر restaurant
-  - create_purchase_invoice: atomic + F() + select_for_update
+★ v13 تغییرات:
+  1. auth_page: برگشت به Django auth (مدل Restaurant password نداره)
+  2. home: @login_required برگشت
+  3. logout_page: Django logout برگشت
+  4. redirect_to_dashboard: ساده شد
+  5. @login_required اضافه شد
 """
 
 import json as json_module
@@ -61,7 +63,6 @@ def _resolve_restaurant(request):
 
 
 def _get_restaurant_object_or_404(model, pk, restaurant):
-    """★ جدید: get_object_or_404 با فیلتر restaurant"""
     qs = model.objects.all()
     if restaurant:
         qs = qs.filter(restaurant=restaurant)
@@ -73,30 +74,35 @@ def _get_restaurant_object_or_404(model, pk, restaurant):
 
 
 # ═══════════════════════════════════════════
-#  عمومی — لاگین، خروج، داشبورد
+#  عمومی — ریشه، لاگین، خروج، داشبورد
 # ═══════════════════════════════════════════
 
-@login_required(login_url=LOGIN_URL)
+def root_redirect(request: HttpRequest):
+    """http://127.0.0.1:8000/ → اگه لاگینه بره داشبورد، اگه نیست بره لاگین"""
+    if request.user.is_authenticated:
+        return redirect("dashboard_app")
+    return redirect("auth_page")
+
+
+@login_required(login_url='auth_page')
 def home(request: HttpRequest):
-    """داشبورد اصلی — همه کاربران لاگین‌شده"""
+    """داشبورد اصلی"""
     return render(request, "admin/index.html")
 
 
 def auth_page(request: HttpRequest):
-    """صفحه لاگین — بدون محافظت"""
+    """صفحه لاگین"""
     if request.user.is_authenticated:
         return redirect("dashboard_app")
     return render(request, "auth.html")
 
 
 def redirect_to_dashboard(request):
-    """ریدایرکت به صفحه لاگین"""
     return redirect("auth_page")
 
 
-@login_required(login_url=LOGIN_URL)
+@login_required(login_url='auth_page')
 def logout_page(request: HttpRequest):
-    """خروج"""
     logout(request)
     return redirect("auth_page")
 
@@ -118,21 +124,17 @@ def purchase_invoice_list(request: HttpRequest):
 @require_service('inventory')
 def purchase_invoice_detail(request: HttpRequest, pk: int):
     restaurant = _resolve_restaurant(request)
-
-    # ★ FIXED: فیلتر restaurant
     invoice = _get_restaurant_object_or_404(PurchaseInvoice, pk, restaurant)
     return render(request, "restaurant/invoice_detail.html", {"invoice": invoice})
 
 
 @require_service('inventory')
 def create_invoice_view(request: HttpRequest):
-    """صفحه ثبت فاکتور — فقط نمایش HTML"""
     return render(request, "restaurant/create_invoice.html")
 
 
 @require_service('inventory')
 def create_purchase_invoice(request: HttpRequest):
-    """ثبت فاکتور خرید"""
     if request.method != 'POST':
         return render(request, "restaurant/create_invoice.html")
 
@@ -166,7 +168,6 @@ def create_purchase_invoice(request: HttpRequest):
         except Exception:
             invoice_date = timezone.now().date()
 
-        # ★ FIXED: atomic کل فرآیند
         with transaction.atomic():
             if supplier_name:
                 sup_qs = Supplier.objects.filter(name__iexact=supplier_name)
@@ -224,10 +225,7 @@ def create_purchase_invoice(request: HttpRequest):
                     mat = mat_qs.first()
 
                 if mat:
-                    # ★ FIXED: select_for_update + F()
-                    mat = RawMaterial.objects.select_for_update().get(
-                        pk=mat.pk,
-                    )
+                    mat = RawMaterial.objects.select_for_update().get(pk=mat.pk)
                     old_qty = mat.quantity
 
                     RawMaterial.objects.filter(pk=mat.pk).update(
@@ -583,8 +581,6 @@ def pos_page(request: HttpRequest):
 @require_service('pos')
 def pos_receipt(request: HttpRequest, pk: int):
     restaurant = _resolve_restaurant(request)
-
-    # ★ FIXED: فیلتر restaurant
     order = _get_restaurant_object_or_404(Order, pk, restaurant)
 
     items = []
