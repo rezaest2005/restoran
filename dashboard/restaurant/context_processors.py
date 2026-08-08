@@ -1,28 +1,38 @@
-from .models import Service
+from .tenancy import get_tenant_slug_from_request
 
 
 def user_permissions_context(request):
+    # ★ tenant_slug همیشه ست بشه (حتی بدون لاگین)
+    context = {
+        'tenant_slug': getattr(request, '_tenant_slug', None),
+    }
+
     if not hasattr(request, 'user') or not request.user.is_authenticated:
-        return {}
+        context.update({'user_perms': [], 'perms_active': False})
+        return context
 
     user = request.user
 
     # سوپر ادمین → همه چیز
     if user.is_superuser:
-        return {'user_perms': [], 'perms_active': False}
+        context.update({'user_perms': [], 'perms_active': False})
+        return context
 
     # مالک → همه چیز
     if getattr(user, 'role', '') == 'owner':
-        return {'user_perms': [], 'perms_active': False}
+        context.update({'user_perms': [], 'perms_active': False})
+        return context
 
     # کاربر عادی
     if hasattr(user, 'get_permissions'):
         perms = user.get_permissions()
         if perms:
-            return {
+            context.update({
                 'user_perms': perms,
                 'perms_active': True,
-            }
+            })
+            return context
 
     # fallback → همه چیز نمایش
-    return {'user_perms': [], 'perms_active': False}
+    context.update({'user_perms': [], 'perms_active': False})
+    return context

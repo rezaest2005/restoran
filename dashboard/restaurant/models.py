@@ -110,11 +110,24 @@ def updated_at_field(**kwargs):
 # ═══════════════════════════════════════════
 
 class Restaurant(models.Model):
+    tenant         = models.ForeignKey(
+        'Tenant',
+        on_delete=models.CASCADE,
+        related_name='restaurants',
+        verbose_name='مستأجر',
+        null=True, blank=True,
+    )
     name            = name_field(max_length=200, verbose_name='نام رستوران')
+    slug            = models.CharField(
+        'شناسه URL',
+        max_length=50,
+        unique=True,
+        db_index=True,
+        help_text='آدرس رستوران — مثلاً: 1، 200، zfc-ali، hamid',
+    )
     phone           = phone_field(verbose_name='تلفن')
     address         = models.TextField('آدرس', blank=True)
     logo            = models.ImageField('لوگو', upload_to='restaurants/logos/', blank=True, null=True)
-    # ★ جدید: پیشوند نام کاربری کارمندان
     username_prefix = models.CharField(
         'پیشوند نام کاربری',
         max_length=5,
@@ -131,7 +144,8 @@ class Restaurant(models.Model):
         ordering            = ['-created_at']
 
     def __str__(self):
-        return self.name
+        return f'{self.name} ({self.slug})'
+
 
 
 class User(AbstractUser):

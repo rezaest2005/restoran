@@ -307,7 +307,14 @@
   var nextUrl = urlParams.get('next');
   var isSuperLogin = nextUrl && nextUrl.includes('/super');
 
-  var API_BASE = '/api/auth';
+  // ★ v10: استخراج tenant slug از URL
+  var TENANT_ID = null;
+  var pathParts = window.location.pathname.split('/').filter(Boolean);
+  if (pathParts.length > 0 && ['dashboard', 'api'].indexOf(pathParts[0]) === -1) {
+    TENANT_ID = pathParts[0];
+  }
+
+  var API_BASE = TENANT_ID ? '/' + TENANT_ID + '/api/auth' : '/api/auth';
 
   function getCookie(name) {
     var v = null;
@@ -342,6 +349,21 @@
     },
   };
 
+  function extractError(errData) {
+    var defaultMsg = 'خطا در ورود.';
+    if (!errData) return defaultMsg;
+    if (typeof errData === 'string') return errData;
+    if (Array.isArray(errData)) {
+      return errData.map(function(e) {
+        if (typeof e === 'string') return e;
+        return e.string || e.detail || e.message || defaultMsg;
+      }).join(' ');
+    }
+    if (errData.detail) return errData.detail;
+    if (errData.string) return errData.string;
+    return defaultMsg;
+  }
+
   var store = (function() {
     var state = { status: 'idle', message: '', tab: 'login' };
     return {
@@ -374,7 +396,6 @@
     });
   }
 
-  // ★ عنوان بر اساس next
   if (isSuperLogin) {
     document.addEventListener('DOMContentLoaded', function() {
       var ft = $('form-title'), fs = $('form-subtitle');
@@ -384,17 +405,14 @@
     });
   }
 
-  // ★ بررسی لاگین قبلی (فقط برای همان بخش)
   document.addEventListener('DOMContentLoaded', function() {
     if (isSuperLogin) {
-      // بررسی super cookie
       api.get('/api/super/stats/').then(function(data) {
         if (data && data.total_tenants !== undefined) {
           window.location.href = nextUrl;
         }
       }).catch(function() {});
     } else {
-      // بررسی session عادی
       api.get(API_BASE + '/me/').then(function(user) {
         if (user && user.username) {
           window.location.href = redirectFor(user);
@@ -403,18 +421,21 @@
     }
   });
 
+  var T = TENANT_ID ? '/' + TENANT_ID : '';
+
   var ROUTES = {
-    owner: '/dashboard/app/',
-    manager: '/dashboard/app/',
-    cashier: '/dashboard/pos/',
-    kitchen: '/dashboard/kitchen/',
-    customer: '/dashboard/app/',
+    owner:     T + '/dashboard/app/',
+    manager:   T + '/dashboard/app/',
+    cashier:   T + '/dashboard/pos/',
+    kitchen:   T + '/dashboard/kitchen/',
+    warehouse: T + '/dashboard/raw-materials/',
+    customer:  T + '/dashboard/app/',
   };
 
   function redirectFor(user) {
-    if (!user) return '/dashboard/';
+    if (!user) return T + '/dashboard/';
     if (user.is_superuser) return '/dashboard/super/';
-    return ROUTES[user.role] || '/dashboard/';
+    return ROUTES[user.role] || T + '/dashboard/';
   }
 
   function buildIdentity(id) {
@@ -428,7 +449,6 @@
     btn.innerHTML = show ? '&#128064;' : '&#128065;';
   }
 
-  // ★ ورود
   async function handleLogin(e) {
     if (e && e.preventDefault) e.preventDefault();
     store.set({ status: 'loading', message: '' });
@@ -445,7 +465,6 @@
     var credentials = Object.assign(buildIdentity(username), { password: password });
 
     if (isSuperLogin) {
-      // ★ ورود مدیر کل — cookie جداگانه
       var result = await api.post('/api/super/login/', credentials);
       if (result.networkError) {
         store.set({ status: 'error', message: 'خطا در اتصال به سرور.' });
@@ -455,10 +474,9 @@
         store.set({ status: 'success', message: 'ورود موفق! در حال انتقال...' });
         setTimeout(function() { window.location.href = nextUrl; }, 500);
       } else {
-        store.set({ status: 'error', message: result.data.error || 'خطا در ورود.' });
+        store.set({ status: 'error', message: extractError(result.data.error) });
       }
     } else {
-      // ★ ورود عادی — Django session
       var result = await api.post(API_BASE + '/login/', credentials);
       if (result.networkError) {
         store.set({ status: 'error', message: 'خطا در اتصال به سرور.' });
@@ -466,26 +484,27 @@
       }
       var data = result.data;
       if (data.pending) {
-        store.set({ status: 'pending', message: data.error || 'حساب شما هنوز تأیید نشده.' });
+        store.set({ status: 'pending', message: extractError(data.error) || 'حساب شما هنوز تأیید نشده.' });
         return;
       }
       if (!result.ok || !data.access) {
-        store.set({ status: 'error', message: data.error || 'خطا در ورود.' });
+        store.set({ status: 'error', message: extractError(data.error) });
         return;
       }
-      // ذخیره session
       localStorage.setItem('access_token', data.access);
       localStorage.setItem('refresh_token', data.refresh);
       localStorage.setItem('user', JSON.stringify(data.user));
       try { await api.post(API_BASE + '/set-session/', { access_token: data.access, user_id: data.user.id }); } catch(e) {}
 
       store.set({ status: 'success', message: 'ورود موفق! در حال انتقال...' });
-      setTimeout(function() { window.location.href = redirectFor(data.user); }, 500);
+
+      // ★ nextUrl اولویت داره
+      var target = nextUrl || redirectFor(data.user);
+      setTimeout(function() { window.location.href = target; }, 500);
     }
   }
 
   document.addEventListener('DOMContentLoaded', function() { render(store.get()); });
 </script>
-
 </body>
 </html>

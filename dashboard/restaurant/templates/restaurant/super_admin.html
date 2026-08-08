@@ -229,6 +229,8 @@
     .badge.inactive  { background: var(--danger-light); color: var(--danger); }
     .badge.role      { background: var(--primary-light); color: var(--primary); }
     .badge.admin     { background: #f3e8ff; color: #7c3aed; }
+    .badge.slug      { background: #eff6ff; color: #2563eb; font-family: monospace; font-size: 11px; cursor: pointer; }
+    .badge.slug:hover { background: #dbeafe; }
 
     .actions { display: flex; gap: 4px; }
     .btn-icon {
@@ -256,6 +258,14 @@
     .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
     .btn-ghost:hover { background: var(--bg); color: var(--text); }
     .btn-sm { padding: 5px 10px; font-size: 11px; }
+    .btn-copy {
+      background: none; border: none; cursor: pointer;
+      font-size: 11px; color: var(--primary); font-weight: 700;
+      font-family: 'Vazirmatn', sans-serif;
+      padding: 2px 6px; border-radius: 4px;
+      transition: all 0.15s;
+    }
+    .btn-copy:hover { background: var(--primary-light); }
 
     /* ── Search ── */
     .search-box { position: relative; width: 240px; }
@@ -322,8 +332,28 @@
       outline: none; transition: border 0.2s; background: #fff; color: var(--text);
     }
     .field input:focus, .field textarea:focus { border-color: var(--primary); }
+    .field input.mono {
+      font-family: 'Courier New', monospace;
+      direction: ltr;
+      text-align: left;
+    }
+    .field .hint {
+      font-size: 10px; color: var(--text-muted);
+      margin-top: 4px; line-height: 1.5;
+    }
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+    /* ── Slug Preview ── */
+    .slug-preview {
+      font-size: 11px; color: var(--primary);
+      background: var(--primary-light);
+      padding: 6px 10px; border-radius: 6px;
+      margin-top: 6px; font-family: monospace;
+      direction: ltr; text-align: left;
+      display: none;
+    }
+    .slug-preview.show { display: block; }
 
     /* ── Service Toggle ── */
     .service-list { display: flex; flex-direction: column; gap: 10px; }
@@ -585,7 +615,7 @@
               <table>
                 <thead>
                   <tr>
-                    <th>#</th><th>نام رستوران</th><th>مالک</th><th>تلفن</th>
+                    <th>#</th><th>نام رستوران</th><th>شناسه URL</th><th>مالک</th><th>تلفن</th>
                     <th>سرویس‌ها</th><th>درآمد ماهانه</th><th>وضعیت</th><th>عملیات</th>
                   </tr>
                 </thead>
@@ -669,6 +699,12 @@
     <div class="modal-body">
       <input type="hidden" id="edit-tenant-id">
       <div class="field"><label>نام رستوران *</label><input type="text" id="f-name" placeholder="مثلاً: رستوران آریا"></div>
+      <div class="field">
+        <label>شناسه URL (slug) *</label>
+        <input type="text" id="f-slug" class="mono" placeholder="mali-aria" oninput="onSlugInput()">
+        <div class="hint">حروف انگلیسی، اعداد، خط تیره و زیرخط — مثلاً: <strong>1</strong>، <strong>200</strong>، <strong>zfc-ali</strong></div>
+        <div class="slug-preview" id="slug-preview"></div>
+      </div>
       <div class="field-row">
         <div class="field"><label>نام کاربری مالک *</label><input type="text" id="f-owner-username" placeholder="ali_restaurant"></div>
         <div class="field"><label>رمز عبور</label><input type="password" id="f-owner-password" placeholder="فقط برای جدید"></div>
@@ -882,6 +918,40 @@ function debounceUserSearch(){
 }
 
 // ═══════════════════════════════════════
+//  ★ Slug helpers
+// ═══════════════════════════════════════
+function onSlugInput(){
+  var slug = document.getElementById('f-slug').value.trim();
+  var preview = document.getElementById('slug-preview');
+  if(slug){
+    var host = window.location.host;
+    preview.textContent = 'https://' + host + '/' + slug + '/dashboard/app/';
+    preview.classList.add('show');
+  } else {
+    preview.classList.remove('show');
+  }
+}
+
+function sanitizeSlug(val){
+  // فقط حروف، اعداد، خط تیره، زیرخط
+  return val.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
+}
+
+function copyToClipboard(text){
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text);
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+  toast('کپی شد!','success');
+}
+
+// ═══════════════════════════════════════
 //  Tabs
 // ═══════════════════════════════════════
 function switchTab(name){
@@ -930,7 +1000,7 @@ function loadAll(){
 }
 
 // ═══════════════════════════════════════
-//  Render Tenants
+//  Render Tenants — ★ v11: slug + copy URL
 // ═══════════════════════════════════════
 function renderTenants(list){
   var data = list || state.tenants;
@@ -940,9 +1010,14 @@ function renderTenants(list){
   empty.style.display='none';
   var h = '';
   data.forEach(function(t,i){
+    var slugCell = t.slug
+      ? '<span class="badge slug" title="کپی آدرس" onclick="event.stopPropagation();copyToClipboard(\''+window.location.origin+'/'+escHtml(t.slug)+'/dashboard/app/\')">'+escHtml(t.slug)+'</span>'
+      : '<span style="color:var(--text-muted);font-size:11px;">—</span>';
+
     h += '<tr data-id="'+t.id+'" onclick="loadTenantServices('+t.id+')" style="cursor:pointer;">'
       +'<td>'+(i+1)+'</td>'
       +'<td><strong>'+escHtml(t.name)+'</strong></td>'
+      +'<td>'+slugCell+'</td>'
       +'<td>'+escHtml(t.owner_name)+'</td>'
       +'<td>'+escHtml(t.phone||'—')+'</td>'
       +'<td><span class="badge active">'+t.active_services+' سرویس</span></td>'
@@ -950,6 +1025,7 @@ function renderTenants(list){
       +'<td><span class="badge '+(t.is_active?'active':'inactive')+'">'+(t.is_active?'فعال':'غیرفعال')+'</span></td>'
       +'<td class="actions" onclick="event.stopPropagation();">'
         +'<button class="btn-icon" title="ویرایش" onclick="openEditTenantModal('+t.id+')">✏️</button>'
+        +'<button class="btn-icon" title="باز کردن داشبورد" onclick="window.open(\'/'+escHtml(t.slug)+'/dashboard/app/\',\'_blank\')">🔗</button>'
         +'<button class="btn-icon" title="سرویس‌ها" onclick="loadTenantServices('+t.id+')">⚙️</button>'
         +'<button class="btn-icon" title="حذف" onclick="openDeleteTenantModal('+t.id+',\''+escHtml(t.name)+'\')">🗑️</button>'
       +'</td></tr>';
@@ -961,7 +1037,7 @@ function filterTenants(q){
   q = q.trim().toLowerCase();
   if(!q){renderTenants();return}
   renderTenants(state.tenants.filter(function(t){
-    return t.name.toLowerCase().includes(q)||t.owner_name.toLowerCase().includes(q)||(t.phone||'').includes(q);
+    return t.name.toLowerCase().includes(q)||t.owner_name.toLowerCase().includes(q)||(t.phone||'').includes(q)||(t.slug||'').toLowerCase().includes(q);
   }));
 }
 
@@ -995,13 +1071,15 @@ function onToggle(sid){
 }
 
 // ═══════════════════════════════════════
-//  Tenant CRUD
+//  Tenant CRUD — ★ v11: slug
 // ═══════════════════════════════════════
 function openAddTenantModal(){
   document.getElementById('tenant-modal-title').textContent='رستوران جدید';
   document.getElementById('edit-tenant-id').value='';
-  ['f-name','f-owner-username','f-owner-password','f-owner-name','f-phone','f-address'].forEach(function(id){document.getElementById(id).value=''});
+  ['f-name','f-slug','f-owner-username','f-owner-password','f-owner-name','f-phone','f-address'].forEach(function(id){document.getElementById(id).value=''});
   document.getElementById('f-owner-username').disabled=false;
+  document.getElementById('f-slug').disabled=false;
+  document.getElementById('slug-preview').classList.remove('show');
   document.getElementById('tenant-modal').classList.add('open');
 }
 
@@ -1012,12 +1090,15 @@ async function openEditTenantModal(id){
   document.getElementById('tenant-modal-title').textContent='ویرایش: '+t.name;
   document.getElementById('edit-tenant-id').value=t.id;
   document.getElementById('f-name').value=t.name;
+  document.getElementById('f-slug').value=t.slug || '';
+  document.getElementById('f-slug').disabled=false; // اجازه تغییر slug
   document.getElementById('f-owner-username').value=t.owner_name;
   document.getElementById('f-owner-username').disabled=true;
   document.getElementById('f-owner-password').value='';
   document.getElementById('f-owner-name').value=t.owner_name;
   document.getElementById('f-phone').value=t.phone;
   document.getElementById('f-address').value=t.address;
+  onSlugInput();
   document.getElementById('tenant-modal').classList.add('open');
 }
 
@@ -1025,8 +1106,11 @@ function closeTenantModal(){document.getElementById('tenant-modal').classList.re
 
 async function saveTenant(){
   var id = document.getElementById('edit-tenant-id').value;
+  var slug = document.getElementById('f-slug').value.trim();
+
   var body = {
     name: document.getElementById('f-name').value.trim(),
+    slug: sanitizeSlug(slug),
     owner_username: document.getElementById('f-owner-username').value.trim(),
     owner_password: document.getElementById('f-owner-password').value,
     owner_name: document.getElementById('f-owner-name').value.trim(),
@@ -1034,10 +1118,22 @@ async function saveTenant(){
     address: document.getElementById('f-address').value.trim()
   };
   if(!body.name){toast('نام رستوران الزامی است','error');return}
+  if(!body.slug){toast('شناسه URL (slug) الزامی است','error');return}
+
   var r;
-  if(id){r=await apiFetch('/api/super/tenants/'+id+'/',{method:'PUT',body:JSON.stringify(body)})}
-  else{if(!body.owner_username){toast('نام کاربری مالک الزامی است','error');return}r=await apiFetch('/api/super/tenants/',{method:'POST',body:JSON.stringify(body)})}
-  if(r.ok){toast(id?'ویرایش شد':'رستوران ثبت شد','success');closeTenantModal();loadAll()}else{toast(r.data.error||'خطا','error')}
+  if(id){
+    r = await apiFetch('/api/super/tenants/'+id+'/',{method:'PUT',body:JSON.stringify(body)});
+  } else {
+    if(!body.owner_username){toast('نام کاربری مالک الزامی است','error');return}
+    r = await apiFetch('/api/super/tenants/',{method:'POST',body:JSON.stringify(body)});
+  }
+  if(r.ok){
+    toast(id?'ویرایش شد':'رستوران ثبت شد','success');
+    closeTenantModal();
+    loadAll();
+  } else {
+    toast(r.data.error||'خطا','error');
+  }
 }
 
 function openDeleteTenantModal(id,name){
@@ -1282,7 +1378,6 @@ function openPermsModal(userId, userName){
   state.permsUserName = userName;
   document.getElementById('perms-modal-title').textContent = 'دسترسی‌های: '+userName;
 
-  // Find user in state
   var user = null;
   state.users.forEach(function(u){ if(u.id===userId) user=u; });
 
@@ -1324,7 +1419,6 @@ function clearAllPerms(){
 }
 
 function resetToRolePerms(){
-  // Just clear all — backend will use role defaults when list is empty
   clearAllPerms();
   toast('با ذخیره خالی، دسترسی‌های پیش‌فرض نقش اعمال می‌شود','success');
 }

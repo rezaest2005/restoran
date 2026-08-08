@@ -1,10 +1,7 @@
 """
-Restaurant Management System — URLs (★ نسخه اصلاح‌شده v5)
+Restaurant Management System — URLs (★ نسخه v6)
 
-★ تغییرات نسبت به نسخه قبل:
-  ۱. super_user_create_api اضافه شد
-  ۲. super_user_detail_api اضافه شد
-  ۳. super_user_permissions_api اضافه شد
+★ v6: root redirect اضافه شد
 """
 
 from django.urls import include, path
@@ -37,6 +34,10 @@ router.register("inventory-movements",  views.InventoryMovementViewSet,    basen
 
 
 urlpatterns = [
+
+    # ── Root ────────────────────────────────────────────────
+
+    path("", views.root_redirect, name="root_redirect"),
 
     # ── Authentication ──────────────────────────────────────
 

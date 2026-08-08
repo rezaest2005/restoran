@@ -1,16 +1,14 @@
 """
-پنل مدیریت کلان — ویوها (★ نسخه v10 — اصلاح شده)
+پنل مدیریت کلان — ویوها (★ نسخه v13 — phone fix)
 
-★ v10 تغییرات:
-  - super_admin_login_api: CSRF + backend مشخص
-  - set_cookie: httponly=True
-  - super_user_create_api: فیلدها بعد از create_user ست میشن
-  - super_tenants_api: ساخت Restaurant
-  - super_tenant_detail_api DELETE: cleanup مرتبط‌ها
+★ v13 تغییرات:
+  - super_tenants_api POST: phone_number = None به جای ""
+  - super_user_create_api: phone_number = None به جای ""
 """
 
 import json
 import logging
+import re
 from functools import wraps
 
 from django.contrib.auth import (
@@ -21,6 +19,7 @@ from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from rest_framework.decorators import api_view, permission_classes
@@ -41,13 +40,14 @@ SUPER_TOKEN_SALT = 'super-admin-panel-v1'
 SUPER_TOKEN_COOKIE = 'super_admin_token'
 SUPER_TOKEN_MAX_AGE = 86400 * 7  # 7 روز
 
+_SLUG_RE = re.compile(r'^[a-zA-Z0-9_-]+$')
+
 
 # ═══════════════════════════════════════════
 #  توابع کمکی احراز هویت
 # ═══════════════════════════════════════════
 
 def _verify_super_token(request):
-    """بررسی توکن سوپر ادمین از cookie"""
     token = request.COOKIES.get(SUPER_TOKEN_COOKIE)
     if not token:
         return None
@@ -63,7 +63,6 @@ def _verify_super_token(request):
 
 
 def _is_super_admin(request):
-    """بررسی دسترسی سوپر ادمین — session یا token"""
     if request.user.is_authenticated and request.user.is_superuser:
         return True
     user = _verify_super_token(request)
@@ -74,7 +73,6 @@ def _is_super_admin(request):
 
 
 def _super_admin_required(view_func):
-    """دکوراتور محافظت صفحات HTML سوپر ادمین"""
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not _is_super_admin(request):
@@ -84,7 +82,6 @@ def _super_admin_required(view_func):
 
 
 class IsSuperAdmin(BasePermission):
-    """DRF Permission"""
     def has_permission(self, request, view):
         django_request = (
             request._request if hasattr(request, '_request') else request
@@ -104,30 +101,46 @@ class IsSuperAdmin(BasePermission):
 
 
 def _make_super_token(user):
-    """ساخت توکن امن"""
     return signing.dumps({'uid': user.id}, salt=SUPER_TOKEN_SALT)
 
 
 def _set_super_cookie(response, token):
-    """★ FIXED: httponly=True"""
     response.set_cookie(
         SUPER_TOKEN_COOKIE,
         token,
         max_age=SUPER_TOKEN_MAX_AGE,
-        httponly=True,        # ★ FIXED: JavaScript نمیتونه بخونه
+        httponly=True,
         samesite='Lax',
-        secure=False,          # TODO: در production → True
+        secure=False,
         path='/',
     )
     return response
 
 
 def _json_body(request):
-    """خواندن JSON body"""
     try:
         return json.loads(request.body.decode('utf-8'))
     except Exception:
         return {}
+
+
+def _validate_slug(slug):
+    if not slug:
+        return False, 'شناسه URL (slug) الزامی است'
+    slug = slug.strip()
+    if len(slug) < 1 or len(slug) > 50:
+        return False, 'طول slug باید بین ۱ تا ۵۰ کاراکتر باشد'
+    if not _SLUG_RE.match(slug):
+        return False, 'slug فقط می‌تواند شامل حروف، اعداد، خط تیره و زیرخط باشد'
+    if Restaurant.objects.filter(slug=slug).exists():
+        return False, f'شناسه «{slug}» قبلاً استفاده شده'
+    return True, slug
+
+
+def _clean_phone(val):
+    """★ شماره تلفن خالی → None (برای unique constraint)"""
+    v = (val or '').strip()
+    return v if v else None
 
 
 # ═══════════════════════════════════════════
@@ -146,15 +159,12 @@ def super_admin_page(request):
 
 
 # ═══════════════════════════════════════════
-#  API: ورود مدیر کل — ★ FIXED: CSRF + backend
+#  API: ورود مدیر کل
 # ═══════════════════════════════════════════
 
+@csrf_exempt
 @require_POST
 def super_admin_login_api(request):
-    """
-    ورود مدیر کل — Django session + token cookie.
-    ★ FIXED: بدون csrf_exempt — از CSRF token استفاده میکنه
-    """
     data = _json_body(request)
     username = (data.get('username') or '').strip()
     password = data.get('password') or ''
@@ -165,7 +175,6 @@ def super_admin_login_api(request):
             status=400,
         )
 
-    # ★ FIXED: backend مشخص
     user = authenticate(
         request,
         username=username,
@@ -264,7 +273,7 @@ def super_services_list_api(request):
 
 
 # ═══════════════════════════════════════════
-#  API: CRUD رستوران‌ها — ★ FIXED: ساخت Restaurant
+#  API: CRUD رستوران‌ها — ★ v13: phone fix
 # ═══════════════════════════════════════════
 
 @api_view(["GET", "POST"])
@@ -285,9 +294,14 @@ def super_tenants_api(request):
 
         data = []
         for t in tenants:
+            restaurant = Restaurant.objects.filter(tenant=t).first()
+            slug = restaurant.slug if restaurant else ''
+
             data.append({
                 'id': t.id,
                 'name': t.name,
+                'slug': slug,
+                'dashboard_url': f'/{slug}/dashboard/app/' if slug else '',
                 'owner_id': t.owner_id,
                 'owner_name': (
                     (t.owner.get_full_name() or t.owner.username)
@@ -307,6 +321,7 @@ def super_tenants_api(request):
     data = request.data
     owner_username = (data.get('owner_username') or '').strip()
     tenant_name = (data.get('name') or '').strip()
+    slug = (data.get('slug') or '').strip()
 
     if not owner_username:
         return Response(
@@ -316,6 +331,13 @@ def super_tenants_api(request):
     if not tenant_name:
         return Response(
             {'error': 'نام رستوران الزامی است'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    valid, msg = _validate_slug(slug)
+    if not valid:
+        return Response(
+            {'error': msg},
             status=status.HTTP_400_BAD_REQUEST,
         )
 
@@ -330,9 +352,8 @@ def super_tenants_api(request):
                 },
             )
             if created:
-                # ★ FIXED: فیلدها بعد از create_user
                 owner.first_name = data.get('owner_name', '')
-                owner.phone_number = data.get('owner_phone', '') or ''
+                owner.phone_number = _clean_phone(data.get('owner_phone'))  # ★ None به جای ""
                 owner.role = 'owner'
                 owner.is_approved = True
                 owner.set_password(
@@ -352,17 +373,17 @@ def super_tenants_api(request):
                 tenant.username_prefix = owner_username[0].lower()
                 tenant.save(update_fields=['username_prefix'])
 
-            # ★ FIXED: ساخت Restaurant مرتبط
-            try:
-                restaurant, _ = Restaurant.objects.get_or_create(
-                    tenant=tenant,
-                    defaults={'name': tenant_name},
-                )
-                if not owner.restaurant:
-                    owner.restaurant = restaurant
-                    owner.save(update_fields=['restaurant'])
-            except Exception as e:
-                logger.warning("Could not create Restaurant: %s", e)
+            restaurant = Restaurant.objects.create(
+                tenant=tenant,
+                name=tenant_name,
+                slug=slug,
+                phone=data.get('phone', ''),
+                address=data.get('address', ''),
+            )
+
+            if not owner.restaurant:
+                owner.restaurant = restaurant
+                owner.save(update_fields=['restaurant'])
 
             _ensure_services_exist()
             for svc in Service.objects.all():
@@ -378,8 +399,10 @@ def super_tenants_api(request):
         return Response({
             'ok': True,
             'tenant_id': tenant.id,
+            'slug': slug,
+            'dashboard_url': f'/{slug}/dashboard/app/',
             'username_prefix': prefix,
-            'msg': f'رستوران «{tenant.name}» ساخته شد',
+            'msg': f'رستوران «{tenant.name}» با شناسه «{slug}» ساخته شد',
         }, status=status.HTTP_201_CREATED)
 
     except Exception as e:
@@ -401,6 +424,8 @@ def super_tenant_detail_api(request, pk):
             status=status.HTTP_404_NOT_FOUND,
         )
 
+    restaurant = Restaurant.objects.filter(tenant=tenant).first()
+
     if request.method == "GET":
         services = []
         for ts in TenantService.objects.filter(
@@ -419,6 +444,11 @@ def super_tenant_detail_api(request, pk):
         return Response({
             'id': tenant.id,
             'name': tenant.name,
+            'slug': restaurant.slug if restaurant else '',
+            'dashboard_url': (
+                f'/{restaurant.slug}/dashboard/app/'
+                if restaurant else ''
+            ),
             'owner_id': tenant.owner_id,
             'owner_name': (
                 (tenant.owner.get_full_name() or tenant.owner.username)
@@ -452,21 +482,45 @@ def super_tenant_detail_api(request, pk):
                 data['username_prefix'] or ''
             ).strip().lower()
         tenant.save()
+
+        if 'slug' in data and restaurant:
+            new_slug = (data['slug'] or '').strip()
+            if new_slug != restaurant.slug:
+                valid, msg = _validate_slug(new_slug)
+                if not valid:
+                    return Response(
+                        {'error': msg},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                restaurant.slug = new_slug
+                restaurant.save(update_fields=['slug'])
+
+        if restaurant:
+            update_fields = []
+            if 'name' in data:
+                restaurant.name = data['name']
+                update_fields.append('name')
+            if 'phone' in data:
+                restaurant.phone = data['phone']
+                update_fields.append('phone')
+            if 'address' in data:
+                restaurant.address = data['address']
+                update_fields.append('address')
+            if update_fields:
+                restaurant.save(update_fields=update_fields)
+
         return Response({
             'ok': True,
+            'slug': restaurant.slug if restaurant else '',
             'msg': f'رستوران «{tenant.name}» بروزرسانی شد',
         })
 
     elif request.method == "DELETE":
-        # ★ FIXED: cleanup مرتبط‌ها
         name = tenant.name
 
         with transaction.atomic():
-            # حذف سرویس‌ها
             TenantService.objects.filter(tenant=tenant).delete()
-            # حذف Restaurant مرتبط
             Restaurant.objects.filter(tenant=tenant).delete()
-            # حذف Tenant
             tenant.delete()
 
         return Response({
@@ -627,7 +681,7 @@ def super_users_api(request):
 
 
 # ═══════════════════════════════════════════
-#  API: ساخت کاربر — ★ FIXED: create_user
+#  API: ساخت کاربر — ★ v13: phone fix
 # ═══════════════════════════════════════════
 
 @api_view(["POST"])
@@ -668,15 +722,13 @@ def super_user_create_api(request):
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    # ★ FIXED: فقط username + password به create_user
     user = User.objects.create_user(
         username=username, password=password,
     )
 
-    # فیلدهای اضافی بعد از ساختن
     user.first_name = data.get('first_name', '')
     user.last_name = data.get('last_name', '')
-    user.phone_number = data.get('phone_number') or ''
+    user.phone_number = _clean_phone(data.get('phone_number'))  # ★ None به جای ""
     user.role = role
     user.restaurant = restaurant
     user.is_approved = True
@@ -734,10 +786,15 @@ def super_user_detail_api(request, pk):
         data = request.data
         update_fields = []
 
-        for field in ('first_name', 'last_name', 'phone_number'):
+        for field in ('first_name', 'last_name'):
             if field in data:
                 setattr(user, field, data[field] or None)
                 update_fields.append(field)
+
+        # ★ phone_number با None
+        if 'phone_number' in data:
+            user.phone_number = _clean_phone(data.get('phone_number'))
+            update_fields.append('phone_number')
 
         if 'role' in data:
             user.role = data['role']

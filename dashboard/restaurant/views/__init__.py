@@ -1,7 +1,7 @@
 """
 Restaurant Views Package — Re-export everything.
 
-★ نسخه v7 — اصلاح شده
+★ نسخه v8 — root_redirect اضافه شد
 """
 
 # ── Super Admin ──
@@ -122,6 +122,7 @@ from .dictionary import (
 
 # ── Page Views (HTML) ──
 from .restaurant_page_views import (
+    root_redirect,
     home, auth_page, logout_page,
     redirect_to_dashboard,
     purchase_invoice_list, purchase_invoice_detail,
@@ -219,6 +220,7 @@ __all__ = [
     "dictionary_group_list", "dictionary_group_save", "dictionary_group_delete",
     "dictionary_food_create", "dictionary_food_update", "dictionary_food_delete",
     # Page Views
+    "root_redirect",
     "home", "auth_page", "logout_page",
     "redirect_to_dashboard",
     "purchase_invoice_list", "purchase_invoice_detail",
