@@ -1,16 +1,10 @@
 """
-Restaurant — Recipe & Inventory API Views (★ نسخه اصلاح‌شده v3)
+Restaurant — Recipe & Inventory API Views (★ نسخه v5 — اصلاح شده)
 
-★ تغییرات نسبت به نسخه قبل:
-  ۱. @csrf_exempt + @require_GET → @api_view(["GET"])
-  ۲. suggestion views: بدون permission → IsAuthenticated
-  ۳. RecipeViewSet.create: restaurant= اضافه شد
-  ۴. RecipeViewSet.create_missing: restaurant= + فیلتر restaurant روی Food
-  ۵. تمام viewset‌ها و view‌ها: فیلتر restaurant اضافه شد
-  ۶. _resolve_restaurant: مشترک با بقیه view‌ها
-  ۷. inventory_analytics_view: restaurant پارامتر اضافه شد
-  ۸. produce_semi_finished_view: restaurant پارامتر اضافه شد
-  ۹. drf_permission_classes → permission_classes (DRF decorator)
+★ v5 تغییرات:
+  - recipe_materials_api: فیلتر restaurant
+  - deduct_inventory_view: فیلتر restaurant
+  - RecipeViewSet.create_missing: فیلتر restaurant
 """
 
 import logging
@@ -45,12 +39,20 @@ from ..tenancy import (
     get_current_restaurant, set_current_restaurant,
     get_restaurant_from_request,
 )
+from .decorators import make_service_permission
 
 logger = logging.getLogger(__name__)
 
 
 # ═══════════════════════════════════════
-#  resolve restaurant — fallback
+#  Permission
+# ═══════════════════════════════════════
+
+FoodsPerm = make_service_permission('foods')
+
+
+# ═══════════════════════════════════════
+#  resolve restaurant
 # ═══════════════════════════════════════
 
 def _resolve_restaurant(request):
@@ -65,12 +67,11 @@ def _resolve_restaurant(request):
 
 
 # ═══════════════════════════════════════
-#  ★★★ Recipe ViewSet ★★★
+#  Recipe ViewSet
 # ═══════════════════════════════════════
 
 class RecipeViewSet(viewsets.ModelViewSet):
-    """مدیریت رسپی‌ها — CRUD + actions"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [FoodsPerm]
 
     def get_queryset(self):
         qs = Recipe.objects.select_related('food').prefetch_related(
@@ -79,12 +80,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
             'packaging_items__raw_material',
         )
 
-        # ★ FIXED: فیلتر restaurant
         restaurant = _resolve_restaurant(self.request)
         if restaurant:
             qs = qs.filter(restaurant=restaurant)
 
-        # فقط فعال‌ها مگر درخواست همه باشد
         show_all = self.request.query_params.get('all')
         if not show_all or show_all.lower() != 'true':
             qs = qs.filter(is_active=True)
@@ -101,19 +100,19 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return RecipeDetailSerializer
 
     def create(self, request, *args, **kwargs):
-        """ایجاد یا بروزرسانی رسپی برای یک غذا"""
         food_id = request.data.get('food')
         restaurant = _resolve_restaurant(request)
 
         if food_id:
-            # اگر رسپی برای این غذا وجود دارد → بروزرسانی
             qs = Recipe.objects.filter(food_id=food_id)
             if restaurant:
                 qs = qs.filter(restaurant=restaurant)
             existing = qs.first()
 
             if existing:
-                serializer = self.get_serializer(existing, data=request.data, partial=True)
+                serializer = self.get_serializer(
+                    existing, data=request.data, partial=True,
+                )
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
                 data = serializer.data
@@ -121,11 +120,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 data['pk'] = existing.id
                 return Response(data, status=status.HTTP_200_OK)
 
-        # ایجاد جدید
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # ★ FIXED: restaurant ست شود
         kwargs_save = {}
         if restaurant:
             kwargs_save['restaurant'] = restaurant
@@ -149,7 +146,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
             try:
                 cost_data = calculate_recipe_cost(recipe)
                 data['total_cost'] = str(cost_data.get('total_cost', 0))
-                data['cost_per_serving'] = str(cost_data.get('cost_per_serving', 0))
+                data['cost_per_serving'] = str(
+                    cost_data.get('cost_per_serving', 0),
+                )
             except Exception:
                 data['total_cost'] = '0'
                 data['cost_per_serving'] = '0'
@@ -161,14 +160,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'], url_path='create-missing')
     def create_missing(self, request):
-        """ساخت رسپی برای غذاهایی که رسپی ندارند"""
         restaurant = _resolve_restaurant(request)
 
+        # ★ FIXED: فیلتر restaurant روی foods_with_recipes
+        recipe_qs = Recipe.objects.filter(is_active=True)
+        if restaurant:
+            recipe_qs = recipe_qs.filter(restaurant=restaurant)
         foods_with_recipes = set(
-            Recipe.objects.filter(is_active=True).values_list('food_id', flat=True)
+            recipe_qs.values_list('food_id', flat=True)
         )
 
-        # ★ FIXED: فیلتر restaurant روی Food
         all_foods = Food.objects.all()
         if restaurant:
             all_foods = all_foods.filter(restaurant=restaurant)
@@ -195,7 +196,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='calculate-cost')
     def calculate_cost(self, request, pk=None):
-        """محاسبه هزینه یک رسپی"""
         try:
             return Response(calculate_recipe_cost(self.get_object()))
         except Exception as e:
@@ -207,10 +207,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='validate-inventory')
     def validate_inventory(self, request, pk=None):
-        """بررسی موجودی برای تولید"""
         try:
             quantity = float(request.data.get('quantity', 1))
-            return Response(validate_recipe_inventory(self.get_object(), quantity))
+            return Response(
+                validate_recipe_inventory(self.get_object(), quantity),
+            )
         except (ValueError, TypeError):
             return Response(
                 {'error': 'مقدار نامعتبر است.'},
@@ -219,7 +220,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'], url_path='cost-breakdown')
     def cost_breakdown(self, request, pk=None):
-        """تفکیک هزینه رسپی"""
         try:
             return Response(calculate_recipe_cost(self.get_object()))
         except Exception as e:
@@ -231,18 +231,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
 
 # ═══════════════════════════════════════
-#  ★★★ Inventory Movement ViewSet ★★★
+#  Inventory Movement ViewSet
 # ═══════════════════════════════════════
 
 class InventoryMovementViewSet(viewsets.ReadOnlyModelViewSet):
-    """لیست تحرکات انبار — فقط خواندن"""
     serializer_class = InventoryMovementSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [FoodsPerm]
 
     def get_queryset(self):
         qs = InventoryMovement.objects.select_related('raw_material')
 
-        # ★ FIXED: فیلتر restaurant
         restaurant = _resolve_restaurant(self.request)
         if restaurant:
             qs = qs.filter(restaurant=restaurant)
@@ -259,13 +257,12 @@ class InventoryMovementViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 # ═══════════════════════════════════════
-#  ★★★ Function-Based API Views ★★★
+#  Function-Based API Views
 # ═══════════════════════════════════════
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([FoodsPerm])
 def validate_order_inventory_view(request):
-    """بررسی موجودی برای سفارش"""
     items = request.data.get('items', [])
     if not items:
         return api_error('آیتمی ارسال نشد.')
@@ -277,24 +274,26 @@ def validate_order_inventory_view(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([FoodsPerm])
 def deduct_inventory_view(request):
-    """کسر موجودی برای سفارش"""
     order_id = request.data.get('order_id')
     if not order_id:
         return api_error('شناسه سفارش الزامی است.')
 
+    restaurant = _resolve_restaurant(request)
+
+    # ★ FIXED: فیلتر restaurant روی Order
     try:
-        order = Order.objects.prefetch_related(
+        qs = Order.objects.prefetch_related(
             'items__food__recipe__ingredients__raw_material',
-        ).get(id=order_id)
+        ).all()
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
+        order = qs.get(id=order_id)
     except Order.DoesNotExist:
         return api_error('سفارش یافت نشد.', status_code=404)
 
-    result = deduct_inventory_for_order(
-        order,
-        created_by=request.user,
-    )
+    result = deduct_inventory_for_order(order, created_by=request.user)
 
     if result.get('success'):
         return api_success(data=result, message=result['message'])
@@ -302,9 +301,8 @@ def deduct_inventory_view(request):
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([FoodsPerm])
 def recalculate_costs_view(request):
-    """محاسبه مجدد هزینه تمام غذاها"""
     restaurant = _resolve_restaurant(request)
     result = recalculate_all_food_costs(restaurant=restaurant)
     return api_success(
@@ -314,17 +312,15 @@ def recalculate_costs_view(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([FoodsPerm])
 def inventory_analytics_view(request):
-    """تحلیل موجودی انبار"""
     restaurant = _resolve_restaurant(request)
     return api_success(data=get_inventory_analytics(restaurant=restaurant))
 
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([FoodsPerm])
 def produce_semi_finished_view(request):
-    """تولید ماده نیم‌آماده"""
     sf_id = request.data.get('semi_finished_id')
     quantity = request.data.get('quantity', 1)
     notes = request.data.get('notes', '')
@@ -356,13 +352,12 @@ def produce_semi_finished_view(request):
 
 
 # ═══════════════════════════════════════
-#  ★★★ Suggestion APIs ★★★
+#  Suggestion APIs
 # ═══════════════════════════════════════
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([FoodsPerm])
 def food_suggestions_view(request):
-    """جستجوی غذا — autocomplete"""
     query = request.GET.get('q', '').strip()
     restaurant = _resolve_restaurant(request)
 
@@ -383,11 +378,10 @@ def food_suggestions_view(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([FoodsPerm])
 def raw_material_suggestions_api(request):
-    """جستجوی ماده اولیه — autocomplete"""
     query = request.GET.get('q', '').strip()
-    mat_type = request.GET.get('type', '').strip()  # raw یا packaging
+    mat_type = request.GET.get('type', '').strip()
     restaurant = _resolve_restaurant(request)
 
     qs = RawMaterial.objects.all()
@@ -415,9 +409,8 @@ def raw_material_suggestions_api(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([FoodsPerm])
 def semi_finished_suggestions_api(request):
-    """جستجوی ماده نیم‌آماده — autocomplete"""
     query = request.GET.get('q', '').strip()
     restaurant = _resolve_restaurant(request)
 
@@ -443,15 +436,20 @@ def semi_finished_suggestions_api(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([FoodsPerm])
 def recipe_materials_api(request, pk):
-    """مواد مورد نیاز یک رسپی"""
+    restaurant = _resolve_restaurant(request)
+
+    # ★ FIXED: فیلتر restaurant
     try:
-        recipe = Recipe.objects.prefetch_related(
+        qs = Recipe.objects.prefetch_related(
             'ingredients__raw_material',
             'semi_finished_items__semi_finished',
             'packaging_items__raw_material',
-        ).get(pk=pk)
+        ).all()
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
+        recipe = qs.get(pk=pk)
     except Recipe.DoesNotExist:
         return JsonResponse({'error': 'رسپی یافت نشد'}, status=404)
 
@@ -460,9 +458,14 @@ def recipe_materials_api(request, pk):
         ingredients.append({
             'id': ing.id,
             'raw_material_id': ing.raw_material_id,
-            'raw_material_name': ing.raw_material.name if ing.raw_material else '?',
+            'raw_material_name': (
+                ing.raw_material.name if ing.raw_material else '?'
+            ),
             'quantity': str(ing.quantity),
-            'unit': ing.raw_material.get_unit_display() if ing.raw_material else '',
+            'unit': (
+                ing.raw_material.get_unit_display()
+                if ing.raw_material else ''
+            ),
         })
 
     semi_finished = []
@@ -470,7 +473,9 @@ def recipe_materials_api(request, pk):
         semi_finished.append({
             'id': sf.id,
             'semi_finished_id': sf.semi_finished_id,
-            'semi_finished_name': sf.semi_finished.name if sf.semi_finished else '?',
+            'semi_finished_name': (
+                sf.semi_finished.name if sf.semi_finished else '?'
+            ),
             'quantity': str(sf.quantity),
         })
 
@@ -479,7 +484,9 @@ def recipe_materials_api(request, pk):
         packaging.append({
             'id': pkg.id,
             'raw_material_id': pkg.raw_material_id,
-            'raw_material_name': pkg.raw_material.name if pkg.raw_material else '?',
+            'raw_material_name': (
+                pkg.raw_material.name if pkg.raw_material else '?'
+            ),
             'quantity': str(pkg.quantity),
         })
 

@@ -62,9 +62,7 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 20px;
     }
-    .sidebar-section {
-      padding: 16px 12px 8px;
-    }
+    .sidebar-section { padding: 16px 12px 8px; }
     .sidebar-section-title {
       font-size: 10px; font-weight: 700;
       color: rgba(255,255,255,0.3);
@@ -72,9 +70,7 @@
       letter-spacing: 0.1em;
       padding: 0 8px 8px;
     }
-    .sidebar-nav {
-      display: flex; flex-direction: column; gap: 2px;
-    }
+    .sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
     .sidebar-link {
       display: flex; align-items: center; gap: 10px;
       padding: 9px 12px; border-radius: 8px;
@@ -82,19 +78,9 @@
       font-size: 13px; font-weight: 600;
       transition: all 0.2s;
     }
-    .sidebar-link:hover {
-      background: var(--sidebar-hover); color: #fff;
-    }
-    .sidebar-link.active {
-      background: var(--sidebar-active); color: #fff;
-    }
+    .sidebar-link:hover { background: var(--sidebar-hover); color: #fff; }
+    .sidebar-link.active { background: var(--sidebar-active); color: #fff; }
     .sidebar-link .ico { font-size: 16px; width: 22px; text-align: center; flex-shrink: 0; }
-    .sidebar-link .badge-count {
-      margin-right: auto;
-      background: rgba(255,255,255,0.15);
-      padding: 1px 7px; border-radius: 10px;
-      font-size: 10px; font-weight: 700;
-    }
     .sidebar-footer {
       margin-top: auto;
       border-top: 1px solid rgba(255,255,255,0.08);
@@ -122,7 +108,7 @@
     }
     .sidebar-logout:hover { color: var(--danger); }
 
-    /* ── Header (top bar) ── */
+    /* ── Header ── */
     .top-bar {
       background: var(--card);
       border-bottom: 1px solid var(--border);
@@ -132,9 +118,7 @@
       position: sticky; top: 0; z-index: 50;
       box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }
-    .top-bar-right {
-      display: flex; align-items: center; gap: 14px;
-    }
+    .top-bar-right { display: flex; align-items: center; gap: 14px; }
     .menu-toggle {
       display: none;
       background: none; border: none; font-size: 22px;
@@ -147,9 +131,7 @@
     .breadcrumb a { color: var(--primary); text-decoration: none; }
     .breadcrumb a:hover { text-decoration: underline; }
     .breadcrumb .sep { color: var(--border); }
-    .top-bar-left {
-      display: flex; align-items: center; gap: 10px;
-    }
+    .top-bar-left { display: flex; align-items: center; gap: 10px; }
     .top-bar-btn {
       padding: 6px 14px; border: none; border-radius: 8px;
       font-size: 12px; font-weight: 700;
@@ -157,17 +139,31 @@
       cursor: pointer; transition: all 0.2s;
       display: inline-flex; align-items: center; gap: 5px;
     }
-    .top-bar-btn.ghost {
-      background: var(--bg); color: var(--text-muted);
-    }
+    .top-bar-btn.ghost { background: var(--bg); color: var(--text-muted); }
     .top-bar-btn.ghost:hover { background: var(--border); color: var(--text); }
-    .top-bar-btn.primary {
-      background: var(--primary); color: #fff;
-    }
+    .top-bar-btn.primary { background: var(--primary); color: #fff; }
     .top-bar-btn.primary:hover { background: #4338ca; }
 
     .main { flex: 1; margin-right: 260px; display: flex; flex-direction: column; min-height: 100vh; }
     .main-content { padding: 28px; flex: 1; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex; gap: 4px; margin-bottom: 24px;
+      background: var(--card); padding: 4px; border-radius: 10px;
+      box-shadow: var(--shadow); width: fit-content;
+    }
+    .tab-btn {
+      padding: 8px 20px; border: none; border-radius: 8px;
+      font-size: 13px; font-weight: 700;
+      font-family: 'Vazirmatn', sans-serif;
+      cursor: pointer; transition: all 0.2s;
+      background: transparent; color: var(--text-muted);
+    }
+    .tab-btn:hover { background: var(--bg); color: var(--text); }
+    .tab-btn.active { background: var(--primary); color: #fff; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
 
     /* ── Stats ── */
     .stats-grid {
@@ -193,6 +189,7 @@
     .stat-ico.green  { background: var(--success-light); }
     .stat-ico.orange { background: var(--warning-light); }
     .stat-ico.red    { background: var(--danger-light); }
+    .stat-ico.purple { background: #f3e8ff; }
     .stat-value { font-size: 20px; font-weight: 900; }
     .stat-label { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 1px; }
 
@@ -217,8 +214,7 @@
     th {
       font-size: 11px; font-weight: 700; color: var(--text-muted);
       text-align: right; padding: 10px 14px;
-      border-bottom: 2px solid var(--border);
-      white-space: nowrap;
+      border-bottom: 2px solid var(--border); white-space: nowrap;
     }
     td {
       padding: 11px 14px; font-size: 13px; font-weight: 500;
@@ -229,8 +225,10 @@
     tr.selected td { background: var(--primary-light); }
 
     .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-    .badge.active  { background: var(--success-light); color: var(--success); }
-    .badge.inactive { background: var(--danger-light); color: var(--danger); }
+    .badge.active   { background: var(--success-light); color: var(--success); }
+    .badge.inactive  { background: var(--danger-light); color: var(--danger); }
+    .badge.role      { background: var(--primary-light); color: var(--primary); }
+    .badge.admin     { background: #f3e8ff; color: #7c3aed; }
 
     .actions { display: flex; gap: 4px; }
     .btn-icon {
@@ -257,6 +255,7 @@
     .btn-danger:hover { background: #dc2626; }
     .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
     .btn-ghost:hover { background: var(--bg); color: var(--text); }
+    .btn-sm { padding: 5px 10px; font-size: 11px; }
 
     /* ── Search ── */
     .search-box { position: relative; width: 240px; }
@@ -272,6 +271,21 @@
       color: var(--text-muted); font-size: 13px; pointer-events: none;
     }
 
+    /* ── Select ── */
+    .field select, select.form-select {
+      width: 100%; padding: 9px 12px;
+      border: 2px solid var(--border); border-radius: 8px;
+      font-size: 13px; font-family: 'Vazirmatn', sans-serif;
+      outline: none; transition: border 0.2s;
+      background: #fff; color: var(--text);
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: left 12px center;
+      padding-left: 30px;
+    }
+    .field select:focus, select.form-select:focus { border-color: var(--primary); }
+
     /* ── Modal ── */
     .modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.4);
@@ -281,7 +295,7 @@
     .modal-overlay.open { display: flex; }
     .modal {
       background: var(--card); border-radius: 16px;
-      width: 520px; max-width: 100%; max-height: 90vh;
+      width: 580px; max-width: 100%; max-height: 90vh;
       overflow-y: auto; box-shadow: var(--shadow-lg);
       animation: modalIn 0.25s ease;
     }
@@ -309,6 +323,7 @@
     }
     .field input:focus, .field textarea:focus { border-color: var(--primary); }
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 
     /* ── Service Toggle ── */
     .service-list { display: flex; flex-direction: column; gap: 10px; }
@@ -346,6 +361,47 @@
     .toggle input:checked + .toggle-slider { background: var(--success); }
     .toggle input:checked + .toggle-slider::before { right: 21px; }
 
+    /* ── Permissions Grid ── */
+    .perms-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    }
+    .perm-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 12px; background: #fafafa;
+      border-radius: 8px; border: 2px solid transparent;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .perm-item:hover { background: #f0f0f0; }
+    .perm-item.checked { border-color: var(--primary); background: var(--primary-light); }
+    .perm-item input[type="checkbox"] {
+      width: 16px; height: 16px; accent-color: var(--primary);
+      flex-shrink: 0; cursor: pointer;
+    }
+    .perm-item label {
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      margin: 0; color: var(--text);
+    }
+
+    /* ── Pagination ── */
+    .pagination {
+      display: flex; align-items: center; justify-content: center;
+      gap: 4px; padding: 14px;
+      border-top: 1px solid var(--border);
+    }
+    .pagination button {
+      min-width: 32px; height: 32px;
+      border: 1px solid var(--border); border-radius: 7px;
+      background: #fff; cursor: pointer;
+      font-size: 12px; font-weight: 700;
+      font-family: 'Vazirmatn', sans-serif;
+      color: var(--text); transition: all 0.15s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .pagination button:hover { background: var(--bg); }
+    .pagination button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .pagination-info { font-size: 11px; color: var(--text-muted); padding: 0 8px; }
+
     /* ── Toast ── */
     .toast-container {
       position: fixed; top: 16px; left: 16px; z-index: 2000;
@@ -366,7 +422,6 @@
     .empty-state .ico { font-size: 36px; margin-bottom: 10px; }
     .empty-state p { font-size: 12px; }
 
-    /* ── Sidebar Overlay (mobile) ── */
     .sidebar-overlay {
       display: none; position: fixed; inset: 0;
       background: rgba(0,0,0,0.4); z-index: 90;
@@ -375,6 +430,7 @@
     /* ── Responsive ── */
     @media (max-width: 1200px) {
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .perms-grid { grid-template-columns: repeat(2, 1fr); }
     }
     @media (max-width: 768px) {
       .sidebar { transform: translateX(100%); }
@@ -388,10 +444,12 @@
       .stat-card { padding: 14px; }
       .stat-ico { width: 36px; height: 36px; font-size: 16px; }
       .stat-value { font-size: 16px; }
-      .field-row { grid-template-columns: 1fr; }
+      .field-row, .field-row-3 { grid-template-columns: 1fr; }
       .search-box { width: 100%; }
       .card-header-actions { width: 100%; }
       .service-item { flex-wrap: wrap; gap: 8px; }
+      .tabs { width: 100%; overflow-x: auto; }
+      .perms-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 480px) {
       .stats-grid { grid-template-columns: 1fr; }
@@ -484,7 +542,6 @@
 
   <!-- ═══ Main ═══ -->
   <div class="main">
-    <!-- ═══ Top Bar ═══ -->
     <div class="top-bar">
       <div class="top-bar-right">
         <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
@@ -500,61 +557,114 @@
       </div>
     </div>
 
-    <!-- ═══ Content ═══ -->
     <div class="main-content">
       <!-- ═══ Stats ═══ -->
       <div class="stats-grid" id="stats-grid"></div>
 
-      <!-- ═══ Tenants ═══ -->
-      <div class="card">
-        <div class="card-header">
-          <h2>🏢 رستوران‌ها</h2>
-          <div class="card-header-actions">
-            <div class="search-box">
-              <input type="text" id="search-input" placeholder="جستجوی رستوران، مالک، تلفن..." oninput="filterTenants(this.value)">
-              <span class="search-ico">🔍</span>
+      <!-- ═══ Tabs ═══ -->
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('tenants')">🏢 رستوران‌ها</button>
+        <button class="tab-btn" onclick="switchTab('users')">👥 کاربران</button>
+      </div>
+
+      <!-- ═══ TAB: Tenants ═══ -->
+      <div class="tab-panel active" id="panel-tenants">
+        <div class="card">
+          <div class="card-header">
+            <h2>🏢 رستوران‌ها</h2>
+            <div class="card-header-actions">
+              <div class="search-box">
+                <input type="text" id="search-input" placeholder="جستجوی رستوران..." oninput="filterTenants(this.value)">
+                <span class="search-ico">🔍</span>
+              </div>
+              <button class="btn btn-primary" onclick="openAddTenantModal()">+ رستوران جدید</button>
             </div>
-            <button class="btn btn-primary" onclick="openAddModal()">+ رستوران جدید</button>
+          </div>
+          <div class="card-body flush">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th><th>نام رستوران</th><th>مالک</th><th>تلفن</th>
+                    <th>سرویس‌ها</th><th>درآمد ماهانه</th><th>وضعیت</th><th>عملیات</th>
+                  </tr>
+                </thead>
+                <tbody id="tenants-body"></tbody>
+              </table>
+            </div>
+            <div class="empty-state" id="tenants-empty" style="display:none;">
+              <div class="ico">🏢</div><p>هنوز رستورانی ثبت نشده</p>
+            </div>
           </div>
         </div>
-        <div class="card-body flush">
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th><th>نام رستوران</th><th>مالک</th><th>تلفن</th>
-                  <th>سرویس‌ها</th><th>درآمد ماهانه</th><th>وضعیت</th><th>عملیات</th>
-                </tr>
-              </thead>
-              <tbody id="tenants-body"></tbody>
-            </table>
+
+        <!-- Services Panel -->
+        <div class="card" id="services-panel" style="display:none;">
+          <div class="card-header">
+            <h2 id="services-title">⚙️ سرویس‌ها</h2>
+            <button class="btn btn-success" onclick="saveTenantServices()">💾 ذخیره تغییرات</button>
           </div>
-          <div class="empty-state" id="tenants-empty" style="display:none;">
-            <div class="ico">🏢</div><p>هنوز رستورانی ثبت نشده — دکمه «+ رستوران جدید» بزنید</p>
+          <div class="card-body">
+            <div class="service-list" id="services-list"></div>
           </div>
         </div>
       </div>
 
-      <!-- ═══ Services ═══ -->
-      <div class="card" id="services-panel" style="display:none;">
-        <div class="card-header">
-          <h2 id="services-title">⚙️ سرویس‌ها</h2>
-          <button class="btn btn-success" onclick="saveTenantServices()">💾 ذخیره تغییرات</button>
-        </div>
-        <div class="card-body">
-          <div class="service-list" id="services-list"></div>
+      <!-- ═══ TAB: Users ═══ -->
+      <div class="tab-panel" id="panel-users">
+        <div class="card">
+          <div class="card-header">
+            <h2>👥 کاربران سیستم</h2>
+            <div class="card-header-actions">
+              <div class="search-box">
+                <input type="text" id="user-search-input" placeholder="جستجوی کاربر..." oninput="debounceUserSearch()">
+                <span class="search-ico">🔍</span>
+              </div>
+              <select id="user-filter-restaurant" class="form-select" style="width:180px;padding:7px 12px;font-size:12px;" onchange="loadUsers(1)">
+                <option value="">همه رستوران‌ها</option>
+              </select>
+              <select id="user-filter-role" class="form-select" style="width:140px;padding:7px 12px;font-size:12px;" onchange="loadUsers(1)">
+                <option value="">همه نقش‌ها</option>
+                <option value="owner">مالک</option>
+                <option value="manager">مدیر</option>
+                <option value="cashier">صندوقدار</option>
+                <option value="kitchen">آشپزخانه</option>
+                <option value="warehouse">انباردار</option>
+                <option value="customer">مشتری</option>
+              </select>
+              <button class="btn btn-primary" onclick="openAddUserModal()">+ کاربر جدید</button>
+            </div>
+          </div>
+          <div class="card-body flush">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th><th>نام کاربری</th><th>نام</th><th>موبایل</th>
+                    <th>نقش</th><th>رستوران</th><th>وضعیت</th><th>دسترسی‌ها</th><th>عملیات</th>
+                  </tr>
+                </thead>
+                <tbody id="users-body"></tbody>
+              </table>
+            </div>
+            <div class="empty-state" id="users-empty" style="display:none;">
+              <div class="ico">👥</div><p>کاربری یافت نشد</p>
+            </div>
+            <div class="pagination" id="users-pagination"></div>
+          </div>
         </div>
       </div>
+
     </div>
   </div>
 </div>
 
-<!-- ═══ Modal: Add/Edit ═══ -->
+<!-- ═══ Modal: Add/Edit Tenant ═══ -->
 <div class="modal-overlay" id="tenant-modal">
   <div class="modal">
     <div class="modal-header">
-      <h3 id="modal-title">رستوران جدید</h3>
-      <button class="modal-close" onclick="closeModal()">&times;</button>
+      <h3 id="tenant-modal-title">رستوران جدید</h3>
+      <button class="modal-close" onclick="closeTenantModal()">&times;</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="edit-tenant-id">
@@ -571,25 +681,128 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-primary" onclick="saveTenant()">💾 ذخیره</button>
-      <button class="btn btn-ghost" onclick="closeModal()">انصراف</button>
+      <button class="btn btn-ghost" onclick="closeTenantModal()">انصراف</button>
     </div>
   </div>
 </div>
 
-<!-- ═══ Modal: Delete ═══ -->
-<div class="modal-overlay" id="delete-modal">
+<!-- ═══ Modal: Delete Tenant ═══ -->
+<div class="modal-overlay" id="delete-tenant-modal">
   <div class="modal" style="width:380px;">
     <div class="modal-header">
-      <h3>تأیید حذف</h3>
-      <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+      <h3>تأیید حذف رستوران</h3>
+      <button class="modal-close" onclick="closeDeleteTenantModal()">&times;</button>
     </div>
     <div class="modal-body">
       <p style="font-size:13px;">آیا از حذف <strong id="delete-tenant-name"></strong> مطمئن هستید؟</p>
       <p style="font-size:11px;color:var(--text-muted);margin-top:6px;">این عمل غیرقابل بازگشت است.</p>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-danger" onclick="confirmDelete()">🗑️ حذف</button>
-      <button class="btn btn-ghost" onclick="closeDeleteModal()">انصراف</button>
+      <button class="btn btn-danger" onclick="confirmDeleteTenant()">🗑️ حذف</button>
+      <button class="btn btn-ghost" onclick="closeDeleteTenantModal()">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Modal: Add/Edit User ═══ -->
+<div class="modal-overlay" id="user-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="user-modal-title">کاربر جدید</h3>
+      <button class="modal-close" onclick="closeUserModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-user-id">
+      <div class="field-row">
+        <div class="field"><label>نام کاربری *</label><input type="text" id="u-username" placeholder="username"></div>
+        <div class="field"><label>رمز عبور *</label><input type="password" id="u-password" placeholder="رمز عبور"></div>
+      </div>
+      <div class="field-row-3">
+        <div class="field"><label>نام</label><input type="text" id="u-first-name" placeholder="علی"></div>
+        <div class="field"><label>نام خانوادگی</label><input type="text" id="u-last-name" placeholder="محمدی"></div>
+        <div class="field"><label>موبایل</label><input type="text" id="u-phone" placeholder="09123456789"></div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>نقش *</label>
+          <select id="u-role">
+            <option value="">انتخاب نقش...</option>
+            <option value="owner">مالک</option>
+            <option value="manager">مدیر</option>
+            <option value="cashier">صندوقدار</option>
+            <option value="kitchen">آشپزخانه</option>
+            <option value="warehouse">انباردار</option>
+            <option value="customer">مشتری</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>رستوران *</label>
+          <select id="u-restaurant"></select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field" style="display:flex;align-items:center;gap:8px;padding-top:20px;">
+          <label class="toggle">
+            <input type="checkbox" id="u-is-active" checked>
+            <span class="toggle-slider"></span>
+          </label>
+          <span style="font-size:12px;font-weight:700;">فعال</span>
+        </div>
+        <div class="field" style="display:flex;align-items:center;gap:8px;padding-top:20px;">
+          <label class="toggle">
+            <input type="checkbox" id="u-is-approved" checked>
+            <span class="toggle-slider"></span>
+          </label>
+          <span style="font-size:12px;font-weight:700;">تأیید مدیر</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveUser()">💾 ذخیره</button>
+      <button class="btn btn-ghost" onclick="closeUserModal()">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Modal: User Permissions ═══ -->
+<div class="modal-overlay" id="perms-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="perms-modal-title">دسترسی‌ها</h3>
+      <button class="modal-close" onclick="closePermsModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:11px;color:var(--text-muted);margin-bottom:16px;">
+        دسترسی‌های سفارشی برای این کاربر. اگر هیچ موردی انتخاب نشود، دسترسی‌های پیش‌فرض نقش اعمال می‌شود.
+      </p>
+      <div class="perms-grid" id="perms-grid"></div>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <button class="btn btn-sm btn-ghost" onclick="selectAllPerms()">انتخاب همه</button>
+        <button class="btn btn-sm btn-ghost" onclick="clearAllPerms()">حذف همه</button>
+        <button class="btn btn-sm btn-ghost" onclick="resetToRolePerms()">پیش‌فرض نقش</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="saveUserPermissions()">💾 ذخیره دسترسی‌ها</button>
+      <button class="btn btn-ghost" onclick="closePermsModal()">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ Modal: Delete User ═══ -->
+<div class="modal-overlay" id="delete-user-modal">
+  <div class="modal" style="width:380px;">
+    <div class="modal-header">
+      <h3>تأیید حذف کاربر</h3>
+      <button class="modal-close" onclick="closeDeleteUserModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;">آیا از حذف کاربر <strong id="delete-user-name"></strong> مطمئن هستید؟</p>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:6px;">این عمل غیرقابل بازگشت است.</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger" onclick="confirmDeleteUser()">🗑️ حذف</button>
+      <button class="btn btn-ghost" onclick="closeDeleteUserModal()">انصراف</button>
     </div>
   </div>
 </div>
@@ -597,8 +810,51 @@
 <div class="toast-container" id="toast-container"></div>
 
 <script>
-var state = { tenants: [], services: [], selectedTenantId: null, tenantServices: [], deleteTargetId: null };
+// ═══════════════════════════════════════
+//  State
+// ═══════════════════════════════════════
+var state = {
+  tenants: [],
+  services: [],
+  selectedTenantId: null,
+  tenantServices: [],
+  deleteTenantTargetId: null,
+  users: [],
+  usersPage: 1,
+  usersPages: 1,
+  usersTotal: 0,
+  deleteUserTargetId: null,
+  permsUserId: null,
+  permsUserName: '',
+};
 
+var DASHBOARD_SECTIONS = [
+  {code:'pos',             label:'صندوق فروش'},
+  {code:'orders',          label:'سفارشات'},
+  {code:'kitchen',         label:'آشپزخانه'},
+  {code:'recipes',         label:'رسپی‌ها'},
+  {code:'invoices',        label:'فاکتور خرید'},
+  {code:'raw_materials',   label:'مواد اولیه'},
+  {code:'semi_finished',   label:'نیمه‌آماده'},
+  {code:'ready_materials', label:'مواد آماده'},
+  {code:'usage_log',       label:'لاگ مصرف'},
+  {code:'dictionary',      label:'دیکشنری'},
+  {code:'loyalty',         label:'باشگاه مشتریان'},
+  {code:'users',           label:'مدیریت کاربران'},
+];
+
+var ROLES = {
+  owner:     'مالک',
+  manager:   'مدیر',
+  cashier:   'صندوقدار',
+  kitchen:   'آشپزخانه',
+  warehouse: 'انباردار',
+  customer:  'مشتری',
+};
+
+// ═══════════════════════════════════════
+//  Utilities
+// ═══════════════════════════════════════
 function getCookie(n){var v=null;document.cookie.split(';').forEach(function(c){c=c.trim();if(c.startsWith(n+'='))v=decodeURIComponent(c.slice(n.length+1))});return v}
 var CSRF=function(){return getCookie('csrftoken')||''};
 
@@ -619,41 +875,72 @@ function toggleSidebar(){
   document.getElementById('sidebar-overlay').classList.toggle('open');
 }
 
-// ── Load ──
+var _userSearchTimer = null;
+function debounceUserSearch(){
+  clearTimeout(_userSearchTimer);
+  _userSearchTimer = setTimeout(function(){ loadUsers(1); }, 300);
+}
+
+// ═══════════════════════════════════════
+//  Tabs
+// ═══════════════════════════════════════
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach(function(b,i){
+    b.classList.toggle('active', i === (name==='users'?1:0));
+  });
+  document.getElementById('panel-tenants').classList.toggle('active', name==='tenants');
+  document.getElementById('panel-users').classList.toggle('active', name==='users');
+  if(name==='users' && !state.users.length) loadUsers(1);
+}
+
+// ═══════════════════════════════════════
+//  Load Data
+// ═══════════════════════════════════════
 async function loadStats(){
-  var r=await apiFetch('/api/super/stats/');
+  var r = await apiFetch('/api/super/stats/');
   if(r.ok){
-    var d=r.data;
-    document.getElementById('stats-grid').innerHTML=
+    var d = r.data;
+    document.getElementById('stats-grid').innerHTML =
       '<div class="stat-card"><div class="stat-ico blue">🏢</div><div><div class="stat-value">'+d.total_tenants+'</div><div class="stat-label">رستوران</div></div></div>'
-      +'<div class="stat-card"><div class="stat-ico green">📦</div><div><div class="stat-value">'+d.total_active_services+'</div><div class="stat-label">سرویس فعال</div></div></div>'
+      +'<div class="stat-card"><div class="stat-ico green">👥</div><div><div class="stat-value">'+d.total_users+'</div><div class="stat-label">کاربر فعال</div></div></div>'
       +'<div class="stat-card"><div class="stat-ico orange">💰</div><div><div class="stat-value">'+formatPrice(d.total_monthly_revenue)+'</div><div class="stat-label">درآمد ماهانه (تومان)</div></div></div>'
       +'<div class="stat-card"><div class="stat-ico red">⚠️</div><div><div class="stat-value">'+d.expiring_soon+'</div><div class="stat-label">در حال انقضا</div></div></div>';
   }
 }
 
 async function loadTenants(){
-  var r=await apiFetch('/api/super/tenants/');
-  if(r.ok){state.tenants=r.data.tenants||[];renderTenants()}
+  var r = await apiFetch('/api/super/tenants/');
+  if(r.ok){
+    state.tenants = r.data.tenants || [];
+    renderTenants();
+    populateRestaurantFilter();
+  }
 }
 
 async function loadServices(){
-  var r=await apiFetch('/api/super/services/');
-  if(r.ok)state.services=r.data.services||[];
+  var r = await apiFetch('/api/super/services/');
+  if(r.ok) state.services = r.data.services || [];
 }
 
-function loadAll(){loadStats();loadTenants();loadServices()}
+function loadAll(){
+  loadStats();
+  loadTenants();
+  loadServices();
+  if(document.getElementById('panel-users').classList.contains('active')) loadUsers(1);
+}
 
-// ── Render ──
+// ═══════════════════════════════════════
+//  Render Tenants
+// ═══════════════════════════════════════
 function renderTenants(list){
-  var data=list||state.tenants;
-  var tbody=document.getElementById('tenants-body');
-  var empty=document.getElementById('tenants-empty');
+  var data = list || state.tenants;
+  var tbody = document.getElementById('tenants-body');
+  var empty = document.getElementById('tenants-empty');
   if(!data.length){tbody.innerHTML='';empty.style.display='block';return}
   empty.style.display='none';
-  var h='';
+  var h = '';
   data.forEach(function(t,i){
-    h+='<tr data-id="'+t.id+'" onclick="loadTenantServices('+t.id+')" style="cursor:pointer;">'
+    h += '<tr data-id="'+t.id+'" onclick="loadTenantServices('+t.id+')" style="cursor:pointer;">'
       +'<td>'+(i+1)+'</td>'
       +'<td><strong>'+escHtml(t.name)+'</strong></td>'
       +'<td>'+escHtml(t.owner_name)+'</td>'
@@ -662,16 +949,16 @@ function renderTenants(list){
       +'<td>'+formatPrice(t.monthly_revenue)+' ت</td>'
       +'<td><span class="badge '+(t.is_active?'active':'inactive')+'">'+(t.is_active?'فعال':'غیرفعال')+'</span></td>'
       +'<td class="actions" onclick="event.stopPropagation();">'
-        +'<button class="btn-icon" title="ویرایش" onclick="openEditModal('+t.id+')">✏️</button>'
+        +'<button class="btn-icon" title="ویرایش" onclick="openEditTenantModal('+t.id+')">✏️</button>'
         +'<button class="btn-icon" title="سرویس‌ها" onclick="loadTenantServices('+t.id+')">⚙️</button>'
-        +'<button class="btn-icon" title="حذف" onclick="openDeleteModal('+t.id+',\''+escHtml(t.name)+'\')">🗑️</button>'
+        +'<button class="btn-icon" title="حذف" onclick="openDeleteTenantModal('+t.id+',\''+escHtml(t.name)+'\')">🗑️</button>'
       +'</td></tr>';
   });
-  tbody.innerHTML=h;
+  tbody.innerHTML = h;
 }
 
 function filterTenants(q){
-  q=q.trim().toLowerCase();
+  q = q.trim().toLowerCase();
   if(!q){renderTenants();return}
   renderTenants(state.tenants.filter(function(t){
     return t.name.toLowerCase().includes(q)||t.owner_name.toLowerCase().includes(q)||(t.phone||'').includes(q);
@@ -679,8 +966,8 @@ function filterTenants(q){
 }
 
 async function loadTenantServices(tid){
-  state.selectedTenantId=tid;
-  var r=await apiFetch('/api/super/tenants/'+tid+'/services/');
+  state.selectedTenantId = tid;
+  var r = await apiFetch('/api/super/tenants/'+tid+'/services/');
   if(r.ok){state.tenantServices=r.data.services||[];renderTenantServices(r.data.tenant_name)}
   document.querySelectorAll('#tenants-body tr').forEach(function(tr){tr.classList.toggle('selected',tr.dataset.id==tid)});
 }
@@ -688,39 +975,41 @@ async function loadTenantServices(tid){
 function renderTenantServices(name){
   document.getElementById('services-panel').style.display='block';
   document.getElementById('services-title').textContent='⚙️ سرویس‌های: '+name;
-  var h='';
+  var h = '';
   state.tenantServices.forEach(function(s){
-    h+='<div class="service-item '+(s.is_enabled?'enabled':'')+'" id="svc-'+s.service_id+'">'
+    h += '<div class="service-item '+(s.is_enabled?'enabled':'')+'" id="svc-'+s.service_id+'">'
       +'<div class="service-icon">'+s.icon+'</div>'
       +'<div class="service-info"><div class="service-name">'+escHtml(s.label)+'</div><div class="service-desc">'+escHtml(s.description||s.code)+'</div></div>'
       +'<div class="service-price"><input type="number" id="price-'+s.service_id+'" value="'+s.price+'" min="0" step="10000"><span>تومان/ماه</span></div>'
       +'<label class="toggle"><input type="checkbox" id="toggle-'+s.service_id+'" '+(s.is_enabled?'checked':'')+' onchange="onToggle('+s.service_id+')"><span class="toggle-slider"></span></label>'
     +'</div>';
   });
-  document.getElementById('services-list').innerHTML=h;
+  document.getElementById('services-list').innerHTML = h;
   document.getElementById('services-panel').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 function onToggle(sid){
-  var c=document.getElementById('toggle-'+sid).checked;
-  var el=document.getElementById('svc-'+sid);
+  var c = document.getElementById('toggle-'+sid).checked;
+  var el = document.getElementById('svc-'+sid);
   if(c)el.classList.add('enabled');else el.classList.remove('enabled');
 }
 
-// ── CRUD ──
-function openAddModal(){
-  document.getElementById('modal-title').textContent='رستوران جدید';
+// ═══════════════════════════════════════
+//  Tenant CRUD
+// ═══════════════════════════════════════
+function openAddTenantModal(){
+  document.getElementById('tenant-modal-title').textContent='رستوران جدید';
   document.getElementById('edit-tenant-id').value='';
   ['f-name','f-owner-username','f-owner-password','f-owner-name','f-phone','f-address'].forEach(function(id){document.getElementById(id).value=''});
   document.getElementById('f-owner-username').disabled=false;
   document.getElementById('tenant-modal').classList.add('open');
 }
 
-async function openEditModal(id){
-  var r=await apiFetch('/api/super/tenants/'+id+'/');
+async function openEditTenantModal(id){
+  var r = await apiFetch('/api/super/tenants/'+id+'/');
   if(!r.ok){toast('خطا','error');return}
-  var t=r.data;
-  document.getElementById('modal-title').textContent='ویرایش: '+t.name;
+  var t = r.data;
+  document.getElementById('tenant-modal-title').textContent='ویرایش: '+t.name;
   document.getElementById('edit-tenant-id').value=t.id;
   document.getElementById('f-name').value=t.name;
   document.getElementById('f-owner-username').value=t.owner_name;
@@ -732,37 +1021,337 @@ async function openEditModal(id){
   document.getElementById('tenant-modal').classList.add('open');
 }
 
-function closeModal(){document.getElementById('tenant-modal').classList.remove('open')}
+function closeTenantModal(){document.getElementById('tenant-modal').classList.remove('open')}
 
 async function saveTenant(){
-  var id=document.getElementById('edit-tenant-id').value;
-  var body={name:document.getElementById('f-name').value.trim(),owner_username:document.getElementById('f-owner-username').value.trim(),owner_password:document.getElementById('f-owner-password').value,owner_name:document.getElementById('f-owner-name').value.trim(),phone:document.getElementById('f-phone').value.trim(),address:document.getElementById('f-address').value.trim()};
+  var id = document.getElementById('edit-tenant-id').value;
+  var body = {
+    name: document.getElementById('f-name').value.trim(),
+    owner_username: document.getElementById('f-owner-username').value.trim(),
+    owner_password: document.getElementById('f-owner-password').value,
+    owner_name: document.getElementById('f-owner-name').value.trim(),
+    phone: document.getElementById('f-phone').value.trim(),
+    address: document.getElementById('f-address').value.trim()
+  };
   if(!body.name){toast('نام رستوران الزامی است','error');return}
   var r;
   if(id){r=await apiFetch('/api/super/tenants/'+id+'/',{method:'PUT',body:JSON.stringify(body)})}
   else{if(!body.owner_username){toast('نام کاربری مالک الزامی است','error');return}r=await apiFetch('/api/super/tenants/',{method:'POST',body:JSON.stringify(body)})}
-  if(r.ok){toast(id?'ویرایش شد':'رستوران ثبت شد','success');closeModal();loadAll()}else{toast(r.data.error||'خطا','error')}
+  if(r.ok){toast(id?'ویرایش شد':'رستوران ثبت شد','success');closeTenantModal();loadAll()}else{toast(r.data.error||'خطا','error')}
 }
 
-function openDeleteModal(id,name){state.deleteTargetId=id;document.getElementById('delete-tenant-name').textContent=name;document.getElementById('delete-modal').classList.add('open')}
-function closeDeleteModal(){document.getElementById('delete-modal').classList.remove('open')}
-async function confirmDelete(){
-  var r=await apiFetch('/api/super/tenants/'+state.deleteTargetId+'/',{method:'DELETE'});
-  if(r.ok){toast('حذف شد','success');closeDeleteModal();state.selectedTenantId=null;document.getElementById('services-panel').style.display='none';loadAll()}else{toast('خطا','error')}
+function openDeleteTenantModal(id,name){
+  state.deleteTenantTargetId=id;
+  document.getElementById('delete-tenant-name').textContent=name;
+  document.getElementById('delete-tenant-modal').classList.add('open');
+}
+function closeDeleteTenantModal(){document.getElementById('delete-tenant-modal').classList.remove('open')}
+async function confirmDeleteTenant(){
+  var r = await apiFetch('/api/super/tenants/'+state.deleteTenantTargetId+'/',{method:'DELETE'});
+  if(r.ok){toast('حذف شد','success');closeDeleteTenantModal();state.selectedTenantId=null;document.getElementById('services-panel').style.display='none';loadAll()}else{toast('خطا','error')}
 }
 
 async function saveTenantServices(){
   if(!state.selectedTenantId)return;
-  var svcs=[];
+  var svcs = [];
   state.tenantServices.forEach(function(s){
-    var t=document.getElementById('toggle-'+s.service_id);
-    var p=document.getElementById('price-'+s.service_id);
+    var t = document.getElementById('toggle-'+s.service_id);
+    var p = document.getElementById('price-'+s.service_id);
     svcs.push({service_id:s.service_id,is_enabled:t?t.checked:false,price:p?parseInt(p.value)||0:0});
   });
-  var r=await apiFetch('/api/super/tenants/'+state.selectedTenantId+'/services/',{method:'POST',body:JSON.stringify({services:svcs})});
+  var r = await apiFetch('/api/super/tenants/'+state.selectedTenantId+'/services/',{method:'POST',body:JSON.stringify({services:svcs})});
   if(r.ok){toast('سرویس‌ها ذخیره شد','success');loadStats();loadTenants()}else{toast(r.data.error||'خطا','error')}
 }
 
+// ═══════════════════════════════════════
+//  Users — Load & Render
+// ═══════════════════════════════════════
+function populateRestaurantFilter(){
+  var sel = document.getElementById('user-filter-restaurant');
+  var val = sel.value;
+  sel.innerHTML = '<option value="">همه رستوران‌ها</option>';
+  state.tenants.forEach(function(t){
+    sel.innerHTML += '<option value="'+t.id+'">'+escHtml(t.name)+'</option>';
+  });
+  sel.value = val;
+}
+
+function populateRestaurantSelect(){
+  var sel = document.getElementById('u-restaurant');
+  sel.innerHTML = '<option value="">انتخاب رستوران...</option>';
+  state.tenants.forEach(function(t){
+    sel.innerHTML += '<option value="'+t.id+'">'+escHtml(t.name)+'</option>';
+  });
+}
+
+async function loadUsers(page){
+  state.usersPage = page || 1;
+  var search = document.getElementById('user-search-input').value.trim();
+  var restaurantId = document.getElementById('user-filter-restaurant').value;
+  var role = document.getElementById('user-filter-role').value;
+
+  var url = '/api/super/users/?page='+state.usersPage+'&page_size=15';
+  if(search) url += '&search='+encodeURIComponent(search);
+  if(restaurantId) url += '&restaurant_id='+restaurantId;
+
+  var r = await apiFetch(url);
+  if(!r.ok) return;
+
+  var users = r.data.users || [];
+
+  // Client-side role filter
+  if(role){
+    users = users.filter(function(u){ return u.role === role; });
+  }
+
+  state.users = users;
+  state.usersPages = r.data.pages || 1;
+  state.usersTotal = r.data.total || 0;
+  renderUsers();
+  renderUsersPagination();
+}
+
+function renderUsers(){
+  var tbody = document.getElementById('users-body');
+  var empty = document.getElementById('users-empty');
+  var data = state.users;
+
+  if(!data.length){tbody.innerHTML='';empty.style.display='block';return}
+  empty.style.display='none';
+
+  var h = '';
+  var start = (state.usersPage - 1) * 15;
+  data.forEach(function(u,i){
+    var roleBadge = u.is_superuser
+      ? '<span class="badge admin">مدیر کل</span>'
+      : '<span class="badge role">'+escHtml(u.role_display || ROLES[u.role] || u.role)+'</span>';
+
+    var statusBadge = u.is_active
+      ? '<span class="badge active">فعال</span>'
+      : '<span class="badge inactive">غیرفعال</span>';
+
+    var permsCount = (u.effective_permissions || []).length;
+    var permsBadge = u.is_superuser
+      ? '<span class="badge admin">همه</span>'
+      : '<span class="badge role">'+permsCount+' بخش</span>';
+
+    h += '<tr>'
+      +'<td>'+(start+i+1)+'</td>'
+      +'<td><strong>'+escHtml(u.username)+'</strong>'+(u.is_superuser?' ⭐':'')+'</td>'
+      +'<td>'+escHtml((u.first_name+' '+u.last_name).trim()||'—')+'</td>'
+      +'<td>'+escHtml(u.phone_number||'—')+'</td>'
+      +'<td>'+roleBadge+'</td>'
+      +'<td>'+escHtml(u.restaurant_name||'—')+'</td>'
+      +'<td>'+statusBadge+'</td>'
+      +'<td>'+permsBadge+'</td>'
+      +'<td class="actions">'
+        +'<button class="btn-icon" title="ویرایش" onclick="openEditUserModal('+u.id+')">✏️</button>'
+        +'<button class="btn-icon" title="دسترسی‌ها" onclick="openPermsModal('+u.id+',\''+escHtml(u.username)+'\')">🔐</button>'
+        +(!u.is_superuser?'<button class="btn-icon" title="حذف" onclick="openDeleteUserModal('+u.id+',\''+escHtml(u.username)+'\')">🗑️</button>':'')
+      +'</td></tr>';
+  });
+  tbody.innerHTML = h;
+}
+
+function renderUsersPagination(){
+  var container = document.getElementById('users-pagination');
+  if(state.usersPages <= 1){container.innerHTML='';return}
+
+  var h = '';
+  h += '<button '+(state.usersPage<=1?'disabled':'')+' onclick="loadUsers('+(state.usersPage-1)+')">‹</button>';
+  for(var p=1;p<=state.usersPages;p++){
+    if(state.usersPages > 7 && Math.abs(p-state.usersPage)>2 && p!==1 && p!==state.usersPages){
+      if(p===2||p===state.usersPages-1) h += '<span class="pagination-info">...</span>';
+      continue;
+    }
+    h += '<button class="'+(p===state.usersPage?'active':'')+'" onclick="loadUsers('+p+')">'+p+'</button>';
+  }
+  h += '<button '+(state.usersPage>=state.usersPages?'disabled':'')+' onclick="loadUsers('+(state.usersPage+1)+')">›</button>';
+  h += '<span class="pagination-info">('+state.usersTotal+' کاربر)</span>';
+  container.innerHTML = h;
+}
+
+// ═══════════════════════════════════════
+//  User CRUD
+// ═══════════════════════════════════════
+function openAddUserModal(){
+  document.getElementById('user-modal-title').textContent = 'کاربر جدید';
+  document.getElementById('edit-user-id').value = '';
+  document.getElementById('u-username').value = '';
+  document.getElementById('u-username').disabled = false;
+  document.getElementById('u-password').value = '';
+  document.getElementById('u-password').placeholder = 'رمز عبور';
+  document.getElementById('u-first-name').value = '';
+  document.getElementById('u-last-name').value = '';
+  document.getElementById('u-phone').value = '';
+  document.getElementById('u-role').value = '';
+  document.getElementById('u-is-active').checked = true;
+  document.getElementById('u-is-approved').checked = true;
+  populateRestaurantSelect();
+  document.getElementById('u-restaurant').value = '';
+  document.getElementById('user-modal').classList.add('open');
+}
+
+async function openEditUserModal(id){
+  var r = await apiFetch('/api/super/users/'+id+'/');
+  if(!r.ok){toast('خطا','error');return}
+  var u = r.data;
+  document.getElementById('user-modal-title').textContent = 'ویرایش: '+u.username;
+  document.getElementById('edit-user-id').value = u.id;
+  document.getElementById('u-username').value = u.username;
+  document.getElementById('u-username').disabled = true;
+  document.getElementById('u-password').value = '';
+  document.getElementById('u-password').placeholder = 'خالی = بدون تغییر';
+  document.getElementById('u-first-name').value = u.first_name;
+  document.getElementById('u-last-name').value = u.last_name;
+  document.getElementById('u-phone').value = u.phone_number;
+  document.getElementById('u-role').value = u.role;
+  document.getElementById('u-is-active').checked = u.is_active;
+  document.getElementById('u-is-approved').checked = u.is_approved;
+  populateRestaurantSelect();
+  document.getElementById('u-restaurant').value = u.restaurant_id || '';
+  document.getElementById('user-modal').classList.add('open');
+}
+
+function closeUserModal(){document.getElementById('user-modal').classList.remove('open')}
+
+async function saveUser(){
+  var id = document.getElementById('edit-user-id').value;
+  var username = document.getElementById('u-username').value.trim();
+  var password = document.getElementById('u-password').value;
+  var role = document.getElementById('u-role').value;
+  var restaurantId = document.getElementById('u-restaurant').value;
+
+  if(!username){toast('نام کاربری الزامی است','error');return}
+  if(!id && !password){toast('رمز عبور الزامی است','error');return}
+  if(!role){toast('نقش الزامی است','error');return}
+  if(!restaurantId){toast('رستوران الزامی است','error');return}
+
+  var body = {
+    username: username,
+    first_name: document.getElementById('u-first-name').value.trim(),
+    last_name: document.getElementById('u-last-name').value.trim(),
+    phone_number: document.getElementById('u-phone').value.trim(),
+    role: role,
+    restaurant_id: parseInt(restaurantId),
+    is_active: document.getElementById('u-is-active').checked,
+    is_approved: document.getElementById('u-is-approved').checked,
+  };
+  if(password) body.password = password;
+
+  var r;
+  if(id){
+    r = await apiFetch('/api/super/users/'+id+'/',{method:'PUT',body:JSON.stringify(body)});
+  } else {
+    r = await apiFetch('/api/super/users/create/',{method:'POST',body:JSON.stringify(body)});
+  }
+
+  if(r.ok){
+    toast(id?'کاربر ویرایش شد':'کاربر ساخته شد','success');
+    closeUserModal();
+    loadUsers(state.usersPage);
+    loadStats();
+  } else {
+    toast(r.data.error||'خطا','error');
+  }
+}
+
+function openDeleteUserModal(id, name){
+  state.deleteUserTargetId = id;
+  document.getElementById('delete-user-name').textContent = name;
+  document.getElementById('delete-user-modal').classList.add('open');
+}
+function closeDeleteUserModal(){document.getElementById('delete-user-modal').classList.remove('open')}
+async function confirmDeleteUser(){
+  var r = await apiFetch('/api/super/users/'+state.deleteUserTargetId+'/',{method:'DELETE'});
+  if(r.ok){
+    toast('کاربر حذف شد','success');
+    closeDeleteUserModal();
+    loadUsers(state.usersPage);
+    loadStats();
+  } else {
+    toast(r.data.error||'خطا','error');
+  }
+}
+
+// ═══════════════════════════════════════
+//  User Permissions
+// ═══════════════════════════════════════
+function openPermsModal(userId, userName){
+  state.permsUserId = userId;
+  state.permsUserName = userName;
+  document.getElementById('perms-modal-title').textContent = 'دسترسی‌های: '+userName;
+
+  // Find user in state
+  var user = null;
+  state.users.forEach(function(u){ if(u.id===userId) user=u; });
+
+  var effective = (user && user.effective_permissions) || [];
+  var custom = (user && user.dashboard_permissions) || [];
+
+  var h = '';
+  DASHBOARD_SECTIONS.forEach(function(s){
+    var checked = custom.length > 0 ? custom.indexOf(s.code) >= 0 : effective.indexOf(s.code) >= 0;
+    h += '<div class="perm-item '+(checked?'checked':'')+'" id="perm-'+s.code+'" onclick="togglePerm(\''+s.code+'\')">'
+      +'<input type="checkbox" id="perm-cb-'+s.code+'" '+(checked?'checked':'')+'>'
+      +'<label>'+escHtml(s.label)+'</label>'
+    +'</div>';
+  });
+  document.getElementById('perms-grid').innerHTML = h;
+  document.getElementById('perms-modal').classList.add('open');
+}
+
+function closePermsModal(){document.getElementById('perms-modal').classList.remove('open')}
+
+function togglePerm(code){
+  var cb = document.getElementById('perm-cb-'+code);
+  cb.checked = !cb.checked;
+  document.getElementById('perm-'+code).classList.toggle('checked', cb.checked);
+}
+
+function selectAllPerms(){
+  DASHBOARD_SECTIONS.forEach(function(s){
+    document.getElementById('perm-cb-'+s.code).checked = true;
+    document.getElementById('perm-'+s.code).classList.add('checked');
+  });
+}
+
+function clearAllPerms(){
+  DASHBOARD_SECTIONS.forEach(function(s){
+    document.getElementById('perm-cb-'+s.code).checked = false;
+    document.getElementById('perm-'+s.code).classList.remove('checked');
+  });
+}
+
+function resetToRolePerms(){
+  // Just clear all — backend will use role defaults when list is empty
+  clearAllPerms();
+  toast('با ذخیره خالی، دسترسی‌های پیش‌فرض نقش اعمال می‌شود','success');
+}
+
+async function saveUserPermissions(){
+  var perms = [];
+  DASHBOARD_SECTIONS.forEach(function(s){
+    if(document.getElementById('perm-cb-'+s.code).checked) perms.push(s.code);
+  });
+
+  var r = await apiFetch('/api/super/users/'+state.permsUserId+'/permissions/',{
+    method:'PUT',
+    body:JSON.stringify({dashboard_permissions:perms})
+  });
+
+  if(r.ok){
+    toast('دسترسی‌ها ذخیره شد','success');
+    closePermsModal();
+    loadUsers(state.usersPage);
+  } else {
+    toast(r.data.error||'خطا','error');
+  }
+}
+
+// ═══════════════════════════════════════
+//  Init
+// ═══════════════════════════════════════
 document.addEventListener('DOMContentLoaded',function(){loadAll()});
 </script>
 </body>

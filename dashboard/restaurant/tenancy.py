@@ -1,12 +1,11 @@
 """
 Multi-tenant infrastructure — Shared database with tenant column
 
-★ تغییرات نسبت به نسخه قبل:
-  ۱. get_restaurant_from_request: import داخلی اصلاح شد (avoid circular)
-  ۲. TenantMiddleware: مدیریت بهتر API views بدون user
-  ۳. use_for_related_fields deprecated → حذف شد
-  ۴. TenantModel.save(): بهبود پیام خطا
-  ۵. اضافه شدن __all__ برای export تمیز
+★ نسخه v7 — اصلاح شده
+
+★ v7 تغییرات:
+  ۱. AllObjectsManager برگردانده شد (در models.py استفاده میشه)
+  ۲. TenantManager حذف شده باقی میموند
 """
 
 import threading
@@ -19,11 +18,12 @@ logger = logging.getLogger(__name__)
 _context = threading.local()
 
 __all__ = [
-    'get_current_restaurant', 'set_current_restaurant', 'clear_current_restaurant',
+    'get_current_restaurant', 'set_current_restaurant',
+    'clear_current_restaurant',
     'get_restaurant_from_request',
     'TenantMiddleware',
-    'TenantManager', 'AllObjectsManager',
     'TenantModel',
+    'AllObjectsManager',
 ]
 
 
@@ -47,15 +47,29 @@ def clear_current_restaurant():
 
 
 # ═══════════════════════════════════════
+#  AllObjectsManager — دسترسی بدون فیلتر tenant
+# ═══════════════════════════════════════
+
+class AllObjectsManager(models.Manager):
+    """
+    Manager ساده که فیلتر tenant اعمال نمیکنه.
+    برای مواردی مثل signal‌ها که باید بدون فیلتر دسترسی داشته باشن.
+    """
+    def get_queryset(self):
+        return super().get_queryset()
+
+
+# ═══════════════════════════════════════
 #  Resolve restaurant from request
 # ═══════════════════════════════════════
 
 def get_restaurant_from_request(request):
     """
-    استخراج رستوران از request — ۳ روش:
+    استخراج رستوران از request — ۲ روش:
       ۱. FK مستقیم user.restaurant
-      ۲. M2M user.restaurants
-      ۳. Fallback برای staff/superuser (اولین رستوران فعال)
+      ۲. M2M user.restaurants (اولین فعال)
+
+    ★ FIXED: fallback staff/superuser حذف شد — خطرناک بود
     """
     if not hasattr(request, 'user') or not request.user.is_authenticated:
         return None
@@ -72,34 +86,22 @@ def get_restaurant_from_request(request):
         if r:
             return r
 
-    # ۳. Staff/Superuser fallback
-    if user.is_staff or user.is_superuser:
-        # ★ FIXED: از app config استفاده می‌کنیم نه import سخت
-        try:
-            from .models import Restaurant
-            r = Restaurant.objects.filter(is_active=True).first()
-            if r:
-                return r
-        except ImportError:
-            logger.warning('Restaurant model not found for superuser fallback')
-
     return None
 
 
 # ═══════════════════════════════════════
-#  ★★★ Middleware ★★★
+#  Middleware
 # ═══════════════════════════════════════
 
 class TenantMiddleware:
     """
-    تنظیم خودکار رستوران از request.user
-
-    ★ الگوی save/restore — همیشه مقدار قبلی برگردانده می‌شود
-      تا در nested context (مثلاً view → service → model) مشکلی پیش نیاید.
+    تنظیم خودکار رستوران از request.user.
+    ★ الگوی save/restore — همیشه مقدار قبلی برگردانده می‌شود.
     """
 
-    # مسیرهایی که نیاز به tenant ندارند
-    SKIP_PATHS = ('/static/', '/media/', '/admin/jsi18n/', '/favicon.ico')
+    SKIP_PATHS = (
+        '/static/', '/media/', '/admin/jsi18n/', '/favicon.ico',
+    )
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -107,53 +109,23 @@ class TenantMiddleware:
     def __call__(self, request):
         path = request.path
 
-        # skip مسیرهای static
         if any(path.startswith(p) for p in self.SKIP_PATHS):
             return self.get_response(request)
 
-        # ★ ذخیره مقدار فعلی (برای restore)
         prev = getattr(_context, 'restaurant', None)
 
         try:
-            # ★ تلاش برای تنظیم از request
             restaurant = get_restaurant_from_request(request)
             if restaurant:
                 set_current_restaurant(restaurant)
+            else:
+                clear_current_restaurant()
 
             response = self.get_response(request)
             return response
 
         finally:
-            # ★★★ کلید اصلی: همیشه مقدار قبلی رو برگردون ★★★
-            # نه clear! نه شرطی! فقط restore.
             _context.restaurant = prev
-
-
-# ═══════════════════════════════════════
-#  Managers
-# ═══════════════════════════════════════
-
-class TenantManager(models.Manager):
-    """
-    Manager پیش‌فرض — فیلتر بر اساس restaurant فعلی.
-    اگر restaurant تنظیم نشده باشد، queryset بدون فیلتر برمی‌گردد.
-    """
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        restaurant = get_current_restaurant()
-        if restaurant:
-            return qs.filter(restaurant=restaurant)
-        return qs
-
-
-class AllObjectsManager(models.Manager):
-    """
-    Manager بدون فیلتر — برای دسترسی به تمام رکوردها (ادمین، migration و...)
-    """
-
-    def get_queryset(self):
-        return super().get_queryset()
 
 
 # ═══════════════════════════════════════
@@ -164,21 +136,15 @@ class TenantModel(models.Model):
     """
     مدل پایه برای تمام مدل‌های multi-tenant.
 
-    - restaurant FK الزامی
-    - اگر هنگام save ست نشده باشد، از context فعلی خوانده می‌شود
-    - اگر context هم خالی باشد، ValueError می‌دهد
+    ★ فقط save() بررسی میکنه که restaurant ست شده باشه
 
     Usage:
         class Category(TenantModel):
             name = models.CharField(max_length=200)
 
-        # در view/service:
-        category = Category(name='پیتزا')  # restaurant خودکار ست می‌شود
-        category.save()
-
-        # یا صریح:
-        category = Category(name='پیتزا', restaurant=my_restaurant)
-        category.save()
+        # در view:
+        restaurant = _resolve_restaurant(request)
+        categories = Category.objects.filter(restaurant=restaurant)
     """
 
     restaurant = models.ForeignKey(
@@ -189,16 +155,8 @@ class TenantModel(models.Model):
         db_index=True,
     )
 
-    # Manager پیش‌فرض: فیلتر بر اساس tenant فعلی
-    objects = TenantManager()
-
-    # Manager دوم: دسترسی بدون فیلتر (برای ادمین و...)
-    all_objects = AllObjectsManager()
-
     class Meta:
         abstract = True
-        # Django 4.1+: این manager پیش‌فرض related objects باشد
-        # manager_inheritance_from_future = True
 
     def save(self, *args, **kwargs):
         if not self.restaurant_id:
@@ -207,7 +165,9 @@ class TenantModel(models.Model):
                 self.restaurant = restaurant
             else:
                 raise ValueError(
-                    f"{self.__class__.__name__}.save(): restaurant مشخص نشده. "
-                    f"یا restaurant= بدهید یا set_current_restaurant() صدا بزنید."
+                    f"{self.__class__.__name__}.save(): "
+                    f"restaurant مشخص نشده. "
+                    f"یا restaurant= بدهید "
+                    f"یا set_current_restaurant() صدا بزنید."
                 )
         super().save(*args, **kwargs)

@@ -1,16 +1,10 @@
 """
-All DRF ModelViewSets (★ نسخه اصلاح‌شده v3)
+All DRF ModelViewSets (★ نسخه v4 — اصلاح شده)
 
-★ تغییرات نسبت به نسخه قبل:
-  ۱. OrderViewSet: permission_classes=[] حذف → IsAuthenticated
-  ۲. تمام ViewSet‌ها: فیلتر restaurant در get_queryset
-  ۳. _resolve_restaurant اضافه شد
-  ۴. MembershipLevelViewSet.seed: restaurant پارامتر
-  ۵. OrderViewSet.create: restaurant= اضافه شد
-  ۶. CustomerViewSet: فیلتر restaurant
-  ۷. CouponViewSet: فیلتر restaurant
-  ۸. RewardViewSet: فیلتر restaurant
-  ۹. جلوگیری از دستکاری قیمت توسط کلاینت (حفظ شده)
+★ v4 تغییرات:
+  ۱. تمام ViewSet‌ها فیلتر restaurant دارن
+  ۲. RewardViewSet.redeem_action: از self.get_object() استفاده میکنه
+  ۳. OrderViewSet.create: final_price = 0 درست هندل میشه
 """
 
 import logging
@@ -87,7 +81,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Category.objects.all()
 
-        # ★ FIXED: فیلتر restaurant
         restaurant = _resolve_restaurant(self.request)
         if restaurant:
             qs = qs.filter(restaurant=restaurant)
@@ -108,7 +101,6 @@ class FoodViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Food.objects.select_related("category").all()
 
-        # ★ FIXED: فیلتر restaurant
         restaurant = _resolve_restaurant(self.request)
         if restaurant:
             qs = qs.filter(restaurant=restaurant)
@@ -157,12 +149,11 @@ class ReservationViewSet(viewsets.ModelViewSet):
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  3. ORDERS — ★ قیمت از دیتابیس خوانده می‌شود
+#  3. ORDERS
 # ═══════════════════════════════════════════════════════════════════
 
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
-    # ★ FIXED: permission_classes خالی نباشد
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -171,7 +162,6 @@ class OrderViewSet(viewsets.ModelViewSet):
         if restaurant:
             qs = qs.filter(restaurant=restaurant)
 
-        # فیلترها
         status_filter = self.request.query_params.get("status")
         if status_filter:
             qs = qs.filter(status=status_filter)
@@ -204,7 +194,7 @@ class OrderViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        # ★ قیمت از دیتابیس — نه از کلاینت
+        # قیمت از دیتابیس — نه از کلاینت
         food_ids = [item.get("food") for item in items_data if item.get("food")]
         foods_map = {
             f.id: f for f in Food.objects.filter(id__in=food_ids, restaurant=restaurant)
@@ -239,7 +229,9 @@ class OrderViewSet(viewsets.ModelViewSet):
             for item in items_data:
                 food = foods_map[item["food"]]
                 qty = int(item["quantity"])
-                price = int(getattr(food, "final_price", None) or food.price)
+                # ★ FIXED: final_price = 0 درست هندل میشه
+                fp = getattr(food, "final_price", None)
+                price = int(fp if fp is not None else food.price)
                 total_price += price * qty
                 OrderItem.objects.create(
                     restaurant=restaurant,
@@ -269,11 +261,18 @@ class OrderViewSet(viewsets.ModelViewSet):
             order.status = new_status
             order.save(update_fields=["status"])
         else:
-            # بروزرسانی فیلدهای دیگر
+            update_fields = []
             for field in ("customer_name", "phone", "notes"):
                 if field in request.data:
                     setattr(order, field, request.data[field])
-            order.save()
+                    update_fields.append(field)
+            if update_fields:
+                order.save(update_fields=update_fields)
+            else:
+                return Response(
+                    {"error": "فیلدی برای بروزرسانی ارسال نشد."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         return Response(OrderSerializer(order).data)
 
@@ -319,13 +318,20 @@ class ReadyMaterialViewSet(viewsets.ModelViewSet):
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  5. MEMBERSHIP LEVEL
+#  5. MEMBERSHIP LEVEL — ★ FIXED: فیلتر restaurant
 # ═══════════════════════════════════════════════════════════════════
 
 class MembershipLevelViewSet(viewsets.ModelViewSet):
-    queryset = MembershipLevel.objects.all()
     serializer_class = MembershipLevelSerializer
     permission_classes = [IsAuthenticated]
+
+    # ★ FIXED: queryset مستقیم → get_queryset با فیلتر
+    def get_queryset(self):
+        qs = MembershipLevel.objects.all()
+        restaurant = _resolve_restaurant(self.request)
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
+        return qs
 
     @action(detail=False, methods=["post"], url_path="seed")
     def seed(self, request):
@@ -608,7 +614,7 @@ class CouponViewSet(viewsets.ModelViewSet):
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  8. REWARDS
+#  8. REWARDS — ★ FIXED: redeem_action از self.get_object()
 # ═══════════════════════════════════════════════════════════════════
 
 class RewardViewSet(viewsets.ModelViewSet):
@@ -642,8 +648,10 @@ class RewardViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="redeem")
     def redeem_action(self, request, pk=None):
-        reward_obj = Reward.objects.filter(pk=pk).first()
-        if not reward_obj:
+        # ★ FIXED: از self.get_object() استفاده میکنه (فیلتر restaurant اعمال میشه)
+        try:
+            reward_obj = self.get_object()
+        except Exception:
             return Response(
                 {"error": "جایزه یافت نشد."},
                 status=status.HTTP_404_NOT_FOUND,
@@ -682,26 +690,34 @@ class RewardViewSet(viewsets.ModelViewSet):
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  9. REFERRALS
+#  9. REFERRALS — ★ FIXED: فیلتر restaurant
 # ═══════════════════════════════════════════════════════════════════
 
 class ReferralViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Referral.objects.select_related("referrer", "referred").all()
     serializer_class = ReferralSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = Referral.objects.select_related("referrer", "referred").all()
+
+        restaurant = _resolve_restaurant(self.request)
+        if restaurant:
+            qs = qs.filter(
+                Q(referrer__restaurant=restaurant) |
+                Q(referred__restaurant=restaurant),
+            )
+
         phone = self.request.query_params.get("phone")
         if phone:
             qs = qs.filter(
                 Q(referrer__phone=phone) | Q(referred__phone=phone),
             )
+
         return qs
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  10. NOTIFICATIONS
+#  10. NOTIFICATIONS — ★ FIXED: فیلتر restaurant
 # ═══════════════════════════════════════════════════════════════════
 
 class NotificationViewSet(viewsets.ModelViewSet):
@@ -710,6 +726,11 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = LoyaltyNotification.objects.all()
+
+        # ★ FIXED: فیلتر restaurant
+        restaurant = _resolve_restaurant(self.request)
+        if restaurant:
+            qs = qs.filter(customer__restaurant=restaurant)
 
         phone = self.request.query_params.get("phone")
         if phone:
@@ -734,7 +755,12 @@ class NotificationViewSet(viewsets.ModelViewSet):
             request.data.get("phone")
             or request.headers.get("X-Customer-Phone")
         )
+
+        # ★ FIXED: فیلتر restaurant در mark-read هم
         qs = LoyaltyNotification.objects.filter(is_read=False)
+        restaurant = _resolve_restaurant(request)
+        if restaurant:
+            qs = qs.filter(customer__restaurant=restaurant)
         if phone:
             qs = qs.filter(customer__phone=phone)
 
@@ -753,7 +779,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  11. LOYALTY TRANSACTIONS & REDEMPTIONS
+#  11. LOYALTY TRANSACTIONS & REDEMPTIONS — ★ FIXED: فیلتر restaurant
 # ═══════════════════════════════════════════════════════════════════
 
 class LoyaltyTransactionViewSet(viewsets.ReadOnlyModelViewSet):
@@ -762,12 +788,20 @@ class LoyaltyTransactionViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         qs = LoyaltyTransaction.objects.select_related("customer").all()
+
+        # ★ FIXED: فیلتر restaurant
+        restaurant = _resolve_restaurant(self.request)
+        if restaurant:
+            qs = qs.filter(customer__restaurant=restaurant)
+
         phone = self.request.query_params.get("phone")
         if phone:
             qs = qs.filter(customer__phone=phone)
+
         ttype = self.request.query_params.get("type")
         if ttype:
             qs = qs.filter(transaction_type=ttype)
+
         return qs.order_by("-created_at")
 
 
@@ -779,7 +813,14 @@ class RewardRedemptionViewSet(viewsets.ReadOnlyModelViewSet):
         qs = RewardRedemption.objects.select_related(
             "customer", "reward",
         ).all()
+
+        # ★ FIXED: فیلتر restaurant
+        restaurant = _resolve_restaurant(self.request)
+        if restaurant:
+            qs = qs.filter(customer__restaurant=restaurant)
+
         phone = self.request.query_params.get("phone")
         if phone:
             qs = qs.filter(customer__phone=phone)
+
         return qs.order_by("-created_at")

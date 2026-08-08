@@ -1,17 +1,10 @@
 """
 Warehouse, Raw Materials, Suppliers, Ready Materials API.
 
-★ تغییرات نسبت به نسخه قبل:
-  ۱. @staff_member_required → @api_view + @permission_classes (DRF)
-  ۲. @csrf_protect / @require_POST → حذف (DRF خودش مدیریت می‌کند)
-  ۳. request.POST → request.data
-  ۴. request.restaurant → _resolve_restaurant(request)
-  ۵. تمام create/save: restaurant= اضافه شد
-  ۶. تمام query‌ها: فیلتر restaurant اضافه شد
-  ۷. ready_material_save: consume_quantity تکراری حذف شد
-  ۸. supplier_save: restaurant= اضافه شد
-  ۹. usage_log_json/detail: فیلتر restaurant
-  ۱۰. helpers.py حذف نشده — فقط import اصلاح شد
+★ نسخه v5 — اصلاح شده
+  - تمام get_object_or_404 → فیلتر restaurant
+  - ready_material_save/delete: atomic + F()
+  - convert_to_ready_material: atomic
 """
 
 import json as json_module
@@ -19,6 +12,7 @@ import logging
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
+from django.db.models import F
 from django.http import HttpRequest, JsonResponse
 from django.shortcuts import get_object_or_404
 
@@ -43,12 +37,20 @@ from .helpers import (
     _read_file_rows, _extract_items_from_rows,
     _merge_warehouse_data,
 )
+from .decorators import make_service_permission
 
 logger = logging.getLogger(__name__)
 
 
 # ═══════════════════════════════════════
-#  resolve restaurant — fallback
+#  Permissions
+# ═══════════════════════════════════════
+
+InventoryPerm = make_service_permission('inventory')
+
+
+# ═══════════════════════════════════════
+#  resolve restaurant
 # ═══════════════════════════════════════
 
 def _resolve_restaurant(request):
@@ -63,7 +65,6 @@ def _resolve_restaurant(request):
 
 
 def _safe_int(val, default=0):
-    """تبدیل امن به int"""
     try:
         return int(float(val or 0))
     except (ValueError, TypeError, InvalidOperation):
@@ -71,7 +72,6 @@ def _safe_int(val, default=0):
 
 
 def _safe_decimal(val, default='0'):
-    """تبدیل امن به Decimal"""
     try:
         return Decimal(str(val or 0))
     except (ValueError, TypeError, InvalidOperation):
@@ -79,13 +79,30 @@ def _safe_decimal(val, default='0'):
 
 
 # ═══════════════════════════════════════
-#  ★★★ Raw Materials ★★★
+#  ★ helper: get with restaurant filter
+# ═══════════════════════════════════════
+
+def _get_restaurant_object(model, pk, restaurant):
+    """
+    دریافت آبجکت با فیلتر restaurant.
+    اگر restaurant نباشد، فقط pk فیلتر می‌شود.
+    """
+    qs = model.objects.all()
+    if restaurant:
+        qs = qs.filter(restaurant=restaurant)
+    try:
+        return qs.get(pk=pk)
+    except model.DoesNotExist:
+        return None
+
+
+# ═══════════════════════════════════════
+#  Raw Materials
 # ═══════════════════════════════════════
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, IsOwnerOrManagerOrWarehouseStaff])
+@permission_classes([InventoryPerm])
 def raw_material_save(request: HttpRequest):
-    """ایجاد / ویرایش ماده اولیه"""
     try:
         data = request.data
         pk = data.get("id")
@@ -103,7 +120,6 @@ def raw_material_save(request: HttpRequest):
                 status=400,
             )
 
-        # Auto-detect packaging from dictionary
         if material_type == "raw":
             dict_match = ItemDictionary.objects.filter(
                 restaurant=restaurant,
@@ -114,7 +130,6 @@ def raw_material_save(request: HttpRequest):
             if dict_match:
                 material_type = "packaging"
 
-        # Validation
         if not name:
             return JsonResponse(
                 {"success": False, "error": "نام کالا الزامی است."},
@@ -131,8 +146,14 @@ def raw_material_save(request: HttpRequest):
                 status=400,
             )
 
+        # ★ FIXED: فیلتر restaurant
         if pk:
-            mat = get_object_or_404(RawMaterial, pk=pk)
+            mat = _get_restaurant_object(RawMaterial, pk, restaurant)
+            if not mat:
+                return JsonResponse(
+                    {"success": False, "error": "ماده اولیه یافت نشد."},
+                    status=404,
+                )
             mat.name = name
             mat.label = label
             mat.price = price
@@ -166,9 +187,8 @@ def raw_material_save(request: HttpRequest):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, IsOwnerOrManagerOrWarehouseStaff])
+@permission_classes([InventoryPerm])
 def raw_material_delete(request: HttpRequest):
-    """حذف ماده اولیه"""
     try:
         pk = request.data.get("id")
         if not pk:
@@ -176,7 +196,17 @@ def raw_material_delete(request: HttpRequest):
                 {"success": False, "error": "شناسه ارسال نشد."},
                 status=400,
             )
-        mat = get_object_or_404(RawMaterial, pk=pk)
+
+        restaurant = _resolve_restaurant(request)
+
+        # ★ FIXED: فیلتر restaurant
+        mat = _get_restaurant_object(RawMaterial, pk, restaurant)
+        if not mat:
+            return JsonResponse(
+                {"success": False, "error": "ماده اولیه یافت نشد."},
+                status=404,
+            )
+
         name = mat.name
         mat.delete()
         return JsonResponse({"success": True, "msg": f"«{name}» حذف شد."})
@@ -186,9 +216,8 @@ def raw_material_delete(request: HttpRequest):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([InventoryPerm])
 def raw_material_suggestions(request: HttpRequest):
-    """جستجوی ماده اولیه — autocomplete"""
     query = request.GET.get("q", "").strip()
     restaurant = _resolve_restaurant(request)
 
@@ -208,13 +237,12 @@ def raw_material_suggestions(request: HttpRequest):
 
 
 # ═══════════════════════════════════════
-#  ★★★ Suppliers ★★★
+#  Suppliers
 # ═══════════════════════════════════════
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([InventoryPerm])
 def supplier_list(request: HttpRequest):
-    """لیست تأمین‌کنندگان"""
     restaurant = _resolve_restaurant(request)
     qs = Supplier.objects.all()
     if restaurant:
@@ -227,9 +255,8 @@ def supplier_list(request: HttpRequest):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([InventoryPerm])
 def supplier_suggestions(request: HttpRequest):
-    """جستجوی تأمین‌کننده — autocomplete"""
     query = request.GET.get("q", "").strip()
     restaurant = _resolve_restaurant(request)
 
@@ -250,9 +277,8 @@ def supplier_suggestions(request: HttpRequest):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, IsOwnerOrManager])
+@permission_classes([InventoryPerm])
 def supplier_save(request: HttpRequest):
-    """ایجاد / ویرایش تأمین‌کننده"""
     try:
         data = request.data
         sup_id = data.get("id")
@@ -271,8 +297,14 @@ def supplier_save(request: HttpRequest):
                 status=400,
             )
 
+        # ★ FIXED: فیلتر restaurant
         if sup_id:
-            supplier = get_object_or_404(Supplier, pk=sup_id)
+            supplier = _get_restaurant_object(Supplier, sup_id, restaurant)
+            if not supplier:
+                return JsonResponse(
+                    {"success": False, "error": "تأمین‌کننده یافت نشد."},
+                    status=404,
+                )
         else:
             supplier = Supplier(restaurant=restaurant)
 
@@ -298,9 +330,8 @@ def supplier_save(request: HttpRequest):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, IsOwnerOrManager])
+@permission_classes([InventoryPerm])
 def supplier_delete(request: HttpRequest):
-    """حذف تأمین‌کننده"""
     try:
         pk = request.data.get("id")
         if not pk:
@@ -308,7 +339,17 @@ def supplier_delete(request: HttpRequest):
                 {"success": False, "error": "شناسه ارسال نشد."},
                 status=400,
             )
-        sup = get_object_or_404(Supplier, pk=pk)
+
+        restaurant = _resolve_restaurant(request)
+
+        # ★ FIXED: فیلتر restaurant
+        sup = _get_restaurant_object(Supplier, pk, restaurant)
+        if not sup:
+            return JsonResponse(
+                {"success": False, "error": "تأمین‌کننده یافت نشد."},
+                status=404,
+            )
+
         name = sup.name
         sup.delete()
         return JsonResponse({"success": True, "msg": f"«{name}» حذف شد."})
@@ -318,13 +359,12 @@ def supplier_delete(request: HttpRequest):
 
 
 # ═══════════════════════════════════════
-#  ★★★ Warehouse ★★★
+#  Warehouse
 # ═══════════════════════════════════════
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([InventoryPerm])
 def warehouse_json(request: HttpRequest):
-    """لیست موجودی انبار"""
     restaurant = _resolve_restaurant(request)
     qs = RawMaterial.objects.all()
     if restaurant:
@@ -340,9 +380,8 @@ def warehouse_json(request: HttpRequest):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, IsOwnerOrManagerOrWarehouseStaff])
+@permission_classes([InventoryPerm])
 def parse_excel_file(request: HttpRequest):
-    """پارس فایل اکسل برای ورود کالا"""
     uploaded_file = request.FILES.get("file")
     if not uploaded_file:
         return JsonResponse(
@@ -384,13 +423,12 @@ def parse_excel_file(request: HttpRequest):
 
 
 # ═══════════════════════════════════════
-#  ★★★ Ready Materials ★★★
+#  Ready Materials — ★ FIXED: فیلتر + atomic + F()
 # ═══════════════════════════════════════
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, IsOwnerOrManagerOrWarehouseStaff])
+@permission_classes([InventoryPerm])
 def ready_material_save(request: HttpRequest):
-    """ایجاد / ویرایش کالای آماده"""
     try:
         data = request.data
         pk = data.get('id')
@@ -431,67 +469,103 @@ def ready_material_save(request: HttpRequest):
                 status=400,
             )
 
+        # ★ FIXED: فیلتر restaurant روی RawMaterial
         raw_mat = None
         if raw_material_id and consume_quantity > 0:
-            raw_mat = RawMaterial.objects.filter(pk=raw_material_id).first()
+            raw_mat = _get_restaurant_object(
+                RawMaterial, raw_material_id, restaurant,
+            )
             if not raw_mat:
                 return JsonResponse(
                     {'success': False, 'error': 'ماده اولیه یافت نشد.'},
                     status=404,
                 )
-            if raw_mat.quantity < consume_quantity:
-                return JsonResponse({
-                    'success': False,
-                    'error': f'موجودی «{raw_mat.name}» ({int(raw_mat.quantity)}) کمتر از مقدار مصرف ({int(consume_quantity)}) است.',
-                }, status=400)
 
-        if pk:
-            mat = get_object_or_404(ReadyMaterial, pk=pk)
+        # ★ FIXED: atomic
+        with transaction.atomic():
+            if pk:
+                # ★ FIXED: فیلتر restaurant
+                mat = _get_restaurant_object(ReadyMaterial, pk, restaurant)
+                if not mat:
+                    return JsonResponse(
+                        {'success': False, 'error': 'ماده آماده یافت نشد.'},
+                        status=404,
+                    )
 
-            # بازگردانی مصرف قبلی
-            old_raw = mat.source_raw_material
-            old_consume = mat.consume_quantity or Decimal('0')
-            if old_raw and old_consume > 0:
-                old_raw.quantity += old_consume
-                old_raw.save(update_fields=['quantity'])
+                old_raw = mat.source_raw_material
+                old_consume = mat.consume_quantity or Decimal('0')
+                if old_raw and old_consume > 0:
+                    # بازگردانی مقدار قبلی
+                    RawMaterial.objects.filter(pk=old_raw.pk).update(
+                        quantity=F('quantity') + old_consume,
+                    )
 
-            mat.name = name
-            mat.description = description
-            mat.unit = unit
-            mat.quantity = quantity
-            mat.purchase_price = purchase_price
-            mat.selling_price = selling_price
-            mat.minimum_stock = minimum_stock
-            mat.supplier_id = supplier_id
-            mat.barcode = barcode
-            mat.source_raw_material = raw_mat
-            mat.consume_quantity = consume_quantity if raw_mat else Decimal('0')
-            mat.category_id = category_id
-            mat.save()
+                mat.name = name
+                mat.description = description
+                mat.unit = unit
+                mat.quantity = quantity
+                mat.purchase_price = purchase_price
+                mat.selling_price = selling_price
+                mat.minimum_stock = minimum_stock
+                mat.supplier_id = supplier_id
+                mat.barcode = barcode
+                mat.source_raw_material = raw_mat
+                mat.consume_quantity = (
+                    consume_quantity if raw_mat else Decimal('0')
+                )
+                mat.category_id = category_id
+                mat.save()
 
-            # کسر مصرف جدید
-            if raw_mat and consume_quantity > 0:
-                raw_mat.quantity -= consume_quantity
-                raw_mat.save(update_fields=['quantity'])
+                if raw_mat and consume_quantity > 0:
+                    # بررسی موجودی بعد از بازگردانی
+                    raw_mat.refresh_from_db()
+                    if raw_mat.quantity < consume_quantity:
+                        raise ValueError(
+                            f'مexisting «{raw_mat.name}» کافی نیست. '
+                            f'حداکثر: {int(raw_mat.quantity)}'
+                        )
+                    RawMaterial.objects.filter(pk=raw_mat.pk).update(
+                        quantity=F('quantity') - consume_quantity,
+                    )
 
-            msg = 'ویرایش شد.'
-        else:
-            mat = ReadyMaterial.objects.create(
-                restaurant=restaurant,
-                name=name, description=description, unit=unit,
-                quantity=consume_quantity if raw_mat and consume_quantity > 0 else quantity,
-                purchase_price=purchase_price, selling_price=selling_price,
-                minimum_stock=minimum_stock, supplier_id=supplier_id,
-                barcode=barcode, source_raw_material=raw_mat,
-                consume_quantity=consume_quantity if raw_mat else Decimal('0'),
-                category_id=category_id,
-            )
+                msg = 'ویرایش شد.'
+            else:
+                if raw_mat and consume_quantity > 0:
+                    raw_mat.refresh_from_db()
+                    if raw_mat.quantity < consume_quantity:
+                        return JsonResponse({
+                            'success': False,
+                            'error': (
+                                f'موجودی «{raw_mat.name}» ({int(raw_mat.quantity)}) '
+                                f'کمتر از مقدار مصرف ({int(consume_quantity)}) است.'
+                            ),
+                        }, status=400)
 
-            if raw_mat and consume_quantity > 0:
-                raw_mat.quantity -= consume_quantity
-                raw_mat.save(update_fields=['quantity'])
+                    RawMaterial.objects.filter(pk=raw_mat.pk).update(
+                        quantity=F('quantity') - consume_quantity,
+                    )
 
-            msg = 'اضافه شد.'
+                mat = ReadyMaterial.objects.create(
+                    restaurant=restaurant,
+                    name=name, description=description, unit=unit,
+                    quantity=(
+                        consume_quantity
+                        if raw_mat and consume_quantity > 0
+                        else quantity
+                    ),
+                    purchase_price=purchase_price,
+                    selling_price=selling_price,
+                    minimum_stock=minimum_stock,
+                    supplier_id=supplier_id,
+                    barcode=barcode,
+                    source_raw_material=raw_mat,
+                    consume_quantity=(
+                        consume_quantity if raw_mat else Decimal('0')
+                    ),
+                    category_id=category_id,
+                )
+
+                msg = 'اضافه شد.'
 
         return JsonResponse({
             'success': True, 'msg': msg,
@@ -512,15 +586,19 @@ def ready_material_save(request: HttpRequest):
                 'stock_status': mat.stock_status,
             },
         })
+    except ValueError as exc:
+        return JsonResponse(
+            {'success': False, 'error': str(exc)},
+            status=400,
+        )
     except Exception as exc:
         logger.exception('Error saving ready material')
         return JsonResponse({'success': False, 'error': str(exc)}, status=500)
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, IsOwnerOrManagerOrWarehouseStaff])
+@permission_classes([InventoryPerm])
 def ready_material_delete(request: HttpRequest):
-    """حذف کالای آماده + بازگردانی ماده اولیه"""
     try:
         pk = request.data.get("id")
         if not pk:
@@ -529,16 +607,27 @@ def ready_material_delete(request: HttpRequest):
                 status=400,
             )
 
-        mat = get_object_or_404(ReadyMaterial, pk=pk)
+        restaurant = _resolve_restaurant(request)
+
+        # ★ FIXED: فیلتر restaurant
+        mat = _get_restaurant_object(ReadyMaterial, pk, restaurant)
+        if not mat:
+            return JsonResponse(
+                {"success": False, "error": "ماده آماده یافت نشد."},
+                status=404,
+            )
+
         name = mat.name
 
-        # بازگردانی ماده اولیه
-        if mat.source_raw_material and mat.consume_quantity > 0:
-            raw = mat.source_raw_material
-            raw.quantity += mat.consume_quantity
-            raw.save(update_fields=['quantity'])
+        # ★ FIXED: atomic
+        with transaction.atomic():
+            if mat.source_raw_material and mat.consume_quantity > 0:
+                RawMaterial.objects.filter(
+                    pk=mat.source_raw_material_id,
+                ).update(quantity=F('quantity') + mat.consume_quantity)
 
-        mat.delete()
+            mat.delete()
+
         return JsonResponse({"success": True, "msg": f"«{name}» حذف شد."})
     except Exception as exc:
         logger.exception("Error deleting ready material")
@@ -546,9 +635,8 @@ def ready_material_delete(request: HttpRequest):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, IsOwnerOrManagerOrWarehouseStaff])
+@permission_classes([InventoryPerm])
 def convert_to_ready_material(request: HttpRequest):
-    """تبدیل ماده اولیه به کالای آماده"""
     try:
         data = request.data
         raw_id = data.get("raw_material_id")
@@ -574,16 +662,28 @@ def convert_to_ready_material(request: HttpRequest):
                 status=400,
             )
 
-        raw_mat = get_object_or_404(RawMaterial, pk=raw_id)
-        if qty > raw_mat.quantity:
-            return JsonResponse({
-                "success": False,
-                "error": f"موجودی کافی نیست. حداکثر: {int(raw_mat.quantity)}",
-            }, status=400)
+        # ★ FIXED: فیلتر restaurant
+        raw_mat = _get_restaurant_object(RawMaterial, raw_id, restaurant)
+        if not raw_mat:
+            return JsonResponse(
+                {"success": False, "error": "ماده اولیه یافت نشد."},
+                status=404,
+            )
 
         with transaction.atomic():
-            raw_mat.quantity -= qty
-            raw_mat.save(update_fields=["quantity"])
+            # ★ FIXED: select_for_update + F()
+            raw_mat = RawMaterial.objects.select_for_update().get(
+                pk=raw_mat.pk,
+            )
+            if qty > raw_mat.quantity:
+                return JsonResponse({
+                    "success": False,
+                    "error": f"موجودی کافی نیست. حداکثر: {int(raw_mat.quantity)}",
+                }, status=400)
+
+            RawMaterial.objects.filter(pk=raw_mat.pk).update(
+                quantity=F('quantity') - qty,
+            )
 
             ready = ReadyMaterial.objects.create(
                 restaurant=restaurant,
@@ -610,7 +710,9 @@ def convert_to_ready_material(request: HttpRequest):
                 "selling_price": int(ready.selling_price),
                 "minimum_stock": float(ready.minimum_stock),
                 "supplier_id": ready.supplier_id,
-                "supplier_name": ready.supplier.name if ready.supplier else "",
+                "supplier_name": (
+                    ready.supplier.name if ready.supplier else ""
+                ),
                 "barcode": ready.barcode or "",
                 "total_value": int(ready.total_value),
                 "stock_status": ready.stock_status,
@@ -622,9 +724,8 @@ def convert_to_ready_material(request: HttpRequest):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated, IsOwnerOrManagerOrWarehouseStaff])
+@permission_classes([InventoryPerm])
 def ready_material_update_price(request: HttpRequest):
-    """بروزرسانی قیمت فروش کالای آماده"""
     try:
         data = request.data
         rm_id = data.get('id')
@@ -641,7 +742,16 @@ def ready_material_update_price(request: HttpRequest):
                 status=400,
             )
 
-        rm = get_object_or_404(ReadyMaterial, pk=rm_id)
+        restaurant = _resolve_restaurant(request)
+
+        # ★ FIXED: فیلتر restaurant
+        rm = _get_restaurant_object(ReadyMaterial, rm_id, restaurant)
+        if not rm:
+            return JsonResponse(
+                {'success': False, 'error': 'ماده آماده یافت نشد.'},
+                status=404,
+            )
+
         rm.selling_price = selling_price
         rm.save(update_fields=['selling_price'])
 
@@ -656,24 +766,22 @@ def ready_material_update_price(request: HttpRequest):
         })
     except Exception as exc:
         logger.exception('Error updating ready material price')
-        return JsonResponse({'success': False, 'error': str(exc)}, status=500)
+        return JsonResponse({"success": False, "error": str(exc)}, status=500)
 
 
 # ═══════════════════════════════════════
-#  ★★★ Usage Log API ★★★
+#  Usage Log API
 # ═══════════════════════════════════════
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([InventoryPerm])
 def usage_log_json(request: HttpRequest):
-    """لیست آخرین مصارف انبار"""
     restaurant = _resolve_restaurant(request)
     qs = InventoryUsageLog.objects.select_related("raw_material")
 
     if restaurant:
         qs = qs.filter(restaurant=restaurant)
 
-    # فیلترها
     material_id = request.GET.get("material_id")
     if material_id:
         qs = qs.filter(raw_material_id=material_id)
@@ -687,7 +795,10 @@ def usage_log_json(request: HttpRequest):
     data = [{
         "id": log.id,
         "material": log.raw_material.name if log.raw_material else '?',
-        "unit": log.raw_material.get_unit_display() if log.raw_material else '',
+        "unit": (
+            log.raw_material.get_unit_display()
+            if log.raw_material else ''
+        ),
         "quantity": str(log.quantity_used),
         "type": log.get_usage_type_display(),
         "type_key": log.usage_type,
@@ -699,9 +810,8 @@ def usage_log_json(request: HttpRequest):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([InventoryPerm])
 def usage_log_detail_json(request: HttpRequest):
-    """مصارف یک ماده خاص"""
     material_id = request.GET.get("material_id", "")
     restaurant = _resolve_restaurant(request)
 

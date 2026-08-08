@@ -1,13 +1,10 @@
 """
-Restaurant Management System — URLs (★ نسخه اصلاح‌شده v4)
+Restaurant Management System — URLs (★ نسخه اصلاح‌شده v5)
 
 ★ تغییرات نسبت به نسخه قبل:
-  ۱. api/recipes/materials/ → <int:pk>/ اضافه شد (recipe_materials_api pk می‌خواهد)
-  ۲. api/orders/list/ اضافه شد (order_list_api)
-  ۳. api/dictionary/recipe-materials/ اضافه شد (dictionary_recipe_materials_api)
-  ۴. import‌ها: از __init__.py سازگار شد
-  ۵. کامنتهای RTL فارسی حذف شد (encoding issues)
-  ۶. duplicate path برای public_menu_api حذف شد
+  ۱. super_user_create_api اضافه شد
+  ۲. super_user_detail_api اضافه شد
+  ۳. super_user_permissions_api اضافه شد
 """
 
 from django.urls import include, path
@@ -97,8 +94,6 @@ urlpatterns = [
     path("api/recipes/foods/suggest/",         views.food_suggestions_view,          name="food_suggestions"),
     path("api/recipes/raw-materials/suggest/", views.raw_material_suggestions_api,   name="recipe_raw_material_suggestions"),
     path("api/recipes/semi-finished/suggest/", views.semi_finished_suggestions_api,  name="semi_finished_suggestions"),
-
-    # ★ FIXED: recipe_materials_api needs <int:pk>
     path("api/recipes/<int:pk>/materials/",    views.recipe_materials_api,           name="recipe_materials"),
 
     # ── Dictionary ──────────────────────────────────────────
@@ -112,16 +107,10 @@ urlpatterns = [
     path("api/dictionary/semi-finished/",       views.dictionary_semi_finished,           name="dict_semi_finished"),
     path("api/dictionary/ready-materials/",     views.dictionary_ready_materials,         name="dict_ready_materials"),
     path("api/dictionary/food-menu/",           views.dictionary_food_menu,               name="dict_food_menu"),
-
-    # ★ NEW: recipe materials from dictionary (for recipe editor)
     path("api/dictionary/recipe-materials/",    views.dictionary_recipe_materials_api,    name="dict_recipe_materials"),
-
-    # Food CRUD from dictionary
     path("api/dictionary/food/create/",          views.dictionary_food_create,    name="dict_food_create"),
     path("api/dictionary/food/<int:pk>/update/", views.dictionary_food_update,    name="dict_food_update"),
     path("api/dictionary/food/<int:pk>/delete/", views.dictionary_food_delete,    name="dict_food_delete"),
-
-    # Dictionary Groups
     path("api/dictionary/groups/",              views.dictionary_group_list,      name="dictionary_group_list"),
     path("api/dictionary/groups/save/",         views.dictionary_group_save,      name="dictionary_group_save"),
     path("api/dictionary/groups/delete/",       views.dictionary_group_delete,    name="dictionary_group_delete"),
@@ -163,16 +152,10 @@ urlpatterns = [
     path("api/pos/close-report/<int:report_id>/", views.pos_close_report_detail, name="pos_close_report_detail"),
     path("api/pos/close-logs/",       views.pos_close_logs,        name="pos_close_logs"),
     path("api/pos/update-food-price/", views.pos_update_food_price, name="pos_update_food_price"),
-
-    # Public menu (single source — from pos.py)
     path("api/menu/",                              views.public_menu_api,            name="public_menu"),
-
-    # Online orders management
     path("api/pos/online-orders/",                  views.pos_online_orders,        name="pos_online_orders"),
     path("api/pos/confirm-online/<int:order_id>/",  views.pos_confirm_online_order, name="pos_confirm_online"),
     path("api/pos/reject-online/<int:order_id>/",   views.pos_reject_online_order,  name="pos_reject_online"),
-
-    # Online orders settings
     path("api/pos/online-orders-status/",    views.online_orders_status,   name="online_orders_status"),
     path("api/pos/toggle-online-orders/",    views.toggle_online_orders,   name="toggle_online_orders"),
 
@@ -181,9 +164,8 @@ urlpatterns = [
     path("api/card-reader/pay/",       views.send_to_card_reader,  name="card_reader_pay"),
     path("api/card-reader/cancel/",    views.cancel_card_payment,  name="card_reader_cancel"),
 
-    # ── Orders (function-based — more specific than router) ─
+    # ── Orders (function-based) ─────────────────────────────
 
-    # ★ NEW: order list with filters
     path("api/orders/list/",                   views.order_list_api,         name="order_list_api"),
     path("api/orders/<int:pk>/status/",        views.order_change_status,    name="order_change_status"),
     path("api/orders/<int:pk>/send-to-kitchen/", views.order_send_to_kitchen, name="order_send_to_kitchen"),
@@ -191,14 +173,17 @@ urlpatterns = [
 
     # ── Super Admin ─────────────────────────────────────────
 
-    path("api/super/login/",                        views.super_admin_login_api,     name="super_admin_login_api"),
-    path("api/super/logout/",                       views.super_admin_logout_api,    name="super_admin_logout_api"),
-    path("api/super/stats/",                        views.super_stats_api,           name="super_stats_api"),
-    path("api/super/tenants/",                      views.super_tenants_api,         name="super_tenants_api"),
-    path("api/super/tenants/<int:pk>/",             views.super_tenant_detail_api,   name="super_tenant_detail_api"),
-    path("api/super/tenants/<int:pk>/services/",    views.super_tenant_services_api, name="super_tenant_services_api"),
-    path("api/super/services/",                     views.super_services_list_api,   name="super_services_list_api"),
-    path("api/super/users/",                        views.super_users_api,           name="super_users_api"),
+    path("api/super/login/",                            views.super_admin_login_api,       name="super_admin_login_api"),
+    path("api/super/logout/",                           views.super_admin_logout_api,      name="super_admin_logout_api"),
+    path("api/super/stats/",                            views.super_stats_api,             name="super_stats_api"),
+    path("api/super/tenants/",                          views.super_tenants_api,           name="super_tenants_api"),
+    path("api/super/tenants/<int:pk>/",                 views.super_tenant_detail_api,     name="super_tenant_detail_api"),
+    path("api/super/tenants/<int:pk>/services/",        views.super_tenant_services_api,   name="super_tenant_services_api"),
+    path("api/super/services/",                         views.super_services_list_api,     name="super_services_list_api"),
+    path("api/super/users/",                            views.super_users_api,             name="super_users_api"),
+    path("api/super/users/create/",                     views.super_user_create_api,       name="super_user_create"),
+    path("api/super/users/<int:pk>/",                   views.super_user_detail_api,       name="super_user_detail"),
+    path("api/super/users/<int:pk>/permissions/",       views.super_user_permissions_api,  name="super_user_permissions"),
 
     # ── HTML Pages (Dashboard) ──────────────────────────────
 
@@ -206,6 +191,7 @@ urlpatterns = [
     path("dashboard/auth/",                             views.redirect_to_dashboard,         name="auth_redirect"),
     path("dashboard/app/",                              views.home,                          name="dashboard_app"),
     path("dashboard/logout/",                           views.logout_page,                   name="logout_page"),
+    path("dashboard/super/auth/",                       views.super_admin_auth_page,         name="super_admin_auth"),
     path("dashboard/super/",                            views.super_admin_page,              name="super_admin"),
     path("dashboard/invoices/",                         views.purchase_invoice_list,         name="invoice_list"),
     path("dashboard/invoices/create/",                  views.create_purchase_invoice,       name="create_invoice"),

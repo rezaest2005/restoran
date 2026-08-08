@@ -1,10 +1,11 @@
 """
-Dictionary Views — API مدیریت دیکشنری اسامی + گروه‌ها (★ نسخه اصلاح‌شده v5)
+Dictionary Views — API مدیریت دیکشنری اسامی + گروه‌ها (★ نسخه v7 — اصلاح شده)
 
-★ v5 تغییرات:
-  1. تمام endpoint‌ها → IsAuthenticated (همه کارمندها)
-  2. حذف IsOwnerOrManager از delete‌ها
-  3. import IsOwnerOrManager حذف شد
+★ v7 تغییرات:
+  - dictionary_update/delete: فیلتر restaurant
+  - dictionary_food_update/delete: فیلتر restaurant
+  - dictionary_list: فیلتر is_active
+  - dictionary_group_delete: هشدار حذف + لاگ
 """
 
 import logging
@@ -22,12 +23,20 @@ from ..tenancy import (
     get_current_restaurant, set_current_restaurant,
     get_restaurant_from_request,
 )
+from .decorators import make_service_permission
 
 logger = logging.getLogger(__name__)
 
 
 # ═══════════════════════════════════════
-#  resolve restaurant — fallback
+#  Permission
+# ═══════════════════════════════════════
+
+DictionaryPerm = make_service_permission('dictionary')
+
+
+# ═══════════════════════════════════════
+#  resolve restaurant
 # ═══════════════════════════════════════
 
 def _resolve_restaurant(request):
@@ -78,14 +87,13 @@ def _serialize_dict_item(item):
     }
 
 
-# ═══════════════════════════════════════════════════════════
+# ═══════════════════════════════════════
 #  API فاکتور خرید (تب‌ها + آیتم‌ها)
-# ═══════════════════════════════════════════════════════════
+# ═══════════════════════════════════════
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([DictionaryPerm])
 def raw_materials_api(request):
-    """آیتم‌های فاکتور خرید — گروه‌بندی شده با تب‌ها"""
     restaurant = _resolve_restaurant(request)
     if not restaurant:
         return JsonResponse({'tabs': [], 'items': []})
@@ -97,20 +105,15 @@ def raw_materials_api(request):
     )
 
     tabs = [{
-        'id': g.id,
-        'slug': g.slug,
-        'name': g.name,
-        'icon': g.icon,
-        'color': g.color,
+        'id': g.id, 'slug': g.slug, 'name': g.name,
+        'icon': g.icon, 'color': g.color,
     } for g in groups]
 
     items_qs = (
         ItemDictionary.objects
         .filter(
-            restaurant=restaurant,
-            is_active=True,
-            group__isnull=False,
-            group__is_active=True,
+            restaurant=restaurant, is_active=True,
+            group__isnull=False, group__is_active=True,
             group__usage_invoice=True,
         )
         .select_related('group')
@@ -118,9 +121,7 @@ def raw_materials_api(request):
     )
 
     items_data = [{
-        'id': item.id,
-        'name': item.name,
-        'unit': item.unit,
+        'id': item.id, 'name': item.name, 'unit': item.unit,
         'description': item.description or '',
         'dict_category': item.dict_category or '',
         'material_type': getattr(item, 'material_type', 'raw') or 'raw',
@@ -134,16 +135,14 @@ def raw_materials_api(request):
     return JsonResponse({'tabs': tabs, 'items': items_data})
 
 
-# ═══════════════════════════════════════════════════════════
+# ═══════════════════════════════════════
 #  Dictionary Group — CRUD
-# ═══════════════════════════════════════════════════════════
+# ═══════════════════════════════════════
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([DictionaryPerm])
 def dictionary_group_list(request):
-    """لیست گروه‌های دیکشنری"""
     restaurant = _resolve_restaurant(request)
-
     qs = DictionaryGroup.objects.filter(is_active=True)
     if restaurant:
         qs = qs.filter(restaurant=restaurant)
@@ -153,9 +152,8 @@ def dictionary_group_list(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([DictionaryPerm])
 def dictionary_group_save(request):
-    """ایجاد / ویرایش گروه دیکشنری"""
     data = request.data
     group_id = data.get('id')
     name = (data.get('name') or '').strip()
@@ -171,7 +169,6 @@ def dictionary_group_save(request):
 
     if not name:
         return JsonResponse({'error': 'نام گروه الزامی است'}, status=400)
-
     if not slug:
         slug = 'group_' + str(abs(hash(name)) % 0xFFFFFF)
 
@@ -234,9 +231,8 @@ def dictionary_group_save(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([DictionaryPerm])
 def dictionary_group_delete(request):
-    """حذف گروه + cascade آیتم‌ها"""
     group_id = request.data.get('id')
     if not group_id:
         return JsonResponse({'error': 'شناسه گروه الزامی است'}, status=400)
@@ -253,27 +249,34 @@ def dictionary_group_delete(request):
     if g.is_system:
         return JsonResponse({'error': 'گروه سیستمی قابل حذف نیست'}, status=400)
 
-    deleted_count = ItemDictionary.objects.filter(group=g).delete()[0]
-    name = g.name
+    deleted_count = ItemDictionary.objects.filter(group=g).count()
+    group_name = g.name
+
+    # ★ لاگ قبل از حذف
+    logger.info(
+        "Deleting group '%s' (id=%s) with %s items by user %s",
+        group_name, g.id, deleted_count, request.user.username,
+    )
+
+    ItemDictionary.objects.filter(group=g).delete()
     g.delete()
 
     return JsonResponse({
-        'message': f'گروه «{name}» و {deleted_count} آیتم حذف شد',
+        'message': f'گروه «{group_name}» و {deleted_count} آیتم حذف شد',
     })
 
 
-# ═══════════════════════════════════════════════════════════
+# ═══════════════════════════════════════
 #  Dictionary — آیتم‌ها CRUD
-# ═══════════════════════════════════════════════════════════
+# ═══════════════════════════════════════
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([DictionaryPerm])
 def dictionary_list(request):
-    """لیست آیتم‌های دیکشنری — با فیلتر دسته‌بندی"""
     restaurant = _resolve_restaurant(request)
     category = request.GET.get('category', '')
 
-    qs = ItemDictionary.objects.all()
+    qs = ItemDictionary.objects.filter(is_active=True)  # ★ FIXED: فیلتر is_active
     if restaurant:
         qs = qs.filter(restaurant=restaurant)
     if category:
@@ -284,9 +287,8 @@ def dictionary_list(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([DictionaryPerm])
 def dictionary_autocomplete(request):
-    """جستجوی آیتم دیکشنری — autocomplete"""
     q = request.GET.get('q', '').strip()
     category = request.GET.get('category', '')
 
@@ -306,9 +308,8 @@ def dictionary_autocomplete(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([DictionaryPerm])
 def dictionary_create(request):
-    """ایجاد آیتم دیکشنری جدید"""
     data = request.data
     name = (data.get('name') or '').strip()
     unit = (data.get('unit') or '').strip()
@@ -319,25 +320,16 @@ def dictionary_create(request):
     group_id = data.get('group_id')
 
     if not name or not unit or not category:
-        return JsonResponse(
-            {'error': 'نام، واحد و دسته‌بندی الزامی است'},
-            status=400,
-        )
+        return JsonResponse({'error': 'نام، واحد و دسته‌بندی الزامی است'}, status=400)
 
     restaurant = _resolve_restaurant(request)
     if not restaurant:
-        return JsonResponse(
-            {'error': 'رستوران مشخص نشده'},
-            status=400,
-        )
+        return JsonResponse({'error': 'رستوران مشخص نشده'}, status=400)
 
     if ItemDictionary.objects.filter(
         name=name, category=category, restaurant=restaurant,
     ).exists():
-        return JsonResponse(
-            {'error': 'این اسم قبلاً در این دسته‌بندی ثبت شده'},
-            status=400,
-        )
+        return JsonResponse({'error': 'این اسم قبلاً در این دسته‌بندی ثبت شده'}, status=400)
 
     group = None
     if group_id:
@@ -349,29 +341,30 @@ def dictionary_create(request):
         item = ItemDictionary.objects.create(
             restaurant=restaurant,
             name=name, unit=unit, category=category,
-            description=desc,
-            dict_category=dict_category,
-            material_type=material_type,
-            group=group,
+            description=desc, dict_category=dict_category,
+            material_type=material_type, group=group,
         )
         return JsonResponse(_serialize_dict_item(item), status=201)
-
     except Exception as e:
         logger.exception('Error creating dictionary item')
         return JsonResponse({'error': str(e)}, status=500)
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([DictionaryPerm])
 def dictionary_update(request, pk):
-    """ویرایش آیتم دیکشنری"""
+    restaurant = _resolve_restaurant(request)
+
+    # ★ FIXED: فیلتر restaurant
     try:
-        item = ItemDictionary.objects.get(pk=pk)
+        qs = ItemDictionary.objects.all()
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
+        item = qs.get(pk=pk)
     except ItemDictionary.DoesNotExist:
         return JsonResponse({'error': 'آیتم یافت نشد'}, status=404)
 
     data = request.data
-    restaurant = _resolve_restaurant(request)
 
     if 'name' in data:
         item.name = (data['name'] or '').strip()
@@ -397,26 +390,31 @@ def dictionary_update(request, pk):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([DictionaryPerm])
 def dictionary_delete(request, pk):
-    """حذف آیتم دیکشنری"""
+    restaurant = _resolve_restaurant(request)
+
+    # ★ FIXED: فیلتر restaurant
     try:
-        item = ItemDictionary.objects.get(pk=pk)
+        qs = ItemDictionary.objects.all()
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
+        item = qs.get(pk=pk)
     except ItemDictionary.DoesNotExist:
         return JsonResponse({'error': 'آیتم یافت نشد'}, status=404)
 
+    name = item.name
     item.delete()
-    return JsonResponse({'success': True, 'msg': 'آیتم حذف شد'})
+    return JsonResponse({'success': True, 'msg': f'آیتم «{name}» حذف شد'})
 
 
-# ═══════════════════════════════════════════════════════════
-#  Dictionary — 4 API جداگانه (convenience wrappers)
-# ═══════════════════════════════════════════════════════════
+# ═══════════════════════════════════════
+#  Dictionary — 4 API جداگانه
+# ═══════════════════════════════════════
 
 def _dict_list_by_category(request, category):
-    """★ helper — بدون mutation request.GET"""
     restaurant = _resolve_restaurant(request)
-    qs = ItemDictionary.objects.filter(category=category)
+    qs = ItemDictionary.objects.filter(category=category, is_active=True)  # ★ FIXED
     if restaurant:
         qs = qs.filter(restaurant=restaurant)
 
@@ -425,30 +423,26 @@ def _dict_list_by_category(request, category):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([DictionaryPerm])
 def dictionary_raw_materials(request):
-    """فقط مواد اولیه"""
     return _dict_list_by_category(request, 'raw_material')
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([DictionaryPerm])
 def dictionary_semi_finished(request):
-    """فقط نیمه‌آماده"""
     return _dict_list_by_category(request, 'semi_finished')
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([DictionaryPerm])
 def dictionary_ready_materials(request):
-    """فقط مواد آماده"""
     return _dict_list_by_category(request, 'ready_material')
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([DictionaryPerm])
 def dictionary_food_menu(request):
-    """فقط غذا و منو — با قیمت و وضعیت"""
     restaurant = _resolve_restaurant(request)
 
     qs = Food.objects.all()
@@ -462,8 +456,7 @@ def dictionary_food_menu(request):
     categories = {c.id: c.name for c in cats_qs}
 
     items = [{
-        'id': f.id,
-        'name': f.name,
+        'id': f.id, 'name': f.name,
         'price': int(f.price or 0),
         'final_price': int(f.final_price or 0),
         'category_id': f.category_id,
@@ -474,14 +467,13 @@ def dictionary_food_menu(request):
     return JsonResponse({'items': items})
 
 
-# ═══════════════════════════════════════════════════════════
-#  Food CRUD — تب غذا و منو (با cascade delete)
-# ═══════════════════════════════════════════════════════════
+# ═══════════════════════════════════════
+#  Food CRUD — ★ FIXED: فیلتر restaurant
+# ═══════════════════════════════════════
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([DictionaryPerm])
 def dictionary_food_create(request):
-    """ایجاد غذای جدید"""
     data = request.data
     name = (data.get('name') or '').strip()
     if not name:
@@ -510,10 +502,8 @@ def dictionary_food_create(request):
     )
 
     return JsonResponse({
-        'id': food.id,
-        'name': food.name,
-        'price': int(food.price),
-        'final_price': int(food.final_price),
+        'id': food.id, 'name': food.name,
+        'price': int(food.price), 'final_price': int(food.final_price),
         'category_id': food.category_id,
         'category_name': food.category.name if food.category else '',
         'is_available': food.is_available,
@@ -521,16 +511,20 @@ def dictionary_food_create(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([DictionaryPerm])
 def dictionary_food_update(request, pk):
-    """ویرایش غذا"""
+    restaurant = _resolve_restaurant(request)
+
+    # ★ FIXED: فیلتر restaurant
     try:
-        food = Food.objects.get(pk=pk)
+        qs = Food.objects.all()
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
+        food = qs.get(pk=pk)
     except Food.DoesNotExist:
         return JsonResponse({'error': 'غذا یافت نشد'}, status=404)
 
     data = request.data
-    restaurant = _resolve_restaurant(request)
 
     if 'name' in data:
         food.name = (data['name'] or '').strip()
@@ -556,10 +550,8 @@ def dictionary_food_update(request, pk):
     food.save()
 
     return JsonResponse({
-        'id': food.id,
-        'name': food.name,
-        'price': int(food.price),
-        'final_price': int(food.final_price),
+        'id': food.id, 'name': food.name,
+        'price': int(food.price), 'final_price': int(food.final_price),
         'category_id': food.category_id,
         'category_name': food.category.name if food.category else '',
         'is_available': food.is_available,
@@ -567,13 +559,18 @@ def dictionary_food_update(request, pk):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([DictionaryPerm])
 def dictionary_food_delete(request, pk):
-    """حذف غذا + cascade: Recipe → KitchenProduct → KitchenInventory"""
     from ..models import Recipe, KitchenProduct
 
+    restaurant = _resolve_restaurant(request)
+
+    # ★ FIXED: فیلتر restaurant
     try:
-        food = Food.objects.get(pk=pk)
+        qs = Food.objects.all()
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
+        food = qs.get(pk=pk)
     except Food.DoesNotExist:
         return JsonResponse({'error': 'غذا یافت نشد'}, status=404)
 
@@ -589,6 +586,12 @@ def dictionary_food_delete(request, pk):
     except Recipe.DoesNotExist:
         pass
 
+    logger.info(
+        "Deleting food '%s' (id=%s) by user %s: %s recipes, %s kitchen products",
+        food.name, pk, request.user.username,
+        deleted['recipes'], deleted['kitchen_products'],
+    )
+
     food.delete()
 
     parts = [f"غذا «{deleted['food']}»"]
@@ -603,14 +606,13 @@ def dictionary_food_delete(request, pk):
     })
 
 
-# ═══════════════════════════════════════════════════════════
+# ═══════════════════════════════════════
 #  مواد نیمه‌آماده برای ویرایشگر رسپی
-# ═══════════════════════════════════════════════════════════
+# ═══════════════════════════════════════
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([DictionaryPerm])
 def dictionary_recipe_materials_api(request):
-    """مواد نیمه‌آماده از گروه‌هایی که usage_recipes=True"""
     restaurant = _resolve_restaurant(request)
     if not restaurant:
         return JsonResponse({'items': []})
@@ -618,11 +620,9 @@ def dictionary_recipe_materials_api(request):
     items_qs = (
         ItemDictionary.objects
         .filter(
-            restaurant=restaurant,
-            is_active=True,
+            restaurant=restaurant, is_active=True,
             category='semi_finished',
-            group__isnull=False,
-            group__is_active=True,
+            group__isnull=False, group__is_active=True,
             group__usage_recipes=True,
         )
         .select_related('group')
@@ -630,10 +630,8 @@ def dictionary_recipe_materials_api(request):
     )
 
     items_data = [{
-        'id': item.id,
-        'name': item.name,
-        'unit': item.unit,
-        'unit_display': item.get_unit_display(),
+        'id': item.id, 'name': item.name,
+        'unit': item.unit, 'unit_display': item.get_unit_display(),
         'description': item.description or '',
         'dict_category': item.dict_category or '',
         'group': item.group_id,

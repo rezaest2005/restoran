@@ -1,13 +1,10 @@
 """
-Restaurant Management — Page Views (★ نسخه اصلاح‌شده v3)
+Restaurant Management — Page Views (★ نسخه v8 — اصلاح شده)
 
-★ تغییرات نسبت به نسخه قبل:
-  ۱. superuser_required → _super_admin_cookie_required (DRF version از بین رفته بود)
-  ۲. _resolve_restaurant: اضافه شد
-  ۳. request.restaurant → _resolve_restaurant(request)
-  ۴. تمام query‌ها: فیلتر restaurant
-  ۵. print/traceback → logger
-  ۶. helpers import: سازگار با نسخه جدید
+★ v8 تغییرات:
+  - purchase_invoice_detail: فیلتر restaurant
+  - pos_receipt: فیلتر restaurant
+  - create_purchase_invoice: atomic + F() + select_for_update
 """
 
 import json as json_module
@@ -18,8 +15,8 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
-from django.core import signing
 from django.db import transaction
+from django.db.models import F
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -39,6 +36,7 @@ from ..tenancy import (
     get_current_restaurant, set_current_restaurant,
     get_restaurant_from_request,
 )
+from .decorators import require_service
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +44,7 @@ LOGIN_URL = '/dashboard/'
 
 
 # ═══════════════════════════════════════════
-#  ★★★ resolve restaurant ★★★
+#  resolve restaurant
 # ═══════════════════════════════════════════
 
 def _resolve_restaurant(request):
@@ -57,39 +55,21 @@ def _resolve_restaurant(request):
     if r:
         set_current_restaurant(r)
         return r
-    # fallback برای HTML views
     if hasattr(request, 'user') and request.user.is_authenticated:
         return getattr(request.user, 'restaurant', None)
     return None
 
 
-# ═══════════════════════════════════════════
-#  ★★★ Super Admin Cookie Auth (برای HTML views) ★★★
-# ═══════════════════════════════════════════
-
-SUPER_TOKEN_SALT = 'super-admin-panel-v1'
-SUPER_TOKEN_COOKIE = 'super_session'
-
-
-def _super_admin_cookie_required(view_func):
-    """decorator برای صفحات HTML سوپر ادمین — cookie مستقل"""
-    from functools import wraps
-
-    @wraps(view_func)
-    def wrapper(request, *args, **kwargs):
-        token = request.COOKIES.get(SUPER_TOKEN_COOKIE)
-        if not token:
-            return redirect('/dashboard/?next=/dashboard/super/')
-        try:
-            from ..models import User
-            data = signing.loads(token, salt=SUPER_TOKEN_SALT, max_age=86400 * 7)
-            user = User.objects.get(id=data['uid'], is_superuser=True, is_active=True)
-            request.user = user
-        except Exception:
-            return redirect('/dashboard/?next=/dashboard/super/')
-        return view_func(request, *args, **kwargs)
-
-    return wrapper
+def _get_restaurant_object_or_404(model, pk, restaurant):
+    """★ جدید: get_object_or_404 با فیلتر restaurant"""
+    qs = model.objects.all()
+    if restaurant:
+        qs = qs.filter(restaurant=restaurant)
+    obj = qs.filter(pk=pk).first()
+    if obj is None:
+        from django.http import Http404
+        raise Http404
+    return obj
 
 
 # ═══════════════════════════════════════════
@@ -98,30 +78,34 @@ def _super_admin_cookie_required(view_func):
 
 @login_required(login_url=LOGIN_URL)
 def home(request: HttpRequest):
+    """داشبورد اصلی — همه کاربران لاگین‌شده"""
     return render(request, "admin/index.html")
 
 
 def auth_page(request: HttpRequest):
+    """صفحه لاگین — بدون محافظت"""
     if request.user.is_authenticated:
         return redirect("dashboard_app")
     return render(request, "auth.html")
 
 
 def redirect_to_dashboard(request):
+    """ریدایرکت به صفحه لاگین"""
     return redirect("auth_page")
 
 
 @login_required(login_url=LOGIN_URL)
 def logout_page(request: HttpRequest):
+    """خروج"""
     logout(request)
     return redirect("auth_page")
 
 
 # ═══════════════════════════════════════════
-#  فاکتور خرید — لیست، جزئیات، ایجاد
+#  فاکتور خرید
 # ═══════════════════════════════════════════
 
-@login_required(login_url=LOGIN_URL)
+@require_service('inventory')
 def purchase_invoice_list(request: HttpRequest):
     restaurant = _resolve_restaurant(request)
     qs = PurchaseInvoice.objects.all()
@@ -131,26 +115,32 @@ def purchase_invoice_list(request: HttpRequest):
     return render(request, "restaurant/create_invoice.html", {"invoices": invoices})
 
 
-@login_required(login_url=LOGIN_URL)
+@require_service('inventory')
 def purchase_invoice_detail(request: HttpRequest, pk: int):
-    invoice = get_object_or_404(PurchaseInvoice, pk=pk)
+    restaurant = _resolve_restaurant(request)
+
+    # ★ FIXED: فیلتر restaurant
+    invoice = _get_restaurant_object_or_404(PurchaseInvoice, pk, restaurant)
     return render(request, "restaurant/invoice_detail.html", {"invoice": invoice})
 
 
-@login_required(login_url=LOGIN_URL)
+@require_service('inventory')
 def create_invoice_view(request: HttpRequest):
     """صفحه ثبت فاکتور — فقط نمایش HTML"""
     return render(request, "restaurant/create_invoice.html")
 
 
-@login_required(login_url=LOGIN_URL)
+@require_service('inventory')
 def create_purchase_invoice(request: HttpRequest):
-    """ثبت فاکتور خرید — GET: نمایش صفحه | POST: افزودن به انبار"""
+    """ثبت فاکتور خرید"""
     if request.method != 'POST':
         return render(request, "restaurant/create_invoice.html")
 
     try:
         restaurant = _resolve_restaurant(request)
+        if not restaurant:
+            messages.error(request, 'رستوران مشخص نشده.')
+            return redirect('create_invoice')
 
         supplier_name = request.POST.get('supplier_name', '').strip()
         invoice_number = request.POST.get('invoice_number', '').strip()
@@ -167,18 +157,6 @@ def create_purchase_invoice(request: HttpRequest):
             messages.error(request, 'هیچ کالایی وارد نشده.')
             return redirect('create_invoice')
 
-        # ذخیره تأمین‌کننده
-        if supplier_name:
-            sup_qs = Supplier.objects.filter(name__iexact=supplier_name)
-            if restaurant:
-                sup_qs = sup_qs.filter(restaurant=restaurant)
-            if not sup_qs.exists():
-                Supplier.objects.create(
-                    restaurant=restaurant,
-                    name=supplier_name,
-                )
-
-        # ساختن هدر فاکتور
         date_str = request.POST.get('date', '').strip()
         try:
             parts = date_str.split('-')
@@ -188,24 +166,39 @@ def create_purchase_invoice(request: HttpRequest):
         except Exception:
             invoice_date = timezone.now().date()
 
-        invoice = PurchaseInvoice.objects.create(
-            restaurant=restaurant,
-            supplier_name=supplier_name,
-            invoice_number=invoice_number,
-            date=invoice_date,
-            description=description,
-        )
-
-        added = []
-
+        # ★ FIXED: atomic کل فرآیند
         with transaction.atomic():
+            if supplier_name:
+                sup_qs = Supplier.objects.filter(name__iexact=supplier_name)
+                if restaurant:
+                    sup_qs = sup_qs.filter(restaurant=restaurant)
+                if not sup_qs.exists():
+                    Supplier.objects.create(
+                        restaurant=restaurant,
+                        name=supplier_name,
+                    )
+
+            invoice = PurchaseInvoice.objects.create(
+                restaurant=restaurant,
+                supplier_name=supplier_name,
+                invoice_number=invoice_number,
+                date=invoice_date,
+                description=description,
+            )
+
+            added = []
+
             for i in range(len(item_names)):
                 name = item_names[i].strip()
                 if not name or 'جمع کل' in name:
                     continue
 
-                raw_qty = (quantities[i] if i < len(quantities) else '0').replace(',', '')
-                raw_price = (unit_prices[i] if i < len(unit_prices) else '0').replace(',', '')
+                raw_qty = (
+                    quantities[i] if i < len(quantities) else '0'
+                ).replace(',', '')
+                raw_price = (
+                    unit_prices[i] if i < len(unit_prices) else '0'
+                ).replace(',', '')
                 qty = Decimal(raw_qty or '0')
                 price = int(float(raw_price or 0))
                 unit = units[i] if i < len(units) else 'unit'
@@ -214,10 +207,8 @@ def create_purchase_invoice(request: HttpRequest):
                 if qty <= 0:
                     continue
 
-                # پیدا کردن ماده اولیه
                 mat = None
 
-                # تلاش ۱: با شناسه
                 if raw_id:
                     try:
                         mat = RawMaterial.objects.get(
@@ -226,25 +217,35 @@ def create_purchase_invoice(request: HttpRequest):
                     except (RawMaterial.DoesNotExist, ValueError, TypeError):
                         pass
 
-                # تلاش ۲: با نام
                 if not mat:
                     mat_qs = RawMaterial.objects.filter(name__iexact=name)
                     if restaurant:
                         mat_qs = mat_qs.filter(restaurant=restaurant)
                     mat = mat_qs.first()
 
-                # تلاش ۳: ساختن جدید یا بروزرسانی
                 if mat:
+                    # ★ FIXED: select_for_update + F()
+                    mat = RawMaterial.objects.select_for_update().get(
+                        pk=mat.pk,
+                    )
                     old_qty = mat.quantity
-                    mat.quantity += qty
-                    mat.price = price
+
+                    RawMaterial.objects.filter(pk=mat.pk).update(
+                        quantity=F('quantity') + qty,
+                        price=price,
+                    )
+                    mat.refresh_from_db()
+
                     if mat.material_type == 'raw' and restaurant:
                         _mt = _detect_material_type(name, restaurant)
                         if _mt == 'packaging':
                             mat.material_type = 'packaging'
-                    mat.save()
+                            mat.save(update_fields=['material_type'])
                 else:
-                    _mt = _detect_material_type(name, restaurant) if restaurant else 'raw'
+                    _mt = (
+                        _detect_material_type(name, restaurant)
+                        if restaurant else 'raw'
+                    )
                     mat = RawMaterial.objects.create(
                         restaurant=restaurant,
                         name=name, label='', price=price,
@@ -254,7 +255,6 @@ def create_purchase_invoice(request: HttpRequest):
 
                 added.append(f'{name} ({qty})')
 
-                # ثبت جابجایی انبار
                 InventoryMovement.objects.create(
                     restaurant=restaurant,
                     raw_material=mat,
@@ -264,13 +264,14 @@ def create_purchase_invoice(request: HttpRequest):
                     new_stock=mat.quantity,
                     reference_type='PurchaseInvoice',
                     reference_id=invoice.id,
-                    notes=f'فاکتور خرید #{invoice_number or "—"} — {supplier_name or "—"}',
+                    notes=(
+                        f'فاکتور خرید #{invoice_number or "—"}'
+                        f' — {supplier_name or "—"}'
+                    ),
                     created_by=request.user,
                 )
 
-                # ثبت آیتم فاکتور
                 PurchaseInvoiceItem.objects.create(
-                    restaurant=restaurant,
                     invoice=invoice,
                     item_name=name,
                     quantity=qty,
@@ -280,7 +281,9 @@ def create_purchase_invoice(request: HttpRequest):
                 )
 
         if added:
-            messages.success(request, f'فاکتور ثبت شد: {", ".join(added)}')
+            messages.success(
+                request, f'فاکتور ثبت شد: {", ".join(added)}',
+            )
         else:
             messages.warning(request, 'کالای معتبری ثبت نشد.')
             invoice.delete()
@@ -294,10 +297,10 @@ def create_purchase_invoice(request: HttpRequest):
 
 
 # ═══════════════════════════════════════════
-#  انبار — مواد اولیه، نیم‌آماده، مصرف
+#  انبار
 # ═══════════════════════════════════════════
 
-@login_required(login_url=LOGIN_URL)
+@require_service('inventory')
 def raw_materials_view(request: HttpRequest):
     restaurant = _resolve_restaurant(request)
     qs = RawMaterial.objects.all()
@@ -310,11 +313,13 @@ def raw_materials_view(request: HttpRequest):
     })
 
 
-@login_required(login_url=LOGIN_URL)
+@require_service('inventory')
 def semi_finished_view(request: HttpRequest):
     restaurant = _resolve_restaurant(request)
 
-    sf_qs = SemiFinished.objects.prefetch_related("ingredients__raw_material").all()
+    sf_qs = SemiFinished.objects.prefetch_related(
+        "ingredients__raw_material",
+    ).all()
     rm_qs = RawMaterial.objects.all()
     if restaurant:
         sf_qs = sf_qs.filter(restaurant=restaurant)
@@ -333,7 +338,7 @@ def semi_finished_view(request: HttpRequest):
     })
 
 
-@login_required(login_url=LOGIN_URL)
+@require_service('inventory')
 def usage_log_view(request: HttpRequest):
     restaurant = _resolve_restaurant(request)
 
@@ -385,16 +390,20 @@ def usage_log_view(request: HttpRequest):
 
     return render(request, "restaurant/usage_log.html", {
         "semi_finished_list": semi_finished_list,
-        "semi_finished_json": json_module.dumps(semi_finished_data, ensure_ascii=False),
+        "semi_finished_json": json_module.dumps(
+            semi_finished_data, ensure_ascii=False,
+        ),
         "total_logs": total_logs,
         "by_type": by_type,
         "type_choices": InventoryUsageLog.USAGE_TYPE_CHOICES,
         "suppliers": sup_qs.order_by("name"),
-        "order_stats": {"total_orders": 0, "total_revenue": 0, "top_foods": []},
+        "order_stats": {
+            "total_orders": 0, "total_revenue": 0, "top_foods": [],
+        },
     })
 
 
-@login_required(login_url=LOGIN_URL)
+@require_service('inventory')
 def ready_materials_page(request: HttpRequest):
     restaurant = _resolve_restaurant(request)
 
@@ -436,20 +445,20 @@ def ready_materials_page(request: HttpRequest):
 
 
 # ═══════════════════════════════════════════
-#  آشپزخانه — داشبورد تولید
+#  آشپزخانه
 # ═══════════════════════════════════════════
 
-@login_required(login_url=LOGIN_URL)
+@require_service('kitchen')
 def kitchen_page(request: HttpRequest):
-    from django.db.models import F
-
     restaurant = _resolve_restaurant(request)
 
     kp_qs = KitchenProduct.objects.all()
     if restaurant:
         kp_qs = kp_qs.filter(restaurant=restaurant)
 
-    recipes = list(Recipe.objects.values("id").annotate(name=F("food__name")))
+    recipes = list(
+        Recipe.objects.values("id").annotate(name=F("food__name"))
+    )
     categories = list(KitchenProduct.CATEGORY_CHOICES)
 
     food_qs = Food.objects.select_related('category').all()
@@ -459,10 +468,14 @@ def kitchen_page(request: HttpRequest):
     foods_list = []
     for f in food_qs.order_by('category__order', 'name'):
         foods_list.append({
-            'id': f.id, 'name': f.name, 'category_id': f.category_id,
+            'id': f.id, 'name': f.name,
+            'category_id': f.category_id,
             'category_name': f.category.name if f.category else '',
             'final_price': int(f.final_price or 0),
-            'image': f.image.url if getattr(f, 'image', None) and f.image else '',
+            'image': (
+                f.image.url
+                if getattr(f, 'image', None) and f.image else ''
+            ),
             'is_ready': False, 'purchase_price': 0,
         })
 
@@ -484,10 +497,13 @@ def kitchen_page(request: HttpRequest):
             'category_id': rm.category_id,
             'category_name': rm.category.name if rm.category else '',
             'final_price': int(rm.selling_price or 0), 'image': '',
-            'is_ready': True, 'purchase_price': int(rm.purchase_price or 0),
+            'is_ready': True,
+            'purchase_price': int(rm.purchase_price or 0),
         })
         if rm.category and rm.category.name not in existing_names:
-            food_cats.append({'id': rm.category_id, 'name': rm.category.name})
+            food_cats.append({
+                'id': rm.category_id, 'name': rm.category.name,
+            })
             existing_names.add(rm.category.name)
 
     return render(request, "restaurant/kitchen_page.html", {
@@ -499,17 +515,16 @@ def kitchen_page(request: HttpRequest):
 
 
 # ═══════════════════════════════════════════
-#  صندوق فروش — POS + رسید
+#  صندوق فروش
 # ═══════════════════════════════════════════
 
-@login_required(login_url=LOGIN_URL)
+@require_service('pos')
 def pos_page(request: HttpRequest):
     restaurant = _resolve_restaurant(request)
 
     foods_data, cats_data = _build_foods_with_discounts(restaurant=restaurant)
     existing_names = {c['name']: c['id'] for c in cats_data}
 
-    # موجودی KitchenProduct
     for food_item in foods_data:
         if food_item.get('is_ready'):
             continue
@@ -527,26 +542,36 @@ def pos_page(request: HttpRequest):
                 stock = 0
         food_item['stock'] = stock
 
-    # Ready Materials
-    rm_qs = ReadyMaterial.objects.filter(quantity__gt=0).select_related('category')
+    rm_qs = ReadyMaterial.objects.filter(
+        quantity__gt=0,
+    ).select_related('category')
     if restaurant:
         rm_qs = rm_qs.filter(restaurant=restaurant)
 
     for rm in rm_qs:
-        cat_id = rm.category_id if rm.category else existing_names.get('سایر', -99)
+        cat_id = (
+            rm.category_id if rm.category
+            else existing_names.get('سایر', -99)
+        )
         cat_name = rm.category.name if rm.category else 'سایر'
         foods_data.append({
-            'id': f'ready_{rm.id}', 'name': rm.name, 'category_id': cat_id,
-            'category_name': cat_name, 'final_price': int(rm.selling_price or 0),
-            'kitchen_price': int(rm.selling_price or 0), 'has_kitchen': False,
-            'discount': None, 'image': '', 'is_ready': True,
-            'stock': int(rm.quantity or 0),
+            'id': f'ready_{rm.id}', 'name': rm.name,
+            'category_id': cat_id, 'category_name': cat_name,
+            'final_price': int(rm.selling_price or 0),
+            'kitchen_price': int(rm.selling_price or 0),
+            'has_kitchen': False, 'discount': None, 'image': '',
+            'is_ready': True, 'stock': int(rm.quantity or 0),
         })
         if rm.category and rm.category.name not in existing_names:
-            cats_data.append({'id': rm.category_id, 'name': rm.category.name})
+            cats_data.append({
+                'id': rm.category_id, 'name': rm.category.name,
+            })
             existing_names[rm.category.name] = rm.category_id
 
-    if any(not rm.category for rm in rm_qs) and 'سایر' not in existing_names:
+    if (
+        any(not rm.category for rm in rm_qs)
+        and 'سایر' not in existing_names
+    ):
         cats_data.append({'id': -99, 'name': 'سایر'})
 
     return render(request, 'restaurant/pos.html', {
@@ -555,16 +580,24 @@ def pos_page(request: HttpRequest):
     })
 
 
-@login_required(login_url=LOGIN_URL)
+@require_service('pos')
 def pos_receipt(request: HttpRequest, pk: int):
-    order = get_object_or_404(Order, pk=pk)
+    restaurant = _resolve_restaurant(request)
+
+    # ★ FIXED: فیلتر restaurant
+    order = _get_restaurant_object_or_404(Order, pk, restaurant)
+
     items = []
     for item in order.items.select_related("food").all():
         price = int(item.price or 0)
         qty = item.quantity
         items.append({
-            "food_name": item.food.name if item.food else (item.item_name or "—"),
-            "quantity": qty, "price": price, "line_total": price * qty,
+            "food_name": (
+                item.food.name if item.food else (item.item_name or "—")
+            ),
+            "quantity": qty,
+            "price": price,
+            "line_total": price * qty,
         })
 
     discount_amount = (
@@ -580,13 +613,15 @@ def pos_receipt(request: HttpRequest, pk: int):
         "final_amount": final_amount,
         "payment_method": getattr(order, "payment_method", None),
         "trace_number": getattr(order, "trace_number", None),
-        "restaurant_name": getattr(settings, "RESTAURANT_NAME", "رستوران"),
+        "restaurant_name": getattr(
+            settings, "RESTAURANT_NAME", "رستوران",
+        ),
         "restaurant_phone": getattr(settings, "RESTAURANT_PHONE", ""),
         "restaurant_address": getattr(settings, "RESTAURANT_ADDRESS", ""),
     })
 
 
-@login_required(login_url=LOGIN_URL)
+@require_service('pos')
 def orders_dashboard(request):
     restaurant = _resolve_restaurant(request)
     qs = Order.objects.prefetch_related('items__food').all()
@@ -607,10 +642,10 @@ def orders_dashboard(request):
 
 
 # ═══════════════════════════════════════════
-#  رسپی — مدیریت دستورات
+#  رسپی
 # ═══════════════════════════════════════════
 
-@login_required(login_url=LOGIN_URL)
+@require_service('foods')
 def recipe_manager_page(request):
     restaurant = _resolve_restaurant(request)
     return render(request, 'recipes/recipe_manager.html', {
@@ -619,10 +654,10 @@ def recipe_manager_page(request):
 
 
 # ═══════════════════════════════════════════
-#  باشگاه مشتریان — داشبورد و صفحات
+#  باشگاه مشتریان
 # ═══════════════════════════════════════════
 
-@login_required(login_url=LOGIN_URL)
+@require_service('loyalty')
 def loyalty_dashboard_page(request: HttpRequest):
     from ..services import get_loyalty_dashboard
     restaurant = _resolve_restaurant(request)
@@ -633,27 +668,27 @@ def loyalty_dashboard_page(request: HttpRequest):
     return render(request, "loyalty/dashboard.html", {"stats": stats})
 
 
-@login_required(login_url=LOGIN_URL)
+@require_service('loyalty')
 def loyalty_customers_page(request: HttpRequest):
     return render(request, "loyalty/customers.html")
 
 
-@login_required(login_url=LOGIN_URL)
+@require_service('loyalty')
 def loyalty_customer_detail_page(request: HttpRequest, pk: int):
     return render(request, "loyalty/customer_detail.html")
 
 
-@login_required(login_url=LOGIN_URL)
+@require_service('loyalty')
 def loyalty_coupons_page(request: HttpRequest):
     return render(request, "loyalty/coupons.html")
 
 
-@login_required(login_url=LOGIN_URL)
+@require_service('loyalty')
 def loyalty_rewards_page(request: HttpRequest):
     return render(request, "loyalty/rewards.html")
 
 
-@login_required(login_url=LOGIN_URL)
+@require_service('loyalty')
 def loyalty_notifications_page(request: HttpRequest):
     restaurant = _resolve_restaurant(request)
     qs = LoyaltyNotification.objects.filter(is_read=False)
@@ -665,47 +700,56 @@ def loyalty_notifications_page(request: HttpRequest):
     })
 
 
-@login_required(login_url=LOGIN_URL)
+@require_service('loyalty')
 def loyalty_register_page(request: HttpRequest):
     return render(request, "loyalty/register.html")
 
 
 # ═══════════════════════════════════════════
-#  مدیریت کاربران — نقش‌ها و مجوزها
+#  مدیریت کاربران
 # ═══════════════════════════════════════════
 
-@login_required(login_url=LOGIN_URL)
+@require_service('users')
 def user_management_page(request: HttpRequest):
     roles = [
         {"value": "owner", "label": "مالک", "permissions": [
-            "foods.view", "foods.edit", "foods.create", "foods.delete", "foods.categories",
-            "inventory.view", "inventory.edit", "inventory.create", "inventory.delete",
-            "inventory.raw_materials", "inventory.ready_materials", "inventory.semi_finished",
-            "inventory.usages_log", "inventory.invoice", "inventory.end_of_invoice",
+            "foods.view", "foods.edit", "foods.create", "foods.delete",
+            "foods.categories",
+            "inventory.view", "inventory.edit", "inventory.create",
+            "inventory.delete",
+            "inventory.raw_materials", "inventory.ready_materials",
+            "inventory.semi_finished",
+            "inventory.usages_log", "inventory.invoice",
+            "inventory.end_of_invoice",
             "orders.view", "orders.edit", "orders.create", "orders.delete",
             "pos.view", "pos.use", "pos.close", "pos.report",
             "kitchen.view", "kitchen.manage",
-            "loyalty.view", "loyalty.edit", "loyalty.customers", "loyalty.coupons", "loyalty.rewards",
+            "loyalty.view", "loyalty.edit", "loyalty.customers",
+            "loyalty.coupons", "loyalty.rewards",
             "users.view", "users.edit", "users.create", "users.delete",
         ]},
         {"value": "manager", "label": "مدیر", "permissions": [
             "foods.view", "foods.edit", "foods.categories",
             "inventory.view", "inventory.edit", "inventory.raw_materials",
-            "inventory.ready_materials", "inventory.usages_log", "inventory.invoice",
+            "inventory.ready_materials", "inventory.usages_log",
+            "inventory.invoice",
             "orders.view", "orders.edit", "orders.create",
             "pos.view", "pos.use", "pos.close", "pos.report",
-            "kitchen.view", "kitchen.manage", "loyalty.view", "loyalty.customers",
+            "kitchen.view", "kitchen.manage", "loyalty.view",
+            "loyalty.customers",
         ]},
         {"value": "cashier", "label": "صندوقدار", "permissions": [
             "foods.view", "orders.view", "orders.create",
-            "pos.view", "pos.use", "pos.close", "loyalty.view", "loyalty.customers",
+            "pos.view", "pos.use", "pos.close", "loyalty.view",
+            "loyalty.customers",
         ]},
         {"value": "kitchen", "label": "آشپز", "permissions": [
             "foods.view", "kitchen.view", "kitchen.manage",
         ]},
         {"value": "warehouse", "label": "انباردار", "permissions": [
             "inventory.view", "inventory.edit", "inventory.raw_materials",
-            "inventory.ready_materials", "inventory.usages_log", "inventory.invoice",
+            "inventory.ready_materials", "inventory.usages_log",
+            "inventory.invoice",
         ]},
     ]
     return render(request, "restaurant/user_management.html", {
@@ -715,18 +759,9 @@ def user_management_page(request: HttpRequest):
 
 
 # ═══════════════════════════════════════════
-#  دیکشنری — مدیریت اسامی
+#  دیکشنری
 # ═══════════════════════════════════════════
 
-@login_required(login_url=LOGIN_URL)
+@require_service('dictionary')
 def dictionary_page(request):
     return render(request, 'restaurant/dictionary.html')
-
-
-# ═══════════════════════════════════════════
-#  پنل مدیریت کلان — صفحه HTML
-# ═══════════════════════════════════════════
-
-@_super_admin_cookie_required
-def super_admin_page(request):
-    return render(request, "restaurant/super_admin.html")
