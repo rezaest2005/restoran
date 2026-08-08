@@ -1,24 +1,29 @@
 """
-Restaurant Views Package — Re-export everything so urls.py stays unchanged.
+Restaurant Views Package — Re-export everything.
 
-★ تغییرات نسبت به نسخه قبل:
-  ۱. اضافه شدن order_list_api از orders.py
-  ۲. اضافه شدن dictionary_recipe_materials_api از dictionary.py
-  ۳. recipe_materials_api: فقط از recipe.py (نه dictionary.py)
-  ۴. سازگاری کامل با فایل‌های اصلاح‌شده
+★ نسخه v7 — اصلاح شده
 """
 
-# ── Super Admin API ──
+# ── Super Admin ──
 from .super_admin import (
-    super_admin_login_api, super_admin_logout_api,
-    super_stats_api, super_tenants_api,
-    super_tenant_detail_api, super_tenant_services_api,
-    super_services_list_api, super_users_api,
+    super_admin_auth_page,
+    super_admin_page,
+    super_admin_login_api,
+    super_admin_logout_api,
+    super_stats_api,
+    super_tenants_api,
+    super_tenant_detail_api,
+    super_tenant_services_api,
+    super_services_list_api,
+    super_users_api,
+    super_user_create_api,
+    super_user_detail_api,
+    super_user_permissions_api,
 )
 
 # ── ViewSets ──
 from .viewsets import (
-    CategoryViewSet, FoodViewSet, TableViewSet, ReservationViewSet,
+    TableViewSet, ReservationViewSet,
     OrderViewSet, SemiFinishedViewSet, ReadyMaterialViewSet,
     MembershipLevelViewSet, CustomerViewSet, CouponViewSet,
     RewardViewSet, ReferralViewSet, NotificationViewSet,
@@ -107,9 +112,9 @@ from .recipe import (
 from .dictionary import (
     dictionary_list, dictionary_autocomplete,
     dictionary_create, dictionary_update, dictionary_delete,
-    dictionary_raw_materials, dictionary_semi_finished,
-    dictionary_ready_materials, dictionary_food_menu,
     raw_materials_api,
+    dictionary_semi_finished,
+    dictionary_ready_materials, dictionary_food_menu,
     dictionary_recipe_materials_api,
     dictionary_group_list, dictionary_group_save, dictionary_group_delete,
     dictionary_food_create, dictionary_food_update, dictionary_food_delete,
@@ -119,7 +124,6 @@ from .dictionary import (
 from .restaurant_page_views import (
     home, auth_page, logout_page,
     redirect_to_dashboard,
-    super_admin_page,
     purchase_invoice_list, purchase_invoice_detail,
     create_purchase_invoice, create_invoice_view,
     raw_materials_view,
@@ -134,14 +138,24 @@ from .restaurant_page_views import (
     user_management_page, dictionary_page,
 )
 
+
 __all__ = [
     # Super Admin
-    "super_admin_login_api", "super_admin_logout_api",
-    "super_admin_page", "super_stats_api", "super_tenants_api",
-    "super_tenant_detail_api", "super_tenant_services_api",
-    "super_services_list_api", "super_users_api",
+    "super_admin_auth_page",
+    "super_admin_page",
+    "super_admin_login_api",
+    "super_admin_logout_api",
+    "super_stats_api",
+    "super_tenants_api",
+    "super_tenant_detail_api",
+    "super_tenant_services_api",
+    "super_services_list_api",
+    "super_users_api",
+    "super_user_create_api",
+    "super_user_detail_api",
+    "super_user_permissions_api",
     # ViewSets
-    "CategoryViewSet", "FoodViewSet", "TableViewSet", "ReservationViewSet",
+    "TableViewSet", "ReservationViewSet",
     "OrderViewSet", "SemiFinishedViewSet", "ReadyMaterialViewSet",
     "MembershipLevelViewSet", "CustomerViewSet", "CouponViewSet",
     "RewardViewSet", "ReferralViewSet", "NotificationViewSet",
@@ -198,14 +212,15 @@ __all__ = [
     # Dictionary
     "dictionary_list", "dictionary_autocomplete",
     "dictionary_create", "dictionary_update", "dictionary_delete",
-    "dictionary_raw_materials", "dictionary_semi_finished",
+    "raw_materials_api",
+    "dictionary_semi_finished",
     "dictionary_ready_materials", "dictionary_food_menu",
-    "raw_materials_api", "dictionary_recipe_materials_api",
+    "dictionary_recipe_materials_api",
     "dictionary_group_list", "dictionary_group_save", "dictionary_group_delete",
     "dictionary_food_create", "dictionary_food_update", "dictionary_food_delete",
     # Page Views
     "home", "auth_page", "logout_page",
-    "redirect_to_dashboard", "super_admin_page",
+    "redirect_to_dashboard",
     "purchase_invoice_list", "purchase_invoice_detail",
     "create_purchase_invoice", "create_invoice_view",
     "raw_materials_view", "usage_log_view", "ready_materials_page",

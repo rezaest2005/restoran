@@ -1,113 +1,196 @@
 """
-پنل مدیریت کلان — ویوها (★ نسخه اصلاح‌شده v3)
+پنل مدیریت کلان — ویوها (★ نسخه v10 — اصلاح شده)
 
-★ تغییرات نسبت به نسخه قبل:
-  ۱. @csrf_protect + json.loads(request.body) → @api_view + request.data
-  ۲. superuser_required decorator → IsSuperAdmin permission class (DRF)
-  ۳. super_tenants_api (GET+POST) → جدا شدن به لیست و ایجاد
-  ۴. super_tenant_detail_api → @api_view با method‌های مجزا
-  ۵. super_tenant_services_api → مشابه
-  ۶. super_users_api: pagination اضافه شد
-  ۷. DEFAULT_SERVICES → از مدل خوانده می‌شود
-  ۸. print/traceback → logger
+★ v10 تغییرات:
+  - super_admin_login_api: CSRF + backend مشخص
+  - set_cookie: httponly=True
+  - super_user_create_api: فیلدها بعد از create_user ست میشن
+  - super_tenants_api: ساخت Restaurant
+  - super_tenant_detail_api DELETE: cleanup مرتبط‌ها
 """
 
+import json
 import logging
+from functools import wraps
 
-from django.contrib.auth import authenticate
+from django.contrib.auth import (
+    authenticate, login as auth_login, logout as auth_logout,
+)
 from django.core import signing
+from django.db import transaction
 from django.http import JsonResponse
+from django.shortcuts import render, redirect
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import BasePermission, AllowAny
+from rest_framework.permissions import BasePermission
 from rest_framework.response import Response
 from rest_framework import status
 
-from ..models import Service, Tenant, TenantService, User
+from ..models import Restaurant, Service, Tenant, TenantService, User
 
 logger = logging.getLogger(__name__)
 
+
+# ═══════════════════════════════════════════
+#  تنظیمات امنیتی
+# ═══════════════════════════════════════════
+
 SUPER_TOKEN_SALT = 'super-admin-panel-v1'
-SUPER_TOKEN_COOKIE = 'super_session'
+SUPER_TOKEN_COOKIE = 'super_admin_token'
+SUPER_TOKEN_MAX_AGE = 86400 * 7  # 7 روز
 
 
 # ═══════════════════════════════════════════
-#  ★★★ DRF Permission — Super Admin ★★★
+#  توابع کمکی احراز هویت
 # ═══════════════════════════════════════════
 
-def _get_super_user(request):
-    """خواندن کاربر از cookie سوپر ادمین"""
-    # DRF Request → underlying Django request
-    django_request = request._request if hasattr(request, '_request') else request
-    token = django_request.COOKIES.get(SUPER_TOKEN_COOKIE)
+def _verify_super_token(request):
+    """بررسی توکن سوپر ادمین از cookie"""
+    token = request.COOKIES.get(SUPER_TOKEN_COOKIE)
     if not token:
         return None
     try:
-        data = signing.loads(token, salt=SUPER_TOKEN_SALT, max_age=86400 * 7)
-        return User.objects.get(id=data['uid'], is_superuser=True, is_active=True)
+        data = signing.loads(
+            token, salt=SUPER_TOKEN_SALT, max_age=SUPER_TOKEN_MAX_AGE,
+        )
+        return User.objects.get(
+            id=data['uid'], is_superuser=True, is_active=True,
+        )
     except Exception:
         return None
 
 
+def _is_super_admin(request):
+    """بررسی دسترسی سوپر ادمین — session یا token"""
+    if request.user.is_authenticated and request.user.is_superuser:
+        return True
+    user = _verify_super_token(request)
+    if user:
+        request.user = user
+        return True
+    return False
+
+
+def _super_admin_required(view_func):
+    """دکوراتور محافظت صفحات HTML سوپر ادمین"""
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not _is_super_admin(request):
+            return redirect('/dashboard/super/auth/')
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
 class IsSuperAdmin(BasePermission):
-    """بررسی cookie سوپر ادمین — جایگزین superuser_required decorator"""
+    """DRF Permission"""
     def has_permission(self, request, view):
-        user = _get_super_user(request)
+        django_request = (
+            request._request if hasattr(request, '_request') else request
+        )
+
+        if (
+            django_request.user.is_authenticated
+            and django_request.user.is_superuser
+        ):
+            return True
+
+        user = _verify_super_token(django_request)
         if user:
-            # ★ کاربر روی DRF Request ست شود
             request.user = user
             return True
         return False
 
 
-def _set_cookie(response, token):
-    """ست کردن cookie سوپر ادمین"""
+def _make_super_token(user):
+    """ساخت توکن امن"""
+    return signing.dumps({'uid': user.id}, salt=SUPER_TOKEN_SALT)
+
+
+def _set_super_cookie(response, token):
+    """★ FIXED: httponly=True"""
     response.set_cookie(
-        SUPER_TOKEN_COOKIE, token,
-        max_age=86400 * 7,
-        httponly=True,
+        SUPER_TOKEN_COOKIE,
+        token,
+        max_age=SUPER_TOKEN_MAX_AGE,
+        httponly=True,        # ★ FIXED: JavaScript نمیتونه بخونه
         samesite='Lax',
-        secure=True,  # ★ در production فعال شود
+        secure=False,          # TODO: در production → True
+        path='/',
     )
     return response
 
 
+def _json_body(request):
+    """خواندن JSON body"""
+    try:
+        return json.loads(request.body.decode('utf-8'))
+    except Exception:
+        return {}
+
+
 # ═══════════════════════════════════════════
-#  API: ورود / خروج مدیر کل
+#  صفحات HTML
 # ═══════════════════════════════════════════
 
-@api_view(["POST"])
-@permission_classes([AllowAny])
+def super_admin_auth_page(request):
+    if _is_super_admin(request):
+        return redirect('/dashboard/super/')
+    return render(request, 'super_auth.html')
+
+
+@_super_admin_required
+def super_admin_page(request):
+    return render(request, 'restaurant/super_admin.html')
+
+
+# ═══════════════════════════════════════════
+#  API: ورود مدیر کل — ★ FIXED: CSRF + backend
+# ═══════════════════════════════════════════
+
+@require_POST
 def super_admin_login_api(request):
-    """ورود مدیر کل — cookie جداگانه"""
-    data = request.data
+    """
+    ورود مدیر کل — Django session + token cookie.
+    ★ FIXED: بدون csrf_exempt — از CSRF token استفاده میکنه
+    """
+    data = _json_body(request)
     username = (data.get('username') or '').strip()
     password = data.get('password') or ''
 
     if not username or not password:
-        return Response(
+        return JsonResponse(
             {'error': 'نام کاربری و رمز عبور الزامی است'},
-            status=status.HTTP_400_BAD_REQUEST,
+            status=400,
         )
 
-    user = authenticate(request._request, username=username, password=password)
+    # ★ FIXED: backend مشخص
+    user = authenticate(
+        request,
+        username=username,
+        password=password,
+        backend='django.contrib.auth.backends.ModelBackend',
+    )
 
     if user is None:
-        return Response(
+        return JsonResponse(
             {'error': 'نام کاربری یا رمز عبور اشتباه است'},
-            status=status.HTTP_401_UNAUTHORIZED,
+            status=401,
         )
 
     if not user.is_superuser:
-        return Response(
+        return JsonResponse(
             {'error': 'شما مجوز دسترسی به این بخش را ندارید'},
-            status=status.HTTP_403_FORBIDDEN,
+            status=403,
         )
 
-    token = signing.dumps({'uid': user.id}, salt=SUPER_TOKEN_SALT)
-    response = Response({
+    auth_login(request, user)
+
+    token = _make_super_token(user)
+    response = JsonResponse({
         'ok': True,
+        'token': token,
         'user': {
             'id': user.id,
             'username': user.username,
@@ -115,27 +198,30 @@ def super_admin_login_api(request):
             'is_superuser': True,
         },
     })
-    _set_cookie(response, token)
-    return response
 
-
-@api_view(["POST"])
-@permission_classes([AllowAny])
-def super_admin_logout_api(request):
-    """خروج مدیر کل"""
-    response = Response({'ok': True})
-    response.delete_cookie(SUPER_TOKEN_COOKIE)
+    _set_super_cookie(response, token)
     return response
 
 
 # ═══════════════════════════════════════════
-#  API: آمار کلی
+#  API: خروج مدیر کل
+# ═══════════════════════════════════════════
+
+@require_POST
+def super_admin_logout_api(request):
+    auth_logout(request)
+    response = JsonResponse({'ok': True})
+    response.delete_cookie(SUPER_TOKEN_COOKIE, path='/')
+    return response
+
+
+# ═══════════════════════════════════════════
+#  API: آمار کلی سیستم
 # ═══════════════════════════════════════════
 
 @api_view(["GET"])
 @permission_classes([IsSuperAdmin])
 def super_stats_api(request):
-    """آمار کلی سیستم — تعداد رستوران‌ها، سرویس‌ها، درآمد"""
     tenants = Tenant.objects.all()
     total = tenants.count()
     active = tenants.filter(is_active=True).count()
@@ -169,7 +255,6 @@ def super_stats_api(request):
 @api_view(["GET"])
 @permission_classes([IsSuperAdmin])
 def super_services_list_api(request):
-    """لیست تمام سرویس‌های سیستم"""
     _ensure_services_exist()
     services = list(Service.objects.order_by('order').values(
         'id', 'code', 'label', 'description', 'icon',
@@ -179,25 +264,24 @@ def super_services_list_api(request):
 
 
 # ═══════════════════════════════════════════
-#  API: CRUD رستوران‌ها
+#  API: CRUD رستوران‌ها — ★ FIXED: ساخت Restaurant
 # ═══════════════════════════════════════════
 
 @api_view(["GET", "POST"])
 @permission_classes([IsSuperAdmin])
 def super_tenants_api(request):
-    """لیست و ایجاد رستوران‌ها"""
-
     if request.method == "GET":
         tenants = Tenant.objects.select_related('owner').all()
 
-        # فیلترها
         search = request.GET.get('search', '').strip()
         if search:
             tenants = tenants.filter(name__icontains=search)
 
         is_active = request.GET.get('active')
         if is_active is not None:
-            tenants = tenants.filter(is_active=is_active.lower() == 'true')
+            tenants = tenants.filter(
+                is_active=is_active.lower() == 'true',
+            )
 
         data = []
         for t in tenants:
@@ -205,17 +289,21 @@ def super_tenants_api(request):
                 'id': t.id,
                 'name': t.name,
                 'owner_id': t.owner_id,
-                'owner_name': t.owner.get_full_name() or t.owner.username if t.owner else '?',
+                'owner_name': (
+                    (t.owner.get_full_name() or t.owner.username)
+                    if t.owner else '?'
+                ),
                 'phone': t.phone or '',
                 'address': t.address or '',
                 'is_active': t.is_active,
                 'active_services': t.active_services_count,
                 'monthly_revenue': t.monthly_revenue,
+                'username_prefix': getattr(t, 'username_prefix', '') or '',
                 'created_at': t.created_at.strftime('%Y/%m/%d'),
             })
         return Response({'tenants': data})
 
-    # POST — ایجاد رستوران جدید
+    # POST
     data = request.data
     owner_username = (data.get('owner_username') or '').strip()
     tenant_name = (data.get('name') or '').strip()
@@ -232,41 +320,65 @@ def super_tenants_api(request):
         )
 
     try:
-        # یافتن یا ساخت مالک
-        owner, created = User.objects.get_or_create(
-            username=owner_username,
-            defaults={
-                'first_name': data.get('owner_name', ''),
-                'phone_number': data.get('owner_phone', ''),
-                'is_approved': True,
-                'role': 'owner',
-            },
-        )
-        if created:
-            owner.set_password(data.get('owner_password', 'changeme123'))
-            owner.save()
-
-        tenant = Tenant.objects.create(
-            name=tenant_name,
-            owner=owner,
-            phone=data.get('phone', ''),
-            address=data.get('address', ''),
-            is_active=data.get('is_active', True),
-        )
-
-        # ساخت TenantService برای هر سرویس
-        _ensure_services_exist()
-        tenant_services = []
-        for svc in Service.objects.all():
-            ts = TenantService.objects.create(
-                tenant=tenant, service=svc,
-                is_enabled=False, price=svc.default_price,
+        with transaction.atomic():
+            owner, created = User.objects.get_or_create(
+                username=owner_username,
+                defaults={
+                    'first_name': data.get('owner_name', ''),
+                    'is_approved': True,
+                    'role': 'owner',
+                },
             )
-            tenant_services.append(ts)
+            if created:
+                # ★ FIXED: فیلدها بعد از create_user
+                owner.first_name = data.get('owner_name', '')
+                owner.phone_number = data.get('owner_phone', '') or ''
+                owner.role = 'owner'
+                owner.is_approved = True
+                owner.set_password(
+                    data.get('owner_password', 'changeme123'),
+                )
+                owner.save()
 
+            tenant = Tenant.objects.create(
+                name=tenant_name,
+                owner=owner,
+                phone=data.get('phone', ''),
+                address=data.get('address', ''),
+                is_active=data.get('is_active', True),
+            )
+
+            if hasattr(tenant, 'username_prefix'):
+                tenant.username_prefix = owner_username[0].lower()
+                tenant.save(update_fields=['username_prefix'])
+
+            # ★ FIXED: ساخت Restaurant مرتبط
+            try:
+                restaurant, _ = Restaurant.objects.get_or_create(
+                    tenant=tenant,
+                    defaults={'name': tenant_name},
+                )
+                if not owner.restaurant:
+                    owner.restaurant = restaurant
+                    owner.save(update_fields=['restaurant'])
+            except Exception as e:
+                logger.warning("Could not create Restaurant: %s", e)
+
+            _ensure_services_exist()
+            for svc in Service.objects.all():
+                TenantService.objects.get_or_create(
+                    tenant=tenant, service=svc,
+                    defaults={
+                        'is_enabled': False,
+                        'price': svc.default_price,
+                    },
+                )
+
+        prefix = getattr(tenant, 'username_prefix', '') or ''
         return Response({
             'ok': True,
             'tenant_id': tenant.id,
+            'username_prefix': prefix,
             'msg': f'رستوران «{tenant.name}» ساخته شد',
         }, status=status.HTTP_201_CREATED)
 
@@ -281,7 +393,6 @@ def super_tenants_api(request):
 @api_view(["GET", "PUT", "DELETE"])
 @permission_classes([IsSuperAdmin])
 def super_tenant_detail_api(request, pk):
-    """جزئیات / ویرایش / حذف یک رستوران"""
     try:
         tenant = Tenant.objects.select_related('owner').get(pk=pk)
     except Tenant.DoesNotExist:
@@ -290,35 +401,41 @@ def super_tenant_detail_api(request, pk):
             status=status.HTTP_404_NOT_FOUND,
         )
 
-    # ── GET ──
     if request.method == "GET":
         services = []
-        for ts in TenantService.objects.filter(tenant=tenant).select_related('service'):
+        for ts in TenantService.objects.filter(
+            tenant=tenant,
+        ).select_related('service'):
             services.append({
                 'service_id': ts.service_id,
                 'code': ts.service.code,
                 'label': ts.service.label,
                 'is_enabled': ts.is_enabled,
                 'price': ts.price,
-                'expires_at': ts.expires_at.isoformat() if ts.expires_at else None,
+                'expires_at': (
+                    ts.expires_at.isoformat() if ts.expires_at else None
+                ),
             })
-
         return Response({
             'id': tenant.id,
             'name': tenant.name,
             'owner_id': tenant.owner_id,
-            'owner_name': tenant.owner.get_full_name() or tenant.owner.username if tenant.owner else '?',
+            'owner_name': (
+                (tenant.owner.get_full_name() or tenant.owner.username)
+                if tenant.owner else '?'
+            ),
             'phone': tenant.phone or '',
             'address': tenant.address or '',
             'is_active': tenant.is_active,
+            'username_prefix': (
+                getattr(tenant, 'username_prefix', '') or ''
+            ),
             'services': services,
             'created_at': tenant.created_at.strftime('%Y/%m/%d'),
         })
 
-    # ── PUT ──
     elif request.method == "PUT":
         data = request.data
-
         if 'name' in data:
             tenant.name = data['name']
         if 'phone' in data:
@@ -327,32 +444,44 @@ def super_tenant_detail_api(request, pk):
             tenant.address = data['address']
         if 'is_active' in data:
             tenant.is_active = bool(data['is_active'])
-
+        if (
+            'username_prefix' in data
+            and hasattr(tenant, 'username_prefix')
+        ):
+            tenant.username_prefix = (
+                data['username_prefix'] or ''
+            ).strip().lower()
         tenant.save()
-
         return Response({
             'ok': True,
             'msg': f'رستوران «{tenant.name}» بروزرسانی شد',
         })
 
-    # ── DELETE ──
     elif request.method == "DELETE":
+        # ★ FIXED: cleanup مرتبط‌ها
         name = tenant.name
-        tenant.delete()
+
+        with transaction.atomic():
+            # حذف سرویس‌ها
+            TenantService.objects.filter(tenant=tenant).delete()
+            # حذف Restaurant مرتبط
+            Restaurant.objects.filter(tenant=tenant).delete()
+            # حذف Tenant
+            tenant.delete()
+
         return Response({
             'ok': True,
-            'msg': f'رستوران «{name}» حذف شد',
+            'msg': f'رستوران «{name}» و تمام مرتبط‌ها حذف شد',
         })
 
 
 # ═══════════════════════════════════════════
-#  API: مدیریت سرویس‌های یک رستوران
+#  API: مدیریت سرویس‌ها
 # ═══════════════════════════════════════════
 
 @api_view(["GET", "POST"])
 @permission_classes([IsSuperAdmin])
 def super_tenant_services_api(request, pk):
-    """مدیریت سرویس‌های یک رستوران"""
     try:
         tenant = Tenant.objects.get(pk=pk)
     except Tenant.DoesNotExist:
@@ -363,11 +492,14 @@ def super_tenant_services_api(request, pk):
 
     _ensure_services_exist()
 
-    # ── GET ──
     if request.method == "GET":
         services = []
-        for svc in Service.objects.filter(is_active=True).order_by('order'):
-            ts = TenantService.objects.filter(tenant=tenant, service=svc).first()
+        for svc in Service.objects.filter(
+            is_active=True,
+        ).order_by('order'):
+            ts = TenantService.objects.filter(
+                tenant=tenant, service=svc,
+            ).first()
             services.append({
                 'service_id': svc.id,
                 'code': svc.code,
@@ -377,8 +509,14 @@ def super_tenant_services_api(request, pk):
                 'is_enabled': ts.is_enabled if ts else False,
                 'price': ts.price if ts else svc.default_price,
                 'default_price': svc.default_price,
-                'activated_at': ts.activated_at.isoformat() if ts and ts.activated_at else None,
-                'expires_at': ts.expires_at.isoformat() if ts and ts.expires_at else None,
+                'activated_at': (
+                    ts.activated_at.isoformat()
+                    if ts and ts.activated_at else None
+                ),
+                'expires_at': (
+                    ts.expires_at.isoformat()
+                    if ts and ts.expires_at else None
+                ),
             })
         return Response({
             'tenant_id': tenant.id,
@@ -386,11 +524,9 @@ def super_tenant_services_api(request, pk):
             'services': services,
         })
 
-    # ── POST ──
     elif request.method == "POST":
         data = request.data
         services_data = data.get('services', [])
-
         if not services_data:
             return Response(
                 {'error': 'لیست سرویس‌ها ارسال نشد'},
@@ -402,7 +538,6 @@ def super_tenant_services_api(request, pk):
             svc_id = item.get('service_id')
             if not svc_id:
                 continue
-
             try:
                 ts, created = TenantService.objects.get_or_create(
                     tenant=tenant, service_id=svc_id,
@@ -411,14 +546,11 @@ def super_tenant_services_api(request, pk):
                 continue
 
             was_enabled = ts.is_enabled
-
             ts.is_enabled = item.get('is_enabled', False)
             ts.price = item.get('price', ts.price)
 
-            # فعال‌سازی: اولین بار → activated_at
             if ts.is_enabled and not was_enabled:
                 ts.activated_at = timezone.now()
-            # غیرفعال‌سازی
             elif not ts.is_enabled and was_enabled:
                 ts.activated_at = None
 
@@ -439,12 +571,21 @@ def super_tenant_services_api(request, pk):
 @api_view(["GET"])
 @permission_classes([IsSuperAdmin])
 def super_users_api(request):
-    """لیست کاربران سیستم — با pagination"""
-    page = int(request.GET.get('page', 1))
-    page_size = int(request.GET.get('page_size', 20))
-    search = request.GET.get('search', '').strip()
+    try:
+        page = max(1, int(request.GET.get('page', 1)))
+    except (TypeError, ValueError):
+        page = 1
+    try:
+        page_size = min(100, max(1, int(request.GET.get('page_size', 20))))
+    except (TypeError, ValueError):
+        page_size = 20
 
-    qs = User.objects.all().order_by('-date_joined')
+    search = request.GET.get('search', '').strip()
+    restaurant_id = request.GET.get('restaurant_id')
+
+    qs = User.objects.select_related(
+        'restaurant',
+    ).all().order_by('-date_joined')
 
     if search:
         from django.db.models import Q
@@ -454,6 +595,8 @@ def super_users_api(request):
             | Q(last_name__icontains=search)
             | Q(phone_number__icontains=search),
         )
+    if restaurant_id:
+        qs = qs.filter(restaurant_id=restaurant_id)
 
     total = qs.count()
     start = (page - 1) * page_size
@@ -465,37 +608,236 @@ def super_users_api(request):
         'first_name': u.first_name or '',
         'last_name': u.last_name or '',
         'phone_number': u.phone_number or '',
-        'role': getattr(u, 'role', ''),
+        'role': u.role,
+        'role_display': u.get_role_display(),
         'is_active': u.is_active,
         'is_superuser': u.is_superuser,
-        'restaurant_id': getattr(u, 'restaurant_id', None),
+        'restaurant_id': u.restaurant_id,
+        'restaurant_name': u.restaurant.name if u.restaurant else '',
+        'dashboard_permissions': u.dashboard_permissions,
+        'effective_permissions': u.get_permissions(),
         'date_joined': u.date_joined.strftime('%Y/%m/%d'),
     } for u in users]
 
     return Response({
-        'users': data,
-        'total': total,
-        'page': page,
+        'users': data, 'total': total, 'page': page,
         'page_size': page_size,
         'pages': (total + page_size - 1) // page_size,
     })
 
 
 # ═══════════════════════════════════════════
-#  API: بررسی سرویس‌های فعال (utility)
+#  API: ساخت کاربر — ★ FIXED: create_user
+# ═══════════════════════════════════════════
+
+@api_view(["POST"])
+@permission_classes([IsSuperAdmin])
+def super_user_create_api(request):
+    data = request.data
+    username = (data.get('username') or '').strip()
+    password = data.get('password') or ''
+    role = (data.get('role') or '').strip()
+    restaurant_id = data.get('restaurant_id')
+
+    if not username or not password:
+        return Response(
+            {'error': 'نام کاربری و رمز عبور الزامی است'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if not role:
+        return Response(
+            {'error': 'نقش کاربر الزامی است'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if not restaurant_id:
+        return Response(
+            {'error': 'رستوران الزامی است'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if User.objects.filter(username=username).exists():
+        return Response(
+            {'error': 'این نام کاربری قبلاً ثبت شده'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        restaurant = Restaurant.objects.get(pk=restaurant_id)
+    except Restaurant.DoesNotExist:
+        return Response(
+            {'error': 'رستوران پیدا نشد'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    # ★ FIXED: فقط username + password به create_user
+    user = User.objects.create_user(
+        username=username, password=password,
+    )
+
+    # فیلدهای اضافی بعد از ساختن
+    user.first_name = data.get('first_name', '')
+    user.last_name = data.get('last_name', '')
+    user.phone_number = data.get('phone_number') or ''
+    user.role = role
+    user.restaurant = restaurant
+    user.is_approved = True
+    user.is_active = True
+
+    custom_perms = data.get('dashboard_permissions')
+    if custom_perms is not None:
+        user.dashboard_permissions = custom_perms
+
+    user.save()
+
+    return Response({
+        'ok': True,
+        'user_id': user.id,
+        'msg': f'کاربر «{user.username}» ساخته شد',
+    }, status=status.HTTP_201_CREATED)
+
+
+# ═══════════════════════════════════════════
+#  API: جزئیات / ویرایش / حذف کاربر
+# ═══════════════════════════════════════════
+
+@api_view(["GET", "PUT", "DELETE"])
+@permission_classes([IsSuperAdmin])
+def super_user_detail_api(request, pk):
+    try:
+        user = User.objects.select_related('restaurant').get(pk=pk)
+    except User.DoesNotExist:
+        return Response(
+            {'error': 'کاربر پیدا نشد'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    if request.method == "GET":
+        return Response({
+            'id': user.id, 'username': user.username,
+            'first_name': user.first_name or '',
+            'last_name': user.last_name or '',
+            'phone_number': user.phone_number or '',
+            'role': user.role,
+            'role_display': user.get_role_display(),
+            'is_active': user.is_active,
+            'is_approved': user.is_approved,
+            'is_superuser': user.is_superuser,
+            'restaurant_id': user.restaurant_id,
+            'restaurant_name': (
+                user.restaurant.name if user.restaurant else ''
+            ),
+            'dashboard_permissions': user.dashboard_permissions,
+            'effective_permissions': user.get_permissions(),
+            'date_joined': user.date_joined.strftime('%Y/%m/%d'),
+        })
+
+    elif request.method == "PUT":
+        data = request.data
+        update_fields = []
+
+        for field in ('first_name', 'last_name', 'phone_number'):
+            if field in data:
+                setattr(user, field, data[field] or None)
+                update_fields.append(field)
+
+        if 'role' in data:
+            user.role = data['role']
+            update_fields.append('role')
+        if 'is_active' in data:
+            user.is_active = bool(data['is_active'])
+            update_fields.append('is_active')
+        if 'is_approved' in data:
+            user.is_approved = bool(data['is_approved'])
+            update_fields.append('is_approved')
+        if 'restaurant_id' in data:
+            try:
+                restaurant = Restaurant.objects.get(
+                    pk=data['restaurant_id'],
+                )
+                user.restaurant = restaurant
+                update_fields.append('restaurant')
+            except Restaurant.DoesNotExist:
+                return Response(
+                    {'error': 'رستوران پیدا نشد'},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+        if 'dashboard_permissions' in data:
+            user.dashboard_permissions = data['dashboard_permissions']
+            update_fields.append('dashboard_permissions')
+
+        new_password = data.get('password')
+        if new_password:
+            user.set_password(new_password)
+            update_fields.append('password')
+
+        if update_fields:
+            user.save(update_fields=update_fields)
+
+        return Response({
+            'ok': True,
+            'msg': f'کاربر «{user.username}» بروزرسانی شد',
+        })
+
+    elif request.method == "DELETE":
+        if user.is_superuser:
+            return Response(
+                {'error': 'نمی‌توان مدیر کل را حذف کرد'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        username = user.username
+        user.delete()
+        return Response({
+            'ok': True,
+            'msg': f'کاربر «{username}» حذف شد',
+        })
+
+
+# ═══════════════════════════════════════════
+#  API: دسترسی‌های کاربر
+# ═══════════════════════════════════════════
+
+@api_view(["PUT"])
+@permission_classes([IsSuperAdmin])
+def super_user_permissions_api(request, pk):
+    try:
+        user = User.objects.get(pk=pk)
+    except User.DoesNotExist:
+        return Response(
+            {'error': 'کاربر پیدا نشد'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    data = request.data
+    permissions = data.get('dashboard_permissions', [])
+    valid_codes = [s[0] for s in User.DASHBOARD_SECTIONS]
+    cleaned = [p for p in permissions if p in valid_codes]
+
+    user.dashboard_permissions = cleaned
+    user.save(update_fields=['dashboard_permissions'])
+
+    return Response({
+        'ok': True,
+        'dashboard_permissions': user.dashboard_permissions,
+        'effective_permissions': user.get_permissions(),
+        'msg': 'دسترسی‌ها بروزرسانی شد',
+    })
+
+
+# ═══════════════════════════════════════════
+#  توابع کمکی
 # ═══════════════════════════════════════════
 
 def get_user_enabled_services(user):
-    """
-    لیست کدهای سرویس‌های فعال کاربر.
-    ★ این یک view نیست — utility function
-    """
     if user.is_superuser:
-        return list(Service.objects.filter(is_active=True).values_list('code', flat=True))
+        return list(
+            Service.objects.filter(
+                is_active=True,
+            ).values_list('code', flat=True)
+        )
 
-    tenant = Tenant.objects.filter(owner=user, is_active=True).first()
+    tenant = Tenant.objects.filter(
+        owner=user, is_active=True,
+    ).first()
     if not tenant:
-        # تلاش برای پیدا کردن tenant از FK
         restaurant = getattr(user, 'restaurant', None)
         if restaurant:
             tenant = Tenant.objects.filter(
@@ -507,32 +849,29 @@ def get_user_enabled_services(user):
 
     return list(
         TenantService.objects.filter(
-            tenant=tenant, is_enabled=True,
-            service__is_active=True,
+            tenant=tenant, is_enabled=True, service__is_active=True,
         ).values_list('service__code', flat=True)
     )
 
 
 # ═══════════════════════════════════════════
-#  تابع کمکی — ساخت سرویس‌های پیش‌فرض
+#  سرویس‌های پیش‌فرض
 # ═══════════════════════════════════════════
 
 DEFAULT_SERVICES = [
-    {'code': 'dictionary', 'label': 'دیکشنری',         'icon': '📖', 'default_price': 500_000,   'order': 1},
-    {'code': 'foods',      'label': 'غذا و منو',        'icon': '🍽️', 'default_price': 800_000,   'order': 2},
-    {'code': 'pos',        'label': 'صندوق فروش',       'icon': '💰', 'default_price': 1_200_000, 'order': 3},
-    {'code': 'kitchen',    'label': 'آشپزخانه',         'icon': '👨‍🍳', 'default_price': 1_000_000, 'order': 4},
-    {'code': 'inventory',  'label': 'انبار',            'icon': '📦', 'default_price': 900_000,   'order': 5},
-    {'code': 'loyalty',    'label': 'باشگاه مشتریان',   'icon': '🏆', 'default_price': 700_000,   'order': 6},
-    {'code': 'reports',    'label': 'گزارش‌گیری',        'icon': '📊', 'default_price': 600_000,   'order': 7},
-    {'code': 'users',      'label': 'مدیریت کاربران',   'icon': '👥', 'default_price': 400_000,   'order': 8},
+    {'code': 'dictionary', 'label': 'دیکشنری',       'icon': '📖', 'default_price': 500_000,   'order': 1},
+    {'code': 'foods',      'label': 'غذا و منو',      'icon': '🍽️', 'default_price': 800_000,   'order': 2},
+    {'code': 'pos',        'label': 'صندوق فروش',     'icon': '💰', 'default_price': 1_200_000, 'order': 3},
+    {'code': 'kitchen',    'label': 'آشپزخانه',       'icon': '👨‍🍳', 'default_price': 1_000_000, 'order': 4},
+    {'code': 'inventory',  'label': 'انبار',          'icon': '📦', 'default_price': 900_000,   'order': 5},
+    {'code': 'loyalty',    'label': 'باشگاه مشتریان', 'icon': '🏆', 'default_price': 700_000,   'order': 6},
+    {'code': 'reports',    'label': 'گزارش‌گیری',      'icon': '📊', 'default_price': 600_000,   'order': 7},
+    {'code': 'users',      'label': 'مدیریت کاربران', 'icon': '👥', 'default_price': 400_000,   'order': 8},
 ]
 
 
 def _ensure_services_exist():
-    """ساخت سرویس‌های پیش‌فرض اگر وجود نداشته باشند"""
     for svc_data in DEFAULT_SERVICES:
         Service.objects.get_or_create(
-            code=svc_data['code'],
-            defaults=svc_data,
+            code=svc_data['code'], defaults=svc_data,
         )

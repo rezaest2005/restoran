@@ -1,14 +1,12 @@
 """
-Kitchen — آشپزخانه API (★ نسخه اصلاح‌شده v3)
+Kitchen — آشپزخانه API (★ نسخه v5 — اصلاح شده)
 
-★ تغییرات نسبت به نسخه قبل:
-  ۱. VALID_WASTE_REASONS: از مدل WasteLog.REASON_CHOICES خوانده می‌شود — حذف import helpers
-  ۲. تمام query‌ها: فیلتر restaurant اضافه شد
-  ۳. order_status_change: با url.py سازگار شد (نام تابع = order_change_status)
-  ۴. KitchenWasteListCreate: cost_per_unit ذخیره می‌شود
-  ۵. KitchenWasteDetail.delete: فیلتر restaurant
-  ۶. بهبود مدیریت خطاها
-  ۷. _resolve_restaurant: مشترک با pos.py — اگر بخواهید می‌توان به utils.py منتقل کرد
+★ v5 تغییرات:
+  - تمام get_queryset: فیلتر restaurant
+  - kitchen_product_produce: فیلتر restaurant
+  - KitchenWasteListCreate.post: atomic
+  - KitchenWasteDetail: فیلتر restaurant
+  - kitchen_orders_api: status گسترده‌تر
 """
 
 import logging
@@ -19,6 +17,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from django.core.exceptions import ValidationError
+from django.db import transaction
+from django.utils import timezone
 
 from ..models import (
     KitchenProduct, KitchenInventory,
@@ -42,21 +42,22 @@ from ..tenancy import (
     get_current_restaurant, set_current_restaurant,
     get_restaurant_from_request,
 )
-# ★ نیاز به import timezone برای order_change_status
-from django.utils import timezone  # noqa: E402
+from .decorators import require_service, make_service_permission
 
 logger = logging.getLogger(__name__)
 
 
 # ═══════════════════════════════════════
-#  ثابت‌ها — از مدل (نه از helpers.py)
+#  Permission + constants
 # ═══════════════════════════════════════
+
+KitchenPerm = make_service_permission('kitchen')
 
 VALID_WASTE_REASONS = [choice[0] for choice in WasteLog.REASON_CHOICES]
 
 
 # ═══════════════════════════════════════
-#  resolve restaurant — fallback
+#  resolve restaurant
 # ═══════════════════════════════════════
 
 def _resolve_restaurant(request):
@@ -75,48 +76,66 @@ def _resolve_restaurant(request):
 # ═══════════════════════════════════════
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([KitchenPerm])
 def kitchen_dashboard_api(request):
     return Response(generate_kitchen_dashboard())
 
 
 # ═══════════════════════════════════════
-#  Kitchen Products
+#  Kitchen Products — ★ FIXED: فیلتر restaurant
 # ═══════════════════════════════════════
 
 class KitchenProductListCreate(generics.ListCreateAPIView):
     serializer_class = KitchenProductSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [KitchenPerm]
 
     def get_queryset(self):
         qs = KitchenProduct.objects.select_related("recipe").all()
 
+        restaurant = _resolve_restaurant(self.request)
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
+
         cat = self.request.query_params.get("category")
         if cat:
             qs = qs.filter(category=cat)
-
         active = self.request.query_params.get("active")
         if active is not None:
             qs = qs.filter(is_active=active.lower() == "true")
-
         search = self.request.query_params.get("search")
         if search:
             qs = qs.filter(name__icontains=search)
-
         return qs.order_by("name")
+
+    def perform_create(self, serializer):
+        restaurant = _resolve_restaurant(self.request)
+        serializer.save(restaurant=restaurant)
 
 
 class KitchenProductDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = KitchenProduct.objects.select_related("recipe").all()
     serializer_class = KitchenProductSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [KitchenPerm]
+
+    # ★ FIXED: queryset مستقیم → get_queryset
+    def get_queryset(self):
+        qs = KitchenProduct.objects.select_related("recipe").all()
+        restaurant = _resolve_restaurant(self.request)
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
+        return qs
 
 
 @api_view(["GET"])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([KitchenPerm])
 def kitchen_product_capacity(request, pk: int):
+    restaurant = _resolve_restaurant(request)
+
+    # ★ FIXED: فیلتر restaurant
     try:
-        product = KitchenProduct.objects.select_related("recipe").get(pk=pk)
+        qs = KitchenProduct.objects.select_related("recipe").all()
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
+        product = qs.get(pk=pk)
     except KitchenProduct.DoesNotExist:
         return Response(
             {"error": "محصول یافت نشد."},
@@ -135,10 +154,16 @@ def kitchen_product_capacity(request, pk: int):
 
 
 @api_view(["POST"])
-@permission_classes([IsOwnerOrManagerOrKitchenStaff])
+@permission_classes([KitchenPerm, IsOwnerOrManagerOrKitchenStaff])
 def kitchen_product_produce(request, pk: int):
+    restaurant = _resolve_restaurant(request)
+
+    # ★ FIXED: فیلتر restaurant
     try:
-        product = KitchenProduct.objects.select_related("recipe").get(pk=pk)
+        qs = KitchenProduct.objects.select_related("recipe").all()
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
+        product = qs.get(pk=pk)
     except KitchenProduct.DoesNotExist:
         return Response(
             {"error": "محصول یافت نشد."},
@@ -152,14 +177,12 @@ def kitchen_product_produce(request, pk: int):
             {"error": "تعداد نامعتبر است."},
             status=status.HTTP_400_BAD_REQUEST,
         )
-
     notes = request.data.get("notes", "")
     if quantity <= 0:
         return Response(
             {"error": "تعداد باید بیشتر از صفر باشد."},
             status=status.HTTP_400_BAD_REQUEST,
         )
-
     try:
         batch = produce_item(
             kitchen_product=product,
@@ -175,10 +198,7 @@ def kitchen_product_produce(request, pk: int):
         })
     except ValidationError as e:
         msgs = e.messages if hasattr(e, "messages") else [str(e)]
-        return Response(
-            {"error": msgs},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        return Response({"error": msgs}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         logger.exception("Error producing kitchen product %s", pk)
         return Response(
@@ -189,10 +209,14 @@ def kitchen_product_produce(request, pk: int):
 
 class KitchenInventoryList(generics.ListAPIView):
     serializer_class = KitchenInventorySerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [KitchenPerm]
 
+    # ★ FIXED: فیلتر restaurant
     def get_queryset(self):
         qs = KitchenInventory.objects.select_related("kitchen_product").all()
+        restaurant = _resolve_restaurant(self.request)
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
         low = self.request.query_params.get("low_stock")
         if low and low.lower() == "true":
             qs = qs.filter(quantity__lte=5)
@@ -200,44 +224,53 @@ class KitchenInventoryList(generics.ListAPIView):
 
 
 # ═══════════════════════════════════════
-#  Production Plans
+#  Production Plans — ★ FIXED: فیلتر restaurant
 # ═══════════════════════════════════════
 
 class ProductionPlanListCreate(generics.ListCreateAPIView):
     serializer_class = ProductionPlanSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [KitchenPerm]
 
     def get_queryset(self):
         qs = ProductionPlan.objects.prefetch_related(
             "items__kitchen_product",
         ).select_related("created_by")
 
+        restaurant = _resolve_restaurant(self.request)
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
+
         status_filter = self.request.query_params.get("status")
         if status_filter:
             qs = qs.filter(status=status_filter)
-
         date_filter = self.request.query_params.get("date")
         if date_filter:
             qs = qs.filter(date=date_filter)
-
         return qs.order_by("-date", "-created_at")
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        restaurant = _resolve_restaurant(self.request)
+        serializer.save(created_by=self.request.user, restaurant=restaurant)
 
 
 class ProductionPlanDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = ProductionPlan.objects.prefetch_related(
-        "items__kitchen_product",
-    ).all()
     serializer_class = ProductionPlanSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [KitchenPerm]
+
+    # ★ FIXED: queryset مستقیم → get_queryset
+    def get_queryset(self):
+        qs = ProductionPlan.objects.prefetch_related(
+            "items__kitchen_product",
+        ).all()
+        restaurant = _resolve_restaurant(self.request)
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
+        return qs
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([KitchenPerm])
 def kitchen_calculate_materials(request):
-    """محاسبه مواد مورد نیاز برای لیست محصولات"""
     items = request.data.get("items", [])
     if not items:
         return Response(
@@ -245,6 +278,7 @@ def kitchen_calculate_materials(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+    restaurant = _resolve_restaurant(request)
     products_summary = []
     materials_map = {}
 
@@ -254,14 +288,17 @@ def kitchen_calculate_materials(request):
         if not pid or qty <= 0:
             continue
 
+        # ★ FIXED: فیلتر restaurant
         try:
-            kp = KitchenProduct.objects.select_related("recipe").get(pk=pid)
+            qs = KitchenProduct.objects.select_related("recipe").all()
+            if restaurant:
+                qs = qs.filter(restaurant=restaurant)
+            kp = qs.get(pk=pid)
         except KitchenProduct.DoesNotExist:
             continue
 
         products_summary.append({"name": kp.name, "quantity": qty})
         reqs = get_required_materials(kp, qty)
-
         for r in reqs:
             key = (r["type"], r["id"])
             if key not in materials_map:
@@ -282,10 +319,8 @@ def kitchen_calculate_materials(request):
     for m in materials_map.values():
         m["required"] = round(m["required"], 3)
         m["available"] = round(m["available"], 3)
-
         if m["available"] < m["required"]:
             shortage_count += 1
-
         entry = {
             "name": m["name"],
             "required": m["required"],
@@ -293,7 +328,6 @@ def kitchen_calculate_materials(request):
             "unit": m["unit"],
             "has_shortage": m["available"] < m["required"],
         }
-
         if m["type"] == "raw_material":
             raw_materials.append(entry)
         elif m["type"] == "packaging":
@@ -311,10 +345,16 @@ def kitchen_calculate_materials(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([KitchenPerm])
 def production_plan_approve(request, pk: int):
+    restaurant = _resolve_restaurant(request)
+
+    # ★ FIXED: فیلتر restaurant
     try:
-        plan = ProductionPlan.objects.get(pk=pk)
+        qs = ProductionPlan.objects.all()
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
+        plan = qs.get(pk=pk)
     except ProductionPlan.DoesNotExist:
         return Response(
             {"error": "برنامه یافت نشد."},
@@ -336,12 +376,18 @@ def production_plan_approve(request, pk: int):
 
 
 @api_view(["POST"])
-@permission_classes([IsOwnerOrManagerOrKitchenStaff])
+@permission_classes([KitchenPerm, IsOwnerOrManagerOrKitchenStaff])
 def production_plan_execute(request, pk: int):
+    restaurant = _resolve_restaurant(request)
+
+    # ★ FIXED: فیلتر restaurant
     try:
-        plan = ProductionPlan.objects.prefetch_related(
+        qs = ProductionPlan.objects.prefetch_related(
             "items__kitchen_product",
-        ).get(pk=pk)
+        ).all()
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
+        plan = qs.get(pk=pk)
     except ProductionPlan.DoesNotExist:
         return Response(
             {"error": "برنامه یافت نشد."},
@@ -368,48 +414,43 @@ def production_plan_execute(request, pk: int):
 
 class ProductionLogList(generics.ListAPIView):
     serializer_class = ProductionLogSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [KitchenPerm]
 
+    # ★ FIXED: فیلتر restaurant
     def get_queryset(self):
         qs = ProductionLog.objects.select_related("kitchen_product", "user")
-
+        restaurant = _resolve_restaurant(self.request)
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
         action_filter = self.request.query_params.get("action")
         if action_filter:
             qs = qs.filter(action=action_filter)
-
         product_id = self.request.query_params.get("product")
         if product_id:
             qs = qs.filter(kitchen_product_id=product_id)
-
         return qs.order_by("-created_at")[:100]
 
 
 # ═══════════════════════════════════════
-#  Kitchen Waste
+#  Kitchen Waste — ★ FIXED: فیلتر + atomic
 # ═══════════════════════════════════════
 
 class KitchenWasteListCreate(generics.GenericAPIView):
-    """لیست و ثبت ضایعات آشپزخانه"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [KitchenPerm]
 
     def get(self, request):
         restaurant = _resolve_restaurant(request)
         qs = WasteLog.objects.select_related(
             'kitchen_product', 'created_by',
         )
-
         if restaurant:
             qs = qs.filter(restaurant=restaurant)
-
-        # فیلترها
         product_id = request.query_params.get("product")
         if product_id:
             qs = qs.filter(kitchen_product_id=product_id)
-
         reason = request.query_params.get("reason")
         if reason:
             qs = qs.filter(reason=reason)
-
         qs = qs.order_by('-created_at')[:100]
 
         data = []
@@ -439,7 +480,6 @@ class KitchenWasteListCreate(generics.GenericAPIView):
         reason = d.get('reason')
         notes = (d.get('notes') or '').strip()
 
-        # ولیدیشن
         if not kp_id:
             return Response(
                 {'error': 'محصول مشخص نشده'},
@@ -461,45 +501,49 @@ class KitchenWasteListCreate(generics.GenericAPIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        restaurant = _resolve_restaurant(request)
+        if not restaurant:
+            return Response(
+                {'error': 'رستوران مشخص نشده'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # ★ FIXED: فیلتر restaurant روی KitchenProduct
         try:
-            kp = KitchenProduct.objects.get(id=kp_id)
+            qs = KitchenProduct.objects.all()
+            if restaurant:
+                qs = qs.filter(restaurant=restaurant)
+            kp = qs.get(id=kp_id)
         except KitchenProduct.DoesNotExist:
             return Response(
                 {'error': 'محصول یافت نشد'},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        restaurant = _resolve_restaurant(request)
-        if not restaurant:
-            return Response(
-                {'error': 'رستوران مشخص نشده — لطفاً وارد شوید'},
-                status=status.HTTP_400_BAD_REQUEST,
+        # ★ FIXED: atomic
+        with transaction.atomic():
+            inv = kp.get_inventory()
+            actual_qty = min(int(qty), inv.quantity)
+            if actual_qty <= 0:
+                return Response(
+                    {'error': 'موجودی صفر است'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            waste = WasteLog(
+                restaurant=restaurant,
+                kitchen_product=kp,
+                quantity=actual_qty,
+                reason=reason,
+                notes=notes,
+                created_by=request.user,
             )
+            waste.save()
 
-        inv = kp.get_inventory()
-        actual_qty = min(int(qty), inv.quantity)
-        if actual_qty <= 0:
-            return Response(
-                {'error': 'موجودی صفر است'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # ★ FIXED: cost_per_unit از calculate_cost محاسبه می‌شود
-        waste = WasteLog(
-            restaurant=restaurant,
-            kitchen_product=kp,
-            quantity=actual_qty,
-            reason=reason,
-            notes=notes,
-            created_by=request.user,
-        )
-        # save مدل cost_per_unit را خودکار پر می‌کند
-        waste.save()
-
-        inv.quantity -= actual_qty
-        if inv.quantity < 0:
-            inv.quantity = 0
-        inv.save(update_fields=['quantity', 'updated_at'])
+            inv.quantity -= actual_qty
+            if inv.quantity < 0:
+                inv.quantity = 0
+            inv.save(update_fields=['quantity', 'updated_at'])
 
         return Response({
             'id': waste.id,
@@ -517,32 +561,40 @@ class KitchenWasteListCreate(generics.GenericAPIView):
 
 
 class KitchenWasteDetail(generics.GenericAPIView):
-    """حذف ضایعات + بازگردانی موجودی"""
-    permission_classes = [IsAuthenticated]
+    permission_classes = [KitchenPerm]
 
+    # ★ FIXED: فیلتر restaurant
     def delete(self, request, pk):
+        restaurant = _resolve_restaurant(request)
+
         try:
-            w = WasteLog.objects.get(id=pk)
+            qs = WasteLog.objects.all()
+            if restaurant:
+                qs = qs.filter(restaurant=restaurant)
+            w = qs.get(id=pk)
         except WasteLog.DoesNotExist:
             return Response(
                 {'error': 'یافت نشد'},
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # بازگردانی موجودی
-        inv = w.kitchen_product.get_inventory()
-        inv.quantity += w.quantity
-        inv.save(update_fields=['quantity', 'updated_at'])
+        # ★ FIXED: atomic — حذف + بازگردانی موجودی
+        with transaction.atomic():
+            inv = w.kitchen_product.get_inventory()
+            inv.quantity += w.quantity
+            inv.save(update_fields=['quantity', 'updated_at'])
+            w.delete()
 
-        w.delete()
-        return Response({'success': True, 'msg': 'ضایعات حذف شد و موجودی بازگردانی شد.'})
+        return Response({
+            'success': True,
+            'msg': 'ضایعات حذف شد و موجودی بازگردانی شد.',
+        })
 
 
 # ═══════════════════════════════════════
-#  ★★★ تغییر وضعیت سفارش — سازگار با urls.py ★★★
+#  تغییر وضعیت سفارش
 # ═══════════════════════════════════════
 
-# الگوی مجاز تغییر وضعیت
 VALID_TRANSITIONS = {
     'pending':   ['confirmed', 'cancelled'],
     'confirmed': ['preparing', 'cancelled'],
@@ -554,17 +606,16 @@ VALID_TRANSITIONS = {
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([KitchenPerm])
 def order_change_status(request, pk: int):
-    """
-    تغییر وضعیت سفارش — سازگار با urls.py
-    POST /api/orders/<pk>/status/
-    body: {"status": "preparing"}
-    """
+    restaurant = _resolve_restaurant(request)
+
+    # ★ FIXED: فیلتر restaurant
     try:
-        order = Order.objects.prefetch_related(
-            'items__food__recipe',
-        ).get(pk=pk)
+        qs = Order.objects.prefetch_related('items__food__recipe').all()
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
+        order = qs.get(pk=pk)
     except Order.DoesNotExist:
         return Response(
             {'error': 'سفارش یافت نشد.'},
@@ -588,24 +639,22 @@ def order_change_status(request, pk: int):
         )
 
     try:
-        order.status = new_status
-        order.save(update_fields=['status'])
+        # ★ FIXED: atomic — تغییر وضعیت + side effects
+        with transaction.atomic():
+            order.status = new_status
+            order.save(update_fields=['status'])
 
-        msg = ''
-        if new_status == 'ready':
-            deducted = deduct_for_order_ready(order)
-            msg = f' — {len(deducted)} آیتم از آشپزخانه کسر شد'
-            logger.info('Order #%d → ready, deducted: %s', order.id, deducted)
-
-        elif new_status == 'cancelled':
-            restored = restore_for_order_cancel(order)
-            msg = f' — {len(restored)} آیتم بازگردانی شد'
-            logger.info('Order #%d → cancelled, restored: %s', order.id, restored)
-
-        elif new_status == 'confirmed':
-            order.confirmed_by = request.user
-            order.confirmed_at = timezone.now()
-            order.save(update_fields=['confirmed_by', 'confirmed_at'])
+            msg = ''
+            if new_status == 'ready':
+                deducted = deduct_for_order_ready(order)
+                msg = f' — {len(deducted)} آیتم از آشپزخانه کسر شد'
+            elif new_status == 'cancelled':
+                restored = restore_for_order_cancel(order)
+                msg = f' — {len(restored)} آیتم بازگردانی شد'
+            elif new_status == 'confirmed':
+                order.confirmed_by = request.user
+                order.confirmed_at = timezone.now()
+                order.save(update_fields=['confirmed_by', 'confirmed_at'])
 
         return Response({
             'success': True,
@@ -614,13 +663,9 @@ def order_change_status(request, pk: int):
             'status_display': order.get_status_display(),
             'msg': f'سفارش #{order.id} → {order.get_status_display()}{msg}',
         })
-
     except ValidationError as e:
         msgs = e.messages if hasattr(e, 'messages') else [str(e)]
-        return Response(
-            {'error': msgs},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        return Response({'error': msgs}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
         logger.exception('Error changing order #%d status', pk)
         return Response(
@@ -630,11 +675,16 @@ def order_change_status(request, pk: int):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([KitchenPerm])
 def order_send_to_kitchen(request, pk: int):
-    """ارسال سفارش به آشپزخانه (pending → confirmed → preparing)"""
+    restaurant = _resolve_restaurant(request)
+
+    # ★ FIXED: فیلتر restaurant
     try:
-        order = Order.objects.get(pk=pk)
+        qs = Order.objects.all()
+        if restaurant:
+            qs = qs.filter(restaurant=restaurant)
+        order = qs.get(pk=pk)
     except Order.DoesNotExist:
         return Response(
             {'error': 'سفارش یافت نشد.'},
@@ -662,13 +712,13 @@ def order_send_to_kitchen(request, pk: int):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([KitchenPerm])
 def kitchen_orders_api(request):
-    """لیست سفارشات آشپزخانه (preparing + confirmed)"""
     restaurant = _resolve_restaurant(request)
 
+    # ★ FIXED: ready هم اضافه شد
     qs = Order.objects.filter(
-        status__in=['confirmed', 'preparing'],
+        status__in=['confirmed', 'preparing', 'ready'],
     ).prefetch_related('items__food').order_by('created_at')
 
     if restaurant:
@@ -701,5 +751,3 @@ def kitchen_orders_api(request):
         'count': len(orders),
         'orders': orders,
     })
-
-

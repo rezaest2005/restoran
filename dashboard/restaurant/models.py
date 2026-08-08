@@ -17,7 +17,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.conf import settings
 
-from .tenancy import TenantModel, TenantManager, AllObjectsManager
+from .tenancy import TenantModel, AllObjectsManager
 
 
 # ═══════════════════════════════════════════
@@ -105,19 +105,25 @@ def updated_at_field(**kwargs):
     defaults.update(kwargs)
     return models.DateTimeField(**defaults)
 
-
 # ═══════════════════════════════════════════
 #  SHARED MODELS
 # ═══════════════════════════════════════════
 
-
 class Restaurant(models.Model):
-    name       = name_field(max_length=200, verbose_name='نام رستوران')
-    phone      = phone_field(verbose_name='تلفن')
-    address    = models.TextField('آدرس', blank=True)
-    logo       = models.ImageField('لوگو', upload_to='restaurants/logos/', blank=True, null=True)
-    is_active  = is_active_field(verbose_name='فعال')
-    created_at = created_at_field(verbose_name='تاریخ ایجاد')
+    name            = name_field(max_length=200, verbose_name='نام رستوران')
+    phone           = phone_field(verbose_name='تلفن')
+    address         = models.TextField('آدرس', blank=True)
+    logo            = models.ImageField('لوگو', upload_to='restaurants/logos/', blank=True, null=True)
+    # ★ جدید: پیشوند نام کاربری کارمندان
+    username_prefix = models.CharField(
+        'پیشوند نام کاربری',
+        max_length=5,
+        default='',
+        blank=True,
+        help_text='حرف اول نام کاربری مالک — برای ساخت نام کاربری کارمندان (مثلاً: z)',
+    )
+    is_active       = is_active_field(verbose_name='فعال')
+    created_at      = created_at_field(verbose_name='تاریخ ایجاد')
 
     class Meta:
         verbose_name        = 'رستوران'
@@ -147,6 +153,13 @@ class User(AbstractUser):
     profile_image = models.ImageField('عکس پروفایل', upload_to='profiles/', blank=True, null=True)
     is_verified   = models.BooleanField('تأیید شده', default=False)
     is_approved   = models.BooleanField('تأیید مدیر', default=False)
+    # ★ NEW: دسترسی‌های سفارشی داشبورد
+    dashboard_permissions = models.JSONField(
+        'دسترسی‌های داشبورد',
+        default=list,
+        blank=True,
+        help_text='لیست بخش‌های قابل دسترسی. خالی = پیش‌فرض نقش',
+    )
     created_at    = created_at_field(verbose_name='تاریخ ایجاد')
     updated_at    = updated_at_field(verbose_name='تاریخ بروزرسانی')
 
@@ -183,6 +196,50 @@ class User(AbstractUser):
             self.Role.OWNER, self.Role.MANAGER, self.Role.CASHIER,
             self.Role.KITCHEN, self.Role.WAREHOUSE,
         )
+
+    # ★ NEW: سیستم دسترسی‌ها
+    DASHBOARD_SECTIONS = [
+        ('pos',             'صندوق فروش'),
+        ('orders',          'سفارشات'),
+        ('kitchen',         'آشپزخانه'),
+        ('recipes',         'رسپی‌ها'),
+        ('invoices',        'فاکتور خرید'),
+        ('raw_materials',   'مواد اولیه'),
+        ('semi_finished',   'نیمه‌آماده'),
+        ('ready_materials', 'مواد آماده'),
+        ('usage_log',       'لاگ مصرف'),
+        ('dictionary',      'دیکشنری'),
+        ('loyalty',         'باشگاه مشتریان'),
+        ('users',           'مدیریت کاربران'),
+    ]
+
+    ROLE_DEFAULT_PERMISSIONS = {
+        'owner':     [s[0] for s in DASHBOARD_SECTIONS],
+        'manager':   [s[0] for s in DASHBOARD_SECTIONS],
+        'cashier':   ['pos', 'orders', 'dictionary'],
+        'kitchen':   ['kitchen', 'orders', 'recipes'],
+        'warehouse': ['raw_materials', 'semi_finished', 'ready_materials', 'invoices', 'usage_log', 'recipes'],
+        'customer':  [],
+    }
+
+    def get_permissions(self):
+        """لیست دسترسی‌های واقعی کاربر"""
+        if self.is_superuser:
+            return [s[0] for s in self.DASHBOARD_SECTIONS]
+        if self.dashboard_permissions:
+            return self.dashboard_permissions
+        return self.ROLE_DEFAULT_PERMISSIONS.get(self.role, [])
+
+    def has_section(self, section):
+        """آیا کاربر به این بخش دسترسی دارد؟"""
+        return section in self.get_permissions()
+
+    # ★ جدید: پیشوند رستوران کاربر
+    def get_restaurant_prefix(self):
+        """پیشوند رستوران — حرف اول نام کاربری مالک"""
+        if self.restaurant and self.restaurant.username_prefix:
+            return self.restaurant.username_prefix
+        return ''
 
 
 # ═══════════════════════════════════════════

@@ -1,15 +1,11 @@
 """
-Shared helper functions and constants (★ نسخه اصلاح‌شده v3)
+Shared helper functions and constants (★ نسخه v4 — اصلاح شده)
 
-★ تغییرات نسبت به نسخه قبل:
-  ۱. _get_food_discount_info: مدیریت حذف مدل discount (try/except)
-  ۲. _merge_warehouse_data: فیلتر restaurant اضافه شد
-  ۳. _update_raw_material_stock: restaurant اجباری شد
-  ۴. _build_invoice_from_post: سازگار با DRF (request.data + request.FILES)
-  ۵. _attach_invoice_items: سازگار با DRF
-  ۶. VALID_WASTE_REASONS: از مدل خوانده می‌شود
-  ۷. _get_or_sync_ingredients: فیلتر restaurant
-  ۸. import‌های بدون استفاده حذف شد
+★ v4 تغییرات:
+  ۱. _update_raw_material_stock: F() expression + select_for_update
+  ۲. _update_raw_material_stock: فیلتر restaurant از ابتدا
+  ۳. _get_food_discount_info: happy hour شبانه درست هندل میشه
+  ۴. _get_or_sync_ingredients: جستجوی قیمت از فاکتور خرید
 """
 
 from __future__ import annotations
@@ -21,6 +17,8 @@ from decimal import Decimal
 from io import StringIO
 
 import openpyxl
+from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 
 from ..models import (
@@ -70,7 +68,6 @@ _COL_KEYWORDS = {
     ],
 }
 
-# ★ FIXED: از مدل — اگر مدل وجود داشته باشد
 try:
     from ..models import WasteLog
     VALID_WASTE_REASONS = [choice[0] for choice in WasteLog.REASON_CHOICES]
@@ -108,26 +105,39 @@ def _is_drink(name: str) -> bool:
     return any(k in name for k in _DRINK_KEYWORDS)
 
 
+def _is_time_in_range(start, end, current):
+    """
+    ★ FIXED: بررسی زمان در بازه — شامل بازه‌های شبانه (مثلاً 22:00-02:00)
+    """
+    if start <= end:
+        # بازه عادی: مثلاً 14:00-18:00
+        return start <= current <= end
+    else:
+        # بازه شبانه: مثلاً 22:00-02:00
+        return current >= start or current <= end
+
+
 def _get_food_discount_info(kitchen_product) -> dict | None:
     """
     دریافت اطلاعات تخفیف محصول آشپزخانه.
-    ★ FIXED: مدیریت حذف مدل discount
+    ★ FIXED: happy hour شبانه + مدیریت حذف مدل
     """
     try:
         now = timezone.now()
 
-        # بررسی وجود relation discounts
         if not hasattr(kitchen_product, 'discounts'):
             return None
 
+        # غیرفعال‌سازی تخفیف‌های منقضی
         for disc in kitchen_product.discounts.filter(is_active=True):
             if disc.expires_at and disc.expires_at <= now:
                 disc.is_active = False
                 disc.save(update_fields=["is_active"])
 
         for disc in kitchen_product.discounts.filter(is_active=True):
+            # ★ FIXED: happy hour شبانه
             if disc.scope == "happy_hour" and disc.start_time and disc.end_time:
-                if not (disc.start_time <= now.time() <= disc.end_time):
+                if not _is_time_in_range(disc.start_time, disc.end_time, now.time()):
                     continue
 
             inv = getattr(kitchen_product, "inventory_record", None)
@@ -178,7 +188,6 @@ def _build_food_entry(food: Food) -> dict:
     except Exception as e:
         logger.debug("Error building food entry for %s: %s", food.name, e)
 
-    # قیمت امن
     try:
         final_price = int(food.final_price)
     except (ValueError, TypeError):
@@ -217,7 +226,6 @@ def _build_foods_with_discounts(restaurant=None) -> tuple[list[dict], list[dict]
     categories_data = [{"id": c.id, "name": c.name} for c in categories]
     existing_names = {c["name"]: c["id"] for c in categories_data}
 
-    # مواد آماده
     rm_qs = ReadyMaterial.objects.filter(quantity__gt=0).exclude(
         category__isnull=True,
     ).select_related("category")
@@ -252,13 +260,9 @@ def _build_foods_with_discounts(restaurant=None) -> tuple[list[dict], list[dict]
 # ═══════════════════════════════════════════════════════════════════
 
 def _merge_warehouse_data(restaurant=None) -> dict[str, dict]:
-    """
-    ادغام اطلاعات انبار + فاکتور خرید.
-    ★ FIXED: فیلتر restaurant
-    """
+    """ادغام اطلاعات انبار + فاکتور خرید."""
     merged: dict[str, dict] = {}
 
-    # از انبار
     rm_qs = RawMaterial.objects.all()
     if restaurant:
         rm_qs = rm_qs.filter(restaurant=restaurant)
@@ -276,7 +280,6 @@ def _merge_warehouse_data(restaurant=None) -> dict[str, dict]:
             "sources": ["انبار"],
         }
 
-    # از فاکتور خرید
     pi_qs = PurchaseInvoiceItem.objects.select_related("invoice").all()
     if restaurant:
         pi_qs = pi_qs.filter(invoice__restaurant=restaurant)
@@ -308,62 +311,77 @@ def _update_raw_material_stock(
 ):
     """
     بروزرسانی موجودی ماده اولیه از فاکتور خرید.
-    ★ FIXED: restaurant اجباری — اگر نباشد لاگ می‌کند
+    ★ FIXED: فیلتر restaurant از ابتدا + atomic + F()
+    ★ FIXED: اگر restaurant نباشد فقط لاگ می‌کند
     """
     if not restaurant:
         logger.warning(
             "_update_raw_material_stock called without restaurant for '%s'", name,
         )
 
-    mat = RawMaterial.objects.filter(name__iexact=name).first()
-    if restaurant and mat:
-        mat = RawMaterial.objects.filter(
-            name__iexact=name, restaurant=restaurant,
-        ).first()
-
-    if mat:
-        old_stock = float(mat.quantity)
-        mat.quantity = old_stock + float(qty)
-        mat.price = price
-
-        # تشخیص خودکار نوع بسته‌بندی
-        if mat.material_type == 'raw' and restaurant:
-            _mt = _detect_material_type(name, restaurant)
-            if _mt == 'packaging':
-                mat.material_type = 'packaging'
-
-        mat.save(update_fields=['quantity', 'price', 'material_type'])
-
-        InventoryMovement.objects.create(
-            restaurant=restaurant,
-            raw_material=mat,
-            movement_type='in',
-            quantity=qty,
-            previous_stock=old_stock,
-            new_stock=mat.quantity,
-            reference_type='PurchaseInvoice',
-            notes='ثبت از فاکتور خرید',
+    with transaction.atomic():
+        # ★ FIXED: فیلتر مستقیم با restaurant — بدون query اضافی
+        mat_qs = RawMaterial.objects.select_for_update().filter(
+            name__iexact=name,
         )
-    else:
-        _mt = _detect_material_type(name, restaurant) if restaurant else 'raw'
-        RawMaterial.objects.create(
-            restaurant=restaurant,
-            name=name, label="", price=price,
-            unit=unit, quantity=int(qty),
-            material_type=_mt,
-        )
+        if restaurant:
+            mat_qs = mat_qs.filter(restaurant=restaurant)
+        mat = mat_qs.first()
+
+        if mat:
+            old_stock = float(mat.quantity)
+
+            # ★ FIXED: F() expression — بدون race condition
+            RawMaterial.objects.filter(pk=mat.pk).update(
+                quantity=F('quantity') + float(qty),
+                price=price,
+            )
+            mat.refresh_from_db()
+
+            # تشخیص خودکار نوع بسته‌بندی
+            if mat.material_type == 'raw' and restaurant:
+                _mt = _detect_material_type(name, restaurant)
+                if _mt == 'packaging':
+                    mat.material_type = 'packaging'
+                    mat.save(update_fields=['material_type'])
+
+            InventoryMovement.objects.create(
+                restaurant=restaurant,
+                raw_material=mat,
+                movement_type='in',
+                quantity=qty,
+                previous_stock=old_stock,
+                new_stock=mat.quantity,
+                reference_type='PurchaseInvoice',
+                notes='ثبت از فاکتور خرید',
+            )
+        else:
+            _mt = _detect_material_type(name, restaurant) if restaurant else 'raw'
+            new_mat = RawMaterial.objects.create(
+                restaurant=restaurant,
+                name=name, label="", price=price,
+                unit=unit, quantity=int(qty),
+                material_type=_mt,
+            )
+
+            InventoryMovement.objects.create(
+                restaurant=restaurant,
+                raw_material=new_mat,
+                movement_type='in',
+                quantity=qty,
+                previous_stock=0,
+                new_stock=new_mat.quantity,
+                reference_type='PurchaseInvoice',
+                notes='ثبت از فاکتور خرید (جدید)',
+            )
 
 
 # ═══════════════════════════════════════════════════════════════════
-#  ★★★ INVOICE HELPERS — سازگار با DRF ★★★
+#  INVOICE HELPERS — سازگار با DRF
 # ═══════════════════════════════════════════════════════════════════
 
 def _build_invoice_from_post(request, restaurant=None) -> 'PurchaseInvoice':
-    """
-    ساخت فاکتور خرید از request.
-    ★ FIXED: سازگار با هر دو Django و DRF request
-    """
-    # سازگاری با DRF و Django request
+    """ساخت فاکتور خرید از request."""
     data = getattr(request, 'data', None) or request.POST
     files = getattr(request, 'FILES', request.FILES)
 
@@ -393,9 +411,8 @@ def _build_invoice_from_post(request, restaurant=None) -> 'PurchaseInvoice':
 def _attach_invoice_items(invoice, post_data=None, request=None, restaurant=None) -> int:
     """
     اتصال آیتم‌ها به فاکتور خرید.
-    ★ FIXED: سازگار با DRF — از request.data یا post_data
+    ★ FIXED: سازگار با DRF — atomic
     """
-    # سازگاری با DRF
     if request is not None:
         data = getattr(request, 'data', None) or request.POST
     elif post_data is not None:
@@ -403,44 +420,46 @@ def _attach_invoice_items(invoice, post_data=None, request=None, restaurant=None
     else:
         raise ValueError("یکی از request یا post_data الزامی است.")
 
-    # DRF: data لیست است
     if isinstance(data, dict) and 'items' in data:
         items_list = data['items']
     elif isinstance(data, list):
         items_list = data
     else:
-        # Django POST — فرمت قدیمی
         return _attach_invoice_items_django(invoice, data, restaurant)
 
-    created = 0
-    for item_data in items_list:
-        name = (item_data.get("item_name") or item_data.get("name") or "").strip()
-        if not name or name in ("جمع کل", "جمع"):
-            continue
+    # ★ FIXED: atomic برای ثبات
+    with transaction.atomic():
+        created = 0
+        for item_data in items_list:
+            name = (item_data.get("item_name") or item_data.get("name") or "").strip()
+            if not name or name in ("جمع کل", "جمع"):
+                continue
 
-        qty = float(item_data.get("quantity", 0) or 0)
-        unit = item_data.get("unit", "unit")
-        price = int(float(item_data.get("unit_price", 0) or 0))
-        category_id = item_data.get("category")
+            qty = float(item_data.get("quantity", 0) or 0)
+            unit = item_data.get("unit", "unit")
+            price = int(float(item_data.get("unit_price", 0) or 0))
+            category_id = item_data.get("category")
 
-        category = None
-        if category_id:
-            try:
-                category = Category.objects.get(id=int(category_id))
-            except (Category.DoesNotExist, ValueError):
-                pass
+            category = None
+            if category_id:
+                try:
+                    category = Category.objects.get(id=int(category_id))
+                except (Category.DoesNotExist, ValueError):
+                    pass
 
-        if qty > 0 and price > 0:
-            PurchaseInvoiceItem.objects.create(
-                invoice=invoice,
-                item_name=name,
-                quantity=qty,
-                unit=unit,
-                unit_price=price,
-                category=category,
-            )
-            _update_raw_material_stock(name, qty, unit, price, restaurant=restaurant)
-            created += 1
+            if qty > 0 and price > 0:
+                PurchaseInvoiceItem.objects.create(
+                    invoice=invoice,
+                    item_name=name,
+                    quantity=qty,
+                    unit=unit,
+                    unit_price=price,
+                    category=category,
+                )
+                _update_raw_material_stock(
+                    name, qty, unit, price, restaurant=restaurant,
+                )
+                created += 1
 
     return created
 
@@ -452,39 +471,42 @@ def _attach_invoice_items_django(invoice, post_data, restaurant=None) -> int:
     units = post_data.getlist("unit")
     unit_prices = post_data.getlist("unit_price")
     categories = post_data.getlist("category")
-    created = 0
 
-    for i, name_raw in enumerate(item_names):
-        name = name_raw.strip()
-        if not name or name in ("جمع کل", "جمع"):
-            continue
+    with transaction.atomic():
+        created = 0
+        for i, name_raw in enumerate(item_names):
+            name = name_raw.strip()
+            if not name or name in ("جمع کل", "جمع"):
+                continue
 
-        qty = float(quantities[i]) if i < len(quantities) and quantities[i] else 0
-        unit = units[i] if i < len(units) else "unit"
-        price = (
-            int(float(unit_prices[i]))
-            if i < len(unit_prices) and unit_prices[i]
-            else 0
-        )
-
-        category = None
-        if i < len(categories) and categories[i]:
-            try:
-                category = Category.objects.get(id=int(categories[i]))
-            except (Category.DoesNotExist, ValueError):
-                pass
-
-        if qty > 0 and price > 0:
-            PurchaseInvoiceItem.objects.create(
-                invoice=invoice,
-                item_name=name,
-                quantity=qty,
-                unit=unit,
-                unit_price=price,
-                category=category,
+            qty = float(quantities[i]) if i < len(quantities) and quantities[i] else 0
+            unit = units[i] if i < len(units) else "unit"
+            price = (
+                int(float(unit_prices[i]))
+                if i < len(unit_prices) and unit_prices[i]
+                else 0
             )
-            _update_raw_material_stock(name, qty, unit, price, restaurant=restaurant)
-            created += 1
+
+            category = None
+            if i < len(categories) and categories[i]:
+                try:
+                    category = Category.objects.get(id=int(categories[i]))
+                except (Category.DoesNotExist, ValueError):
+                    pass
+
+            if qty > 0 and price > 0:
+                PurchaseInvoiceItem.objects.create(
+                    invoice=invoice,
+                    item_name=name,
+                    quantity=qty,
+                    unit=unit,
+                    unit_price=price,
+                    category=category,
+                )
+                _update_raw_material_stock(
+                    name, qty, unit, price, restaurant=restaurant,
+                )
+                created += 1
 
     return created
 
@@ -603,11 +625,26 @@ def _get_cell_int(row: list, idx: int | None) -> int:
 #  SEMI-FINISHED HELPERS
 # ═══════════════════════════════════════════════════════════════════
 
+def _get_latest_price_from_invoices(name: str, restaurant=None) -> int:
+    """
+    ★ جدید: یافتن آخرین قیمت خرید ماده از فاکتورها
+    """
+    qs = PurchaseInvoiceItem.objects.filter(
+        item_name__iexact=name,
+    ).select_related("invoice").order_by("-invoice__date")
+
+    if restaurant:
+        qs = qs.filter(invoice__restaurant=restaurant)
+
+    item = qs.first()
+    return int(item.unit_price) if item else 0
+
+
 def _get_or_sync_ingredients(sf) -> list[dict]:
     """
     دریافت مواد اولیه یک ماده نیم‌آماده.
     اگر SemiFinishedIngredient نباشد، از description پارس می‌کند.
-    ★ FIXED: فیلتر restaurant روی RawMaterial
+    ★ FIXED: فیلتر restaurant + جستجوی قیمت از فاکتور
     """
     ingredients = []
     restaurant = getattr(sf, 'restaurant', None)
@@ -640,14 +677,12 @@ def _get_or_sync_ingredients(sf) -> list[dict]:
     parts = [p.strip() for p in desc.split("|") if p.strip()]
 
     for part in parts:
-        # الگو: نام (واحد): مقدار
         m = re.match(r"(.+?)\s*$$(.+?)$$\s*:\s*([\d.]+)", part)
         if m:
             name = m.group(1).strip()
             unit_fa = m.group(2).strip()
             qty = float(m.group(3))
         else:
-            # الگو: نام: مقدار واحد
             m2 = re.match(r"(.+?)\s*:\s*([\d.]+)\s*(.+)", part)
             if m2:
                 name = m2.group(1).strip()
@@ -658,7 +693,7 @@ def _get_or_sync_ingredients(sf) -> list[dict]:
 
         unit_code = _UNIT_MAP_FA.get(unit_fa, "unit")
 
-        # جستجوی ماده اولیه
+        # جستجوی ماده اولیه — ★ FIXED: فیلتر restaurant از ابتدا
         rm = None
         if restaurant:
             rm = RawMaterial.objects.filter(
@@ -669,7 +704,6 @@ def _get_or_sync_ingredients(sf) -> list[dict]:
             rm = RawMaterial.objects.filter(name__icontains=name).first()
 
         if not rm:
-            # جستجوی تقریبی
             for length in range(len(name), max(0, len(name) - 4), -1):
                 qs = RawMaterial.objects.filter(name__icontains=name[:length])
                 if restaurant:
@@ -680,9 +714,13 @@ def _get_or_sync_ingredients(sf) -> list[dict]:
 
         if not rm:
             _mt = _detect_material_type(name, restaurant) if restaurant else 'raw'
+
+            # ★ جدید: قیمت از فاکتور خرید
+            inv_price = _get_latest_price_from_invoices(name, restaurant)
+
             rm = RawMaterial.objects.create(
                 restaurant=restaurant or sf.restaurant,
-                name=name, label="", price=0,
+                name=name, label="", price=inv_price,
                 unit=unit_code, quantity=0,
                 material_type=_mt,
             )
