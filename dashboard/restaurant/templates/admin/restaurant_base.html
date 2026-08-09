@@ -789,11 +789,26 @@
   setLock();
   var hb = setInterval(setLock, HEARTBEAT_MS);
 
-  // ★ بستن مرورگر = خروج
+  // ★ ردیابی کلیک روی لینک‌های داخلی
+  document.addEventListener('click', function(e) {
+    var a = e.target.closest('a[href]');
+    if (a) {
+      var href = a.getAttribute('href');
+      if (href && href !== '#' && !href.startsWith('javascript:')) {
+        sessionStorage.setItem('_nav', '1');
+      }
+    }
+  }, true);
+
+  // ★ بستن مرورگر = خروج | ناوبری داخلی = فقط آزاد کردن قفل
   window.addEventListener('beforeunload', function() {
     clearInterval(hb);
     releaseLock();
-    localStorage.removeItem(AUTH_KEY);
+    var nav = sessionStorage.getItem('_nav');
+    sessionStorage.removeItem('_nav');
+    if (!nav) {
+      localStorage.removeItem(AUTH_KEY);
+    }
   });
 
   // گوش دادن به تب‌های دیگه
