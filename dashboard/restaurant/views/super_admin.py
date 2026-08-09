@@ -1,14 +1,18 @@
 """
-پنل مدیریت کلان — ویوها (★ نسخه v13 — phone fix)
+پنل مدیریت کلان — ویوها (★ نسخه v14 — subscription dates + login block)
 
-★ v13 تغییرات:
-  - super_tenants_api POST: phone_number = None به جای ""
-  - super_user_create_api: phone_number = None به جای ""
+★ v14 تغییرات:
+  - TenantService: start_date / end_date در GET و POST سرویس‌ها
+  - is_tenant_subscription_valid(): بررسی اشتراک بر اساس end_date
+  - restaurant_login(): ویوی لاگین رستوران با بلاک انقضا
+  - check_subscription_api(): API بررسی وضعیت اشتراک
+  - super_tenants_api GET: اضافه شدن is_expired
 """
 
 import json
 import logging
 import re
+from datetime import date
 from functools import wraps
 
 from django.contrib.auth import (
@@ -17,7 +21,7 @@ from django.contrib.auth import (
 from django.core import signing
 from django.db import transaction
 from django.http import JsonResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -86,13 +90,11 @@ class IsSuperAdmin(BasePermission):
         django_request = (
             request._request if hasattr(request, '_request') else request
         )
-
         if (
             django_request.user.is_authenticated
             and django_request.user.is_superuser
         ):
             return True
-
         user = _verify_super_token(django_request)
         if user:
             request.user = user
@@ -124,7 +126,7 @@ def _json_body(request):
         return {}
 
 
-def _validate_slug(slug):
+def _validate_slug(slug, exclude_restaurant_id=None):
     if not slug:
         return False, 'شناسه URL (slug) الزامی است'
     slug = slug.strip()
@@ -132,15 +134,77 @@ def _validate_slug(slug):
         return False, 'طول slug باید بین ۱ تا ۵۰ کاراکتر باشد'
     if not _SLUG_RE.match(slug):
         return False, 'slug فقط می‌تواند شامل حروف، اعداد، خط تیره و زیرخط باشد'
-    if Restaurant.objects.filter(slug=slug).exists():
+    qs = Restaurant.objects.filter(slug=slug)
+    if exclude_restaurant_id:
+        qs = qs.exclude(pk=exclude_restaurant_id)
+    if qs.exists():
         return False, f'شناسه «{slug}» قبلاً استفاده شده'
     return True, slug
 
 
 def _clean_phone(val):
-    """★ شماره تلفن خالی → None (برای unique constraint)"""
     v = (val or '').strip()
     return v if v else None
+
+
+# ★══════════════════════════════════════════
+# ★  تابع بررسی اشتراک
+# ★══════════════════════════════════════════
+
+def is_tenant_subscription_valid(tenant):
+    """
+    بررسی آیا حداقل یک سرویس فعال با تاریخ معتبر وجود دارد.
+
+    منطق:
+      - اگر هیچ سرویس فعالی نباشد → False
+      - اگر سرویس فعال end_date نداشته باشد → True (همیشه فعال)
+      - اگر end_date در آینده باشد → True
+      - اگر end_date در گذشته باشد → False
+    """
+    today = date.today()
+    active_services = TenantService.objects.filter(
+        tenant=tenant,
+        is_enabled=True,
+    )
+
+    if not active_services.exists():
+        return False
+
+    for svc in active_services:
+        if svc.end_date is None:
+            # بدون تاریخ انقضا = همیشه فعال
+            return True
+        elif svc.end_date >= today:
+            return True
+
+    return False
+
+
+def get_tenant_subscription_details(tenant):
+    """جزئیات وضعیت اشتراک — برای API"""
+    today = date.today()
+    services = TenantService.objects.filter(
+        tenant=tenant, is_enabled=True,
+    ).select_related('service')
+
+    details = []
+    has_valid = False
+
+    for ts in services:
+        is_expired = ts.end_date is not None and ts.end_date < today
+        if not is_expired:
+            has_valid = True
+        details.append({
+            'service': ts.service.label,
+            'start_date': str(ts.start_date) if ts.start_date else None,
+            'end_date': str(ts.end_date) if ts.end_date else None,
+            'is_expired': is_expired,
+        })
+
+    return {
+        'is_valid': has_valid,
+        'services': details,
+    }
 
 
 # ═══════════════════════════════════════════
@@ -156,6 +220,87 @@ def super_admin_auth_page(request):
 @_super_admin_required
 def super_admin_page(request):
     return render(request, 'restaurant/super_admin.html')
+
+
+# ★══════════════════════════════════════════
+# ★  صفحه لاگین رستوران — با بلاک انقضا
+# ★══════════════════════════════════════════
+
+def restaurant_login(request, slug):
+    """
+    صفحه ورود رستوران.
+    اگر اشتراک منقضی شده باشد، فرم غیرفعال و پیام نمایش داده می‌شود.
+    """
+    restaurant = get_object_or_404(Restaurant, slug=slug)
+    tenant = restaurant.tenant
+
+    if not tenant or not tenant.is_active:
+        return render(request, 'dashboard/login.html', {
+            'tenant': tenant,
+            'restaurant': restaurant,
+            'slug': slug,
+            'error': 'این رستوران غیرفعال است.',
+            'expired': True,
+        })
+
+    # ★ بررسی اشتراک
+    expired = not is_tenant_subscription_valid(tenant)
+
+    error = None
+
+    if request.method == 'POST' and not expired:
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '')
+
+        if not username or not password:
+            error = 'نام کاربری و رمز عبور الزامی است.'
+        else:
+            user = authenticate(
+                request,
+                username=username,
+                password=password,
+            )
+
+            if user is not None:
+                # بررسی تعلق کاربر به این رستوران
+                user_restaurant = getattr(user, 'restaurant', None)
+                if user_restaurant and user_restaurant.pk == restaurant.pk:
+                    if user.is_active and getattr(user, 'is_approved', True):
+                        auth_login(request, user)
+                        return redirect(f'/{slug}/dashboard/app/')
+                    else:
+                        error = 'حساب شما غیرفعال یا تأیید نشده است.'
+                else:
+                    error = 'نام کاربری یا رمز عبور اشتباه است.'
+            else:
+                error = 'نام کاربری یا رمز عبور اشتباه است.'
+
+    return render(request, 'dashboard/login.html', {
+        'tenant': tenant,
+        'restaurant': restaurant,
+        'slug': slug,
+        'error': error,
+        'expired': expired,
+    })
+
+
+# ★══════════════════════════════════════════
+# ★  API: بررسی وضعیت اشتراک
+# ★══════════════════════════════════════════
+
+def check_subscription_api(request, slug):
+    """API: بررسی وضعیت اشتراک رستوران"""
+    restaurant = get_object_or_404(Restaurant, slug=slug)
+    tenant = restaurant.tenant
+
+    if not tenant:
+        return JsonResponse({
+            'is_valid': False,
+            'error': 'رستوران tenant ندارد',
+        })
+
+    details = get_tenant_subscription_details(tenant)
+    return JsonResponse(details)
 
 
 # ═══════════════════════════════════════════
@@ -238,11 +383,15 @@ def super_stats_api(request):
     total_services = TenantService.objects.filter(is_enabled=True).count()
     total_revenue = sum(t.monthly_revenue for t in tenants)
 
-    now = timezone.now()
+    # ★ انقضا بر اساس end_date
+    today = date.today()
+    from datetime import timedelta
+    week_later = today + timedelta(days=7)
     expiring_soon = TenantService.objects.filter(
         is_enabled=True,
-        expires_at__lte=now + timezone.timedelta(days=7),
-        expires_at__gt=now,
+        end_date__isnull=False,
+        end_date__lte=week_later,
+        end_date__gt=today,
     ).count()
 
     total_users = User.objects.filter(is_active=True).count()
@@ -273,7 +422,7 @@ def super_services_list_api(request):
 
 
 # ═══════════════════════════════════════════
-#  API: CRUD رستوران‌ها — ★ v13: phone fix
+#  API: CRUD رستوران‌ها — ★ v14: is_expired
 # ═══════════════════════════════════════════
 
 @api_view(["GET", "POST"])
@@ -297,6 +446,9 @@ def super_tenants_api(request):
             restaurant = Restaurant.objects.filter(tenant=t).first()
             slug = restaurant.slug if restaurant else ''
 
+            # ★ بررسی وضعیت اشتراک
+            expired = not is_tenant_subscription_valid(t) if t.is_active else True
+
             data.append({
                 'id': t.id,
                 'name': t.name,
@@ -310,6 +462,7 @@ def super_tenants_api(request):
                 'phone': t.phone or '',
                 'address': t.address or '',
                 'is_active': t.is_active,
+                'is_expired': expired,  # ★ جدید
                 'active_services': t.active_services_count,
                 'monthly_revenue': t.monthly_revenue,
                 'username_prefix': getattr(t, 'username_prefix', '') or '',
@@ -317,7 +470,7 @@ def super_tenants_api(request):
             })
         return Response({'tenants': data})
 
-    # POST
+    # POST — ساخت رستوران جدید
     data = request.data
     owner_username = (data.get('owner_username') or '').strip()
     tenant_name = (data.get('name') or '').strip()
@@ -353,7 +506,7 @@ def super_tenants_api(request):
             )
             if created:
                 owner.first_name = data.get('owner_name', '')
-                owner.phone_number = _clean_phone(data.get('owner_phone'))  # ★ None به جای ""
+                owner.phone_number = _clean_phone(data.get('owner_phone'))
                 owner.role = 'owner'
                 owner.is_approved = True
                 owner.set_password(
@@ -437,6 +590,8 @@ def super_tenant_detail_api(request, pk):
                 'label': ts.service.label,
                 'is_enabled': ts.is_enabled,
                 'price': ts.price,
+                'start_date': str(ts.start_date) if ts.start_date else None,
+                'end_date': str(ts.end_date) if ts.end_date else None,
                 'expires_at': (
                     ts.expires_at.isoformat() if ts.expires_at else None
                 ),
@@ -457,6 +612,7 @@ def super_tenant_detail_api(request, pk):
             'phone': tenant.phone or '',
             'address': tenant.address or '',
             'is_active': tenant.is_active,
+            'is_expired': not is_tenant_subscription_valid(tenant),  # ★
             'username_prefix': (
                 getattr(tenant, 'username_prefix', '') or ''
             ),
@@ -486,7 +642,10 @@ def super_tenant_detail_api(request, pk):
         if 'slug' in data and restaurant:
             new_slug = (data['slug'] or '').strip()
             if new_slug != restaurant.slug:
-                valid, msg = _validate_slug(new_slug)
+                valid, msg = _validate_slug(
+                    new_slug,
+                    exclude_restaurant_id=restaurant.pk,
+                )
                 if not valid:
                     return Response(
                         {'error': msg},
@@ -517,12 +676,10 @@ def super_tenant_detail_api(request, pk):
 
     elif request.method == "DELETE":
         name = tenant.name
-
         with transaction.atomic():
             TenantService.objects.filter(tenant=tenant).delete()
             Restaurant.objects.filter(tenant=tenant).delete()
             tenant.delete()
-
         return Response({
             'ok': True,
             'msg': f'رستوران «{name}» و تمام مرتبط‌ها حذف شد',
@@ -530,7 +687,7 @@ def super_tenant_detail_api(request, pk):
 
 
 # ═══════════════════════════════════════════
-#  API: مدیریت سرویس‌ها
+#  API: مدیریت سرویس‌ها — ★ v14: start_date / end_date
 # ═══════════════════════════════════════════
 
 @api_view(["GET", "POST"])
@@ -563,6 +720,9 @@ def super_tenant_services_api(request, pk):
                 'is_enabled': ts.is_enabled if ts else False,
                 'price': ts.price if ts else svc.default_price,
                 'default_price': svc.default_price,
+                # ★ تاریخ‌ها
+                'start_date': str(ts.start_date) if ts and ts.start_date else None,
+                'end_date': str(ts.end_date) if ts and ts.end_date else None,
                 'activated_at': (
                     ts.activated_at.isoformat()
                     if ts and ts.activated_at else None
@@ -602,6 +762,12 @@ def super_tenant_services_api(request, pk):
             was_enabled = ts.is_enabled
             ts.is_enabled = item.get('is_enabled', False)
             ts.price = item.get('price', ts.price)
+
+            # ★ ذخیره تاریخ شروع و پایان
+            start_date = item.get('start_date')
+            end_date = item.get('end_date')
+            ts.start_date = start_date if start_date else None
+            ts.end_date = end_date if end_date else None
 
             if ts.is_enabled and not was_enabled:
                 ts.activated_at = timezone.now()
@@ -681,7 +847,7 @@ def super_users_api(request):
 
 
 # ═══════════════════════════════════════════
-#  API: ساخت کاربر — ★ v13: phone fix
+#  API: ساخت کاربر
 # ═══════════════════════════════════════════
 
 @api_view(["POST"])
@@ -728,7 +894,7 @@ def super_user_create_api(request):
 
     user.first_name = data.get('first_name', '')
     user.last_name = data.get('last_name', '')
-    user.phone_number = _clean_phone(data.get('phone_number'))  # ★ None به جای ""
+    user.phone_number = _clean_phone(data.get('phone_number'))
     user.role = role
     user.restaurant = restaurant
     user.is_approved = True
@@ -791,7 +957,6 @@ def super_user_detail_api(request, pk):
                 setattr(user, field, data[field] or None)
                 update_fields.append(field)
 
-        # ★ phone_number با None
         if 'phone_number' in data:
             user.phone_number = _clean_phone(data.get('phone_number'))
             update_fields.append('phone_number')

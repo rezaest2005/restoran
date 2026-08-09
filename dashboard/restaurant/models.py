@@ -1851,6 +1851,8 @@ class TenantService(models.Model):
     price        = models.BigIntegerField(default=0, help_text="قیمت ماهانه (تومان)")
     activated_at = models.DateTimeField(null=True, blank=True)
     expires_at   = models.DateTimeField(null=True, blank=True)
+    start_date = models.DateField(null=True, blank=True, verbose_name='تاریخ شروع')
+    end_date = models.DateField(null=True, blank=True, verbose_name='تاریخ پایان')
 
     class Meta:
         unique_together = ('tenant', 'service')

@@ -101,19 +101,27 @@ class RegisterView(generics.CreateAPIView):
 # ═══════════════════════════════════════
 
 class LogoutView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     def post(self, request):
+        from django.contrib.auth import logout as django_logout
+
         try:
             refresh_token = request.data.get("refresh")
-            if not refresh_token:
-                return api_error("refresh token الزامی است.")
-            RefreshToken(refresh_token).blacklist()
-            return api_success(message="خروج موفقیت‌آمیز بود.")
+            if refresh_token:
+                try:
+                    RefreshToken(refresh_token).blacklist()
+                except Exception:
+                    pass
         except Exception:
-            return api_error("توکن نامعتبر است.")
+            pass
 
+        django_logout(request)
 
+        response = api_success(message="خروج موفقیت‌آمیز بود.")
+        response.delete_cookie('super_admin_token', path='/')
+        response.delete_cookie('sessionid', path='/')
+        return response
 # ═══════════════════════════════════════
 #  Current User
 # ═══════════════════════════════════════

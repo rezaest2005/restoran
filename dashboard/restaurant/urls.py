@@ -1,7 +1,7 @@
 """
-Restaurant Management System — URLs (★ نسخه v6)
+Restaurant Management System — URLs (★ نسخه v7)
 
-★ v6: root redirect اضافه شد
+★ v7: restaurant_login + check_subscription اضافه شد
 """
 
 from django.urls import include, path
@@ -185,6 +185,13 @@ urlpatterns = [
     path("api/super/users/create/",                     views.super_user_create_api,       name="super_user_create"),
     path("api/super/users/<int:pk>/",                   views.super_user_detail_api,       name="super_user_detail"),
     path("api/super/users/<int:pk>/permissions/",       views.super_user_permissions_api,  name="super_user_permissions"),
+
+    # ══════════════════════════════════════════════════════════
+    # ★ v7: لاگین رستوران + بررسی اشتراک
+    # ══════════════════════════════════════════════════════════
+
+    path("<slug:slug>/login/",                    views.restaurant_login,         name="restaurant_login"),
+    path("<slug:slug>/api/check-subscription/",   views.check_subscription_api,   name="check_subscription"),
 
     # ── HTML Pages (Dashboard) ──────────────────────────────
 

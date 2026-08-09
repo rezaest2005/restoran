@@ -29,73 +29,41 @@
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
-    body {
-      font-family: 'Vazirmatn', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-    }
+    body { font-family: 'Vazirmatn', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-    /* ── Layout ── */
     .layout { display: flex; min-height: 100vh; }
     .sidebar {
-      width: 260px; background: var(--sidebar);
-      color: #fff; padding: 0;
+      width: 260px; background: var(--sidebar); color: #fff; padding: 0;
       display: flex; flex-direction: column;
       position: fixed; top: 0; right: 0; bottom: 0;
-      z-index: 100;
-      overflow-y: auto;
-      transition: transform 0.3s ease;
+      z-index: 100; overflow-y: auto; transition: transform 0.3s ease;
     }
-    .sidebar-header {
-      padding: 20px 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-    }
-    .sidebar-logo {
-      font-size: 17px; font-weight: 900;
-      display: flex; align-items: center; gap: 10px;
-    }
+    .sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .sidebar-logo { font-size: 17px; font-weight: 900; display: flex; align-items: center; gap: 10px; }
     .sidebar-logo .logo-ico {
-      width: 36px; height: 36px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 20px;
+      width: 36px; height: 36px; background: rgba(255,255,255,0.1); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
     }
     .sidebar-section { padding: 16px 12px 8px; }
     .sidebar-section-title {
-      font-size: 10px; font-weight: 700;
-      color: rgba(255,255,255,0.3);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      padding: 0 8px 8px;
+      font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.3);
+      text-transform: uppercase; letter-spacing: 0.1em; padding: 0 8px 8px;
     }
     .sidebar-nav { display: flex; flex-direction: column; gap: 2px; }
     .sidebar-link {
       display: flex; align-items: center; gap: 10px;
       padding: 9px 12px; border-radius: 8px;
       color: rgba(255,255,255,0.6); text-decoration: none;
-      font-size: 13px; font-weight: 600;
-      transition: all 0.2s;
+      font-size: 13px; font-weight: 600; transition: all 0.2s;
     }
     .sidebar-link:hover { background: var(--sidebar-hover); color: #fff; }
     .sidebar-link.active { background: var(--sidebar-active); color: #fff; }
     .sidebar-link .ico { font-size: 16px; width: 22px; text-align: center; flex-shrink: 0; }
-    .sidebar-footer {
-      margin-top: auto;
-      border-top: 1px solid rgba(255,255,255,0.08);
-      padding: 16px 20px;
-    }
-    .sidebar-user {
-      display: flex; align-items: center; gap: 10px;
-      margin-bottom: 10px;
-    }
+    .sidebar-footer { margin-top: auto; border-top: 1px solid rgba(255,255,255,0.08); padding: 16px 20px; }
+    .sidebar-user { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
     .sidebar-avatar {
-      width: 32px; height: 32px;
-      background: rgba(255,255,255,0.1);
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px;
+      width: 32px; height: 32px; background: rgba(255,255,255,0.1); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; font-size: 14px;
     }
     .sidebar-user-info { flex: 1; }
     .sidebar-username { font-size: 13px; font-weight: 700; }
@@ -103,41 +71,27 @@
     .sidebar-logout {
       display: flex; align-items: center; gap: 8px;
       color: rgba(255,255,255,0.4); text-decoration: none;
-      font-size: 12px; font-weight: 600;
-      padding: 6px 0; transition: color 0.2s;
+      font-size: 12px; font-weight: 600; padding: 6px 0; transition: color 0.2s;
     }
     .sidebar-logout:hover { color: var(--danger); }
 
-    /* ── Header ── */
     .top-bar {
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-      padding: 0 28px;
-      height: 56px;
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 0 28px; height: 56px;
       display: flex; align-items: center; justify-content: space-between;
-      position: sticky; top: 0; z-index: 50;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      position: sticky; top: 0; z-index: 50; box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }
     .top-bar-right { display: flex; align-items: center; gap: 14px; }
-    .menu-toggle {
-      display: none;
-      background: none; border: none; font-size: 22px;
-      cursor: pointer; color: var(--text); padding: 4px;
-    }
-    .breadcrumb {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 13px; color: var(--text-muted); font-weight: 600;
-    }
+    .menu-toggle { display: none; background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text); padding: 4px; }
+    .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); font-weight: 600; }
     .breadcrumb a { color: var(--primary); text-decoration: none; }
     .breadcrumb a:hover { text-decoration: underline; }
     .breadcrumb .sep { color: var(--border); }
     .top-bar-left { display: flex; align-items: center; gap: 10px; }
     .top-bar-btn {
       padding: 6px 14px; border: none; border-radius: 8px;
-      font-size: 12px; font-weight: 700;
-      font-family: 'Vazirmatn', sans-serif;
-      cursor: pointer; transition: all 0.2s;
-      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 700; font-family: 'Vazirmatn', sans-serif;
+      cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 5px;
     }
     .top-bar-btn.ghost { background: var(--bg); color: var(--text-muted); }
     .top-bar-btn.ghost:hover { background: var(--border); color: var(--text); }
@@ -147,32 +101,20 @@
     .main { flex: 1; margin-right: 260px; display: flex; flex-direction: column; min-height: 100vh; }
     .main-content { padding: 28px; flex: 1; }
 
-    /* ── Tabs ── */
-    .tabs {
-      display: flex; gap: 4px; margin-bottom: 24px;
-      background: var(--card); padding: 4px; border-radius: 10px;
-      box-shadow: var(--shadow); width: fit-content;
-    }
+    .tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--card); padding: 4px; border-radius: 10px; box-shadow: var(--shadow); width: fit-content; }
     .tab-btn {
       padding: 8px 20px; border: none; border-radius: 8px;
-      font-size: 13px; font-weight: 700;
-      font-family: 'Vazirmatn', sans-serif;
-      cursor: pointer; transition: all 0.2s;
-      background: transparent; color: var(--text-muted);
+      font-size: 13px; font-weight: 700; font-family: 'Vazirmatn', sans-serif;
+      cursor: pointer; transition: all 0.2s; background: transparent; color: var(--text-muted);
     }
     .tab-btn:hover { background: var(--bg); color: var(--text); }
     .tab-btn.active { background: var(--primary); color: #fff; }
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
 
-    /* ── Stats ── */
-    .stats-grid {
-      display: grid; grid-template-columns: repeat(4, 1fr);
-      gap: 16px; margin-bottom: 28px;
-    }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
     .stat-card {
-      background: var(--card); border-radius: var(--radius);
-      padding: 18px 20px; box-shadow: var(--shadow);
+      background: var(--card); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow);
       display: flex; align-items: center; gap: 14px;
       opacity: 0; animation: fadeUp 0.5s ease forwards;
     }
@@ -182,72 +124,61 @@
     @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
     .stat-ico {
       width: 44px; height: 44px; border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 20px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
     }
     .stat-ico.blue   { background: var(--primary-light); }
     .stat-ico.green  { background: var(--success-light); }
     .stat-ico.orange { background: var(--warning-light); }
     .stat-ico.red    { background: var(--danger-light); }
-    .stat-ico.purple { background: #f3e8ff; }
     .stat-value { font-size: 20px; font-weight: 900; }
     .stat-label { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 1px; }
 
-    /* ── Card ── */
-    .card {
-      background: var(--card); border-radius: var(--radius);
-      box-shadow: var(--shadow); margin-bottom: 24px; overflow: hidden;
-    }
+    .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 24px; overflow: hidden; }
     .card-header {
       padding: 14px 20px; border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 10px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
     }
     .card-header h2 { font-size: 14px; font-weight: 800; }
     .card-header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
     .card-body { padding: 20px; }
     .card-body.flush { padding: 0; }
 
-    /* ── Table ── */
     .table-wrap { overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; }
-    th {
-      font-size: 11px; font-weight: 700; color: var(--text-muted);
-      text-align: right; padding: 10px 14px;
-      border-bottom: 2px solid var(--border); white-space: nowrap;
-    }
-    td {
-      padding: 11px 14px; font-size: 13px; font-weight: 500;
-      border-bottom: 1px solid var(--border); vertical-align: middle;
-      white-space: nowrap;
-    }
+    th { font-size: 11px; font-weight: 700; color: var(--text-muted); text-align: right; padding: 10px 14px; border-bottom: 2px solid var(--border); white-space: nowrap; }
+    td { padding: 11px 14px; font-size: 13px; font-weight: 500; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap; }
     tr:hover td { background: #fafafa; }
     tr.selected td { background: var(--primary-light); }
 
     .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
     .badge.active   { background: var(--success-light); color: var(--success); }
     .badge.inactive  { background: var(--danger-light); color: var(--danger); }
+    .badge.expired   { background: var(--danger-light); color: var(--danger); }
+    .badge.warning   { background: var(--warning-light); color: var(--warning); }
     .badge.role      { background: var(--primary-light); color: var(--primary); }
     .badge.admin     { background: #f3e8ff; color: #7c3aed; }
     .badge.slug      { background: #eff6ff; color: #2563eb; font-family: monospace; font-size: 11px; cursor: pointer; }
     .badge.slug:hover { background: #dbeafe; }
 
+    .tenant-name-link {
+      color: var(--primary); text-decoration: none; font-weight: 800; font-size: 13px;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .tenant-name-link:hover { color: #4338ca; text-decoration: underline; }
+    .row-hint { display: block; font-size: 10px; color: var(--text-muted); font-weight: 500; margin-top: 2px; }
+
     .actions { display: flex; gap: 4px; }
     .btn-icon {
       width: 30px; height: 30px; border: none; border-radius: 7px;
       background: transparent; cursor: pointer; font-size: 14px;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.15s;
+      display: flex; align-items: center; justify-content: center; transition: all 0.15s;
     }
     .btn-icon:hover { background: var(--bg); }
 
-    /* ── Buttons ── */
     .btn {
       padding: 8px 16px; border: none; border-radius: 8px;
       font-size: 12px; font-weight: 700; font-family: 'Vazirmatn', sans-serif;
-      cursor: pointer; transition: all 0.2s;
-      display: inline-flex; align-items: center; gap: 5px;
-      white-space: nowrap;
+      cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
     }
     .btn-primary { background: var(--primary); color: #fff; }
     .btn-primary:hover { background: #4338ca; }
@@ -258,22 +189,12 @@
     .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
     .btn-ghost:hover { background: var(--bg); color: var(--text); }
     .btn-sm { padding: 5px 10px; font-size: 11px; }
-    .btn-copy {
-      background: none; border: none; cursor: pointer;
-      font-size: 11px; color: var(--primary); font-weight: 700;
-      font-family: 'Vazirmatn', sans-serif;
-      padding: 2px 6px; border-radius: 4px;
-      transition: all 0.15s;
-    }
-    .btn-copy:hover { background: var(--primary-light); }
 
-    /* ── Search ── */
     .search-box { position: relative; width: 240px; }
     .search-box input {
       width: 100%; padding: 7px 12px 7px 32px;
       border: 2px solid var(--border); border-radius: 8px;
-      font-size: 12px; font-family: 'Vazirmatn', sans-serif;
-      outline: none; transition: border 0.2s;
+      font-size: 12px; font-family: 'Vazirmatn', sans-serif; outline: none; transition: border 0.2s;
     }
     .search-box input:focus { border-color: var(--primary); }
     .search-box .search-ico {
@@ -281,22 +202,15 @@
       color: var(--text-muted); font-size: 13px; pointer-events: none;
     }
 
-    /* ── Select ── */
     .field select, select.form-select {
-      width: 100%; padding: 9px 12px;
-      border: 2px solid var(--border); border-radius: 8px;
-      font-size: 13px; font-family: 'Vazirmatn', sans-serif;
-      outline: none; transition: border 0.2s;
-      background: #fff; color: var(--text);
-      appearance: none;
+      width: 100%; padding: 9px 12px; border: 2px solid var(--border); border-radius: 8px;
+      font-size: 13px; font-family: 'Vazirmatn', sans-serif; outline: none; transition: border 0.2s;
+      background: #fff; color: var(--text); appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: left 12px center;
-      padding-left: 30px;
+      background-repeat: no-repeat; background-position: left 12px center; padding-left: 30px;
     }
     .field select:focus, select.form-select:focus { border-color: var(--primary); }
 
-    /* ── Modal ── */
     .modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.4);
       display: none; align-items: center; justify-content: center;
@@ -304,84 +218,85 @@
     }
     .modal-overlay.open { display: flex; }
     .modal {
-      background: var(--card); border-radius: 16px;
-      width: 580px; max-width: 100%; max-height: 90vh;
-      overflow-y: auto; box-shadow: var(--shadow-lg);
-      animation: modalIn 0.25s ease;
+      background: var(--card); border-radius: 16px; width: 580px; max-width: 100%; max-height: 90vh;
+      overflow-y: auto; box-shadow: var(--shadow-lg); animation: modalIn 0.25s ease;
     }
     @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-    .modal-header {
-      padding: 18px 22px; border-bottom: 1px solid var(--border);
-      display: flex; align-items: center; justify-content: space-between;
-    }
+    .modal-header { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
     .modal-header h3 { font-size: 15px; font-weight: 800; }
     .modal-close { background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); padding: 4px; }
     .modal-body { padding: 22px; }
-    .modal-footer {
-      padding: 14px 22px; border-top: 1px solid var(--border);
-      display: flex; gap: 8px; justify-content: flex-start;
-    }
+    .modal-footer { padding: 14px 22px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-start; }
 
-    /* ── Form ── */
     .field { margin-bottom: 14px; }
     .field label { display: block; font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 5px; }
     .field input, .field textarea {
-      width: 100%; padding: 9px 12px;
-      border: 2px solid var(--border); border-radius: 8px;
-      font-size: 13px; font-family: 'Vazirmatn', sans-serif;
-      outline: none; transition: border 0.2s; background: #fff; color: var(--text);
+      width: 100%; padding: 9px 12px; border: 2px solid var(--border); border-radius: 8px;
+      font-size: 13px; font-family: 'Vazirmatn', sans-serif; outline: none; transition: border 0.2s; background: #fff; color: var(--text);
     }
     .field input:focus, .field textarea:focus { border-color: var(--primary); }
-    .field input.mono {
-      font-family: 'Courier New', monospace;
-      direction: ltr;
-      text-align: left;
-    }
-    .field .hint {
-      font-size: 10px; color: var(--text-muted);
-      margin-top: 4px; line-height: 1.5;
-    }
+    .field input.mono { font-family: 'Courier New', monospace; direction: ltr; text-align: left; }
+    .field .hint { font-size: 10px; color: var(--text-muted); margin-top: 4px; line-height: 1.5; }
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .field-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 
-    /* ── Slug Preview ── */
     .slug-preview {
-      font-size: 11px; color: var(--primary);
-      background: var(--primary-light);
-      padding: 6px 10px; border-radius: 6px;
-      margin-top: 6px; font-family: monospace;
-      direction: ltr; text-align: left;
-      display: none;
+      font-size: 11px; color: var(--primary); background: var(--primary-light);
+      padding: 6px 10px; border-radius: 6px; margin-top: 6px; font-family: monospace;
+      direction: ltr; text-align: left; display: none;
     }
     .slug-preview.show { display: block; }
 
-    /* ── Service Toggle ── */
+    /* ═══ Service Items ═══ */
     .service-list { display: flex; flex-direction: column; gap: 10px; }
     .service-item {
-      display: flex; align-items: center; gap: 12px;
-      padding: 12px 14px; background: #fafafa;
-      border-radius: 10px; border: 2px solid transparent; transition: all 0.2s;
+      padding: 14px; background: #fafafa; border-radius: 10px;
+      border: 2px solid transparent; transition: all 0.2s;
     }
     .service-item.enabled { border-color: var(--success); background: var(--success-light); }
+    .service-item.expired-svc { border-color: var(--warning); background: var(--warning-light); }
+    .service-top { display: flex; align-items: center; gap: 12px; }
     .service-icon { font-size: 22px; width: 32px; text-align: center; flex-shrink: 0; }
     .service-info { flex: 1; min-width: 0; }
     .service-name { font-size: 12px; font-weight: 800; }
     .service-desc { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
     .service-price { display: flex; align-items: center; gap: 5px; }
     .service-price input {
-      width: 110px; padding: 5px 8px; border: 2px solid var(--border);
-      border-radius: 7px; font-size: 12px; text-align: left;
-      font-family: 'Vazirmatn', sans-serif; direction: ltr;
+      width: 110px; padding: 5px 8px; border: 2px solid var(--border); border-radius: 7px;
+      font-size: 12px; text-align: left; font-family: 'Vazirmatn', sans-serif; direction: ltr;
       outline: none; transition: border 0.2s;
     }
     .service-price input:focus { border-color: var(--primary); }
     .service-price span { font-size: 10px; color: var(--text-muted); }
 
+    /* ★ ردیف تاریخ سرویس */
+    .service-dates {
+      display: flex; align-items: center; gap: 10px;
+      margin-top: 10px; padding-top: 10px;
+      border-top: 1px solid rgba(0,0,0,0.06);
+      flex-wrap: wrap;
+    }
+    .service-dates label {
+      font-size: 10px; font-weight: 700; color: var(--text-muted); white-space: nowrap;
+    }
+    .service-dates input[type="date"] {
+      padding: 5px 8px; border: 2px solid var(--border); border-radius: 7px;
+      font-size: 12px; font-family: 'Vazirmatn', sans-serif; outline: none;
+      transition: border 0.2s; background: #fff; direction: ltr;
+    }
+    .service-dates input[type="date"]:focus { border-color: var(--primary); }
+    .date-sep { font-size: 11px; color: var(--text-muted); }
+    .date-status {
+      font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 12px; margin-right: auto;
+    }
+    .date-status.valid { background: var(--success-light); color: var(--success); }
+    .date-status.expired { background: var(--danger-light); color: var(--danger); }
+    .date-status.no-date { background: #f3f4f6; color: var(--text-muted); }
+
     .toggle { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
     .toggle input { opacity: 0; width: 0; height: 0; }
     .toggle-slider {
-      position: absolute; inset: 0; background: #d1d5db;
-      border-radius: 22px; cursor: pointer; transition: 0.3s;
+      position: absolute; inset: 0; background: #d1d5db; border-radius: 22px; cursor: pointer; transition: 0.3s;
     }
     .toggle-slider::before {
       content: ''; position: absolute; width: 16px; height: 16px;
@@ -391,40 +306,24 @@
     .toggle input:checked + .toggle-slider { background: var(--success); }
     .toggle input:checked + .toggle-slider::before { right: 21px; }
 
-    /* ── Permissions Grid ── */
-    .perms-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
-    }
+    .perms-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
     .perm-item {
-      display: flex; align-items: center; gap: 8px;
-      padding: 10px 12px; background: #fafafa;
-      border-radius: 8px; border: 2px solid transparent;
-      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #fafafa;
+      border-radius: 8px; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;
     }
     .perm-item:hover { background: #f0f0f0; }
     .perm-item.checked { border-color: var(--primary); background: var(--primary-light); }
-    .perm-item input[type="checkbox"] {
-      width: 16px; height: 16px; accent-color: var(--primary);
-      flex-shrink: 0; cursor: pointer;
-    }
-    .perm-item label {
-      font-size: 12px; font-weight: 600; cursor: pointer;
-      margin: 0; color: var(--text);
-    }
+    .perm-item input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--primary); flex-shrink: 0; cursor: pointer; }
+    .perm-item label { font-size: 12px; font-weight: 600; cursor: pointer; margin: 0; color: var(--text); }
 
-    /* ── Pagination ── */
     .pagination {
-      display: flex; align-items: center; justify-content: center;
-      gap: 4px; padding: 14px;
+      display: flex; align-items: center; justify-content: center; gap: 4px; padding: 14px;
       border-top: 1px solid var(--border);
     }
     .pagination button {
-      min-width: 32px; height: 32px;
-      border: 1px solid var(--border); border-radius: 7px;
-      background: #fff; cursor: pointer;
-      font-size: 12px; font-weight: 700;
-      font-family: 'Vazirmatn', sans-serif;
-      color: var(--text); transition: all 0.15s;
+      min-width: 32px; height: 32px; border: 1px solid var(--border); border-radius: 7px;
+      background: #fff; cursor: pointer; font-size: 12px; font-weight: 700;
+      font-family: 'Vazirmatn', sans-serif; color: var(--text); transition: all 0.15s;
       display: flex; align-items: center; justify-content: center;
     }
     .pagination button:hover { background: var(--bg); }
@@ -432,19 +331,17 @@
     .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
     .pagination-info { font-size: 11px; color: var(--text-muted); padding: 0 8px; }
 
-    /* ── Toast ── */
     .toast-container {
       position: fixed; top: 16px; left: 16px; z-index: 2000;
       display: flex; flex-direction: column; gap: 8px;
     }
     .toast {
-      padding: 10px 18px; border-radius: 10px;
-      font-size: 12px; font-weight: 600; color: #fff;
-      box-shadow: var(--shadow-lg);
-      animation: toastIn 0.3s ease, toastOut 0.3s ease 2.5s forwards;
+      padding: 10px 18px; border-radius: 10px; font-size: 12px; font-weight: 600; color: #fff;
+      box-shadow: var(--shadow-lg); animation: toastIn 0.3s ease, toastOut 0.3s ease 2.5s forwards;
     }
     .toast.success { background: var(--success); }
     .toast.error { background: var(--danger); }
+    .toast.info { background: var(--primary); }
     @keyframes toastIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
     @keyframes toastOut { to { opacity: 0; transform: translateX(-20px); } }
 
@@ -452,12 +349,8 @@
     .empty-state .ico { font-size: 36px; margin-bottom: 10px; }
     .empty-state p { font-size: 12px; }
 
-    .sidebar-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.4); z-index: 90;
-    }
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 90; }
 
-    /* ── Responsive ── */
     @media (max-width: 1200px) {
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
       .perms-grid { grid-template-columns: repeat(2, 1fr); }
@@ -477,7 +370,7 @@
       .field-row, .field-row-3 { grid-template-columns: 1fr; }
       .search-box { width: 100%; }
       .card-header-actions { width: 100%; }
-      .service-item { flex-wrap: wrap; gap: 8px; }
+      .service-dates { flex-wrap: wrap; }
       .tabs { width: 100%; overflow-x: auto; }
       .perms-grid { grid-template-columns: 1fr; }
     }
@@ -492,11 +385,9 @@
 </head>
 <body>
 
-<!-- ═══ Sidebar Overlay (mobile) ═══ -->
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
 <div class="layout">
-  <!-- ═══ Sidebar ═══ -->
   <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-logo">
@@ -507,14 +398,12 @@
         </div>
       </div>
     </div>
-
     <div class="sidebar-section">
       <div class="sidebar-section-title">مدیریت کلان</div>
       <nav class="sidebar-nav">
         <a href="/dashboard/super/" class="sidebar-link active"><span class="ico">📊</span> داشبورد کلان</a>
       </nav>
     </div>
-
     <div class="sidebar-section">
       <div class="sidebar-section-title">پنل رستوران</div>
       <nav class="sidebar-nav">
@@ -525,7 +414,6 @@
         <a href="/dashboard/orders/" class="sidebar-link"><span class="ico">📋</span> سفارشات</a>
       </nav>
     </div>
-
     <div class="sidebar-section">
       <div class="sidebar-section-title">انبار و تولید</div>
       <nav class="sidebar-nav">
@@ -538,7 +426,6 @@
         <a href="/dashboard/kitchen/" class="sidebar-link"><span class="ico">👨‍🍳</span> آشپزخانه</a>
       </nav>
     </div>
-
     <div class="sidebar-section">
       <div class="sidebar-section-title">مشتریان و گزارش</div>
       <nav class="sidebar-nav">
@@ -548,7 +435,6 @@
         <a href="/dashboard/loyalty/rewards/" class="sidebar-link"><span class="ico">🎁</span> جوایز</a>
       </nav>
     </div>
-
     <div class="sidebar-section">
       <div class="sidebar-section-title">تنظیمات</div>
       <nav class="sidebar-nav">
@@ -557,7 +443,6 @@
         <a href="/admin/" class="sidebar-link"><span class="ico">⚙️</span> Django Admin</a>
       </nav>
     </div>
-
     <div class="sidebar-footer">
       <div class="sidebar-user">
         <div class="sidebar-avatar">👤</div>
@@ -570,7 +455,6 @@
     </div>
   </div>
 
-  <!-- ═══ Main ═══ -->
   <div class="main">
     <div class="top-bar">
       <div class="top-bar-right">
@@ -588,16 +472,13 @@
     </div>
 
     <div class="main-content">
-      <!-- ═══ Stats ═══ -->
       <div class="stats-grid" id="stats-grid"></div>
 
-      <!-- ═══ Tabs ═══ -->
       <div class="tabs">
         <button class="tab-btn active" onclick="switchTab('tenants')">🏢 رستوران‌ها</button>
         <button class="tab-btn" onclick="switchTab('users')">👥 کاربران</button>
       </div>
 
-      <!-- ═══ TAB: Tenants ═══ -->
       <div class="tab-panel active" id="panel-tenants">
         <div class="card">
           <div class="card-header">
@@ -616,7 +497,7 @@
                 <thead>
                   <tr>
                     <th>#</th><th>نام رستوران</th><th>شناسه URL</th><th>مالک</th><th>تلفن</th>
-                    <th>سرویس‌ها</th><th>درآمد ماهانه</th><th>وضعیت</th><th>عملیات</th>
+                    <th>سرویس‌ها</th><th>وضعیت اشتراک</th><th>وضعیت</th><th>عملیات</th>
                   </tr>
                 </thead>
                 <tbody id="tenants-body"></tbody>
@@ -628,11 +509,13 @@
           </div>
         </div>
 
-        <!-- Services Panel -->
         <div class="card" id="services-panel" style="display:none;">
           <div class="card-header">
             <h2 id="services-title">⚙️ سرویس‌ها</h2>
-            <button class="btn btn-success" onclick="saveTenantServices()">💾 ذخیره تغییرات</button>
+            <div class="card-header-actions">
+              <button class="btn btn-ghost btn-sm" onclick="openTenantDashboard()" id="btn-open-dash">🏠 باز کردن داشبورد</button>
+              <button class="btn btn-success" onclick="saveTenantServices()">💾 ذخیره تغییرات</button>
+            </div>
           </div>
           <div class="card-body">
             <div class="service-list" id="services-list"></div>
@@ -640,7 +523,6 @@
         </div>
       </div>
 
-      <!-- ═══ TAB: Users ═══ -->
       <div class="tab-panel" id="panel-users">
         <div class="card">
           <div class="card-header">
@@ -702,7 +584,7 @@
       <div class="field">
         <label>شناسه URL (slug) *</label>
         <input type="text" id="f-slug" class="mono" placeholder="mali-aria" oninput="onSlugInput()">
-        <div class="hint">حروف انگلیسی، اعداد، خط تیره و زیرخط — مثلاً: <strong>1</strong>، <strong>200</strong>، <strong>zfc-ali</strong></div>
+        <div class="hint">حروف انگلیسی، اعداد، خط تیره و زیرخط</div>
         <div class="slug-preview" id="slug-preview"></div>
       </div>
       <div class="field-row">
@@ -778,17 +660,11 @@
       </div>
       <div class="field-row">
         <div class="field" style="display:flex;align-items:center;gap:8px;padding-top:20px;">
-          <label class="toggle">
-            <input type="checkbox" id="u-is-active" checked>
-            <span class="toggle-slider"></span>
-          </label>
+          <label class="toggle"><input type="checkbox" id="u-is-active" checked><span class="toggle-slider"></span></label>
           <span style="font-size:12px;font-weight:700;">فعال</span>
         </div>
         <div class="field" style="display:flex;align-items:center;gap:8px;padding-top:20px;">
-          <label class="toggle">
-            <input type="checkbox" id="u-is-approved" checked>
-            <span class="toggle-slider"></span>
-          </label>
+          <label class="toggle"><input type="checkbox" id="u-is-approved" checked><span class="toggle-slider"></span></label>
           <span style="font-size:12px;font-weight:700;">تأیید مدیر</span>
         </div>
       </div>
@@ -808,9 +684,7 @@
       <button class="modal-close" onclick="closePermsModal()">&times;</button>
     </div>
     <div class="modal-body">
-      <p style="font-size:11px;color:var(--text-muted);margin-bottom:16px;">
-        دسترسی‌های سفارشی برای این کاربر. اگر هیچ موردی انتخاب نشود، دسترسی‌های پیش‌فرض نقش اعمال می‌شود.
-      </p>
+      <p style="font-size:11px;color:var(--text-muted);margin-bottom:16px;">دسترسی‌های سفارشی برای این کاربر.</p>
       <div class="perms-grid" id="perms-grid"></div>
       <div style="margin-top:12px;display:flex;gap:8px;">
         <button class="btn btn-sm btn-ghost" onclick="selectAllPerms()">انتخاب همه</button>
@@ -853,6 +727,7 @@ var state = {
   tenants: [],
   services: [],
   selectedTenantId: null,
+  selectedTenantSlug: null,
   tenantServices: [],
   deleteTenantTargetId: null,
   users: [],
@@ -865,28 +740,15 @@ var state = {
 };
 
 var DASHBOARD_SECTIONS = [
-  {code:'pos',             label:'صندوق فروش'},
-  {code:'orders',          label:'سفارشات'},
-  {code:'kitchen',         label:'آشپزخانه'},
-  {code:'recipes',         label:'رسپی‌ها'},
-  {code:'invoices',        label:'فاکتور خرید'},
-  {code:'raw_materials',   label:'مواد اولیه'},
-  {code:'semi_finished',   label:'نیمه‌آماده'},
-  {code:'ready_materials', label:'مواد آماده'},
-  {code:'usage_log',       label:'لاگ مصرف'},
-  {code:'dictionary',      label:'دیکشنری'},
-  {code:'loyalty',         label:'باشگاه مشتریان'},
-  {code:'users',           label:'مدیریت کاربران'},
+  {code:'pos',label:'صندوق فروش'},{code:'orders',label:'سفارشات'},
+  {code:'kitchen',label:'آشپزخانه'},{code:'recipes',label:'رسپی‌ها'},
+  {code:'invoices',label:'فاکتور خرید'},{code:'raw_materials',label:'مواد اولیه'},
+  {code:'semi_finished',label:'نیمه‌آماده'},{code:'ready_materials',label:'مواد آماده'},
+  {code:'usage_log',label:'لاگ مصرف'},{code:'dictionary',label:'دیکشنری'},
+  {code:'loyalty',label:'باشگاه مشتریان'},{code:'users',label:'مدیریت کاربران'},
 ];
 
-var ROLES = {
-  owner:     'مالک',
-  manager:   'مدیر',
-  cashier:   'صندوقدار',
-  kitchen:   'آشپزخانه',
-  warehouse: 'انباردار',
-  customer:  'مشتری',
-};
+var ROLES = { owner:'مالک',manager:'مدیر',cashier:'صندوقدار',kitchen:'آشپزخانه',warehouse:'انباردار',customer:'مشتری' };
 
 // ═══════════════════════════════════════
 //  Utilities
@@ -912,52 +774,51 @@ function toggleSidebar(){
 }
 
 var _userSearchTimer = null;
-function debounceUserSearch(){
-  clearTimeout(_userSearchTimer);
-  _userSearchTimer = setTimeout(function(){ loadUsers(1); }, 300);
-}
+function debounceUserSearch(){ clearTimeout(_userSearchTimer); _userSearchTimer = setTimeout(function(){ loadUsers(1); }, 300); }
 
-// ═══════════════════════════════════════
-//  ★ Slug helpers
-// ═══════════════════════════════════════
 function onSlugInput(){
   var slug = document.getElementById('f-slug').value.trim();
   var preview = document.getElementById('slug-preview');
-  if(slug){
-    var host = window.location.host;
-    preview.textContent = 'https://' + host + '/' + slug + '/dashboard/app/';
-    preview.classList.add('show');
-  } else {
-    preview.classList.remove('show');
-  }
+  if(slug){ preview.textContent = 'https://'+window.location.host+'/'+slug+'/dashboard/app/'; preview.classList.add('show'); }
+  else { preview.classList.remove('show'); }
 }
-
-function sanitizeSlug(val){
-  // فقط حروف، اعداد، خط تیره، زیرخط
-  return val.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase();
-}
+function sanitizeSlug(val){ return val.replace(/[^a-zA-Z0-9_-]/g, '').toLowerCase(); }
 
 function copyToClipboard(text){
-  if(navigator.clipboard){
-    navigator.clipboard.writeText(text);
-  } else {
-    var ta = document.createElement('textarea');
-    ta.value = text;
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand('copy');
-    document.body.removeChild(ta);
-  }
+  if(navigator.clipboard){ navigator.clipboard.writeText(text); }
+  else { var ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta); }
   toast('کپی شد!','success');
+}
+
+function goToTenantDashboard(slug){
+  if(!slug){ toast('شناسه رستوران نامعتبر است','error'); return; }
+  window.location.href = '/'+slug+'/dashboard/app/';
+}
+function openTenantDashboard(){ if(state.selectedTenantSlug) goToTenantDashboard(state.selectedTenantSlug); }
+
+// ★ تاریخ امروز
+function todayStr(){
+  var d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+// ★ وضعیت تاریخ
+function getDateStatus(endDate){
+  if(!endDate) return {text:'بدون انقضا', cls:'no-date'};
+  var today = new Date(todayStr());
+  var end = new Date(endDate);
+  if(end < today) return {text:'منقضی شده', cls:'expired'};
+  var diff = Math.ceil((end - today) / (1000*60*60*24));
+  if(diff <= 7) return {text: diff+' روز مانده', cls:'expired'};
+  if(diff <= 30) return {text: diff+' روز مانده', cls:'valid'};
+  return {text:'فعال', cls:'valid'};
 }
 
 // ═══════════════════════════════════════
 //  Tabs
 // ═══════════════════════════════════════
 function switchTab(name){
-  document.querySelectorAll('.tab-btn').forEach(function(b,i){
-    b.classList.toggle('active', i === (name==='users'?1:0));
-  });
+  document.querySelectorAll('.tab-btn').forEach(function(b,i){ b.classList.toggle('active', i === (name==='users'?1:0)); });
   document.getElementById('panel-tenants').classList.toggle('active', name==='tenants');
   document.getElementById('panel-users').classList.toggle('active', name==='users');
   if(name==='users' && !state.users.length) loadUsers(1);
@@ -980,11 +841,7 @@ async function loadStats(){
 
 async function loadTenants(){
   var r = await apiFetch('/api/super/tenants/');
-  if(r.ok){
-    state.tenants = r.data.tenants || [];
-    renderTenants();
-    populateRestaurantFilter();
-  }
+  if(r.ok){ state.tenants = r.data.tenants || []; renderTenants(); populateRestaurantFilter(); }
 }
 
 async function loadServices(){
@@ -992,15 +849,10 @@ async function loadServices(){
   if(r.ok) state.services = r.data.services || [];
 }
 
-function loadAll(){
-  loadStats();
-  loadTenants();
-  loadServices();
-  if(document.getElementById('panel-users').classList.contains('active')) loadUsers(1);
-}
+function loadAll(){ loadStats(); loadTenants(); loadServices(); if(document.getElementById('panel-users').classList.contains('active')) loadUsers(1); }
 
 // ═══════════════════════════════════════
-//  Render Tenants — ★ v11: slug + copy URL
+//  ★ Render Tenants — لینک اسم + وضعیت اشتراک
 // ═══════════════════════════════════════
 function renderTenants(list){
   var data = list || state.tenants;
@@ -1014,18 +866,26 @@ function renderTenants(list){
       ? '<span class="badge slug" title="کپی آدرس" onclick="event.stopPropagation();copyToClipboard(\''+window.location.origin+'/'+escHtml(t.slug)+'/dashboard/app/\')">'+escHtml(t.slug)+'</span>'
       : '<span style="color:var(--text-muted);font-size:11px;">—</span>';
 
-    h += '<tr data-id="'+t.id+'" onclick="loadTenantServices('+t.id+')" style="cursor:pointer;">'
+    var nameCell = t.slug
+      ? '<a class="tenant-name-link" href="/'+escHtml(t.slug)+'/dashboard/app/" onclick="event.stopPropagation();">'+escHtml(t.name)+'</a>'
+      : '<strong>'+escHtml(t.name)+'</strong>';
+
+    // ★ وضعیت اشتراک
+    var subBadge = t.is_expired
+      ? '<span class="badge expired">⛔ منقضی</span>'
+      : '<span class="badge active">'+t.active_services+' فعال</span>';
+
+    h += '<tr data-id="'+t.id+'" data-slug="'+escHtml(t.slug||'')+'">'
       +'<td>'+(i+1)+'</td>'
-      +'<td><strong>'+escHtml(t.name)+'</strong></td>'
+      +'<td>'+nameCell+'<span class="row-hint">کلیک = ورود به داشبورد</span></td>'
       +'<td>'+slugCell+'</td>'
       +'<td>'+escHtml(t.owner_name)+'</td>'
       +'<td>'+escHtml(t.phone||'—')+'</td>'
       +'<td><span class="badge active">'+t.active_services+' سرویس</span></td>'
-      +'<td>'+formatPrice(t.monthly_revenue)+' ت</td>'
+      +'<td>'+subBadge+'</td>'
       +'<td><span class="badge '+(t.is_active?'active':'inactive')+'">'+(t.is_active?'فعال':'غیرفعال')+'</span></td>'
       +'<td class="actions" onclick="event.stopPropagation();">'
         +'<button class="btn-icon" title="ویرایش" onclick="openEditTenantModal('+t.id+')">✏️</button>'
-        +'<button class="btn-icon" title="باز کردن داشبورد" onclick="window.open(\'/'+escHtml(t.slug)+'/dashboard/app/\',\'_blank\')">🔗</button>'
         +'<button class="btn-icon" title="سرویس‌ها" onclick="loadTenantServices('+t.id+')">⚙️</button>'
         +'<button class="btn-icon" title="حذف" onclick="openDeleteTenantModal('+t.id+',\''+escHtml(t.name)+'\')">🗑️</button>'
       +'</td></tr>';
@@ -1041,23 +901,45 @@ function filterTenants(q){
   }));
 }
 
+// ═══════════════════════════════════════
+//  ★ Tenant Services — با فیلدهای تاریخ
+// ═══════════════════════════════════════
 async function loadTenantServices(tid){
   state.selectedTenantId = tid;
+  var found = state.tenants.filter(function(t){return t.id===tid});
+  state.selectedTenantSlug = found.length ? found[0].slug : null;
+
   var r = await apiFetch('/api/super/tenants/'+tid+'/services/');
-  if(r.ok){state.tenantServices=r.data.services||[];renderTenantServices(r.data.tenant_name)}
-  document.querySelectorAll('#tenants-body tr').forEach(function(tr){tr.classList.toggle('selected',tr.dataset.id==tid)});
+  if(r.ok){ state.tenantServices=r.data.services||[]; renderTenantServices(r.data.tenant_name); }
+  document.querySelectorAll('#tenants-body tr').forEach(function(tr){ tr.classList.toggle('selected',tr.dataset.id==tid); });
 }
 
 function renderTenantServices(name){
   document.getElementById('services-panel').style.display='block';
   document.getElementById('services-title').textContent='⚙️ سرویس‌های: '+name;
+  document.getElementById('btn-open-dash').style.display = state.selectedTenantSlug ? 'inline-flex' : 'none';
+
   var h = '';
   state.tenantServices.forEach(function(s){
-    h += '<div class="service-item '+(s.is_enabled?'enabled':'')+'" id="svc-'+s.service_id+'">'
-      +'<div class="service-icon">'+s.icon+'</div>'
-      +'<div class="service-info"><div class="service-name">'+escHtml(s.label)+'</div><div class="service-desc">'+escHtml(s.description||s.code)+'</div></div>'
-      +'<div class="service-price"><input type="number" id="price-'+s.service_id+'" value="'+s.price+'" min="0" step="10000"><span>تومان/ماه</span></div>'
-      +'<label class="toggle"><input type="checkbox" id="toggle-'+s.service_id+'" '+(s.is_enabled?'checked':'')+' onchange="onToggle('+s.service_id+')"><span class="toggle-slider"></span></label>'
+    var status = getDateStatus(s.end_date);
+    var isExpired = s.end_date && new Date(s.end_date) < new Date(todayStr());
+    var itemClass = (s.is_enabled ? 'enabled' : '') + (isExpired ? ' expired-svc' : '');
+
+    h += '<div class="service-item '+itemClass+'" id="svc-'+s.service_id+'">'
+      +'<div class="service-top">'
+        +'<div class="service-icon">'+s.icon+'</div>'
+        +'<div class="service-info"><div class="service-name">'+escHtml(s.label)+'</div><div class="service-desc">'+escHtml(s.description||s.code)+'</div></div>'
+        +'<div class="service-price"><input type="number" id="price-'+s.service_id+'" value="'+s.price+'" min="0" step="10000"><span>تومان/ماه</span></div>'
+        +'<label class="toggle"><input type="checkbox" id="toggle-'+s.service_id+'" '+(s.is_enabled?'checked':'')+' onchange="onToggle('+s.service_id+')"><span class="toggle-slider"></span></label>'
+      +'</div>'
+      +'<div class="service-dates">'
+        +'<label>شروع:</label>'
+        +'<input type="date" id="start-'+s.service_id+'" value="'+(s.start_date||'')+'" onchange="onDateChange('+s.service_id+')">'
+        +'<span class="date-sep">→</span>'
+        +'<label>پایان:</label>'
+        +'<input type="date" id="end-'+s.service_id+'" value="'+(s.end_date||'')+'" onchange="onDateChange('+s.service_id+')">'
+        +'<span class="date-status '+status.cls+'" id="status-'+s.service_id+'">'+status.text+'</span>'
+      +'</div>'
     +'</div>';
   });
   document.getElementById('services-list').innerHTML = h;
@@ -1067,11 +949,49 @@ function renderTenantServices(name){
 function onToggle(sid){
   var c = document.getElementById('toggle-'+sid).checked;
   var el = document.getElementById('svc-'+sid);
-  if(c)el.classList.add('enabled');else el.classList.remove('enabled');
+  if(c) el.classList.add('enabled'); else el.classList.remove('enabled');
+}
+
+function onDateChange(sid){
+  var endDate = document.getElementById('end-'+sid).value;
+  var status = getDateStatus(endDate);
+  var el = document.getElementById('status-'+sid);
+  el.textContent = status.text;
+  el.className = 'date-status ' + status.cls;
+
+  var svc = document.getElementById('svc-'+sid);
+  var isExpired = endDate && new Date(endDate) < new Date(todayStr());
+  var isEnabled = document.getElementById('toggle-'+sid).checked;
+  svc.className = 'service-item' + (isEnabled?' enabled':'') + (isExpired?' expired-svc':'');
 }
 
 // ═══════════════════════════════════════
-//  Tenant CRUD — ★ v11: slug
+//  ★ Save Services — با تاریخ
+// ═══════════════════════════════════════
+async function saveTenantServices(){
+  if(!state.selectedTenantId) return;
+  var svcs = [];
+  state.tenantServices.forEach(function(s){
+    var t = document.getElementById('toggle-'+s.service_id);
+    var p = document.getElementById('price-'+s.service_id);
+    var sd = document.getElementById('start-'+s.service_id);
+    var ed = document.getElementById('end-'+s.service_id);
+    svcs.push({
+      service_id: s.service_id,
+      is_enabled: t ? t.checked : false,
+      price: p ? parseInt(p.value)||0 : 0,
+      start_date: sd && sd.value ? sd.value : null,
+      end_date: ed && ed.value ? ed.value : null,
+    });
+  });
+  var r = await apiFetch('/api/super/tenants/'+state.selectedTenantId+'/services/',{
+    method:'POST', body:JSON.stringify({services:svcs})
+  });
+  if(r.ok){ toast('سرویس‌ها ذخیره شد','success'); loadStats(); loadTenants(); } else { toast(r.data.error||'خطا','error'); }
+}
+
+// ═══════════════════════════════════════
+//  Tenant CRUD
 // ═══════════════════════════════════════
 function openAddTenantModal(){
   document.getElementById('tenant-modal-title').textContent='رستوران جدید';
@@ -1091,7 +1011,7 @@ async function openEditTenantModal(id){
   document.getElementById('edit-tenant-id').value=t.id;
   document.getElementById('f-name').value=t.name;
   document.getElementById('f-slug').value=t.slug || '';
-  document.getElementById('f-slug').disabled=false; // اجازه تغییر slug
+  document.getElementById('f-slug').disabled=false;
   document.getElementById('f-owner-username').value=t.owner_name;
   document.getElementById('f-owner-username').disabled=true;
   document.getElementById('f-owner-password').value='';
@@ -1102,15 +1022,13 @@ async function openEditTenantModal(id){
   document.getElementById('tenant-modal').classList.add('open');
 }
 
-function closeTenantModal(){document.getElementById('tenant-modal').classList.remove('open')}
+function closeTenantModal(){ document.getElementById('tenant-modal').classList.remove('open'); }
 
 async function saveTenant(){
   var id = document.getElementById('edit-tenant-id').value;
-  var slug = document.getElementById('f-slug').value.trim();
-
   var body = {
     name: document.getElementById('f-name').value.trim(),
-    slug: sanitizeSlug(slug),
+    slug: sanitizeSlug(document.getElementById('f-slug').value.trim()),
     owner_username: document.getElementById('f-owner-username').value.trim(),
     owner_password: document.getElementById('f-owner-password').value,
     owner_name: document.getElementById('f-owner-name').value.trim(),
@@ -1118,66 +1036,36 @@ async function saveTenant(){
     address: document.getElementById('f-address').value.trim()
   };
   if(!body.name){toast('نام رستوران الزامی است','error');return}
-  if(!body.slug){toast('شناسه URL (slug) الزامی است','error');return}
-
+  if(!body.slug){toast('شناسه URL الزامی است','error');return}
   var r;
-  if(id){
-    r = await apiFetch('/api/super/tenants/'+id+'/',{method:'PUT',body:JSON.stringify(body)});
-  } else {
+  if(id){ r = await apiFetch('/api/super/tenants/'+id+'/',{method:'PUT',body:JSON.stringify(body)}); }
+  else {
     if(!body.owner_username){toast('نام کاربری مالک الزامی است','error');return}
     r = await apiFetch('/api/super/tenants/',{method:'POST',body:JSON.stringify(body)});
   }
-  if(r.ok){
-    toast(id?'ویرایش شد':'رستوران ثبت شد','success');
-    closeTenantModal();
-    loadAll();
-  } else {
-    toast(r.data.error||'خطا','error');
-  }
+  if(r.ok){ toast(id?'ویرایش شد':'رستوران ثبت شد','success'); closeTenantModal(); loadAll(); } else { toast(r.data.error||'خطا','error'); }
 }
 
-function openDeleteTenantModal(id,name){
-  state.deleteTenantTargetId=id;
-  document.getElementById('delete-tenant-name').textContent=name;
-  document.getElementById('delete-tenant-modal').classList.add('open');
-}
-function closeDeleteTenantModal(){document.getElementById('delete-tenant-modal').classList.remove('open')}
+function openDeleteTenantModal(id,name){ state.deleteTenantTargetId=id; document.getElementById('delete-tenant-name').textContent=name; document.getElementById('delete-tenant-modal').classList.add('open'); }
+function closeDeleteTenantModal(){ document.getElementById('delete-tenant-modal').classList.remove('open'); }
 async function confirmDeleteTenant(){
   var r = await apiFetch('/api/super/tenants/'+state.deleteTenantTargetId+'/',{method:'DELETE'});
-  if(r.ok){toast('حذف شد','success');closeDeleteTenantModal();state.selectedTenantId=null;document.getElementById('services-panel').style.display='none';loadAll()}else{toast('خطا','error')}
-}
-
-async function saveTenantServices(){
-  if(!state.selectedTenantId)return;
-  var svcs = [];
-  state.tenantServices.forEach(function(s){
-    var t = document.getElementById('toggle-'+s.service_id);
-    var p = document.getElementById('price-'+s.service_id);
-    svcs.push({service_id:s.service_id,is_enabled:t?t.checked:false,price:p?parseInt(p.value)||0:0});
-  });
-  var r = await apiFetch('/api/super/tenants/'+state.selectedTenantId+'/services/',{method:'POST',body:JSON.stringify({services:svcs})});
-  if(r.ok){toast('سرویس‌ها ذخیره شد','success');loadStats();loadTenants()}else{toast(r.data.error||'خطا','error')}
+  if(r.ok){ toast('حذف شد','success'); closeDeleteTenantModal(); state.selectedTenantId=null; document.getElementById('services-panel').style.display='none'; loadAll(); } else { toast('خطا','error'); }
 }
 
 // ═══════════════════════════════════════
-//  Users — Load & Render
+//  Users
 // ═══════════════════════════════════════
 function populateRestaurantFilter(){
-  var sel = document.getElementById('user-filter-restaurant');
-  var val = sel.value;
+  var sel = document.getElementById('user-filter-restaurant'); var val = sel.value;
   sel.innerHTML = '<option value="">همه رستوران‌ها</option>';
-  state.tenants.forEach(function(t){
-    sel.innerHTML += '<option value="'+t.id+'">'+escHtml(t.name)+'</option>';
-  });
+  state.tenants.forEach(function(t){ sel.innerHTML += '<option value="'+t.id+'">'+escHtml(t.name)+'</option>'; });
   sel.value = val;
 }
-
 function populateRestaurantSelect(){
   var sel = document.getElementById('u-restaurant');
   sel.innerHTML = '<option value="">انتخاب رستوران...</option>';
-  state.tenants.forEach(function(t){
-    sel.innerHTML += '<option value="'+t.id+'">'+escHtml(t.name)+'</option>';
-  });
+  state.tenants.forEach(function(t){ sel.innerHTML += '<option value="'+t.id+'">'+escHtml(t.name)+'</option>'; });
 }
 
 async function loadUsers(page){
@@ -1185,52 +1073,27 @@ async function loadUsers(page){
   var search = document.getElementById('user-search-input').value.trim();
   var restaurantId = document.getElementById('user-filter-restaurant').value;
   var role = document.getElementById('user-filter-role').value;
-
   var url = '/api/super/users/?page='+state.usersPage+'&page_size=15';
   if(search) url += '&search='+encodeURIComponent(search);
   if(restaurantId) url += '&restaurant_id='+restaurantId;
-
   var r = await apiFetch(url);
   if(!r.ok) return;
-
   var users = r.data.users || [];
-
-  // Client-side role filter
-  if(role){
-    users = users.filter(function(u){ return u.role === role; });
-  }
-
-  state.users = users;
-  state.usersPages = r.data.pages || 1;
-  state.usersTotal = r.data.total || 0;
-  renderUsers();
-  renderUsersPagination();
+  if(role){ users = users.filter(function(u){ return u.role === role; }); }
+  state.users = users; state.usersPages = r.data.pages || 1; state.usersTotal = r.data.total || 0;
+  renderUsers(); renderUsersPagination();
 }
 
 function renderUsers(){
-  var tbody = document.getElementById('users-body');
-  var empty = document.getElementById('users-empty');
-  var data = state.users;
-
-  if(!data.length){tbody.innerHTML='';empty.style.display='block';return}
+  var tbody = document.getElementById('users-body'); var empty = document.getElementById('users-empty');
+  if(!state.users.length){tbody.innerHTML='';empty.style.display='block';return}
   empty.style.display='none';
-
-  var h = '';
-  var start = (state.usersPage - 1) * 15;
-  data.forEach(function(u,i){
-    var roleBadge = u.is_superuser
-      ? '<span class="badge admin">مدیر کل</span>'
-      : '<span class="badge role">'+escHtml(u.role_display || ROLES[u.role] || u.role)+'</span>';
-
-    var statusBadge = u.is_active
-      ? '<span class="badge active">فعال</span>'
-      : '<span class="badge inactive">غیرفعال</span>';
-
-    var permsCount = (u.effective_permissions || []).length;
-    var permsBadge = u.is_superuser
-      ? '<span class="badge admin">همه</span>'
-      : '<span class="badge role">'+permsCount+' بخش</span>';
-
+  var h = ''; var start = (state.usersPage - 1) * 15;
+  state.users.forEach(function(u,i){
+    var roleBadge = u.is_superuser ? '<span class="badge admin">مدیر کل</span>' : '<span class="badge role">'+escHtml(u.role_display||ROLES[u.role]||u.role)+'</span>';
+    var statusBadge = u.is_active ? '<span class="badge active">فعال</span>' : '<span class="badge inactive">غیرفعال</span>';
+    var permsCount = (u.effective_permissions||[]).length;
+    var permsBadge = u.is_superuser ? '<span class="badge admin">همه</span>' : '<span class="badge role">'+permsCount+' بخش</span>';
     h += '<tr>'
       +'<td>'+(start+i+1)+'</td>'
       +'<td><strong>'+escHtml(u.username)+'</strong>'+(u.is_superuser?' ⭐':'')+'</td>'
@@ -1250,41 +1113,27 @@ function renderUsers(){
 }
 
 function renderUsersPagination(){
-  var container = document.getElementById('users-pagination');
-  if(state.usersPages <= 1){container.innerHTML='';return}
-
+  var c = document.getElementById('users-pagination');
+  if(state.usersPages <= 1){c.innerHTML='';return}
   var h = '';
   h += '<button '+(state.usersPage<=1?'disabled':'')+' onclick="loadUsers('+(state.usersPage-1)+')">‹</button>';
   for(var p=1;p<=state.usersPages;p++){
-    if(state.usersPages > 7 && Math.abs(p-state.usersPage)>2 && p!==1 && p!==state.usersPages){
-      if(p===2||p===state.usersPages-1) h += '<span class="pagination-info">...</span>';
-      continue;
-    }
+    if(state.usersPages>7&&Math.abs(p-state.usersPage)>2&&p!==1&&p!==state.usersPages){if(p===2||p===state.usersPages-1)h+='<span class="pagination-info">...</span>';continue;}
     h += '<button class="'+(p===state.usersPage?'active':'')+'" onclick="loadUsers('+p+')">'+p+'</button>';
   }
   h += '<button '+(state.usersPage>=state.usersPages?'disabled':'')+' onclick="loadUsers('+(state.usersPage+1)+')">›</button>';
   h += '<span class="pagination-info">('+state.usersTotal+' کاربر)</span>';
-  container.innerHTML = h;
+  c.innerHTML = h;
 }
 
-// ═══════════════════════════════════════
-//  User CRUD
-// ═══════════════════════════════════════
 function openAddUserModal(){
-  document.getElementById('user-modal-title').textContent = 'کاربر جدید';
-  document.getElementById('edit-user-id').value = '';
-  document.getElementById('u-username').value = '';
-  document.getElementById('u-username').disabled = false;
-  document.getElementById('u-password').value = '';
-  document.getElementById('u-password').placeholder = 'رمز عبور';
-  document.getElementById('u-first-name').value = '';
-  document.getElementById('u-last-name').value = '';
-  document.getElementById('u-phone').value = '';
-  document.getElementById('u-role').value = '';
-  document.getElementById('u-is-active').checked = true;
-  document.getElementById('u-is-approved').checked = true;
-  populateRestaurantSelect();
-  document.getElementById('u-restaurant').value = '';
+  document.getElementById('user-modal-title').textContent='کاربر جدید'; document.getElementById('edit-user-id').value='';
+  document.getElementById('u-username').value=''; document.getElementById('u-username').disabled=false;
+  document.getElementById('u-password').value=''; document.getElementById('u-password').placeholder='رمز عبور';
+  document.getElementById('u-first-name').value=''; document.getElementById('u-last-name').value='';
+  document.getElementById('u-phone').value=''; document.getElementById('u-role').value='';
+  document.getElementById('u-is-active').checked=true; document.getElementById('u-is-approved').checked=true;
+  populateRestaurantSelect(); document.getElementById('u-restaurant').value='';
   document.getElementById('user-modal').classList.add('open');
 }
 
@@ -1292,160 +1141,71 @@ async function openEditUserModal(id){
   var r = await apiFetch('/api/super/users/'+id+'/');
   if(!r.ok){toast('خطا','error');return}
   var u = r.data;
-  document.getElementById('user-modal-title').textContent = 'ویرایش: '+u.username;
-  document.getElementById('edit-user-id').value = u.id;
-  document.getElementById('u-username').value = u.username;
-  document.getElementById('u-username').disabled = true;
-  document.getElementById('u-password').value = '';
-  document.getElementById('u-password').placeholder = 'خالی = بدون تغییر';
-  document.getElementById('u-first-name').value = u.first_name;
-  document.getElementById('u-last-name').value = u.last_name;
-  document.getElementById('u-phone').value = u.phone_number;
-  document.getElementById('u-role').value = u.role;
-  document.getElementById('u-is-active').checked = u.is_active;
-  document.getElementById('u-is-approved').checked = u.is_approved;
-  populateRestaurantSelect();
-  document.getElementById('u-restaurant').value = u.restaurant_id || '';
+  document.getElementById('user-modal-title').textContent='ویرایش: '+u.username;
+  document.getElementById('edit-user-id').value=u.id;
+  document.getElementById('u-username').value=u.username; document.getElementById('u-username').disabled=true;
+  document.getElementById('u-password').value=''; document.getElementById('u-password').placeholder='خالی = بدون تغییر';
+  document.getElementById('u-first-name').value=u.first_name; document.getElementById('u-last-name').value=u.last_name;
+  document.getElementById('u-phone').value=u.phone_number; document.getElementById('u-role').value=u.role;
+  document.getElementById('u-is-active').checked=u.is_active; document.getElementById('u-is-approved').checked=u.is_approved;
+  populateRestaurantSelect(); document.getElementById('u-restaurant').value=u.restaurant_id||'';
   document.getElementById('user-modal').classList.add('open');
 }
 
-function closeUserModal(){document.getElementById('user-modal').classList.remove('open')}
+function closeUserModal(){ document.getElementById('user-modal').classList.remove('open'); }
 
 async function saveUser(){
-  var id = document.getElementById('edit-user-id').value;
-  var username = document.getElementById('u-username').value.trim();
-  var password = document.getElementById('u-password').value;
-  var role = document.getElementById('u-role').value;
-  var restaurantId = document.getElementById('u-restaurant').value;
-
+  var id=document.getElementById('edit-user-id').value;
+  var username=document.getElementById('u-username').value.trim();
+  var password=document.getElementById('u-password').value;
+  var role=document.getElementById('u-role').value;
+  var restaurantId=document.getElementById('u-restaurant').value;
   if(!username){toast('نام کاربری الزامی است','error');return}
-  if(!id && !password){toast('رمز عبور الزامی است','error');return}
+  if(!id&&!password){toast('رمز عبور الزامی است','error');return}
   if(!role){toast('نقش الزامی است','error');return}
   if(!restaurantId){toast('رستوران الزامی است','error');return}
-
-  var body = {
-    username: username,
-    first_name: document.getElementById('u-first-name').value.trim(),
-    last_name: document.getElementById('u-last-name').value.trim(),
-    phone_number: document.getElementById('u-phone').value.trim(),
-    role: role,
-    restaurant_id: parseInt(restaurantId),
-    is_active: document.getElementById('u-is-active').checked,
-    is_approved: document.getElementById('u-is-approved').checked,
-  };
-  if(password) body.password = password;
-
+  var body={username:username,first_name:document.getElementById('u-first-name').value.trim(),last_name:document.getElementById('u-last-name').value.trim(),phone_number:document.getElementById('u-phone').value.trim(),role:role,restaurant_id:parseInt(restaurantId),is_active:document.getElementById('u-is-active').checked,is_approved:document.getElementById('u-is-approved').checked};
+  if(password) body.password=password;
   var r;
-  if(id){
-    r = await apiFetch('/api/super/users/'+id+'/',{method:'PUT',body:JSON.stringify(body)});
-  } else {
-    r = await apiFetch('/api/super/users/create/',{method:'POST',body:JSON.stringify(body)});
-  }
-
-  if(r.ok){
-    toast(id?'کاربر ویرایش شد':'کاربر ساخته شد','success');
-    closeUserModal();
-    loadUsers(state.usersPage);
-    loadStats();
-  } else {
-    toast(r.data.error||'خطا','error');
-  }
+  if(id){r=await apiFetch('/api/super/users/'+id+'/',{method:'PUT',body:JSON.stringify(body)})}
+  else{r=await apiFetch('/api/super/users/create/',{method:'POST',body:JSON.stringify(body)})}
+  if(r.ok){toast(id?'کاربر ویرایش شد':'کاربر ساخته شد','success');closeUserModal();loadUsers(state.usersPage);loadStats()}else{toast(r.data.error||'خطا','error')}
 }
 
-function openDeleteUserModal(id, name){
-  state.deleteUserTargetId = id;
-  document.getElementById('delete-user-name').textContent = name;
-  document.getElementById('delete-user-modal').classList.add('open');
-}
+function openDeleteUserModal(id,name){state.deleteUserTargetId=id;document.getElementById('delete-user-name').textContent=name;document.getElementById('delete-user-modal').classList.add('open')}
 function closeDeleteUserModal(){document.getElementById('delete-user-modal').classList.remove('open')}
 async function confirmDeleteUser(){
-  var r = await apiFetch('/api/super/users/'+state.deleteUserTargetId+'/',{method:'DELETE'});
-  if(r.ok){
-    toast('کاربر حذف شد','success');
-    closeDeleteUserModal();
-    loadUsers(state.usersPage);
-    loadStats();
-  } else {
-    toast(r.data.error||'خطا','error');
-  }
+  var r=await apiFetch('/api/super/users/'+state.deleteUserTargetId+'/',{method:'DELETE'});
+  if(r.ok){toast('کاربر حذف شد','success');closeDeleteUserModal();loadUsers(state.usersPage);loadStats()}else{toast(r.data.error||'خطا','error')}
 }
 
-// ═══════════════════════════════════════
-//  User Permissions
-// ═══════════════════════════════════════
-function openPermsModal(userId, userName){
-  state.permsUserId = userId;
-  state.permsUserName = userName;
-  document.getElementById('perms-modal-title').textContent = 'دسترسی‌های: '+userName;
-
-  var user = null;
-  state.users.forEach(function(u){ if(u.id===userId) user=u; });
-
-  var effective = (user && user.effective_permissions) || [];
-  var custom = (user && user.dashboard_permissions) || [];
-
-  var h = '';
+function openPermsModal(userId,userName){
+  state.permsUserId=userId;state.permsUserName=userName;
+  document.getElementById('perms-modal-title').textContent='دسترسی‌های: '+userName;
+  var user=null;state.users.forEach(function(u){if(u.id===userId)user=u});
+  var effective=(user&&user.effective_permissions)||[];var custom=(user&&user.dashboard_permissions)||[];
+  var h='';
   DASHBOARD_SECTIONS.forEach(function(s){
-    var checked = custom.length > 0 ? custom.indexOf(s.code) >= 0 : effective.indexOf(s.code) >= 0;
-    h += '<div class="perm-item '+(checked?'checked':'')+'" id="perm-'+s.code+'" onclick="togglePerm(\''+s.code+'\')">'
-      +'<input type="checkbox" id="perm-cb-'+s.code+'" '+(checked?'checked':'')+'>'
-      +'<label>'+escHtml(s.label)+'</label>'
-    +'</div>';
+    var checked=custom.length>0?custom.indexOf(s.code)>=0:effective.indexOf(s.code)>=0;
+    h+='<div class="perm-item '+(checked?'checked':'')+'" id="perm-'+s.code+'" onclick="togglePerm(\''+s.code+'\')"><input type="checkbox" id="perm-cb-'+s.code+'" '+(checked?'checked':'')+'><label>'+escHtml(s.label)+'</label></div>';
   });
-  document.getElementById('perms-grid').innerHTML = h;
+  document.getElementById('perms-grid').innerHTML=h;
   document.getElementById('perms-modal').classList.add('open');
 }
 
 function closePermsModal(){document.getElementById('perms-modal').classList.remove('open')}
-
-function togglePerm(code){
-  var cb = document.getElementById('perm-cb-'+code);
-  cb.checked = !cb.checked;
-  document.getElementById('perm-'+code).classList.toggle('checked', cb.checked);
-}
-
-function selectAllPerms(){
-  DASHBOARD_SECTIONS.forEach(function(s){
-    document.getElementById('perm-cb-'+s.code).checked = true;
-    document.getElementById('perm-'+s.code).classList.add('checked');
-  });
-}
-
-function clearAllPerms(){
-  DASHBOARD_SECTIONS.forEach(function(s){
-    document.getElementById('perm-cb-'+s.code).checked = false;
-    document.getElementById('perm-'+s.code).classList.remove('checked');
-  });
-}
-
-function resetToRolePerms(){
-  clearAllPerms();
-  toast('با ذخیره خالی، دسترسی‌های پیش‌فرض نقش اعمال می‌شود','success');
-}
+function togglePerm(code){var cb=document.getElementById('perm-cb-'+code);cb.checked=!cb.checked;document.getElementById('perm-'+code).classList.toggle('checked',cb.checked)}
+function selectAllPerms(){DASHBOARD_SECTIONS.forEach(function(s){document.getElementById('perm-cb-'+s.code).checked=true;document.getElementById('perm-'+s.code).classList.add('checked')})}
+function clearAllPerms(){DASHBOARD_SECTIONS.forEach(function(s){document.getElementById('perm-cb-'+s.code).checked=false;document.getElementById('perm-'+s.code).classList.remove('checked')})}
+function resetToRolePerms(){clearAllPerms();toast('با ذخیره خالی، دسترسی‌های پیش‌فرض نقش اعمال می‌شود','success')}
 
 async function saveUserPermissions(){
-  var perms = [];
-  DASHBOARD_SECTIONS.forEach(function(s){
-    if(document.getElementById('perm-cb-'+s.code).checked) perms.push(s.code);
-  });
-
-  var r = await apiFetch('/api/super/users/'+state.permsUserId+'/permissions/',{
-    method:'PUT',
-    body:JSON.stringify({dashboard_permissions:perms})
-  });
-
-  if(r.ok){
-    toast('دسترسی‌ها ذخیره شد','success');
-    closePermsModal();
-    loadUsers(state.usersPage);
-  } else {
-    toast(r.data.error||'خطا','error');
-  }
+  var perms=[];
+  DASHBOARD_SECTIONS.forEach(function(s){if(document.getElementById('perm-cb-'+s.code).checked)perms.push(s.code)});
+  var r=await apiFetch('/api/super/users/'+state.permsUserId+'/permissions/',{method:'PUT',body:JSON.stringify({dashboard_permissions:perms})});
+  if(r.ok){toast('دسترسی‌ها ذخیره شد','success');closePermsModal();loadUsers(state.usersPage)}else{toast(r.data.error||'خطا','error')}
 }
 
-// ═══════════════════════════════════════
-//  Init
-// ═══════════════════════════════════════
 document.addEventListener('DOMContentLoaded',function(){loadAll()});
 </script>
 </body>

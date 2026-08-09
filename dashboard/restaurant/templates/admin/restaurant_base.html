@@ -204,13 +204,46 @@
     .lock-toast i { font-size: 1.1rem; color: #ff6b35; }
 
     .sidebar-foot { padding: 10px 14px 14px; border-top: 1px solid rgba(100,160,255,0.08); }
-    .sidebar-foot a {
+
+    /* ★ auth-guard: دکمه خروج — حالا یه دکمه واقعی نه لینک */
+    .sidebar-foot .logout-btn {
       display: flex; align-items: center; gap: 10px;
       padding: 9px 14px; color: rgba(160,200,240,0.6);
       text-decoration: none; border-radius: 10px;
       font-size: 13px; font-weight: 700; transition: all 0.2s;
+      background: none; border: none; cursor: pointer;
+      width: 100%; font-family: 'Vazirmatn', sans-serif;
     }
-    .sidebar-foot a:hover { background: rgba(100,160,255,0.06); color: #c0d8ff; }
+    .sidebar-foot .logout-btn:hover {
+      background: rgba(239,68,68,0.08); color: #fca5a5;
+    }
+
+    /* ★ auth-guard: ارور تب تکراری */
+    .dup-tab-overlay {
+      position: fixed; inset: 0; z-index: 99999;
+      background: rgba(0,0,0,0.88); display: none;
+      align-items: center; justify-content: center;
+      backdrop-filter: blur(10px);
+    }
+    .dup-tab-overlay.show { display: flex; }
+    .dup-tab-box {
+      background: #fff; border-radius: 20px;
+      padding: 40px 36px; max-width: 440px; width: 90%;
+      text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+      animation: dupBounce 0.35s ease;
+    }
+    @keyframes dupBounce {
+      from { opacity: 0; transform: scale(0.88) translateY(20px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .dup-tab-box .dup-ico { font-size: 56px; margin-bottom: 16px; }
+    .dup-tab-box h2 { font-size: 20px; font-weight: 900; color: #1e1e2d; margin-bottom: 10px; }
+    .dup-tab-box p { font-size: 13px; color: #6b7280; line-height: 1.8; margin-bottom: 20px; }
+    .dup-tab-box .dup-warn {
+      background: #fef2f2; border: 1px solid #fecaca;
+      border-radius: 12px; padding: 12px 16px;
+      font-size: 12px; color: #dc2626; font-weight: 600;
+    }
 
     /* ═══ OVERLAY ═══ */
     .sidebar-overlay {
@@ -448,6 +481,16 @@
 
 <body>
 
+<!-- ★ auth-guard: ارور تب تکراری ★ -->
+<div class="dup-tab-overlay" id="dup-tab-overlay">
+  <div class="dup-tab-box">
+    <div class="dup-ico">&#128683;</div>
+    <h2>این تب قبلاً باز است</h2>
+    <p>شما فقط از <strong>یک تب</strong> می‌توانید به داشبورد دسترسی داشته باشید.<br>لطفاً این تب را ببندید.</p>
+    <div class="dup-warn">تب دیگر شما هنوز فعال است</div>
+  </div>
+</div>
+
 <!-- ═══ OVERLAY ═══ -->
 <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
@@ -486,9 +529,6 @@
   </div>
 
   <div class="sidebar-scroll">
-    <!-- ═══════════════════════════════════════════
-         پنل رستوران — فیلتر بر اساس enabled_services
-    ════════════════════════════════════════════ -->
     <div class="sb-panel active" id="sbp-restaurant">
 
       {% if not enabled_services or 'kitchen' in enabled_services or 'pos' in enabled_services or 'foods' in enabled_services %}
@@ -614,9 +654,10 @@
   </div>
 
   <div class="sidebar-foot">
-    <a href="{% url 'logout_page' %}">
+    <!-- ★ auth-guard: دکمه خروج به جای لینک ★ -->
+    <button class="logout-btn" onclick="doLogout()">
       <i class="bi bi-box-arrow-right"></i> خروج
-    </a>
+    </button>
   </div>
 </aside>
 
@@ -674,6 +715,120 @@
   </div>
 
 </div>
+
+<!-- ★══════════════════════════════════════════
+     ★ auth-guard: سیستم امنیت تب + احراز هویت
+     ★══════════════════════════════════════════ ★ -->
+<script>
+(function() {
+  'use strict';
+
+  var HEARTBEAT_MS = 3000;
+  var LOCK_TTL     = 8000;
+  var LOCK_KEY     = 'db_lock';
+  var AUTH_KEY     = 'db_auth';
+  var TAB_ID_KEY   = 'db_tid';
+
+  // ── Tab ID ──
+  var myTab = sessionStorage.getItem(TAB_ID_KEY);
+  if (!myTab) {
+    myTab = 't_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+    sessionStorage.setItem(TAB_ID_KEY, myTab);
+  }
+
+  // ★═══════════════════════════════════════
+  // ★ ۱. بررسی احراز هویت — مهم‌ترین بخش
+  // ★ اگه کاربر واقعاً لاگین نکرده، بره صفحه لاگین
+  // ★═══════════════════════════════════════
+  if (!localStorage.getItem(AUTH_KEY) || !localStorage.getItem('access_token')) {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    localStorage.removeItem(AUTH_KEY);
+    localStorage.removeItem(LOCK_KEY);
+    sessionStorage.clear();
+    window.location.href = '/dashboard/?logout=1';
+    return; // ← بقیه اسکریپت اجرا نمیشه
+  }
+
+  function lockData() {
+    try { return JSON.parse(localStorage.getItem(LOCK_KEY)); } catch(e) { return null; }
+  }
+  function setLock() {
+    localStorage.setItem(LOCK_KEY, JSON.stringify({ tid: myTab, ts: Date.now() }));
+  }
+  function lockFresh(l) { return l && l.ts && (Date.now() - l.ts) < LOCK_TTL; }
+  function myLock(l) { return l && l.tid === myTab; }
+  function releaseLock() { var l = lockData(); if (myLock(l)) localStorage.removeItem(LOCK_KEY); }
+
+  // ★═══════════════════════════════════════
+  // ★ ۲. بررسی قفل تک‌تبی
+  // ★═══════════════════════════════════════
+  var l = lockData();
+  if (l && !myLock(l) && lockFresh(l)) {
+    document.getElementById('dup-tab-overlay').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    return;
+  }
+
+  // ── قفل بگیر ──
+  setLock();
+  var hb = setInterval(setLock, HEARTBEAT_MS);
+
+  // ── رها کردن قفل هنگام بستن ──
+  window.addEventListener('beforeunload', function() {
+    clearInterval(hb);
+    releaseLock();
+  });
+
+  // ── گوش دادن به تب‌های دیگه ──
+  window.addEventListener('storage', function(e) {
+    if (e.key === LOCK_KEY) {
+      var nl = lockData();
+      if (nl && !myLock(nl) && lockFresh(nl)) {
+        document.getElementById('dup-tab-overlay').classList.add('show');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+    // ★ تب دیگه logout کرد → اینجا هم redirect
+    if (e.key === AUTH_KEY && e.newValue === null) {
+      sessionStorage.clear();
+      window.location.href = '/dashboard/?logout=1';
+    }
+  });
+
+  // ── علامت لاگین ──
+  localStorage.setItem(AUTH_KEY, '1');
+
+  // ★═══════════════════════════════════════
+  // ★ ۳. تابع خروج
+  // ★═══════════════════════════════════════
+  window.doLogout = function() {
+    var csrfToken = document.querySelector('meta[name="csrf-token"]');
+    var csrf = csrfToken ? csrfToken.content : '';
+    var m = document.cookie.match(/csrftoken=([^;]+)/);
+    if (!csrf && m) csrf = m[1];
+
+    fetch('/api/auth/logout/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+      body: JSON.stringify({}),
+    }).catch(function(){});
+
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user');
+    localStorage.removeItem(AUTH_KEY);
+    localStorage.removeItem(LOCK_KEY);
+    releaseLock();
+    clearInterval(hb);
+    sessionStorage.clear();
+
+    window.location.href = '/dashboard/?logout=1';
+  };
+
+})();
+</script>
 
 <!-- ═══ SIDEBAR JS ═══ -->
 <script>
@@ -747,7 +902,7 @@
         }
       }
     });
-    document.querySelectorAll('.sidebar .nav-link, .sidebar .sidebar-foot a, .sb-top-link a').forEach(function(a) {
+    document.querySelectorAll('.sidebar .nav-link, .sb-top-link a').forEach(function(a) {
       a.addEventListener('click', closeSidebar);
     });
   });
@@ -790,7 +945,7 @@ function getCsrf() {
 })();
 </script>
 
-<!-- ★ اتوکامپلیشن دیکشنری — اصلاح شده ★ -->
+<!-- ★ اتوکامپلیشن دیکشنری ★ -->
 <script>
 var DictionaryAC = (function() {
   function search(q, category) {
