@@ -75,7 +75,7 @@ def _find_kp_for_food(food, restaurant=None):
     kp = qs.filter(name=food.name).first()
     if kp:
         return kp
-    kp = KitchenProduct.all_objects.filter(recipe__food=food).first()
+    kp = KitchenProduct.objects.filter(recipe__food=food).first()
     return kp
 
 
