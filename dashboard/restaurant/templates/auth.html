@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <title>ورود | رستوران</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap">
 <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
@@ -201,6 +201,108 @@
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    /* ★══════════════════════════════════════════
+       ★ v11: بنر انقضا اشتراک
+       ★══════════════════════════════════════════ */
+    .expired-banner {
+      background: linear-gradient(135deg, #fef2f2, #fee2e2);
+      border: 2px solid #ef4444;
+      border-radius: 16px;
+      padding: 28px 24px;
+      margin-bottom: 24px;
+      text-align: center;
+      animation: fadeIn 0.5s ease;
+      display: none;
+    }
+    .expired-banner.show { display: block; }
+    .expired-banner .expired-ico {
+      font-size: 52px; margin-bottom: 14px;
+      animation: shake 0.6s ease;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+    .expired-banner .expired-title {
+      font-size: 18px; font-weight: 900; color: #dc2626;
+      margin-bottom: 8px;
+    }
+    .expired-banner .expired-msg {
+      font-size: 13px; color: #991b1b;
+      line-height: 1.8; margin-bottom: 14px;
+    }
+    .expired-banner .expired-details {
+      background: rgba(255,255,255,0.5);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      text-align: right;
+    }
+    .expired-banner .expired-details .detail-row {
+      display: flex; justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      font-size: 12px;
+      border-bottom: 1px solid rgba(239,68,68,0.1);
+    }
+    .expired-banner .expired-details .detail-row:last-child {
+      border-bottom: none;
+    }
+    .expired-banner .expired-details .detail-label {
+      color: #6b7280; font-weight: 600;
+    }
+    .expired-banner .expired-details .detail-status {
+      font-weight: 800; font-size: 11px;
+      padding: 2px 8px; border-radius: 8px;
+    }
+    .expired-banner .expired-details .detail-status.ok {
+      background: #ecfdf5; color: #059669;
+    }
+    .expired-banner .expired-details .detail-status.bad {
+      background: #fef2f2; color: #dc2626;
+    }
+    .expired-banner .contact-box {
+      background: rgba(255,255,255,0.4);
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 12px; color: #6b7280;
+      margin-top: 8px;
+    }
+    .expired-banner .contact-box a {
+      color: #4f46e5; font-weight: 700;
+      text-decoration: none;
+    }
+    .expired-banner .contact-box a:hover {
+      text-decoration: underline;
+    }
+
+    /* ★ فرم خاکستری وقتی منقضی */
+    .form-disabled .input-wrap input {
+      background: #f3f4f6 !important;
+      color: #9ca3af !important;
+      border-color: #e5e7eb !important;
+      cursor: not-allowed !important;
+    }
+    .form-disabled .input-wrap input:focus {
+      box-shadow: none !important;
+      border-color: #e5e7eb !important;
+    }
+    .form-disabled .btn-primary {
+      background: #d1d5db !important;
+      color: #9ca3af !important;
+      box-shadow: none !important;
+      cursor: not-allowed !important;
+    }
+    .form-disabled .btn-primary:hover {
+      transform: none !important;
+      box-shadow: none !important;
+    }
+    .form-disabled .toggle-pass { pointer-events: none; opacity: 0.2; }
+
     @media (max-width: 900px) {
       body { flex-direction: column; overflow-y: auto; overflow-x: hidden; }
       .panel-left { min-height: auto; padding: 28px 20px 24px; flex: none; }
@@ -228,6 +330,9 @@
       .msg { font-size: 12px; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; }
       .divider { margin: 18px 0; }
       .form-footer { font-size: 12px; margin-top: 16px; }
+      .expired-banner { padding: 20px 16px; }
+      .expired-banner .expired-ico { font-size: 40px; }
+      .expired-banner .expired-title { font-size: 16px; }
     }
     @supports (padding-bottom: env(safe-area-inset-bottom)) {
       .form-container { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
@@ -253,6 +358,19 @@
   <div class="panel-right">
     <div class="form-container">
 
+      <div class="expired-banner" id="expired-banner">
+        <div class="expired-ico">&#9940;</div>
+        <div class="expired-title">اشتراک منقضی شده</div>
+        <div class="expired-msg">
+          مدت اشتراک این رستوران به پایان رسیده است.<br>
+          امکان ورود به سیستم وجود ندارد.
+        </div>
+        <div class="expired-details" id="expired-details"></div>
+        <div class="contact-box">
+          &#128222; برای تمدید اشتراک با مدیر سیستم تماس بگیرید
+        </div>
+      </div>
+
       <div class="form-header">
         <h2 id="form-title">خوش آمدید</h2>
         <p id="form-subtitle">برای ادامه وارد حساب خود شوید</p>
@@ -272,7 +390,7 @@
       </div>
 
       <div class="form-panel active" id="login-panel">
-        <form onsubmit="handleLogin(event)">
+        <form onsubmit="handleLogin(event)" id="login-form">
           <div class="field">
             <label>نام کاربری یا شماره موبایل</label>
             <div class="input-wrap">
@@ -303,11 +421,40 @@
   </div>
 
 <script>
+  // ★══════════════════════════════════════════
+  // ★ auth-guard: پاکسازی کامل هنگام ورود به صفحه لاگین
+  // ★══════════════════════════════════════════
+  (function() {
+    var urlParams = new URLSearchParams(window.location.search);
+
+    // ۱. اگه از logout اومده → همه چیز رو پاک کن
+    if (urlParams.get('logout') === '1') {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('db_auth');
+      localStorage.removeItem('db_lock');
+      sessionStorage.clear();
+      // URL رو تمیز کن
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    // ۲. اگه توکن داره ولی db_auth نداره → کش مرورگره، پاک کن
+    //    (کاربر بدون لاگین واقعی وارد شده)
+    if (localStorage.getItem('access_token') && !localStorage.getItem('db_auth')) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+    }
+
+    // ۳. قفل تب رو موقع لاگین آزاد کن (تا بعد از لاگین دوباره بگیره)
+    localStorage.removeItem('db_lock');
+  })();
+
   var urlParams = new URLSearchParams(window.location.search);
   var nextUrl = urlParams.get('next');
   var isSuperLogin = nextUrl && nextUrl.includes('/super');
 
-  // ★ v10: استخراج tenant slug از URL
   var TENANT_ID = null;
   var pathParts = window.location.pathname.split('/').filter(Boolean);
   if (pathParts.length > 0 && ['dashboard', 'api'].indexOf(pathParts[0]) === -1) {
@@ -315,6 +462,8 @@
   }
 
   var API_BASE = TENANT_ID ? '/' + TENANT_ID + '/api/auth' : '/api/auth';
+
+  var subscriptionExpired = false;
 
   function getCookie(name) {
     var v = null;
@@ -378,6 +527,8 @@
   function $(id) { return document.getElementById(id); }
 
   function render(s) {
+    if (subscriptionExpired) return;
+
     var errBox = $('msg-error'), okBox = $('msg-success'), pendBox = $('msg-pending');
     if (errBox)  errBox.classList.remove('show');
     if (okBox)   okBox.classList.remove('show');
@@ -405,7 +556,59 @@
     });
   }
 
+  function disableLoginForm() {
+    subscriptionExpired = true;
+    $('expired-banner').classList.add('show');
+    $('login-form').classList.add('form-disabled');
+    var btn = $('login-btn');
+    btn.disabled = true;
+    btn.querySelector('.btn-text').textContent = 'ورود غیرفعال است';
+    var ft = $('form-title');
+    if (ft) ft.textContent = 'ورود امکان‌پذیر نیست';
+    var fs = $('form-subtitle');
+    if (fs) fs.textContent = 'اشتراک رستوران منقضی شده است';
+    var inputs = $('login-form').querySelectorAll('input');
+    inputs.forEach(function(inp) {
+      inp.disabled = true;
+      inp.placeholder = 'غیرفعال — اشتراک منقضی شده';
+    });
+    document.title = '⛔ اشتراک منقضی | رستوران';
+  }
+
+  function showSubscriptionDetails(services) {
+    var container = $('expired-details');
+    if (!container || !services || !services.length) return;
+    var html = '';
+    services.forEach(function(svc) {
+      var statusCls = svc.is_expired ? 'bad' : 'ok';
+      var statusText = svc.is_expired ? 'منقضی' : 'فعال';
+      html += '<div class="detail-row">'
+        + '<span class="detail-label">' + svc.service + '</span>'
+        + '<span class="detail-status ' + statusCls + '">'
+        + (svc.end_date ? statusText + ' — ' + svc.end_date : 'بدون انقضا')
+        + '</span>'
+        + '</div>';
+    });
+    container.innerHTML = html;
+  }
+
+  async function checkSubscription() {
+    if (!TENANT_ID || isSuperLogin) return;
+    try {
+      var data = await api.get('/' + TENANT_ID + '/api/check-subscription/');
+      if (!data) return;
+      if (!data.is_valid) {
+        disableLoginForm();
+        showSubscriptionDetails(data.services);
+      }
+    } catch (e) {
+      console.log('Subscription check failed:', e);
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', function() {
+    checkSubscription();
+
     if (isSuperLogin) {
       api.get('/api/super/stats/').then(function(data) {
         if (data && data.total_tenants !== undefined) {
@@ -413,11 +616,17 @@
         }
       }).catch(function() {});
     } else {
-      api.get(API_BASE + '/me/').then(function(user) {
-        if (user && user.username) {
-          window.location.href = redirectFor(user);
-        }
-      }).catch(function() {});
+      // ★ auth-guard: فقط اگه db_auth داشت redirect کن
+      // (بدون db_auth حتی اگه توکن باشه، نباید redirect بشه)
+      var token = localStorage.getItem('access_token');
+      var authed = localStorage.getItem('db_auth');
+      if (token && authed) {
+        api.get(API_BASE + '/me/').then(function(user) {
+          if (user && user.username) {
+            window.location.href = redirectFor(user);
+          }
+        }).catch(function() {});
+      }
     }
   });
 
@@ -451,6 +660,12 @@
 
   async function handleLogin(e) {
     if (e && e.preventDefault) e.preventDefault();
+
+    if (subscriptionExpired) {
+      store.set({ status: 'error', message: 'امکان ورود وجود ندارد. اشتراک منقضی شده.' });
+      return;
+    }
+
     store.set({ status: 'loading', message: '' });
 
     var username = ($('login-username') || {}).value || '';
@@ -491,14 +706,17 @@
         store.set({ status: 'error', message: extractError(data.error) });
         return;
       }
+
       localStorage.setItem('access_token', data.access);
       localStorage.setItem('refresh_token', data.refresh);
       localStorage.setItem('user', JSON.stringify(data.user));
+      // ★ auth-guard: علامت لاگین واقعی
+      localStorage.setItem('db_auth', '1');
+
       try { await api.post(API_BASE + '/set-session/', { access_token: data.access, user_id: data.user.id }); } catch(e) {}
 
       store.set({ status: 'success', message: 'ورود موفق! در حال انتقال...' });
 
-      // ★ nextUrl اولویت داره
       var target = nextUrl || redirectFor(data.user);
       setTimeout(function() { window.location.href = target; }, 500);
     }

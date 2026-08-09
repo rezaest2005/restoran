@@ -5,7 +5,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('restaurant', '0034_alter_restaurant_slug'),
+        ('restaurant', '0033_restaurant_tenant'),
     ]
 
     operations = [
