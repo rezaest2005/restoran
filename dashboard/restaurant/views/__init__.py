@@ -1,7 +1,7 @@
 """
 Restaurant Views Package — Re-export everything.
 
-★ نسخه v8 — root_redirect اضافه شد
+★ نسخه v9 — restaurant_login + check_subscription_api اضافه شد
 """
 
 # ── Super Admin ──
@@ -19,6 +19,8 @@ from .super_admin import (
     super_user_create_api,
     super_user_detail_api,
     super_user_permissions_api,
+    restaurant_login,          # ★ جدید
+    check_subscription_api,    # ★ جدید
 )
 
 # ── ViewSets ──
@@ -155,6 +157,8 @@ __all__ = [
     "super_user_create_api",
     "super_user_detail_api",
     "super_user_permissions_api",
+    "restaurant_login",          # ★ جدید
+    "check_subscription_api",    # ★ جدید
     # ViewSets
     "TableViewSet", "ReservationViewSet",
     "OrderViewSet", "SemiFinishedViewSet", "ReadyMaterialViewSet",
