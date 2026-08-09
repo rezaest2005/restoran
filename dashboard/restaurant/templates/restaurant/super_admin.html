@@ -207,7 +207,11 @@
       font-size: 13px; font-family: 'Vazirmatn', sans-serif; outline: none; transition: border 0.2s;
       background: #fff; color: var(--text); appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: left 12px center; padding-left: 30px;
+      background-repeat: no-repeat;
+      /* ★ اصلاح #4: فلش سمت راست برای RTL */
+      background-position: right 12px center;
+      padding-right: 30px;
+      padding-left: 12px;
     }
     .field select:focus, select.form-select:focus { border-color: var(--primary); }
 
@@ -756,12 +760,18 @@ var ROLES = { owner:'مالک',manager:'مدیر',cashier:'صندوقدار',kit
 function getCookie(n){var v=null;document.cookie.split(';').forEach(function(c){c=c.trim();if(c.startsWith(n+'='))v=decodeURIComponent(c.slice(n.length+1))});return v}
 var CSRF=function(){return getCookie('csrftoken')||''};
 
+/* ★ اصلاح #1: try/catch برای جلوگیری از کرش هنگام قطعی شبکه */
 async function apiFetch(url, opts) {
-  opts = opts || {};
-  opts.headers = Object.assign({'Content-Type':'application/json','X-CSRFToken':CSRF()}, opts.headers||{});
-  var res = await fetch(url, opts);
-  var data = await res.json().catch(function(){return {}});
-  return { ok: res.ok, status: res.status, data: data };
+  try {
+    opts = opts || {};
+    opts.headers = Object.assign({'Content-Type':'application/json','X-CSRFToken':CSRF()}, opts.headers||{});
+    var res = await fetch(url, opts);
+    var data = await res.json().catch(function(){return {}});
+    return { ok: res.ok, status: res.status, data: data };
+  } catch(e) {
+    toast('خطا در ارتباط با سرور','error');
+    return { ok: false, status: 0, data: {error:'Network error'} };
+  }
 }
 
 function formatPrice(n){return Number(n).toLocaleString('fa-IR')}
@@ -852,7 +862,7 @@ async function loadServices(){
 function loadAll(){ loadStats(); loadTenants(); loadServices(); if(document.getElementById('panel-users').classList.contains('active')) loadUsers(1); }
 
 // ═══════════════════════════════════════
-//  ★ Render Tenants — لینک اسم + وضعیت اشتراک
+//  ★ Render Tenants — با اصلاح XSS
 // ═══════════════════════════════════════
 function renderTenants(list){
   var data = list || state.tenants;
@@ -887,7 +897,8 @@ function renderTenants(list){
       +'<td class="actions" onclick="event.stopPropagation();">'
         +'<button class="btn-icon" title="ویرایش" onclick="openEditTenantModal('+t.id+')">✏️</button>'
         +'<button class="btn-icon" title="سرویس‌ها" onclick="loadTenantServices('+t.id+')">⚙️</button>'
-        +'<button class="btn-icon" title="حذف" onclick="openDeleteTenantModal('+t.id+',\''+escHtml(t.name)+'\')">🗑️</button>'
+        /* ★ اصلاح #2: data attribute به جای inline string برای جلوگیری از XSS */
+        +'<button class="btn-icon" title="حذف" data-tid="'+t.id+'" data-tname="'+escHtml(t.name)+'" onclick="openDeleteTenantModal(+this.dataset.tid, this.dataset.tname)">🗑️</button>'
       +'</td></tr>';
   });
   tbody.innerHTML = h;
@@ -1084,6 +1095,7 @@ async function loadUsers(page){
   renderUsers(); renderUsersPagination();
 }
 
+/* ★ اصلاح #3: data attribute برای جلوگیری از XSS در دکمه‌های دسترسی و حذف */
 function renderUsers(){
   var tbody = document.getElementById('users-body'); var empty = document.getElementById('users-empty');
   if(!state.users.length){tbody.innerHTML='';empty.style.display='block';return}
@@ -1105,20 +1117,28 @@ function renderUsers(){
       +'<td>'+permsBadge+'</td>'
       +'<td class="actions">'
         +'<button class="btn-icon" title="ویرایش" onclick="openEditUserModal('+u.id+')">✏️</button>'
-        +'<button class="btn-icon" title="دسترسی‌ها" onclick="openPermsModal('+u.id+',\''+escHtml(u.username)+'\')">🔐</button>'
-        +(!u.is_superuser?'<button class="btn-icon" title="حذف" onclick="openDeleteUserModal('+u.id+',\''+escHtml(u.username)+'\')">🗑️</button>':'')
+        +'<button class="btn-icon" title="دسترسی‌ها" data-uid="'+u.id+'" data-uname="'+escHtml(u.username)+'" onclick="openPermsModal(+this.dataset.uid, this.dataset.uname)">🔐</button>'
+        +(!u.is_superuser?'<button class="btn-icon" title="حذف" data-uid="'+u.id+'" data-uname="'+escHtml(u.username)+'" onclick="openDeleteUserModal(+this.dataset.uid, this.dataset.uname)">🗑️</button>':'')
       +'</td></tr>';
   });
   tbody.innerHTML = h;
 }
 
+/* ★ اصلاح #4: pagination dots فقط یک بار نشون داده میشه */
 function renderUsersPagination(){
   var c = document.getElementById('users-pagination');
   if(state.usersPages <= 1){c.innerHTML='';return}
   var h = '';
   h += '<button '+(state.usersPage<=1?'disabled':'')+' onclick="loadUsers('+(state.usersPage-1)+')">‹</button>';
+  var dotsLeft = false, dotsRight = false;
   for(var p=1;p<=state.usersPages;p++){
-    if(state.usersPages>7&&Math.abs(p-state.usersPage)>2&&p!==1&&p!==state.usersPages){if(p===2||p===state.usersPages-1)h+='<span class="pagination-info">...</span>';continue;}
+    if(state.usersPages > 7){
+      if(p !== 1 && p !== state.usersPages && Math.abs(p - state.usersPage) > 2){
+        if(p < state.usersPage && !dotsLeft){ dotsLeft = true; h+='<span class="pagination-info">...</span>'; }
+        else if(p > state.usersPage && !dotsRight){ dotsRight = true; h+='<span class="pagination-info">...</span>'; }
+        continue;
+      }
+    }
     h += '<button class="'+(p===state.usersPage?'active':'')+'" onclick="loadUsers('+p+')">'+p+'</button>';
   }
   h += '<button '+(state.usersPage>=state.usersPages?'disabled':'')+' onclick="loadUsers('+(state.usersPage+1)+')">›</button>';
