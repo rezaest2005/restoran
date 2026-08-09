@@ -92,6 +92,10 @@ def home(request: HttpRequest):
 
 def auth_page(request: HttpRequest):
     """صفحه لاگین"""
+    # ★ اگه ?logout=1 هست، session رو پاک کن
+    if request.GET.get('logout') == '1':
+        logout(request)
+
     if request.user.is_authenticated:
         return redirect("dashboard_app")
     return render(request, "auth.html")

@@ -205,7 +205,6 @@
 
     .sidebar-foot { padding: 10px 14px 14px; border-top: 1px solid rgba(100,160,255,0.08); }
 
-    /* ★ auth-guard: دکمه خروج — حالا یه دکمه واقعی نه لینک */
     .sidebar-foot .logout-btn {
       display: flex; align-items: center; gap: 10px;
       padding: 9px 14px; color: rgba(160,200,240,0.6);
@@ -218,7 +217,6 @@
       background: rgba(239,68,68,0.08); color: #fca5a5;
     }
 
-    /* ★ auth-guard: ارور تب تکراری */
     .dup-tab-overlay {
       position: fixed; inset: 0; z-index: 99999;
       background: rgba(0,0,0,0.88); display: none;
@@ -245,7 +243,6 @@
       font-size: 12px; color: #dc2626; font-weight: 600;
     }
 
-    /* ═══ OVERLAY ═══ */
     .sidebar-overlay {
       display: none; position: fixed; inset: 0;
       background: rgba(0,0,0,0.55); z-index: 190;
@@ -254,10 +251,8 @@
     }
     .sidebar-overlay.show { display: block; opacity: 1; }
 
-    /* ═══ MAIN ═══ */
     .main { margin-right: 0; transition: margin-right 0.35s cubic-bezier(.4,0,.2,1); }
 
-    /* ═══ TOPBAR ═══ */
     .topbar {
       background: rgba(255, 255, 255, 0.72);
       backdrop-filter: blur(24px) saturate(180%);
@@ -481,7 +476,6 @@
 
 <body>
 
-<!-- ★ auth-guard: ارور تب تکراری ★ -->
 <div class="dup-tab-overlay" id="dup-tab-overlay">
   <div class="dup-tab-box">
     <div class="dup-ico">&#128683;</div>
@@ -491,16 +485,13 @@
   </div>
 </div>
 
-<!-- ═══ OVERLAY ═══ -->
 <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
-<!-- ★ Toast قفل ★ -->
 <div class="lock-toast" id="lockToast">
   <i class="bi bi-lock-fill"></i>
   <span id="lockToastMsg">در ورژن‌های بعدی باز خواهد شد</span>
 </div>
 
-<!-- ═══ SIDEBAR ═══ -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-brand">
     <div class="sb-icon"><i class="bi bi-shop"></i></div>
@@ -654,17 +645,14 @@
   </div>
 
   <div class="sidebar-foot">
-    <!-- ★ auth-guard: دکمه خروج به جای لینک ★ -->
     <button class="logout-btn" onclick="doLogout()">
       <i class="bi bi-box-arrow-right"></i> خروج
     </button>
   </div>
 </aside>
 
-<!-- ═══ MAIN ═══ -->
 <div class="main">
 
-  <!-- ── TOPBAR ── -->
   <div class="topbar">
     <div class="topbar-r">
       <button class="hamburger" id="hamburgerBtn">
@@ -709,19 +697,22 @@
     </div>
   </div>
 
-  <!-- ═══ CONTENT ═══ -->
   <div class="content">
     {% block content %}{% endblock %}
   </div>
 
 </div>
 
-<!-- ★══════════════════════════════════════════
-     ★ auth-guard: سیستم امنیت تب + احراز هویت
-     ★══════════════════════════════════════════ ★ -->
+<!-- ═══════════════════════════════════════════
+     ★ یک اسکریپت واحد — همه چیز اینجاست
+     ═══════════════════════════════════════════ -->
 <script>
 (function() {
   'use strict';
+
+  /* ══════════════════════════════════════
+     ۱. ثابت‌ها و ابزارهای پایه
+     ══════════════════════════════════════ */
 
   var HEARTBEAT_MS = 3000;
   var LOCK_TTL     = 8000;
@@ -729,17 +720,40 @@
   var AUTH_KEY     = 'db_auth';
   var TAB_ID_KEY   = 'db_tid';
 
-  // ── Tab ID ──
+  // فارسی‌ساز اعداد
+  var pD = '\u06F0\u06F1\u06F2\u06F3\u06F4\u06F5\u06F6\u06F7\u06F8\u06F9';
+  window.toP = function(n) { return String(n).replace(/\d/g, function(c){ return pD[c]; }); };
+  window.fmtN = function(v) { var n = parseInt(v); return toP((isNaN(n) ? 0 : n).toLocaleString('en')); };
+
+  // CSRF
+  window.getCsrf = function() {
+    var meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta) return meta.content;
+    var m = document.cookie.match(/csrftoken=([^;]+)/);
+    return m ? m[1] : '';
+  };
+
+  // Restaurant ID
+  (function() {
+    var rid = null;
+    var bodyAttr = document.body.getAttribute('data-restaurant-id');
+    if (bodyAttr && bodyAttr !== '' && bodyAttr !== 'None' && bodyAttr !== 'null') rid = parseInt(bodyAttr);
+    if (!rid) { var h = document.querySelector('input[name="restaurant_id"], input#restaurantId'); if (h && h.value) rid = parseInt(h.value); }
+    if (!rid) { var meta = document.querySelector('meta[name="restaurant-id"]'); if (meta && meta.content) rid = parseInt(meta.content); }
+    window.RESTAURANT_ID = rid || null;
+  })();
+
+  // Tab ID
   var myTab = sessionStorage.getItem(TAB_ID_KEY);
   if (!myTab) {
     myTab = 't_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
     sessionStorage.setItem(TAB_ID_KEY, myTab);
   }
 
-  // ★═══════════════════════════════════════
-  // ★ ۱. بررسی احراز هویت — مهم‌ترین بخش
-  // ★ اگه کاربر واقعاً لاگین نکرده، بره صفحه لاگین
-  // ★═══════════════════════════════════════
+  /* ══════════════════════════════════════
+     ۲. بررسی احراز هویت
+     ══════════════════════════════════════ */
+
   if (!localStorage.getItem(AUTH_KEY) || !localStorage.getItem('access_token')) {
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
@@ -748,8 +762,12 @@
     localStorage.removeItem(LOCK_KEY);
     sessionStorage.clear();
     window.location.href = '/dashboard/?logout=1';
-    return; // ← بقیه اسکریپت اجرا نمیشه
+    return;
   }
+
+  /* ══════════════════════════════════════
+     ۳. قفل تک‌تبی
+     ══════════════════════════════════════ */
 
   function lockData() {
     try { return JSON.parse(localStorage.getItem(LOCK_KEY)); } catch(e) { return null; }
@@ -761,9 +779,6 @@
   function myLock(l) { return l && l.tid === myTab; }
   function releaseLock() { var l = lockData(); if (myLock(l)) localStorage.removeItem(LOCK_KEY); }
 
-  // ★═══════════════════════════════════════
-  // ★ ۲. بررسی قفل تک‌تبی
-  // ★═══════════════════════════════════════
   var l = lockData();
   if (l && !myLock(l) && lockFresh(l)) {
     document.getElementById('dup-tab-overlay').classList.add('show');
@@ -771,17 +786,17 @@
     return;
   }
 
-  // ── قفل بگیر ──
   setLock();
   var hb = setInterval(setLock, HEARTBEAT_MS);
 
-  // ── رها کردن قفل هنگام بستن ──
+  // ★ بستن مرورگر = خروج
   window.addEventListener('beforeunload', function() {
     clearInterval(hb);
     releaseLock();
+    localStorage.removeItem(AUTH_KEY);
   });
 
-  // ── گوش دادن به تب‌های دیگه ──
+  // گوش دادن به تب‌های دیگه
   window.addEventListener('storage', function(e) {
     if (e.key === LOCK_KEY) {
       var nl = lockData();
@@ -790,25 +805,20 @@
         document.body.style.overflow = 'hidden';
       }
     }
-    // ★ تب دیگه logout کرد → اینجا هم redirect
     if (e.key === AUTH_KEY && e.newValue === null) {
       sessionStorage.clear();
       window.location.href = '/dashboard/?logout=1';
     }
   });
 
-  // ── علامت لاگین ──
   localStorage.setItem(AUTH_KEY, '1');
 
-  // ★═══════════════════════════════════════
-  // ★ ۳. تابع خروج
-  // ★═══════════════════════════════════════
-  window.doLogout = function() {
-    var csrfToken = document.querySelector('meta[name="csrf-token"]');
-    var csrf = csrfToken ? csrfToken.content : '';
-    var m = document.cookie.match(/csrftoken=([^;]+)/);
-    if (!csrf && m) csrf = m[1];
+  /* ══════════════════════════════════════
+     ۴. تابع خروج
+     ══════════════════════════════════════ */
 
+  window.doLogout = function() {
+    var csrf = getCsrf();
     fetch('/api/auth/logout/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
@@ -823,16 +833,13 @@
     releaseLock();
     clearInterval(hb);
     sessionStorage.clear();
-
     window.location.href = '/dashboard/?logout=1';
   };
 
-})();
-</script>
+  /* ══════════════════════════════════════
+     ۵. سایدبار: باز/بستن، تب‌ها، toast
+     ══════════════════════════════════════ */
 
-<!-- ═══ SIDEBAR JS ═══ -->
-<script>
-(function() {
   var sidebarEl   = document.getElementById('sidebar');
   var overlayEl   = document.getElementById('sidebar-overlay');
   var hamburgerEl = document.getElementById('hamburgerBtn');
@@ -852,9 +859,11 @@
     hIcon.className = 'bi bi-list';
     document.body.style.overflow = '';
   }
+
   window.toggleSidebar = function() {
     sidebarEl.classList.contains('open') ? closeSidebar() : openSidebar();
   };
+
   window.switchSbTab = function(btn) {
     document.querySelectorAll('.sb-tab').forEach(function(t){ t.classList.remove('active'); });
     document.querySelectorAll('.sb-panel').forEach(function(p){ p.classList.remove('active'); });
@@ -868,7 +877,7 @@
     var el = document.getElementById('lockToast');
     var msg = document.getElementById('lockToastMsg');
     if (!el || !msg) return;
-    msg.textContent = '«' + name + '» در ورژن‌های بعدی باز خواهد شد';
+    msg.textContent = '\u00AB' + name + '\u00BB در ورژن‌های بعدی باز خواهد شد';
     el.classList.add('show');
     if (_lockToastTimer) clearTimeout(_lockToastTimer);
     _lockToastTimer = setTimeout(function() { el.classList.remove('show'); }, 3000);
@@ -876,6 +885,7 @@
 
   hamburgerEl.addEventListener('click', toggleSidebar);
   overlayEl.addEventListener('click', closeSidebar);
+
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape' && sidebarEl.classList.contains('open')) closeSidebar();
   });
@@ -886,6 +896,7 @@
     if (e.changedTouches[0].clientX - _tsx > 80) closeSidebar();
   }, { passive: true });
 
+  // لینک فعال سایدبار
   document.addEventListener('DOMContentLoaded', function() {
     var path = window.location.pathname;
     document.querySelectorAll('.sidebar .nav-link').forEach(function(a) {
@@ -906,138 +917,99 @@
       a.addEventListener('click', closeSidebar);
     });
   });
-})();
-</script>
 
-<!-- ★ ابزارهای عمومی ★ -->
-<script>
-var pD = '\u06F0\u06F1\u06F2\u06F3\u06F4\u06F5\u06F6\u06F7\u06F8\u06F9';
-function toP(n) { return String(n).replace(/\d/g, function(c){ return pD[c]; }); }
-function fmtN(v) {
-  var n = parseInt(v);
-  return toP((isNaN(n) ? 0 : n).toLocaleString('en'));
-}
-
-function getCsrf() {
-  var meta = document.querySelector('meta[name="csrf-token"]');
-  if (meta) return meta.content;
-  var m = document.cookie.match(/csrftoken=([^;]+)/);
-  return m ? m[1] : '';
-}
-</script>
-
-<script>
-(function() {
-    var rid = null;
-    var bodyAttr = document.body.getAttribute('data-restaurant-id');
-    if (bodyAttr && bodyAttr !== '' && bodyAttr !== 'None' && bodyAttr !== 'null') {
-        rid = parseInt(bodyAttr);
-    }
-    if (!rid) {
-        var hidden = document.querySelector('input[name="restaurant_id"], input#restaurantId');
-        if (hidden && hidden.value) rid = parseInt(hidden.value);
-    }
-    if (!rid) {
-        var meta = document.querySelector('meta[name="restaurant-id"]');
-        if (meta && meta.content) rid = parseInt(meta.content);
-    }
-    window.RESTAURANT_ID = rid || null;
-})();
-</script>
-
-<!-- ★ اتوکامپلیشن دیکشنری ★ -->
-<script>
-var DictionaryAC = (function() {
-  function search(q, category) {
-    return fetch('/api/dictionary/autocomplete/?q=' + encodeURIComponent(q) + '&category=' + encodeURIComponent(category), {
-      headers: { 'X-CSRFToken': getCsrf() }
-    }).then(function(r) {
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return r.json();
-    });
-  }
-
-  function attach(nameSelector, unitSelector, category) {
-    var nameInput = typeof nameSelector === 'string' ? document.querySelector(nameSelector) : nameSelector;
-    var unitInput = typeof unitSelector === 'string' ? document.querySelector(unitSelector) : unitSelector;
-    if (!nameInput) return;
-
-    var wrap = document.createElement('div');
-    wrap.className = 'ac-wrap';
-    wrap.style.position = 'relative';
-    nameInput.parentNode.insertBefore(wrap, nameInput);
-    wrap.appendChild(nameInput);
-
-    var dropdown = document.createElement('div');
-    dropdown.className = 'ac-dropdown';
-    wrap.appendChild(dropdown);
-
-    var timer = null;
-
-    nameInput.addEventListener('input', function() {
-      var q = nameInput.value.trim();
-      clearTimeout(timer);
-      if (q.length < 1) { dropdown.classList.remove('show'); return; }
-      timer = setTimeout(function() {
-        search(q, category).then(function(res) {
-          var items = res.items || [];
-          if (items.length === 0) { dropdown.classList.remove('show'); return; }
-          var html = '';
-          items.forEach(function(item) {
-            html += '<div class="ac-item" data-name="' + escA(item.name) + '" data-unit="' + escA(String(item.unit)) + '">'
-              + '<span class="ac-item-name">' + escA(item.name) + '</span>'
-              + '<span class="ac-item-unit">' + escA(item.unit_display) + '</span>'
-              + (item.description ? '<span class="ac-item-desc">' + escA(item.description) + '</span>' : '')
-              + '</div>';
-          });
-          dropdown.innerHTML = html;
-          dropdown.classList.add('show');
-          dropdown.querySelectorAll('.ac-item').forEach(function(el) {
-            el.addEventListener('click', function() {
-              nameInput.value = el.dataset.name;
-              if (unitInput) {
-                unitInput.value = el.dataset.unit;
-                unitInput.dispatchEvent(new Event('change', { bubbles: true }));
-              }
-              dropdown.classList.remove('show');
-              nameInput.dispatchEvent(new Event('change', { bubbles: true }));
-            });
-          });
-        }).catch(function(err) {
-          dropdown.classList.remove('show');
-          console.error('Autocomplete error:', err);
-        });
-      }, 250);
-    });
-
-    document.addEventListener('click', function(e) {
-      if (!wrap.contains(e.target)) dropdown.classList.remove('show');
-    });
-
-    nameInput.addEventListener('keydown', function(e) {
-      if (!dropdown.classList.contains('show')) return;
-      var items = dropdown.querySelectorAll('.ac-item');
-      var active = dropdown.querySelector('.ac-item.active');
-
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        items.forEach(function(i){ i.classList.remove('active'); });
-        if (!active) { items[0] && items[0].classList.add('active'); }
-        else { (active.nextElementSibling || items[0]).classList.add('active'); }
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        items.forEach(function(i){ i.classList.remove('active'); });
-        if (!active) { items[items.length - 1] && items[items.length - 1].classList.add('active'); }
-        else { (active.previousElementSibling || items[items.length - 1]).classList.add('active'); }
-      } else if (e.key === 'Enter' && active) {
-        e.preventDefault();
-        active.click();
-      }
-    });
-  }
+  /* ══════════════════════════════════════
+     ۶. اتوکامپلیشن دیکشنری
+     ══════════════════════════════════════ */
 
   function escA(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
-  return { attach: attach };
+
+  window.DictionaryAC = {
+    attach: function(nameSelector, unitSelector, category) {
+      var nameInput = typeof nameSelector === 'string' ? document.querySelector(nameSelector) : nameSelector;
+      var unitInput = typeof unitSelector === 'string' ? document.querySelector(unitSelector) : unitSelector;
+      if (!nameInput) return;
+
+      var wrap = document.createElement('div');
+      wrap.className = 'ac-wrap';
+      wrap.style.position = 'relative';
+      nameInput.parentNode.insertBefore(wrap, nameInput);
+      wrap.appendChild(nameInput);
+
+      var dropdown = document.createElement('div');
+      dropdown.className = 'ac-dropdown';
+      wrap.appendChild(dropdown);
+
+      var timer = null;
+
+      nameInput.addEventListener('input', function() {
+        var q = nameInput.value.trim();
+        clearTimeout(timer);
+        if (q.length < 1) { dropdown.classList.remove('show'); return; }
+        timer = setTimeout(function() {
+          fetch('/api/dictionary/autocomplete/?q=' + encodeURIComponent(q) + '&category=' + encodeURIComponent(category), {
+            headers: { 'X-CSRFToken': getCsrf() }
+          }).then(function(r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+          }).then(function(res) {
+            var items = res.items || [];
+            if (items.length === 0) { dropdown.classList.remove('show'); return; }
+            var html = '';
+            items.forEach(function(item) {
+              html += '<div class="ac-item" data-name="' + escA(item.name) + '" data-unit="' + escA(String(item.unit)) + '">'
+                + '<span class="ac-item-name">' + escA(item.name) + '</span>'
+                + '<span class="ac-item-unit">' + escA(item.unit_display) + '</span>'
+                + (item.description ? '<span class="ac-item-desc">' + escA(item.description) + '</span>' : '')
+                + '</div>';
+            });
+            dropdown.innerHTML = html;
+            dropdown.classList.add('show');
+            dropdown.querySelectorAll('.ac-item').forEach(function(el) {
+              el.addEventListener('click', function() {
+                nameInput.value = el.dataset.name;
+                if (unitInput) {
+                  unitInput.value = el.dataset.unit;
+                  unitInput.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                dropdown.classList.remove('show');
+                nameInput.dispatchEvent(new Event('change', { bubbles: true }));
+              });
+            });
+          }).catch(function(err) {
+            dropdown.classList.remove('show');
+            console.error('Autocomplete error:', err);
+          });
+        }, 250);
+      });
+
+      document.addEventListener('click', function(e) {
+        if (!wrap.contains(e.target)) dropdown.classList.remove('show');
+      });
+
+      nameInput.addEventListener('keydown', function(e) {
+        if (!dropdown.classList.contains('show')) return;
+        var items = dropdown.querySelectorAll('.ac-item');
+        var active = dropdown.querySelector('.ac-item.active');
+
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          items.forEach(function(i){ i.classList.remove('active'); });
+          if (!active) { items[0] && items[0].classList.add('active'); }
+          else { (active.nextElementSibling || items[0]).classList.add('active'); }
+        } else if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          items.forEach(function(i){ i.classList.remove('active'); });
+          if (!active) { items[items.length - 1] && items[items.length - 1].classList.add('active'); }
+          else { (active.previousElementSibling || items[items.length - 1]).classList.add('active'); }
+        } else if (e.key === 'Enter' && active) {
+          e.preventDefault();
+          active.click();
+        }
+      });
+    }
+  };
+
 })();
 </script>
 
