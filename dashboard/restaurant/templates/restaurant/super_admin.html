@@ -166,7 +166,7 @@
       cursor: pointer; transition: all 0.15s;
     }
     .tenant-name-link:hover { color: #4338ca; text-decoration: underline; }
-    .row-hint { display: block; font-size: 9px; color: #b0b0b0; font-weight: 400; margin-top: 2px; letter-spacing: 0.02em; }
+    .row-hint { display: block; font-size: 9px; color: #b0b0b0; font-weight: 400; margin-top: 4px; letter-spacing: 0.02em; }
 
     .actions { display: flex; gap: 4px; }
     .btn-icon {
@@ -898,7 +898,6 @@ function renderTenants(list){
       +'<td class="actions" onclick="event.stopPropagation();">'
         +'<button class="btn-icon" title="ویرایش" onclick="openEditTenantModal('+t.id+')">✏️</button>'
         +'<button class="btn-icon" title="سرویس‌ها" onclick="loadTenantServices('+t.id+')">⚙️</button>'
-        /* ★ اصلاح #2: data attribute به جای inline string برای جلوگیری از XSS */
         +'<button class="btn-icon" title="حذف" data-tid="'+t.id+'" data-tname="'+escHtml(t.name)+'" onclick="openDeleteTenantModal(+this.dataset.tid, this.dataset.tname)">🗑️</button>'
       +'</td></tr>';
   });
