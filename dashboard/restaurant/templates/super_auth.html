@@ -402,6 +402,7 @@
         localStorage.setItem('super_admin_token', data.token);
         localStorage.setItem('super_admin_user', JSON.stringify(data.user));
         localStorage.setItem('db_auth', '1');
+        localStorage.setItem('access_token', data.token);
 
         submitBtn.classList.remove('loading');
         submitBtn.style.background = '#10b981';
