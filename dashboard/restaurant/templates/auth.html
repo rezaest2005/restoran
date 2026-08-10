@@ -480,6 +480,7 @@
         try {
           var res = await fetch(url, {
             method: 'POST',
+            credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': api.csrf() },
             body: JSON.stringify(body),
           });
