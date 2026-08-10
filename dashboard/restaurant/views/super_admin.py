@@ -80,7 +80,7 @@ def _super_admin_required(view_func):
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
         if not _is_super_admin(request):
-            return redirect('/dashboard/super/auth/')
+            return redirect('/dashboard/super/auth/?next=/dashboard/super/')
         return view_func(request, *args, **kwargs)
     return wrapper
 
