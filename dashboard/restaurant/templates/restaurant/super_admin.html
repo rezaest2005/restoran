@@ -209,7 +209,6 @@
       background: #fff; color: var(--text); appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
-      /* ★ اصلاح #4: فلش سمت راست برای RTL */
       background-position: right 12px center;
       padding-right: 30px;
       padding-left: 12px;
@@ -252,7 +251,6 @@
     }
     .slug-preview.show { display: block; }
 
-    /* ═══ Service Items ═══ */
     .service-list { display: flex; flex-direction: column; gap: 10px; }
     .service-item {
       padding: 14px; background: #fafafa; border-radius: 10px;
@@ -274,7 +272,6 @@
     .service-price input:focus { border-color: var(--primary); }
     .service-price span { font-size: 10px; color: var(--text-muted); }
 
-    /* ★ ردیف تاریخ سرویس */
     .service-dates {
       display: flex; align-items: center; gap: 10px;
       margin-top: 10px; padding-top: 10px;
@@ -384,11 +381,21 @@
       .breadcrumb { display: none; }
     }
     @supports (padding-bottom: env(safe-area-inset-bottom)) {
-      .main-content { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
+      .main-content { padding-bottom: calc(16px + env(safe-area-inset-bottom));
     }
   </style>
 </head>
 <body>
+
+<!-- ★ تغییر ۱: auth check — اگه توکن نباشه redirect به لاگین -->
+<script>
+  (function() {
+    var token = localStorage.getItem('access_token');    var authed = localStorage.getItem('db_auth');
+    if (!token || !authed) {
+      window.location.href = '/dashboard/super/auth/?next=/dashboard/super/';
+    }
+  })();
+</script>
 
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
@@ -456,7 +463,8 @@
           <div class="sidebar-role">مدیر کل سیستم</div>
         </div>
       </div>
-      <a href="/dashboard/logout/" class="sidebar-logout">🚪 خروج از حساب</a>
+      <!-- ★ تغییر ۳: خروج با پاک کردن localStorage -->
+      <a href="#" class="sidebar-logout" onclick="event.preventDefault();localStorage.clear();window.location.href='/dashboard/super/auth/';">🚪 خروج از حساب</a>
     </div>
   </div>
 
@@ -761,14 +769,23 @@ var ROLES = { owner:'مالک',manager:'مدیر',cashier:'صندوقدار',kit
 function getCookie(n){var v=null;document.cookie.split(';').forEach(function(c){c=c.trim();if(c.startsWith(n+'='))v=decodeURIComponent(c.slice(n.length+1))});return v}
 var CSRF=function(){return getCookie('csrftoken')||''};
 
-/* ★ اصلاح #1: try/catch برای جلوگیری از کرش هنگام قطعی شبکه */
+/* ★ تغییر ۲: apiFetch با توکن localStorage + redirect روی 401 */
 async function apiFetch(url, opts) {
   try {
     opts = opts || {};
     opts.credentials = 'same-origin';
-    opts.headers = Object.assign({'Content-Type':'application/json','X-CSRFToken':CSRF()}, opts.headers||{});
+    var headers = {'Content-Type':'application/json','X-CSRFToken':CSRF()};
+    var token = localStorage.getItem('access_token');
+
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    opts.headers = Object.assign(headers, opts.headers||{});
     var res = await fetch(url, opts);
     var data = await res.json().catch(function(){return {}});
+    if (res.status === 401) {
+      localStorage.clear();
+      window.location.href = '/dashboard/super/auth/?next=/dashboard/super/';
+      return { ok: false, status: 401, data: {} };
+    }
     return { ok: res.ok, status: res.status, data: data };
   } catch(e) {
     toast('خطا در ارتباط با سرور','error');
@@ -808,13 +825,11 @@ function goToTenantDashboard(slug){
 }
 function openTenantDashboard(){ if(state.selectedTenantSlug) goToTenantDashboard(state.selectedTenantSlug); }
 
-// ★ تاریخ امروز
 function todayStr(){
   var d = new Date();
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 
-// ★ وضعیت تاریخ
 function getDateStatus(endDate){
   if(!endDate) return {text:'بدون انقضا', cls:'no-date'};
   var today = new Date(todayStr());
@@ -864,7 +879,7 @@ async function loadServices(){
 function loadAll(){ loadStats(); loadTenants(); loadServices(); if(document.getElementById('panel-users').classList.contains('active')) loadUsers(1); }
 
 // ═══════════════════════════════════════
-//  ★ Render Tenants — با اصلاح XSS
+//  Render Tenants
 // ═══════════════════════════════════════
 function renderTenants(list){
   var data = list || state.tenants;
@@ -882,7 +897,6 @@ function renderTenants(list){
       ? '<a class="tenant-name-link" href="/'+escHtml(t.slug)+'/dashboard/app/" onclick="event.stopPropagation();">'+escHtml(t.name)+'</a>'
       : '<strong>'+escHtml(t.name)+'</strong>';
 
-    // ★ وضعیت اشتراک
     var subBadge = t.is_expired
       ? '<span class="badge expired">⛔ منقضی</span>'
       : '<span class="badge active">'+t.active_services+' فعال</span>';
@@ -914,7 +928,7 @@ function filterTenants(q){
 }
 
 // ═══════════════════════════════════════
-//  ★ Tenant Services — با فیلدهای تاریخ
+//  Tenant Services
 // ═══════════════════════════════════════
 async function loadTenantServices(tid){
   state.selectedTenantId = tid;
@@ -978,7 +992,7 @@ function onDateChange(sid){
 }
 
 // ═══════════════════════════════════════
-//  ★ Save Services — با تاریخ
+//  Save Services
 // ═══════════════════════════════════════
 async function saveTenantServices(){
   if(!state.selectedTenantId) return;
@@ -1096,7 +1110,6 @@ async function loadUsers(page){
   renderUsers(); renderUsersPagination();
 }
 
-/* ★ اصلاح #3: data attribute برای جلوگیری از XSS در دکمه‌های دسترسی و حذف */
 function renderUsers(){
   var tbody = document.getElementById('users-body'); var empty = document.getElementById('users-empty');
   if(!state.users.length){tbody.innerHTML='';empty.style.display='block';return}
@@ -1125,7 +1138,6 @@ function renderUsers(){
   tbody.innerHTML = h;
 }
 
-/* ★ اصلاح #4: pagination dots فقط یک بار نشون داده میشه */
 function renderUsersPagination(){
   var c = document.getElementById('users-pagination');
   if(state.usersPages <= 1){c.innerHTML='';return}
