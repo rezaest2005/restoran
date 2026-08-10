@@ -71,7 +71,7 @@ def _is_super_admin(request):
         return True
     user = _verify_super_token(request)
     if user:
-        request.user = user
+        auth_login(request, user)  
         return True
     return False
 

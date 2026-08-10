@@ -101,7 +101,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'restaurant.context_processors.user_permissions_context',  # ★ اضافه شد
+                'restaurant.context_processors.user_permissions_context',  
             ],
         },
     },
@@ -144,6 +144,7 @@ JAZZMIN_UI_TWEAKS = {
 CSRF_COOKIE_HTTPONLY = False
 SESSION_COOKIE_HTTPONLY = False
 
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 LOGIN_URL = '/dashboard/'
 LOGIN_REDIRECT_URL = '/dashboard/app/'
 
