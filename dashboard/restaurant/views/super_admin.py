@@ -90,17 +90,35 @@ class IsSuperAdmin(BasePermission):
         django_request = (
             request._request if hasattr(request, '_request') else request
         )
+
+        # ۱. بررسی Django session
         if (
             django_request.user.is_authenticated
             and django_request.user.is_superuser
         ):
             return True
+
+        # ۲. بررسی cookie
         user = _verify_super_token(django_request)
         if user:
             request.user = user
             return True
-        return False
 
+        # ★ ۳. بررسی Authorization header (جدید)
+        auth_header = django_request.META.get('HTTP_AUTHORIZATION', '')
+        if auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+            try:
+                data = signing.loads(token, salt=SUPER_TOKEN_SALT, max_age=SUPER_TOKEN_MAX_AGE)
+                user = User.objects.get(id=data['uid'], is_superuser=True, is_active=True)
+                request.user = user
+                # Django session رو هم فعال کن
+                auth_login(django_request, user)
+                return True
+            except Exception:
+                pass
+
+        return False
 
 def _make_super_token(user):
     return signing.dumps({'uid': user.id}, salt=SUPER_TOKEN_SALT)
