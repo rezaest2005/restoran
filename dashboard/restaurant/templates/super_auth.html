@@ -398,6 +398,11 @@
       var data = await res.json().catch(function() { return {}; });
 
       if (res.ok && data.ok) {
+        // ★ ذخیره توکن در localStorage
+        localStorage.setItem('super_admin_token', data.token);
+        localStorage.setItem('super_admin_user', JSON.stringify(data.user));
+        localStorage.setItem('db_auth', '1');
+
         submitBtn.classList.remove('loading');
         submitBtn.style.background = '#10b981';
         submitBtn.querySelector('.btn-text').textContent = 'ورود موفقیت‌آمیز';
