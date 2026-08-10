@@ -420,7 +420,7 @@
       </div>
     </div>
 
-  <script>
+<script>
     // ★══════════════════════════════════════════
     // ★ auth-guard: پاکسازی کامل هنگام ورود به صفحه لاگین
     // ★══════════════════════════════════════════
@@ -435,6 +435,7 @@
         localStorage.removeItem('db_auth');
         localStorage.removeItem('db_lock');
         sessionStorage.clear();
+        document.cookie = 'access_token=; path=/; max-age=0';
         // URL رو تمیز کن
         window.history.replaceState({}, '', window.location.pathname);
       }
@@ -445,6 +446,7 @@
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('user');
+        document.cookie = 'access_token=; path=/; max-age=0';
       }
 
       // ۳. قفل تب رو موقع لاگین آزاد کن (تا بعد از لاگین دوباره بگیره)
@@ -711,8 +713,9 @@
         localStorage.setItem('access_token', data.access);
         localStorage.setItem('refresh_token', data.refresh);
         localStorage.setItem('user', JSON.stringify(data.user));
-        // ★ auth-guard: علامت لاگین واقعی
         localStorage.setItem('db_auth', '1');
+        // ★ JWT رو cookie هم ذخیره کن
+        document.cookie = 'access_token=' + data.access + '; path=/; max-age=' + (7*24*60*60) + '; SameSite=Lax';
 
         try { await api.post(API_BASE + '/set-session/', { access_token: data.access, user_id: data.user.id }); } catch(e) {}
 
