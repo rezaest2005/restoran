@@ -217,7 +217,6 @@ def super_admin_auth_page(request):
     return render(request, 'super_auth.html')
 
 
-@_super_admin_required
 def super_admin_page(request):
     return render(request, 'restaurant/super_admin.html')
 
