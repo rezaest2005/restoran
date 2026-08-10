@@ -113,7 +113,7 @@ def _set_super_cookie(response, token):
         max_age=SUPER_TOKEN_MAX_AGE,
         httponly=True,
         samesite='Lax',
-        secure=False,
+        secure=True,
         path='/',
     )
     return response
