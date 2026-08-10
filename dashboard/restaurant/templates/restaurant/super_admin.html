@@ -765,6 +765,7 @@ var CSRF=function(){return getCookie('csrftoken')||''};
 async function apiFetch(url, opts) {
   try {
     opts = opts || {};
+    opts.credentials = 'same-origin';
     opts.headers = Object.assign({'Content-Type':'application/json','X-CSRFToken':CSRF()}, opts.headers||{});
     var res = await fetch(url, opts);
     var data = await res.json().catch(function(){return {}});
