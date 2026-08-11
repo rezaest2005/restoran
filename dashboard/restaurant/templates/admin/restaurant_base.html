@@ -800,16 +800,11 @@
     }
   }, true);
 
-  // ★ بستن مرورگر = خروج | ناوبری داخلی = فقط آزاد کردن قفل
-  window.addEventListener('beforeunload', function() {
+window.addEventListener('beforeunload', function() {
     clearInterval(hb);
     releaseLock();
-    var nav = sessionStorage.getItem('_nav');
     sessionStorage.removeItem('_nav');
-    if (!nav) {
-      localStorage.removeItem(AUTH_KEY);
-    }
-  });
+});
 
   // گوش دادن به تب‌های دیگه
   window.addEventListener('storage', function(e) {
