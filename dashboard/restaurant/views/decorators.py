@@ -1,9 +1,7 @@
 """
 دکوراتورهای محافظت ویوها بر اساس دسترسی سرویس‌ها
 
-★ نسخه v5 — tenant-aware redirects
-  - LOGIN_URL حالا داینامیکه با SCRIPT_NAME
-  - redirect ها شامل پیشوند tenant هستن
+★ نسخه v6 — permission group mapping اضافه شد
 """
 
 from functools import wraps
@@ -11,6 +9,28 @@ from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from rest_framework.permissions import BasePermission
+
+
+# ═══════════════════════════════════════════
+#  نقشه گروه‌های permission
+# ═══════════════════════════════════════════
+
+PERMISSION_GROUPS = {
+    'inventory': ['inventory', 'raw_materials', 'ready_materials',
+                  'invoices', 'usage_log', 'semi_finished'],
+    'foods':     ['foods', 'recipes'],
+}
+
+
+def _expand_codes(service_codes):
+    """کدهای گروهی رو به کدهای واقعی تبدیل کن"""
+    expanded = []
+    for code in service_codes:
+        if code in PERMISSION_GROUPS:
+            expanded.extend(PERMISSION_GROUPS[code])
+        else:
+            expanded.append(code)
+    return expanded
 
 
 # ═══════════════════════════════════════════
@@ -51,7 +71,9 @@ def _user_has_any_service(user, service_codes):
     if user.is_superuser:
         return True
     user_perms = user.get_permissions() if hasattr(user, 'get_permissions') else []
-    return any(code in user_perms for code in service_codes)
+    # ★ اول کدهای گروهی رو باز کن
+    expanded = _expand_codes(service_codes)
+    return any(code in user_perms for code in expanded)
 
 
 # ═══════════════════════════════════════════
@@ -79,8 +101,9 @@ def require_service(*service_codes):
     دکوراتور محافظت ویوهای تابعی.
 
     استفاده:
-        @require_service('users')
-        def user_management_page(request): ...
+        @require_service('inventory')          ← هرکی یکی از زیرمجموعه‌ها رو داشته باشه OK
+        @require_service('raw_materials')      ← فقط raw_materials
+        @require_service('inventory', 'pos')   ← inventory یا pos
     """
     def decorator(view_func):
         @wraps(view_func)
@@ -93,7 +116,6 @@ def require_service(*service_codes):
                         {'error': 'لاگین نیستید'},
                         status=401,
                     )
-                # ★ tenant-aware redirect به صفحه رمز
                 return redirect(_tenant_url(request, 'auth_page'))
 
             if _user_has_any_service(user, service_codes):
@@ -104,7 +126,6 @@ def require_service(*service_codes):
                     'error': 'شما دسترسی به این بخش را ندارید',
                     'required': list(service_codes),
                 }, status=403)
-            # ★ tenant-aware redirect به داشبورد
             return redirect(_tenant_url(request, 'dashboard_app'))
 
         return wrapper
