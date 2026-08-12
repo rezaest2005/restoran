@@ -383,18 +383,31 @@ var selectedUserId = null;
 var currentUserId = {{ current_user_id|default:'null' }};
 
 var PERM_FA = {
-    'foods.view':'مشاهده غذاها','foods.edit':'ویرایش غذاها','foods.create':'ایجاد غذا','foods.delete':'حذف غذا','foods.categories':'دسته‌بندی غذاها',
-    'inventory.view':'مشاهده انبار','inventory.edit':'ویرایش انبار','inventory.create':'ایجاد موجودی','inventory.delete':'حذف موجودی',
-    'inventory.raw_materials':'مواد اولیه','inventory.ready_materials':'مواد آماده','inventory.semi_finished':'نیمه‌آماده‌ها',
-    'inventory.usages_log':'تاریخچه مصرف','inventory.invoice':'فاکتورهای خرید','inventory.end_of_invoice':'بستن فاکتور',
-    'orders.view':'مشاهده سفارشات','orders.edit':'ویرایش سفارشات','orders.create':'ایجاد سفارش','orders.delete':'حذف سفارش',
-    'pos.view':'مشاهده صندوق','pos.use':'استفاده از صندوق','pos.close':'بستن صندوق','pos.report':'گزارش فروش',
-    'kitchen.view':'مشاهده آشپزخانه','kitchen.manage':'مدیریت آشپزخانه',
-    'loyalty.view':'مشاهده باشگاه','loyalty.edit':'ویرایش باشگاه','loyalty.customers':'مشتریان باشگاه','loyalty.coupons':'کوپن‌ها','loyalty.rewards':'جوایز',
-    'users.view':'مشاهده کاربران','users.edit':'ویرایش کاربران','users.create':'ایجاد کاربر','users.delete':'حذف کاربر'
+    'kitchen':        'آشپزخانه',
+    'pos':            'صندوق فروش',
+    'orders':         'سفارشات',
+    'recipes':        'دستور پخت',
+    'raw_materials':  'مواد اولیه',
+    'ready_materials':'مواد آماده',
+    'invoices':       'فاکتور خرید',
+    'usage_log':      'تاریخچه مصرف',
+    'dictionary':     'بخش تعاریف',
+    'loyalty':        'باشگاه مشتریان',
+    'users':          'مدیریت کاربران'
 };
-var PERM_ICO = {'foods':'bi-egg-fried','inventory':'bi-archive','orders':'bi-box-seam','pos':'bi-credit-card','kitchen':'bi-fire','loyalty':'bi-trophy','users':'bi-people'};
-
+var PERM_ICO = {
+    'kitchen':        'bi-fire',
+    'pos':            'bi-laptop',
+    'orders':         'bi-book',
+    'recipes':        'bi-journal-text',
+    'raw_materials':  'bi-box-seam',
+    'ready_materials':'bi-bag-check',
+    'invoices':       'bi-file-earmark-text',
+    'usage_log':      'bi-clock-history',
+    'dictionary':     'bi-journal-bookmark-fill',
+    'loyalty':        'bi-trophy',
+    'users':          'bi-people'
+};
 function translatePerm(p){if(PERM_FA[p])return PERM_FA[p];var n=p.toLowerCase().replace(/[\s_\-]+/g,'.').replace(/\.+/g,'.').replace(/^\./,'').replace(/\.$/,'');return PERM_FA[n]||p;}
 function getPermIcon(p){return PERM_ICO[p.split('.')[0].toLowerCase()]||'bi-check2-square';}
 function renderPermsHTML(perms){if(!perms||!perms.length)return '<div class="perms-empty">مجوزی تعریف نشده</div>';return perms.map(function(p){return '<span class="perm-tag"><i class="bi '+getPermIcon(p)+'"></i> '+translatePerm(p)+'</span>';}).join('');}

@@ -713,51 +713,30 @@ def loyalty_register_page(request: HttpRequest):
 def user_management_page(request: HttpRequest):
     roles = [
         {"value": "owner", "label": "مالک", "permissions": [
-            "foods.view", "foods.edit", "foods.create", "foods.delete",
-            "foods.categories",
-            "inventory.view", "inventory.edit", "inventory.create",
-            "inventory.delete",
-            "inventory.raw_materials", "inventory.ready_materials",
-            "inventory.semi_finished",
-            "inventory.usages_log", "inventory.invoice",
-            "inventory.end_of_invoice",
-            "orders.view", "orders.edit", "orders.create", "orders.delete",
-            "pos.view", "pos.use", "pos.close", "pos.report",
-            "kitchen.view", "kitchen.manage",
-            "loyalty.view", "loyalty.edit", "loyalty.customers",
-            "loyalty.coupons", "loyalty.rewards",
-            "users.view", "users.edit", "users.create", "users.delete",
+            "kitchen", "pos", "orders", "recipes",
+            "raw_materials", "ready_materials", "invoices",
+            "usage_log", "dictionary", "loyalty", "users",
         ]},
         {"value": "manager", "label": "مدیر", "permissions": [
-            "foods.view", "foods.edit", "foods.categories",
-            "inventory.view", "inventory.edit", "inventory.raw_materials",
-            "inventory.ready_materials", "inventory.usages_log",
-            "inventory.invoice",
-            "orders.view", "orders.edit", "orders.create",
-            "pos.view", "pos.use", "pos.close", "pos.report",
-            "kitchen.view", "kitchen.manage", "loyalty.view",
-            "loyalty.customers",
+            "kitchen", "pos", "orders", "recipes",
+            "raw_materials", "ready_materials", "invoices",
+            "usage_log", "dictionary", "loyalty",
         ]},
         {"value": "cashier", "label": "صندوقدار", "permissions": [
-            "foods.view", "orders.view", "orders.create",
-            "pos.view", "pos.use", "pos.close", "loyalty.view",
-            "loyalty.customers",
+            "pos", "orders", "loyalty",
         ]},
         {"value": "kitchen", "label": "آشپز", "permissions": [
-            "foods.view", "kitchen.view", "kitchen.manage",
+            "kitchen", "recipes",
         ]},
         {"value": "warehouse", "label": "انباردار", "permissions": [
-            "inventory.view", "inventory.edit", "inventory.raw_materials",
-            "inventory.ready_materials", "inventory.usages_log",
-            "inventory.invoice",
+            "raw_materials", "ready_materials", "invoices",
+            "usage_log", "dictionary",
         ]},
     ]
     return render(request, "restaurant/user_management.html", {
         "roles_json": json_module.dumps(roles, ensure_ascii=False),
         "current_user_id": request.user.id,
     })
-
-
 # ═══════════════════════════════════════════
 #  دیکشنری
 # ═══════════════════════════════════════════
