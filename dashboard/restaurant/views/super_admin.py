@@ -25,6 +25,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django.conf import settings
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import BasePermission
@@ -42,7 +43,7 @@ logger = logging.getLogger(__name__)
 
 SUPER_TOKEN_SALT = 'super-admin-panel-v1'
 SUPER_TOKEN_COOKIE = 'super_admin_token'
-SUPER_TOKEN_MAX_AGE = 86400 * 7  # 7 روز
+SUPER_TOKEN_MAX_AGE = 3600 * 5  
 
 _SLUG_RE = re.compile(r'^[a-zA-Z0-9_-]+$')
 
@@ -67,11 +68,10 @@ def _verify_super_token(request):
 
 
 def _is_super_admin(request):
-    if request.user.is_authenticated and request.user.is_superuser:
-        return True
     user = _verify_super_token(request)
     if user:
-        auth_login(request, user)  
+        if not request.user.is_authenticated:
+            auth_login(request, user)
         return True
     return False
 
@@ -128,10 +128,9 @@ def _set_super_cookie(response, token):
     response.set_cookie(
         SUPER_TOKEN_COOKIE,
         token,
-        max_age=SUPER_TOKEN_MAX_AGE,
         httponly=True,
         samesite='Lax',
-        secure=True,
+        secure=not settings.DEBUG,
         path='/',
     )
     return response
@@ -235,6 +234,7 @@ def super_admin_auth_page(request):
     return render(request, 'super_auth.html')
 
 
+@_super_admin_required
 def super_admin_page(request):
     return render(request, 'restaurant/super_admin.html')
 

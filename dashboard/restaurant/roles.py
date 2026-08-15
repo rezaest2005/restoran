@@ -43,8 +43,6 @@ ROLE_PERMISSIONS = {
         "foods.view", "foods.edit", "foods.categories",
         "recipes.view", "recipes.edit",
         "suppliers.view", "suppliers.edit",
-        "loyalty.view", "loyalty.customers", "loyalty.coupons",
-        "loyalty.rewards", "loyalty.notifications",
         "users.view", "users.edit", "users.create", "users.delete",
         "reports.view", "reports.close_history",
         "settings.manage",
@@ -61,8 +59,6 @@ ROLE_PERMISSIONS = {
         "foods.view", "foods.edit", "foods.categories",
         "recipes.view", "recipes.edit",
         "suppliers.view", "suppliers.edit",
-        "loyalty.view", "loyalty.customers", "loyalty.coupons",
-        "loyalty.rewards", "loyalty.notifications",
         "users.view",
         "reports.view", "reports.close_history",
     ],
@@ -70,7 +66,6 @@ ROLE_PERMISSIONS = {
         "pos.access", "pos.create_order", "pos.daily_report",
         "pos.validate_coupon",
         "orders.view", "orders.change_status",
-        "loyalty.view", "loyalty.customers",
         "inventory.view",
         "foods.view",
         "reports.view",
@@ -89,7 +84,6 @@ ROLE_PERMISSIONS = {
     ],
     ROLE_CUSTOMER: [
         "foods.view",
-        "loyalty.view",
     ],
 }
 

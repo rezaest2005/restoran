@@ -21,14 +21,6 @@ router.register("reservations",         views.ReservationViewSet,          basen
 router.register("orders",               views.OrderViewSet,               basename="order")
 router.register("semi-finished",        views.SemiFinishedViewSet,         basename="semi-finished")
 router.register("ready-materials",      views.ReadyMaterialViewSet,        basename="ready-material")
-router.register("membership-levels",    views.MembershipLevelViewSet,      basename="membership-level")
-router.register("customers",            views.CustomerViewSet,             basename="customer")
-router.register("coupons",              views.CouponViewSet,               basename="coupon")
-router.register("rewards",              views.RewardViewSet,               basename="reward")
-router.register("referrals",            views.ReferralViewSet,             basename="referral")
-router.register("notifications",        views.NotificationViewSet,         basename="notification")
-router.register("loyalty-transactions", views.LoyaltyTransactionViewSet,   basename="loyalty-transaction")
-router.register("reward-redemptions",   views.RewardRedemptionViewSet,     basename="reward-redemption")
 router.register("recipes",              views.RecipeViewSet,               basename="recipe")
 router.register("inventory-movements",  views.InventoryMovementViewSet,    basename="inventory-movement")
 
@@ -133,13 +125,6 @@ urlpatterns = [
     path("api/kitchen/waste/",                      views.KitchenWasteListCreate.as_view(),   name="kitchen-waste-list"),
     path("api/kitchen/waste/<int:pk>/",             views.KitchenWasteDetail.as_view(),       name="kitchen-waste-detail"),
 
-    # ── Loyalty ─────────────────────────────────────────────
-
-    path("api/loyalty/process-order/",  views.process_order_loyalty_view, name="process_order_loyalty"),
-    path("api/loyalty/dashboard/",      views.loyalty_dashboard_view,     name="loyalty_dashboard_api"),
-    path("api/loyalty/birthday-check/", views.birthday_check_view,        name="birthday_check"),
-    path("api/loyalty/seed-levels/",    views.seed_levels_view,           name="seed_levels"),
-
     # ── POS ─────────────────────────────────────────────────
 
     path("api/pos/create-order/",     views.pos_create_order,      name="pos_create_order"),
@@ -148,7 +133,6 @@ urlpatterns = [
     path("api/pos/register-waste/",   views.pos_register_waste,    name="pos_register_waste"),
     path("api/pos/close-pending/",    views.pos_close_all_pending, name="pos_close_all_pending"),
     path("api/pos/close-day/",        views.pos_close_day,         name="pos_close_day"),
-    path("api/pos/validate-coupon/",  views.pos_validate_coupon,   name="pos_validate_coupon"),
     path("api/pos/close-history/",    views.pos_close_history,     name="pos_close_history"),
     path("api/pos/close-report/<int:report_id>/", views.pos_close_report_detail, name="pos_close_report_detail"),
     path("api/pos/close-logs/",       views.pos_close_logs,        name="pos_close_logs"),
@@ -213,15 +197,9 @@ urlpatterns = [
     path("dashboard/pos/receipt/<int:pk>/",             views.pos_receipt,                   name="pos_receipt"),
     path("dashboard/orders/",                           views.orders_dashboard,              name="orders_dashboard"),
     path("dashboard/recipes/",                          views.recipe_manager_page,           name="recipes_page"),
-    path("dashboard/recipes/manager/",                  views.recipe_manager_page,           name="recipe_manager"),
-    path("dashboard/loyalty/",                          views.loyalty_dashboard_page,        name="loyalty_dashboard"),
-    path("dashboard/loyalty/customers/",                views.loyalty_customers_page,        name="loyalty_customers"),
-    path("dashboard/loyalty/customers/<int:pk>/",       views.loyalty_customer_detail_page,  name="loyalty_customer_detail"),
-    path("dashboard/loyalty/coupons/",                  views.loyalty_coupons_page,          name="loyalty_coupons"),
-    path("dashboard/loyalty/rewards/",                  views.loyalty_rewards_page,          name="loyalty_rewards"),
-    path("dashboard/loyalty/notifications/",            views.loyalty_notifications_page,    name="loyalty_notifications"),
-    path("dashboard/loyalty/register/",                 views.loyalty_register_page,         name="loyalty_register"),
+        path("dashboard/recipes/manager/",                  views.recipe_manager_page,           name="recipe_manager"),
     path("dashboard/dictionary/",                       views.dictionary_page,               name="dictionary_page"),
+
 
     # ── Router (ViewSet-based endpoints) — MUST BE LAST ─────
 

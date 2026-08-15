@@ -24,7 +24,7 @@ from rest_framework.response import Response as DRFResponse
 
 from ..models import (
     Order, OrderItem, Food, KitchenProduct, KitchenInventory,
-    ReadyMaterial, Coupon, Category, WasteLog,
+    ReadyMaterial, Category, WasteLog,
     DayCloseReport, DayCloseLog,
     OnlineOrderSettings,
 )
@@ -338,56 +338,6 @@ def pos_daily_report(request: HttpRequest):
         logger.exception("Error in daily report")
         return JsonResponse({'success': False, 'error': str(exc)})
 
-
-# ═══════════════════════════════════════
-#  اعتبارسنجی کوپن — ★ FIXED: فیلتر restaurant
-# ═══════════════════════════════════════
-
-@api_view(["POST"])
-@permission_classes([PosPerm])
-def pos_validate_coupon(request):
-    try:
-        data = request.data
-        code = (data.get('code') or '').strip().upper()
-        subtotal = int(data.get('subtotal') or 0)
-    except (ValueError, TypeError):
-        return JsonResponse({'success': False, 'error': 'داده نامعتبر'}, status=400)
-
-    if not code:
-        return JsonResponse({'success': False, 'error': 'کد تخفیف وارد نشده'}, status=400)
-
-    restaurant = _resolve_restaurant(request)
-
-    # ★ FIXED: فیلتر restaurant
-    coupon_qs = Coupon.objects.filter(code__iexact=code)
-    if restaurant:
-        coupon_qs = coupon_qs.filter(restaurant=restaurant)
-    coupon = coupon_qs.first()
-
-    if not coupon:
-        return JsonResponse({'success': False, 'error': 'کد تخفیف نامعتبر است'}, status=404)
-
-    if not coupon.is_valid:
-        return JsonResponse({'success': False, 'error': 'این کد منقضی شده یا غیرفعال است'})
-
-    if coupon.min_order_amount and subtotal < coupon.min_order_amount:
-        return JsonResponse({
-            'success': False,
-            'error': f'حداقل مبلغ سفارش: {coupon.min_order_amount:,} تومان',
-        })
-
-    discount = coupon.calculate_discount(Decimal(str(subtotal)))
-    desc = coupon.description or (
-        f'{coupon.discount_value}% تخفیف' if coupon.discount_type == 'percentage'
-        else f'{int(coupon.discount_value):,} تومان تخفیف'
-    )
-
-    return JsonResponse({
-        'success': True,
-        'discount_type': coupon.discount_type,
-        'value': int(discount),
-        'description': desc,
-    })
 
 
 # ═══════════════════════════════════════

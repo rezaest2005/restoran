@@ -19,17 +19,15 @@ from .super_admin import (
     super_user_create_api,
     super_user_detail_api,
     super_user_permissions_api,
-    restaurant_login,          # ★ جدید
-    check_subscription_api,    # ★ جدید
+    restaurant_login,         
+    check_subscription_api,   
 )
 
 # ── ViewSets ──
 from .viewsets import (
     TableViewSet, ReservationViewSet,
     OrderViewSet, SemiFinishedViewSet, ReadyMaterialViewSet,
-    MembershipLevelViewSet, CustomerViewSet, CouponViewSet,
-    RewardViewSet, ReferralViewSet, NotificationViewSet,
-    LoyaltyTransactionViewSet, RewardRedemptionViewSet,
+
 )
 
 # ── Auth ──
@@ -67,7 +65,6 @@ from .pos import (
     pos_create_order, pos_daily_report,
     pos_close_summary, pos_register_waste,
     pos_close_all_pending, pos_close_day,
-    pos_validate_coupon,
     pos_close_history, pos_close_report_detail, pos_close_logs,
     pos_online_orders,
     pos_confirm_online_order,
@@ -84,11 +81,7 @@ from .orders import (
     kitchen_orders_api, order_list_api,
 )
 
-# ── Loyalty API ──
-from .loyalty import (
-    process_order_loyalty_view, loyalty_dashboard_view,
-    birthday_check_view, seed_levels_view,
-)
+
 
 # ── Users API ──
 from .users import (
@@ -134,10 +127,6 @@ from .restaurant_page_views import (
     kitchen_page, pos_page, pos_receipt,
     orders_dashboard,
     recipe_manager_page,
-    loyalty_dashboard_page, loyalty_customers_page,
-    loyalty_customer_detail_page, loyalty_coupons_page,
-    loyalty_rewards_page, loyalty_notifications_page,
-    loyalty_register_page,
     user_management_page, dictionary_page,
 )
 
@@ -162,9 +151,6 @@ __all__ = [
     # ViewSets
     "TableViewSet", "ReservationViewSet",
     "OrderViewSet", "SemiFinishedViewSet", "ReadyMaterialViewSet",
-    "MembershipLevelViewSet", "CustomerViewSet", "CouponViewSet",
-    "RewardViewSet", "ReferralViewSet", "NotificationViewSet",
-    "LoyaltyTransactionViewSet", "RewardRedemptionViewSet",
     # Auth
     "LoginView", "RefreshView", "RegisterView", "LogoutView",
     "CurrentUserView", "ChangePasswordView", "ResetPasswordView",
@@ -190,7 +176,6 @@ __all__ = [
     "pos_create_order", "pos_daily_report",
     "pos_close_summary", "pos_register_waste",
     "pos_close_all_pending", "pos_close_day",
-    "pos_validate_coupon",
     "pos_close_history", "pos_close_report_detail", "pos_close_logs",
     "pos_online_orders", "pos_confirm_online_order", "pos_reject_online_order",
     "online_orders_status", "toggle_online_orders",
@@ -198,9 +183,6 @@ __all__ = [
     # Orders
     "order_change_status", "order_send_to_kitchen",
     "kitchen_orders_api", "order_list_api",
-    # Loyalty
-    "process_order_loyalty_view", "loyalty_dashboard_view",
-    "birthday_check_view", "seed_levels_view",
     # Users
     "user_management_api", "create_user_api", "user_update_role",
     "user_toggle_active", "admin_reset_password",
@@ -232,9 +214,5 @@ __all__ = [
     "raw_materials_view", "usage_log_view", "ready_materials_page",
     "kitchen_page", "pos_page", "pos_receipt",
     "orders_dashboard", "recipe_manager_page",
-    "loyalty_dashboard_page", "loyalty_customers_page",
-    "loyalty_customer_detail_page", "loyalty_coupons_page",
-    "loyalty_rewards_page", "loyalty_notifications_page",
-    "loyalty_register_page",
     "user_management_page", "dictionary_page",
 ]
