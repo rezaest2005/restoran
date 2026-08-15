@@ -27,7 +27,7 @@ from ..models import (
     Category, RawMaterial, SemiFinished, ReadyMaterial,
     Food, Supplier, PurchaseInvoice, PurchaseInvoiceItem,
     InventoryUsageLog, InventoryMovement,
-    Order, LoyaltyNotification, KitchenProduct, Recipe,
+    Order,KitchenProduct, Recipe,
     ItemDictionary,
 )
 from .helpers import (
@@ -648,62 +648,9 @@ def orders_dashboard(request):
 @require_service('foods')
 def recipe_manager_page(request):
     restaurant = _resolve_restaurant(request)
-    return render(request, 'recipes/recipe_manager.html', {
+    return render(request, 'restaurant/recipe_manager.html', {
         'restaurant': restaurant,
     })
-
-
-# ═══════════════════════════════════════════
-#  باشگاه مشتریان
-# ═══════════════════════════════════════════
-
-@require_service('loyalty')
-def loyalty_dashboard_page(request: HttpRequest):
-    from ..services import get_loyalty_dashboard
-    restaurant = _resolve_restaurant(request)
-    try:
-        stats = get_loyalty_dashboard(restaurant=restaurant)
-    except Exception:
-        stats = {}
-    return render(request, "loyalty/dashboard.html", {"stats": stats})
-
-
-@require_service('loyalty')
-def loyalty_customers_page(request: HttpRequest):
-    return render(request, "loyalty/customers.html")
-
-
-@require_service('loyalty')
-def loyalty_customer_detail_page(request: HttpRequest, pk: int):
-    return render(request, "loyalty/customer_detail.html")
-
-
-@require_service('loyalty')
-def loyalty_coupons_page(request: HttpRequest):
-    return render(request, "loyalty/coupons.html")
-
-
-@require_service('loyalty')
-def loyalty_rewards_page(request: HttpRequest):
-    return render(request, "loyalty/rewards.html")
-
-
-@require_service('loyalty')
-def loyalty_notifications_page(request: HttpRequest):
-    restaurant = _resolve_restaurant(request)
-    qs = LoyaltyNotification.objects.filter(is_read=False)
-    if restaurant:
-        qs = qs.filter(customer__restaurant=restaurant)
-
-    return render(request, "loyalty/notifications.html", {
-        "unread_notifications": qs.count(),
-    })
-
-
-@require_service('loyalty')
-def loyalty_register_page(request: HttpRequest):
-    return render(request, "loyalty/register.html")
-
 
 # ═══════════════════════════════════════════
 #  مدیریت کاربران
@@ -715,15 +662,15 @@ def user_management_page(request: HttpRequest):
         {"value": "owner", "label": "مالک", "permissions": [
             "kitchen", "pos", "orders", "recipes",
             "raw_materials", "ready_materials", "invoices",
-            "usage_log", "dictionary", "loyalty", "users",
+            "usage_log", "dictionary", "users",
         ]},
         {"value": "manager", "label": "مدیر", "permissions": [
             "kitchen", "pos", "orders", "recipes",
             "raw_materials", "ready_materials", "invoices",
-            "usage_log", "dictionary", "loyalty",
+            "usage_log", "dictionary", 
         ]},
         {"value": "cashier", "label": "صندوقدار", "permissions": [
-            "pos", "orders", "loyalty",
+            "pos", "orders", 
         ]},
         {"value": "kitchen", "label": "آشپز", "permissions": [
             "kitchen", "recipes",

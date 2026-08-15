@@ -15,14 +15,21 @@
             var priceField = row.find('td.field-price');
 
             $.ajax({
-                url: '/api/foods/' + foodId + '/',
+                url: '/api/dictionary/food-menu/',
                 method: 'GET',
                 success: function(data) {
-                    var unitPrice = parseFloat(data.discounted_price);
-                    var total = unitPrice * (quantity || 1);
-                    priceField.text(
-                        Math.round(total).toLocaleString('fa-IR') + ' تومان'
-                    );
+                    var foods = data.items || data;
+                    var food = null;
+                    for (var i = 0; i < foods.length; i++) {
+                        if (String(foods[i].id) === String(foodId)) { food = foods[i]; break; }
+                    }
+                    if (food) {
+                        var unitPrice = parseFloat(food.discounted_price || food.price || 0);
+                        var total = unitPrice * (quantity || 1);
+                        priceField.text(
+                            Math.round(total).toLocaleString('fa-IR') + ' تومان'
+                        );
+                    }
                 }
             });
         }
