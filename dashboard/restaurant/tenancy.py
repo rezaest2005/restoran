@@ -1,15 +1,12 @@
 """
 Multi-tenant infrastructure — URL Rewriting + SCRIPT_NAME + Slug
 
-★ نسخه v12 — پatch get_full_path برای رفع مشکل redirect
+★ نسخه v13 — باگ‌های v12 رفع شد
 
-/zfc-ali/dashboard/app/ → middleware:
-  request.path_info         = /dashboard/app/     ← Django URL resolution
-  request.path              = /dashboard/app/     ← باقی middleware‌ها
-  request.META[SCRIPT_NAME] = /zfc-ali
-  set_script_prefix('/zfc-ali')  → Django reverse() میفهمه
-  request._tenant_slug      = "zfc-ali"
-  request.get_full_path()   = /zfc-ali/dashboard/app/  ← ★ پچ شده
+★ v13:
+  - Fix: get_restaurant_from_request — اول کش middleware رو چک میکنه
+  - Fix: TenantMiddleware — tenant.is_active هم بررسی میشه
+  - Fix: _patch_request_for_tenant — get_full_path_info هم پچ میشه
 """
 
 import re
@@ -77,6 +74,11 @@ def get_tenant_slug_from_request(request):
 
 
 def get_restaurant_from_request(request):
+    # ★ FIX: اول کش middleware رو چک کن، بعد DB بزن
+    cached = get_current_restaurant()
+    if cached:
+        return cached
+
     slug = get_tenant_slug_from_request(request)
     if slug:
         from .models import Restaurant
@@ -123,7 +125,7 @@ def tenant_redirect(request, to, *args, **kwargs):
 
 
 # ═══════════════════════════════════════
-#  Middleware — v12
+#  Middleware — v13
 # ═══════════════════════════════════════
 
 _TENANT_RE = re.compile(r'^/([a-zA-Z0-9_-]+)(/.*)$')
@@ -131,15 +133,9 @@ _TENANT_RE = re.compile(r'^/([a-zA-Z0-9_-]+)(/.*)$')
 
 class TenantMiddleware:
     """
-    ★ v12: پچ get_full_path/build_absolute_uri برای شامل بودن پیشوند tenant
-
-    مشکل v11:
-      request.path = /dashboard/app/  ← get_full_path هم بدون پیشوند بود
-      → redirect بعد از ورود رمز ← بدون /reza/ ← خراب
-
-    راه‌حل v12:
-      request.get_full_path() = /reza/dashboard/app/  ← پچ شده
-      → redirect بعد از ورود رمز ← با /reza/ ← درست
+    ★ v13:
+      - tenant.is_active هم بررسی میشه
+      - get_full_path_info هم پچ میشه
     """
 
     SKIP_PATHS = (
@@ -178,7 +174,7 @@ class TenantMiddleware:
                     request.META['SCRIPT_NAME'] = script_name
                     set_script_prefix(script_name)
 
-                    # ★★★ کلیدی: پچ get_full_path شامل پیشوند tenant ★★★
+                    # ★ پچ get_full_path شامل پیشوند tenant
                     self._patch_request_for_tenant(request, script_name)
 
                     # Store slug
@@ -190,7 +186,6 @@ class TenantMiddleware:
                         restaurant = Restaurant.objects.get(
                             slug=potential_slug, is_active=True,
                         )
-                        set_current_restaurant(restaurant)
                     except Restaurant.DoesNotExist:
                         clear_current_restaurant()
                         set_script_prefix('/')
@@ -198,6 +193,18 @@ class TenantMiddleware:
                         return HttpResponseNotFound(
                             f"رستوران «{potential_slug}» یافت نشد"
                         )
+
+                    # ★ FIX: بررسی tenant.is_active
+                    tenant = getattr(restaurant, 'tenant', None)
+                    if tenant and not tenant.is_active:
+                        clear_current_restaurant()
+                        set_script_prefix('/')
+                        from django.http import HttpResponseForbidden
+                        return HttpResponseForbidden(
+                            f"رستوران «{potential_slug}» غیرفعال است"
+                        )
+
+                    set_current_restaurant(restaurant)
 
                     response = self.get_response(request)
                     return response
@@ -222,7 +229,7 @@ class TenantMiddleware:
     @staticmethod
     def _patch_request_for_tenant(request, script_name):
         """
-        get_full_path() و build_absolute_uri() بدون پیشوند SCRIPT_NAME
+        get_full_path() و get_full_path_info() بدون پیشوند SCRIPT_NAME
         کار میکنن. این پچ باعث میشه redirect بعد از ورود رمز،
         آدرس درست (با /reza/) رو برگردونه.
 
@@ -236,6 +243,16 @@ class TenantMiddleware:
             return script_name + path
 
         request.get_full_path = tenant_get_full_path
+
+        # ★ FIX: get_full_path_info هم پچ بشه (Django 4.2+)
+        if hasattr(request, 'get_full_path_info'):
+            _original_get_full_path_info = request.get_full_path_info
+
+            def tenant_get_full_path_info(force_append_slash=False):
+                path = _original_get_full_path_info(force_append_slash)
+                return script_name + path
+
+            request.get_full_path_info = tenant_get_full_path_info
 
 
 # ═══════════════════════════════════════

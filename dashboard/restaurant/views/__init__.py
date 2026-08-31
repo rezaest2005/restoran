@@ -1,7 +1,7 @@
 """
 Restaurant Views Package — Re-export everything.
 
-★ نسخه v9 — restaurant_login + check_subscription_api اضافه شد
+★ نسخه v10 — tenant_dashboard_redirect اضافه شد
 """
 
 # ── Super Admin ──
@@ -19,15 +19,15 @@ from .super_admin import (
     super_user_create_api,
     super_user_detail_api,
     super_user_permissions_api,
-    restaurant_login,         
-    check_subscription_api,   
+    restaurant_login,
+    check_subscription_api,
+    tenant_dashboard_redirect,  # ★ جدید
 )
 
 # ── ViewSets ──
 from .viewsets import (
     TableViewSet, ReservationViewSet,
     OrderViewSet, SemiFinishedViewSet, ReadyMaterialViewSet,
-
 )
 
 # ── Auth ──
@@ -80,8 +80,6 @@ from .orders import (
     order_change_status, order_send_to_kitchen,
     kitchen_orders_api, order_list_api,
 )
-
-
 
 # ── Users API ──
 from .users import (
@@ -146,8 +144,9 @@ __all__ = [
     "super_user_create_api",
     "super_user_detail_api",
     "super_user_permissions_api",
-    "restaurant_login",          # ★ جدید
-    "check_subscription_api",    # ★ جدید
+    "restaurant_login",
+    "check_subscription_api",
+    "tenant_dashboard_redirect",  # ★ جدید
     # ViewSets
     "TableViewSet", "ReservationViewSet",
     "OrderViewSet", "SemiFinishedViewSet", "ReadyMaterialViewSet",

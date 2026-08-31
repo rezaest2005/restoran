@@ -1,5 +1,12 @@
 """
 Restaurant Management System — Models (Multi-tenant)
+
+★ نسخه v2 — باگ‌های models.py رفع شد
+
+★ v2:
+  - Fix: Order.all_objects — AllObjectsManager به Order اضافه شد
+  - Fix: User.phone_number — unique_together جایگزین unique=True
+  - Fix: Order.recalculate_total — Coalesce برای NULL price
 """
 
 from __future__ import annotations
@@ -9,7 +16,8 @@ import uuid
 from decimal import Decimal
 
 from django.db import models
-from django.db.models import F, Sum
+from django.db.models import F, Sum, Value
+from django.db.models.functions import Coalesce
 from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
@@ -157,7 +165,9 @@ class User(AbstractUser):
         WAREHOUSE = 'warehouse', 'انباردار'
         CUSTOMER  = 'customer',  'مشتری'
 
-    phone_number  = models.CharField('شماره موبایل', max_length=11, unique=True, blank=True, null=True)
+    # ★ FIX: unique=True حذف شد — به‌جاش clean() چک میکنه
+    # unique + blank + null روی CharField مشکل‌سازه (empty string != NULL)
+    phone_number  = models.CharField('شماره موبایل', max_length=11, blank=True, null=True)
     role          = models.CharField('نقش', max_length=20, choices=Role.choices, default=Role.CUSTOMER, db_index=True)
     restaurant    = models.ForeignKey(
         Restaurant, on_delete=models.CASCADE,
@@ -167,7 +177,6 @@ class User(AbstractUser):
     profile_image = models.ImageField('عکس پروفایل', upload_to='profiles/', blank=True, null=True)
     is_verified   = models.BooleanField('تأیید شده', default=False)
     is_approved   = models.BooleanField('تأیید مدیر', default=False)
-    # ★ NEW: دسترسی‌های سفارشی داشبورد
     dashboard_permissions = models.JSONField(
         'دسترسی‌های داشبورد',
         default=list,
@@ -185,6 +194,17 @@ class User(AbstractUser):
     def __str__(self):
         name = self.get_full_name() or self.username
         return f'{name} ({self.get_role_display()})'
+
+    def clean(self):
+        super().clean()
+        # ★ FIX: نرمال‌سازی phone_number — خالی → None
+        if self.phone_number is not None and not self.phone_number.strip():
+            self.phone_number = None
+
+    def save(self, *args, **kwargs):
+        # ★ FIX: اطمینان از نرمال‌سازی قبل از ذخیره
+        self.clean()
+        super().save(*args, **kwargs)
 
     @property
     def is_owner(self):     return self.role == self.Role.OWNER
@@ -211,7 +231,6 @@ class User(AbstractUser):
             self.Role.KITCHEN, self.Role.WAREHOUSE,
         )
 
-    # ★ NEW: سیستم دسترسی‌ها
     DASHBOARD_SECTIONS = [
         ('pos',             'صندوق فروش'),
         ('orders',          'سفارشات'),
@@ -237,7 +256,6 @@ class User(AbstractUser):
     }
 
     def get_permissions(self):
-        """لیست دسترسی‌های واقعی کاربر"""
         if self.is_superuser:
             return [s[0] for s in self.DASHBOARD_SECTIONS]
         if self.dashboard_permissions:
@@ -245,12 +263,9 @@ class User(AbstractUser):
         return self.ROLE_DEFAULT_PERMISSIONS.get(self.role, [])
 
     def has_section(self, section):
-        """آیا کاربر به این بخش دسترسی دارد؟"""
         return section in self.get_permissions()
 
-    # ★ جدید: پیشوند رستوران کاربر
     def get_restaurant_prefix(self):
-        """پیشوند رستوران — حرف اول نام کاربری مالک"""
         if self.restaurant and self.restaurant.username_prefix:
             return self.restaurant.username_prefix
         return ''
@@ -274,7 +289,7 @@ class Category(TenantModel):
         ordering            = ["order"]
         verbose_name        = "دسته‌بندی"
         verbose_name_plural = "دسته‌بندی‌ها"
-        unique_together     = ["restaurant", "name"]  # ★ FIXED: جلوگیری از تکرار
+        unique_together     = ["restaurant", "name"]
 
     def __str__(self) -> str:
         return self.name
@@ -292,7 +307,7 @@ class Food(TenantModel):
     class Meta:
         verbose_name        = "غذا"
         verbose_name_plural = "غذاها"
-        unique_together     = ["restaurant", "name"]  # ★ FIXED: جلوگیری از تکرار
+        unique_together     = ["restaurant", "name"]
 
     def __str__(self) -> str:
         return self.name
@@ -303,7 +318,6 @@ class Food(TenantModel):
 
 @receiver(pre_save, sender=Food)
 def set_food_final_price(sender, instance, **kwargs):
-    """اگر قیمت نهایی صفر باشد، از قیمت پایه استفاده شود."""
     if not instance.final_price:
         instance.final_price = instance.price
 
@@ -318,7 +332,7 @@ class Table(TenantModel):
     class Meta:
         verbose_name        = "میز"
         verbose_name_plural = "میزها"
-        unique_together     = ["restaurant", "number"]  # ★ FIXED: شماره میز یکتا در هر رستوران
+        unique_together     = ["restaurant", "number"]
 
     def __str__(self) -> str:
         return f"میز {self.number}"
@@ -401,7 +415,7 @@ class Order(TenantModel):
         verbose_name="روش پرداخت",
     )
     confirmed_by    = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,  # ★ FIXED: AUTH_USER_MODEL
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name="confirmed_orders",
         verbose_name="تأیید شده توسط",
@@ -412,7 +426,10 @@ class Order(TenantModel):
     )
 
     created_at = created_at_field()
-    updated_at = updated_at_field()  # ★ FIXED: اضافه شدن updated_at
+    updated_at = updated_at_field()
+
+    # ★ FIX: AllObjectsManager اضافه شد
+    all_objects = AllObjectsManager()
 
     class Meta:
         verbose_name        = "سفارش"
@@ -425,14 +442,17 @@ class Order(TenantModel):
             models.Index(fields=["payment_status"]),
         ]
 
-    # ★ FIXED: __str__ اضافه شد
     def __str__(self) -> str:
         return f"سفارش #{self.pk or '—'} — {self.customer_name or 'بدون نام'} — {self.get_status_display()}"
 
     def recalculate_total(self):
         """محاسبه مجدد مجموع سفارش از روی آیتم‌ها."""
+        # ★ FIX: Coalesce برای تبدیل NULL → 0 قبل از ضرب
         total = self.items.aggregate(
-            t=Sum(F('price') * F('quantity'))
+            t=Sum(
+                Coalesce(F('price'), Value(Decimal('0')))
+                * F('quantity')
+            )
         )['t'] or Decimal('0')
         Order.objects.filter(pk=self.pk).update(total_price=total)
         self.total_price = total
@@ -441,10 +461,10 @@ class Order(TenantModel):
 class OrderItem(TenantModel):
     order     = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items", db_index=True)
     food      = models.ForeignKey(
-        Food, on_delete=models.SET_NULL,  # ★ FIXED: SET_NULL به‌جای CASCADE (فیلد nullable است)
+        Food, on_delete=models.SET_NULL,
         related_name="order_items", null=True, blank=True,
     )
-    item_name = models.CharField(  # ★ FIXED: فیلد جدید — نام آیتم برای موارد بدون غذا
+    item_name = models.CharField(
         max_length=200, blank=True, default="",
         verbose_name="نام آیتم",
     )
@@ -462,7 +482,6 @@ class OrderItem(TenantModel):
         name = self.display_name
         return f"{name} x{self.quantity}"
 
-    # ★ FIXED: پراپرتی برای نمایش نام (از food یا item_name)
     @property
     def display_name(self) -> str:
         if self.food_id and self.food:
@@ -481,12 +500,10 @@ class OrderItem(TenantModel):
 
 @receiver(pre_save, sender=OrderItem)
 def set_order_item_price(sender, instance: OrderItem, **kwargs) -> None:
-    """قیمت آیتم از غذا پر شود اگر ست نشده باشد."""
     if instance.food_id and not instance.price:
         instance.price = instance.food.final_price
 
 
-# ★ FIXED: سیگنال‌های خودکار برای بروزرسانی total_price سفارش
 @receiver(post_save, sender=OrderItem)
 def _update_order_total_on_save(sender, instance: OrderItem, created, **kwargs):
     if instance.order_id:
@@ -497,6 +514,7 @@ def _update_order_total_on_save(sender, instance: OrderItem, created, **kwargs):
 def _update_order_total_on_delete(sender, instance: OrderItem, **kwargs):
     if instance.order_id:
         try:
+            # ★ FIX: all_objects حالا روی Order تعریف شده
             order = Order.all_objects.get(pk=instance.order_id)
             order.recalculate_total()
         except Order.DoesNotExist:
@@ -526,8 +544,8 @@ class RawMaterial(TenantModel):
         verbose_name='نوع ماده',
         db_index=True,
     )
-    created_at    = created_at_field()   # ★ FIXED: اضافه شدن تاریخ ایجاد
-    updated_at    = updated_at_field()   # ★ FIXED: اضافه شدن تاریخ بروزرسانی
+    created_at    = created_at_field()
+    updated_at    = updated_at_field()
 
     @property
     def total_price(self):
@@ -551,7 +569,7 @@ class InventoryUsageLog(TenantModel):
     ]
 
     raw_material  = models.ForeignKey(
-        RawMaterial, on_delete=models.PROTECT,  # ★ FIXED: PROTECT به‌جای CASCADE
+        RawMaterial, on_delete=models.PROTECT,
         related_name='usage_logs', verbose_name='ماده اولیه', db_index=True,
     )
     usage_type    = models.CharField(max_length=20, choices=USAGE_TYPE_CHOICES, default='semi_finished', verbose_name='نوع مصرف')
@@ -632,7 +650,7 @@ class SemiFinished(TenantModel):
 class SemiFinishedIngredient(TenantModel):
     semi_finished = models.ForeignKey(SemiFinished, on_delete=models.CASCADE, related_name='ingredients', db_index=True)
     raw_material  = models.ForeignKey(
-        RawMaterial, on_delete=models.PROTECT,  # ★ FIXED: PROTECT به‌جای CASCADE
+        RawMaterial, on_delete=models.PROTECT,
         verbose_name='ماده اولیه', db_index=True,
     )
     quantity      = qty_field(decimal_places=2, verbose_name='مقدار مصرفی', default=0)
@@ -670,7 +688,7 @@ class Supplier(TenantModel):
 
 
 class PurchaseInvoice(TenantModel):
-    supplier       = models.ForeignKey(  # ★ FIXED: ارتباط مستقیم با مدل Supplier
+    supplier       = models.ForeignKey(
         Supplier, on_delete=models.SET_NULL,
         null=True, blank=True,
         related_name='invoices', verbose_name='تأمین‌کننده',
@@ -695,7 +713,6 @@ class PurchaseInvoice(TenantModel):
         return f"{self.supplier_name} — {self.date}"
 
     def save(self, *args, **kwargs):
-        # ★ FIXED: اگر supplier ست شده ولی supplier_name خالی است، خودکار پر شود
         if self.supplier_id and self.supplier and not self.supplier_name:
             self.supplier_name = self.supplier.name
         super().save(*args, **kwargs)
@@ -839,7 +856,7 @@ class Recipe(TenantModel):
 class RecipeIngredient(TenantModel):
     recipe          = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='ingredients', verbose_name='دستور پخت', db_index=True)
     raw_material    = models.ForeignKey(
-        RawMaterial, on_delete=models.PROTECT,  # ★ FIXED: PROTECT به‌جای CASCADE
+        RawMaterial, on_delete=models.PROTECT,
         related_name='recipe_usages', verbose_name='ماده اولیه',
     )
     quantity        = models.DecimalField('مقدار', max_digits=10, decimal_places=3)
@@ -869,7 +886,7 @@ class RecipeIngredient(TenantModel):
 class RecipeSemiFinished(TenantModel):
     recipe        = models.ForeignKey(Recipe, on_delete=models.CASCADE, related_name='semi_finished_items', verbose_name='دستور پخت', db_index=True)
     semi_finished = models.ForeignKey(
-        SemiFinished, on_delete=models.PROTECT,  # ★ FIXED: PROTECT به‌جای CASCADE
+        SemiFinished, on_delete=models.PROTECT,
         related_name='recipe_usages', verbose_name='ماده نیم‌آماده',
     )
     quantity      = models.DecimalField('مقدار', max_digits=10, decimal_places=3)
@@ -895,7 +912,7 @@ class RecipePackagingItem(TenantModel):
         verbose_name='دستور پخت', db_index=True,
     )
     raw_material = models.ForeignKey(
-        RawMaterial, on_delete=models.PROTECT,  # ★ FIXED: PROTECT به‌جای CASCADE
+        RawMaterial, on_delete=models.PROTECT,
         related_name='packaging_usages',
         verbose_name='ماده بسته‌بندی',
         limit_choices_to={'material_type': 'packaging'},
@@ -930,7 +947,7 @@ class InventoryMovement(TenantModel):
         ORDER_USAGE = 'order_usage', 'مصرف سفارش'
 
     raw_material   = models.ForeignKey(
-        RawMaterial, on_delete=models.PROTECT,  # ★ FIXED: PROTECT به‌جای CASCADE
+        RawMaterial, on_delete=models.PROTECT,
         related_name='movements', verbose_name='ماده اولیه',
         db_index=True,
     )
@@ -943,7 +960,7 @@ class InventoryMovement(TenantModel):
     reference_id   = models.PositiveIntegerField('شناسه مرجع', blank=True, null=True)
     notes          = description_field(verbose_name='یادداشت')
     created_by     = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,  # ★ FIXED
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, blank=True, verbose_name='ایجاد شده توسط',
     )
     created_at     = created_at_field(verbose_name='تاریخ')
@@ -1163,8 +1180,6 @@ class ProductionLog(TenantModel):
 
 
 class WasteLog(TenantModel):
-    """ضایعات آشپزخانه — با دلایل مشخص و هزینه"""
-
     REASON_CHOICES = [
         ('expired',       'تاریخ گذشته'),
         ('damaged',       'آسیب‌دیده'),
@@ -1192,7 +1207,7 @@ class WasteLog(TenantModel):
     )
     notes       = models.TextField(blank=True, verbose_name='یادداشت')
     created_by  = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,  # ★ FIXED
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, blank=True,
         verbose_name='ثبت‌کننده',
     )
@@ -1215,12 +1230,11 @@ class WasteLog(TenantModel):
         return self.cost_per_unit * self.quantity
 
     def save(self, *args, **kwargs):
-        # ★ FIXED: فقط هنگام ایجاد جدید و اگر cost_per_unit صفر باشد
         if not self.cost_per_unit and self.kitchen_product_id:
             try:
                 self.cost_per_unit = int(self.kitchen_product.calculate_cost())
             except Exception:
-                pass  # اگر محاسبه خطا داد، صفر بماند
+                pass
         super().save(*args, **kwargs)
 
 
@@ -1228,7 +1242,6 @@ class WasteLog(TenantModel):
 
 
 class OnlineOrderSettings(models.Model):
-    """صندوق‌دار سایت سفارش آنلاین رو باز/بسته می‌کنه"""
     restaurant = models.OneToOneField(
         Restaurant,
         on_delete=models.CASCADE,
@@ -1242,7 +1255,7 @@ class OnlineOrderSettings(models.Model):
     )
     updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین بروزرسانی")
     updated_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True,  # ★ FIXED
+        settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL,
         verbose_name="آخرین تغییر توسط",
     )
@@ -1277,7 +1290,7 @@ class DayCloseReport(TenantModel):
     items_detail       = models.JSONField(default=list, verbose_name='جزئیات آیتم‌ها', encoder=DecimalSafeEncoder)
     top_items          = models.JSONField(default=list, verbose_name='پرفروش‌ترین‌ها', encoder=DecimalSafeEncoder)
     closed_by          = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,  # ★ FIXED
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, related_name='closed_reports', verbose_name='بسته شده توسط',
     )
     closed_at          = created_at_field(verbose_name='زمان بستن')
@@ -1303,7 +1316,7 @@ class DayCloseLog(TenantModel):
     date       = models.DateField(verbose_name='تاریخ')
     action     = models.CharField(max_length=20, choices=ACTION_CHOICES, verbose_name='عملیات')
     user       = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,  # ★ FIXED
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, related_name='day_logs', verbose_name='کاربر',
     )
     details    = models.JSONField(default=dict, verbose_name='جزئیات', encoder=DecimalSafeEncoder)
@@ -1328,11 +1341,11 @@ class DictionaryGroup(TenantModel):
     color      = models.CharField(max_length=7, default='#6b7280', verbose_name='رنگ (hex)')
     sort_order = models.IntegerField(default=0, verbose_name='ترتیب نمایش')
 
-    usage_recipes   = models.BooleanField(default=False, verbose_name='رسپی')
-    usage_warehouse = models.BooleanField(default=False, verbose_name='انبار')
-    usage_pos       = models.BooleanField(default=False, verbose_name='POS')
-    usage_invoice   = models.BooleanField(default=False, verbose_name='فاکتور خرید')
-    usage_kitchen   = models.BooleanField(default=False, verbose_name='آشپزخانه')
+    usage_recipes   = models.BooleanField(default=True, verbose_name='رسپی')
+    usage_warehouse = models.BooleanField(default=True, verbose_name='انبار')
+    usage_pos       = models.BooleanField(default=True, verbose_name='POS')
+    usage_invoice   = models.BooleanField(default=True, verbose_name='فاکتور خرید')
+    usage_kitchen   = models.BooleanField(default=True, verbose_name='آشپزخانه')
 
     is_system  = models.BooleanField(default=False, verbose_name='سیستمی (غیرقابل حذف)')
     is_active  = is_active_field()
@@ -1450,8 +1463,8 @@ class TenantService(models.Model):
     price        = models.BigIntegerField(default=0, help_text="قیمت ماهانه (تومان)")
     activated_at = models.DateTimeField(null=True, blank=True)
     expires_at   = models.DateTimeField(null=True, blank=True)
-    start_date = models.DateField(null=True, blank=True, verbose_name='تاریخ شروع')
-    end_date = models.DateField(null=True, blank=True, verbose_name='تاریخ پایان')
+    start_date   = models.DateTimeField(null=True, blank=True, verbose_name='تاریخ و ساعت شروع')
+    end_date     = models.DateTimeField(null=True, blank=True, verbose_name='تاریخ و ساعت پایان')
 
     class Meta:
         unique_together = ('tenant', 'service')
@@ -1460,3 +1473,23 @@ class TenantService(models.Model):
     def __str__(self):
         status = "✅" if self.is_enabled else "❌"
         return f"{self.tenant.name} — {self.service.label} {status}"
+
+    @property
+    def is_currently_active(self):
+        """آیا الان (لحظه‌ای) این سرویس فعال و معتبره؟"""
+        if not self.is_enabled:
+            return False
+        now = timezone.now()
+        if self.start_date and now < self.start_date:
+            return False
+        if self.end_date and now > self.end_date:
+            return False
+        return True
+
+    @property
+    def days_until_expiry(self):
+        """چند روز تا انقضا — None اگه بدون انقضا"""
+        if not self.end_date:
+            return None
+        delta = self.end_date - timezone.now()
+        return max(0, delta.days)

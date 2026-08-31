@@ -28,8 +28,8 @@
       --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body { font-family: 'Vazirmatn', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    html { scroll-behavior: smooth; overflow-x: hidden; }
+    body { font-family: 'Vazirmatn', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
 
     .layout { display: flex; min-height: 100vh; }
     .sidebar {
@@ -98,6 +98,23 @@
     .top-bar-btn.primary { background: var(--primary); color: #fff; }
     .top-bar-btn.primary:hover { background: #4338ca; }
 
+    .topbar-dropdown { position: relative; display: none; }
+    .topbar-dropdown-toggle {
+      display: flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; border-radius: 8px; border: none;
+      background: var(--bg); color: var(--text); font-size: 18px;
+      font-weight: 900; cursor: pointer; transition: background 0.2s;
+    }
+    .topbar-dropdown-toggle:hover { background: var(--border); }
+    .topbar-dropdown-menu {
+      display: none; position: absolute; top: calc(100% + 8px); left: 0;
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      box-shadow: var(--shadow-lg); padding: 8px; flex-direction: column; gap: 6px;
+      min-width: 160px; z-index: 60;
+    }
+    .topbar-dropdown-menu.open { display: flex; }
+    .topbar-dropdown-menu .top-bar-btn { width: 100%; justify-content: center; }
+
     .main { flex: 1; margin-right: 260px; display: flex; flex-direction: column; min-height: 100vh; }
     .main-content { padding: 28px; flex: 1; }
 
@@ -140,6 +157,7 @@
     }
     .card-header h2 { font-size: 14px; font-weight: 800; }
     .card-header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .filter-select { width: 180px; max-width: 100%; }
     .card-body { padding: 20px; }
     .card-body.flush { padding: 0; }
 
@@ -148,8 +166,16 @@
     th { font-size: 11px; font-weight: 700; color: var(--text-muted); text-align: right; padding: 10px 14px; border-bottom: 2px solid var(--border); white-space: nowrap; }
     td { padding: 11px 14px; font-size: 13px; font-weight: 500; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap; }
     tr:hover td { background: #fafafa; }
-    tr.selected td { background: var(--primary-light); }
-    #tenants-body tr:last-child td { border-bottom: none; }
+
+    #tenants-body tr { border-bottom: 2px solid var(--border); transition: all 0.2s; }
+    #tenants-body tr:last-child { border-bottom: none; }
+    #tenants-body tr.selected {
+      background: var(--primary-light);
+      border-right: 3px solid var(--primary);
+      border-bottom-color: var(--primary);
+    }
+    #tenants-body tr.selected td { background: transparent; border-bottom-color: rgba(79,70,229,0.15); }
+    #tenants-body tr.selected td:last-child { border-bottom: none; }
 
     .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
     .badge.active   { background: var(--success-light); color: var(--success); }
@@ -168,13 +194,22 @@
     .tenant-name-link:hover { color: #4338ca; text-decoration: underline; }
     .row-hint { display: block; font-size: 9px; color: #b0b0b0; font-weight: 400; margin-top: 6px; letter-spacing: 0.02em; }
 
-    .actions { display: flex; gap: 4px; }
-    .btn-icon {
-      width: 30px; height: 30px; border: none; border-radius: 7px;
-      background: transparent; cursor: pointer; font-size: 14px;
-      display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: flex-start; }
+    .btn-action {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 2px; padding: 6px 10px; border: none; border-radius: 8px;
+      background: transparent; cursor: pointer;
+      font-size: 10px; font-weight: 600; font-family: 'Vazirmatn', sans-serif;
+      color: var(--text-muted); transition: all 0.2s; white-space: nowrap;
+      text-decoration: none; line-height: 1;
     }
-    .btn-icon:hover { background: var(--bg); }
+    .btn-action:hover { background: var(--bg); }
+    .btn-action .btn-ico { font-size: 16px; line-height: 1; }
+    .btn-action .btn-label { font-size: 10px; line-height: 1; }
+    .btn-edit-action:hover { color: #3b82f6; }
+    .btn-del-action:hover { color: #ef4444; }
+    .btn-svc-action:hover { color: #16a34a; }
+    .btn-dash-action:hover { color: #7c3aed; }
 
     .btn {
       padding: 8px 16px; border: none; border-radius: 8px;
@@ -208,10 +243,8 @@
       font-size: 13px; font-family: 'Vazirmatn', sans-serif; outline: none; transition: border 0.2s;
       background: #fff; color: var(--text); appearance: none;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      padding-right: 30px;
-      padding-left: 12px;
+      background-repeat: no-repeat; background-position: right 12px center;
+      padding-right: 30px; padding-left: 12px;
     }
     .field select:focus, select.form-select:focus { border-color: var(--primary); }
 
@@ -275,18 +308,15 @@
     .service-dates {
       display: flex; align-items: center; gap: 10px;
       margin-top: 10px; padding-top: 10px;
-      border-top: 1px solid rgba(0,0,0,0.06);
-      flex-wrap: wrap;
+      border-top: 1px solid rgba(0,0,0,0.06); flex-wrap: wrap;
     }
-    .service-dates label {
-      font-size: 10px; font-weight: 700; color: var(--text-muted); white-space: nowrap;
-    }
-    .service-dates input[type="date"] {
+    .service-dates label { font-size: 10px; font-weight: 700; color: var(--text-muted); white-space: nowrap; }
+    .service-dates input[type="datetime-local"] {
       padding: 5px 8px; border: 2px solid var(--border); border-radius: 7px;
       font-size: 12px; font-family: 'Vazirmatn', sans-serif; outline: none;
       transition: border 0.2s; background: #fff; direction: ltr;
     }
-    .service-dates input[type="date"]:focus { border-color: var(--primary); }
+    .service-dates input[type="datetime-local"]:focus { border-color: var(--primary); }
     .date-sep { font-size: 11px; color: var(--text-muted); }
     .date-status {
       font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 12px; margin-right: auto;
@@ -294,6 +324,7 @@
     .date-status.valid { background: var(--success-light); color: var(--success); }
     .date-status.expired { background: var(--danger-light); color: var(--danger); }
     .date-status.no-date { background: #f3f4f6; color: var(--text-muted); }
+    .date-status.warning { background: var(--warning-light); color: var(--warning); }
 
     .toggle { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
     .toggle input { opacity: 0; width: 0; height: 0; }
@@ -353,6 +384,41 @@
 
     .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 90; }
 
+    #services-panel {
+      margin-top: 16px; max-width: 100%; overflow: hidden;
+      animation: slideDown 0.3s ease;
+    }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    #services-panel .card { margin-bottom: 0; background: var(--card); box-shadow: var(--shadow); border-radius: var(--radius); }
+    #services-panel .card-header {
+      padding: 12px 16px; background: var(--card);
+      border-radius: var(--radius) var(--radius) 0 0; border-bottom: 1px solid var(--border);
+    }
+    #services-panel .card-header h2 { font-size: 13px; }
+    #services-panel .card-body { padding: 14px; background: var(--card); border-radius: 0 0 var(--radius) var(--radius); }
+    #services-panel .service-item { padding: 10px; background: var(--card); border-radius: 8px; border: 1px solid var(--border); }
+    #services-panel .service-item.enabled { border-color: var(--success); background: var(--card); }
+    #services-panel .service-item.expired-svc { border-color: var(--warning); background: var(--card); }
+    #services-panel .service-top { gap: 8px; }
+    #services-panel .service-icon { font-size: 18px; width: 28px; }
+    #services-panel .service-name { font-size: 11px; }
+    #services-panel .service-desc { font-size: 9px; }
+    #services-panel .service-price input { width: 90px; padding: 4px 6px; font-size: 11px; }
+    #services-panel .service-price span { font-size: 9px; }
+
+    #tenants-body { min-height: 0; }
+
+    /* ★ Save button loading state */
+    .btn-success.saving {
+      opacity: 0.7; pointer-events: none; position: relative;
+    }
+    .btn-success.saving::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      animation: shimmer 1s infinite;
+    }
+    @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
     @media (max-width: 1200px) {
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
       .perms-grid { grid-template-columns: repeat(2, 1fr); }
@@ -364,6 +430,8 @@
       .menu-toggle { display: block; }
       .main { margin-right: 0; }
       .top-bar { padding: 0 16px; }
+      .top-bar-left { display: none; }
+      .topbar-dropdown { display: block; }
       .main-content { padding: 16px; }
       .stats-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
       .stat-card { padding: 14px; }
@@ -372,13 +440,73 @@
       .field-row, .field-row-3 { grid-template-columns: 1fr; }
       .search-box { width: 100%; }
       .card-header-actions { width: 100%; }
+      .filter-select { width: 100%; }
+      .card-header-actions > * { flex: 1 1 100%; min-width: 0; white-space: normal; justify-content: center; }
       .service-dates { flex-wrap: wrap; }
       .tabs { width: 100%; overflow-x: auto; }
       .perms-grid { grid-template-columns: 1fr; }
+      .table-wrap { overflow-x: visible; }
+      table { display: block; width: 100%; }
+      thead { display: none; }
+      tbody { display: block; }
+      table tr {
+        display: block; background: var(--card); border: 1px solid var(--border);
+        border-radius: var(--radius); padding: 10px 14px; margin-bottom: 10px;
+        box-shadow: var(--shadow); overflow: visible;
+      }
+      table tr td { border-bottom: 1px solid var(--border); }
+      table tr td:last-child { border-bottom: none; }
+      table td {
+        display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+        gap: 6px 12px; padding: 8px 0; text-align: left; white-space: normal;
+        word-break: break-word; overflow-wrap: anywhere;
+      }
+      table td::before {
+        content: attr(data-label); font-weight: 700; font-size: 11px;
+        color: var(--text-muted); flex-shrink: 0;
+      }
+      table td > *:not(.actions) { min-width: 0; }
+      table td .actions {
+        flex-direction: row; flex-wrap: wrap; justify-content: flex-end;
+        gap: 6px; width: 100%;
+      }
+      table td .actions .btn-action {
+        flex-direction: row; gap: 5px; padding: 7px 14px;
+        background: var(--card); border-radius: 8px; font-size: 12px;
+        border: 1px solid var(--border);
+      }
+      table td .actions .btn-action .btn-ico { font-size: 14px; }
+      table td .actions .btn-action .btn-label { font-size: 12px; }
+      table tr.selected {
+        border: 2px solid var(--primary) !important;
+        background: var(--primary-light);
+        box-shadow: 0 0 0 1px var(--primary-light), var(--shadow);
+      }
+      table tr.selected td { background: transparent; border-bottom-color: rgba(79,70,229,0.15); }
+      table tr.selected td:last-child { border-bottom: none; }
+      #services-panel .card-header { padding: 10px 12px; }
+      #services-panel .card-header h2 { font-size: 12px; }
+      #services-panel .card-body { padding: 10px; }
+      #services-panel .service-item { padding: 8px; }
+      #services-panel .service-top { gap: 6px; flex-wrap: wrap; }
+      #services-panel .service-icon { font-size: 16px; width: 24px; }
+      #services-panel .service-name { font-size: 10px; }
+      #services-panel .service-desc { font-size: 8px; }
+      #services-panel .service-price { flex-wrap: wrap; }
+      #services-panel .service-price input { width: 80px; padding: 3px 5px; font-size: 10px; }
+      #services-panel .service-price span { font-size: 8px; }
+      #services-panel .service-dates { gap: 6px; }
+      #services-panel .service-dates label { font-size: 9px; }
+      #services-panel .service-dates input[type="datetime-local"] { padding: 3px 5px; font-size: 10px; }
+      #services-panel .date-status { font-size: 9px; padding: 1px 6px; }
     }
     @media (max-width: 480px) {
       .stats-grid { grid-template-columns: 1fr; }
       .breadcrumb { display: none; }
+      #services-panel .card-body { padding: 8px; }
+      #services-panel .service-item { padding: 6px; }
+      #services-panel .service-top { gap: 4px; }
+      #services-panel .service-price input { width: 70px; }
     }
     @supports (padding-bottom: env(safe-area-inset-bottom)) {
       .main-content { padding-bottom: calc(16px + env(safe-area-inset-bottom)); }
@@ -467,9 +595,16 @@
           <span>داشبورد</span>
         </div>
       </div>
-      <div class="top-bar-left">
+      <div class="top-bar-left" id="topbar-actions">
         <button class="top-bar-btn ghost" onclick="loadAll()">↻ بروزرسانی</button>
         <a href="/dashboard/app/" class="top-bar-btn primary">🏠 پنل رستوران</a>
+      </div>
+      <div class="topbar-dropdown">
+        <button class="topbar-dropdown-toggle" onclick="toggleTopbarMenu()" id="topbar-dropdown-btn">⋮</button>
+        <div class="topbar-dropdown-menu" id="topbar-dropdown-menu">
+          <button class="top-bar-btn ghost" onclick="loadAll(); toggleTopbarMenu();">↻ بروزرسانی</button>
+          <a href="/dashboard/app/" class="top-bar-btn primary">🏠 پنل رستوران</a>
+        </div>
       </div>
     </div>
 
@@ -477,8 +612,8 @@
       <div class="stats-grid" id="stats-grid"></div>
 
       <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('tenants')">🏢 رستوران‌ها</button>
-        <button class="tab-btn" onclick="switchTab('users')">👥 کاربران</button>
+        <button class="tab-btn active" data-tab="tenants" onclick="switchTab('tenants', this)">🏢 رستوران‌ها</button>
+        <button class="tab-btn" data-tab="users" onclick="switchTab('users', this)">👥 کاربران</button>
       </div>
 
       <div class="tab-panel active" id="panel-tenants">
@@ -516,7 +651,7 @@
             <h2 id="services-title">⚙️ سرویس‌ها</h2>
             <div class="card-header-actions">
               <button class="btn btn-ghost btn-sm" onclick="openTenantDashboard()" id="btn-open-dash">🏠 باز کردن داشبورد</button>
-              <button class="btn btn-success" onclick="saveTenantServices()">💾 ذخیره تغییرات</button>
+              <button class="btn btn-success" id="btn-save-services" onclick="SuperAdmin.saveTenantServices()">💾 ذخیره تغییرات</button>
             </div>
           </div>
           <div class="card-body">
@@ -534,10 +669,10 @@
                 <input type="text" id="user-search-input" placeholder="جستجوی کاربر..." oninput="debounceUserSearch()">
                 <span class="search-ico">🔍</span>
               </div>
-              <select id="user-filter-restaurant" class="form-select" style="width:180px;padding:7px 12px;font-size:12px;" onchange="loadUsers(1)">
+              <select id="user-filter-restaurant" class="form-select filter-select" style="padding:7px 12px;font-size:12px;" onchange="loadUsers(1)">
                 <option value="">همه رستوران‌ها</option>
               </select>
-              <select id="user-filter-role" class="form-select" style="width:140px;padding:7px 12px;font-size:12px;" onchange="loadUsers(1)">
+              <select id="user-filter-role" class="form-select filter-select" style="padding:7px 12px;font-size:12px;" onchange="loadUsers(1)">
                 <option value="">همه نقش‌ها</option>
                 <option value="owner">مالک</option>
                 <option value="manager">مدیر</option>
@@ -568,12 +703,11 @@
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </div>
 
-<!-- ═══ Modals (بدون تغییر — همون کدهای قبلی) ═══ -->
+<!-- ═══ Modals ═══ -->
 
 <div class="modal-overlay" id="tenant-modal">
   <div class="modal">
@@ -719,9 +853,28 @@
 <div class="toast-container" id="toast-container"></div>
 
 <script>
+/* ═══════════════════════════════════════════════════════
+   ★ Super Admin Panel — v24 (فیکس ذخیره سرویس‌ها)
+   ★ تغییرات v24:
+     - saveTenantServices روی window.SuperAdmin expose شد
+     - دکمه ذخیره loading state میگیره
+     - بعد ذخیره موفق: پنل سرویس‌ها بسته میشه + لیست رفرش میشه
+     - deselect ردیف انتخاب‌شده بعد از ذخیره
+   ═══════════════════════════════════════════════════════ */
+
+(function() {
+  'use strict';
+
   /* ═══════════════════════════════════════
-     ★ تنظیمات API — همه درخواست‌ها با توکن
+     ابزارهای پایه
   ═══════════════════════════════════════ */
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.innerHTML;
+  }
 
   function getToken() {
     return localStorage.getItem('super_admin_token') || '';
@@ -746,6 +899,19 @@
     return val;
   }
 
+  function toLocalDatetime(isoStr) {
+    if (!isoStr) return '';
+    try {
+      var d = new Date(isoStr);
+      if (isNaN(d.getTime())) return '';
+      var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+      return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+        'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    } catch(e) {
+      return '';
+    }
+  }
+
   /* ═══ Toast ═══ */
   function toast(msg, type) {
     type = type || 'info';
@@ -758,34 +924,42 @@
   }
 
   /* ═══ Sidebar ═══ */
-  function toggleSidebar() {
-    var s = document.getElementById('sidebar');
-    var o = document.getElementById('sidebar-overlay');
-    s.classList.toggle('open');
-    o.classList.toggle('open');
-  }
+  window.toggleSidebar = function() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('open');
+  };
 
-  /* ═══ Tabs ═══ */
-  function switchTab(name) {
+  /* ═══ Topbar dropdown ═══ */
+  window.toggleTopbarMenu = function() {
+    document.getElementById('topbar-dropdown-menu').classList.toggle('open');
+  };
+  document.addEventListener('click', function(e) {
+    var menu = document.getElementById('topbar-dropdown-menu');
+    var btn = document.getElementById('topbar-dropdown-btn');
+    if (!menu || !btn) return;
+    if (menu.classList.contains('open') && !menu.contains(e.target) && e.target !== btn) {
+      menu.classList.remove('open');
+    }
+  });
+
+  window.switchTab = function(name, el) {
     document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
     document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
-    event.currentTarget.classList.add('active');
+    el.classList.add('active');
     document.getElementById('panel-' + name).classList.add('active');
     if (name === 'users') loadUsers(1);
-  }
+  };
 
   /* ═══ Logout ═══ */
-  async function doLogout() {
+  window.doLogout = async function() {
     try {
       await fetch('/api/super/logout/', {
-        method: 'POST',
-        headers: apiHeaders(),
-        credentials: 'same-origin'
+        method: 'POST', headers: apiHeaders(), credentials: 'same-origin'
       });
     } catch(e) {}
     localStorage.clear();
     window.location.href = '/dashboard/super/auth/';
-  }
+  };
 
   /* ═══════════════════════════════════════
      Stats
@@ -795,8 +969,7 @@
   async function loadStats() {
     try {
       var res = await fetch('/api/super/stats/', {
-        headers: apiHeaders(),
-        credentials: 'same-origin'
+        headers: apiHeaders(), credentials: 'same-origin'
       });
       if (res.status === 403 || res.status === 401) {
         localStorage.clear();
@@ -805,9 +978,7 @@
       }
       statsData = await res.json();
       renderStats();
-    } catch(e) {
-      console.error('Stats error:', e);
-    }
+    } catch(e) { console.error('Stats error:', e); }
   }
 
   function renderStats() {
@@ -828,8 +999,7 @@
   async function loadTenants() {
     try {
       var res = await fetch('/api/super/tenants/', {
-        headers: apiHeaders(),
-        credentials: 'same-origin'
+        headers: apiHeaders(), credentials: 'same-origin'
       });
       if (res.status === 403 || res.status === 401) {
         localStorage.clear();
@@ -840,9 +1010,7 @@
       tenantsData = d.tenants || [];
       renderTenants(tenantsData);
       fillRestaurantFilters();
-    } catch(e) {
-      console.error('Tenants error:', e);
-    }
+    } catch(e) { console.error('Tenants error:', e); }
   }
 
   function renderTenants(list) {
@@ -863,39 +1031,36 @@
         ? '<span class="badge expired">منقضی</span>'
         : '<span class="badge active">معتبر</span>';
       var rowClass = selectedTenantId === t.id ? ' class="selected"' : '';
-      html += '<tr' + rowClass + ' onclick="selectTenant(' + t.id + ')">' +
-        '<td>' + (i + 1) + '</td>' +
-        '<td><a class="tenant-name-link" onclick="event.stopPropagation();selectTenant(' + t.id + ')">' + t.name + '</a>' +
-        '<span class="row-hint">' + t.created_at + '</span></td>' +
-        '<td><span class="badge slug" onclick="event.stopPropagation();copySlug(\'' + t.slug + '\')">' + t.slug + '</span></td>' +
-        '<td>' + t.owner_name + '</td>' +
-        '<td style="direction:ltr;text-align:right;">' + t.phone + '</td>' +
-        '<td>' + t.active_services + ' سرویس</td>' +
-        '<td>' + expireBadge + '</td>' +
-        '<td>' + statusBadge + '</td>' +
-        '<td><div class="actions">' +
-        '<button class="btn-icon" onclick="event.stopPropagation();editTenant(' + t.id + ')" title="ویرایش">✏️</button>' +
-        '<button class="btn-icon" onclick="event.stopPropagation();openDeleteTenant(' + t.id + ')" title="حذف">🗑️</button>' +
-        (t.dashboard_url ? '<a class="btn-icon" href="' + t.dashboard_url + '" target="_blank" title="داشبورد" onclick="event.stopPropagation();">🏠</a>' : '') +
+      var dashUrl = '/' + escapeHtml(t.slug) + '/dashboard';
+
+      html += '<tr' + rowClass + ' onclick="SuperAdmin.selectTenant(' + t.id + ')">' +
+        '<td data-label="#">' + (i + 1) + '</td>' +
+        '<td data-label="نام رستوران"><a class="tenant-name-link" onclick="event.stopPropagation();SuperAdmin.selectTenant(' + t.id + ')">' + escapeHtml(t.name) + '</a>' +
+        '<span class="row-hint">' + escapeHtml(t.created_at) + '</span></td>' +
+        '<td data-label="شناسه URL"><span class="badge slug" onclick="event.stopPropagation();SuperAdmin.copySlug(\'' + escapeHtml(t.slug) + '\')">' + escapeHtml(t.slug) + '</span></td>' +
+        '<td data-label="مالک">' + escapeHtml(t.owner_name) + '</td>' +
+        '<td data-label="تلفن" style="direction:ltr;text-align:right;">' + escapeHtml(t.phone) + '</td>' +
+        '<td data-label="سرویس‌ها">' + t.active_services + ' سرویس</td>' +
+        '<td data-label="وضعیت اشتراک">' + expireBadge + '</td>' +
+        '<td data-label="وضعیت">' + statusBadge + '</td>' +
+        '<td data-label="عملیات"><div class="actions">' +
+        '<button class="btn-action btn-edit-action" onclick="event.stopPropagation();SuperAdmin.editTenant(' + t.id + ')"><span class="btn-ico">✏️</span><span class="btn-label">ویرایش</span></button>' +
+        '<button class="btn-action btn-del-action" onclick="event.stopPropagation();SuperAdmin.openDeleteTenant(' + t.id + ')"><span class="btn-ico">🗑️</span><span class="btn-label">حذف</span></button>' +
+        '<button class="btn-action btn-svc-action" onclick="event.stopPropagation();SuperAdmin.selectTenant(' + t.id + ')"><span class="btn-ico">⚙️</span><span class="btn-label">سرویس‌ها</span></button>' +
+        '<a class="btn-action btn-dash-action" href="' + dashUrl + '" target="_blank" onclick="event.stopPropagation();"><span class="btn-ico">🏠</span><span class="btn-label">داشبورد</span>' +
         '</div></td></tr>';
     });
     tbody.innerHTML = html;
   }
 
-  function filterTenants(q) {
+  window.filterTenants = function(q) {
     q = q.trim().toLowerCase();
     if (!q) { renderTenants(tenantsData); return; }
     var filtered = tenantsData.filter(function(t) {
       return t.name.toLowerCase().includes(q) || t.slug.toLowerCase().includes(q) || t.owner_name.toLowerCase().includes(q);
     });
     renderTenants(filtered);
-  }
-
-  function copySlug(slug) {
-    navigator.clipboard.writeText(slug).then(function() {
-      toast('شناسه کپی شد: ' + slug, 'success');
-    });
-  }
+  };
 
   function fillRestaurantFilters() {
     var sel1 = document.getElementById('user-filter-restaurant');
@@ -903,8 +1068,8 @@
     var opts = '<option value="">همه رستوران‌ها</option>';
     var opts2 = '';
     tenantsData.forEach(function(t) {
-      opts += '<option value="' + t.id + '">' + t.name + '</option>';
-      opts2 += '<option value="' + t.id + '">' + t.name + '</option>';
+      opts += '<option value="' + t.id + '">' + escapeHtml(t.name) + '</option>';
+      opts2 += '<option value="' + t.id + '">' + escapeHtml(t.name) + '</option>';
     });
     if (sel1) sel1.innerHTML = opts;
     if (sel2) sel2.innerHTML = opts2;
@@ -921,10 +1086,13 @@
     document.getElementById('btn-open-dash').style.display = t.dashboard_url ? '' : 'none';
     document.getElementById('services-panel').style.display = 'block';
 
+    setTimeout(function() {
+      document.getElementById('services-panel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+
     try {
       var res = await fetch('/api/super/tenants/' + id + '/services/', {
-        headers: apiHeaders(),
-        credentials: 'same-origin'
+        headers: apiHeaders(), credentials: 'same-origin'
       });
       var d = await res.json();
       renderServices(d.services || []);
@@ -933,38 +1101,67 @@
     }
   }
 
+  /* ★ بستن پنل سرویس‌ها و deselect */
+  function closeServicesPanel() {
+    document.getElementById('services-panel').style.display = 'none';
+    selectedTenantId = null;
+    renderTenants(tenantsData);
+  }
+
   function renderServices(services) {
     var list = document.getElementById('services-list');
     var html = '';
+    var now = new Date();
+
     services.forEach(function(s) {
       var enabledClass = s.is_enabled ? ' enabled' : '';
-      var today = new Date().toISOString().split('T')[0];
-      var isExpired = s.end_date && s.end_date < today;
+
+      var isExpired = false;
+      var isNotStarted = false;
+      if (s.end_date) {
+        var endDate = new Date(s.end_date);
+        isExpired = endDate < now;
+      }
+      if (s.start_date) {
+        var startDate = new Date(s.start_date);
+        isNotStarted = startDate > now;
+      }
+
       if (isExpired && s.is_enabled) enabledClass += ' expired-svc';
 
       var dateStatusHTML = '';
       if (s.is_enabled) {
-        if (!s.end_date) {
+        if (isNotStarted) {
+          dateStatusHTML = '<span class="date-status warning">هنوز شروع نشده</span>';
+        } else if (!s.end_date) {
           dateStatusHTML = '<span class="date-status no-date">بدون انقضا</span>';
         } else if (isExpired) {
           dateStatusHTML = '<span class="date-status expired">منقضی</span>';
         } else {
-          dateStatusHTML = '<span class="date-status valid">فعال</span>';
+          var daysLeft = Math.ceil((new Date(s.end_date) - now) / (1000 * 60 * 60 * 24));
+          if (daysLeft <= 3) {
+            dateStatusHTML = '<span class="date-status warning">⚠️ ' + daysLeft + ' روز مانده</span>';
+          } else {
+            dateStatusHTML = '<span class="date-status valid">فعال (' + daysLeft + ' روز)</span>';
+          }
         }
       }
+
+      var startVal = toLocalDatetime(s.start_date);
+      var endVal = toLocalDatetime(s.end_date);
 
       html += '<div class="service-item' + enabledClass + '" data-sid="' + s.service_id + '">' +
         '<div class="service-top">' +
         '<span class="service-icon">' + s.icon + '</span>' +
-        '<div class="service-info"><div class="service-name">' + s.label + '</div>' +
-        '<div class="service-desc">' + (s.description || s.code) + '</div></div>' +
+        '<div class="service-info"><div class="service-name">' + escapeHtml(s.label) + '</div>' +
+        '<div class="service-desc">' + escapeHtml(s.description || s.code) + '</div></div>' +
         '<div class="service-price"><input type="number" value="' + s.price + '" data-price="' + s.service_id + '"><span>تومان/ماه</span></div>' +
-        '<label class="toggle"><input type="checkbox" data-toggle="' + s.service_id + '"' + (s.is_enabled ? ' checked' : '') + ' onchange="onToggleService(this)"><span class="toggle-slider"></span></label>' +
+        '<label class="toggle"><input type="checkbox" data-toggle="' + s.service_id + '"' + (s.is_enabled ? ' checked' : '') + ' onchange="SuperAdmin.onToggleService(this)"><span class="toggle-slider"></span></label>' +
         '</div>' +
         '<div class="service-dates">' +
-        '<label>شروع:</label><input type="date" data-start="' + s.service_id + '" value="' + (s.start_date || '') + '">' +
+        '<label>شروع:</label><input type="datetime-local" data-start="' + s.service_id + '" value="' + startVal + '">' +
         '<span class="date-sep">→</span>' +
-        '<label>پایان:</label><input type="date" data-end="' + s.service_id + '" value="' + (s.end_date || '') + '">' +
+        '<label>پایان:</label><input type="datetime-local" data-end="' + s.service_id + '" value="' + endVal + '">' +
         dateStatusHTML +
         '</div></div>';
     });
@@ -975,13 +1172,49 @@
     var item = el.closest('.service-item');
     if (el.checked) {
       item.classList.add('enabled');
+
+      var sid = parseInt(item.dataset.sid);
+      var startInput = item.querySelector('[data-start="' + sid + '"]');
+      var endInput = item.querySelector('[data-end="' + sid + '"]');
+
+      if (!startInput.value || !endInput.value) {
+        var allItems = document.querySelectorAll('.service-item');
+        var lastStart = '';
+        var lastEnd = '';
+
+        allItems.forEach(function(otherItem) {
+          var otherSid = parseInt(otherItem.dataset.sid);
+          if (otherSid === sid) return;
+
+          var otherStart = otherItem.querySelector('[data-start="' + otherSid + '"]');
+          var otherEnd = otherItem.querySelector('[data-end="' + otherSid + '"]');
+
+          if (otherStart && otherStart.value) lastStart = otherStart.value;
+          if (otherEnd && otherEnd.value) lastEnd = otherEnd.value;
+        });
+
+        if (lastStart && !startInput.value) startInput.value = lastStart;
+        if (lastEnd && !endInput.value) endInput.value = lastEnd;
+      }
+
     } else {
       item.classList.remove('enabled', 'expired-svc');
     }
   }
 
+  /* ★★★ فیکس اصلی: saveTenantServices — expose شده + loading state + بستن پنل ★★★ */
   async function saveTenantServices() {
-    if (!selectedTenantId) return;
+    if (!selectedTenantId) {
+      toast('ابتدا یک رستوران انتخاب کنید', 'error');
+      return;
+    }
+
+    var saveBtn = document.getElementById('btn-save-services');
+    if (saveBtn) {
+      saveBtn.classList.add('saving');
+      saveBtn.disabled = true;
+    }
+
     var items = document.querySelectorAll('.service-item');
     var services = [];
     items.forEach(function(item) {
@@ -990,6 +1223,7 @@
       var price = item.querySelector('[data-price="' + sid + '"]');
       var startInput = item.querySelector('[data-start="' + sid + '"]');
       var endInput = item.querySelector('[data-end="' + sid + '"]');
+
       services.push({
         service_id: sid,
         is_enabled: toggle.checked,
@@ -998,6 +1232,7 @@
         end_date: endInput.value || null
       });
     });
+
     try {
       var res = await fetch('/api/super/tenants/' + selectedTenantId + '/services/', {
         method: 'POST',
@@ -1007,13 +1242,20 @@
       });
       var d = await res.json();
       if (d.ok) {
-        toast(d.msg || 'ذخیره شد', 'success');
+        toast(d.msg || 'سرویس‌ها ذخیره شد', 'success');
+        closeServicesPanel();
         loadTenants();
+        loadStats();
       } else {
-        toast(d.error || 'خطا', 'error');
+        toast(d.error || 'خطا در ذخیره', 'error');
       }
     } catch(e) {
-      toast('خطا در ذخیره', 'error');
+      toast('خطا در ارتباط با سرور', 'error');
+    } finally {
+      if (saveBtn) {
+        saveBtn.classList.remove('saving');
+        saveBtn.disabled = false;
+      }
     }
   }
 
@@ -1023,7 +1265,7 @@
   }
 
   /* ═══ Add/Edit Tenant Modal ═══ */
-  function openAddTenantModal() {
+  window.openAddTenantModal = function() {
     document.getElementById('edit-tenant-id').value = '';
     document.getElementById('tenant-modal-title').textContent = 'رستوران جدید';
     document.getElementById('f-name').value = '';
@@ -1037,7 +1279,7 @@
     document.getElementById('f-address').value = '';
     document.getElementById('slug-preview').classList.remove('show');
     document.getElementById('tenant-modal').classList.add('open');
-  }
+  };
 
   function editTenant(id) {
     var t = tenantsData.find(function(x) { return x.id === id; });
@@ -1057,11 +1299,11 @@
     document.getElementById('tenant-modal').classList.add('open');
   }
 
-  function closeTenantModal() {
+  window.closeTenantModal = function() {
     document.getElementById('tenant-modal').classList.remove('open');
-  }
+  };
 
-  function onSlugInput() {
+  window.onSlugInput = function() {
     var v = document.getElementById('f-slug').value.trim();
     var p = document.getElementById('slug-preview');
     if (v) {
@@ -1070,9 +1312,9 @@
     } else {
       p.classList.remove('show');
     }
-  }
+  };
 
-  async function saveTenant() {
+  window.saveTenant = async function() {
     var editId = document.getElementById('edit-tenant-id').value;
     var payload = {
       name: document.getElementById('f-name').value.trim(),
@@ -1095,9 +1337,7 @@
       var url = editId ? '/api/super/tenants/' + editId + '/' : '/api/super/tenants/';
       var method = editId ? 'PUT' : 'POST';
       var res = await fetch(url, {
-        method: method,
-        headers: apiHeaders(),
-        credentials: 'same-origin',
+        method: method, headers: apiHeaders(), credentials: 'same-origin',
         body: JSON.stringify(payload)
       });
       var d = await res.json();
@@ -1108,30 +1348,26 @@
       } else {
         toast(d.error || 'خطا', 'error');
       }
-    } catch(e) {
-      toast('خطا در ذخیره', 'error');
-    }
-  }
+    } catch(e) { toast('خطا در ذخیره', 'error'); }
+  };
 
   /* ═══ Delete Tenant ═══ */
   var deleteTenantId = null;
-  function openDeleteTenant(id) {
+  window.openDeleteTenant = function(id) {
     var t = tenantsData.find(function(x) { return x.id === id; });
     if (!t) return;
     deleteTenantId = id;
     document.getElementById('delete-tenant-name').textContent = t.name;
     document.getElementById('delete-tenant-modal').classList.add('open');
-  }
-  function closeDeleteTenantModal() {
+  };
+  window.closeDeleteTenantModal = function() {
     document.getElementById('delete-tenant-modal').classList.remove('open');
-  }
-  async function confirmDeleteTenant() {
+  };
+  window.confirmDeleteTenant = async function() {
     if (!deleteTenantId) return;
     try {
       var res = await fetch('/api/super/tenants/' + deleteTenantId + '/', {
-        method: 'DELETE',
-        headers: apiHeaders(),
-        credentials: 'same-origin'
+        method: 'DELETE', headers: apiHeaders(), credentials: 'same-origin'
       });
       var d = await res.json();
       if (d.ok) {
@@ -1140,13 +1376,9 @@
         selectedTenantId = null;
         document.getElementById('services-panel').style.display = 'none';
         loadTenants();
-      } else {
-        toast(d.error || 'خطا', 'error');
-      }
-    } catch(e) {
-      toast('خطا در حذف', 'error');
-    }
-  }
+      } else { toast(d.error || 'خطا', 'error'); }
+    } catch(e) { toast('خطا در حذف', 'error'); }
+  };
 
   /* ═══════════════════════════════════════
      Users
@@ -1154,23 +1386,24 @@
   var usersPage = 1;
   var userSearchTimer = null;
 
-  function debounceUserSearch() {
+  window.debounceUserSearch = function() {
     clearTimeout(userSearchTimer);
     userSearchTimer = setTimeout(function() { loadUsers(1); }, 300);
-  }
+  };
 
   async function loadUsers(page) {
     usersPage = page || 1;
     var search = document.getElementById('user-search-input').value.trim();
     var restId = document.getElementById('user-filter-restaurant').value;
+    var roleFilter = document.getElementById('user-filter-role').value;
     var params = '?page=' + usersPage;
     if (search) params += '&search=' + encodeURIComponent(search);
     if (restId) params += '&restaurant_id=' + restId;
+    if (roleFilter) params += '&role=' + roleFilter;
 
     try {
       var res = await fetch('/api/super/users/' + params, {
-        headers: apiHeaders(),
-        credentials: 'same-origin'
+        headers: apiHeaders(), credentials: 'same-origin'
       });
       if (res.status === 403 || res.status === 401) {
         localStorage.clear();
@@ -1179,9 +1412,7 @@
       }
       var d = await res.json();
       renderUsers(d.users || [], d.page || 1, d.pages || 1, d.total || 0);
-    } catch(e) {
-      console.error('Users error:', e);
-    }
+    } catch(e) { console.error('Users error:', e); }
   }
 
   function renderUsers(users, page, pages, total) {
@@ -1198,46 +1429,46 @@
     users.forEach(function(u, i) {
       var roleBadge = u.is_superuser
         ? '<span class="badge admin">مدیر کل</span>'
-        : '<span class="badge role">' + u.role_display + '</span>';
+        : '<span class="badge role">' + escapeHtml(u.role_display) + '</span>';
       var statusBadge = u.is_active
         ? '<span class="badge active">فعال</span>'
         : '<span class="badge inactive">غیرفعال</span>';
       html += '<tr>' +
-        '<td>' + ((page - 1) * 20 + i + 1) + '</td>' +
-        '<td style="font-weight:700;">' + u.username + '</td>' +
-        '<td>' + (u.first_name || '-') + ' ' + (u.last_name || '') + '</td>' +
-        '<td style="direction:ltr;text-align:right;">' + (u.phone_number || '-') + '</td>' +
-        '<td>' + roleBadge + '</td>' +
-        '<td>' + (u.restaurant_name || '-') + '</td>' +
-        '<td>' + statusBadge + '</td>' +
-        '<td><button class="btn btn-sm btn-ghost" onclick="openPermsModal(' + u.id + ')">🔑 دسترسی‌ها</button></td>' +
-        '<td><div class="actions">' +
-        '<button class="btn-icon" onclick="editUser(' + u.id + ')" title="ویرایش">✏️</button>' +
-        (!u.is_superuser ? '<button class="btn-icon" onclick="openDeleteUser(' + u.id + ')" title="حذف">🗑️</button>' : '') +
+        '<td data-label="#">' + ((page - 1) * 20 + i + 1) + '</td>' +
+        '<td data-label="نام کاربری" style="font-weight:700;">' + escapeHtml(u.username) + '</td>' +
+        '<td data-label="نام">' + escapeHtml(u.first_name || '-') + ' ' + escapeHtml(u.last_name || '') + '</td>' +
+        '<td data-label="موبایل" style="direction:ltr;text-align:right;">' + escapeHtml(u.phone_number || '-') + '</td>' +
+        '<td data-label="نقش">' + roleBadge + '</td>' +
+        '<td data-label="رستوران">' + escapeHtml(u.restaurant_name || '-') + '</td>' +
+        '<td data-label="وضعیت">' + statusBadge + '</td>' +
+        '<td data-label="دسترسی‌ها"><button class="btn btn-sm btn-ghost" onclick="SuperAdmin.openPermsModal(' + u.id + ')">🔑 دسترسی‌ها</button></td>' +
+        '<td data-label="عملیات"><div class="actions">' +
+        '<button class="btn-action btn-edit-action" onclick="SuperAdmin.editUser(' + u.id + ')">✏️ ویرایش</button>' +
+        (!u.is_superuser ? '<button class="btn-action btn-del-action" onclick="SuperAdmin.openDeleteUser(' + u.id + ')">🗑️ حذف</button>' : '') +
+        (u.restaurant_id ? '<button class="btn-action btn-svc-action" onclick="event.stopPropagation();SuperAdmin.selectTenant(' + u.restaurant_id + ')">⚙️ سرویس‌ها</button>' : '') +
         '</div></td></tr>';
     });
     tbody.innerHTML = html;
 
-    // Pagination
     var pHtml = '';
     if (pages > 1) {
-      pHtml += '<button ' + (page <= 1 ? 'disabled' : '') + ' onclick="loadUsers(' + (page - 1) + ')">‹</button>';
+      pHtml += '<button ' + (page <= 1 ? 'disabled' : '') + ' onclick="SuperAdmin.loadUsers(' + (page - 1) + ')">‹</button>';
       for (var p = 1; p <= pages; p++) {
         if (p === page) {
           pHtml += '<button class="active">' + p + '</button>';
         } else if (Math.abs(p - page) <= 2 || p === 1 || p === pages) {
-          pHtml += '<button onclick="loadUsers(' + p + ')">' + p + '</button>';
+          pHtml += '<button onclick="SuperAdmin.loadUsers(' + p + ')">' + p + '</button>';
         } else if (Math.abs(p - page) === 3) {
           pHtml += '<span class="pagination-info">...</span>';
         }
       }
-      pHtml += '<button ' + (page >= pages ? 'disabled' : '') + ' onclick="loadUsers(' + (page + 1) + ')">›</button>';
+      pHtml += '<button ' + (page >= pages ? 'disabled' : '') + ' onclick="SuperAdmin.loadUsers(' + (page + 1) + ')">›</button>';
     }
     document.getElementById('users-pagination').innerHTML = pHtml;
   }
 
   /* ═══ Add/Edit User Modal ═══ */
-  function openAddUserModal() {
+  window.openAddUserModal = function() {
     document.getElementById('edit-user-id').value = '';
     document.getElementById('user-modal-title').textContent = 'کاربر جدید';
     document.getElementById('u-username').value = '';
@@ -1250,13 +1481,12 @@
     document.getElementById('u-is-active').checked = true;
     document.getElementById('u-is-approved').checked = true;
     document.getElementById('user-modal').classList.add('open');
-  }
+  };
 
   async function editUser(id) {
     try {
       var res = await fetch('/api/super/users/' + id + '/', {
-        headers: apiHeaders(),
-        credentials: 'same-origin'
+        headers: apiHeaders(), credentials: 'same-origin'
       });
       var u = await res.json();
       document.getElementById('edit-user-id').value = id;
@@ -1274,16 +1504,14 @@
         document.getElementById('u-restaurant').value = u.restaurant_id;
       }
       document.getElementById('user-modal').classList.add('open');
-    } catch(e) {
-      toast('خطا در بارگذاری اطلاعات کاربر', 'error');
-    }
+    } catch(e) { toast('خطا در بارگذاری اطلاعات کاربر', 'error'); }
   }
 
-  function closeUserModal() {
+  window.closeUserModal = function() {
     document.getElementById('user-modal').classList.remove('open');
-  }
+  };
 
-  async function saveUser() {
+  window.saveUser = async function() {
     var editId = document.getElementById('edit-user-id').value;
     var payload = {
       first_name: document.getElementById('u-first-name').value.trim(),
@@ -1309,18 +1537,10 @@
     if (!payload.restaurant_id) { toast('رستوران الزامی است', 'error'); return; }
 
     try {
-      var url, method;
-      if (editId) {
-        url = '/api/super/users/' + editId + '/';
-        method = 'PUT';
-      } else {
-        url = '/api/super/users/create/';
-        method = 'POST';
-      }
+      var url = editId ? '/api/super/users/' + editId + '/' : '/api/super/users/create/';
+      var method = editId ? 'PUT' : 'POST';
       var res = await fetch(url, {
-        method: method,
-        headers: apiHeaders(),
-        credentials: 'same-origin',
+        method: method, headers: apiHeaders(), credentials: 'same-origin',
         body: JSON.stringify(payload)
       });
       var d = await res.json();
@@ -1328,44 +1548,34 @@
         toast(d.msg || 'ذخیره شد', 'success');
         closeUserModal();
         loadUsers(usersPage);
-      } else {
-        toast(d.error || 'خطا', 'error');
-      }
-    } catch(e) {
-      toast('خطا در ذخیره', 'error');
-    }
-  }
+      } else { toast(d.error || 'خطا', 'error'); }
+    } catch(e) { toast('خطا در ذخیره', 'error'); }
+  };
 
   /* ═══ Delete User ═══ */
   var deleteUserId = null;
-  function openDeleteUser(id) {
+  window.openDeleteUser = function(id) {
     deleteUserId = id;
     document.getElementById('delete-user-name').textContent = '#' + id;
     document.getElementById('delete-user-modal').classList.add('open');
-  }
-  function closeDeleteUserModal() {
+  };
+  window.closeDeleteUserModal = function() {
     document.getElementById('delete-user-modal').classList.remove('open');
-  }
-  async function confirmDeleteUser() {
+  };
+  window.confirmDeleteUser = async function() {
     if (!deleteUserId) return;
     try {
       var res = await fetch('/api/super/users/' + deleteUserId + '/', {
-        method: 'DELETE',
-        headers: apiHeaders(),
-        credentials: 'same-origin'
+        method: 'DELETE', headers: apiHeaders(), credentials: 'same-origin'
       });
       var d = await res.json();
       if (d.ok) {
         toast(d.msg || 'حذف شد', 'success');
         closeDeleteUserModal();
         loadUsers(usersPage);
-      } else {
-        toast(d.error || 'خطا', 'error');
-      }
-    } catch(e) {
-      toast('خطا در حذف', 'error');
-    }
-  }
+      } else { toast(d.error || 'خطا', 'error'); }
+    } catch(e) { toast('خطا در حذف', 'error'); }
+  };
 
   /* ═══ User Permissions ═══ */
   var permsUserId = null;
@@ -1386,22 +1596,19 @@
     warehouse: 'انبار', ready: 'آماده', reports: 'گزارشات'
   };
 
-  async function openPermsModal(id) {
+  window.openPermsModal = async function(id) {
     permsUserId = id;
     try {
       var res = await fetch('/api/super/users/' + id + '/', {
-        headers: apiHeaders(),
-        credentials: 'same-origin'
+        headers: apiHeaders(), credentials: 'same-origin'
       });
       var u = await res.json();
       document.getElementById('perms-modal-title').textContent = 'دسترسی‌ها — ' + u.username;
       var currentPerms = u.effective_permissions || u.dashboard_permissions || [];
       renderPermGrid(currentPerms);
       document.getElementById('perms-modal').classList.add('open');
-    } catch(e) {
-      toast('خطا', 'error');
-    }
-  }
+    } catch(e) { toast('خطا', 'error'); }
+  };
 
   function renderPermGrid(currentPerms) {
     var grid = document.getElementById('perms-grid');
@@ -1409,40 +1616,40 @@
     allPermCodes.forEach(function(code) {
       var checked = currentPerms.includes(code) ? ' checked' : '';
       var checkedClass = currentPerms.includes(code) ? ' checked' : '';
-      html += '<div class="perm-item' + checkedClass + '" onclick="togglePermItem(this)">' +
+      html += '<div class="perm-item' + checkedClass + '" onclick="SuperAdmin.togglePermItem(this)">' +
         '<input type="checkbox" data-perm="' + code + '"' + checked + '>' +
         '<label>' + (permLabels[code] || code) + '</label></div>';
     });
     grid.innerHTML = html;
   }
 
-  function togglePermItem(el) {
+  window.togglePermItem = function(el) {
     var cb = el.querySelector('input[type="checkbox"]');
     cb.checked = !cb.checked;
     el.classList.toggle('checked', cb.checked);
-  }
+  };
 
-  function selectAllPerms() {
+  window.selectAllPerms = function() {
     document.querySelectorAll('#perms-grid .perm-item').forEach(function(el) {
       el.querySelector('input').checked = true;
       el.classList.add('checked');
     });
-  }
-  function clearAllPerms() {
+  };
+  window.clearAllPerms = function() {
     document.querySelectorAll('#perms-grid .perm-item').forEach(function(el) {
       el.querySelector('input').checked = false;
       el.classList.remove('checked');
     });
-  }
-  function resetToRolePerms() {
+  };
+  window.resetToRolePerms = function() {
     toast('از پیش‌فرض نقش استفاده کنید', 'info');
-  }
+  };
 
-  function closePermsModal() {
+  window.closePermsModal = function() {
     document.getElementById('perms-modal').classList.remove('open');
-  }
+  };
 
-  async function saveUserPermissions() {
+  window.saveUserPermissions = async function() {
     if (!permsUserId) return;
     var perms = [];
     document.querySelectorAll('#perms-grid input[data-perm]:checked').forEach(function(cb) {
@@ -1450,9 +1657,7 @@
     });
     try {
       var res = await fetch('/api/super/users/' + permsUserId + '/permissions/', {
-        method: 'PUT',
-        headers: apiHeaders(),
-        credentials: 'same-origin',
+        method: 'PUT', headers: apiHeaders(), credentials: 'same-origin',
         body: JSON.stringify({ dashboard_permissions: perms })
       });
       var d = await res.json();
@@ -1460,22 +1665,40 @@
         toast(d.msg || 'ذخیره شد', 'success');
         closePermsModal();
         loadUsers(usersPage);
-      } else {
-        toast(d.error || 'خطا', 'error');
-      }
-    } catch(e) {
-      toast('خطا در ذخیره', 'error');
-    }
-  }
+      } else { toast(d.error || 'خطا', 'error'); }
+    } catch(e) { toast('خطا در ذخیره', 'error'); }
+  };
 
   /* ═══ Load All ═══ */
   function loadAll() {
     loadStats();
     loadTenants();
+    loadUsers(1);
   }
+
+  /* ═══ Public API ═══ */
+  window.SuperAdmin = {
+    selectTenant: selectTenant,
+    editTenant: editTenant,
+    openDeleteTenant: window.openDeleteTenant,
+    copySlug: function(slug) {
+      navigator.clipboard.writeText(slug).then(function() {
+        toast('شناسه کپی شد: ' + slug, 'success');
+      });
+    },
+    onToggleService: onToggleService,
+    saveTenantServices: saveTenantServices,   /* ★ فیکس اصلی: expose شد */
+    editUser: editUser,
+    openPermsModal: window.openPermsModal,
+    togglePermItem: window.togglePermItem,
+    openDeleteUser: window.openDeleteUser,
+    loadUsers: loadUsers
+  };
 
   /* ═══ Init ═══ */
   loadAll();
+
+})();
 </script>
 </body>
 </html>

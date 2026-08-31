@@ -624,11 +624,11 @@
   <div class="sidebar-scroll">
     <div class="sb-panel active" id="sbp-restaurant">
 
-      {% if not enabled_services or 'kitchen' in enabled_services or 'pos' in enabled_services or 'foods' in enabled_services %}
+      {% if 'kitchen' in enabled_services or 'pos' in enabled_services or 'foods' in enabled_services %}
       <div class="nav-group">
         <div class="nav-group-label">مدیریت</div>
 
-        {% if not enabled_services or 'kitchen' in enabled_services %}
+        {% if 'kitchen' in enabled_services %}
         {% if not perms_active or 'kitchen' in user_perms %}
         <a href="{% url 'kitchen_page' %}" class="nav-link" data-theme="restaurant">
           <span class="ni"><i class="bi bi-fire"></i></span> آشپزخانه
@@ -636,7 +636,7 @@
         {% endif %}
         {% endif %}
 
-        {% if not enabled_services or 'pos' in enabled_services %}
+        {% if 'pos' in enabled_services %}
         {% if not perms_active or 'pos' in user_perms %}
         <a href="{% url 'pos_page' %}" class="nav-link" data-theme="restaurant">
           <span class="ni"><i class="bi bi-laptop"></i></span> صندوق فروش
@@ -650,7 +650,7 @@
         {% endif %}
         {% endif %}
 
-        {% if not enabled_services or 'foods' in enabled_services %}
+        {% if 'foods' in enabled_services %}
         {% if not perms_active or 'foods' in user_perms %}
         <a href="{% url 'recipes_page' %}" class="nav-link" data-theme="restaurant">
           <span class="ni"><i class="bi bi-journal-text"></i></span> دستور پخت
@@ -661,7 +661,7 @@
       </div>
       {% endif %}
 
-      {% if not enabled_services or 'inventory' in enabled_services %}
+      {% if 'inventory' in enabled_services %}
       {% if not perms_active or 'inventory' in user_perms %}
       <div class="nav-sep"></div>
       <div class="nav-group">
@@ -683,12 +683,12 @@
       {% endif %}
       {% endif %}
 
-      {% if not enabled_services or 'inventory' in enabled_services or 'dictionary' in enabled_services %}
+      {% if 'inventory' in enabled_services or 'dictionary' in enabled_services %}
       <div class="nav-sep"></div>
       <div class="nav-group">
         <div class="nav-group-label">ابزارها</div>
 
-        {% if not enabled_services or 'inventory' in enabled_services %}
+        {% if 'inventory' in enabled_services %}
         {% if not perms_active or 'inventory' in user_perms %}
         <a href="{% url 'usage_log' %}" class="nav-link" data-theme="restaurant">
           <span class="ni"><i class="bi bi-clock-history"></i></span> تاریخچه مصرف
@@ -696,7 +696,7 @@
         {% endif %}
         {% endif %}
 
-        {% if not enabled_services or 'dictionary' in enabled_services %}
+        {% if 'dictionary' in enabled_services %}
         {% if not perms_active or 'dictionary' in user_perms %}
         <a href="{% url 'dictionary_page' %}" class="nav-link" data-theme="restaurant">
           <span class="ni"><i class="bi bi-journal-bookmark-fill"></i></span> بخش تعاریف
@@ -707,7 +707,7 @@
       </div>
       {% endif %}
 
-      {% if not enabled_services or 'users' in enabled_services %}
+      {% if 'users' in enabled_services %}
       {% if request.user.is_owner or request.user.is_superuser %}
       <div class="nav-sep"></div>
       <div class="nav-group">
@@ -772,7 +772,7 @@
     </div>
     <div class="topbar-l">
 
-      {% if not enabled_services or 'pos' in enabled_services %}
+      {% if 'pos' in enabled_services %}
       {% if not perms_active or 'pos' in user_perms %}
       <a href="{% url 'pos_page' %}" class="tb-btn tb-btn-dict">
         <i class="bi bi-laptop"></i>
@@ -783,7 +783,7 @@
 
       <div class="tb-sep"></div>
 
-      {% if not enabled_services or 'dictionary' in enabled_services %}
+      {% if 'dictionary' in enabled_services %}
       {% if not perms_active or 'dictionary' in user_perms %}
       <a href="{% url 'dictionary_page' %}" class="tb-btn">
         <i class="bi bi-journal-bookmark-fill"></i>
@@ -792,7 +792,7 @@
       {% endif %}
       {% endif %}
 
-      {% if not enabled_services or 'users' in enabled_services %}
+      {% if 'users' in enabled_services %}
       {% if request.user.is_owner or request.user.is_superuser %}
       <a href="{% url 'user_management' %}" class="tb-btn">
         <i class="bi bi-person-circle"></i>

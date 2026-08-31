@@ -1,7 +1,10 @@
 """
-Restaurant Management System — URLs (★ نسخه v7)
+Restaurant Management System — URLs (★ نسخه v10 — middleware فعال)
 
-★ v7: restaurant_login + check_subscription اضافه شد
+★ v10:
+  - middleware فعال → slug از URL حذف میشه
+  - /<slug>/dashboard → redirect → /<slug>/dashboard/login/
+  - /<slug>/dashboard/login/ → صفحه لاگین
 """
 
 from django.urls import include, path
@@ -171,11 +174,12 @@ urlpatterns = [
     path("api/super/users/<int:pk>/permissions/",       views.super_user_permissions_api,  name="super_user_permissions"),
 
     # ══════════════════════════════════════════════════════════
-    # ★ v7: لاگین رستوران + بررسی اشتراک
+    # ★ Tenant URLs — middleware قبلاً slug رو حذف کرده
     # ══════════════════════════════════════════════════════════
 
-    path("<slug:slug>/login/",                    views.restaurant_login,         name="restaurant_login"),
-    path("<slug:slug>/api/check-subscription/",   views.check_subscription_api,   name="check_subscription"),
+    path("dashboard",                   views.tenant_dashboard_redirect, name="tenant_dashboard_no_slash"),
+    path("dashboard/login/",            views.restaurant_login,          name="restaurant_login"),
+    path("api/check-subscription/",     views.check_subscription_api,    name="check_subscription"),
 
     # ── HTML Pages (Dashboard) ──────────────────────────────
 
@@ -197,9 +201,8 @@ urlpatterns = [
     path("dashboard/pos/receipt/<int:pk>/",             views.pos_receipt,                   name="pos_receipt"),
     path("dashboard/orders/",                           views.orders_dashboard,              name="orders_dashboard"),
     path("dashboard/recipes/",                          views.recipe_manager_page,           name="recipes_page"),
-        path("dashboard/recipes/manager/",                  views.recipe_manager_page,           name="recipe_manager"),
+    path("dashboard/recipes/manager/",                  views.recipe_manager_page,           name="recipe_manager"),
     path("dashboard/dictionary/",                       views.dictionary_page,               name="dictionary_page"),
-
 
     # ── Router (ViewSet-based endpoints) — MUST BE LAST ─────
 

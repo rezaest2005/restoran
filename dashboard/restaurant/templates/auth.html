@@ -1,459 +1,504 @@
-  <!DOCTYPE html>
-  <html lang="fa" dir="rtl">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <title>ورود | رستوران</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap">
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>ورود | رستوران</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;200;300;400;500;600;700;800;900&display=swap">
   <style>
-      * { box-sizing: border-box; margin: 0; padding: 0; }
-      html { scroll-behavior: smooth; }
-      body {
-        font-family: 'Vazirmatn', sans-serif;
-        min-height: 100vh;
-        display: flex;
-        direction: rtl;
-      }
-      .panel-left {
-        flex: 1;
-        background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 30%, #16213e 60%, #0f3460 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        overflow: hidden;
-      }
-      .panel-left::before {
-        content: '';
-        position: absolute;
-        top: -200px; left: -200px;
-        width: 600px; height: 600px;
-        background: radial-gradient(circle, rgba(255, 107, 53, 0.15) 0%, transparent 70%);
-        animation: float1 8s ease-in-out infinite;
-      }
-      .panel-left::after {
-        content: '';
-        position: absolute;
-        bottom: -150px; right: -100px;
-        width: 500px; height: 500px;
-        background: radial-gradient(circle, rgba(124, 58, 237, 0.12) 0%, transparent 70%);
-        animation: float2 10s ease-in-out infinite;
-      }
-      @keyframes float1 {
-        0%, 100% { transform: translate(0, 0); }
-        50% { transform: translate(60px, 40px); }
-      }
-      @keyframes float2 {
-        0%, 100% { transform: translate(0, 0); }
-        50% { transform: translate(-40px, -60px); }
-      }
-      .brand {
-        position: relative; z-index: 1;
-        text-align: center; padding: 40px;
-      }
-      .brand-icon {
-        width: 100px; height: 100px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 2px solid rgba(255, 255, 255, 0.1);
-        border-radius: 30px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 48px; margin: 0 auto 32px;
-        backdrop-filter: blur(10px);
-        animation: pulse 3s ease-in-out infinite;
-      }
-      @keyframes pulse {
-        0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,107,53,0.2); }
-        50% { transform: scale(1.05); box-shadow: 0 0 30px 10px rgba(255,107,53,0.1); }
-      }
-      .brand h1 {
-        color: #fff; font-size: 32px; font-weight: 900; margin-bottom: 12px;
-      }
-      .brand h1 em {
-        font-style: normal;
-        background: linear-gradient(135deg, #ff6b35, #f7931e);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
-      .brand p {
-        color: rgba(255, 255, 255, 0.4); font-size: 14px; line-height: 2;
-      }
-      .features {
-        position: relative; z-index: 1;
-        margin-top: 48px; display: flex;
-        flex-direction: column; gap: 20px;
-      }
-      .feat {
-        display: flex; align-items: center; gap: 14px;
-        color: rgba(255, 255, 255, 0.6); font-size: 13px; font-weight: 500;
-      }
-      .feat-ico {
-        width: 40px; height: 40px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 12px;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 18px; flex-shrink: 0;
-      }
-      .panel-right {
-        width: 520px; background: #fafbfc;
-        display: flex; align-items: center;
-        justify-content: center; position: relative;
-        overflow-y: auto;
-      }
-      .form-container {
-        width: 100%; max-width: 420px; padding: 40px;
-      }
-      .form-header { margin-bottom: 36px; }
-      .form-header h2 {
-        font-size: 28px; font-weight: 900;
-        color: #1e1e2d; margin-bottom: 8px;
-      }
-      .form-header p { font-size: 13px; color: #8e8ea0; }
-      .field { margin-bottom: 20px; }
-      .field label {
-        display: block; font-size: 12px; font-weight: 700;
-        color: #555; margin-bottom: 8px;
-      }
-      .input-wrap { position: relative; }
-      .input-wrap input {
-        width: 100%; padding: 14px 16px 14px 48px;
-        font-size: 14px; font-family: 'Vazirmatn', sans-serif;
-        border: 2px solid #e8e8ed; border-radius: 14px;
-        background: #fff; color: #1e1e2d;
-        transition: all 0.25s; outline: none;
-      }
-      .input-wrap input:focus {
-        border-color: #ff6b35;
-        box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1);
-      }
-      .input-wrap input::placeholder { color: #b4b4c6; }
-      .input-ico {
-        position: absolute; left: 16px; top: 50%;
-        transform: translateY(-50%);
-        font-size: 18px; opacity: 0.4; pointer-events: none;
-      }
-      .input-wrap input:focus ~ .input-ico { opacity: 0.8; }
-      .toggle-pass {
-        position: absolute; left: 48px; top: 50%;
-        transform: translateY(-50%);
-        background: none; border: none;
-        font-size: 16px; cursor: pointer;
-        opacity: 0.4; padding: 4px;
-      }
-      .toggle-pass:hover { opacity: 0.8; }
-      .btn-primary {
-        width: 100%; padding: 16px; font-size: 15px;
-        font-weight: 800; font-family: 'Vazirmatn', sans-serif;
-        color: #fff;
-        background: linear-gradient(135deg, #ff6b35, #f7931e);
-        border: none; border-radius: 14px; cursor: pointer;
-        transition: all 0.3s;
-        box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3);
-        margin-top: 8px;
-      }
-      .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(255, 107, 53, 0.4);
-      }
-      .btn-primary:active { transform: translateY(0); }
-      .btn-primary:disabled {
-        opacity: 0.6; cursor: not-allowed; transform: none;
-      }
-      .btn-primary .spinner {
-        display: none; width: 20px; height: 20px;
-        border: 3px solid rgba(255,255,255,0.3);
-        border-top-color: #fff; border-radius: 50%;
-        animation: spin 0.8s linear infinite; margin: 0 auto;
-      }
-      .btn-primary.loading .btn-text { display: none; }
-      .btn-primary.loading .spinner { display: block; }
-      @keyframes spin { to { transform: rotate(360deg); } }
-      .msg {
-        padding: 12px 16px; border-radius: 12px;
-        font-size: 13px; font-weight: 600;
-        margin-bottom: 20px; display: none;
-        animation: fadeIn 0.3s ease;
-        align-items: center; gap: 8px;
-      }
-      .msg.show { display: flex; }
-      .msg.error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
-      .msg.success { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
-      .msg.pending {
-        background: #fffbeb; color: #d97706;
-        border: 1px solid #fde68a;
-      }
-      .divider {
-        display: flex; align-items: center; gap: 16px; margin: 24px 0;
-      }
-      .divider::before, .divider::after {
-        content: ''; flex: 1; height: 1px; background: #e8e8ed;
-      }
-      .divider span { font-size: 11px; color: #b4b4c6; font-weight: 600; }
-      .form-footer {
-        text-align: center; margin-top: 20px;
-        font-size: 13px; color: #8e8ea0; padding-bottom: 20px;
-      }
-      .form-footer a {
-        color: #ff6b35; text-decoration: none; font-weight: 700;
-      }
-      .form-footer a:hover { text-decoration: underline; }
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Vazirmatn', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      direction: rtl;
+    }
+    .panel-left {
+      flex: 1;
+      background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 30%, #16213e 60%, #0f3460 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .panel-left::before {
+      content: '';
+      position: absolute;
+      top: -200px; left: -200px;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(255, 107, 53, 0.15) 0%, transparent 70%);
+      animation: float1 8s ease-in-out infinite;
+    }
+    .panel-left::after {
+      content: '';
+      position: absolute;
+      bottom: -150px; right: -100px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(124, 58, 237, 0.12) 0%, transparent 70%);
+      animation: float2 10s ease-in-out infinite;
+    }
+    @keyframes float1 {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(60px, 40px); }
+    }
+    @keyframes float2 {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(-40px, -60px); }
+    }
+    .brand {
+      position: relative; z-index: 1;
+      text-align: center; padding: 40px;
+    }
+    .brand-icon {
+      width: 100px; height: 100px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 30px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 48px; margin: 0 auto 32px;
+      backdrop-filter: blur(10px);
+      animation: pulse 3s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,107,53,0.2); }
+      50% { transform: scale(1.05); box-shadow: 0 0 30px 10px rgba(255,107,53,0.1); }
+    }
+    .brand h1 {
+      color: #fff; font-size: 32px; font-weight: 900; margin-bottom: 12px;
+    }
+    .brand h1 em {
+      font-style: normal;
+      background: linear-gradient(135deg, #ff6b35, #f7931e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand p {
+      color: rgba(255, 255, 255, 0.4); font-size: 14px; line-height: 2;
+    }
+    .features {
+      position: relative; z-index: 1;
+      margin-top: 48px; display: flex;
+      flex-direction: column; gap: 20px;
+    }
+    .feat {
+      display: flex; align-items: center; gap: 14px;
+      color: rgba(255, 255, 255, 0.6); font-size: 13px; font-weight: 500;
+    }
+    .feat-ico {
+      width: 40px; height: 40px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .panel-right {
+      width: 520px; background: #fafbfc;
+      display: flex; align-items: center;
+      justify-content: center; position: relative;
+      overflow-y: auto;
+    }
+    .form-container {
+      width: 100%; max-width: 420px; padding: 40px;
+    }
+    .form-header { margin-bottom: 36px; }
+    .form-header h2 {
+      font-size: 28px; font-weight: 900;
+      color: #1e1e2d; margin-bottom: 8px;
+    }
+    .form-header p { font-size: 13px; color: #8e8ea0; }
+    .field { margin-bottom: 20px; }
+    .field label {
+      display: block; font-size: 12px; font-weight: 700;
+      color: #555; margin-bottom: 8px;
+    }
+    .input-wrap { position: relative; }
+    .input-wrap input {
+      width: 100%; padding: 14px 16px 14px 48px;
+      font-size: 14px; font-family: 'Vazirmatn', sans-serif;
+      border: 2px solid #e8e8ed; border-radius: 14px;
+      background: #fff; color: #1e1e2d;
+      transition: all 0.25s; outline: none;
+    }
+    .input-wrap input:focus {
+      border-color: #ff6b35;
+      box-shadow: 0 0 0 4px rgba(255, 107, 53, 0.1);
+    }
+    .input-wrap input::placeholder { color: #b4b4c6; }
+    .input-ico {
+      position: absolute; left: 16px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px; opacity: 0.4; pointer-events: none;
+    }
+    .input-wrap input:focus ~ .input-ico { opacity: 0.8; }
+    .toggle-pass {
+      position: absolute; left: 48px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none;
+      font-size: 16px; cursor: pointer;
+      opacity: 0.4; padding: 4px;
+    }
+    .toggle-pass:hover { opacity: 0.8; }
+    .btn-primary {
+      width: 100%; padding: 16px; font-size: 15px;
+      font-weight: 800; font-family: 'Vazirmatn', sans-serif;
+      color: #fff;
+      background: linear-gradient(135deg, #ff6b35, #f7931e);
+      border: none; border-radius: 14px; cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 14px rgba(255, 107, 53, 0.3);
+      margin-top: 8px;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(255, 107, 53, 0.4);
+    }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled {
+      opacity: 0.6; cursor: not-allowed; transform: none;
+    }
+    .btn-primary .spinner {
+      display: none; width: 20px; height: 20px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin 0.8s linear infinite; margin: 0 auto;
+    }
+    .btn-primary.loading .btn-text { display: none; }
+    .btn-primary.loading .spinner { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .msg {
+      padding: 12px 16px; border-radius: 12px;
+      font-size: 13px; font-weight: 600;
+      margin-bottom: 20px; display: none;
+      animation: fadeIn 0.3s ease;
+      align-items: center; gap: 8px;
+    }
+    .msg.show { display: flex; }
+    .msg.error { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .msg.success { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+    .msg.pending {
+      background: #fffbeb; color: #d97706;
+      border: 1px solid #fde68a;
+    }
+    .divider {
+      display: flex; align-items: center; gap: 16px; margin: 24px 0;
+    }
+    .divider::before, .divider::after {
+      content: ''; flex: 1; height: 1px; background: #e8e8ed;
+    }
+    .divider span { font-size: 11px; color: #b4b4c6; font-weight: 600; }
+    .form-footer {
+      text-align: center; margin-top: 20px;
+      font-size: 13px; color: #8e8ea0; padding-bottom: 20px;
+    }
+    .form-footer a {
+      color: #ff6b35; text-decoration: none; font-weight: 700;
+    }
+    .form-footer a:hover { text-decoration: underline; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-      /* ★══════════════════════════════════════════
-        ★ v11: بنر انقضا اشتراک
-        ★══════════════════════════════════════════ */
-      .expired-banner {
-        background: linear-gradient(135deg, #fef2f2, #fee2e2);
-        border: 2px solid #ef4444;
-        border-radius: 16px;
-        padding: 28px 24px;
-        margin-bottom: 24px;
-        text-align: center;
-        animation: fadeIn 0.5s ease;
-        display: none;
-      }
-      .expired-banner.show { display: block; }
-      .expired-banner .expired-ico {
-        font-size: 52px; margin-bottom: 14px;
-        animation: shake 0.6s ease;
-      }
-      @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        20% { transform: translateX(-8px); }
-        40% { transform: translateX(8px); }
-        60% { transform: translateX(-4px); }
-        80% { transform: translateX(4px); }
-      }
-      .expired-banner .expired-title {
-        font-size: 18px; font-weight: 900; color: #dc2626;
-        margin-bottom: 8px;
-      }
-      .expired-banner .expired-msg {
-        font-size: 13px; color: #991b1b;
-        line-height: 1.8; margin-bottom: 14px;
-      }
-      .expired-banner .expired-details {
-        background: rgba(255,255,255,0.5);
-        border-radius: 10px;
-        padding: 12px 16px;
-        margin-bottom: 16px;
-        text-align: right;
-      }
-      .expired-banner .expired-details .detail-row {
-        display: flex; justify-content: space-between;
-        align-items: center;
-        padding: 6px 0;
-        font-size: 12px;
-        border-bottom: 1px solid rgba(239,68,68,0.1);
-      }
-      .expired-banner .expired-details .detail-row:last-child {
-        border-bottom: none;
-      }
-      .expired-banner .expired-details .detail-label {
-        color: #6b7280; font-weight: 600;
-      }
-      .expired-banner .expired-details .detail-status {
-        font-weight: 800; font-size: 11px;
-        padding: 2px 8px; border-radius: 8px;
-      }
-      .expired-banner .expired-details .detail-status.ok {
-        background: #ecfdf5; color: #059669;
-      }
-      .expired-banner .expired-details .detail-status.bad {
-        background: #fef2f2; color: #dc2626;
-      }
-      .expired-banner .contact-box {
-        background: rgba(255,255,255,0.4);
-        border-radius: 10px;
-        padding: 10px 16px;
-        font-size: 12px; color: #6b7280;
-        margin-top: 8px;
-      }
-      .expired-banner .contact-box a {
-        color: #4f46e5; font-weight: 700;
-        text-decoration: none;
-      }
-      .expired-banner .contact-box a:hover {
-        text-decoration: underline;
-      }
+    /* ★ بنر انقضا اشتراک */
+    .expired-banner {
+      background: linear-gradient(135deg, #fef2f2, #fee2e2);
+      border: 2px solid #ef4444;
+      border-radius: 16px;
+      padding: 28px 24px;
+      margin-bottom: 24px;
+      text-align: center;
+      animation: fadeIn 0.5s ease;
+      display: none;
+    }
+    .expired-banner.show { display: block; }
+    .expired-banner .expired-ico {
+      font-size: 52px; margin-bottom: 14px;
+      animation: shake 0.6s ease;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-8px); }
+      40% { transform: translateX(8px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+    .expired-banner .expired-title {
+      font-size: 18px; font-weight: 900; color: #dc2626;
+      margin-bottom: 8px;
+    }
+    .expired-banner .expired-msg {
+      font-size: 13px; color: #991b1b;
+      line-height: 1.8; margin-bottom: 14px;
+    }
+    .expired-banner .expired-details {
+      background: rgba(255,255,255,0.5);
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      text-align: right;
+    }
+    .expired-banner .expired-details .detail-row {
+      display: flex; justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      font-size: 12px;
+      border-bottom: 1px solid rgba(239,68,68,0.1);
+    }
+    .expired-banner .expired-details .detail-row:last-child {
+      border-bottom: none;
+    }
+    .expired-banner .expired-details .detail-label {
+      color: #6b7280; font-weight: 600;
+    }
+    .expired-banner .expired-details .detail-status {
+      font-weight: 800; font-size: 11px;
+      padding: 2px 8px; border-radius: 8px;
+    }
+    .expired-banner .expired-details .detail-status.ok {
+      background: #ecfdf5; color: #059669;
+    }
+    .expired-banner .expired-details .detail-status.bad {
+      background: #fef2f2; color: #dc2626;
+    }
+    .expired-banner .contact-box {
+      background: rgba(255,255,255,0.4);
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 12px; color: #6b7280;
+      margin-top: 8px;
+    }
+    .expired-banner .contact-box a {
+      color: #4f46e5; font-weight: 700;
+      text-decoration: none;
+    }
+    .expired-banner .contact-box a:hover {
+      text-decoration: underline;
+    }
 
-      /* ★ فرم خاکستری وقتی منقضی */
-      .form-disabled .input-wrap input {
-        background: #f3f4f6 !important;
-        color: #9ca3af !important;
-        border-color: #e5e7eb !important;
-        cursor: not-allowed !important;
-      }
-      .form-disabled .input-wrap input:focus {
-        box-shadow: none !important;
-        border-color: #e5e7eb !important;
-      }
-      .form-disabled .btn-primary {
-        background: #d1d5db !important;
-        color: #9ca3af !important;
-        box-shadow: none !important;
-        cursor: not-allowed !important;
-      }
-      .form-disabled .btn-primary:hover {
-        transform: none !important;
-        box-shadow: none !important;
-      }
-      .form-disabled .toggle-pass { pointer-events: none; opacity: 0.2; }
+    /* ★ بنر هشدار نزدیک انقا */
+    .warning-banner {
+      background: linear-gradient(135deg, #fffbeb, #fef3c7);
+      border: 2px solid #f59e0b;
+      border-radius: 16px;
+      padding: 20px 20px;
+      margin-bottom: 24px;
+      text-align: center;
+      animation: fadeIn 0.5s ease;
+      display: none;
+    }
+    .warning-banner.show { display: block; }
+    .warning-banner .warning-ico {
+      font-size: 40px; margin-bottom: 10px;
+    }
+    .warning-banner .warning-title {
+      font-size: 16px; font-weight: 900; color: #b45309;
+      margin-bottom: 6px;
+    }
+    .warning-banner .warning-msg {
+      font-size: 13px; color: #92400e;
+      line-height: 1.8;
+    }
+    .warning-banner .warning-days {
+      display: inline-block;
+      background: #fbbf24;
+      color: #78350f;
+      font-weight: 900;
+      font-size: 14px;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-top: 8px;
+    }
 
-      @media (max-width: 900px) {
-        body { flex-direction: column; overflow-y: auto; overflow-x: hidden; }
-        .panel-left { min-height: auto; padding: 28px 20px 24px; flex: none; }
-        .brand { padding: 16px; }
-        .brand-icon { width: 72px; height: 72px; font-size: 36px; margin-bottom: 18px; }
-        .brand h1 { font-size: 22px; margin-bottom: 8px; }
-        .brand p { font-size: 13px; line-height: 1.8; }
-        .features { display: none; }
-        .panel-right { width: 100%; min-height: auto; align-items: flex-start; flex: 1; }
-        .form-container { max-width: 100%; padding: 24px 24px 40px; }
-      }
-      @media (max-width: 480px) {
-        .panel-left { padding: 20px 16px 16px; }
-        .brand-icon { width: 60px; height: 60px; font-size: 30px; margin-bottom: 12px; border-radius: 20px; }
-        .brand h1 { font-size: 20px; }
-        .form-container { padding: 20px 18px 36px; }
-        .form-header h2 { font-size: 20px; }
-        .form-header { margin-bottom: 24px; }
-        .input-wrap input { padding: 12px 14px 12px 44px; font-size: 15px; border-radius: 12px; }
-        .input-ico { left: 14px; font-size: 16px; }
-        .toggle-pass { left: 42px; font-size: 14px; }
-        .btn-primary { padding: 14px; font-size: 14px; border-radius: 12px; }
-        .field { margin-bottom: 16px; }
-        .field label { font-size: 12px; margin-bottom: 6px; }
-        .msg { font-size: 12px; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; }
-        .divider { margin: 18px 0; }
-        .form-footer { font-size: 12px; margin-top: 16px; }
-        .expired-banner { padding: 20px 16px; }
-        .expired-banner .expired-ico { font-size: 40px; }
-        .expired-banner .expired-title { font-size: 16px; }
-      }
-      @supports (padding-bottom: env(safe-area-inset-bottom)) {
-        .form-container { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
-      }
+    /* ★ فرم خاکستری وقتی منقضی */
+    .form-disabled .input-wrap input {
+      background: #f3f4f6 !important;
+      color: #9ca3af !important;
+      border-color: #e5e7eb !important;
+      cursor: not-allowed !important;
+    }
+    .form-disabled .input-wrap input:focus {
+      box-shadow: none !important;
+      border-color: #e5e7eb !important;
+    }
+    .form-disabled .btn-primary {
+      background: #d1d5db !important;
+      color: #9ca3af !important;
+      box-shadow: none !important;
+      cursor: not-allowed !important;
+    }
+    .form-disabled .btn-primary:hover {
+      transform: none !important;
+      box-shadow: none !important;
+    }
+    .form-disabled .toggle-pass { pointer-events: none; opacity: 0.2; }
+
+    @media (max-width: 900px) {
+      body { flex-direction: column; overflow-y: auto; overflow-x: hidden; }
+      .panel-left { min-height: auto; padding: 28px 20px 24px; flex: none; }
+      .brand { padding: 16px; }
+      .brand-icon { width: 72px; height: 72px; font-size: 36px; margin-bottom: 18px; }
+      .brand h1 { font-size: 22px; margin-bottom: 8px; }
+      .brand p { font-size: 13px; line-height: 1.8; }
+      .features { display: none; }
+      .panel-right { width: 100%; min-height: auto; align-items: flex-start; flex: 1; }
+      .form-container { max-width: 100%; padding: 24px 24px 40px; }
+    }
+    @media (max-width: 480px) {
+      .panel-left { padding: 20px 16px 16px; }
+      .brand-icon { width: 60px; height: 60px; font-size: 30px; margin-bottom: 12px; border-radius: 20px; }
+      .brand h1 { font-size: 20px; }
+      .form-container { padding: 20px 18px 36px; }
+      .form-header h2 { font-size: 20px; }
+      .form-header { margin-bottom: 24px; }
+      .input-wrap input { padding: 12px 14px 12px 44px; font-size: 15px; border-radius: 12px; }
+      .input-ico { left: 14px; font-size: 16px; }
+      .toggle-pass { left: 42px; font-size: 14px; }
+      .btn-primary { padding: 14px; font-size: 14px; border-radius: 12px; }
+      .field { margin-bottom: 16px; }
+      .field label { font-size: 12px; margin-bottom: 6px; }
+      .msg { font-size: 12px; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; }
+      .divider { margin: 18px 0; }
+      .form-footer { font-size: 12px; margin-top: 16px; }
+      .expired-banner { padding: 20px 16px; }
+      .expired-banner .expired-ico { font-size: 40px; }
+      .expired-banner .expired-title { font-size: 16px; }
+      .warning-banner { padding: 16px 14px; }
+      .warning-banner .warning-ico { font-size: 32px; }
+      .warning-banner .warning-title { font-size: 14px; }
+    }
+    @supports (padding-bottom: env(safe-area-inset-bottom)) {
+      .form-container { padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
+    }
   </style>
-  </head>
-  <body>
+</head>
+<body>
 
-    <div class="panel-left">
-      <div class="brand">
-        <div class="brand-icon">&#127828;</div>
-        <h1>پنل مدیریت <em>رستوران</em></h1>
-        <p>منو، سفارشات، انبار، تولید و باشگاه مشتریان</p>
-      </div>
-      <div class="features">
-        <div class="feat"><div class="feat-ico">&#128230;</div><div>مدیریت هوشمند سفارشات و پیگیری لحظه‌ای</div></div>
-        <div class="feat"><div class="feat-ico">&#127970;</div><div>کنترل موجودی انبار و هشدار کمبود</div></div>
-        <div class="feat"><div class="feat-ico">&#127942;</div><div>باشگاه مشتریان و سیستم وفاداری</div></div>
-        <div class="feat"><div class="feat-ico">&#128200;</div><div>گزارش‌های مالی و تحلیل فروش</div></div>
-      </div>
+  <div class="panel-left">
+    <div class="brand">
+      <div class="brand-icon">&#127828;</div>
+      <h1>پنل مدیریت <em>رستوران</em></h1>
+      <p>منو، سفارشات، انبار، تولید و باشگاه مشتریان</p>
     </div>
-
-    <div class="panel-right">
-      <div class="form-container">
-
-        <div class="expired-banner" id="expired-banner">
-          <div class="expired-ico">&#9940;</div>
-          <div class="expired-title">اشتراک منقضی شده</div>
-          <div class="expired-msg">
-            مدت اشتراک این رستوران به پایان رسیده است.<br>
-            امکان ورود به سیستم وجود ندارد.
-          </div>
-          <div class="expired-details" id="expired-details"></div>
-          <div class="contact-box">
-            &#128222; برای تمدید اشتراک با مدیر سیستم تماس بگیرید
-          </div>
-        </div>
-
-        <div class="form-header">
-          <h2 id="form-title">خوش آمدید</h2>
-          <p id="form-subtitle">برای ادامه وارد حساب خود شوید</p>
-        </div>
-
-        <div class="msg error" id="msg-error">
-          <span>&#9888;</span>
-          <span id="msg-error-text"></span>
-        </div>
-        <div class="msg success" id="msg-success">
-          <span>&#10003;</span>
-          <span id="msg-success-text"></span>
-        </div>
-        <div class="msg pending" id="msg-pending">
-          <span>&#9203;</span>
-          <span id="msg-pending-text"></span>
-        </div>
-
-        <div class="form-panel active" id="login-panel">
-          <form onsubmit="handleLogin(event)" id="login-form">
-            <div class="field">
-              <label>نام کاربری یا شماره موبایل</label>
-              <div class="input-wrap">
-                <input type="text" id="login-username" placeholder="ali یا 09123456789" autocomplete="username" required>
-                <span class="input-ico">&#128100;</span>
-              </div>
-            </div>
-            <div class="field">
-              <label>رمز عبور</label>
-              <div class="input-wrap">
-                <input type="password" id="login-password" placeholder="رمز عبور خود را وارد کنید" autocomplete="current-password" required>
-                <button type="button" class="toggle-pass" onclick="togglePass('login-password', this)">&#128065;</button>
-                <span class="input-ico">&#128274;</span>
-              </div>
-            </div>
-            <button type="submit" class="btn-primary" id="login-btn">
-              <span class="btn-text">ورود به حساب</span>
-              <div class="spinner"></div>
-            </button>
-          </form>
-          <div class="divider"><span>یا</span></div>
-          <div class="form-footer">
-            حساب ندارید؟ <a href="#" onclick="switchTab('register'); return false;">ثبت‌نام کنید</a>
-          </div>
-        </div>
-
-      </div>
+    <div class="features">
+      <div class="feat"><div class="feat-ico">&#128230;</div><div>مدیریت هوشمند سفارشات و پیگیری لحظه‌ای</div></div>
+      <div class="feat"><div class="feat-ico">&#127970;</div><div>کنترل موجودی انبار و هشدار کمبود</div></div>
+      <div class="feat"><div class="feat-ico">&#127942;</div><div>باشگاه مشتریان و سیستم وفاداری</div></div>
+      <div class="feat"><div class="feat-ico">&#128200;</div><div>گزارش‌های مالی و تحلیل فروش</div></div>
     </div>
+  </div>
+
+  <div class="panel-right">
+    <div class="form-container">
+
+      <!-- ★ بنر منقضی -->
+      <div class="expired-banner" id="expired-banner">
+        <div class="expired-ico">&#9940;</div>
+        <div class="expired-title">اشتراک منقضی شده</div>
+        <div class="expired-msg">
+          مدت اشتراک این رستوران به پایان رسیده است.<br>
+          امکان ورود به سیستم وجود ندارد.
+        </div>
+        <div class="expired-details" id="expired-details"></div>
+        <div class="contact-box">
+          &#128222; برای تمدید اشتراک با مدیر سیستم تماس بگیرید
+        </div>
+      </div>
+
+      <!-- ★ بنر هشدار نزدیک انقضا -->
+      <div class="warning-banner" id="warning-banner">
+        <div class="warning-ico">&#9888;&#65039;</div>
+        <div class="warning-title" id="warning-title">اشتراک رو به اتمام</div>
+        <div class="warning-msg" id="warning-msg"></div>
+        <div class="warning-days" id="warning-days"></div>
+      </div>
+
+      <div class="form-header">
+        <h2 id="form-title">خوش آمدید</h2>
+        <p id="form-subtitle">برای ادامه وارد حساب خود شوید</p>
+      </div>
+
+      <div class="msg error" id="msg-error">
+        <span>&#9888;</span>
+        <span id="msg-error-text"></span>
+      </div>
+      <div class="msg success" id="msg-success">
+        <span>&#10003;</span>
+        <span id="msg-success-text"></span>
+      </div>
+      <div class="msg pending" id="msg-pending">
+        <span>&#9203;</span>
+        <span id="msg-pending-text"></span>
+      </div>
+
+      <div class="form-panel active" id="login-panel">
+        <form onsubmit="handleLogin(event)" id="login-form">
+          <div class="field">
+            <label>نام کاربری یا شماره موبایل</label>
+            <div class="input-wrap">
+              <input type="text" id="login-username" placeholder="ali یا 09123456789" autocomplete="username" required>
+              <span class="input-ico">&#128100;</span>
+            </div>
+          </div>
+          <div class="field">
+            <label>رمز عبور</label>
+            <div class="input-wrap">
+              <input type="password" id="login-password" placeholder="رمز عبور خود را وارد کنید" autocomplete="current-password" required>
+              <button type="button" class="toggle-pass" onclick="togglePass('login-password', this)">&#128065;</button>
+              <span class="input-ico">&#128274;</span>
+            </div>
+          </div>
+          <button type="submit" class="btn-primary" id="login-btn">
+            <span class="btn-text">ورود به حساب</span>
+            <div class="spinner"></div>
+          </button>
+        </form>
+        <div class="divider"><span>یا</span></div>
+        <div class="form-footer">
+          حساب ندارید؟ <a href="#" onclick="switchTab('register'); return false;">ثبت‌نام کنید</a>
+        </div>
+      </div>
+
+    </div>
+  </div>
 
 <script>
-    // ★══════════════════════════════════════════
-    // ★ auth-guard: پاکسازی کامل هنگام ورود به صفحه لاگین
-    // ★══════════════════════════════════════════
-    (function() {
-      var urlParams = new URLSearchParams(window.location.search);
+  // ★══════════════════════════════════════════
+  // ★ auth.html — v23
+  // ★ تغییرات:
+  //   - بنر هشدار نزدیک انقضا (warning-banner)
+  //   - فرمت datetime برای نمایش تاریخ
+  //   - استفاده از notification از API
+  // ★══════════════════════════════════════════
 
-      // ۱. اگه از logout اومده → همه چیز رو پاک کن
-      if (urlParams.get('logout') === '1') {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('db_auth');
-        localStorage.removeItem('db_lock');
-        sessionStorage.clear();
-        document.cookie = 'access_token=; path=/; max-age=0';
-        // URL رو تمیز کن
-        window.history.replaceState({}, '', window.location.pathname);
-      }
+  (function() {
+    'use strict';
 
-      // ۲. اگه توکن داره ولی db_auth نداره → کش مرورگره، پاک کن
-      //    (کاربر بدون لاگین واقعی وارد شده)
-      if (localStorage.getItem('access_token') && !localStorage.getItem('db_auth')) {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user');
-        document.cookie = 'access_token=; path=/; max-age=0';
-      }
-
-      // ۳. قفل تب رو موقع لاگین آزاد کن (تا بعد از لاگین دوباره بگیره)
-      localStorage.removeItem('db_lock');
-    })();
-
+    // ★ پاکسازی هنگام ورود
     var urlParams = new URLSearchParams(window.location.search);
+
+    if (urlParams.get('logout') === '1') {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('db_auth');
+      localStorage.removeItem('db_lock');
+      sessionStorage.clear();
+      document.cookie = 'access_token=; path=/; max-age=0';
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    if (localStorage.getItem('access_token') && !localStorage.getItem('db_auth')) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+      document.cookie = 'access_token=; path=/; max-age=0';
+    }
+
+    localStorage.removeItem('db_lock');
+
     var nextUrl = urlParams.get('next');
     var isSuperLogin = nextUrl && nextUrl.includes('/super');
 
@@ -463,8 +508,7 @@
       TENANT_ID = pathParts[0];
     }
 
-    var API_BASE = TENANT_ID ? '/' + TENANT_ID + '/api/auth' : '/api/auth';
-
+    var API_BASE = '/api/auth';
     var subscriptionExpired = false;
 
     function getCookie(name) {
@@ -516,6 +560,20 @@
       return defaultMsg;
     }
 
+    // ★ تبدیل ISO datetime به فارسی خوانا
+    function formatDateTime(isoStr) {
+      if (!isoStr) return '—';
+      try {
+        var d = new Date(isoStr);
+        if (isNaN(d.getTime())) return isoStr;
+        var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+        return d.getFullYear() + '/' + pad(d.getMonth() + 1) + '/' + pad(d.getDate()) +
+          ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+      } catch(e) {
+        return isoStr;
+      }
+    }
+
     var store = (function() {
       var state = { status: 'idle', message: '', tab: 'login' };
       return {
@@ -559,6 +617,7 @@
       });
     }
 
+    // ★ غیرفعال‌سازی فرم — فقط وقتی منقضی شده
     function disableLoginForm() {
       subscriptionExpired = true;
       $('expired-banner').classList.add('show');
@@ -578,6 +637,24 @@
       document.title = '⛔ اشتراک منقضی | رستوران';
     }
 
+    // ★ نمایش هشدار نزدیک انقضا — فرم فعاله ولی هشدار میده
+    function showWarningBanner(notification) {
+      var banner = $('warning-banner');
+      var title = $('warning-title');
+      var msg = $('warning-msg');
+      var days = $('warning-days');
+
+      if (!banner || !notification) return;
+
+      if (notification.type === 'warning') {
+        title.textContent = 'اشتراک رو به اتمام';
+        msg.textContent = notification.message;
+        days.textContent = notification.days + ' روز باقی‌مانده';
+        banner.classList.add('show');
+      }
+    }
+
+    // ★ نمایش جزئیات سرویس‌ها در بنر منقضی
     function showSubscriptionDetails(services) {
       var container = $('expired-details');
       if (!container || !services || !services.length) return;
@@ -585,52 +662,41 @@
       services.forEach(function(svc) {
         var statusCls = svc.is_expired ? 'bad' : 'ok';
         var statusText = svc.is_expired ? 'منقضی' : 'فعال';
+        var dateStr = svc.end_date ? formatDateTime(svc.end_date) : 'بدون انقضا';
         html += '<div class="detail-row">'
           + '<span class="detail-label">' + svc.service + '</span>'
           + '<span class="detail-status ' + statusCls + '">'
-          + (svc.end_date ? statusText + ' — ' + svc.end_date : 'بدون انقضا')
+          + statusText + ' — ' + dateStr
           + '</span>'
           + '</div>';
       });
       container.innerHTML = html;
     }
 
+    // ★ v23: بررسی اشتراک — استفاده از notification
     async function checkSubscription() {
       if (!TENANT_ID || isSuperLogin) return;
       try {
         var data = await api.get('/' + TENANT_ID + '/api/check-subscription/');
         if (!data) return;
+
         if (!data.is_valid) {
+          // منقضی شده → فرم قفل
           disableLoginForm();
           showSubscriptionDetails(data.services);
+        } else if (data.notification && data.notification.type === 'warning') {
+          // نزدیک انقضا → هشدار ولی فرم فعال
+          showWarningBanner(data.notification);
         }
       } catch (e) {
         console.log('Subscription check failed:', e);
       }
     }
 
+    // ★ فرم لاگین همیشه نشون داده میشه
     document.addEventListener('DOMContentLoaded', function() {
       checkSubscription();
-
-      if (isSuperLogin) {
-        api.get('/api/super/stats/').then(function(data) {
-          if (data && data.total_tenants !== undefined) {
-            window.location.href = nextUrl;
-          }
-        }).catch(function() {});
-      } else {
-        // ★ auth-guard: فقط اگه db_auth داشت redirect کن
-        // (بدون db_auth حتی اگه توکن باشه، نباید redirect بشه)
-        var token = localStorage.getItem('access_token');
-        var authed = localStorage.getItem('db_auth');
-        if (token && authed) {
-          api.get(API_BASE + '/me/').then(function(user) {
-            if (user && user.username) {
-              window.location.href = redirectFor(user);
-            }
-          }).catch(function() {});
-        }
-      }
+      render(store.get());
     });
 
     var T = TENANT_ID ? '/' + TENANT_ID : '';
@@ -654,14 +720,16 @@
       return /^09\d{9}$/.test(id) ? { phone_number: id } : { username: id };
     }
 
-    function togglePass(inputId, btn) {
+    window.togglePass = function(inputId, btn) {
       var input = $(inputId);
       var show = input.type === 'password';
       input.type = show ? 'text' : 'password';
       btn.innerHTML = show ? '&#128064;' : '&#128065;';
-    }
+    };
 
-    async function handleLogin(e) {
+    window.switchTab = function() {};
+
+    window.handleLogin = async function(e) {
       if (e && e.preventDefault) e.preventDefault();
 
       if (subscriptionExpired) {
@@ -714,7 +782,6 @@
         localStorage.setItem('refresh_token', data.refresh);
         localStorage.setItem('user', JSON.stringify(data.user));
         localStorage.setItem('db_auth', '1');
-        // ★ JWT رو cookie هم ذخیره کن
         document.cookie = 'access_token=' + data.access + '; path=/; max-age=' + (7*24*60*60) + '; SameSite=Lax';
 
         try { await api.post(API_BASE + '/set-session/', { access_token: data.access, user_id: data.user.id }); } catch(e) {}
@@ -724,9 +791,9 @@
         var target = nextUrl || redirectFor(data.user);
         setTimeout(function() { window.location.href = target; }, 500);
       }
-    }
+    };
 
-    document.addEventListener('DOMContentLoaded', function() { render(store.get()); });
-  </script>
-  </body>
-  </html>
+  })();
+</script>
+</body>
+</html>

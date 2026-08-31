@@ -9,5 +9,11 @@ export default defineConfig({
     hmr: {
       host: '192.168.240.235',
     },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
   },
 })

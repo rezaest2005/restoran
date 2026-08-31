@@ -376,9 +376,9 @@ async function fetchAllPages(url) {
   let cur = url;
   while (cur) {
     const { data } = await axios.get(cur);
-    const items = data.results || data || [];
+    const items = Array.isArray(data) ? data : (data?.results || []);
     all.push(...items);
-    cur = data.next || null;
+    cur = data?.next || null;
   }
   return all;
 }
@@ -510,7 +510,7 @@ function buildFood(dict, kitchen) {
 }
 
 /* ═══════════════════════════════════════════════════════
- * ★ Main Menu — ★ اصلاح شده: public API + fallback
+ * ★ Main Menu — ✅ اصلاح شده: Array.isArray guard
  * ═══════════════════════════════════════════════════════ */
 function Menu({ onAddToCart, cartCount = 0 }) {
   const [foods, setFoods] = useState([]);
@@ -520,14 +520,22 @@ function Menu({ onAddToCart, cartCount = 0 }) {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
 
-const loadData = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const { data } = await axios.get(`${API}/api/menu/`);
-      const items = data.results || data || [];
 
-      /* ★ اگه خالی بود → خطا نده، فقط لیست خالی نشون بده */
+      /* ✅ فیکس: حتماً array باشه */
+      let items = [];
+      if (Array.isArray(data)) {
+        items = data;
+      } else if (data && Array.isArray(data.results)) {
+        items = data.results;
+      } else if (data && typeof data === 'object') {
+        items = [];
+      }
+
       if (items.length === 0) {
         setFoods([]);
         setCats([]);
@@ -563,7 +571,6 @@ const loadData = useCallback(async () => {
 
     } catch (e) {
       console.error('[Menu] load error:', e);
-      /* ★ خطای شبکه → نمایش خطا. ولی خالی بودن = خطا نیست */
       if (e.response && e.response.status === 404) {
         setFoods([]);
         setCats([]);

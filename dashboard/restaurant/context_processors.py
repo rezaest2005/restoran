@@ -1,14 +1,12 @@
 from .tenancy import get_tenant_slug_from_request
-from .models import TenantService, Restaurant
+from .models import TenantService, Restaurant, Service
 
 
 def user_permissions_context(request):
-    # ★ tenant_slug همیشه ست بشه (حتی بدون لاگین)
     context = {
         'tenant_slug': getattr(request, '_tenant_slug', None),
     }
 
-    # ★ خدمات فعال این رستوران
     enabled_services = []
     tenant_slug = getattr(request, '_tenant_slug', None)
     if tenant_slug:
@@ -24,7 +22,11 @@ def user_permissions_context(request):
                     )
         except Exception:
             pass
+
     context['enabled_services'] = enabled_services
+
+    # ★ اینجا فقط slug و services رو چاپ کن
+    print(f"[CONTEXT] slug={tenant_slug}, enabled_services={enabled_services}")
 
     if not hasattr(request, 'user') or not request.user.is_authenticated:
         context.update({'user_perms': [], 'perms_active': False})
@@ -32,12 +34,22 @@ def user_permissions_context(request):
 
     user = request.user
 
-    # سوپر ادمین → همه چیز
+    # ★ اینجا user تعریف شده، حالا میتونی چاپ کنی
+    print(f"[CONTEXT] user={user}, is_superuser={user.is_superuser}, role={getattr(user, 'role', '')}")
+
+    # سوپر ادمین → همه سرویس‌ها
     if user.is_superuser:
-        context.update({'user_perms': [], 'perms_active': False, 'enabled_services': []})
+        all_services = list(
+            Service.objects.filter(is_active=True).values_list('code', flat=True)
+        )
+        context.update({
+            'user_perms': [],
+            'perms_active': False,
+            'enabled_services': all_services,
+        })
         return context
 
-    # مالک → همه چیز
+    # مالک → همه سرویس‌های فعال رستوران
     if getattr(user, 'role', '') == 'owner':
         context.update({'user_perms': [], 'perms_active': False})
         return context
@@ -52,6 +64,5 @@ def user_permissions_context(request):
             })
             return context
 
-    # fallback → همه چیز نمایش
     context.update({'user_perms': [], 'perms_active': False})
     return context

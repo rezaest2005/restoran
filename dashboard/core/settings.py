@@ -17,7 +17,7 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 CSRF_TRUSTED_ORIGINS = os.getenv(
     'CSRF_TRUSTED_ORIGINS',
-    'http://localhost:8000,http://127.0.0.1:8000,https://est.rysh.ir'
+    'http://localhost:8000,http://127.0.0.1:8000,https://est.rysh.ir,http://localhost:5173,http://localhost:5174,http://127.0.0.1:5173,http://127.0.0.1:5174'
 ).split(',')
 
 if DEBUG:
@@ -85,7 +85,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'restaurant.middleware.JWTFromCookieMiddleware',
-    'restaurant.middleware.TenantMiddleware',
+    'restaurant.tenancy.TenantMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]

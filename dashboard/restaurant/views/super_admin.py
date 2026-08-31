@@ -1,18 +1,16 @@
 """
-پنل مدیریت کلان — ویوها (★ نسخه v14 — subscription dates + login block)
+پنل مدیریت کلان — ویوها (★ نسخه v23 — فیکس مقایسه datetime/date)
 
-★ v14 تغییرات:
-  - TenantService: start_date / end_date در GET و POST سرویس‌ها
-  - is_tenant_subscription_valid(): بررسی اشتراک بر اساس end_date
-  - restaurant_login(): ویوی لاگین رستوران با بلاک انقضا
-  - check_subscription_api(): API بررسی وضعیت اشتراک
-  - super_tenants_api GET: اضافه شدن is_expired
+★ v23:
+  - Fix: is_tenant_subscription_valid — استفاده از timezone.now() به جای date.today()
+  - Fix: get_tenant_subscription_details — همین فیکس
+  - Fix: super_stats_api — فیکس همین مشکل در آمار
 """
 
 import json
 import logging
 import re
-from datetime import date
+from datetime import timedelta
 from functools import wraps
 
 from django.contrib.auth import (
@@ -33,6 +31,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from ..models import Restaurant, Service, Tenant, TenantService, User
+from ..tenancy import get_tenant_slug_from_request
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 SUPER_TOKEN_SALT = 'super-admin-panel-v1'
 SUPER_TOKEN_COOKIE = 'super_admin_token'
-SUPER_TOKEN_MAX_AGE = 3600 * 5  
+SUPER_TOKEN_MAX_AGE = 3600 * 5
 
 _SLUG_RE = re.compile(r'^[a-zA-Z0-9_-]+$')
 
@@ -91,34 +90,36 @@ class IsSuperAdmin(BasePermission):
             request._request if hasattr(request, '_request') else request
         )
 
-        # ۱. بررسی Django session
         if (
             django_request.user.is_authenticated
             and django_request.user.is_superuser
         ):
             return True
 
-        # ۲. بررسی cookie
         user = _verify_super_token(django_request)
         if user:
             request.user = user
             return True
 
-        # ★ ۳. بررسی Authorization header (جدید)
         auth_header = django_request.META.get('HTTP_AUTHORIZATION', '')
         if auth_header.startswith('Bearer '):
             token = auth_header[7:]
             try:
-                data = signing.loads(token, salt=SUPER_TOKEN_SALT, max_age=SUPER_TOKEN_MAX_AGE)
-                user = User.objects.get(id=data['uid'], is_superuser=True, is_active=True)
+                data = signing.loads(
+                    token, salt=SUPER_TOKEN_SALT,
+                    max_age=SUPER_TOKEN_MAX_AGE,
+                )
+                user = User.objects.get(
+                    id=data['uid'], is_superuser=True, is_active=True,
+                )
                 request.user = user
-                # Django session رو هم فعال کن
                 auth_login(django_request, user)
                 return True
             except Exception:
                 pass
 
         return False
+
 
 def _make_super_token(user):
     return signing.dumps({'uid': user.id}, salt=SUPER_TOKEN_SALT)
@@ -164,21 +165,17 @@ def _clean_phone(val):
     return v if v else None
 
 
-# ★══════════════════════════════════════════
-# ★  تابع بررسی اشتراک
-# ★══════════════════════════════════════════
+# ═══════════════════════════════════════════
+#  ★ تابع بررسی اشتراک — فیکس datetime vs date
+# ═══════════════════════════════════════════
 
 def is_tenant_subscription_valid(tenant):
     """
-    بررسی آیا حداقل یک سرویس فعال با تاریخ معتبر وجود دارد.
-
-    منطق:
-      - اگر هیچ سرویس فعالی نباشد → False
-      - اگر سرویس فعال end_date نداشته باشد → True (همیشه فعال)
-      - اگر end_date در آینده باشد → True
-      - اگر end_date در گذشته باشد → False
+    ★ v23: از timezone.now() استفاده میکنه چون فیلدهای
+    start_date و end_date از نوع DateTimeField هستن
+    و نمیشه با date.today() مقایسه‌شون کرد.
     """
-    today = date.today()
+    now = timezone.now()
     active_services = TenantService.objects.filter(
         tenant=tenant,
         is_enabled=True,
@@ -189,17 +186,18 @@ def is_tenant_subscription_valid(tenant):
 
     for svc in active_services:
         if svc.end_date is None:
-            # بدون تاریخ انقضا = همیشه فعال
             return True
-        elif svc.end_date >= today:
+        elif svc.end_date >= now:
             return True
 
     return False
 
 
 def get_tenant_subscription_details(tenant):
-    """جزئیات وضعیت اشتراک — برای API"""
-    today = date.today()
+    """
+    ★ v23: فیکس مشابه — استفاده از timezone.now()
+    """
+    now = timezone.now()
     services = TenantService.objects.filter(
         tenant=tenant, is_enabled=True,
     ).select_related('service')
@@ -208,13 +206,17 @@ def get_tenant_subscription_details(tenant):
     has_valid = False
 
     for ts in services:
-        is_expired = ts.end_date is not None and ts.end_date < today
+        is_expired = ts.end_date is not None and ts.end_date < now
         if not is_expired:
             has_valid = True
         details.append({
             'service': ts.service.label,
-            'start_date': str(ts.start_date) if ts.start_date else None,
-            'end_date': str(ts.end_date) if ts.end_date else None,
+            'start_date': (
+                ts.start_date.isoformat() if ts.start_date else None
+            ),
+            'end_date': (
+                ts.end_date.isoformat() if ts.end_date else None
+            ),
             'is_expired': is_expired,
         })
 
@@ -225,7 +227,7 @@ def get_tenant_subscription_details(tenant):
 
 
 # ═══════════════════════════════════════════
-#  صفحات HTML
+#  صفحات HTML — سوپر ادمین
 # ═══════════════════════════════════════════
 
 def super_admin_auth_page(request):
@@ -239,20 +241,44 @@ def super_admin_page(request):
     return render(request, 'restaurant/super_admin.html')
 
 
-# ★══════════════════════════════════════════
-# ★  صفحه لاگین رستوران — با بلاک انقضا
-# ★══════════════════════════════════════════
+# ═══════════════════════════════════════════
+#  هدایت dashboard → صفحه لاگین
+# ═══════════════════════════════════════════
 
-def restaurant_login(request, slug):
-    """
-    صفحه ورود رستوران.
-    اگر اشتراک منقضی شده باشد، فرم غیرفعال و پیام نمایش داده می‌شود.
-    """
+def tenant_dashboard_redirect(request):
+    slug = get_tenant_slug_from_request(request)
+    if not slug:
+        return redirect('/dashboard/')
+
+    restaurant = get_object_or_404(Restaurant, slug=slug)
+    tenant = restaurant.tenant
+
+    if not tenant:
+        return redirect(f'/{slug}/dashboard/login/')
+
+    if not tenant.is_active:
+        return redirect(f'/{slug}/dashboard/login/')
+
+    if not is_tenant_subscription_valid(tenant):
+        return redirect(f'/{slug}/dashboard/login/?expired=1')
+
+    return redirect(f'/{slug}/dashboard/login/')
+
+
+# ═══════════════════════════════════════════
+#  صفحه لاگین رستوران
+# ═══════════════════════════════════════════
+
+def restaurant_login(request):
+    slug = get_tenant_slug_from_request(request)
+    if not slug:
+        return redirect('/dashboard/')
+
     restaurant = get_object_or_404(Restaurant, slug=slug)
     tenant = restaurant.tenant
 
     if not tenant or not tenant.is_active:
-        return render(request, 'dashboard/login.html', {
+        return render(request, 'auth.html', {
             'tenant': tenant,
             'restaurant': restaurant,
             'slug': slug,
@@ -260,9 +286,7 @@ def restaurant_login(request, slug):
             'expired': True,
         })
 
-    # ★ بررسی اشتراک
     expired = not is_tenant_subscription_valid(tenant)
-
     error = None
 
     if request.method == 'POST' and not expired:
@@ -279,7 +303,6 @@ def restaurant_login(request, slug):
             )
 
             if user is not None:
-                # بررسی تعلق کاربر به این رستوران
                 user_restaurant = getattr(user, 'restaurant', None)
                 if user_restaurant and user_restaurant.pk == restaurant.pk:
                     if user.is_active and getattr(user, 'is_approved', True):
@@ -292,7 +315,7 @@ def restaurant_login(request, slug):
             else:
                 error = 'نام کاربری یا رمز عبور اشتباه است.'
 
-    return render(request, 'dashboard/login.html', {
+    return render(request, 'auth.html', {
         'tenant': tenant,
         'restaurant': restaurant,
         'slug': slug,
@@ -301,12 +324,15 @@ def restaurant_login(request, slug):
     })
 
 
-# ★══════════════════════════════════════════
-# ★  API: بررسی وضعیت اشتراک
-# ★══════════════════════════════════════════
+# ═══════════════════════════════════════════
+#  API: بررسی وضعیت اشتراک
+# ═══════════════════════════════════════════
 
-def check_subscription_api(request, slug):
-    """API: بررسی وضعیت اشتراک رستوران"""
+def check_subscription_api(request):
+    slug = get_tenant_slug_from_request(request)
+    if not slug:
+        return JsonResponse({'is_valid': False, 'error': 'slug نامعتبر'})
+
     restaurant = get_object_or_404(Restaurant, slug=slug)
     tenant = restaurant.tenant
 
@@ -388,6 +414,7 @@ def super_admin_logout_api(request):
 
 # ═══════════════════════════════════════════
 #  API: آمار کلی سیستم
+#  ★ v23: فیکس datetime در محاسبه انقضا
 # ═══════════════════════════════════════════
 
 @api_view(["GET"])
@@ -400,15 +427,13 @@ def super_stats_api(request):
     total_services = TenantService.objects.filter(is_enabled=True).count()
     total_revenue = sum(t.monthly_revenue for t in tenants)
 
-    # ★ انقضا بر اساس end_date
-    today = date.today()
-    from datetime import timedelta
-    week_later = today + timedelta(days=7)
+    now = timezone.now()
+    week_later = now + timedelta(days=7)
     expiring_soon = TenantService.objects.filter(
         is_enabled=True,
         end_date__isnull=False,
         end_date__lte=week_later,
-        end_date__gt=today,
+        end_date__gt=now,
     ).count()
 
     total_users = User.objects.filter(is_active=True).count()
@@ -439,7 +464,7 @@ def super_services_list_api(request):
 
 
 # ═══════════════════════════════════════════
-#  API: CRUD رستوران‌ها — ★ v14: is_expired
+#  API: CRUD رستوران‌ها
 # ═══════════════════════════════════════════
 
 @api_view(["GET", "POST"])
@@ -463,14 +488,16 @@ def super_tenants_api(request):
             restaurant = Restaurant.objects.filter(tenant=t).first()
             slug = restaurant.slug if restaurant else ''
 
-            # ★ بررسی وضعیت اشتراک
-            expired = not is_tenant_subscription_valid(t) if t.is_active else True
+            expired = (
+                not is_tenant_subscription_valid(t)
+                if t.is_active else True
+            )
 
             data.append({
                 'id': t.id,
                 'name': t.name,
                 'slug': slug,
-                'dashboard_url': f'/{slug}/dashboard/app/' if slug else '',
+                'dashboard_url': f'/{slug}/dashboard' if slug else '',
                 'owner_id': t.owner_id,
                 'owner_name': (
                     (t.owner.get_full_name() or t.owner.username)
@@ -479,10 +506,12 @@ def super_tenants_api(request):
                 'phone': t.phone or '',
                 'address': t.address or '',
                 'is_active': t.is_active,
-                'is_expired': expired,  # ★ جدید
+                'is_expired': expired,
                 'active_services': t.active_services_count,
                 'monthly_revenue': t.monthly_revenue,
-                'username_prefix': getattr(t, 'username_prefix', '') or '',
+                'username_prefix': (
+                    getattr(t, 'username_prefix', '') or ''
+                ),
                 'created_at': t.created_at.strftime('%Y/%m/%d'),
             })
         return Response({'tenants': data})
@@ -521,9 +550,25 @@ def super_tenants_api(request):
                     'role': 'owner',
                 },
             )
+
+            if not created:
+                existing_restaurant = getattr(owner, 'restaurant', None)
+                if existing_restaurant:
+                    return Response(
+                        {
+                            'error': (
+                                f'کاربر «{owner_username}» قبلاً به '
+                                f'رستوران «{existing_restaurant.name}» تعلق دارد'
+                            ),
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
             if created:
                 owner.first_name = data.get('owner_name', '')
-                owner.phone_number = _clean_phone(data.get('owner_phone'))
+                owner.phone_number = _clean_phone(
+                    data.get('owner_phone'),
+                )
                 owner.role = 'owner'
                 owner.is_approved = True
                 owner.set_password(
@@ -570,7 +615,7 @@ def super_tenants_api(request):
             'ok': True,
             'tenant_id': tenant.id,
             'slug': slug,
-            'dashboard_url': f'/{slug}/dashboard/app/',
+            'dashboard_url': f'/{slug}/dashboard',
             'username_prefix': prefix,
             'msg': f'رستوران «{tenant.name}» با شناسه «{slug}» ساخته شد',
         }, status=status.HTTP_201_CREATED)
@@ -607,10 +652,17 @@ def super_tenant_detail_api(request, pk):
                 'label': ts.service.label,
                 'is_enabled': ts.is_enabled,
                 'price': ts.price,
-                'start_date': str(ts.start_date) if ts.start_date else None,
-                'end_date': str(ts.end_date) if ts.end_date else None,
+                'start_date': (
+                    ts.start_date.isoformat()
+                    if ts.start_date else None
+                ),
+                'end_date': (
+                    ts.end_date.isoformat()
+                    if ts.end_date else None
+                ),
                 'expires_at': (
-                    ts.expires_at.isoformat() if ts.expires_at else None
+                    ts.expires_at.isoformat()
+                    if ts.expires_at else None
                 ),
             })
         return Response({
@@ -618,7 +670,7 @@ def super_tenant_detail_api(request, pk):
             'name': tenant.name,
             'slug': restaurant.slug if restaurant else '',
             'dashboard_url': (
-                f'/{restaurant.slug}/dashboard/app/'
+                f'/{restaurant.slug}/dashboard'
                 if restaurant else ''
             ),
             'owner_id': tenant.owner_id,
@@ -629,7 +681,7 @@ def super_tenant_detail_api(request, pk):
             'phone': tenant.phone or '',
             'address': tenant.address or '',
             'is_active': tenant.is_active,
-            'is_expired': not is_tenant_subscription_valid(tenant),  # ★
+            'is_expired': not is_tenant_subscription_valid(tenant),
             'username_prefix': (
                 getattr(tenant, 'username_prefix', '') or ''
             ),
@@ -639,14 +691,21 @@ def super_tenant_detail_api(request, pk):
 
     elif request.method == "PUT":
         data = request.data
+
+        tenant_update_fields = []
+
         if 'name' in data:
             tenant.name = data['name']
+            tenant_update_fields.append('name')
         if 'phone' in data:
             tenant.phone = data['phone']
+            tenant_update_fields.append('phone')
         if 'address' in data:
             tenant.address = data['address']
+            tenant_update_fields.append('address')
         if 'is_active' in data:
             tenant.is_active = bool(data['is_active'])
+            tenant_update_fields.append('is_active')
         if (
             'username_prefix' in data
             and hasattr(tenant, 'username_prefix')
@@ -654,7 +713,10 @@ def super_tenant_detail_api(request, pk):
             tenant.username_prefix = (
                 data['username_prefix'] or ''
             ).strip().lower()
-        tenant.save()
+            tenant_update_fields.append('username_prefix')
+
+        if tenant_update_fields:
+            tenant.save(update_fields=tenant_update_fields)
 
         if 'slug' in data and restaurant:
             new_slug = (data['slug'] or '').strip()
@@ -672,18 +734,18 @@ def super_tenant_detail_api(request, pk):
                 restaurant.save(update_fields=['slug'])
 
         if restaurant:
-            update_fields = []
+            rest_update_fields = []
             if 'name' in data:
                 restaurant.name = data['name']
-                update_fields.append('name')
+                rest_update_fields.append('name')
             if 'phone' in data:
                 restaurant.phone = data['phone']
-                update_fields.append('phone')
+                rest_update_fields.append('phone')
             if 'address' in data:
                 restaurant.address = data['address']
-                update_fields.append('address')
-            if update_fields:
-                restaurant.save(update_fields=update_fields)
+                rest_update_fields.append('address')
+            if rest_update_fields:
+                restaurant.save(update_fields=rest_update_fields)
 
         return Response({
             'ok': True,
@@ -704,7 +766,7 @@ def super_tenant_detail_api(request, pk):
 
 
 # ═══════════════════════════════════════════
-#  API: مدیریت سرویس‌ها — ★ v14: start_date / end_date
+#  API: مدیریت سرویس‌ها
 # ═══════════════════════════════════════════
 
 @api_view(["GET", "POST"])
@@ -737,9 +799,14 @@ def super_tenant_services_api(request, pk):
                 'is_enabled': ts.is_enabled if ts else False,
                 'price': ts.price if ts else svc.default_price,
                 'default_price': svc.default_price,
-                # ★ تاریخ‌ها
-                'start_date': str(ts.start_date) if ts and ts.start_date else None,
-                'end_date': str(ts.end_date) if ts and ts.end_date else None,
+                'start_date': (
+                    ts.start_date.isoformat()
+                    if ts and ts.start_date else None
+                ),
+                'end_date': (
+                    ts.end_date.isoformat()
+                    if ts and ts.end_date else None
+                ),
                 'activated_at': (
                     ts.activated_at.isoformat()
                     if ts and ts.activated_at else None
@@ -780,7 +847,6 @@ def super_tenant_services_api(request, pk):
             ts.is_enabled = item.get('is_enabled', False)
             ts.price = item.get('price', ts.price)
 
-            # ★ ذخیره تاریخ شروع و پایان
             start_date = item.get('start_date')
             end_date = item.get('end_date')
             ts.start_date = start_date if start_date else None
@@ -813,7 +879,9 @@ def super_users_api(request):
     except (TypeError, ValueError):
         page = 1
     try:
-        page_size = min(100, max(1, int(request.GET.get('page_size', 20))))
+        page_size = min(
+            100, max(1, int(request.GET.get('page_size', 20))),
+        )
     except (TypeError, ValueError):
         page_size = 20
 
@@ -850,7 +918,9 @@ def super_users_api(request):
         'is_active': u.is_active,
         'is_superuser': u.is_superuser,
         'restaurant_id': u.restaurant_id,
-        'restaurant_name': u.restaurant.name if u.restaurant else '',
+        'restaurant_name': (
+            u.restaurant.name if u.restaurant else ''
+        ),
         'dashboard_permissions': u.dashboard_permissions,
         'effective_permissions': u.get_permissions(),
         'date_joined': u.date_joined.strftime('%Y/%m/%d'),
@@ -947,7 +1017,8 @@ def super_user_detail_api(request, pk):
 
     if request.method == "GET":
         return Response({
-            'id': user.id, 'username': user.username,
+            'id': user.id,
+            'username': user.username,
             'first_name': user.first_name or '',
             'last_name': user.last_name or '',
             'phone_number': user.phone_number or '',
@@ -975,7 +1046,9 @@ def super_user_detail_api(request, pk):
                 update_fields.append(field)
 
         if 'phone_number' in data:
-            user.phone_number = _clean_phone(data.get('phone_number'))
+            user.phone_number = _clean_phone(
+                data.get('phone_number'),
+            )
             update_fields.append('phone_number')
 
         if 'role' in data:
@@ -1088,7 +1161,9 @@ def get_user_enabled_services(user):
 
     return list(
         TenantService.objects.filter(
-            tenant=tenant, is_enabled=True, service__is_active=True,
+            tenant=tenant,
+            is_enabled=True,
+            service__is_active=True,
         ).values_list('service__code', flat=True)
     )
 
@@ -1098,14 +1173,38 @@ def get_user_enabled_services(user):
 # ═══════════════════════════════════════════
 
 DEFAULT_SERVICES = [
-    {'code': 'dictionary', 'label': 'دیکشنری',       'icon': '📖', 'default_price': 500_000,   'order': 1},
-    {'code': 'foods',      'label': 'غذا و منو',      'icon': '🍽️', 'default_price': 800_000,   'order': 2},
-    {'code': 'pos',        'label': 'صندوق فروش',     'icon': '💰', 'default_price': 1_200_000, 'order': 3},
-    {'code': 'kitchen',    'label': 'آشپزخانه',       'icon': '👨‍🍳', 'default_price': 1_000_000, 'order': 4},
-    {'code': 'inventory',  'label': 'انبار',          'icon': '📦', 'default_price': 900_000,   'order': 5},
-    {'code': 'loyalty',    'label': 'باشگاه مشتریان', 'icon': '🏆', 'default_price': 700_000,   'order': 6},
-    {'code': 'reports',    'label': 'گزارش‌گیری',      'icon': '📊', 'default_price': 600_000,   'order': 7},
-    {'code': 'users',      'label': 'مدیریت کاربران', 'icon': '👥', 'default_price': 400_000,   'order': 8},
+    {
+        'code': 'dictionary', 'label': 'دیکشنری',
+        'icon': '📖', 'default_price': 500_000, 'order': 1,
+    },
+    {
+        'code': 'foods', 'label': 'غذا و منو',
+        'icon': '🍽️', 'default_price': 800_000, 'order': 2,
+    },
+    {
+        'code': 'pos', 'label': 'صندوق فروش',
+        'icon': '💰', 'default_price': 1_200_000, 'order': 3,
+    },
+    {
+        'code': 'kitchen', 'label': 'آشپزخانه',
+        'icon': '👨‍🍳', 'default_price': 1_000_000, 'order': 4,
+    },
+    {
+        'code': 'inventory', 'label': 'انبار',
+        'icon': '📦', 'default_price': 900_000, 'order': 5,
+    },
+    {
+        'code': 'loyalty', 'label': 'باشگاه مشتریان',
+        'icon': '🏆', 'default_price': 700_000, 'order': 6,
+    },
+    {
+        'code': 'reports', 'label': 'گزارش‌گیری',
+        'icon': '📊', 'default_price': 600_000, 'order': 7,
+    },
+    {
+        'code': 'users', 'label': 'مدیریت کاربران',
+        'icon': '👥', 'default_price': 400_000, 'order': 8,
+    },
 ]
 
 
