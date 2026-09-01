@@ -1,12 +1,9 @@
 """
-پنل مدیریت کلان — ویوها (★ نسخه v14 — subscription dates + login block)
+پنل مدیریت کلان — ویوها (★ نسخه v15 — fix datetime vs date comparison)
 
-★ v14 تغییرات:
-  - TenantService: start_date / end_date در GET و POST سرویس‌ها
-  - is_tenant_subscription_valid(): بررسی اشتراک بر اساس end_date
-  - restaurant_login(): ویوی لاگین رستوران با بلاک انقضا
-  - check_subscription_api(): API بررسی وضعیت اشتراک
-  - super_tenants_api GET: اضافه شدن is_expired
+★ v15 تغییرات:
+  - is_tenant_subscription_valid(): رفع خطای datetime >= date
+  - get_tenant_subscription_details(): رفع خطای datetime < date
 """
 
 import json
@@ -43,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 SUPER_TOKEN_SALT = 'super-admin-panel-v1'
 SUPER_TOKEN_COOKIE = 'super_admin_token'
-SUPER_TOKEN_MAX_AGE = 3600 * 5  
+SUPER_TOKEN_MAX_AGE = 3600 * 5
 
 _SLUG_RE = re.compile(r'^[a-zA-Z0-9_-]+$')
 
@@ -165,20 +162,14 @@ def _clean_phone(val):
 
 
 # ★══════════════════════════════════════════
-# ★  تابع بررسی اشتراک
+# ★  تابع بررسی اشتراک — v15: timezone.now()
 # ★══════════════════════════════════════════
 
 def is_tenant_subscription_valid(tenant):
     """
     بررسی آیا حداقل یک سرویس فعال با تاریخ معتبر وجود دارد.
-
-    منطق:
-      - اگر هیچ سرویس فعالی نباشد → False
-      - اگر سرویس فعال end_date نداشته باشد → True (همیشه فعال)
-      - اگر end_date در آینده باشد → True
-      - اگر end_date در گذشته باشد → False
     """
-    today = date.today()
+    now = timezone.now()
     active_services = TenantService.objects.filter(
         tenant=tenant,
         is_enabled=True,
@@ -189,9 +180,12 @@ def is_tenant_subscription_valid(tenant):
 
     for svc in active_services:
         if svc.end_date is None:
-            # بدون تاریخ انقضا = همیشه فعال
             return True
-        elif svc.end_date >= today:
+        # ★ اگر naive بود، timezone اضافه کن
+        end = svc.end_date
+        if timezone.is_naive(end):
+            end = timezone.make_aware(end)
+        if end >= now:
             return True
 
     return False
@@ -199,7 +193,7 @@ def is_tenant_subscription_valid(tenant):
 
 def get_tenant_subscription_details(tenant):
     """جزئیات وضعیت اشتراک — برای API"""
-    today = date.today()
+    now = timezone.now()
     services = TenantService.objects.filter(
         tenant=tenant, is_enabled=True,
     ).select_related('service')
@@ -208,7 +202,10 @@ def get_tenant_subscription_details(tenant):
     has_valid = False
 
     for ts in services:
-        is_expired = ts.end_date is not None and ts.end_date < today
+        end = ts.end_date
+        if end is not None and timezone.is_naive(end):
+            end = timezone.make_aware(end)
+        is_expired = end is not None and end < now
         if not is_expired:
             has_valid = True
         details.append({
@@ -222,7 +219,6 @@ def get_tenant_subscription_details(tenant):
         'is_valid': has_valid,
         'services': details,
     }
-
 
 # ═══════════════════════════════════════════
 #  صفحات HTML
