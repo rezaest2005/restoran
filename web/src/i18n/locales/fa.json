@@ -1,0 +1,78 @@
+
+{
+  "login": {
+    "title": "خوش آمدید",
+    "subtitle": "برای ادامه وارد حساب خود شوید",
+    "username": "نام کاربری یا شماره موبایل",
+    "usernamePlaceholder": "ali یا 09123456789",
+    "password": "رمز عبور",
+    "passwordPlaceholder": "رمز عبور خود را وارد کنید",
+    "submit": "ورود به حساب",
+    "loading": "در حال ورود...",
+    "noAccount": "حساب ندارید؟",
+    "register": "ثبت‌نام کنید",
+    "brandTitle": "پنل مدیریت",
+    "brandHighlight": "رستوران",
+    "brandDesc": "منو، سفارشات، انبار، تولید و باشگاه مشتریان",
+    "feat1": "مدیریت هوشمند سفارشات و پیگیری لحظه‌ای",
+    "feat2": "کنترل موجودی انبار و هشدار کمبود",
+    "feat3": "باشگاه مشتریان و سیستم وفاداری",
+    "feat4": "گزارش‌های مالی و تحلیل فروش",
+    "or": "یا",
+    "errorEmpty": "نام کاربری و رمز عبور را وارد کنید.",
+    "errorServer": "خطا در اتصال به سرور.",
+    "success": "ورود موفق! در حال انتقال..."
+  },
+  "sidebar": {
+    "dashboard": "داشبورد اصلی",
+    "restaurant": "رستوران",
+    "dashboards": "داشبوردها",
+    "management": "مدیریت",
+    "warehouse": "انبار و مواد",
+    "tools": "ابزارها",
+    "system": "سیستم",
+    "kitchen": "آشپزخانه",
+    "pos": "صندوق فروش",
+    "orders": "سفارشات",
+    "recipes": "دستور پخت",
+    "rawMaterials": "مواد اولیه",
+    "readyMaterials": "مواد آماده",
+    "invoices": "فاکتور خرید",
+    "usageLog": "تاریخچه مصرف",
+    "dictionary": "بخش تعاریف",
+    "users": "کاربران",
+    "logout": "خروج",
+    "comingSoon": "به‌زودی"
+  },
+  "topbar": {
+    "dashboard": "داشبورد",
+    "posBtn": "صندوق",
+    "dictBtn": "بخش تعاریف",
+    "usersBtn": "کاربران"
+  },
+  "common": {
+    "loading": "در حال بارگذاری...",
+    "error": "خطا",
+    "save": "ذخیره",
+    "cancel": "لغو",
+    "delete": "حذف",
+    "edit": "ویرایش",
+    "search": "جستجو...",
+    "confirm": "تأیید",
+    "close": "بستن",
+    "toman": "تومان"
+  },
+  "dashboard": {
+    "greeting": "خوش آمدید",
+    "greetingName": "مدیر گرامی",
+    "summary": "خلاصه عملکرد امروز رستوران شما",
+    "todaySales": "فروش امروز",
+    "todayOrders": "سفارشات امروز",
+    "clubMembers": "مشتریان باشگاه",
+    "stockItems": "اقلام موجود",
+    "quickPos": "صندوق فروش",
+    "quickOrder": "سفارش جدید",
+    "quickInvoice": "ثبت فاکتور",
+    "quickKitchen": "آشپزخانه"
+  }
+}
