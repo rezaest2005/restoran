@@ -1,0 +1,78 @@
+
+{
+  "login": {
+    "title": "Welcome",
+    "subtitle": "Sign in to your account to continue",
+    "username": "Username or Phone",
+    "usernamePlaceholder": "ali or 09123456789",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "submit": "Sign In",
+    "loading": "Signing in...",
+    "noAccount": "Don't have an account?",
+    "register": "Register",
+    "brandTitle": "Management Panel",
+    "brandHighlight": "Restaurant",
+    "brandDesc": "Menu, Orders, Inventory, Production & Loyalty",
+    "feat1": "Smart order management & real-time tracking",
+    "feat2": "Inventory control & low-stock alerts",
+    "feat3": "Customer club & loyalty system",
+    "feat4": "Financial reports & sales analytics",
+    "or": "or",
+    "errorEmpty": "Please enter username and password.",
+    "errorServer": "Server connection error.",
+    "success": "Login successful! Redirecting..."
+  },
+  "sidebar": {
+    "dashboard": "Main Dashboard",
+    "restaurant": "Restaurant",
+    "dashboards": "Dashboards",
+    "management": "Management",
+    "warehouse": "Inventory & Materials",
+    "tools": "Tools",
+    "system": "System",
+    "kitchen": "Kitchen",
+    "pos": "Point of Sale",
+    "orders": "Orders",
+    "recipes": "Recipes",
+    "rawMaterials": "Raw Materials",
+    "readyMaterials": "Ready Materials",
+    "invoices": "Purchase Invoices",
+    "usageLog": "Usage Log",
+    "dictionary": "Dictionary",
+    "users": "Users",
+    "logout": "Logout",
+    "comingSoon": "Coming Soon"
+  },
+  "topbar": {
+    "dashboard": "Dashboard",
+    "posBtn": "POS",
+    "dictBtn": "Dictionary",
+    "usersBtn": "Users"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search...",
+    "confirm": "Confirm",
+    "close": "Close",
+    "toman": "Toman"
+  },
+  "dashboard": {
+    "greeting": "Welcome",
+    "greetingName": "Dear Manager",
+    "summary": "Today's restaurant performance summary",
+    "todaySales": "Today's Sales",
+    "todayOrders": "Today's Orders",
+    "clubMembers": "Club Members",
+    "stockItems": "Items in Stock",
+    "quickPos": "Point of Sale",
+    "quickOrder": "New Order",
+    "quickInvoice": "Create Invoice",
+    "quickKitchen": "Kitchen"
+  }
+}
