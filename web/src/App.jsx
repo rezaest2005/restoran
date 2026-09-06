@@ -1,35 +1,83 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LangProvider } from "./contexts/LangContext";
-
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import Pos from "./pages/Pos";
-import Kitchen from "./pages/Kitchen";
-import AdminLayout from "./components/AdminLayout";
+import SuperLogin from "./pages/SuperLogin";
+import SuperAdmin from "./pages/super_admin";
+import SuperProtectedRoute from "./components/SuperProtectedRoute";
+import ProtectedRoute from "./components/ProtectedRoute";
+import RestaurantLayout from "./pages/RestaurantLayout";
 
 function App() {
   return (
     <ThemeProvider>
       <LangProvider>
         <Routes>
+          {/* مسیرهای اصلی و لاگین رستوران */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/login" element={<Login />} />
 
-          <Route element={<AdminLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/pos" element={<Pos />} />
-            <Route path="/kitchen" element={<Kitchen />} />
-            <Route path="/orders" element={<div style={{padding:40}}>Orders — به‌زودی</div>} />
-            <Route path="/recipes" element={<div style={{padding:40}}>Recipes — به‌زودی</div>} />
-            <Route path="/raw-materials" element={<div style={{padding:40}}>Raw Materials — به‌زودی</div>} />
-            <Route path="/ready-materials" element={<div style={{padding:40}}>Ready Materials — به‌زودی</div>} />
-            <Route path="/invoices" element={<div style={{padding:40}}>Invoices — به‌زودی</div>} />
-            <Route path="/usage-log" element={<div style={{padding:40}}>Usage Log — به‌زودی</div>} />
-            <Route path="/dictionary" element={<div style={{padding:40}}>Dictionary — به‌زودی</div>} />
-            <Route path="/users" element={<div style={{padding:40}}>Users — به‌زودی</div>} />
-          </Route>
+          {/* ✅ مسیر لاگین با slug داینامیک (مثل /test6/dashboard/login) */}
+          <Route path="/:slug/dashboard/login" element={<Login />} />
+          
+          {/* مسیر پیش‌فرض لاگین (بدون slug) */}
+          <Route path="/dashboard/login" element={<Login />} />
 
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          {/* ✅ بررسی توکن داشبورد رستوران (بدون slug) */}
+          <Route 
+            path="/dashboard" 
+            element={
+              localStorage.getItem("access_token") ? (
+                <Navigate to="/dashboard/app" replace />
+              ) : (
+                <Navigate to="/dashboard/login" replace />
+              )
+            } 
+          />
+
+          {/* ✅ مسیر داشبورد رستوران با slug داینامیک (مثل /test6/dashboard/app) */}
+          <Route 
+            path="/:slug/dashboard/app/*" 
+            element={
+              <ProtectedRoute>
+                <RestaurantLayout />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* مسیر پیش‌فرض داشبورد (بدون slug) */}
+          <Route 
+            path="/dashboard/app/*" 
+            element={
+              <ProtectedRoute>
+                <RestaurantLayout />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* مسیرهای سوپرادمین */}
+          <Route path="/super/login" element={<SuperLogin />} />
+          <Route 
+            path="/super" 
+            element={
+              localStorage.getItem("super_token") ? (
+                <Navigate to="/super/app" replace />
+              ) : (
+                <Navigate to="/super/login" replace />
+              )
+            } 
+          />
+          <Route 
+            path="/super/app" 
+            element={
+              <SuperProtectedRoute>
+                <SuperAdmin />
+              </SuperProtectedRoute>
+            } 
+          />
+          
+          {/* مسیر 404 (هر آدرس اشتباهی زده شد، به داشبورد برمی‌گرده) */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </LangProvider>
     </ThemeProvider>
