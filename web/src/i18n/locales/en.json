@@ -88,6 +88,9 @@
     "admin_role": "System Admin",
     "logout": "Logout",
     "refresh": "Refresh",
+    "lightMode": "Light Mode",
+    "darkMode": "Dark Mode",
+    "switchLang": "فارسی",
     "restaurant_panel": "Restaurant Panel",
     "breadcrumb": {
       "management": "Management",
@@ -148,7 +151,10 @@
         "services": "Services",
         "subscription": "Subscription",
         "status": "Status",
-        "actions": "Actions"
+        "actions": "Actions",
+        "period": "Period",
+        "start": "Start Date",
+        "end": "End Date"
       },
       "field": {
         "name": "Restaurant Name",
@@ -157,7 +163,10 @@
         "password": "Password",
         "owner_name": "Owner Name",
         "phone": "Phone",
-        "address": "Address"
+        "address": "Address",
+        "start_date": "Subscription Start Date",
+        "end_date": "Subscription End Date",
+        "subscription_title": "Subscription Details"
       },
       "placeholder": {
         "name": "e.g. Mali Aria Restaurant",
@@ -350,7 +359,7 @@
     "emptyItems": "No orders yet",
     "itemsCount": "items"
   },
-   "dict": {
+  "dict": {
     "title": "Dictionary of Names",
     "subtitle": "Manage frequent names, foods, and categories",
     "new_tab": "New Tab",
@@ -379,7 +388,7 @@
     "empty_items": "No items registered",
     "empty_items_sub": "Add a new item using the form above"
   },
-   "fp": {
+  "fp": {
     "title": "Finished Products",
     "subtitle": "Create and manage ready products from semi-finished and raw materials",
     "link_semi": "Semi-Finished",
