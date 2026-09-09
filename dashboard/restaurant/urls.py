@@ -176,6 +176,7 @@ urlpatterns = [
 
     path("<slug:slug>/login/",                    views.restaurant_login,         name="restaurant_login"),
     path("<slug:slug>/api/check-subscription/",   views.check_subscription_api,   name="check_subscription"),
+    path("api/restaurant/services/",  views.restaurant_services_api,  name="restaurant_services"),
 
     # ── HTML Pages (Dashboard) ──────────────────────────────
 

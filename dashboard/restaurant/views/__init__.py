@@ -20,7 +20,8 @@ from .super_admin import (
     super_user_detail_api,
     super_user_permissions_api,
     restaurant_login,         
-    check_subscription_api,   
+    check_subscription_api,
+    restaurant_services_api,   
 )
 
 # ── ViewSets ──
@@ -148,6 +149,7 @@ __all__ = [
     "super_user_permissions_api",
     "restaurant_login",          # ★ جدید
     "check_subscription_api",    # ★ جدید
+    "restaurant_services_api",
     # ViewSets
     "TableViewSet", "ReservationViewSet",
     "OrderViewSet", "SemiFinishedViewSet", "ReadyMaterialViewSet",

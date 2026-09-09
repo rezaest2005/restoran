@@ -81,7 +81,6 @@ def _super_admin_required(view_func):
         return view_func(request, *args, **kwargs)
     return wrapper
 
-
 class IsSuperAdmin(BasePermission):
     def has_permission(self, request, view):
         django_request = (
@@ -101,10 +100,12 @@ class IsSuperAdmin(BasePermission):
             request.user = user
             return True
 
-        # ★ ۳. بررسی Authorization header (جدید)
+        # ★ ۳. بررسی Authorization header (اصلاح شده)
         auth_header = django_request.META.get('HTTP_AUTHORIZATION', '')
-        if auth_header.startswith('Bearer '):
-            token = auth_header[7:]
+        # چک کردن کلمه Token به جای Bearer
+        if auth_header.startswith('Token '):
+            # استخراج توکن (طول عبارت 'Token ' برابر با 6 هست)
+            token = auth_header[6:]
             try:
                 data = signing.loads(token, salt=SUPER_TOKEN_SALT, max_age=SUPER_TOKEN_MAX_AGE)
                 user = User.objects.get(id=data['uid'], is_superuser=True, is_active=True)
@@ -116,6 +117,7 @@ class IsSuperAdmin(BasePermission):
                 pass
 
         return False
+
 
 def _make_super_token(user):
     return signing.dumps({'uid': user.id}, salt=SUPER_TOKEN_SALT)
@@ -1087,6 +1089,31 @@ def get_user_enabled_services(user):
             tenant=tenant, is_enabled=True, service__is_active=True,
         ).values_list('service__code', flat=True)
     )
+
+# ═══════════════════════════════════════════
+#  API: سرویس‌های فعال رستوران (برای sidebar)
+# ═══════════════════════════════════════════
+
+def restaurant_services_api(request):
+    """GET /api/restaurant/services/?slug=xxx"""
+    slug = request.GET.get("slug", "").strip()
+    if not slug:
+        return JsonResponse({"error": "slug required"}, status=400)
+
+    restaurant = Restaurant.objects.filter(slug=slug).first()
+    if not restaurant:
+        return JsonResponse({"error": "restaurant not found"}, status=404)
+
+    tenant = getattr(restaurant, "tenant", None)
+    if not tenant:
+        return JsonResponse({"enabled_services": []})
+
+    enabled = list(
+        TenantService.objects.filter(
+            tenant=tenant, is_enabled=True
+        ).values_list("service__code", flat=True)
+    )
+    return JsonResponse({"enabled_services": enabled})
 
 
 # ═══════════════════════════════════════════

@@ -91,7 +91,10 @@
     "restaurant_panel": "پنل رستوران",
     "breadcrumb": {
       "management": "مدیریت",
-      "dashboard": "داشبورد"
+      "dashboard": "داشبورد",
+      "lightMode": "Light Mode",
+  "darkMode": "Dark Mode",
+  "switchLang": "فارسی"
     },
     "nav": {
       "management": "مدیریت",
@@ -148,7 +151,10 @@
         "services": "سرویس‌ها",
         "subscription": "اشتراک",
         "status": "وضعیت",
-        "actions": "عملیات"
+        "actions": "عملیات",
+  "period": "دوره",
+  "start": "تاریخ شروع",
+  "end": "تاریخ پایان"
       },
       "field": {
         "name": "نام رستوران",
@@ -157,7 +163,10 @@
         "password": "رمز عبور",
         "owner_name": "نام مالک",
         "phone": "تلفن",
-        "address": "آدرس"
+        "address": "آدرس",
+        "start_date": "تاریخ شروع اشتراک",
+        "end_date": "تاریخ پایان اشتراک",
+        "subscription_title": "اطلاعات اشتراک"
       },
       "placeholder": {
         "name": "مثال: رستوران م آریا",
