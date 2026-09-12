@@ -15,15 +15,13 @@ from django.db.models import Q
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
+
 
 from ..models import ItemDictionary, DictionaryGroup, Food, Category
-from ..serializers import ItemDictionarySerializer
 from ..tenancy import (
     get_current_restaurant, set_current_restaurant,
     get_restaurant_from_request,
 )
-from .decorators import make_service_permission
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +30,7 @@ logger = logging.getLogger(__name__)
 #  Permission
 # ═══════════════════════════════════════
 
-DictionaryPerm = make_service_permission('dictionary')
+DictionaryPerm = IsAuthenticated
 
 
 # ═══════════════════════════════════════
@@ -47,6 +45,12 @@ def _resolve_restaurant(request):
     if r:
         set_current_restaurant(r)
         return r
+    # ★ fallback: user.restaurant
+    if hasattr(request, 'user') and request.user.is_authenticated:
+        r = getattr(request.user, 'restaurant', None)
+        if r:
+            set_current_restaurant(r)
+            return r
     return None
 
 
@@ -454,13 +458,15 @@ def dictionary_food_menu(request):
         cats_qs = cats_qs.filter(restaurant=restaurant)
 
     categories = {c.id: c.name for c in cats_qs}
+    categories_en = {c.id: (c.name_en or '') for c in cats_qs}
 
     items = [{
-        'id': f.id, 'name': f.name,
+        'id': f.id, 'name': f.name, 'name_en': f.name_en or '',
         'price': int(f.price or 0),
         'final_price': int(f.final_price or 0),
         'category_id': f.category_id,
         'category_name': categories.get(f.category_id, ''),
+        'category_name_en': categories_en.get(f.category_id, ''),
         'is_available': f.is_available,
     } for f in qs.order_by('name')]
 
@@ -484,28 +490,35 @@ def dictionary_food_create(request):
         return JsonResponse({'error': 'رستوران مشخص نشده'}, status=400)
 
     cat_name = (data.get('category_name') or '').strip()
+    cat_name_en = (data.get('category_name_en') or '').strip()
     category = None
     if cat_name:
-        category, _ = Category.objects.get_or_create(
+        category, created = Category.objects.get_or_create(
             restaurant=restaurant, name=cat_name,
-            defaults={'is_active': True, 'order': 0},
+            defaults={'is_active': True, 'order': 0, 'name_en': cat_name_en},
         )
+        if not created and cat_name_en:
+            category.name_en = cat_name_en
+            category.save(update_fields=['name_en'])
 
     price = int(data.get('price', 0))
     final_price = int(data.get('final_price', price))
 
+    food_name_en = (data.get('name_en') or '').strip()
+
     food = Food.objects.create(
         restaurant=restaurant,
-        name=name, category=category,
+        name=name, name_en=food_name_en, category=category,
         price=price, final_price=final_price,
         is_available=data.get('is_available', True),
     )
 
     return JsonResponse({
-        'id': food.id, 'name': food.name,
+        'id': food.id, 'name': food.name, 'name_en': food.name_en or '',
         'price': int(food.price), 'final_price': int(food.final_price),
         'category_id': food.category_id,
         'category_name': food.category.name if food.category else '',
+        'category_name_en': food.category.name_en if food.category else '',
         'is_available': food.is_available,
     }, status=201)
 
@@ -528,6 +541,8 @@ def dictionary_food_update(request, pk):
 
     if 'name' in data:
         food.name = (data['name'] or '').strip()
+    if 'name_en' in data:
+        food.name_en = (data['name_en'] or '').strip()
     if 'price' in data:
         food.price = max(0, int(data['price']))
     if 'final_price' in data:
@@ -538,11 +553,15 @@ def dictionary_food_update(request, pk):
         food.is_available = bool(data['is_available'])
     if 'category_name' in data:
         cat_name = (data['category_name'] or '').strip()
+        cat_name_en = (data.get('category_name_en') or '').strip()
         if cat_name and restaurant:
-            category, _ = Category.objects.get_or_create(
+            category, created = Category.objects.get_or_create(
                 restaurant=restaurant, name=cat_name,
-                defaults={'is_active': True, 'order': 0},
+                defaults={'is_active': True, 'order': 0, 'name_en': cat_name_en},
             )
+            if not created and cat_name_en:
+                category.name_en = cat_name_en
+                category.save(update_fields=['name_en'])
             food.category = category
         elif not cat_name:
             food.category = None
@@ -550,10 +569,11 @@ def dictionary_food_update(request, pk):
     food.save()
 
     return JsonResponse({
-        'id': food.id, 'name': food.name,
+        'id': food.id, 'name': food.name, 'name_en': food.name_en or '',
         'price': int(food.price), 'final_price': int(food.final_price),
         'category_id': food.category_id,
         'category_name': food.category.name if food.category else '',
+        'category_name_en': food.category.name_en if food.category else '',
         'is_available': food.is_available,
     })
 

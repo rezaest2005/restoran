@@ -196,6 +196,7 @@ def _build_food_entry(food: Food) -> dict:
     return {
         "id": food.id,
         "name": food.name,
+        "name_en": food.name_en or "",
         "category_id": food.category_id,
         "category_name": food.category.name if food.category else "",
         "final_price": final_price,
