@@ -43,19 +43,20 @@ User = get_user_model()
 
 class FoodSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
+    category_name_en = serializers.CharField(source='category.name_en', read_only=True, default='')
 
     class Meta:
         model = Food
         fields = [
-            'id', 'name', 'image', 'price', 'final_price',
-            'category', 'category_name', 'is_available',
+            'id', 'name', 'name_en', 'image', 'price', 'final_price',
+            'category', 'category_name', 'category_name_en', 'is_available',
         ]
 
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['id', 'name', 'image', 'is_active', 'order']
+        fields = ['id', 'name', 'name_en', 'image', 'is_active', 'order']
 
 
 # ══════════════════════════════════════════════════════════════════════════════

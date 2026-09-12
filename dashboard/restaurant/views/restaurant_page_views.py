@@ -470,6 +470,7 @@ def kitchen_page(request: HttpRequest):
     foods_list = []
     for f in food_qs.order_by('category__order', 'name'):
         foods_list.append({
+            'name_en': f.name_en or '',
             'id': f.id, 'name': f.name,
             'category_id': f.category_id,
             'category_name': f.category.name if f.category else '',

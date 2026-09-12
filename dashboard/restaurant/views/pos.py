@@ -920,6 +920,7 @@ def public_menu_api(request):
         data.append({
             "id": food.id,
             "name": food.name,
+            "name_en": food.name_en or "",
             "category_id": food.category_id,
             "category_name": food.category.name if food.category else "",
             "price": price,

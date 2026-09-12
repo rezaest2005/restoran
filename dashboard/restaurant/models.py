@@ -266,6 +266,7 @@ class User(AbstractUser):
 
 class Category(TenantModel):
     name      = name_field(verbose_name='نام دسته‌بندی')
+    name_en   = models.CharField(max_length=200, blank=True, default='', verbose_name='نام انگلیسی')
     image     = models.ImageField(upload_to="categories/", blank=True)
     is_active = is_active_field()
     order     = models.IntegerField(default=0)
@@ -283,6 +284,7 @@ class Category(TenantModel):
 class Food(TenantModel):
     category     = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="foods", db_index=True)
     name         = name_field(verbose_name='نام غذا')
+    name_en      = models.CharField(max_length=200, blank=True, default='', verbose_name='نام انگلیسی')
     image        = models.ImageField(upload_to="foods/", blank=True)
     price        = price_field(max_digits=10, verbose_name='قیمت', default=0)
     final_price  = price_field(max_digits=10, verbose_name='قیمت نهایی', default=0)
