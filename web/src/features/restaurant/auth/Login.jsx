@@ -90,7 +90,7 @@ export default function Login() {
       localStorage.setItem("access_token", data.access);
       localStorage.setItem("refresh_token", data.refresh);
       localStorage.setItem("user", JSON.stringify(data.user));
-      localStorage.setItem("db_auth", "1");
+      sessionStorage.setItem("session_alive", "1");
       await authApi.setSession({
         access_token: data.access,
         user_id: data.user.id,

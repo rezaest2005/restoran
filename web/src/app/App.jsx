@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+﻿import { Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@shared/contexts/ThemeContext";
 import { LangProvider } from "@shared/contexts/LangContext";
 import Login from "@restaurant/auth/Login";
@@ -8,6 +8,7 @@ import SuperProtectedRoute from "@super/auth/SuperProtectedRoute";
 import ProtectedRoute from "@restaurant/auth/ProtectedRoute";
 import RestaurantLayout from "@restaurant/layout/RestaurantLayout";
 import Dashboard from "@restaurant/dashboard";
+import Dictionary from "@restaurant/dictionary/Dictionary";
 
 function App() {
   return (
@@ -19,18 +20,13 @@ function App() {
           <Route path="/:slug/dashboard/login" element={<Login />} />
           <Route path="/dashboard/login" element={<Login />} />
 
+          {/* /dashboard → اگه لاگین بود app، نبود login */}
           <Route
             path="/dashboard"
-            element={
-              localStorage.getItem("access_token") ? (
-                <Navigate to="/dashboard/app" replace />
-              ) : (
-                <Navigate to="/dashboard/login" replace />
-              )
-            }
+            element={<Navigate to="/dashboard/app" replace />}
           />
 
-          {/* ★ با slug */}
+          {/* با slug */}
           <Route
             path="/:slug/dashboard/app"
             element={
@@ -48,11 +44,11 @@ function App() {
             <Route path="ready-materials" element={<div>مواد آماده</div>} />
             <Route path="invoices" element={<div>فاکتورها</div>} />
             <Route path="usage-log" element={<div>مصرف</div>} />
-            <Route path="dictionary" element={<div>دیکشنری</div>} />
+            <Route path="dictionary" element={<Dictionary />} />
             <Route path="users" element={<div>کاربران</div>} />
           </Route>
 
-          {/* ★ بدون slug */}
+          {/* بدون slug */}
           <Route
             path="/dashboard/app"
             element={
@@ -70,7 +66,7 @@ function App() {
             <Route path="ready-materials" element={<div>مواد آماده</div>} />
             <Route path="invoices" element={<div>فاکتورها</div>} />
             <Route path="usage-log" element={<div>مصرف</div>} />
-            <Route path="dictionary" element={<div>دیکشنری</div>} />
+            <Route path="dictionary" element={<Dictionary />} />
             <Route path="users" element={<div>کاربران</div>} />
           </Route>
 
@@ -78,11 +74,9 @@ function App() {
           <Route
             path="/super"
             element={
-              localStorage.getItem("super_token") ? (
+              <SuperProtectedRoute>
                 <Navigate to="/super/app" replace />
-              ) : (
-                <Navigate to="/super/login" replace />
-              )
+              </SuperProtectedRoute>
             }
           />
           <Route
