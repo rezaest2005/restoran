@@ -1228,7 +1228,6 @@ class WasteLog(TenantModel):
 
 # ─── 11.5. ONLINE ORDER SETTINGS ────────
 
-
 class OnlineOrderSettings(models.Model):
     """صندوق‌دار سایت سفارش آنلاین رو باز/بسته می‌کنه"""
     restaurant = models.OneToOneField(
@@ -1397,6 +1396,53 @@ class ItemDictionary(TenantModel):
         group_name = self.group.name if self.group else self.get_category_display()
         return f'{self.name} ({group_name})'
 
+# ─── 14. POS SETTINGS ──────────────────
+
+
+class PosSettings(TenantModel):
+    """تنظیمات صندوق فروش"""
+
+    use_dictionary = models.BooleanField(
+        default=True,
+        verbose_name="استفاده از دیکشنری غذا",
+        help_text=(
+            "فعال = غذاها از لیست غذاها (Food) خوانده میشه با تصویر، قیمت و موجودی. "
+            "غیرفعال = صندوقدار دستی اسم و قیمت وارد میکنه."
+        ),
+    )
+    allow_price_edit = models.BooleanField(
+        default=False,
+        verbose_name="اجازه تغییر قیمت توسط صندوقدار",
+        help_text="صندوق‌دار بتونه قیمت غذا رو از صندوق تغییر بده.",
+    )
+    show_stock = models.BooleanField(
+        default=True,
+        verbose_name="نمایش موجودی روی کارت غذا",
+    )
+    default_payment = models.CharField(
+        max_length=20,
+        choices=[
+            ("cash", "نقدی"),
+            ("card", "کارتخوان"),
+            ("online", "آنلاین"),
+        ],
+        default="cash",
+        verbose_name="روش پرداخت پیش‌فرض",
+    )
+    require_customer = models.BooleanField(
+        default=False,
+        verbose_name="اجبار ثبت اطلاعات مشتری",
+        help_text="اگر فعال باشه، بدون ثبت نام مشتری نمیشه سفارش ثبت کرد.",
+    )
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="آخرین بروزرسانی")
+
+    class Meta:
+        verbose_name = "تنظیمات صندوق فروش"
+        verbose_name_plural = "تنظیمات صندوق فروش"
+
+    def __str__(self):
+        mode = "دیکشنری" if self.use_dictionary else "دستی"
+        return f"صندوق ({mode}) — {self.restaurant.name if self.restaurant_id else '—'}"
 
 # ═══════════════════════════════════════════
 #  پنل مدیریت کلان

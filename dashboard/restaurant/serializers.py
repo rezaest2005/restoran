@@ -32,6 +32,7 @@ from .models import (
     OnlineOrderSettings,
     DayCloseReport, DayCloseLog,
     DictionaryGroup, ItemDictionary,
+    PosSettings,
 )
 
 User = get_user_model()
@@ -867,7 +868,23 @@ class OnlineOrderSettingsSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['updated_at', 'updated_by']
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  POS SETTINGS — ★ جدید
+# ══════════════════════════════════════════════════════════════════════════════
 
+class PosSettingsSerializer(serializers.ModelSerializer):
+    restaurant_name = serializers.CharField(source='restaurant.name', read_only=True)
+
+    class Meta:
+        model = PosSettings
+        fields = [
+            'id', 'restaurant', 'restaurant_name',
+            'use_dictionary', 'allow_price_edit', 'show_stock',
+            'default_payment', 'require_customer',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'restaurant', 'updated_at']
+        
 # ══════════════════════════════════════════════════════════════════════════════
 #  6.7 DAY CLOSE — ★ جدید
 # ══════════════════════════════════════════════════════════════════════════════

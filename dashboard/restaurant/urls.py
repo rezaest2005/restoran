@@ -125,8 +125,9 @@ urlpatterns = [
     path("api/kitchen/waste/",                      views.KitchenWasteListCreate.as_view(),   name="kitchen-waste-list"),
     path("api/kitchen/waste/<int:pk>/",             views.KitchenWasteDetail.as_view(),       name="kitchen-waste-detail"),
 
-    # ── POS ─────────────────────────────────────────────────
+        # ── POS ─────────────────────────────────────────────────
 
+    path("api/pos/settings/",          views.pos_settings,          name="pos_settings"),      
     path("api/pos/create-order/",     views.pos_create_order,      name="pos_create_order"),
     path("api/pos/daily-report/",     views.pos_daily_report,      name="pos_daily_report"),
     path("api/pos/close-summary/",    views.pos_close_summary,     name="pos_close_summary"),
@@ -137,12 +138,6 @@ urlpatterns = [
     path("api/pos/close-report/<int:report_id>/", views.pos_close_report_detail, name="pos_close_report_detail"),
     path("api/pos/close-logs/",       views.pos_close_logs,        name="pos_close_logs"),
     path("api/pos/update-food-price/", views.pos_update_food_price, name="pos_update_food_price"),
-    path("api/menu/",                              views.public_menu_api,            name="public_menu"),
-    path("api/pos/online-orders/",                  views.pos_online_orders,        name="pos_online_orders"),
-    path("api/pos/confirm-online/<int:order_id>/",  views.pos_confirm_online_order, name="pos_confirm_online"),
-    path("api/pos/reject-online/<int:order_id>/",   views.pos_reject_online_order,  name="pos_reject_online"),
-    path("api/pos/online-orders-status/",    views.online_orders_status,   name="online_orders_status"),
-    path("api/pos/toggle-online-orders/",    views.toggle_online_orders,   name="toggle_online_orders"),
 
     # ── Card Reader ─────────────────────────────────────────
 

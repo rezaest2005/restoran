@@ -1141,3 +1141,69 @@ def toggle_online_orders(request):
         "msg": f"سفارش آنلاین {status_text}",
         "closed_message": settings_obj.closed_message,
     })
+
+# ═══════════════════════════════════════
+#  POS Settings — ★ جدید
+# ═══════════════════════════════════════
+
+from ..models import PosSettings
+from ..serializers import PosSettingsSerializer
+
+
+@api_view(["GET", "POST"])
+@permission_classes([PosPerm])
+def pos_settings(request):
+    """تنظیمات صندوق فروش"""
+    restaurant = _resolve_restaurant(request)
+    if not restaurant:
+        return JsonResponse(
+            {"success": False, "error": "رستوران مشخص نشده"},
+            status=400,
+        )
+
+    obj, _ = PosSettings.objects.get_or_create(
+        restaurant=restaurant,
+        defaults={
+            "use_dictionary": True,
+            "allow_price_edit": False,
+            "show_stock": True,
+            "default_payment": "cash",
+            "require_customer": False,
+        },
+    )
+
+    if request.method == "GET":
+        return JsonResponse({
+            "success": True,
+            "settings": PosSettingsSerializer(obj).data,
+        })
+
+    # POST — فقط owner/manager
+    if not request.user.is_owner and not request.user.is_manager and not request.user.is_superuser:
+        return JsonResponse(
+            {"success": False, "error": "فقط مدیر یا مالک می‌تواند تنظیمات را تغییر دهد"},
+            status=403,
+        )
+
+    data = request.data
+    if "use_dictionary" in data:
+        obj.use_dictionary = bool(data["use_dictionary"])
+    if "allow_price_edit" in data:
+        obj.allow_price_edit = bool(data["allow_price_edit"])
+    if "show_stock" in data:
+        obj.show_stock = bool(data["show_stock"])
+    if "default_payment" in data:
+        if data["default_payment"] in ("cash", "card", "online"):
+            obj.default_payment = data["default_payment"]
+    if "require_customer" in data:
+        obj.require_customer = bool(data["require_customer"])
+
+    obj.save()
+
+    return JsonResponse({
+        "success": True,
+        "settings": PosSettingsSerializer(obj).data,
+        "msg": "تنظیمات صندوق بروزرسانی شد",
+    })
+
+
