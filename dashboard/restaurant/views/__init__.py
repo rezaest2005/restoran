@@ -74,6 +74,7 @@ from .pos import (
     toggle_online_orders,
     public_menu_api,
     pos_update_food_price,
+    pos_settings,
 )
 
 # ── Orders API ──
@@ -181,7 +182,7 @@ __all__ = [
     "pos_close_history", "pos_close_report_detail", "pos_close_logs",
     "pos_online_orders", "pos_confirm_online_order", "pos_reject_online_order",
     "online_orders_status", "toggle_online_orders",
-    "public_menu_api", "pos_update_food_price",
+    "public_menu_api", "pos_update_food_price", "pos_settings", 
     # Orders
     "order_change_status", "order_send_to_kitchen",
     "kitchen_orders_api", "order_list_api",
