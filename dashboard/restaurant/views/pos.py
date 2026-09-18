@@ -23,13 +23,21 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response as DRFResponse
 
 from ..models import (
-    Order, OrderItem, Food, KitchenProduct, KitchenInventory,
-    ReadyMaterial, Category, WasteLog,
-    DayCloseReport, DayCloseLog,
+    Order,
+    OrderItem,
+    Food,
+    KitchenProduct,
+    KitchenInventory,
+    ReadyMaterial,
+    Category,
+    WasteLog,
+    DayCloseReport,
+    DayCloseLog,
     OnlineOrderSettings,
 )
 from ..tenancy import (
-    get_current_restaurant, set_current_restaurant,
+    get_current_restaurant,
+    set_current_restaurant,
     get_restaurant_from_request,
 )
 from .decorators import make_service_permission
@@ -41,13 +49,12 @@ logger = logging.getLogger(__name__)
 #  Permission
 # ═══════════════════════════════════════
 
-PosPerm = make_service_permission('pos')
+PosPerm = make_service_permission("pos")
 
 
 # ═══════════════════════════════════════
 #  resolve restaurant
 # ═══════════════════════════════════════
-
 def _resolve_restaurant(request):
     r = get_current_restaurant()
     if r:
@@ -56,12 +63,19 @@ def _resolve_restaurant(request):
     if r:
         set_current_restaurant(r)
         return r
+    # ★ NEW: fallback از user لاگین‌شده
+    if hasattr(request, "user") and hasattr(request.user, "restaurant"):
+        r = request.user.restaurant
+        if r:
+            set_current_restaurant(r)
+            return r
     return None
 
 
 # ═══════════════════════════════════════
 #  پیدا کردن KitchenProduct برای Food
 # ═══════════════════════════════════════
+
 
 def _find_kp_for_food(food, restaurant=None):
     """★ FIXED: فیلتر restaurant"""
@@ -82,6 +96,7 @@ def _find_kp_for_food(food, restaurant=None):
 # ═══════════════════════════════════════
 #  ایجاد سفارش
 # ═══════════════════════════════════════
+
 
 @api_view(["POST"])
 @permission_classes([PosPerm])
@@ -118,11 +133,14 @@ def pos_create_order(request: HttpRequest):
             raw_id = item.get("food_id") or item.get("id")
             is_ready = item.get("is_ready", False)
 
-            if is_ready or (isinstance(raw_id, str) and str(raw_id).startswith("ready_")):
+            if is_ready or (
+                isinstance(raw_id, str) and str(raw_id).startswith("ready_")
+            ):
                 rm_id = int(str(raw_id).replace("ready_", ""))
                 # ★ FIXED: فیلتر restaurant روی ReadyMaterial
                 rm = ReadyMaterial.objects.filter(
-                    id=rm_id, restaurant=restaurant,
+                    id=rm_id,
+                    restaurant=restaurant,
                 ).first()
                 if not rm:
                     return JsonResponse(
@@ -134,16 +152,21 @@ def pos_create_order(request: HttpRequest):
                         f"{rm.name}: سفارش {qty} ولی موجودی {int(rm.quantity)}"
                     )
                     continue
-                validated_items.append({
-                    "type": "ready", "obj": rm, "qty": qty,
-                    "price": int(rm.selling_price),
-                })
+                validated_items.append(
+                    {
+                        "type": "ready",
+                        "obj": rm,
+                        "qty": qty,
+                        "price": int(rm.selling_price),
+                    }
+                )
             else:
                 food_id = int(raw_id) if raw_id else 0
                 # ★ FIXED: فیلتر restaurant روی Food
                 food = (
                     Food.objects.filter(id=food_id, restaurant=restaurant).first()
-                    if food_id > 0 else None
+                    if food_id > 0
+                    else None
                 )
                 if not food:
                     return JsonResponse(
@@ -168,17 +191,23 @@ def pos_create_order(request: HttpRequest):
                         )
                         continue
 
-                validated_items.append({
-                    "type": "food", "obj": food,
-                    "kp_id": kp.id if kp else None,
-                    "qty": qty, "price": db_price,
-                })
+                validated_items.append(
+                    {
+                        "type": "food",
+                        "obj": food,
+                        "kp_id": kp.id if kp else None,
+                        "qty": qty,
+                        "price": db_price,
+                    }
+                )
 
         if stock_errors:
-            return JsonResponse({
-                "success": False,
-                "error": "موجودی کافی نیست: " + " | ".join(stock_errors),
-            })
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "موجودی کافی نیست: " + " | ".join(stock_errors),
+                }
+            )
         if not validated_items:
             return JsonResponse(
                 {"success": False, "error": "هیچ آیتم معتبری وجود ندارد"},
@@ -209,8 +238,9 @@ def pos_create_order(request: HttpRequest):
                 if vi["type"] == "ready":
                     rm = vi["obj"]
                     updated = ReadyMaterial.objects.filter(
-                        id=rm.id, quantity__gte=qty,
-                    ).update(quantity=F('quantity') - qty)
+                        id=rm.id,
+                        quantity__gte=qty,
+                    ).update(quantity=F("quantity") - qty)
                     if updated == 0:
                         raise ValueError(f"موجودی {rm.name} کافی نیست")
 
@@ -222,10 +252,14 @@ def pos_create_order(request: HttpRequest):
                         quantity=qty,
                         price=price,
                     )
-                    order_items.append({
-                        "name": rm.name, "quantity": qty,
-                        "price": price, "line_total": line_total,
-                    })
+                    order_items.append(
+                        {
+                            "name": rm.name,
+                            "quantity": qty,
+                            "price": price,
+                            "line_total": line_total,
+                        }
+                    )
                 else:
                     food = vi["obj"]
                     kp_id = vi["kp_id"]
@@ -233,7 +267,7 @@ def pos_create_order(request: HttpRequest):
                         updated = KitchenInventory.objects.filter(
                             kitchen_product_id=kp_id,
                             quantity__gte=qty,
-                        ).update(quantity=F('quantity') - qty)
+                        ).update(quantity=F("quantity") - qty)
                         if updated == 0:
                             raise ValueError(f"موجودی {food.name} کافی نیست")
 
@@ -244,22 +278,28 @@ def pos_create_order(request: HttpRequest):
                         quantity=qty,
                         price=price,
                     )
-                    order_items.append({
-                        "name": food.name, "quantity": qty,
-                        "price": price, "line_total": line_total,
-                    })
+                    order_items.append(
+                        {
+                            "name": food.name,
+                            "quantity": qty,
+                            "price": price,
+                            "line_total": line_total,
+                        }
+                    )
 
             order.recalculate_total()
 
-        return JsonResponse({
-            "success": True,
-            "order_id": order.id,
-            "customer_name": order.customer_name,
-            "total_price": int(order.total_price),
-            "items": order_items,
-            "created_at": order.created_at.strftime("%Y-%m-%d %H:%M"),
-            "msg": f"سفارش #{order.id} ثبت شد",
-        })
+        return JsonResponse(
+            {
+                "success": True,
+                "order_id": order.id,
+                "customer_name": order.customer_name,
+                "total_price": int(order.total_price),
+                "items": order_items,
+                "created_at": order.created_at.strftime("%Y-%m-%d %H:%M"),
+                "msg": f"سفارش #{order.id} ثبت شد",
+            }
+        )
 
     except Exception as exc:
         logger.exception("Error creating POS order")
@@ -270,12 +310,13 @@ def pos_create_order(request: HttpRequest):
 #  گزارش روزانه
 # ═══════════════════════════════════════
 
+
 @api_view(["GET"])
 @permission_classes([PosPerm])
 def pos_daily_report(request: HttpRequest):
     try:
         restaurant = _resolve_restaurant(request)
-        date_str = request.GET.get('date', '')
+        date_str = request.GET.get("date", "")
         if date_str:
             target_date = datetime.date.fromisoformat(date_str)
         else:
@@ -290,7 +331,7 @@ def pos_daily_report(request: HttpRequest):
 
         orders = Order.objects.filter(
             created_at__range=(start, end),
-        ).prefetch_related('items__food')
+        ).prefetch_related("items__food")
 
         if restaurant:
             orders = orders.filter(restaurant=restaurant)
@@ -300,49 +341,57 @@ def pos_daily_report(request: HttpRequest):
 
         top_items = (
             OrderItem.objects.filter(order__in=orders, food__isnull=False)
-            .values('food__name')
-            .annotate(qty=Sum('quantity'), total=Sum('price'))
-            .order_by('-qty')[:10]
+            .values("food__name")
+            .annotate(qty=Sum("quantity"), total=Sum("price"))
+            .order_by("-qty")[:10]
         )
-        top_list = [{
-            'name': t['food__name'],
-            'qty': t['qty'],
-            'total': int(t['total'] or 0),
-        } for t in top_items]
+        top_list = [
+            {
+                "name": t["food__name"],
+                "qty": t["qty"],
+                "total": int(t["total"] or 0),
+            }
+            for t in top_items
+        ]
 
-        orders_list = [{
-            'id': o.id,
-            'customer': o.customer_name,
-            'items_count': o.items.count(),
-            'total': int(o.total_price),
-            'status': o.status,
-            'status_display': o.get_status_display(),
-            'source': o.source,
-            'time': o.created_at.strftime('%H:%M'),
-        } for o in orders.order_by('-created_at')]
+        orders_list = [
+            {
+                "id": o.id,
+                "customer": o.customer_name,
+                "items_count": o.items.count(),
+                "total": int(o.total_price),
+                "status": o.status,
+                "status_display": o.get_status_display(),
+                "source": o.source,
+                "time": o.created_at.strftime("%H:%M"),
+            }
+            for o in orders.order_by("-created_at")
+        ]
 
         waste_qs = WasteLog.objects.filter(created_at__range=(start, end))
         if restaurant:
             waste_qs = waste_qs.filter(restaurant=restaurant)
-        waste_total = waste_qs.aggregate(s=Sum('quantity'))['s'] or 0
+        waste_total = waste_qs.aggregate(s=Sum("quantity"))["s"] or 0
 
-        return JsonResponse({
-            'success': True,
-            'total_sales': int(total_sales),
-            'order_count': order_count,
-            'waste_total': waste_total,
-            'top_items': top_list,
-            'orders': orders_list,
-        })
+        return JsonResponse(
+            {
+                "success": True,
+                "total_sales": int(total_sales),
+                "order_count": order_count,
+                "waste_total": waste_total,
+                "top_items": top_list,
+                "orders": orders_list,
+            }
+        )
     except Exception as exc:
         logger.exception("Error in daily report")
-        return JsonResponse({'success': False, 'error': str(exc)})
-
+        return JsonResponse({"success": False, "error": str(exc)})
 
 
 # ═══════════════════════════════════════
 #  بستن روز — خلاصه — ★ FIXED: فیلتر restaurant روی KP
 # ═══════════════════════════════════════
+
 
 @api_view(["GET"])
 @permission_classes([PosPerm])
@@ -354,24 +403,27 @@ def pos_close_summary(request):
     if restaurant:
         orders = orders.filter(restaurant=restaurant)
 
-    total_sales = orders.aggregate(s=Sum('total_price'))['s'] or 0
+    total_sales = orders.aggregate(s=Sum("total_price"))["s"] or 0
     order_count = orders.count()
-    delivered = orders.filter(status='delivered').count()
-    pending = orders.exclude(status='delivered').count()
+    delivered = orders.filter(status="delivered").count()
+    pending = orders.exclude(status="delivered").count()
 
-    pending_orders = [{
-        'id': o.id,
-        'customer': o.customer_name or 'بدون نام',
-        'total': int(o.total_price),
-        'source': o.source,
-        'items': [
-            {
-                'name': oi.food.name if oi.food else (oi.item_name or '?'),
-                'qty': oi.quantity,
-            }
-            for oi in o.items.all()
-        ],
-    } for o in orders.exclude(status='delivered')]
+    pending_orders = [
+        {
+            "id": o.id,
+            "customer": o.customer_name or "بدون نام",
+            "total": int(o.total_price),
+            "source": o.source,
+            "items": [
+                {
+                    "name": oi.food.name if oi.food else (oi.item_name or "?"),
+                    "qty": oi.quantity,
+                }
+                for oi in o.items.all()
+            ],
+        }
+        for o in orders.exclude(status="delivered")
+    ]
 
     # ★ FIXED: فیلتر مستقیم restaurant روی KitchenProduct
     kp_qs = KitchenProduct.objects.filter(is_active=True)
@@ -381,15 +433,19 @@ def pos_close_summary(request):
     kitchen_items = []
     for kp in kp_qs:
         inv = kp.get_inventory()
-        kitchen_items.append({
-            'id': kp.id, 'name': kp.name,
-            'stock': inv.quantity, 'category': kp.category,
-        })
+        kitchen_items.append(
+            {
+                "id": kp.id,
+                "name": kp.name,
+                "stock": inv.quantity,
+                "category": kp.category,
+            }
+        )
 
     waste_qs = WasteLog.objects.filter(created_at__date=today)
     if restaurant:
         waste_qs = waste_qs.filter(restaurant=restaurant)
-    waste_count = waste_qs.aggregate(s=Sum('quantity'))['s'] or 0
+    waste_count = waste_qs.aggregate(s=Sum("quantity"))["s"] or 0
     waste_value = sum(w.total_cost for w in waste_qs)
 
     discount_total = 0
@@ -401,22 +457,26 @@ def pos_close_summary(request):
         oi_qs = oi_qs.filter(order__restaurant=restaurant)
 
     for oi in oi_qs:
-        name = oi.food.name if oi.food else (oi.item_name or '?')
+        name = oi.food.name if oi.food else (oi.item_name or "?")
         if name not in item_stats:
-            item_stats[name] = {'qty': 0, 'revenue': 0}
-        item_stats[name]['qty'] += oi.quantity
-        item_stats[name]['revenue'] += int(oi.price or 0) * oi.quantity
+            item_stats[name] = {"qty": 0, "revenue": 0}
+        item_stats[name]["qty"] += oi.quantity
+        item_stats[name]["revenue"] += int(oi.price or 0) * oi.quantity
 
     for name, stats in item_stats.items():
-        items_detail.append({
-            'name': name, 'qty': stats['qty'], 'revenue': stats['revenue'],
-        })
+        items_detail.append(
+            {
+                "name": name,
+                "qty": stats["qty"],
+                "revenue": stats["revenue"],
+            }
+        )
 
-    top_items = sorted(items_detail, key=lambda x: x['qty'], reverse=True)[:5]
+    top_items = sorted(items_detail, key=lambda x: x["qty"], reverse=True)[:5]
 
     total_cost = 0
-    for oi in oi_qs.select_related('food__recipe'):
-        if oi.food and hasattr(oi.food, 'recipe') and oi.food.recipe:
+    for oi in oi_qs.select_related("food__recipe"):
+        if oi.food and hasattr(oi.food, "recipe") and oi.food.recipe:
             total_cost += int(oi.food.recipe.cost_per_serving or 0) * oi.quantity
 
     total_profit = total_sales - total_cost - waste_value - discount_total
@@ -428,39 +488,42 @@ def pos_close_summary(request):
         report_qs = report_qs.filter(restaurant=restaurant)
     existing_report = report_qs.first()
 
-    return JsonResponse({
-        'success': True,
-        'total_sales': int(total_sales),
-        'total_cost': total_cost,
-        'total_profit': int(total_profit),
-        'order_count': order_count,
-        'delivered_count': delivered,
-        'pending_count': pending,
-        'pending_orders': pending_orders,
-        'kitchen_items': kitchen_items,
-        'waste_count': waste_count,
-        'waste_value': waste_value,
-        'discount_total': discount_total,
-        'items_detail': items_detail,
-        'top_items': top_items,
-        'already_closed': existing_report is not None,
-        'report_id': existing_report.id if existing_report else None,
-    })
+    return JsonResponse(
+        {
+            "success": True,
+            "total_sales": int(total_sales),
+            "total_cost": total_cost,
+            "total_profit": int(total_profit),
+            "order_count": order_count,
+            "delivered_count": delivered,
+            "pending_count": pending,
+            "pending_orders": pending_orders,
+            "kitchen_items": kitchen_items,
+            "waste_count": waste_count,
+            "waste_value": waste_value,
+            "discount_total": discount_total,
+            "items_detail": items_detail,
+            "top_items": top_items,
+            "already_closed": existing_report is not None,
+            "report_id": existing_report.id if existing_report else None,
+        }
+    )
 
 
 # ═══════════════════════════════════════
 #  ثبت ضایعات از صندوق — ★ FIXED: فیلتر restaurant روی KP
 # ═══════════════════════════════════════
 
+
 @api_view(["POST"])
 @permission_classes([PosPerm])
 def pos_register_waste(request):
     try:
         data = request.data
-        items = data.get('items', [])
+        items = data.get("items", [])
         if not items:
             return JsonResponse(
-                {'success': False, 'error': 'آیتمی ارسال نشد'},
+                {"success": False, "error": "آیتمی ارسال نشد"},
                 status=400,
             )
 
@@ -475,27 +538,34 @@ def pos_register_waste(request):
 
         with transaction.atomic():
             for item in items:
-                kp_id = item.get('kitchen_product_id')
-                qty = item.get('quantity', 0)
-                reason = item.get('reason', 'other')
-                notes = item.get('note', '')
+                kp_id = item.get("kitchen_product_id")
+                qty = item.get("quantity", 0)
+                reason = item.get("reason", "other")
+                notes = item.get("note", "")
 
                 if qty <= 0:
-                    return JsonResponse({
-                        'success': False,
-                        'error': f'تعداد باید بیشتر از صفر باشد ({qty})',
-                    }, status=400)
+                    return JsonResponse(
+                        {
+                            "success": False,
+                            "error": f"تعداد باید بیشتر از صفر باشد ({qty})",
+                        },
+                        status=400,
+                    )
 
                 # ★ FIXED: فیلتر restaurant روی KitchenProduct
                 try:
                     kp = KitchenProduct.objects.get(
-                        id=kp_id, restaurant=restaurant,
+                        id=kp_id,
+                        restaurant=restaurant,
                     )
                 except KitchenProduct.DoesNotExist:
-                    return JsonResponse({
-                        'success': False,
-                        'error': f'محصول آشپزخانه {kp_id} پیدا نشد',
-                    }, status=404)
+                    return JsonResponse(
+                        {
+                            "success": False,
+                            "error": f"محصول آشپزخانه {kp_id} پیدا نشد",
+                        },
+                        status=404,
+                    )
 
                 inv = kp.get_inventory()
                 actual_qty = min(qty, inv.quantity)
@@ -503,7 +573,7 @@ def pos_register_waste(request):
                     continue
 
                 inv.quantity -= actual_qty
-                inv.save(update_fields=['quantity', 'updated_at'])
+                inv.save(update_fields=["quantity", "updated_at"])
 
                 WasteLog.objects.create(
                     restaurant=restaurant,
@@ -514,20 +584,23 @@ def pos_register_waste(request):
                     notes=notes,
                     created_by=request.user,
                 )
-                registered.append(f'{kp.name}×{actual_qty}')
+                registered.append(f"{kp.name}×{actual_qty}")
 
-        return JsonResponse({
-            'success': True,
-            'msg': f'ضایعات ثبت شد: {", ".join(registered)}',
-        })
+        return JsonResponse(
+            {
+                "success": True,
+                "msg": f'ضایعات ثبت شد: {", ".join(registered)}',
+            }
+        )
     except Exception as e:
         logger.exception("Error registering waste")
-        return JsonResponse({'success': False, 'error': str(e)})
+        return JsonResponse({"success": False, "error": str(e)})
 
 
 # ═══════════════════════════════════════
 #  بستن سفارشات معلق
 # ═══════════════════════════════════════
+
 
 @api_view(["POST"])
 @permission_classes([PosPerm])
@@ -535,18 +608,19 @@ def pos_close_all_pending(request):
     today = timezone.localdate()
     restaurant = _resolve_restaurant(request)
 
-    qs = Order.objects.filter(created_at__date=today).exclude(status='delivered')
+    qs = Order.objects.filter(created_at__date=today).exclude(status="delivered")
     if restaurant:
         qs = qs.filter(restaurant=restaurant)
 
     count = qs.count()
-    qs.update(status='delivered')
-    return JsonResponse({'success': True, 'msg': f'{count} سفارش تحویل شد'})
+    qs.update(status="delivered")
+    return JsonResponse({"success": True, "msg": f"{count} سفارش تحویل شد"})
 
 
 # ═══════════════════════════════════════
 #  بستن روز — ★ FIXED: race condition
 # ═══════════════════════════════════════
+
 
 @api_view(["POST"])
 @permission_classes([PosPerm])
@@ -563,31 +637,40 @@ def pos_close_day(request):
     # ★ FIXED: بررسی + ایجاد داخل atomic
     with transaction.atomic():
         # select_for_update برای جلوگیری از race condition
-        existing = DayCloseReport.objects.select_for_update().filter(
-            date=today, restaurant=restaurant,
-        ).first()
+        existing = (
+            DayCloseReport.objects.select_for_update()
+            .filter(
+                date=today,
+                restaurant=restaurant,
+            )
+            .first()
+        )
 
         if existing:
-            return JsonResponse({
-                'success': False,
-                'error': 'این روز قبلاً بسته شده.',
-            })
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "این روز قبلاً بسته شده.",
+                }
+            )
 
         orders = Order.objects.filter(
-            created_at__date=today, restaurant=restaurant,
+            created_at__date=today,
+            restaurant=restaurant,
         )
-        pending = orders.exclude(status='delivered')
+        pending = orders.exclude(status="delivered")
         pending_count = pending.count()
-        pending.update(status='delivered')
+        pending.update(status="delivered")
 
-        total_sales = orders.aggregate(s=Sum('total_price'))['s'] or 0
+        total_sales = orders.aggregate(s=Sum("total_price"))["s"] or 0
         order_count = orders.count()
-        delivered_count = orders.filter(status='delivered').count()
+        delivered_count = orders.filter(status="delivered").count()
 
         waste_qs = WasteLog.objects.filter(
-            created_at__date=today, restaurant=restaurant,
+            created_at__date=today,
+            restaurant=restaurant,
         )
-        waste_count = waste_qs.aggregate(s=Sum('quantity'))['s'] or 0
+        waste_count = waste_qs.aggregate(s=Sum("quantity"))["s"] or 0
         waste_value = sum(w.total_cost for w in waste_qs)
 
         discount_total = 0
@@ -599,24 +682,30 @@ def pos_close_day(request):
             order__restaurant=restaurant,
         )
         for oi in oi_qs:
-            name = oi.food.name if oi.food else (oi.item_name or '?')
+            name = oi.food.name if oi.food else (oi.item_name or "?")
             if name not in item_stats:
-                item_stats[name] = {'qty': 0, 'revenue': 0}
-            item_stats[name]['qty'] += oi.quantity
-            item_stats[name]['revenue'] += int(oi.price or 0) * oi.quantity
+                item_stats[name] = {"qty": 0, "revenue": 0}
+            item_stats[name]["qty"] += oi.quantity
+            item_stats[name]["revenue"] += int(oi.price or 0) * oi.quantity
 
         for name, stats in item_stats.items():
-            items_detail.append({
-                'name': name, 'qty': stats['qty'], 'revenue': stats['revenue'],
-            })
+            items_detail.append(
+                {
+                    "name": name,
+                    "qty": stats["qty"],
+                    "revenue": stats["revenue"],
+                }
+            )
 
         top_items = sorted(
-            items_detail, key=lambda x: x['qty'], reverse=True,
+            items_detail,
+            key=lambda x: x["qty"],
+            reverse=True,
         )[:5]
 
         total_cost = 0
-        for oi in oi_qs.select_related('food__recipe'):
-            if oi.food and hasattr(oi.food, 'recipe') and oi.food.recipe:
+        for oi in oi_qs.select_related("food__recipe"):
+            if oi.food and hasattr(oi.food, "recipe") and oi.food.recipe:
                 total_cost += int(oi.food.recipe.cost_per_serving or 0) * oi.quantity
 
         total_profit = total_sales - total_cost - waste_value - discount_total
@@ -624,13 +713,14 @@ def pos_close_day(request):
         # ★ FIXED: فیلتر restaurant روی KitchenProduct
         inventory_snapshot = {}
         for kp in KitchenProduct.objects.filter(
-            is_active=True, restaurant=restaurant,
+            is_active=True,
+            restaurant=restaurant,
         ):
             inv = kp.get_inventory()
             inventory_snapshot[kp.name] = {
-                'product_id': kp.id,
-                'stock': inv.quantity,
-                'price': kp.selling_price or 0,
+                "product_id": kp.id,
+                "stock": inv.quantity,
+                "price": kp.selling_price or 0,
             }
 
         report = DayCloseReport.objects.create(
@@ -653,62 +743,69 @@ def pos_close_day(request):
         DayCloseLog.objects.create(
             restaurant=restaurant,
             date=today,
-            action='close',
+            action="close",
             user=user,
             details={
-                'report_id': report.id,
-                'total_sales': int(total_sales),
-                'order_count': order_count,
-                'waste_count': waste_count,
-                'pending_delivered': pending_count,
+                "report_id": report.id,
+                "total_sales": int(total_sales),
+                "order_count": order_count,
+                "waste_count": waste_count,
+                "pending_delivered": pending_count,
             },
         )
 
-    return JsonResponse({
-        'success': True,
-        'report_id': report.id,
-        'msg': (
-            f'روز بسته شد — {order_count} سفارش / '
-            f'{int(total_sales):,} تومان فروش / {int(total_profit):,} سود'
-        ),
-    })
+    return JsonResponse(
+        {
+            "success": True,
+            "report_id": report.id,
+            "msg": (
+                f"روز بسته شد — {order_count} سفارش / "
+                f"{int(total_sales):,} تومان فروش / {int(total_profit):,} سود"
+            ),
+        }
+    )
 
 
 # ═══════════════════════════════════════
 #  تاریخچه بستن
 # ═══════════════════════════════════════
 
+
 @api_view(["GET"])
 @permission_classes([PosPerm])
 def pos_close_history(request):
-    limit = min(100, max(1, int(request.GET.get('limit', 30))))
+    limit = min(100, max(1, int(request.GET.get("limit", 30))))
     restaurant = _resolve_restaurant(request)
 
     qs = DayCloseReport.objects.all()
     if restaurant:
         qs = qs.filter(restaurant=restaurant)
 
-    reports = qs.order_by('-date')[:limit]
-    data = [{
-        'id': r.id,
-        'date': str(r.date),
-        'total_sales': int(r.total_sales),
-        'total_cost': int(r.total_cost),
-        'total_profit': int(r.total_profit),
-        'order_count': r.order_count,
-        'delivered_count': r.delivered_count,
-        'waste_count': r.waste_count,
-        'waste_value': int(r.waste_value),
-        'discount_total': int(r.discount_total),
-        'closed_by': r.closed_by.username if r.closed_by else '?',
-        'closed_at': r.closed_at.strftime('%Y-%m-%d %H:%M'),
-    } for r in reports]
-    return JsonResponse({'success': True, 'reports': data})
+    reports = qs.order_by("-date")[:limit]
+    data = [
+        {
+            "id": r.id,
+            "date": str(r.date),
+            "total_sales": int(r.total_sales),
+            "total_cost": int(r.total_cost),
+            "total_profit": int(r.total_profit),
+            "order_count": r.order_count,
+            "delivered_count": r.delivered_count,
+            "waste_count": r.waste_count,
+            "waste_value": int(r.waste_value),
+            "discount_total": int(r.discount_total),
+            "closed_by": r.closed_by.username if r.closed_by else "?",
+            "closed_at": r.closed_at.strftime("%Y-%m-%d %H:%M"),
+        }
+        for r in reports
+    ]
+    return JsonResponse({"success": True, "reports": data})
 
 
 # ═══════════════════════════════════════
 #  جزئیات گزارش — ★ FIXED: فیلتر restaurant
 # ═══════════════════════════════════════
+
 
 @api_view(["GET"])
 @permission_classes([PosPerm])
@@ -724,58 +821,64 @@ def pos_close_report_detail(request, report_id):
         r = qs.get(id=report_id)
     except DayCloseReport.DoesNotExist:
         return JsonResponse(
-            {'success': False, 'error': 'گزارش پیدا نشد'},
+            {"success": False, "error": "گزارش پیدا نشد"},
             status=404,
         )
 
-    return JsonResponse({
-        'success': True,
-        'report': {
-            'id': r.id,
-            'date': str(r.date),
-            'total_sales': int(r.total_sales),
-            'total_cost': int(r.total_cost),
-            'total_profit': int(r.total_profit),
-            'order_count': r.order_count,
-            'delivered_count': r.delivered_count,
-            'waste_count': r.waste_count,
-            'waste_value': int(r.waste_value),
-            'discount_total': int(r.discount_total),
-            'inventory_snapshot': r.inventory_snapshot,
-            'items_detail': r.items_detail,
-            'top_items': r.top_items,
-            'closed_by': r.closed_by.username if r.closed_by else '?',
-            'closed_at': r.closed_at.strftime('%Y-%m-%d %H:%M'),
-        },
-    })
+    return JsonResponse(
+        {
+            "success": True,
+            "report": {
+                "id": r.id,
+                "date": str(r.date),
+                "total_sales": int(r.total_sales),
+                "total_cost": int(r.total_cost),
+                "total_profit": int(r.total_profit),
+                "order_count": r.order_count,
+                "delivered_count": r.delivered_count,
+                "waste_count": r.waste_count,
+                "waste_value": int(r.waste_value),
+                "discount_total": int(r.discount_total),
+                "inventory_snapshot": r.inventory_snapshot,
+                "items_detail": r.items_detail,
+                "top_items": r.top_items,
+                "closed_by": r.closed_by.username if r.closed_by else "?",
+                "closed_at": r.closed_at.strftime("%Y-%m-%d %H:%M"),
+            },
+        }
+    )
 
 
 @api_view(["GET"])
 @permission_classes([PosPerm])
 def pos_close_logs(request):
-    limit = min(100, max(1, int(request.GET.get('limit', 50))))
+    limit = min(100, max(1, int(request.GET.get("limit", 50))))
     restaurant = _resolve_restaurant(request)
 
-    qs = DayCloseLog.objects.select_related('user')
+    qs = DayCloseLog.objects.select_related("user")
     if restaurant:
         qs = qs.filter(restaurant=restaurant)
 
-    logs = qs.order_by('-created_at')[:limit]
-    data = [{
-        'id': log.id,
-        'date': str(log.date),
-        'action': log.action,
-        'action_display': log.get_action_display(),
-        'user': log.user.username if log.user else '?',
-        'details': log.details,
-        'created_at': log.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-    } for log in logs]
-    return JsonResponse({'success': True, 'logs': data})
+    logs = qs.order_by("-created_at")[:limit]
+    data = [
+        {
+            "id": log.id,
+            "date": str(log.date),
+            "action": log.action,
+            "action_display": log.get_action_display(),
+            "user": log.user.username if log.user else "?",
+            "details": log.details,
+            "created_at": log.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        for log in logs
+    ]
+    return JsonResponse({"success": True, "logs": data})
 
 
 # ═══════════════════════════════════════
 #  ویرایش قیمت غذا — ★ FIXED: فیلتر restaurant
 # ═══════════════════════════════════════
+
 
 @api_view(["POST"])
 @permission_classes([PosPerm])
@@ -819,14 +922,16 @@ def pos_update_food_price(request):
 
         food.save(update_fields=["price", "final_price"])
 
-        return JsonResponse({
-            "success": True,
-            "food_id": food.id,
-            "name": food.name,
-            "price": int(food.price),
-            "final_price": int(food.final_price),
-            "msg": f"قیمت {food.name} بروزرسانی شد",
-        })
+        return JsonResponse(
+            {
+                "success": True,
+                "food_id": food.id,
+                "name": food.name,
+                "price": int(food.price),
+                "final_price": int(food.final_price),
+                "msg": f"قیمت {food.name} بروزرسانی شد",
+            }
+        )
 
     except Exception as exc:
         logger.exception("Error updating food price")
@@ -836,6 +941,7 @@ def pos_update_food_price(request):
 # ═══════════════════════════════════════
 #  Public Menu API — عمومی
 # ═══════════════════════════════════════
+
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
@@ -851,7 +957,9 @@ def public_menu_api(request):
                 defaults={"is_open": True},
             )
             is_open = settings_obj.is_open
-            closed_message = settings_obj.closed_message if not settings_obj.is_open else ""
+            closed_message = (
+                settings_obj.closed_message if not settings_obj.is_open else ""
+            )
         except Exception:
             pass
 
@@ -880,7 +988,7 @@ def public_menu_api(request):
 
     start_idx = (page - 1) * page_size
     total = foods.count()
-    items = foods[start_idx:start_idx + page_size]
+    items = foods[start_idx : start_idx + page_size]
 
     data = []
     for food in items:
@@ -917,35 +1025,41 @@ def public_menu_api(request):
             if kp and getattr(kp, "image", None) and kp.image:
                 image_url = kp.image.url
 
-        data.append({
-            "id": food.id,
-            "name": food.name,
-            "name_en": food.name_en or "",
-            "category_id": food.category_id,
-            "category_name": food.category.name if food.category else "",
-            "price": price,
-            "final_price": final,
-            "image": image_url,
-            "discount": discount_info,
-            "is_available": available,
-        })
+        data.append(
+            {
+                "id": food.id,
+                "name": food.name,
+                "name_en": food.name_en or "",
+                "category_id": food.category_id,
+                "category_name": food.category.name if food.category else "",
+                "price": price,
+                "final_price": final,
+                "image": image_url,
+                "discount": discount_info,
+                "is_available": available,
+            }
+        )
 
-    return DRFResponse({
-        "is_open": is_open,
-        "closed_message": closed_message,
-        "count": len(data),
-        "total": total,
-        "results": data,
-        "next": (
-            f"?page={page + 1}&page_size={page_size}"
-            if start_idx + page_size < total else None
-        ),
-    })
+    return DRFResponse(
+        {
+            "is_open": is_open,
+            "closed_message": closed_message,
+            "count": len(data),
+            "total": total,
+            "results": data,
+            "next": (
+                f"?page={page + 1}&page_size={page_size}"
+                if start_idx + page_size < total
+                else None
+            ),
+        }
+    )
 
 
 # ═══════════════════════════════════════
 #  فروش آنلاین — ★ FIXED: فیلتر restaurant
 # ═══════════════════════════════════════
+
 
 @api_view(["GET"])
 @permission_classes([PosPerm])
@@ -968,25 +1082,31 @@ def pos_online_orders(request):
     for o in orders:
         items = []
         for oi in o.items.all():
-            items.append({
-                "id": oi.id,
-                "food_name": oi.food.name if oi.food else (oi.item_name or "کالای آماده"),
-                "quantity": oi.quantity,
-                "price": int(oi.price or 0),
-            })
-        data.append({
-            "id": o.id,
-            "customer_name": o.customer_name,
-            "phone": o.phone,
-            "status": o.status,
-            "status_display": o.get_status_display(),
-            "payment_status": o.payment_status,
-            "payment_method": o.payment_method,
-            "total_price": int(o.total_price),
-            "items": items,
-            "created_at": o.created_at.strftime("%Y-%m-%d %H:%M"),
-            "created_at_ts": int(o.created_at.timestamp()),
-        })
+            items.append(
+                {
+                    "id": oi.id,
+                    "food_name": (
+                        oi.food.name if oi.food else (oi.item_name or "کالای آماده")
+                    ),
+                    "quantity": oi.quantity,
+                    "price": int(oi.price or 0),
+                }
+            )
+        data.append(
+            {
+                "id": o.id,
+                "customer_name": o.customer_name,
+                "phone": o.phone,
+                "status": o.status,
+                "status_display": o.get_status_display(),
+                "payment_status": o.payment_status,
+                "payment_method": o.payment_method,
+                "total_price": int(o.total_price),
+                "items": items,
+                "created_at": o.created_at.strftime("%Y-%m-%d %H:%M"),
+                "created_at_ts": int(o.created_at.timestamp()),
+            }
+        )
 
     return JsonResponse({"success": True, "orders": data})
 
@@ -1010,7 +1130,10 @@ def pos_confirm_online_order(request, order_id):
 
     if order.status != "pending":
         return JsonResponse(
-            {"success": False, "error": f"سفارش قبلاً {order.get_status_display()} شده"},
+            {
+                "success": False,
+                "error": f"سفارش قبلاً {order.get_status_display()} شده",
+            },
             status=400,
         )
 
@@ -1021,10 +1144,15 @@ def pos_confirm_online_order(request, order_id):
             order.payment_method = request.data.get("payment_method", "online")
             order.confirmed_by = request.user
             order.confirmed_at = timezone.now()
-            order.save(update_fields=[
-                "status", "payment_status", "payment_method",
-                "confirmed_by", "confirmed_at",
-            ])
+            order.save(
+                update_fields=[
+                    "status",
+                    "payment_status",
+                    "payment_method",
+                    "confirmed_by",
+                    "confirmed_at",
+                ]
+            )
 
             for item in order.items.all():
                 if item.food_id:
@@ -1035,11 +1163,13 @@ def pos_confirm_online_order(request, order_id):
                             quantity__gte=item.quantity,
                         ).update(quantity=F("quantity") - item.quantity)
 
-        return JsonResponse({
-            "success": True,
-            "msg": f"سفارش #{order.id} تأیید شد",
-            "order_id": order.id,
-        })
+        return JsonResponse(
+            {
+                "success": True,
+                "msg": f"سفارش #{order.id} تأیید شد",
+                "order_id": order.id,
+            }
+        )
 
     except Exception as exc:
         logger.exception("Error confirming online order %s", order_id)
@@ -1065,7 +1195,10 @@ def pos_reject_online_order(request, order_id):
 
     if order.status != "pending":
         return JsonResponse(
-            {"success": False, "error": f"سفارش قبلاً {order.get_status_display()} شده"},
+            {
+                "success": False,
+                "error": f"سفارش قبلاً {order.get_status_display()} شده",
+            },
             status=400,
         )
 
@@ -1074,16 +1207,19 @@ def pos_reject_online_order(request, order_id):
     order.confirmed_at = timezone.now()
     order.save(update_fields=["status", "confirmed_by", "confirmed_at"])
 
-    return JsonResponse({
-        "success": True,
-        "msg": f"سفارش #{order.id} رد شد",
-        "order_id": order.id,
-    })
+    return JsonResponse(
+        {
+            "success": True,
+            "msg": f"سفارش #{order.id} رد شد",
+            "order_id": order.id,
+        }
+    )
 
 
 # ═══════════════════════════════════════
 #  باز/بستن سفارش آنلاین
 # ═══════════════════════════════════════
+
 
 @api_view(["GET"])
 @permission_classes([PosPerm])
@@ -1096,17 +1232,19 @@ def online_orders_status(request):
         restaurant=restaurant,
         defaults={"is_open": True},
     )
-    return JsonResponse({
-        "is_open": settings_obj.is_open,
-        "closed_message": settings_obj.closed_message,
-        "status_text": settings_obj.status_text,
-        "updated_at": (
-            settings_obj.updated_at.isoformat() if settings_obj.updated_at else None
-        ),
-        "updated_by": (
-            settings_obj.updated_by.username if settings_obj.updated_by else None
-        ),
-    })
+    return JsonResponse(
+        {
+            "is_open": settings_obj.is_open,
+            "closed_message": settings_obj.closed_message,
+            "status_text": settings_obj.status_text,
+            "updated_at": (
+                settings_obj.updated_at.isoformat() if settings_obj.updated_at else None
+            ),
+            "updated_by": (
+                settings_obj.updated_by.username if settings_obj.updated_by else None
+            ),
+        }
+    )
 
 
 @api_view(["POST"])
@@ -1135,12 +1273,15 @@ def toggle_online_orders(request):
     settings_obj.save()
 
     status_text = "باز شد" if settings_obj.is_open else "بسته شد"
-    return JsonResponse({
-        "success": True,
-        "is_open": settings_obj.is_open,
-        "msg": f"سفارش آنلاین {status_text}",
-        "closed_message": settings_obj.closed_message,
-    })
+    return JsonResponse(
+        {
+            "success": True,
+            "is_open": settings_obj.is_open,
+            "msg": f"سفارش آنلاین {status_text}",
+            "closed_message": settings_obj.closed_message,
+        }
+    )
+
 
 # ═══════════════════════════════════════
 #  POS Settings — ★ جدید
@@ -1173,15 +1314,24 @@ def pos_settings(request):
     )
 
     if request.method == "GET":
-        return JsonResponse({
-            "success": True,
-            "settings": PosSettingsSerializer(obj).data,
-        })
+        return JsonResponse(
+            {
+                "success": True,
+                "settings": PosSettingsSerializer(obj).data,
+            }
+        )
 
     # POST — فقط owner/manager
-    if not request.user.is_owner and not request.user.is_manager and not request.user.is_superuser:
+    if (
+        not request.user.is_owner
+        and not request.user.is_manager
+        and not request.user.is_superuser
+    ):
         return JsonResponse(
-            {"success": False, "error": "فقط مدیر یا مالک می‌تواند تنظیمات را تغییر دهد"},
+            {
+                "success": False,
+                "error": "فقط مدیر یا مالک می‌تواند تنظیمات را تغییر دهد",
+            },
             status=403,
         )
 
@@ -1200,10 +1350,10 @@ def pos_settings(request):
 
     obj.save()
 
-    return JsonResponse({
-        "success": True,
-        "settings": PosSettingsSerializer(obj).data,
-        "msg": "تنظیمات صندوق بروزرسانی شد",
-    })
-
-
+    return JsonResponse(
+        {
+            "success": True,
+            "settings": PosSettingsSerializer(obj).data,
+            "msg": "تنظیمات صندوق بروزرسانی شد",
+        }
+    )

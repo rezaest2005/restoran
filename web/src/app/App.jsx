@@ -9,6 +9,7 @@ import ProtectedRoute from "@restaurant/auth/ProtectedRoute";
 import RestaurantLayout from "@restaurant/layout/RestaurantLayout";
 import Dashboard from "@restaurant/dashboard";
 import Dictionary from "@restaurant/dictionary/Dictionary";
+import Pos from "@restaurant/pos/Pos";
 
 function App() {
   return (
@@ -20,7 +21,6 @@ function App() {
           <Route path="/:slug/dashboard/login" element={<Login />} />
           <Route path="/dashboard/login" element={<Login />} />
 
-          {/* /dashboard → اگه لاگین بود app، نبود login */}
           <Route
             path="/dashboard"
             element={<Navigate to="/dashboard/app" replace />}
@@ -37,7 +37,7 @@ function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="kitchen" element={<div>آشپزخانه</div>} />
-            <Route path="pos" element={<div>صندوق فروش</div>} />
+            <Route path="pos" element={<Pos />} />
             <Route path="orders" element={<div>سفارشات</div>} />
             <Route path="recipes" element={<div>دستور پخت</div>} />
             <Route path="raw-materials" element={<div>مواد اولیه</div>} />
@@ -59,7 +59,7 @@ function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="kitchen" element={<div>آشپزخانه</div>} />
-            <Route path="pos" element={<div>صندوق فروش</div>} />
+            <Route path="pos" element={<Pos />} />
             <Route path="orders" element={<div>سفارشات</div>} />
             <Route path="recipes" element={<div>دستور پخت</div>} />
             <Route path="raw-materials" element={<div>مواد اولیه</div>} />
