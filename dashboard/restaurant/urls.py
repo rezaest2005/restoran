@@ -9,195 +9,473 @@ from rest_framework.routers import DefaultRouter
 
 from . import views
 
-
 # ═══════════════════════════════════════
 #  Router — ViewSet-based endpoints
 # ═══════════════════════════════════════
 
 router = DefaultRouter()
 
-router.register("tables",               views.TableViewSet,               basename="table")
-router.register("reservations",         views.ReservationViewSet,          basename="reservation")
-router.register("orders",               views.OrderViewSet,               basename="order")
-router.register("semi-finished",        views.SemiFinishedViewSet,         basename="semi-finished")
-router.register("ready-materials",      views.ReadyMaterialViewSet,        basename="ready-material")
-router.register("recipes",              views.RecipeViewSet,               basename="recipe")
-router.register("inventory-movements",  views.InventoryMovementViewSet,    basename="inventory-movement")
+router.register("tables", views.TableViewSet, basename="table")
+router.register("reservations", views.ReservationViewSet, basename="reservation")
+router.register("orders", views.OrderViewSet, basename="order")
+router.register("semi-finished", views.SemiFinishedViewSet, basename="semi-finished")
+router.register(
+    "ready-materials", views.ReadyMaterialViewSet, basename="ready-material"
+)
+router.register("recipes", views.RecipeViewSet, basename="recipe")
+router.register(
+    "inventory-movements", views.InventoryMovementViewSet, basename="inventory-movement"
+)
 
 
 urlpatterns = [
-
     # ── Root ────────────────────────────────────────────────
-
     path("", views.root_redirect, name="root_redirect"),
-
     # ── Authentication ──────────────────────────────────────
-
-    path("api/auth/login/",             views.LoginView.as_view(),          name="login"),
-    path("api/auth/refresh/",           views.RefreshView.as_view(),        name="refresh"),
-    path("api/auth/register/",          views.RegisterView.as_view(),       name="register"),
-    path("api/auth/logout/",            views.LogoutView.as_view(),         name="logout"),
-    path("api/auth/me/",                views.CurrentUserView.as_view(),    name="current_user"),
-    path("api/auth/change-password/",   views.ChangePasswordView.as_view(), name="change_password"),
-    path("api/auth/reset-password/",    views.ResetPasswordView.as_view(),  name="reset_password"),
-    path("api/auth/users/",             views.UserListView.as_view(),       name="user_list"),
-    path("api/auth/users/<int:pk>/",    views.UserDetailView.as_view(),     name="user_detail"),
-    path("api/auth/set-session/",       views.SetSessionView.as_view(),     name="set_session"),
-
+    path("api/auth/login/", views.LoginView.as_view(), name="login"),
+    path("api/auth/refresh/", views.RefreshView.as_view(), name="refresh"),
+    path("api/auth/register/", views.RegisterView.as_view(), name="register"),
+    path("api/auth/logout/", views.LogoutView.as_view(), name="logout"),
+    path("api/auth/me/", views.CurrentUserView.as_view(), name="current_user"),
+    path(
+        "api/auth/change-password/",
+        views.ChangePasswordView.as_view(),
+        name="change_password",
+    ),
+    path(
+        "api/auth/reset-password/",
+        views.ResetPasswordView.as_view(),
+        name="reset_password",
+    ),
+    path("api/auth/users/", views.UserListView.as_view(), name="user_list"),
+    path(
+        "api/auth/users/<int:pk>/", views.UserDetailView.as_view(), name="user_detail"
+    ),
+    path("api/auth/set-session/", views.SetSessionView.as_view(), name="set_session"),
     # ── User Management ─────────────────────────────────────
-
-    path("users/",                      views.user_management_page,     name="user_management"),
-    path("api/users/management/",       views.user_management_api,      name="user_management_api"),
-    path("api/users/create/",           views.create_user_api,          name="create_user_api"),
-    path("api/users/update-role/",      views.user_update_role,         name="user_update_role"),
-    path("api/users/reset-password/",   views.admin_reset_password,     name="admin_reset_password"),
-    path("api/users/toggle-active/",    views.user_toggle_active,       name="user_toggle_active"),
-    path("api/users/approve/",          views.approve_user_api,         name="approve_user"),
-    path("api/users/reject/",           views.reject_user_api,          name="reject_user"),
-    path("api/users/delete/",           views.user_delete,              name="user_delete"),
-
+    path("users/", views.user_management_page, name="user_management"),
+    path(
+        "api/users/management/", views.user_management_api, name="user_management_api"
+    ),
+    path("api/users/create/", views.create_user_api, name="create_user_api"),
+    path("api/users/update-role/", views.user_update_role, name="user_update_role"),
+    path(
+        "api/users/reset-password/",
+        views.admin_reset_password,
+        name="admin_reset_password",
+    ),
+    path(
+        "api/users/toggle-active/", views.user_toggle_active, name="user_toggle_active"
+    ),
+    path("api/users/approve/", views.approve_user_api, name="approve_user"),
+    path("api/users/reject/", views.reject_user_api, name="reject_user"),
+    path("api/users/delete/", views.user_delete, name="user_delete"),
     # ── Raw Materials & Suppliers ───────────────────────────
-
-    path("api/raw-materials/save/",         views.raw_material_save,        name="raw_material_save"),
-    path("api/raw-materials/delete/",       views.raw_material_delete,      name="raw_material_delete"),
-    path("api/raw-materials/suggestions/",  views.raw_material_suggestions, name="raw_material_suggestions"),
-    path("api/suppliers/",                  views.supplier_list,            name="supplier_list"),
-    path("api/suppliers/save/",             views.supplier_save,            name="supplier_save"),
-    path("api/suppliers/delete/",           views.supplier_delete,          name="supplier_delete"),
-    path("api/suppliers/suggestions/",      views.supplier_suggestions,     name="supplier_suggestions"),
-
+    path("api/raw-materials/save/", views.raw_material_save, name="raw_material_save"),
+    path(
+        "api/raw-materials/delete/",
+        views.raw_material_delete,
+        name="raw_material_delete",
+    ),
+    path(
+        "api/raw-materials/suggestions/",
+        views.raw_material_suggestions,
+        name="raw_material_suggestions",
+    ),
+    path("api/suppliers/", views.supplier_list, name="supplier_list"),
+    path("api/suppliers/save/", views.supplier_save, name="supplier_save"),
+    path("api/suppliers/delete/", views.supplier_delete, name="supplier_delete"),
+    path(
+        "api/suppliers/suggestions/",
+        views.supplier_suggestions,
+        name="supplier_suggestions",
+    ),
     # ── Warehouse & Inventory ───────────────────────────────
-
-    path("api/invoices/parse-excel/",          views.parse_excel_file,              name="parse_excel"),
-    path("api/usage-log/json/",                views.usage_log_json,                name="usage_log_json"),
-    path("api/usage-log/detail/",              views.usage_log_detail_json,         name="usage_log_detail"),
-    path("api/warehouse-json/",                views.warehouse_json,                name="warehouse-json"),
-    path("api/ready-materials/save/",          views.ready_material_save,           name="ready_material_save"),
-    path("api/ready-materials/delete/",        views.ready_material_delete,         name="ready_material_delete"),
-    path("api/ready-materials/update-price/",  views.ready_material_update_price,   name="ready_material_update_price"),
-    path("api/convert-to-ready/",              views.convert_to_ready_material,     name="convert_to_ready_material"),
-
+    path("api/invoices/parse-excel/", views.parse_excel_file, name="parse_excel"),
+    path("api/usage-log/json/", views.usage_log_json, name="usage_log_json"),
+    path("api/usage-log/detail/", views.usage_log_detail_json, name="usage_log_detail"),
+    path("api/warehouse-json/", views.warehouse_json, name="warehouse-json"),
+    path(
+        "api/ready-materials/save/",
+        views.ready_material_save,
+        name="ready_material_save",
+    ),
+    path(
+        "api/ready-materials/delete/",
+        views.ready_material_delete,
+        name="ready_material_delete",
+    ),
+    path(
+        "api/ready-materials/update-price/",
+        views.ready_material_update_price,
+        name="ready_material_update_price",
+    ),
+    path(
+        "api/convert-to-ready/",
+        views.convert_to_ready_material,
+        name="convert_to_ready_material",
+    ),
     # ── Recipes (specific paths BEFORE router) ──────────────
-
-    path("api/recipes/validate-inventory/",    views.validate_order_inventory_view,  name="validate_order_inventory"),
-    path("api/recipes/deduct-inventory/",      views.deduct_inventory_view,          name="deduct_inventory"),
-    path("api/recipes/recalculate-all/",       views.recalculate_costs_view,         name="recalculate_costs"),
-    path("api/recipes/analytics/",             views.inventory_analytics_view,       name="inventory_analytics"),
-    path("api/recipes/produce-semi/",          views.produce_semi_finished_view,     name="produce_semi_finished"),
-    path("api/recipes/foods/suggest/",         views.food_suggestions_view,          name="food_suggestions"),
-    path("api/recipes/raw-materials/suggest/", views.raw_material_suggestions_api,   name="recipe_raw_material_suggestions"),
-    path("api/recipes/semi-finished/suggest/", views.semi_finished_suggestions_api,  name="semi_finished_suggestions"),
-    path("api/recipes/<int:pk>/materials/",    views.recipe_materials_api,           name="recipe_materials"),
-
+    path(
+        "api/recipes/validate-inventory/",
+        views.validate_order_inventory_view,
+        name="validate_order_inventory",
+    ),
+    path(
+        "api/recipes/deduct-inventory/",
+        views.deduct_inventory_view,
+        name="deduct_inventory",
+    ),
+    path(
+        "api/recipes/recalculate-all/",
+        views.recalculate_costs_view,
+        name="recalculate_costs",
+    ),
+    path(
+        "api/recipes/analytics/",
+        views.inventory_analytics_view,
+        name="inventory_analytics",
+    ),
+    path(
+        "api/recipes/produce-semi/",
+        views.produce_semi_finished_view,
+        name="produce_semi_finished",
+    ),
+    path(
+        "api/recipes/foods/suggest/",
+        views.food_suggestions_view,
+        name="food_suggestions",
+    ),
+    path(
+        "api/recipes/raw-materials/suggest/",
+        views.raw_material_suggestions_api,
+        name="recipe_raw_material_suggestions",
+    ),
+    path(
+        "api/recipes/semi-finished/suggest/",
+        views.semi_finished_suggestions_api,
+        name="semi_finished_suggestions",
+    ),
+    path(
+        "api/recipes/<int:pk>/materials/",
+        views.recipe_materials_api,
+        name="recipe_materials",
+    ),
     # ── Dictionary ──────────────────────────────────────────
-
-    path("api/dictionary/list/",                views.dictionary_list,                    name="dictionary_list"),
-    path("api/dictionary/autocomplete/",        views.dictionary_autocomplete,            name="dictionary_autocomplete"),
-    path("api/dictionary/create/",              views.dictionary_create,                  name="dictionary_create"),
-    path("api/dictionary/<int:pk>/update/",     views.dictionary_update,                  name="dictionary_update"),
-    path("api/dictionary/<int:pk>/delete/",     views.dictionary_delete,                  name="dictionary_delete"),
-    path("api/dictionary/raw-materials/",       views.raw_materials_api,                  name="raw_materials_api"),
-    path("api/dictionary/semi-finished/",       views.dictionary_semi_finished,           name="dict_semi_finished"),
-    path("api/dictionary/ready-materials/",     views.dictionary_ready_materials,         name="dict_ready_materials"),
-    path("api/dictionary/food-menu/",           views.dictionary_food_menu,               name="dict_food_menu"),
-    path("api/dictionary/recipe-materials/",    views.dictionary_recipe_materials_api,    name="dict_recipe_materials"),
-    path("api/dictionary/food/create/",          views.dictionary_food_create,    name="dict_food_create"),
-    path("api/dictionary/food/<int:pk>/update/", views.dictionary_food_update,    name="dict_food_update"),
-    path("api/dictionary/food/<int:pk>/delete/", views.dictionary_food_delete,    name="dict_food_delete"),
-    path("api/dictionary/groups/",              views.dictionary_group_list,      name="dictionary_group_list"),
-    path("api/dictionary/groups/save/",         views.dictionary_group_save,      name="dictionary_group_save"),
-    path("api/dictionary/groups/delete/",       views.dictionary_group_delete,    name="dictionary_group_delete"),
-
+    path("api/dictionary/list/", views.dictionary_list, name="dictionary_list"),
+    path(
+        "api/dictionary/autocomplete/",
+        views.dictionary_autocomplete,
+        name="dictionary_autocomplete",
+    ),
+    path("api/dictionary/create/", views.dictionary_create, name="dictionary_create"),
+    path(
+        "api/dictionary/<int:pk>/update/",
+        views.dictionary_update,
+        name="dictionary_update",
+    ),
+    path(
+        "api/dictionary/<int:pk>/delete/",
+        views.dictionary_delete,
+        name="dictionary_delete",
+    ),
+    path(
+        "api/dictionary/raw-materials/",
+        views.raw_materials_api,
+        name="raw_materials_api",
+    ),
+    path(
+        "api/dictionary/semi-finished/",
+        views.dictionary_semi_finished,
+        name="dict_semi_finished",
+    ),
+    path(
+        "api/dictionary/ready-materials/",
+        views.dictionary_ready_materials,
+        name="dict_ready_materials",
+    ),
+    path(
+        "api/dictionary/food-menu/", views.dictionary_food_menu, name="dict_food_menu"
+    ),
+    path(
+        "api/dictionary/recipe-materials/",
+        views.dictionary_recipe_materials_api,
+        name="dict_recipe_materials",
+    ),
+    path(
+        "api/dictionary/food/create/",
+        views.dictionary_food_create,
+        name="dict_food_create",
+    ),
+    path(
+        "api/dictionary/food/<int:pk>/update/",
+        views.dictionary_food_update,
+        name="dict_food_update",
+    ),
+    path(
+        "api/dictionary/food/<int:pk>/delete/",
+        views.dictionary_food_delete,
+        name="dict_food_delete",
+    ),
+    path(
+        "api/dictionary/groups/",
+        views.dictionary_group_list,
+        name="dictionary_group_list",
+    ),
+    path(
+        "api/dictionary/groups/save/",
+        views.dictionary_group_save,
+        name="dictionary_group_save",
+    ),
+    path(
+        "api/dictionary/groups/delete/",
+        views.dictionary_group_delete,
+        name="dictionary_group_delete",
+    ),
     # ── Kitchen ─────────────────────────────────────────────
-
-    path("api/kitchen/dashboard/",                  views.kitchen_dashboard_api,              name="kitchen_dashboard"),
-    path("api/kitchen/products/",                   views.KitchenProductListCreate.as_view(), name="kitchen-products-list"),
-    path("api/kitchen/products/<int:pk>/",          views.KitchenProductDetail.as_view(),     name="kitchen-products-detail"),
-    path("api/kitchen/products/<int:pk>/capacity/", views.kitchen_product_capacity,           name="kitchen-product-capacity"),
-    path("api/kitchen/products/<int:pk>/produce/",  views.kitchen_product_produce,            name="kitchen-product-produce"),
-    path("api/kitchen/calculate-materials/",         views.kitchen_calculate_materials,        name="kitchen-calculate-materials"),
-    path("api/kitchen/inventory/",                  views.KitchenInventoryList.as_view(),     name="kitchen-inventory-list"),
-    path("api/kitchen/plans/",                      views.ProductionPlanListCreate.as_view(), name="production-plans-list"),
-    path("api/kitchen/plans/<int:pk>/",             views.ProductionPlanDetail.as_view(),     name="production-plans-detail"),
-    path("api/kitchen/plans/<int:pk>/approve/",     views.production_plan_approve,            name="production-plan-approve"),
-    path("api/kitchen/plans/<int:pk>/execute/",     views.production_plan_execute,            name="production-plan-execute"),
-    path("api/kitchen/logs/",                       views.ProductionLogList.as_view(),        name="production-logs-list"),
-    path("api/kitchen/waste/",                      views.KitchenWasteListCreate.as_view(),   name="kitchen-waste-list"),
-    path("api/kitchen/waste/<int:pk>/",             views.KitchenWasteDetail.as_view(),       name="kitchen-waste-detail"),
-
-        # ── POS ─────────────────────────────────────────────────
-
-    path("api/pos/settings/",          views.pos_settings,          name="pos_settings"),      
-    path("api/pos/create-order/",     views.pos_create_order,      name="pos_create_order"),
-    path("api/pos/daily-report/",     views.pos_daily_report,      name="pos_daily_report"),
-    path("api/pos/close-summary/",    views.pos_close_summary,     name="pos_close_summary"),
-    path("api/pos/register-waste/",   views.pos_register_waste,    name="pos_register_waste"),
-    path("api/pos/close-pending/",    views.pos_close_all_pending, name="pos_close_all_pending"),
-    path("api/pos/close-day/",        views.pos_close_day,         name="pos_close_day"),
-    path("api/pos/close-history/",    views.pos_close_history,     name="pos_close_history"),
-    path("api/pos/close-report/<int:report_id>/", views.pos_close_report_detail, name="pos_close_report_detail"),
-    path("api/pos/close-logs/",       views.pos_close_logs,        name="pos_close_logs"),
-    path("api/pos/update-food-price/", views.pos_update_food_price, name="pos_update_food_price"),
-
+    path(
+        "api/kitchen/dashboard/", views.kitchen_dashboard_api, name="kitchen_dashboard"
+    ),
+    path(
+        "api/kitchen/products/",
+        views.KitchenProductListCreate.as_view(),
+        name="kitchen-products-list",
+    ),
+    path(
+        "api/kitchen/products/<int:pk>/",
+        views.KitchenProductDetail.as_view(),
+        name="kitchen-products-detail",
+    ),
+    path(
+        "api/kitchen/products/<int:pk>/capacity/",
+        views.kitchen_product_capacity,
+        name="kitchen-product-capacity",
+    ),
+    path(
+        "api/kitchen/products/<int:pk>/produce/",
+        views.kitchen_product_produce,
+        name="kitchen-product-produce",
+    ),
+    path(
+        "api/kitchen/calculate-materials/",
+        views.kitchen_calculate_materials,
+        name="kitchen-calculate-materials",
+    ),
+    path(
+        "api/kitchen/inventory/",
+        views.KitchenInventoryList.as_view(),
+        name="kitchen-inventory-list",
+    ),
+    path(
+        "api/kitchen/plans/",
+        views.ProductionPlanListCreate.as_view(),
+        name="production-plans-list",
+    ),
+    path(
+        "api/kitchen/plans/<int:pk>/",
+        views.ProductionPlanDetail.as_view(),
+        name="production-plans-detail",
+    ),
+    path(
+        "api/kitchen/plans/<int:pk>/approve/",
+        views.production_plan_approve,
+        name="production-plan-approve",
+    ),
+    path(
+        "api/kitchen/plans/<int:pk>/execute/",
+        views.production_plan_execute,
+        name="production-plan-execute",
+    ),
+    path(
+        "api/kitchen/logs/",
+        views.ProductionLogList.as_view(),
+        name="production-logs-list",
+    ),
+    path(
+        "api/kitchen/waste/",
+        views.KitchenWasteListCreate.as_view(),
+        name="kitchen-waste-list",
+    ),
+    path(
+        "api/kitchen/waste/<int:pk>/",
+        views.KitchenWasteDetail.as_view(),
+        name="kitchen-waste-detail",
+    ),
+    # ── POS ─────────────────────────────────────────────────
+    path("api/pos/settings/", views.pos_settings, name="pos_settings"),
+    path("api/pos/create-order/", views.pos_create_order, name="pos_create_order"),
+    path("api/pos/daily-report/", views.pos_daily_report, name="pos_daily_report"),
+    path("api/pos/close-summary/", views.pos_close_summary, name="pos_close_summary"),
+    path(
+        "api/pos/register-waste/", views.pos_register_waste, name="pos_register_waste"
+    ),
+    path(
+        "api/pos/close-pending/",
+        views.pos_close_all_pending,
+        name="pos_close_all_pending",
+    ),
+    path("api/pos/close-day/", views.pos_close_day, name="pos_close_day"),
+    path("api/pos/close-history/", views.pos_close_history, name="pos_close_history"),
+    path(
+        "api/pos/close-report/<int:report_id>/",
+        views.pos_close_report_detail,
+        name="pos_close_report_detail",
+    ),
+    path("api/pos/close-logs/", views.pos_close_logs, name="pos_close_logs"),
+    path(
+        "api/pos/update-food-price/",
+        views.pos_update_food_price,
+        name="pos_update_food_price",
+    ),
+    path("api/pos/daily-orders/", views.pos_daily_orders, name="pos-daily-orders"),
     # ── Card Reader ─────────────────────────────────────────
-
-    path("api/card-reader/pay/",       views.send_to_card_reader,  name="card_reader_pay"),
-    path("api/card-reader/cancel/",    views.cancel_card_payment,  name="card_reader_cancel"),
-
+    path("api/card-reader/pay/", views.send_to_card_reader, name="card_reader_pay"),
+    path(
+        "api/card-reader/cancel/", views.cancel_card_payment, name="card_reader_cancel"
+    ),
+    # ── Payment System ──────────────────────────────────────
+    path("api/payment/config/", views.payment_config_api, name="payment_config"),
+    path(
+        "api/payment/config/delete/",
+        views.payment_config_delete,
+        name="payment_config_delete",
+    ),
+    path(
+        "api/payment/test-connection/",
+        views.test_payment_connection,
+        name="test_payment_connection",
+    ),
+    path("api/payment/card/pay/", views.payment_card_pay, name="payment_card_pay"),
+    path(
+        "api/payment/card/cancel/",
+        views.payment_card_cancel,
+        name="payment_card_cancel",
+    ),
+    path(
+        "api/payment/online/create/",
+        views.payment_online_create,
+        name="payment_online_create",
+    ),
+    path(
+        "api/payment/online/callback/",
+        views.zarinpal_callback,
+        name="zarinpal_callback",
+    ),
+    path(
+        "api/payment/status/",
+        views.payment_transaction_status,
+        name="payment_txn_status",
+    ),
+    path(
+        "api/payment/transactions/",
+        views.payment_transactions_list,
+        name="payment_txn_list",
+    ),
     # ── Orders (function-based) ─────────────────────────────
-
-    path("api/orders/list/",                   views.order_list_api,         name="order_list_api"),
-    path("api/orders/<int:pk>/status/",        views.order_change_status,    name="order_change_status"),
-    path("api/orders/<int:pk>/send-to-kitchen/", views.order_send_to_kitchen, name="order_send_to_kitchen"),
-    path("api/orders/kitchen/",                views.kitchen_orders_api,     name="kitchen_orders_api"),
-
+    path("api/orders/list/", views.order_list_api, name="order_list_api"),
+    path(
+        "api/orders/<int:pk>/status/",
+        views.order_change_status,
+        name="order_change_status",
+    ),
+    path(
+        "api/orders/<int:pk>/send-to-kitchen/",
+        views.order_send_to_kitchen,
+        name="order_send_to_kitchen",
+    ),
+    path("api/orders/kitchen/", views.kitchen_orders_api, name="kitchen_orders_api"),
     # ── Super Admin ─────────────────────────────────────────
-
-    path("api/super/login/",                            views.super_admin_login_api,       name="super_admin_login_api"),
-    path("api/super/logout/",                           views.super_admin_logout_api,      name="super_admin_logout_api"),
-    path("api/super/stats/",                            views.super_stats_api,             name="super_stats_api"),
-    path("api/super/tenants/",                          views.super_tenants_api,           name="super_tenants_api"),
-    path("api/super/tenants/<int:pk>/",                 views.super_tenant_detail_api,     name="super_tenant_detail_api"),
-    path("api/super/tenants/<int:pk>/services/",        views.super_tenant_services_api,   name="super_tenant_services_api"),
-    path("api/super/services/",                         views.super_services_list_api,     name="super_services_list_api"),
-    path("api/super/users/",                            views.super_users_api,             name="super_users_api"),
-    path("api/super/users/create/",                     views.super_user_create_api,       name="super_user_create"),
-    path("api/super/users/<int:pk>/",                   views.super_user_detail_api,       name="super_user_detail"),
-    path("api/super/users/<int:pk>/permissions/",       views.super_user_permissions_api,  name="super_user_permissions"),
-
+    path("api/super/login/", views.super_admin_login_api, name="super_admin_login_api"),
+    path(
+        "api/super/logout/", views.super_admin_logout_api, name="super_admin_logout_api"
+    ),
+    path("api/super/stats/", views.super_stats_api, name="super_stats_api"),
+    path("api/super/tenants/", views.super_tenants_api, name="super_tenants_api"),
+    path(
+        "api/super/tenants/<int:pk>/",
+        views.super_tenant_detail_api,
+        name="super_tenant_detail_api",
+    ),
+    path(
+        "api/super/tenants/<int:pk>/services/",
+        views.super_tenant_services_api,
+        name="super_tenant_services_api",
+    ),
+    path(
+        "api/super/services/",
+        views.super_services_list_api,
+        name="super_services_list_api",
+    ),
+    path("api/super/users/", views.super_users_api, name="super_users_api"),
+    path(
+        "api/super/users/create/", views.super_user_create_api, name="super_user_create"
+    ),
+    path(
+        "api/super/users/<int:pk>/",
+        views.super_user_detail_api,
+        name="super_user_detail",
+    ),
+    path(
+        "api/super/users/<int:pk>/permissions/",
+        views.super_user_permissions_api,
+        name="super_user_permissions",
+    ),
     # ══════════════════════════════════════════════════════════
     # ★ v7: لاگین رستوران + بررسی اشتراک
     # ══════════════════════════════════════════════════════════
-
-    path("<slug:slug>/login/",                    views.restaurant_login,         name="restaurant_login"),
-    path("<slug:slug>/api/check-subscription/",   views.check_subscription_api,   name="check_subscription"),
-    path("api/restaurant/services/",  views.restaurant_services_api,  name="restaurant_services"),
-
+    path("<slug:slug>/login/", views.restaurant_login, name="restaurant_login"),
+    path(
+        "<slug:slug>/api/check-subscription/",
+        views.check_subscription_api,
+        name="check_subscription",
+    ),
+    path(
+        "api/restaurant/services/",
+        views.restaurant_services_api,
+        name="restaurant_services",
+    ),
     # ── HTML Pages (Dashboard) ──────────────────────────────
-
-    path("dashboard/",                                  views.auth_page,                     name="auth_page"),
-    path("dashboard/auth/",                             views.redirect_to_dashboard,         name="auth_redirect"),
-    path("dashboard/app/",                              views.home,                          name="dashboard_app"),
-    path("dashboard/logout/",                           views.logout_page,                   name="logout_page"),
-    path("dashboard/super/auth/",                       views.super_admin_auth_page,         name="super_admin_auth"),
-    path("dashboard/super/",                            views.super_admin_page,              name="super_admin"),
-    path("dashboard/invoices/",                         views.purchase_invoice_list,         name="invoice_list"),
-    path("dashboard/invoices/create/",                  views.create_purchase_invoice,       name="create_invoice"),
-    path("dashboard/invoices/create/view/",             views.create_invoice_view,           name="create_invoice_view"),
-    path("dashboard/invoices/<int:pk>/",                views.purchase_invoice_detail,       name="invoice_detail"),
-    path("dashboard/raw-materials/",                    views.raw_materials_view,            name="raw_materials"),
-    path("dashboard/ready-materials/",                  views.ready_materials_page,          name="ready_materials"),
-    path("dashboard/usage-log/",                        views.usage_log_view,                name="usage_log"),
-    path("dashboard/kitchen/",                          views.kitchen_page,                  name="kitchen_page"),
-    path("dashboard/pos/",                              views.pos_page,                      name="pos_page"),
-    path("dashboard/pos/receipt/<int:pk>/",             views.pos_receipt,                   name="pos_receipt"),
-    path("dashboard/orders/",                           views.orders_dashboard,              name="orders_dashboard"),
-    path("dashboard/recipes/",                          views.recipe_manager_page,           name="recipes_page"),
-        path("dashboard/recipes/manager/",                  views.recipe_manager_page,           name="recipe_manager"),
-    path("dashboard/dictionary/",                       views.dictionary_page,               name="dictionary_page"),
-
-
+    path("dashboard/", views.auth_page, name="auth_page"),
+    path("dashboard/auth/", views.redirect_to_dashboard, name="auth_redirect"),
+    path("dashboard/app/", views.home, name="dashboard_app"),
+    path("dashboard/logout/", views.logout_page, name="logout_page"),
+    path("dashboard/super/auth/", views.super_admin_auth_page, name="super_admin_auth"),
+    path("dashboard/super/", views.super_admin_page, name="super_admin"),
+    path("dashboard/invoices/", views.purchase_invoice_list, name="invoice_list"),
+    path(
+        "dashboard/invoices/create/",
+        views.create_purchase_invoice,
+        name="create_invoice",
+    ),
+    path(
+        "dashboard/invoices/create/view/",
+        views.create_invoice_view,
+        name="create_invoice_view",
+    ),
+    path(
+        "dashboard/invoices/<int:pk>/",
+        views.purchase_invoice_detail,
+        name="invoice_detail",
+    ),
+    path("dashboard/raw-materials/", views.raw_materials_view, name="raw_materials"),
+    path(
+        "dashboard/ready-materials/", views.ready_materials_page, name="ready_materials"
+    ),
+    path("dashboard/usage-log/", views.usage_log_view, name="usage_log"),
+    path("dashboard/kitchen/", views.kitchen_page, name="kitchen_page"),
+    path("dashboard/pos/", views.pos_page, name="pos_page"),
+    path("dashboard/pos/receipt/<int:pk>/", views.pos_receipt, name="pos_receipt"),
+    path("dashboard/orders/", views.orders_dashboard, name="orders_dashboard"),
+    path("dashboard/recipes/", views.recipe_manager_page, name="recipes_page"),
+    path(
+        "dashboard/recipes/manager/", views.recipe_manager_page, name="recipe_manager"
+    ),
+    path("dashboard/dictionary/", views.dictionary_page, name="dictionary_page"),
+    path(
+        "dashboard/payment-settings/",
+        views.home,
+        name="payment_settings",
+    ),
     # ── Router (ViewSet-based endpoints) — MUST BE LAST ─────
-
     path("api/", include(router.urls)),
 ]

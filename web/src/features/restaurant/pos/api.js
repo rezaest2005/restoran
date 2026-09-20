@@ -34,3 +34,6 @@ export const closeDay = () =>
 
 export const fetchCloseHistory = (limit = 30) =>
   client.get("/api/pos/close-history/", { params: { limit } }).then(r => r.data);
+
+export const fetchDailyOrders = (date) =>
+  client.get("/api/pos/daily-orders/", { params: date ? { date } : {} }).then(r => r.data);

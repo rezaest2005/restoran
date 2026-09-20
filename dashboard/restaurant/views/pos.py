@@ -176,7 +176,17 @@ def pos_create_order(request: HttpRequest):
                 try:
                     db_price = int(food.final_price)
                 except (ValueError, TypeError, InvalidOperation):
-                    db_price = int(food.price or 0)
+                    db_price = 0
+
+                if db_price <= 0:
+                    try:
+                        db_price = int(food.price)
+                    except (ValueError, TypeError, InvalidOperation):
+                        db_price = 0
+
+                # fallback: قیمت ارسالی از frontend
+                if db_price <= 0:
+                    db_price = int(item.get("price", 0))
 
                 kp = _find_kp_for_food(food, restaurant)
                 if kp:
@@ -1355,5 +1365,62 @@ def pos_settings(request):
             "success": True,
             "settings": PosSettingsSerializer(obj).data,
             "msg": "تنظیمات صندوق بروزرسانی شد",
+        }
+    )
+
+
+@api_view(["GET"])
+@permission_classes([PosPerm])
+def pos_daily_orders(request):
+    restaurant = _resolve_restaurant(request)
+    date_str = request.GET.get("date")
+    if date_str:
+        try:
+            today = datetime.date.fromisoformat(date_str)
+        except ValueError:
+            today = timezone.localdate()
+    else:
+        today = timezone.localdate()
+
+    qs = Order.objects.prefetch_related("items__food").filter(created_at__date=today)
+    if restaurant:
+        qs = qs.filter(restaurant=restaurant)
+
+    orders = qs.order_by("-created_at")
+
+    data = []
+    for order in orders:
+        items = []
+        for item in order.items.all():
+            name = item.food.name if item.food else (item.item_name or "—")
+            items.append(
+                {
+                    "name": name,
+                    "quantity": item.quantity,
+                    "price": int(item.price or 0),
+                    "line_total": int(item.price or 0) * item.quantity,
+                }
+            )
+
+        data.append(
+            {
+                "id": order.id,
+                "customer_name": order.customer_name or "",
+                "phone": order.phone or "",
+                "total_price": int(order.total_price),
+                "items": items,
+                "status": order.status,
+                "created_at": order.created_at.strftime("%Y-%m-%d %H:%M"),
+                "payment_method": order.payment_method or "cash",
+                "source": order.source or "pos",
+            }
+        )
+
+    return JsonResponse(
+        {
+            "success": True,
+            "date": str(today),
+            "count": len(data),
+            "orders": data,
         }
     )
