@@ -3,7 +3,7 @@ import { Box, Grid, Typography, CircularProgress } from "@mui/material";
 import FoodCard from "./FoodCard";
 
 export default function FoodGrid({
-  foods = [], loading, onAdd, onRemove, C, showStock, isRtl, editMode,
+  foods = [], loading, onAdd, onRemove, C, showStock, isRtl, editMode, onSave,
 }) {
   const [pinned, setPinned] = useState(new Set());
   const [order, setOrder] = useState(null);
@@ -111,6 +111,7 @@ export default function FoodGrid({
             editMode={editMode}
             isPinned={pinned.has(food.id)}
             onPin={togglePin}
+            onSave={onSave}
           />
         </Grid>
       ))}

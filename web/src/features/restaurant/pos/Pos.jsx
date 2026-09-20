@@ -8,6 +8,8 @@ import usePosSettings from "./hooks/usePosSettings";
 import useFoods from "./hooks/useFoods";
 import useCart from "./hooks/useCart";
 import useCheckout from "./hooks/useCheckout";
+import useDailyReport from "./hooks/useDailyReport";
+import useAnalytics from "./hooks/useAnalytics";
 
 import PosHeader from "./components/PosHeader";
 import CategoryBar from "./components/CategoryBar";
@@ -16,7 +18,8 @@ import ManualItemInput from "./components/ManualItemInput";
 import CartPanel from "./components/CartPanel";
 import CheckoutDialog from "./components/CheckoutDialog";
 import ReceiptDialog from "./components/ReceiptDialog";
-import { fetchDailyReport } from "./api";
+import DailyReport from "./components/DailyReport";
+import OrderDetailDialog from "./components/OrderDetailDialog";
 
 const NAV_ITEMS = [
   { key: "pos", icon: Storefront, labelFa: "صندوق فروش", labelEn: "POS" },
@@ -34,10 +37,10 @@ export default function Pos() {
     useDictionary, showStock, requireCustomer, defaultPayment,
   } = usePosSettings();
 
-  // ★ isRtl رو پاس بده
   const {
     foods, categoryNames, loading: foodsLoading,
     search, setSearch, activeCat, setActiveCat,
+    reload,
   } = useFoods(useDictionary, isRtl);
 
   const {
@@ -52,6 +55,17 @@ export default function Pos() {
     openCheckout, closeCheckout, closeReceipt, submitOrder, setError,
   } = useCheckout();
 
+  const {
+    orders: dailyOrders, loading: reportLoading,
+    selectedOrder, detailOpen, openDetail, closeDetail,
+    reload: reloadReport,
+    selectedDate, isToday,
+    goPrevDay, goNextDay, goToday,
+  } = useDailyReport();
+
+  // ★ از داده‌های سفارشات امروز، آنالیتیکس می‌سازه
+  const analytics = useAnalytics(dailyOrders);
+
   const [mounted, setMounted] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [orderType, setOrderType] = useState("hall");
@@ -65,7 +79,6 @@ export default function Pos() {
     return () => clearTimeout(tmr);
   }, []);
 
-  // ★ ریست دسته‌بندی هنگام تغییر زبان
   useEffect(() => {
     setActiveCat("all");
   }, [isRtl]);
@@ -122,6 +135,7 @@ export default function Pos() {
       clearCart();
       setCustName("");
       setCustPhone("");
+      reloadReport();
       setToast({ open: true, message: `سفارش #${result.order_id} ثبت شد`, type: "success" });
     }
   };
@@ -185,7 +199,6 @@ export default function Pos() {
             flexDirection: isRtl ? "row-reverse" : "row",
             overflow: "hidden",
           }}>
-            {/* ★ بخش غذا */}
             <Box sx={{
               flex: 1, overflowY: "auto", p: 2,
               display: "flex", flexDirection: "column", gap: 1.5,
@@ -217,6 +230,7 @@ export default function Pos() {
                     showStock={showStock}
                     isRtl={isRtl}
                     editMode={editMode}
+                    onSave={reload}
                   />
                 ) : (
                   <ManualItemInput onAdd={handleAddManual} C={C} isRtl={isRtl} />
@@ -224,7 +238,6 @@ export default function Pos() {
               </Box>
             </Box>
 
-            {/* ★ سبد خرید */}
             <Box sx={{
               width: { xs: "100%", md: 340 },
               minWidth: { md: 300 }, maxWidth: { md: 380 },
@@ -253,15 +266,30 @@ export default function Pos() {
         )}
 
         {mainTab === "report" && (
-          <Box sx={{ p: 3 }}>
-            <Box sx={{ ...glassCardSx, p: 3 }}>
-              <Typography sx={{ fontWeight: 800, fontSize: 20, mb: 2, fontFamily: "'Vazirmatn', sans-serif" }}>
-                {isRtl ? "گزارش روز" : "Daily Report"}
-              </Typography>
-              <Typography sx={{ color: C.sub, fontSize: 14 }}>
-                {isRtl ? "گزارش مالی اینجا نمایش داده می‌شود..." : "Report will appear here..."}
-              </Typography>
+          <Box sx={{ p: 2, overflowY: "auto", flex: 1 }}>
+            <Box sx={{ ...glassCardSx, p: 2 }}>
+              <DailyReport
+                orders={dailyOrders}
+                loading={reportLoading}
+                onRowClick={openDetail}
+                onReload={reloadReport}
+                C={C}
+                isRtl={isRtl}
+                selectedDate={selectedDate}
+                isToday={isToday}
+                onPrevDay={goPrevDay}
+                onNextDay={goNextDay}
+                onGoToday={goToday}
+                analytics={analytics}
+              />
             </Box>
+            <OrderDetailDialog
+              open={detailOpen}
+              onClose={closeDetail}
+              order={selectedOrder}
+              C={C}
+              isRtl={isRtl}
+            />
           </Box>
         )}
 
@@ -281,13 +309,16 @@ export default function Pos() {
 
       <CheckoutDialog
         open={checkoutOpen} onClose={closeCheckout}
-        cartTotal={cartTotal} onSubmit={handlePayment}
+        cart={cart} cartTotal={cartTotal} onSubmit={handlePayment}
         submitting={submitting} error={error}
         C={C} isRtl={isRtl}
       />
       <ReceiptDialog
-        open={receiptOpen} onClose={() => closeReceipt()}
-        lastOrder={lastOrder} C={C} isRtl={isRtl}
+        open={receiptOpen}
+        onClose={() => { closeReceipt(); reloadReport(); }}
+        lastOrder={lastOrder}
+        C={C}
+        isRtl={isRtl}
       />
 
       <Snackbar
