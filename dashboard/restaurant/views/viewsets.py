@@ -18,17 +18,28 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from ..models import (
-    Category, Food, Table, Reservation, Order, OrderItem,
-    SemiFinished, ReadyMaterial,
+    Category,
+    Food,
+    Table,
+    Reservation,
+    Order,
+    OrderItem,
+    SemiFinished,
+    ReadyMaterial,
 )
 from ..serializers import (
-    CategorySerializer, FoodSerializer, TableSerializer,
-    ReservationSerializer, OrderSerializer,
-    SemiFinishedSerializer, ReadyMaterialSerializer,
+    CategorySerializer,
+    FoodSerializer,
+    TableSerializer,
+    ReservationSerializer,
+    OrderSerializer,
+    SemiFinishedSerializer,
+    ReadyMaterialSerializer,
 )
 
 from ..tenancy import (
-    get_current_restaurant, set_current_restaurant,
+    get_current_restaurant,
+    set_current_restaurant,
     get_restaurant_from_request,
 )
 
@@ -38,6 +49,7 @@ logger = logging.getLogger(__name__)
 # ═══════════════════════════════════════
 #  resolve restaurant — fallback
 # ═══════════════════════════════════════
+
 
 def _resolve_restaurant(request):
     r = get_current_restaurant()
@@ -53,6 +65,7 @@ def _resolve_restaurant(request):
 # ═══════════════════════════════════════════════════════════════════
 #  1. FOOD & CATEGORY
 # ═══════════════════════════════════════════════════════════════════
+
 
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
@@ -80,29 +93,25 @@ class FoodViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Food.objects.select_related("category").all()
-
         restaurant = _resolve_restaurant(self.request)
         if restaurant:
             qs = qs.filter(restaurant=restaurant)
-
         category = self.request.query_params.get("category")
         if category:
             qs = qs.filter(category=category)
-
         available = self.request.query_params.get("available")
         if available is not None:
             qs = qs.filter(is_available=available.lower() == "true")
-
         search = self.request.query_params.get("search")
         if search:
             qs = qs.filter(name__icontains=search)
-
         return qs.order_by("category__order", "name")
 
 
 # ═══════════════════════════════════════════════════════════════════
 #  2. TABLES & RESERVATIONS
 # ═══════════════════════════════════════════════════════════════════
+
 
 class TableViewSet(viewsets.ModelViewSet):
     serializer_class = TableSerializer
@@ -132,12 +141,13 @@ class ReservationViewSet(viewsets.ModelViewSet):
 #  3. ORDERS
 # ═══════════════════════════════════════════════════════════════════
 
+
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = Order.objects.prefetch_related('items__food').all()
+        qs = Order.objects.prefetch_related("items__food").all()
         restaurant = _resolve_restaurant(self.request)
         if restaurant:
             qs = qs.filter(restaurant=restaurant)
@@ -215,8 +225,10 @@ class OrderViewSet(viewsets.ModelViewSet):
                 total_price += price * qty
                 OrderItem.objects.create(
                     restaurant=restaurant,
-                    order=order, food=food,
-                    quantity=qty, price=price,
+                    order=order,
+                    food=food,
+                    quantity=qty,
+                    price=price,
                 )
 
             order.total_price = total_price
@@ -260,6 +272,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 # ═══════════════════════════════════════════════════════════════════
 #  4. INVENTORY
 # ═══════════════════════════════════════════════════════════════════
+
 
 class SemiFinishedViewSet(viewsets.ModelViewSet):
     serializer_class = SemiFinishedSerializer

@@ -4,6 +4,7 @@ import FoodCard from "./FoodCard";
 
 export default function FoodGrid({
   foods = [], loading, onAdd, onRemove, C, showStock, isRtl, editMode, onSave,
+  categoryDiscounts,onExitEdit,
 }) {
   const [pinned, setPinned] = useState(new Set());
   const [order, setOrder] = useState(null);
@@ -82,39 +83,48 @@ export default function FoodGrid({
 
   return (
     <Grid container spacing={1.5}>
-      {sorted.map((food, i) => (
-        <Grid
-          size={{ xs: 12, sm: 6 }}
-          key={food.id}
-          draggable
-          onDragStart={(e) => handleDragStart(e, i)}
-          onDragOver={(e) => handleDragOver(e, i)}
-          onDrop={(e) => handleDrop(e, i)}
-          onDragEnd={handleDragEnd}
-          sx={{
-            transition: "all 0.2s ease",
-            transform: overIdx === i && dragIdx !== i ? "scale(1.02)" : "none",
-            opacity: dragIdx === i ? 0.35 : 1,
-            borderRadius: "14px",
-            outline: overIdx === i && dragIdx !== i ? `2px dashed ${C.olive}55` : "none",
-            outlineOffset: 2,
-          }}
-        >
-          <FoodCard
-            food={food}
-            onAdd={onAdd}
-            onRemove={onRemove}
-            C={C}
-            showStock={showStock}
-            index={i}
-            isRtl={isRtl}
-            editMode={editMode}
-            isPinned={pinned.has(food.id)}
-            onPin={togglePin}
-            onSave={onSave}
-          />
-        </Grid>
-      ))}
+      {sorted.map((food, i) => {
+        // ★ استخراج تخفیف دسته‌بندی برای این آیتم
+        const catKey = food.category_name || food.category || "";
+        const catDiscount = categoryDiscounts?.[catKey] || null;
+
+        return (
+          <Grid
+            size={{ xs: 12, sm: 6 }}
+            key={food.id}
+            draggable
+            onDragStart={(e) => handleDragStart(e, i)}
+            onDragOver={(e) => handleDragOver(e, i)}
+            onDrop={(e) => handleDrop(e, i)}
+            onDragEnd={handleDragEnd}
+            sx={{
+              transition: "all 0.2s ease",
+              transform: overIdx === i && dragIdx !== i ? "scale(1.02)" : "none",
+              opacity: dragIdx === i ? 0.35 : 1,
+              borderRadius: "14px",
+              outline: overIdx === i && dragIdx !== i ? `2px dashed ${C.olive}55` : "none",
+              outlineOffset: 2,
+            }}
+          >
+            <FoodCard
+              food={food}
+              onAdd={onAdd}
+              onRemove={onRemove}
+              C={C}
+              showStock={showStock}
+              index={i}
+              isRtl={isRtl}
+              editMode={editMode}
+              isPinned={pinned.has(food.id)}
+              onPin={togglePin}
+              onSave={onSave}
+              categoryDiscount={catDiscount?.amount || 0}
+              categoryDiscountType={catDiscount?.type || "fixed"}
+              onExitEdit={onExitEdit}
+            />
+          </Grid>
+        );
+      })}
     </Grid>
   );
 }

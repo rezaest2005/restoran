@@ -2,10 +2,13 @@ import { Box, TextField } from "@mui/material";
 import { PersonAdd, Phone } from "@mui/icons-material";
 
 export default function CustomerInfo({
-  custName, setCustName,
-  custPhone, setCustPhone,
+  custName,
+  setCustName,
+  custPhone,
+  setCustPhone,
   requireCustomer,
-  C, isRtl,
+  C,
+  isRtl,
 }) {
   const inputSx = {
     "& .MuiOutlinedInput-root": {
@@ -32,11 +35,15 @@ export default function CustomerInfo({
         size="small"
         label={isRtl ? "نام مشتری" : "Customer name"}
         value={custName}
-        onChange={e => setCustName(e.target.value)}
+        onChange={(e) => setCustName(e.target.value)}
         required={requireCustomer}
         sx={inputSx}
-        InputProps={{
-          startAdornment: <PersonAdd sx={{ color: C.muted, fontSize: 16, mr: 0.5 }} />,
+        slotProps={{
+          input: {
+            startAdornment: (
+              <PersonAdd sx={{ color: C.muted, fontSize: 16, mr: 0.5 }} />
+            ),
+          },
         }}
       />
       <TextField
@@ -44,10 +51,14 @@ export default function CustomerInfo({
         size="small"
         label={isRtl ? "تلفن" : "Phone"}
         value={custPhone}
-        onChange={e => setCustPhone(e.target.value)}
+        onChange={(e) => setCustPhone(e.target.value)}
         sx={inputSx}
-        InputProps={{
-          startAdornment: <Phone sx={{ color: C.muted, fontSize: 16, mr: 0.5 }} />,
+        slotProps={{
+          input: {
+            startAdornment: (
+              <Phone sx={{ color: C.muted, fontSize: 16, mr: 0.5 }} />
+            ),
+          },
         }}
       />
     </Box>

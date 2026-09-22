@@ -30,10 +30,12 @@ export default function OrderDetailDialog({
   return (
     <Dialog
       open={open} onClose={onClose} maxWidth="sm" fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: "20px", bgcolor: C.glass,
-          backdropFilter: "blur(28px)", border: `1px solid ${C.glassBorder}`,
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: "20px", bgcolor: C.glass,
+            backdropFilter: "blur(28px)", border: `1px solid ${C.glassBorder}`,
+          },
         },
       }}
     >

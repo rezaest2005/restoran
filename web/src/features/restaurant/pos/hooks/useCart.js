@@ -1,8 +1,34 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
+
+// ★ بررسی فعال بودن تخفیف (منقضی نشده باشه)
+const isDiscountActive = (discount) => {
+  if (!discount || !discount.amount || discount.amount <= 0) return false;
+  if (!discount.expiresAt) return true;
+  return Date.now() < discount.expiresAt;
+};
+
+// ★ محاسبه‌ی مقدار تخفیف بر اساس نوعش (مبلغ ثابت یا درصد)
+const computeDiscountAmount = (basePrice, discount) => {
+  if (!isDiscountActive(discount)) return 0;
+  if (discount.type === "percent") {
+    return (basePrice * discount.amount) / 100;
+  }
+  return discount.amount;
+};
 
 export default function useCart() {
   const [cart, setCart] = useState([]);
+  // ★ ساختار هر مقدار: { type: "fixed" | "percent", amount: number, expiresAt: number|null }
+  // ★ کلید "all" یعنی تخفیف روی همه‌ی محصولات، صرف‌نظر از دسته
   const [categoryDiscounts, setCategoryDiscounts] = useState({});
+
+  // ★ هر ۳۰ ثانیه یک‌بار re-render اجباری تا وقتی تخفیفی منقضی شد،
+  //   قیمت‌ها خودکار به‌روز بشن حتی بدون اکشن کاربر
+  const [, forceTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => forceTick(t => t + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
 
   const addToCart = useCallback((item) => {
     setCart(prev => {
@@ -55,38 +81,63 @@ export default function useCart() {
 
   const clearCart = useCallback(() => setCart([]), []);
 
-  // تخفیف دسته‌بندی
-  const setCategoryDiscount = useCallback((categoryName, amount) => {
+  // ★ ثبت/حذف تخفیف برای یک دسته یا "all"
+  const setCategoryDiscount = useCallback((categoryKey, discount) => {
     setCategoryDiscounts(prev => {
       const next = { ...prev };
-      if (amount <= 0) {
-        delete next[categoryName];
+      if (!discount || !discount.amount || discount.amount <= 0) {
+        delete next[categoryKey];
       } else {
-        next[categoryName] = amount;
+        next[categoryKey] = discount;
       }
       return next;
     });
   }, []);
 
-  // محاسبه قیمت نهایی هر آیتم (با تخفیف آیتم + تخفیف دسته)
+  // ★ رفع باگ اصلی: چون فیلد دسته‌بندی غذا بسته به زبان category_name یا
+  //   category_name_en هست (نه category)، هر سه احتمال رو چک می‌کنیم
+  const getItemCategoryKeys = (item) => (
+    [item.category, item.category_name, item.category_name_en].filter(Boolean)
+  );
+
+  // ★ مجموع تخفیف قابل‌اعمال روی یک آیتم: تخفیف خودِ آیتم + تخفیف دسته‌اش + تخفیف "همه"
+  const getItemDiscountAmount = useCallback((item) => {
+    const base = item.price;
+    const itemLevelDiscount = item.discount || 0;
+
+    const catKeys = getItemCategoryKeys(item);
+    let catDiscountAmt = 0;
+    for (const key of catKeys) {
+      const d = categoryDiscounts[key];
+      if (isDiscountActive(d)) {
+        catDiscountAmt = computeDiscountAmount(base, d);
+        break;
+      }
+    }
+
+    const allDiscount = categoryDiscounts["all"];
+    const allDiscountAmt = isDiscountActive(allDiscount)
+      ? computeDiscountAmount(base, allDiscount)
+      : 0;
+
+    return itemLevelDiscount + catDiscountAmt + allDiscountAmt;
+  }, [categoryDiscounts]);
+
+  const getItemEffectivePrice = useCallback((item) => {
+    return Math.max(0, item.price - getItemDiscountAmount(item));
+  }, [getItemDiscountAmount]);
+
   const cartTotal = useMemo(() => {
     return cart.reduce((sum, item) => {
-      const catDiscount = categoryDiscounts[item.category] || 0;
-      const itemDiscount = item.discount || 0;
-      const totalDiscount = itemDiscount + catDiscount;
-      const effective = Math.max(0, item.price - totalDiscount);
-      return sum + effective * item.qty;
+      return sum + getItemEffectivePrice(item) * item.qty;
     }, 0);
-  }, [cart, categoryDiscounts]);
+  }, [cart, getItemEffectivePrice]);
 
   const cartCount = useMemo(() => cart.reduce((s, c) => s + c.qty, 0), [cart]);
 
   const toOrderItems = useCallback(() => {
     return cart.map(c => {
-      const catDiscount = categoryDiscounts[c.category] || 0;
-      const totalDiscount = (c.discount || 0) + catDiscount;
-      const effectivePrice = Math.max(0, c.price - totalDiscount);
-
+      const effectivePrice = getItemEffectivePrice(c);
       if (c.is_manual) {
         return {
           food_id: null,
@@ -101,7 +152,7 @@ export default function useCart() {
         price: effectivePrice,
       };
     });
-  }, [cart, categoryDiscounts]);
+  }, [cart, getItemEffectivePrice]);
 
   return {
     cart,
@@ -115,5 +166,7 @@ export default function useCart() {
     toOrderItems,
     categoryDiscounts,
     setCategoryDiscount,
+    getItemDiscountAmount,
+    getItemEffectivePrice,
   };
 }
