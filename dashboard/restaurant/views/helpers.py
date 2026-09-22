@@ -193,12 +193,13 @@ def _build_food_entry(food: Food) -> dict:
     except (ValueError, TypeError):
         final_price = int(food.price or 0)
 
-    return {
+        return {
         "id": food.id,
         "name": food.name,
         "name_en": food.name_en or "",
         "category_id": food.category_id,
         "category_name": food.category.name if food.category else "",
+        "category_name_en": food.category.name_en if food.category else "",
         "final_price": final_price,
         "kitchen_price": kitchen_price,
         "has_kitchen": kitchen_product is not None,
@@ -206,12 +207,7 @@ def _build_food_entry(food: Food) -> dict:
         "image": food.image.url if getattr(food, 'image', None) and food.image else "",
     }
 
-
 def _build_foods_with_discounts(restaurant=None) -> tuple[list[dict], list[dict]]:
-    """
-    ساخت لیست کامل غذاها + مواد آماده برای منو.
-    ★ FIXED: فیلتر restaurant
-    """
     foods_qs = Food.objects.select_related("category").all()
     if restaurant:
         foods_qs = foods_qs.filter(restaurant=restaurant)
@@ -224,7 +220,12 @@ def _build_foods_with_discounts(restaurant=None) -> tuple[list[dict], list[dict]
     categories = categories_qs.order_by("order")
 
     foods_data = [_build_food_entry(f) for f in foods]
-    categories_data = [{"id": c.id, "name": c.name} for c in categories]
+
+    # ★ name_en اضافه شد:
+    categories_data = [
+        {"id": c.id, "name": c.name, "name_en": c.name_en or ""}
+        for c in categories
+    ]
     existing_names = {c["name"]: c["id"] for c in categories_data}
 
     rm_qs = ReadyMaterial.objects.filter(quantity__gt=0).exclude(
@@ -237,8 +238,12 @@ def _build_foods_with_discounts(restaurant=None) -> tuple[list[dict], list[dict]
         foods_data.append({
             "id": f"ready_{rm.id}",
             "name": rm.name,
+            # ★ کم بود:
+            "name_en": "",
             "category_id": rm.category_id,
             "category_name": rm.category.name if rm.category else "",
+            # ★ کم بود:
+            "category_name_en": rm.category.name_en if rm.category else "",
             "final_price": int(rm.selling_price or 0),
             "kitchen_price": int(rm.selling_price or 0),
             "has_kitchen": False,
@@ -250,11 +255,12 @@ def _build_foods_with_discounts(restaurant=None) -> tuple[list[dict], list[dict]
             categories_data.append({
                 "id": rm.category_id,
                 "name": rm.category.name,
+                # ★ کم بود:
+                "name_en": rm.category.name_en or "",
             })
             existing_names[rm.category.name] = rm.category_id
 
     return foods_data, categories_data
-
 
 # ═══════════════════════════════════════════════════════════════════
 #  WAREHOUSE HELPERS

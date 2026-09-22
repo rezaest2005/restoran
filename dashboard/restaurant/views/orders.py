@@ -334,20 +334,15 @@ def order_send_to_kitchen(request, pk):
 @api_view(["GET"])
 @permission_classes([KitchenPerm])
 def kitchen_orders_api(request):
-    """
-    لیست سفارشات آشپزخانه.
-    GET /api/orders/kitchen/?status=preparing
-    """
     status_filter = request.GET.get("status", "preparing")
     restaurant = _resolve_restaurant(request)
 
-    # ★ FIXED: اگه status نیست، confirmed/preparing/ready
     if status_filter == 'all':
-        qs = Order.objects.prefetch_related('items__food').filter(
+        qs = Order.objects.prefetch_related('items__food__category').filter(
             status__in=['confirmed', 'preparing', 'ready'],
         ).order_by('created_at')
     else:
-        qs = Order.objects.prefetch_related('items__food').filter(
+        qs = Order.objects.prefetch_related('items__food__category').filter(
             status=status_filter,
         ).order_by('created_at')
 
@@ -362,6 +357,17 @@ def kitchen_orders_api(request):
             {
                 "id": item.id,
                 "food_name": item.food.name if item.food else (item.item_name or "—"),
+                # ★ اضافه شد:
+                "name_en": (
+                    item.food.name_en if item.food and item.food.name_en
+                    else (item.item_name_en or "")
+                ),
+                "category": (
+                    item.food.category.name if item.food and item.food.category else ""
+                ),
+                "category_en": (
+                    item.food.category.name if item.food and item.food.category else ""
+                ),
                 "quantity": item.quantity,
                 "price": int(item.price or 0),
             }
@@ -374,6 +380,8 @@ def kitchen_orders_api(request):
             "source": order.source,
             "source_display": order.get_source_display(),
             "customer_name": order.customer_name or "—",
+            # ★ اضافه شد:
+            "customer_name_en": order.customer_name_en or "",
             "phone": order.phone or "",
             "items": items,
             "total_price": int(order.total_price),
@@ -386,8 +394,6 @@ def kitchen_orders_api(request):
         "count": len(data),
         "orders": data,
     })
-
-
 # ═══════════════════════════════════════
 #  لیست کلی سفارشات
 # ═══════════════════════════════════════
@@ -395,14 +401,9 @@ def kitchen_orders_api(request):
 @api_view(["GET"])
 @permission_classes([PosPerm])
 def order_list_api(request):
-    """
-    لیست سفارشات — با فیلتر وضعیت، منبع، تاریخ.
-    GET /api/orders/list/?status=pending&source=pos&date=2024-01-01
-    """
     restaurant = _resolve_restaurant(request)
-    qs = Order.objects.prefetch_related('items__food').all()
+    qs = Order.objects.prefetch_related('items__food__category').all()
 
-    # ★ FIXED: فیلتر restaurant
     if restaurant:
         qs = qs.filter(restaurant=restaurant)
 
@@ -426,7 +427,6 @@ def order_list_api(request):
             | Q(id__icontains=search),
         )
 
-    # ★ FIXED: اعتبارسنجی page/page_size
     try:
         page = max(1, int(request.GET.get("page", 1)))
     except (TypeError, ValueError):
@@ -445,14 +445,30 @@ def order_list_api(request):
         items = [
             {
                 "food_name": oi.food.name if oi.food else (oi.item_name or "—"),
+                # ★ اضافه شد:
+                "name_en": (
+                    oi.food.name_en if oi.food and oi.food.name_en
+                    else (oi.item_name_en or "")
+                ),
+                "category": (
+                    oi.food.category.name if oi.food and oi.food.category else ""
+                ),
+                "category_en": (
+                    oi.food.category.name_en if oi.food and oi.food.category else ""
+                ),
                 "quantity": oi.quantity,
                 "price": int(oi.price or 0),
+                "effective_price": (
+                    int(oi.food.final_price) if oi.food and oi.food.final_price else int(oi.price or 0)
+                ),
             }
             for oi in o.items.all()
         ]
         data.append({
             "id": o.id,
             "customer_name": o.customer_name or "—",
+            # ★ اضافه شد:
+            "customer_name_en": o.customer_name_en or "",
             "phone": o.phone or "",
             "status": o.status,
             "status_display": o.get_status_display(),
@@ -463,7 +479,7 @@ def order_list_api(request):
             "total_price": int(o.total_price),
             "items": items,
             "items_count": len(items),
-            "created_at": o.created_at.strftime("%Y-%m-%d %H:%M"),
+            "created_at": o.created_at.strftime("%H:%M"),
             "confirmed_by": (
                 o.confirmed_by.get_full_name() or o.confirmed_by.username
             ) if o.confirmed_by else None,

@@ -6,12 +6,14 @@ import OrderTypeSelector from "./OrderTypeSelector";
 
 export default function CartPanel({
   cart, cartCount, cartTotal,
+  categoryDiscounts,
   onAdd, onRemove, onClear,
   orderType, setOrderType,
   custName, setCustName,
   custPhone, setCustPhone,
   requireCustomer,
   onCheckout,
+  submitting,
   C, isRtl,
 }) {
   return (
@@ -92,6 +94,7 @@ export default function CartPanel({
         <Box sx={{
           display: "flex",
           justifyContent: "space-between",
+          alignItems: "baseline",
           mb: 2,
           mt: 1,
         }}>
@@ -101,33 +104,49 @@ export default function CartPanel({
           }}>
             {isRtl ? "جمع کل:" : "Total:"}
           </Typography>
-          <Typography sx={{
-            fontWeight: 800, color: C.olive, fontSize: 18,
-            fontFamily: "'Vazirmatn', sans-serif",
-          }}>
-            {cartTotal.toLocaleString()} {isRtl ? "تومان" : "T"}
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "baseline", gap: 0.4 }}>
+            <Typography sx={{
+              fontWeight: 800, color: C.olive, fontSize: 18,
+              fontFamily: "'Vazirmatn', sans-serif",
+            }}>
+              {cartTotal.toLocaleString()}
+            </Typography>
+            <Typography sx={{
+              fontWeight: 600, color: C.muted, fontSize: 11,
+              fontFamily: "'Vazirmatn', sans-serif",
+            }}>
+              {isRtl ? "تومان" : "Toman"}
+            </Typography>
+          </Box>
         </Box>
 
         {/* دکمه پرداخت */}
         <Button
           fullWidth
           onClick={onCheckout}
-          disabled={cart.length === 0}
+          disabled={cart.length === 0 || submitting}
           sx={{
-            bgcolor: C.btnGrad,
+            bgcolor: C.olive,
             color: "#fff",
             py: 1.5,
             fontSize: 14,
             fontWeight: 700,
             borderRadius: "14px",
             fontFamily: "'Vazirmatn', sans-serif",
-            "&:hover": { transform: "translateY(-2px)" },
-            "&.Mui-disabled": { bgcolor: C.muted, color: "#fff" },
+            transition: "all 0.2s ease",
+            "&:hover": {
+              bgcolor: C.olive,
+              opacity: 0.88,
+              transform: "translateY(-2px)",
+            },
+            "&.Mui-disabled": { bgcolor: `${C.muted}30`, color: C.muted },
           }}
         >
           <CreditCard sx={{ mr: 1 }} />
-          {isRtl ? "پرداخت" : "Checkout"}
+          {submitting
+            ? (isRtl ? "در حال پرداخت..." : "Processing...")
+            : (isRtl ? "پرداخت" : "Checkout")
+          }
         </Button>
       </Box>
     </Box>

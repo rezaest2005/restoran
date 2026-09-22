@@ -19,19 +19,38 @@ from django.contrib.auth import password_validation
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from .models import (
-    Category, Food, Table, Reservation, Order, OrderItem,
-    RawMaterial, InventoryUsageLog, InventoryMovement,
-    Supplier, PurchaseInvoice, PurchaseInvoiceItem,
+    Category,
+    Food,
+    Table,
+    Reservation,
+    Order,
+    OrderItem,
+    RawMaterial,
+    InventoryUsageLog,
+    InventoryMovement,
+    Supplier,
+    PurchaseInvoice,
+    PurchaseInvoiceItem,
     ReadyMaterial,
-    SemiFinished, SemiFinishedIngredient,
+    SemiFinished,
+    SemiFinishedIngredient,
     Restaurant,
-    Recipe, RecipeIngredient, RecipeSemiFinished, RecipePackagingItem,
-    KitchenProduct, KitchenInventory, ProductionPlan,
-    ProductionPlanItem, ProductionBatch, ProductionLog,
+    Recipe,
+    RecipeIngredient,
+    RecipeSemiFinished,
+    RecipePackagingItem,
+    KitchenProduct,
+    KitchenInventory,
+    ProductionPlan,
+    ProductionPlanItem,
+    ProductionBatch,
+    ProductionLog,
     WasteLog,
     OnlineOrderSettings,
-    DayCloseReport, DayCloseLog,
-    DictionaryGroup, ItemDictionary,
+    DayCloseReport,
+    DayCloseLog,
+    DictionaryGroup,
+    ItemDictionary,
     PosSettings,
 )
 
@@ -42,41 +61,68 @@ User = get_user_model()
 #  1. FOOD & CATEGORY
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class FoodSerializer(serializers.ModelSerializer):
-    category_name = serializers.CharField(source='category.name', read_only=True)
-    category_name_en = serializers.CharField(source='category.name_en', read_only=True, default='')
+    category_name = serializers.CharField(source="category.name", read_only=True)
+    category_name_en = serializers.CharField(
+        source="category.name_en", read_only=True, default=""
+    )
 
     class Meta:
         model = Food
         fields = [
-            'id', 'name', 'name_en', 'image', 'price', 'final_price',
-            'category', 'category_name', 'category_name_en', 'is_available',
+            "id",
+            "name",
+            "name_en",
+            "image",
+            "price",
+            "final_price",
+            "category",
+            "category_name",
+            "category_name_en",
+            "is_available",
+            "stock",
         ]
 
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['id', 'name', 'name_en', 'image', 'is_active', 'order']
-
+        fields = [
+            "id", "name", "name_en", "image", "is_active", "order",
+            # ★ کم بود:
+            "discount", "discount_type",
+        ]
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  1.5 RAW MATERIALS — ★ جدید
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class RawMaterialSerializer(serializers.ModelSerializer):
     total_price = serializers.SerializerMethodField()
-    unit_display = serializers.CharField(source='get_unit_display', read_only=True)
-    material_type_display = serializers.CharField(source='get_material_type_display', read_only=True)
+    unit_display = serializers.CharField(source="get_unit_display", read_only=True)
+    material_type_display = serializers.CharField(
+        source="get_material_type_display", read_only=True
+    )
 
     class Meta:
         model = RawMaterial
         fields = [
-            'id', 'name', 'label', 'price', 'unit', 'unit_display',
-            'quantity', 'material_type', 'material_type_display',
-            'total_price', 'created_at', 'updated_at',
+            "id",
+            "name",
+            "label",
+            "price",
+            "unit",
+            "unit_display",
+            "quantity",
+            "material_type",
+            "material_type_display",
+            "total_price",
+            "created_at",
+            "updated_at",
         ]
-        read_only_fields = ['created_at', 'updated_at']
+        read_only_fields = ["created_at", "updated_at"]
 
     def get_total_price(self, obj):
         try:
@@ -89,11 +135,13 @@ class RawMaterialSerializer(serializers.ModelSerializer):
 #  RECIPE ENGINE SERIALIZERS
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class RecipeIngredientSerializer(serializers.ModelSerializer):
     raw_material_name = serializers.SerializerMethodField()
     raw_material_id = serializers.PrimaryKeyRelatedField(
         queryset=RawMaterial.objects.all(),
-        source='raw_material', write_only=True,
+        source="raw_material",
+        write_only=True,
     )
     raw_material = serializers.SerializerMethodField()
     unit_display = serializers.SerializerMethodField()
@@ -103,31 +151,39 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model = RecipeIngredient
         fields = [
-            'id', 'raw_material', 'raw_material_id', 'raw_material_name',
-            'quantity', 'unit', 'unit_display',
-            'wastage_percent', 'optional', 'notes',
-            'effective_quantity', 'total_cost',
+            "id",
+            "raw_material",
+            "raw_material_id",
+            "raw_material_name",
+            "quantity",
+            "unit",
+            "unit_display",
+            "wastage_percent",
+            "optional",
+            "notes",
+            "effective_quantity",
+            "total_cost",
         ]
 
     def get_raw_material(self, obj):
         if obj.raw_material:
             return {
-                'id': obj.raw_material.id,
-                'name': obj.raw_material.name,
-                'unit': obj.raw_material.unit,
-                'price': int(obj.raw_material.price or 0),
-                'quantity': float(obj.raw_material.quantity or 0),
+                "id": obj.raw_material.id,
+                "name": obj.raw_material.name,
+                "unit": obj.raw_material.unit,
+                "price": int(obj.raw_material.price or 0),
+                "quantity": float(obj.raw_material.quantity or 0),
             }
         return None
 
     def get_raw_material_name(self, obj):
-        return obj.raw_material.name if obj.raw_material else ''
+        return obj.raw_material.name if obj.raw_material else ""
 
     def get_unit_display(self, obj):
         try:
-            return obj.get_unit_display() or ''
+            return obj.get_unit_display() or ""
         except Exception:
-            return obj.unit or ''
+            return obj.unit or ""
 
     def get_effective_quantity(self, obj):
         try:
@@ -146,7 +202,8 @@ class RecipeSemiFinishedSerializer(serializers.ModelSerializer):
     semi_finished_name = serializers.SerializerMethodField()
     semi_finished_id = serializers.PrimaryKeyRelatedField(
         queryset=SemiFinished.objects.all(),
-        source='semi_finished', write_only=True,
+        source="semi_finished",
+        write_only=True,
     )
     semi_finished = serializers.SerializerMethodField()
     unit_display = serializers.SerializerMethodField()
@@ -155,28 +212,34 @@ class RecipeSemiFinishedSerializer(serializers.ModelSerializer):
     class Meta:
         model = RecipeSemiFinished
         fields = [
-            'id', 'semi_finished', 'semi_finished_id', 'semi_finished_name',
-            'quantity', 'unit', 'unit_display', 'total_cost',
+            "id",
+            "semi_finished",
+            "semi_finished_id",
+            "semi_finished_name",
+            "quantity",
+            "unit",
+            "unit_display",
+            "total_cost",
         ]
 
     def get_semi_finished(self, obj):
         if obj.semi_finished:
             return {
-                'id': obj.semi_finished.id,
-                'name': obj.semi_finished.name,
-                'unit': obj.semi_finished.unit,
-                'cost_per_unit': int(obj.semi_finished.cost_per_unit or 0),
+                "id": obj.semi_finished.id,
+                "name": obj.semi_finished.name,
+                "unit": obj.semi_finished.unit,
+                "cost_per_unit": int(obj.semi_finished.cost_per_unit or 0),
             }
         return None
 
     def get_semi_finished_name(self, obj):
-        return obj.semi_finished.name if obj.semi_finished else ''
+        return obj.semi_finished.name if obj.semi_finished else ""
 
     def get_unit_display(self, obj):
         try:
-            return obj.get_unit_display() or ''
+            return obj.get_unit_display() or ""
         except Exception:
-            return obj.unit or ''
+            return obj.unit or ""
 
     def get_total_cost(self, obj):
         try:
@@ -189,7 +252,8 @@ class RecipePackagingItemSerializer(serializers.ModelSerializer):
     raw_material_name = serializers.SerializerMethodField()
     raw_material_id = serializers.PrimaryKeyRelatedField(
         queryset=RawMaterial.objects.all(),
-        source='raw_material', write_only=True,
+        source="raw_material",
+        write_only=True,
     )
     raw_material = serializers.SerializerMethodField()
     unit_display = serializers.SerializerMethodField()
@@ -198,29 +262,36 @@ class RecipePackagingItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = RecipePackagingItem
         fields = [
-            'id', 'raw_material', 'raw_material_id', 'raw_material_name',
-            'quantity', 'unit', 'unit_display', 'notes', 'total_cost',
+            "id",
+            "raw_material",
+            "raw_material_id",
+            "raw_material_name",
+            "quantity",
+            "unit",
+            "unit_display",
+            "notes",
+            "total_cost",
         ]
 
     def get_raw_material(self, obj):
         if obj.raw_material:
             return {
-                'id': obj.raw_material.id,
-                'name': obj.raw_material.name,
-                'unit': obj.raw_material.unit,
-                'price': int(obj.raw_material.price or 0),
-                'quantity': float(obj.raw_material.quantity or 0),
+                "id": obj.raw_material.id,
+                "name": obj.raw_material.name,
+                "unit": obj.raw_material.unit,
+                "price": int(obj.raw_material.price or 0),
+                "quantity": float(obj.raw_material.quantity or 0),
             }
         return None
 
     def get_raw_material_name(self, obj):
-        return obj.raw_material.name if obj.raw_material else ''
+        return obj.raw_material.name if obj.raw_material else ""
 
     def get_unit_display(self, obj):
         try:
-            return obj.get_unit_display() or ''
+            return obj.get_unit_display() or ""
         except Exception:
-            return obj.unit or ''
+            return obj.unit or ""
 
     def get_total_cost(self, obj):
         try:
@@ -230,7 +301,7 @@ class RecipePackagingItemSerializer(serializers.ModelSerializer):
 
 
 class RecipeSerializer(serializers.ModelSerializer):
-    food_name = serializers.CharField(source='food.name', read_only=True)
+    food_name = serializers.CharField(source="food.name", read_only=True)
     ingredients = RecipeIngredientSerializer(many=True, required=False)
     semi_finished_items = RecipeSemiFinishedSerializer(many=True, required=False)
     packaging_items = RecipePackagingItemSerializer(many=True, required=False)
@@ -239,28 +310,45 @@ class RecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = [
-            'id', 'food', 'food_name',
-            'yield_quantity', 'instructions',
-            'estimated_preparation_time', 'notes',
-            'version', 'is_active',
-            'ingredients', 'semi_finished_items', 'packaging_items',
-            'total_raw_material_cost', 'total_semi_finished_cost',
-            'total_packaging_cost', 'total_cost', 'cost_per_serving',
-            'suggested_price', 'profit_margin',
-            'created_at', 'updated_at',
+            "id",
+            "food",
+            "food_name",
+            "yield_quantity",
+            "instructions",
+            "estimated_preparation_time",
+            "notes",
+            "version",
+            "is_active",
+            "ingredients",
+            "semi_finished_items",
+            "packaging_items",
+            "total_raw_material_cost",
+            "total_semi_finished_cost",
+            "total_packaging_cost",
+            "total_cost",
+            "cost_per_serving",
+            "suggested_price",
+            "profit_margin",
+            "created_at",
+            "updated_at",
         ]
         read_only_fields = [
-            'total_raw_material_cost', 'total_semi_finished_cost',
-            'total_packaging_cost', 'total_cost', 'cost_per_serving',
-            'suggested_price', 'version',
-            'created_at', 'updated_at',
+            "total_raw_material_cost",
+            "total_semi_finished_cost",
+            "total_packaging_cost",
+            "total_cost",
+            "cost_per_serving",
+            "suggested_price",
+            "version",
+            "created_at",
+            "updated_at",
         ]
 
     def create(self, validated_data):
-        ingredients_data = validated_data.pop('ingredients', [])
-        semi_items_data = validated_data.pop('semi_finished_items', [])
-        packaging_items_data = validated_data.pop('packaging_items', [])
-        food = validated_data.pop('food', None)
+        ingredients_data = validated_data.pop("ingredients", [])
+        semi_items_data = validated_data.pop("semi_finished_items", [])
+        packaging_items_data = validated_data.pop("packaging_items", [])
+        food = validated_data.pop("food", None)
 
         if food:
             recipe, created = Recipe.objects.update_or_create(
@@ -273,7 +361,7 @@ class RecipeSerializer(serializers.ModelSerializer):
                 recipe.packaging_items.all().delete()
         else:
             raise serializers.ValidationError(
-                {'food': 'انتخاب غذا برای رسپی الزامی است.'}
+                {"food": "انتخاب غذا برای رسپی الزامی است."}
             )
 
         for ing_data in ingredients_data:
@@ -289,9 +377,9 @@ class RecipeSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
-        ingredients_data = validated_data.pop('ingredients', None)
-        semi_items_data = validated_data.pop('semi_finished_items', None)
-        packaging_items_data = validated_data.pop('packaging_items', None)
+        ingredients_data = validated_data.pop("ingredients", None)
+        semi_items_data = validated_data.pop("semi_finished_items", None)
+        packaging_items_data = validated_data.pop("packaging_items", None)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -320,31 +408,60 @@ class RecipeSerializer(serializers.ModelSerializer):
 #  2. TABLES & RESERVATIONS
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class TableSerializer(serializers.ModelSerializer):
     class Meta:
         model = Table
-        fields = '__all__'
+        fields = "__all__"
 
 
 class ReservationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Reservation
-        fields = '__all__'
+        fields = "__all__"
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  3. ORDERS — ★ اصلاح‌شده
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class OrderItemSerializer(serializers.ModelSerializer):
     # ★ FIXED: فیلدهای جدید
-    food_name = serializers.CharField(source='food.name', read_only=True, default='')
+    food_name = serializers.CharField(source="food.name", read_only=True, default="")
     display_name = serializers.CharField(read_only=True)
     line_total = serializers.SerializerMethodField()
 
     class Meta:
         model = OrderItem
-        fields = ['id', 'food', 'food_name', 'item_name', 'display_name', 'quantity', 'price', 'line_total']
+        fields = [
+            "id",
+            "food",
+            "food_name",
+            "item_name",
+            "display_name",
+            "display_name_en",
+            "category", 
+            "category_en",  
+            "quantity",
+            "price",
+            "line_total",
+        ]
+
+    def get_line_total(self, obj):
+        if obj.price and obj.quantity:
+            return int(obj.price * obj.quantity)
+        return 0
+    def get_category(self, obj):
+        if obj.food_id and obj.food and obj.food.category:
+            return obj.food.category.name
+        return ""
+
+    # ★ جدید
+    def get_category_en(self, obj):
+        if obj.food_id and obj.food and obj.food.category:
+            return obj.food.category.name_en or ""
+        return ""
 
     def get_line_total(self, obj):
         if obj.price and obj.quantity:
@@ -355,32 +472,55 @@ class OrderItemSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
     # ★ FIXED: فیلدهای جدید
-    status_display = serializers.CharField(source='get_status_display', read_only=True)
-    source_display = serializers.CharField(source='get_source_display', read_only=True)
-    payment_status_display = serializers.CharField(source='get_payment_status_display', read_only=True)
-    payment_method_display = serializers.CharField(source='get_payment_method_display', read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+    source_display = serializers.CharField(source="get_source_display", read_only=True)
+    payment_status_display = serializers.CharField(
+        source="get_payment_status_display", read_only=True
+    )
+    payment_method_display = serializers.CharField(
+        source="get_payment_method_display", read_only=True
+    )
     confirmed_by_name = serializers.SerializerMethodField()
     items_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = [
-            'id', 'customer_name', 'phone', 'table',
-            'status', 'status_display',
-            'source', 'source_display',
-            'payment_status', 'payment_status_display',
-            'payment_method', 'payment_method_display',
-            'confirmed_by', 'confirmed_by_name', 'confirmed_at',
-            'total_price', 'items_count', 'items',
-            'created_at', 'updated_at',
+            "id",
+            "customer_name",
+            "phone",
+            "table",
+            "status",
+            "status_display",
+            "customer_name_en",
+            "source",
+            "source_display",
+            "payment_status",
+            "payment_status_display",
+            "payment_method",
+            "payment_method_display",
+            "confirmed_by",
+            "confirmed_by_name",
+            "confirmed_at",
+            "total_price",
+            "items_count",
+            "items",
+            "created_at",
+            "updated_at",
         ]
-        read_only_fields = ['id', 'total_price', 'created_at', 'updated_at', 'confirmed_at']
+        read_only_fields = [
+            "id",
+            "total_price",
+            "created_at",
+            "updated_at",
+            "confirmed_at",
+        ]
 
     def get_confirmed_by_name(self, obj):
         try:
-            return obj.confirmed_by.get_full_name() if obj.confirmed_by else ''
+            return obj.confirmed_by.get_full_name() if obj.confirmed_by else ""
         except Exception:
-            return ''
+            return ""
 
     def get_items_count(self, obj):
         return obj.items.count()
@@ -388,21 +528,30 @@ class OrderSerializer(serializers.ModelSerializer):
 
 class OrderCreateSerializer(serializers.ModelSerializer):
     """سریالایزر برای ایجاد سفارش — آیتم‌ها به‌صورت جداگانه اضافه می‌شوند"""
+
     items = OrderItemSerializer(many=True, read_only=True)
 
     class Meta:
         model = Order
         fields = [
-            'id', 'customer_name', 'phone', 'table',
-            'status', 'source', 'payment_method',
-            'total_price', 'items', 'created_at',
+            "id",
+            "customer_name",
+            "phone",
+            "table",
+            "status",
+            "source",
+            "payment_method",
+            "total_price",
+            "items",
+            "created_at",
         ]
-        read_only_fields = ['id', 'total_price', 'created_at']
+        read_only_fields = ["id", "total_price", "created_at"]
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  3.5 SUPPLIERS & PURCHASE INVOICES — ★ جدید
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class SupplierSerializer(serializers.ModelSerializer):
     invoices_count = serializers.SerializerMethodField()
@@ -410,10 +559,16 @@ class SupplierSerializer(serializers.ModelSerializer):
     class Meta:
         model = Supplier
         fields = [
-            'id', 'name', 'phone', 'address', 'contact_person',
-            'description', 'invoices_count', 'created_at',
+            "id",
+            "name",
+            "phone",
+            "address",
+            "contact_person",
+            "description",
+            "invoices_count",
+            "created_at",
         ]
-        read_only_fields = ['created_at']
+        read_only_fields = ["created_at"]
 
     def get_invoices_count(self, obj):
         return obj.invoices.count()
@@ -425,8 +580,14 @@ class PurchaseInvoiceItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = PurchaseInvoiceItem
         fields = [
-            'id', 'item_name', 'quantity', 'unit', 'unit_price',
-            'category', 'raw_material', 'line_total',
+            "id",
+            "item_name",
+            "quantity",
+            "unit",
+            "unit_price",
+            "category",
+            "raw_material",
+            "line_total",
         ]
 
     def get_line_total(self, obj):
@@ -440,16 +601,25 @@ class PurchaseInvoiceSerializer(serializers.ModelSerializer):
     items = PurchaseInvoiceItemSerializer(many=True, read_only=True)
     total_amount = serializers.SerializerMethodField()
     item_count = serializers.SerializerMethodField()
-    supplier_detail = SupplierSerializer(source='supplier', read_only=True)
+    supplier_detail = SupplierSerializer(source="supplier", read_only=True)
 
     class Meta:
         model = PurchaseInvoice
         fields = [
-            'id', 'supplier', 'supplier_detail', 'supplier_name',
-            'invoice_number', 'date', 'description', 'file',
-            'items', 'total_amount', 'item_count', 'created_at',
+            "id",
+            "supplier",
+            "supplier_detail",
+            "supplier_name",
+            "invoice_number",
+            "date",
+            "description",
+            "file",
+            "items",
+            "total_amount",
+            "item_count",
+            "created_at",
         ]
-        read_only_fields = ['created_at']
+        read_only_fields = ["created_at"]
 
     def get_total_amount(self, obj):
         try:
@@ -465,46 +635,71 @@ class PurchaseInvoiceSerializer(serializers.ModelSerializer):
 #  3.6 INVENTORY TRACKING — ★ جدید
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class InventoryMovementSerializer(serializers.ModelSerializer):
-    raw_material_name = serializers.CharField(source='raw_material.name', read_only=True)
-    movement_type_display = serializers.CharField(source='get_movement_type_display', read_only=True)
+    raw_material_name = serializers.CharField(
+        source="raw_material.name", read_only=True
+    )
+    movement_type_display = serializers.CharField(
+        source="get_movement_type_display", read_only=True
+    )
     created_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = InventoryMovement
         fields = [
-            'id', 'raw_material', 'raw_material_name',
-            'movement_type', 'movement_type_display',
-            'quantity', 'previous_stock', 'new_stock',
-            'reference_type', 'reference_id',
-            'notes', 'created_by', 'created_by_name', 'created_at',
+            "id",
+            "raw_material",
+            "raw_material_name",
+            "movement_type",
+            "movement_type_display",
+            "quantity",
+            "previous_stock",
+            "new_stock",
+            "reference_type",
+            "reference_id",
+            "notes",
+            "created_by",
+            "created_by_name",
+            "created_at",
         ]
-        read_only_fields = ['created_at']
+        read_only_fields = ["created_at"]
 
     def get_created_by_name(self, obj):
         try:
-            return obj.created_by.get_full_name() if obj.created_by else ''
+            return obj.created_by.get_full_name() if obj.created_by else ""
         except Exception:
-            return ''
+            return ""
 
 
 class InventoryUsageLogSerializer(serializers.ModelSerializer):
-    raw_material_name = serializers.CharField(source='raw_material.name', read_only=True)
-    usage_type_display = serializers.CharField(source='get_usage_type_display', read_only=True)
+    raw_material_name = serializers.CharField(
+        source="raw_material.name", read_only=True
+    )
+    usage_type_display = serializers.CharField(
+        source="get_usage_type_display", read_only=True
+    )
 
     class Meta:
         model = InventoryUsageLog
         fields = [
-            'id', 'raw_material', 'raw_material_name',
-            'usage_type', 'usage_type_display',
-            'quantity_used', 'reference', 'note', 'used_at',
+            "id",
+            "raw_material",
+            "raw_material_name",
+            "usage_type",
+            "usage_type_display",
+            "quantity_used",
+            "reference",
+            "note",
+            "used_at",
         ]
-        read_only_fields = ['used_at']
+        read_only_fields = ["used_at"]
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  4. SEMI-FINISHED PRODUCTS
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class SemiFinishedIngredientSerializer(serializers.ModelSerializer):
     raw_material_name = serializers.SerializerMethodField()
@@ -516,21 +711,31 @@ class SemiFinishedIngredientSerializer(serializers.ModelSerializer):
     class Meta:
         model = SemiFinishedIngredient
         fields = [
-            'id', 'raw_material', 'raw_material_id',
-            'raw_material_name', 'quantity', 'unit', 'price', 'stock',
+            "id",
+            "raw_material",
+            "raw_material_id",
+            "raw_material_name",
+            "quantity",
+            "unit",
+            "price",
+            "stock",
         ]
 
     def get_raw_material_name(self, obj):
-        return obj.raw_material.name if obj.raw_material else ''
+        return obj.raw_material.name if obj.raw_material else ""
 
     def get_raw_material_id(self, obj):
         return obj.raw_material.id if obj.raw_material else None
 
     def get_unit(self, obj):
-        return obj.raw_material.unit if obj.raw_material else ''
+        return obj.raw_material.unit if obj.raw_material else ""
 
     def get_price(self, obj):
-        return int(obj.raw_material.price) if obj.raw_material and obj.raw_material.price else 0
+        return (
+            int(obj.raw_material.price)
+            if obj.raw_material and obj.raw_material.price
+            else 0
+        )
 
     def get_stock(self, obj):
         if obj.raw_material:
@@ -547,7 +752,7 @@ class SemiFinishedSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SemiFinished
-        fields = '__all__'
+        fields = "__all__"
 
     def get_total_cost(self, obj):
         try:
@@ -578,57 +783,77 @@ class SemiFinishedSerializer(serializers.ModelSerializer):
 #  5. READY MATERIALS
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class ReadyMaterialSerializer(serializers.ModelSerializer):
     total_value = serializers.SerializerMethodField()
     stock_status = serializers.SerializerMethodField()
-    unit_display = serializers.CharField(source='get_unit_display', read_only=True)
+    unit_display = serializers.CharField(source="get_unit_display", read_only=True)
     supplier_name = serializers.SerializerMethodField()
 
     class Meta:
         model = ReadyMaterial
         fields = [
-            'id', 'name', 'description', 'unit', 'unit_display',
-            'quantity', 'purchase_price', 'selling_price',
-            'minimum_stock', 'supplier', 'supplier_name',
-            'barcode', 'is_active', 'total_value', 'stock_status',
-            'created_at', 'updated_at',
+            "id",
+            "name",
+            "description",
+            "unit",
+            "unit_display",
+            "quantity",
+            "purchase_price",
+            "selling_price",
+            "minimum_stock",
+            "supplier",
+            "supplier_name",
+            "barcode",
+            "is_active",
+            "total_value",
+            "stock_status",
+            "created_at",
+            "updated_at",
         ]
-        read_only_fields = ['created_at', 'updated_at']
+        read_only_fields = ["created_at", "updated_at"]
 
     def get_total_value(self, obj):
         try:
-            return int(obj.total_value) if hasattr(obj, 'total_value') else (
-                int(obj.quantity * obj.purchase_price) if obj.purchase_price else 0
+            return (
+                int(obj.total_value)
+                if hasattr(obj, "total_value")
+                else (
+                    int(obj.quantity * obj.purchase_price) if obj.purchase_price else 0
+                )
             )
         except (TypeError, AttributeError):
             return 0
 
     def get_stock_status(self, obj):
         try:
-            if hasattr(obj, 'stock_status'):
+            if hasattr(obj, "stock_status"):
                 return obj.stock_status
             if obj.quantity <= 0:
-                return 'out'
+                return "out"
             if obj.minimum_stock and obj.quantity <= obj.minimum_stock:
-                return 'low'
-            return 'ok'
+                return "low"
+            return "ok"
         except (TypeError, AttributeError):
-            return 'unknown'
+            return "unknown"
 
     def get_supplier_name(self, obj):
         try:
-            return obj.supplier.name if obj.supplier else ''
+            return obj.supplier.name if obj.supplier else ""
         except Exception:
-            return ''
+            return ""
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  6. KITCHEN MANAGEMENT
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class KitchenProductSerializer(serializers.ModelSerializer):
     recipe_name = serializers.SerializerMethodField()
-    category_display = serializers.CharField(source='get_category_display', read_only=True)
+    category_display = serializers.CharField(
+        source="get_category_display", read_only=True
+    )
     cost = serializers.SerializerMethodField()
     profit = serializers.SerializerMethodField()
     max_production = serializers.SerializerMethodField()
@@ -640,21 +865,35 @@ class KitchenProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = KitchenProduct
         fields = [
-            'id', 'name', 'recipe', 'recipe_name',
-            'category', 'category_display', 'description', 'image',
-            'selling_price', 'min_stock', 'is_active',
-            'cost', 'profit', 'max_production', 'limiting_material',
-            'current_stock', 'available_stock', 'is_low_stock',
-            'created_at', 'updated_at',
+            "id",
+            "name",
+            "recipe",
+            "recipe_name",
+            "category",
+            "category_display",
+            "description",
+            "image",
+            "selling_price",
+            "min_stock",
+            "is_active",
+            "cost",
+            "profit",
+            "max_production",
+            "limiting_material",
+            "current_stock",
+            "available_stock",
+            "is_low_stock",
+            "created_at",
+            "updated_at",
         ]
 
     def get_recipe_name(self, obj):
         try:
-            if obj.recipe and hasattr(obj.recipe, 'food') and obj.recipe.food:
+            if obj.recipe and hasattr(obj.recipe, "food") and obj.recipe.food:
                 return obj.recipe.food.name
         except Exception:
             pass
-        return ''
+        return ""
 
     def get_cost(self, obj):
         try:
@@ -711,24 +950,27 @@ class KitchenProductSerializer(serializers.ModelSerializer):
 
 
 class KitchenInventorySerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source='kitchen_product.name', read_only=True)
-    available = serializers.IntegerField(source='available_quantity', read_only=True)
-    is_low = serializers.BooleanField(source='is_low_stock', read_only=True)
+    product_name = serializers.CharField(source="kitchen_product.name", read_only=True)
+    available = serializers.IntegerField(source="available_quantity", read_only=True)
+    is_low = serializers.BooleanField(source="is_low_stock", read_only=True)
 
     class Meta:
         model = KitchenInventory
-        fields = '__all__'
+        fields = "__all__"
 
 
 class ProductionPlanItemSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source='kitchen_product.name', read_only=True)
+    product_name = serializers.CharField(source="kitchen_product.name", read_only=True)
     required_materials = serializers.SerializerMethodField()
 
     class Meta:
         model = ProductionPlanItem
         fields = [
-            'id', 'kitchen_product', 'product_name',
-            'quantity', 'required_materials',
+            "id",
+            "kitchen_product",
+            "product_name",
+            "quantity",
+            "required_materials",
         ]
 
     def get_required_materials(self, obj):
@@ -740,52 +982,63 @@ class ProductionPlanItemSerializer(serializers.ModelSerializer):
 
 class ProductionPlanSerializer(serializers.ModelSerializer):
     items = ProductionPlanItemSerializer(many=True, read_only=True)
-    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
     created_by_name = serializers.SerializerMethodField()
     items_data = serializers.ListField(
-        child=serializers.DictField(), write_only=True, required=False,
+        child=serializers.DictField(),
+        write_only=True,
+        required=False,
     )
 
     class Meta:
         model = ProductionPlan
         fields = [
-            'id', 'date', 'status', 'status_display',
-            'created_by', 'created_by_name', 'notes',
-            'items', 'items_data',
-            'created_at', 'updated_at',
+            "id",
+            "date",
+            "status",
+            "status_display",
+            "created_by",
+            "created_by_name",
+            "notes",
+            "items",
+            "items_data",
+            "created_at",
+            "updated_at",
         ]
 
     def get_created_by_name(self, obj):
         try:
-            return obj.created_by.get_full_name() if obj.created_by else ''
+            return obj.created_by.get_full_name() if obj.created_by else ""
         except Exception:
-            return ''
+            return ""
 
     def create(self, validated_data):
-        items = validated_data.pop('items_data', [])
+        items = validated_data.pop("items_data", [])
         plan = ProductionPlan.objects.create(**validated_data)
         for d in items:
             ProductionPlanItem.objects.create(
                 production_plan=plan,
-                kitchen_product_id=(d.get('kitchen_product_id') or d.get('kitchen_product')),
-                quantity=d.get('quantity', 0),
+                kitchen_product_id=(
+                    d.get("kitchen_product_id") or d.get("kitchen_product")
+                ),
+                quantity=d.get("quantity", 0),
             )
         return plan
 
 
 class ProductionBatchSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source='kitchen_product.name', read_only=True)
+    product_name = serializers.CharField(source="kitchen_product.name", read_only=True)
     produced_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = ProductionBatch
-        fields = '__all__'
+        fields = "__all__"
 
     def get_produced_by_name(self, obj):
         try:
-            return obj.produced_by.get_full_name() if obj.produced_by else ''
+            return obj.produced_by.get_full_name() if obj.produced_by else ""
         except Exception:
-            return ''
+            return ""
 
 
 class ProductionLogSerializer(serializers.ModelSerializer):
@@ -794,19 +1047,19 @@ class ProductionLogSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProductionLog
-        fields = '__all__'
+        fields = "__all__"
 
     def get_user_name(self, obj):
         try:
-            return obj.user.get_full_name() if obj.user else '—'
+            return obj.user.get_full_name() if obj.user else "—"
         except Exception:
-            return '—'
+            return "—"
 
     def get_product_name(self, obj):
         try:
-            return obj.kitchen_product.name if obj.kitchen_product else '—'
+            return obj.kitchen_product.name if obj.kitchen_product else "—"
         except Exception:
-            return '—'
+            return "—"
 
 
 class ProduceSerializer(serializers.Serializer):
@@ -814,7 +1067,7 @@ class ProduceSerializer(serializers.Serializer):
 
     def validate_quantity(self, value):
         if value != round(value, 2):
-            raise serializers.ValidationError('حداکثر ۲ رقم اعشار مجاز است.')
+            raise serializers.ValidationError("حداکثر ۲ رقم اعشار مجاز است.")
         return value
 
 
@@ -822,21 +1075,30 @@ class ProduceSerializer(serializers.Serializer):
 #  6.5 WASTE LOG — ★ جدید
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class WasteLogSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source='kitchen_product.name', read_only=True)
-    reason_display = serializers.CharField(source='get_reason_display', read_only=True)
+    product_name = serializers.CharField(source="kitchen_product.name", read_only=True)
+    reason_display = serializers.CharField(source="get_reason_display", read_only=True)
     total_cost = serializers.SerializerMethodField()
     created_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = WasteLog
         fields = [
-            'id', 'kitchen_product', 'product_name',
-            'quantity', 'reason', 'reason_display',
-            'cost_per_unit', 'total_cost',
-            'notes', 'created_by', 'created_by_name', 'created_at',
+            "id",
+            "kitchen_product",
+            "product_name",
+            "quantity",
+            "reason",
+            "reason_display",
+            "cost_per_unit",
+            "total_cost",
+            "notes",
+            "created_by",
+            "created_by_name",
+            "created_at",
         ]
-        read_only_fields = ['created_at', 'cost_per_unit']
+        read_only_fields = ["created_at", "cost_per_unit"]
 
     def get_total_cost(self, obj):
         try:
@@ -846,48 +1108,63 @@ class WasteLogSerializer(serializers.ModelSerializer):
 
     def get_created_by_name(self, obj):
         try:
-            return obj.created_by.get_full_name() if obj.created_by else ''
+            return obj.created_by.get_full_name() if obj.created_by else ""
         except Exception:
-            return ''
+            return ""
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  6.6 ONLINE ORDER SETTINGS — ★ جدید
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class OnlineOrderSettingsSerializer(serializers.ModelSerializer):
     status_text = serializers.CharField(read_only=True)
-    restaurant_name = serializers.CharField(source='restaurant.name', read_only=True)
+    restaurant_name = serializers.CharField(source="restaurant.name", read_only=True)
 
     class Meta:
         model = OnlineOrderSettings
         fields = [
-            'id', 'restaurant', 'restaurant_name',
-            'is_open', 'status_text', 'closed_message',
-            'updated_at', 'updated_by',
+            "id",
+            "restaurant",
+            "restaurant_name",
+            "is_open",
+            "status_text",
+            "closed_message",
+            "updated_at",
+            "updated_by",
         ]
-        read_only_fields = ['updated_at', 'updated_by']
+        read_only_fields = ["updated_at", "updated_by"]
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  POS SETTINGS — ★ جدید
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class PosSettingsSerializer(serializers.ModelSerializer):
-    restaurant_name = serializers.CharField(source='restaurant.name', read_only=True)
+    restaurant_name = serializers.CharField(source="restaurant.name", read_only=True)
 
     class Meta:
         model = PosSettings
         fields = [
-            'id', 'restaurant', 'restaurant_name',
-            'use_dictionary', 'allow_price_edit', 'show_stock',
-            'default_payment', 'require_customer',
-            'updated_at',
+            "id",
+            "restaurant",
+            "restaurant_name",
+            "use_dictionary",
+            "allow_price_edit",
+            "show_stock",
+            "default_payment",
+            "require_customer",
+            "updated_at",
         ]
-        read_only_fields = ['id', 'restaurant', 'updated_at']
-        
+        read_only_fields = ["id", "restaurant", "updated_at"]
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  6.7 DAY CLOSE — ★ جدید
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class DayCloseReportSerializer(serializers.ModelSerializer):
     closed_by_name = serializers.SerializerMethodField()
@@ -895,43 +1172,61 @@ class DayCloseReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = DayCloseReport
         fields = [
-            'id', 'date',
-            'total_sales', 'total_cost', 'total_profit',
-            'order_count', 'delivered_count',
-            'waste_count', 'waste_value', 'discount_total',
-            'inventory_snapshot', 'items_detail', 'top_items',
-            'closed_by', 'closed_by_name', 'closed_at',
+            "id",
+            "date",
+            "total_sales",
+            "total_cost",
+            "total_profit",
+            "order_count",
+            "delivered_count",
+            "waste_count",
+            "waste_value",
+            "discount_total",
+            "inventory_snapshot",
+            "items_detail",
+            "top_items",
+            "closed_by",
+            "closed_by_name",
+            "closed_at",
         ]
-        read_only_fields = ['closed_at']
+        read_only_fields = ["closed_at"]
 
     def get_closed_by_name(self, obj):
         try:
-            return obj.closed_by.get_full_name() if obj.closed_by else ''
+            return obj.closed_by.get_full_name() if obj.closed_by else ""
         except Exception:
-            return ''
+            return ""
 
 
 class DayCloseLogSerializer(serializers.ModelSerializer):
     user_name = serializers.SerializerMethodField()
-    action_display = serializers.CharField(source='get_action_display', read_only=True)
+    action_display = serializers.CharField(source="get_action_display", read_only=True)
 
     class Meta:
         model = DayCloseLog
         fields = [
-            'id', 'date', 'action', 'action_display',
-            'user', 'user_name', 'details', 'created_at',
+            "id",
+            "date",
+            "action",
+            "action_display",
+            "user",
+            "user_name",
+            "details",
+            "created_at",
         ]
-        read_only_fields = ['created_at']
+        read_only_fields = ["created_at"]
 
     def get_user_name(self, obj):
         try:
-            return obj.user.get_full_name() if obj.user else ''
+            return obj.user.get_full_name() if obj.user else ""
         except Exception:
-            return ''
+            return ""
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  15. POINTS — EARN & REDEEM — ★ اصلاح‌شده
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class EarnPointsSerializer(serializers.Serializer):
     # ★ FIXED: order_id — view باید به Order instance تبدیل کند
@@ -940,7 +1235,7 @@ class EarnPointsSerializer(serializers.Serializer):
 
     def validate_order_amount(self, value):
         if value <= 0:
-            raise serializers.ValidationError('مبلغ سفارش نامعتبر است.')
+            raise serializers.ValidationError("مبلغ سفارش نامعتبر است.")
         return value
 
 
@@ -951,7 +1246,7 @@ class RedeemPointsSerializer(serializers.Serializer):
 
     def validate_points(self, value):
         if value < 100:
-            raise serializers.ValidationError('حداقل ۱۰۰ امتیاز قابل استفاده است.')
+            raise serializers.ValidationError("حداقل ۱۰۰ امتیاز قابل استفاده است.")
         return value
 
 
@@ -959,29 +1254,33 @@ class RedeemPointsSerializer(serializers.Serializer):
 #  16. FULL ORDER PROCESSING — ★ اصلاح‌شده
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class ProcessOrderLoyaltySerializer(serializers.Serializer):
     phone = serializers.CharField(max_length=11)
     # ★ FIXED: order_id — view باید به Order instance تبدیل کند و به service بدهد
     order_id = serializers.IntegerField()
     order_amount = serializers.DecimalField(max_digits=14, decimal_places=0)
-    coupon_code = serializers.CharField(max_length=30, required=False, default='')
-    use_wallet = serializers.DecimalField(max_digits=14, decimal_places=0, required=False, default=0)
+    coupon_code = serializers.CharField(max_length=30, required=False, default="")
+    use_wallet = serializers.DecimalField(
+        max_digits=14, decimal_places=0, required=False, default=0
+    )
     redeem_points = serializers.IntegerField(required=False, default=0)
 
     def validate_phone(self, value):
         if not value.isdigit() or len(value) != 11:
-            raise serializers.ValidationError('شماره موبایل نامعتبر است.')
+            raise serializers.ValidationError("شماره موبایل نامعتبر است.")
         return value
 
     def validate_order_amount(self, value):
         if value <= 0:
-            raise serializers.ValidationError('مبلغ سفارش نامعتبر است.')
+            raise serializers.ValidationError("مبلغ سفارش نامعتبر است.")
         return value
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  17. DASHBOARD
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class LoyaltyDashboardSerializer(serializers.Serializer):
     total_customers = serializers.IntegerField()
@@ -998,53 +1297,60 @@ class LoyaltyDashboardSerializer(serializers.Serializer):
 #  18. AUTHENTICATION
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class CustomTokenObtainSerializer(TokenObtainPairSerializer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['phone_number'] = serializers.CharField(required=False)
-        self.fields['password'] = serializers.CharField(write_only=True)
+        self.fields["phone_number"] = serializers.CharField(required=False)
+        self.fields["password"] = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
-        username = attrs.get('username')
-        phone = attrs.get('phone_number')
-        password = attrs.get('password')
+        username = attrs.get("username")
+        phone = attrs.get("phone_number")
+        password = attrs.get("password")
 
         if not username and not phone:
-            raise serializers.ValidationError({'error': 'نام کاربری یا شماره موبایل الزامی است.'})
+            raise serializers.ValidationError(
+                {"error": "نام کاربری یا شماره موبایل الزامی است."}
+            )
 
         user = None
         if phone:
             user = User.objects.filter(phone_number=phone).first()
             if user:
-                attrs['username'] = user.username
+                attrs["username"] = user.username
         elif username:
             user = User.objects.filter(username=username).first()
 
         if not user or not user.check_password(password):
-            raise serializers.ValidationError({'error': 'نام کاربری یا رمز عبور اشتباه است.'})
+            raise serializers.ValidationError(
+                {"error": "نام کاربری یا رمز عبور اشتباه است."}
+            )
 
         if not user.is_active:
-            raise serializers.ValidationError({'error': 'حساب کاربری غیرفعال است.'})
+            raise serializers.ValidationError({"error": "حساب کاربری غیرفعال است."})
 
         if not user.is_approved:
-            raise serializers.ValidationError({
-                'error': 'حساب شما هنوز توسط مدیر تأیید نشده است.',
-                'pending': True,
-            })
+            raise serializers.ValidationError(
+                {
+                    "error": "حساب شما هنوز توسط مدیر تأیید نشده است.",
+                    "pending": True,
+                }
+            )
 
         data = super().validate(attrs)
-        data['user'] = UserDetailSerializer(user).data
-        data['message'] = 'ورود موفقیت‌آمیز بود.'
-        data['success'] = True
+        data["user"] = UserDetailSerializer(user).data
+        data["message"] = "ورود موفقیت‌آمیز بود."
+        data["success"] = True
         return data
 
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        token['role'] = user.role
-        token['username'] = user.username
-        token['restaurant_id'] = user.restaurant_id
+        token["role"] = user.role
+        token["username"] = user.username
+        token["restaurant_id"] = user.restaurant_id
         return token
 
 
@@ -1055,29 +1361,37 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'username', 'phone_number', 'first_name', 'last_name',
-            'email', 'password', 'password_confirm', 'role',
+            "username",
+            "phone_number",
+            "first_name",
+            "last_name",
+            "email",
+            "password",
+            "password_confirm",
+            "role",
         ]
 
     def validate_phone_number(self, value):
         if value and User.objects.filter(phone_number=value).exists():
-            raise serializers.ValidationError('این شماره موبایل قبلاً ثبت شده.')
+            raise serializers.ValidationError("این شماره موبایل قبلاً ثبت شده.")
         return value
 
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError('این نام کاربری قبلاً وجود دارد.')
+            raise serializers.ValidationError("این نام کاربری قبلاً وجود دارد.")
         return value
 
     def validate(self, attrs):
-        if attrs['password'] != attrs['password_confirm']:
-            raise serializers.ValidationError({'password_confirm': 'رمزهای عبور مطابقت ندارند.'})
-        password_validation.validate_password(attrs['password'])
+        if attrs["password"] != attrs["password_confirm"]:
+            raise serializers.ValidationError(
+                {"password_confirm": "رمزهای عبور مطابقت ندارند."}
+            )
+        password_validation.validate_password(attrs["password"])
         return attrs
 
     def create(self, validated_data):
-        validated_data.pop('password_confirm')
-        password = validated_data.pop('password')
+        validated_data.pop("password_confirm")
+        password = validated_data.pop("password")
         user = User(**validated_data)
         user.set_password(password)
         user.save()
@@ -1086,18 +1400,39 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class UserDetailSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
-    role_display = serializers.CharField(source='get_role_display', read_only=True)
-    restaurant_name = serializers.CharField(source='restaurant.name', read_only=True, default=None)
+    role_display = serializers.CharField(source="get_role_display", read_only=True)
+    restaurant_name = serializers.CharField(
+        source="restaurant.name", read_only=True, default=None
+    )
 
     class Meta:
         model = User
         fields = [
-            'id', 'username', 'phone_number', 'first_name', 'last_name',
-            'full_name', 'email', 'role', 'role_display', 'restaurant',
-            'restaurant_name', 'profile_image', 'is_verified', 'is_active',
-            'created_at', 'updated_at',
+            "id",
+            "username",
+            "phone_number",
+            "first_name",
+            "last_name",
+            "full_name",
+            "email",
+            "role",
+            "role_display",
+            "restaurant",
+            "restaurant_name",
+            "profile_image",
+            "is_verified",
+            "is_active",
+            "created_at",
+            "updated_at",
         ]
-        read_only_fields = ['id', 'username', 'role', 'is_verified', 'created_at', 'updated_at']
+        read_only_fields = [
+            "id",
+            "username",
+            "role",
+            "is_verified",
+            "created_at",
+            "updated_at",
+        ]
 
     def get_full_name(self, obj):
         return obj.get_full_name() or obj.username
@@ -1105,13 +1440,19 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
 class UserListSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
-    role_display = serializers.CharField(source='get_role_display', read_only=True)
+    role_display = serializers.CharField(source="get_role_display", read_only=True)
 
     class Meta:
         model = User
         fields = [
-            'id', 'username', 'phone_number', 'full_name',
-            'role', 'role_display', 'is_active', 'created_at',
+            "id",
+            "username",
+            "phone_number",
+            "full_name",
+            "role",
+            "role_display",
+            "is_active",
+            "created_at",
         ]
 
     def get_full_name(self, obj):
@@ -1121,8 +1462,16 @@ class UserListSerializer(serializers.ModelSerializer):
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'phone_number', 'first_name', 'last_name', 'email', 'profile_image']
-        read_only_fields = ['id', 'username']
+        fields = [
+            "id",
+            "username",
+            "phone_number",
+            "first_name",
+            "last_name",
+            "email",
+            "profile_image",
+        ]
+        read_only_fields = ["id", "username"]
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -1131,15 +1480,17 @@ class ChangePasswordSerializer(serializers.Serializer):
     new_password_confirm = serializers.CharField(write_only=True)
 
     def validate_old_password(self, value):
-        user = self.context['request'].user
+        user = self.context["request"].user
         if not user.check_password(value):
-            raise serializers.ValidationError('رمز عبور فعلی اشتباه است.')
+            raise serializers.ValidationError("رمز عبور فعلی اشتباه است.")
         return value
 
     def validate(self, attrs):
-        if attrs['new_password'] != attrs['new_password_confirm']:
-            raise serializers.ValidationError({'new_password_confirm': 'رمزهای عبور جدید مطابقت ندارند.'})
-        password_validation.validate_password(attrs['new_password'])
+        if attrs["new_password"] != attrs["new_password_confirm"]:
+            raise serializers.ValidationError(
+                {"new_password_confirm": "رمزهای عبور جدید مطابقت ندارند."}
+            )
+        password_validation.validate_password(attrs["new_password"])
         return attrs
 
 
@@ -1150,12 +1501,14 @@ class ResetPasswordSerializer(serializers.Serializer):
 
     def validate_phone_number(self, value):
         if not User.objects.filter(phone_number=value).exists():
-            raise serializers.ValidationError('کاربری با این شماره یافت نشد.')
+            raise serializers.ValidationError("کاربری با این شماره یافت نشد.")
         return value
 
     def validate(self, attrs):
-        if attrs['new_password'] != attrs['new_password_confirm']:
-            raise serializers.ValidationError({'new_password_confirm': 'رمزهای عبور مطابقت ندارند.'})
+        if attrs["new_password"] != attrs["new_password_confirm"]:
+            raise serializers.ValidationError(
+                {"new_password_confirm": "رمزهای عبور مطابقت ندارند."}
+            )
         return attrs
 
 
@@ -1164,7 +1517,16 @@ class RestaurantAuthSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Restaurant
-        fields = ['id', 'name', 'phone', 'address', 'logo', 'is_active', 'user_count', 'created_at']
+        fields = [
+            "id",
+            "name",
+            "phone",
+            "address",
+            "logo",
+            "is_active",
+            "user_count",
+            "created_at",
+        ]
 
     def get_user_count(self, obj):
         return obj.users.filter(is_active=True).count()
@@ -1177,19 +1539,32 @@ RestaurantSerializer = RestaurantAuthSerializer
 #  DICTIONARY
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class ItemDictionarySerializer(serializers.ModelSerializer):
-    group_slug = serializers.CharField(source='group.slug', default='', read_only=True)
-    group_name = serializers.CharField(source='group.name', default='', read_only=True)
-    group_color = serializers.CharField(source='group.color', default='#78716c', read_only=True)
-    group_icon = serializers.CharField(source='group.icon', default='bi-archive', read_only=True)
+    group_slug = serializers.CharField(source="group.slug", default="", read_only=True)
+    group_name = serializers.CharField(source="group.name", default="", read_only=True)
+    group_color = serializers.CharField(
+        source="group.color", default="#78716c", read_only=True
+    )
+    group_icon = serializers.CharField(
+        source="group.icon", default="bi-archive", read_only=True
+    )
 
     class Meta:
         model = ItemDictionary
         fields = [
-            'id', 'name', 'unit', 'description',
-            'dict_category', 'material_type', 'category',
-            'group', 'group_slug', 'group_name',
-            'group_color', 'group_icon',
+            "id",
+            "name",
+            "unit",
+            "description",
+            "dict_category",
+            "material_type",
+            "category",
+            "group",
+            "group_slug",
+            "group_name",
+            "group_color",
+            "group_icon",
         ]
 
 
@@ -1199,9 +1574,20 @@ class DictionaryGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = DictionaryGroup
         fields = [
-            'id', 'name', 'slug', 'icon', 'color', 'sort_order',
-            'usage_recipes', 'usage_warehouse', 'usage_pos',
-            'usage_invoice', 'usage_kitchen',
-            'is_system', 'is_active', 'item_count', 'created_at',
+            "id",
+            "name",
+            "slug",
+            "icon",
+            "color",
+            "sort_order",
+            "usage_recipes",
+            "usage_warehouse",
+            "usage_pos",
+            "usage_invoice",
+            "usage_kitchen",
+            "is_system",
+            "is_active",
+            "item_count",
+            "created_at",
         ]
-        read_only_fields = ['created_at']
+        read_only_fields = ["created_at"]

@@ -18,6 +18,7 @@ client.interceptors.request.use((config) => {
 // ─── مدیریت خطا + auto-refresh ─────────────────────
 let isRefreshing = false;
 let failedQueue = [];
+let redirecting = false;
 
 const processQueue = (error, token = null) => {
   failedQueue.forEach((p) => {
@@ -33,7 +34,15 @@ client.interceptors.response.use(
     const originalRequest = err.config;
     const status = err.response?.status;
 
-    if ((status === 401 || status === 403) && !originalRequest._retry) {
+    // فقط 401 رو retry کن — 403 رو مستقیم reject کن
+    if (status === 401 && !originalRequest._retry) {
+
+      // ★ اگه اصلاً توکنی نبود → لاگین نیستی → redirect نکن
+      const refreshToken = localStorage.getItem("refresh_token");
+      if (!refreshToken) {
+        return Promise.reject(err);
+      }
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -45,13 +54,6 @@ client.interceptors.response.use(
 
       originalRequest._retry = true;
       isRefreshing = true;
-
-      const refreshToken = localStorage.getItem("refresh_token");
-      if (!refreshToken) {
-        isRefreshing = false;
-        redirectToLogin();
-        return Promise.reject(err);
-      }
 
       try {
         const res = await axios.post(
@@ -82,8 +84,11 @@ client.interceptors.response.use(
   }
 );
 
-// ─── redirect به لاگین + اطلاع‌رسانی به تب‌های دیگه ───
+// ─── redirect به لاگین ────────────────────────────
 function redirectToLogin() {
+  if (redirecting) return;   // ★ جلوگیری از redirect تکراری
+  redirecting = true;
+
   localStorage.removeItem("access_token");
   localStorage.removeItem("refresh_token");
   localStorage.removeItem("user");
@@ -92,14 +97,17 @@ function redirectToLogin() {
   window.location.href = "/login";
 }
 
-// ─── اگه یه تب دیگه logout کرد، این تب هم بره ────────
+// ─── اگه یه تب دیگه logout کرد ──────────────────
 window.addEventListener("storage", (e) => {
   if (e.key === "__logout__") {
-    window.location.href = "/login";
+    if (!redirecting) {
+      redirecting = true;
+      window.location.href = "/login";
+    }
   }
 });
 
-// ─── auto-refresh: هر ۲۰ دقیقه توکن رو تمدید کن ──────
+// ─── auto-refresh: هر ۲۰ دقیقه ──────────────────
 setInterval(async () => {
   const refreshToken = localStorage.getItem("refresh_token");
   if (!refreshToken) return;
@@ -117,28 +125,23 @@ setInterval(async () => {
   }
 }, 20 * 60 * 1000);
 
-// ─── تشخیص تب اضافی ────────────────────────────────────
+// ─── تشخیص تب اضافی ─────────────────────────────
 const CHANNEL_NAME = "restaurant_tabs";
 let channel = null;
 
 try {
   channel = new BroadcastChannel(CHANNEL_NAME);
-  // به بقیه تب‌ها بگو من باز شدم
   channel.postMessage({ type: "new_tab", id: Date.now() });
 
   channel.onmessage = (e) => {
     if (e.data.type === "new_tab") {
-      // تب جدید باز شد — بهش بگو بسته بشه
       channel.postMessage({ type: "kick", id: e.data.id });
     }
     if (e.data.type === "kick") {
-      // این تب اضافی‌ست — پیام بده
-      document.title = "⚠️ تب اضافی — لطفاً این تب رو ببندید";
+      document.title = "⚠️ تب اضافی";
       alert("یک نمونه دیگه از داشبورد باز هست. لطفاً این تب رو ببندید.");
     }
   };
-} catch (_) {
-  // مرورگر BroadcastChannel پشتیبانی نمی‌کنه — مهم نیست
-}
+} catch (_) {}
 
 export default client;

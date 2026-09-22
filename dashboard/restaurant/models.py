@@ -318,11 +318,23 @@ class Category(TenantModel):
     is_active = is_active_field()
     order = models.IntegerField(default=0)
 
+    # ★ تخفیف دسته‌بندی
+    discount = models.PositiveIntegerField(
+        default=0,
+        verbose_name="تخفیف دسته‌بندی",
+    )
+    discount_type = models.CharField(
+        max_length=10,
+        choices=[("fixed", "مبلغ ثابت"), ("percent", "درصدی")],
+        default="fixed",
+        verbose_name="نوع تخفیف",
+    )
+
     class Meta:
         ordering = ["order"]
         verbose_name = "دسته‌بندی"
         verbose_name_plural = "دسته‌بندی‌ها"
-        unique_together = ["restaurant", "name"]  # ★ FIXED: جلوگیری از تکرار
+        unique_together = ["restaurant", "name"]
 
     def __str__(self) -> str:
         return self.name
@@ -340,6 +352,7 @@ class Food(TenantModel):
     price = price_field(max_digits=10, verbose_name="قیمت", default=0)
     final_price = price_field(max_digits=10, verbose_name="قیمت نهایی", default=0)
     is_available = is_active_field(verbose_name="موجود")
+    stock = models.IntegerField(default=0, verbose_name="موجودی")
     created_at = created_at_field()
 
     class Meta:
@@ -440,6 +453,7 @@ class Order(TenantModel):
         Table, on_delete=models.SET_NULL, null=True, blank=True, db_index=True
     )
     customer_name = models.CharField(max_length=200, blank=True, default="")
+    customer_name_en = models.CharField(max_length=200, blank=True, default="")
     phone = models.CharField(max_length=20, blank=True, default="")
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True
@@ -506,23 +520,29 @@ class Order(TenantModel):
         Order.objects.filter(pk=self.pk).update(total_price=total)
         self.total_price = total
 
-
 class OrderItem(TenantModel):
     order = models.ForeignKey(
         Order, on_delete=models.CASCADE, related_name="items", db_index=True
     )
     food = models.ForeignKey(
         Food,
-        on_delete=models.SET_NULL,  # ★ FIXED: SET_NULL به‌جای CASCADE (فیلد nullable است)
+        on_delete=models.SET_NULL,
         related_name="order_items",
         null=True,
         blank=True,
     )
-    item_name = models.CharField(  # ★ FIXED: فیلد جدید — نام آیتم برای موارد بدون غذا
+    item_name = models.CharField(
         max_length=200,
         blank=True,
         default="",
         verbose_name="نام آیتم",
+    )
+
+    item_name_en = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        verbose_name="نام انگلیسی آیتم",
     )
     quantity = models.IntegerField(default=1)
     price = models.DecimalField(max_digits=10, decimal_places=0, blank=True, null=True)
@@ -538,12 +558,18 @@ class OrderItem(TenantModel):
         name = self.display_name
         return f"{name} x{self.quantity}"
 
-    # ★ FIXED: پراپرتی برای نمایش نام (از food یا item_name)
     @property
     def display_name(self) -> str:
         if self.food_id and self.food:
             return self.food.name
         return self.item_name or "آیتم سفارشی"
+
+    # ★ اضافه شد
+    @property
+    def display_name_en(self) -> str:
+        if self.food_id and self.food and self.food.name_en:
+            return self.food.name_en
+        return self.item_name_en or self.display_name
 
     @property
     def line_total(self) -> Decimal:
@@ -555,7 +581,6 @@ class OrderItem(TenantModel):
             raise ValidationError(
                 {"item_name": "برای آیتم‌های بدون غذا، نام آیتم الزامی است."}
             )
-
 
 @receiver(pre_save, sender=OrderItem)
 def set_order_item_price(sender, instance: OrderItem, **kwargs) -> None:

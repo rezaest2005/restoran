@@ -3,16 +3,20 @@ import { createOrder } from "../api";
 
 export default function useCheckout() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [receiptOpen, setReceiptOpen] = useState(false);
   const [lastOrder, setLastOrder] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
-  const openCheckout = useCallback(() => setCheckoutOpen(true), []);
-  const closeCheckout = useCallback(() => setCheckoutOpen(false), []);
-  const closeReceipt = useCallback(() => {
-    setReceiptOpen(false);
+  const openCheckout = useCallback(() => {
     setLastOrder(null);
+    setError(null);
+    setCheckoutOpen(true);
+  }, []);
+
+  const closeCheckout = useCallback(() => {
+    setCheckoutOpen(false);
+    setLastOrder(null);
+    setError(null);
   }, []);
 
   const submitOrder = useCallback(async ({
@@ -36,17 +40,15 @@ export default function useCheckout() {
         payment_method: paymentMethod,
       };
 
-      // حالت سفارش
       if (orderType === "delivery") {
-        payload.source = "pos"; // ولی داخل order ذخیره میشه
+        payload.source = "pos";
       }
 
       const res = await createOrder(payload);
 
       if (res.success) {
         setLastOrder(res);
-        setCheckoutOpen(false);
-        setReceiptOpen(true);
+        // ★ دیالوگ رو نبند — CheckoutDialog خودش فاز رو مدیریت میکنه
         return res;
       } else {
         setError(res.error || "خطا در ثبت سفارش");
@@ -63,13 +65,11 @@ export default function useCheckout() {
 
   return {
     checkoutOpen,
-    receiptOpen,
     lastOrder,
     submitting,
     error,
     openCheckout,
     closeCheckout,
-    closeReceipt,
     submitOrder,
     setError,
   };

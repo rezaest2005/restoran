@@ -97,13 +97,14 @@ def _find_kp_for_food(food, restaurant=None):
 #  ایجاد سفارش
 # ═══════════════════════════════════════
 
-
 @api_view(["POST"])
 @permission_classes([PosPerm])
 def pos_create_order(request: HttpRequest):
     try:
         data = request.data
         customer_name = data.get("customer_name", "").strip()
+        # ★ اضافه شد:
+        customer_name_en = data.get("customer_name_en", "").strip()
         phone = data.get("phone", "").strip()
         table_id = data.get("table_id")
         source = data.get("source", "pos")
@@ -137,7 +138,6 @@ def pos_create_order(request: HttpRequest):
                 isinstance(raw_id, str) and str(raw_id).startswith("ready_")
             ):
                 rm_id = int(str(raw_id).replace("ready_", ""))
-                # ★ FIXED: فیلتر restaurant روی ReadyMaterial
                 rm = ReadyMaterial.objects.filter(
                     id=rm_id,
                     restaurant=restaurant,
@@ -162,7 +162,6 @@ def pos_create_order(request: HttpRequest):
                 )
             else:
                 food_id = int(raw_id) if raw_id else 0
-                # ★ FIXED: فیلتر restaurant روی Food
                 food = (
                     Food.objects.filter(id=food_id, restaurant=restaurant).first()
                     if food_id > 0
@@ -184,7 +183,6 @@ def pos_create_order(request: HttpRequest):
                     except (ValueError, TypeError, InvalidOperation):
                         db_price = 0
 
-                # fallback: قیمت ارسالی از frontend
                 if db_price <= 0:
                     db_price = int(item.get("price", 0))
 
@@ -228,6 +226,8 @@ def pos_create_order(request: HttpRequest):
             order = Order.objects.create(
                 restaurant=restaurant,
                 customer_name=customer_name or "مشتری",
+                # ★ اضافه شد:
+                customer_name_en=customer_name_en or "",
                 phone=phone,
                 status="pending",
                 source=source,
@@ -259,12 +259,16 @@ def pos_create_order(request: HttpRequest):
                         order=order,
                         food=None,
                         item_name=rm.name,
+                        # ★ اضافه شد:
+                        item_name_en="",
                         quantity=qty,
                         price=price,
                     )
                     order_items.append(
                         {
                             "name": rm.name,
+                            # ★ اضافه شد:
+                            "name_en": "",
                             "quantity": qty,
                             "price": price,
                             "line_total": line_total,
@@ -285,12 +289,17 @@ def pos_create_order(request: HttpRequest):
                         restaurant=restaurant,
                         order=order,
                         food=food,
+                        # ★ اضافه شد:
+                        item_name=food.name,
+                        item_name_en=food.name_en or "",
                         quantity=qty,
                         price=price,
                     )
                     order_items.append(
                         {
                             "name": food.name,
+                            # ★ اضافه شد:
+                            "name_en": food.name_en or "",
                             "quantity": qty,
                             "price": price,
                             "line_total": line_total,
@@ -304,6 +313,8 @@ def pos_create_order(request: HttpRequest):
                 "success": True,
                 "order_id": order.id,
                 "customer_name": order.customer_name,
+                # ★ اضافه شد:
+                "customer_name_en": order.customer_name_en,
                 "total_price": int(order.total_price),
                 "items": order_items,
                 "created_at": order.created_at.strftime("%Y-%m-%d %H:%M"),
@@ -315,11 +326,9 @@ def pos_create_order(request: HttpRequest):
         logger.exception("Error creating POS order")
         return JsonResponse({"success": False, "error": str(exc)})
 
-
 # ═══════════════════════════════════════
 #  گزارش روزانه
 # ═══════════════════════════════════════
-
 
 @api_view(["GET"])
 @permission_classes([PosPerm])
@@ -349,15 +358,17 @@ def pos_daily_report(request: HttpRequest):
         order_count = orders.count()
         total_sales = sum(o.total_price for o in orders)
 
+        # ★ food__name_en اضافه شد
         top_items = (
             OrderItem.objects.filter(order__in=orders, food__isnull=False)
-            .values("food__name")
+            .values("food__name", "food__name_en")
             .annotate(qty=Sum("quantity"), total=Sum("price"))
             .order_by("-qty")[:10]
         )
         top_list = [
             {
                 "name": t["food__name"],
+                "name_en": t["food__name_en"] or "",
                 "qty": t["qty"],
                 "total": int(t["total"] or 0),
             }
@@ -368,6 +379,7 @@ def pos_daily_report(request: HttpRequest):
             {
                 "id": o.id,
                 "customer": o.customer_name,
+                "customer_en": o.customer_name_en or "",
                 "items_count": o.items.count(),
                 "total": int(o.total_price),
                 "status": o.status,
@@ -396,12 +408,9 @@ def pos_daily_report(request: HttpRequest):
     except Exception as exc:
         logger.exception("Error in daily report")
         return JsonResponse({"success": False, "error": str(exc)})
-
-
 # ═══════════════════════════════════════
 #  بستن روز — خلاصه — ★ FIXED: فیلتر restaurant روی KP
 # ═══════════════════════════════════════
-
 
 @api_view(["GET"])
 @permission_classes([PosPerm])
@@ -422,11 +431,16 @@ def pos_close_summary(request):
         {
             "id": o.id,
             "customer": o.customer_name or "بدون نام",
+            "customer_en": o.customer_name_en or "",
             "total": int(o.total_price),
             "source": o.source,
             "items": [
                 {
                     "name": oi.food.name if oi.food else (oi.item_name or "?"),
+                    "name_en": (
+                        oi.food.name_en if oi.food and oi.food.name_en
+                        else (oi.item_name_en or "")
+                    ),
                     "qty": oi.quantity,
                 }
                 for oi in o.items.all()
@@ -435,7 +449,6 @@ def pos_close_summary(request):
         for o in orders.exclude(status="delivered")
     ]
 
-    # ★ FIXED: فیلتر مستقیم restaurant روی KitchenProduct
     kp_qs = KitchenProduct.objects.filter(is_active=True)
     if restaurant:
         kp_qs = kp_qs.filter(restaurant=restaurant)
@@ -466,10 +479,15 @@ def pos_close_summary(request):
     if restaurant:
         oi_qs = oi_qs.filter(order__restaurant=restaurant)
 
+    # ★ name_en اضافه شد
     for oi in oi_qs:
         name = oi.food.name if oi.food else (oi.item_name or "?")
+        name_en = (
+            oi.food.name_en if oi.food and oi.food.name_en
+            else (oi.item_name_en or "")
+        )
         if name not in item_stats:
-            item_stats[name] = {"qty": 0, "revenue": 0}
+            item_stats[name] = {"name_en": name_en, "qty": 0, "revenue": 0}
         item_stats[name]["qty"] += oi.quantity
         item_stats[name]["revenue"] += int(oi.price or 0) * oi.quantity
 
@@ -477,6 +495,7 @@ def pos_close_summary(request):
         items_detail.append(
             {
                 "name": name,
+                "name_en": stats.get("name_en", ""),
                 "qty": stats["qty"],
                 "revenue": stats["revenue"],
             }
@@ -491,7 +510,6 @@ def pos_close_summary(request):
 
     total_profit = total_sales - total_cost - waste_value - discount_total
 
-    # ★ FIXED: فیلتر restaurant روی DayCloseReport
     existing_report = None
     report_qs = DayCloseReport.objects.filter(date=today)
     if restaurant:
@@ -518,8 +536,6 @@ def pos_close_summary(request):
             "report_id": existing_report.id if existing_report else None,
         }
     )
-
-
 # ═══════════════════════════════════════
 #  ثبت ضایعات از صندوق — ★ FIXED: فیلتر restaurant روی KP
 # ═══════════════════════════════════════
@@ -644,29 +660,20 @@ def pos_close_day(request):
             status=400,
         )
 
-    # ★ FIXED: بررسی + ایجاد داخل atomic
     with transaction.atomic():
-        # select_for_update برای جلوگیری از race condition
         existing = (
             DayCloseReport.objects.select_for_update()
-            .filter(
-                date=today,
-                restaurant=restaurant,
-            )
+            .filter(date=today, restaurant=restaurant)
             .first()
         )
 
         if existing:
             return JsonResponse(
-                {
-                    "success": False,
-                    "error": "این روز قبلاً بسته شده.",
-                }
+                {"success": False, "error": "این روز قبلاً بسته شده."}
             )
 
         orders = Order.objects.filter(
-            created_at__date=today,
-            restaurant=restaurant,
+            created_at__date=today, restaurant=restaurant,
         )
         pending = orders.exclude(status="delivered")
         pending_count = pending.count()
@@ -677,8 +684,7 @@ def pos_close_day(request):
         delivered_count = orders.filter(status="delivered").count()
 
         waste_qs = WasteLog.objects.filter(
-            created_at__date=today,
-            restaurant=restaurant,
+            created_at__date=today, restaurant=restaurant,
         )
         waste_count = waste_qs.aggregate(s=Sum("quantity"))["s"] or 0
         waste_value = sum(w.total_cost for w in waste_qs)
@@ -691,10 +697,16 @@ def pos_close_day(request):
             order__created_at__date=today,
             order__restaurant=restaurant,
         )
+
+        # ★ name_en اضافه شد
         for oi in oi_qs:
             name = oi.food.name if oi.food else (oi.item_name or "?")
+            name_en = (
+                oi.food.name_en if oi.food and oi.food.name_en
+                else (oi.item_name_en or "")
+            )
             if name not in item_stats:
-                item_stats[name] = {"qty": 0, "revenue": 0}
+                item_stats[name] = {"name_en": name_en, "qty": 0, "revenue": 0}
             item_stats[name]["qty"] += oi.quantity
             item_stats[name]["revenue"] += int(oi.price or 0) * oi.quantity
 
@@ -702,16 +714,13 @@ def pos_close_day(request):
             items_detail.append(
                 {
                     "name": name,
+                    "name_en": stats.get("name_en", ""),
                     "qty": stats["qty"],
                     "revenue": stats["revenue"],
                 }
             )
 
-        top_items = sorted(
-            items_detail,
-            key=lambda x: x["qty"],
-            reverse=True,
-        )[:5]
+        top_items = sorted(items_detail, key=lambda x: x["qty"], reverse=True)[:5]
 
         total_cost = 0
         for oi in oi_qs.select_related("food__recipe"):
@@ -720,11 +729,9 @@ def pos_close_day(request):
 
         total_profit = total_sales - total_cost - waste_value - discount_total
 
-        # ★ FIXED: فیلتر restaurant روی KitchenProduct
         inventory_snapshot = {}
         for kp in KitchenProduct.objects.filter(
-            is_active=True,
-            restaurant=restaurant,
+            is_active=True, restaurant=restaurant,
         ):
             inv = kp.get_inventory()
             inventory_snapshot[kp.name] = {
@@ -774,8 +781,6 @@ def pos_close_day(request):
             ),
         }
     )
-
-
 # ═══════════════════════════════════════
 #  تاریخچه بستن
 # ═══════════════════════════════════════
@@ -1070,7 +1075,6 @@ def public_menu_api(request):
 #  فروش آنلاین — ★ FIXED: فیلتر restaurant
 # ═══════════════════════════════════════
 
-
 @api_view(["GET"])
 @permission_classes([PosPerm])
 def pos_online_orders(request):
@@ -1098,6 +1102,10 @@ def pos_online_orders(request):
                     "food_name": (
                         oi.food.name if oi.food else (oi.item_name or "کالای آماده")
                     ),
+                    "name_en": (
+                        oi.food.name_en if oi.food and oi.food.name_en
+                        else (oi.item_name_en or "")
+                    ),
                     "quantity": oi.quantity,
                     "price": int(oi.price or 0),
                 }
@@ -1106,6 +1114,7 @@ def pos_online_orders(request):
             {
                 "id": o.id,
                 "customer_name": o.customer_name,
+                "customer_name_en": o.customer_name_en or "",
                 "phone": o.phone,
                 "status": o.status,
                 "status_display": o.get_status_display(),
@@ -1119,7 +1128,6 @@ def pos_online_orders(request):
         )
 
     return JsonResponse({"success": True, "orders": data})
-
 
 @api_view(["POST"])
 @permission_classes([PosPerm])
@@ -1396,6 +1404,10 @@ def pos_daily_orders(request):
             items.append(
                 {
                     "name": name,
+                    "name_en": (
+                        item.food.name_en if item.food and item.food.name_en
+                        else (item.item_name_en or "")
+                    ),
                     "quantity": item.quantity,
                     "price": int(item.price or 0),
                     "line_total": int(item.price or 0) * item.quantity,
@@ -1406,6 +1418,7 @@ def pos_daily_orders(request):
             {
                 "id": order.id,
                 "customer_name": order.customer_name or "",
+                "customer_name_en": order.customer_name_en or "",
                 "phone": order.phone or "",
                 "total_price": int(order.total_price),
                 "items": items,
