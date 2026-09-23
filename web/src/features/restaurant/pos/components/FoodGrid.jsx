@@ -1,10 +1,20 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Box, Grid, Typography, CircularProgress } from "@mui/material";
 import FoodCard from "./FoodCard";
 
 export default function FoodGrid({
-  foods = [], loading, onAdd, onRemove, C, showStock, isRtl, editMode, onSave,
-  categoryDiscounts,onExitEdit,
+  foods = [], 
+  loading, 
+  onAdd, 
+  onRemove, 
+  C, 
+  showStock, 
+  isRtl, 
+  editMode, 
+  onSave,
+  categoryDiscounts, 
+  onExitEdit,
+  cartItems = [] 
 }) {
   const [pinned, setPinned] = useState(new Set());
   const [order, setOrder] = useState(null);
@@ -50,6 +60,39 @@ export default function FoodGrid({
     setOverIdx(null);
   }, []);
 
+  // ★ هوک‌ها حتما باید قبل از شرط‌های return باشند
+  const sortedFoods = useMemo(() => {
+    if (!foods || foods.length === 0) return [];
+    
+    let list = [...foods];
+    
+    if (order) {
+      const map = new Map(foods.map(f => [f.id, f]));
+      const orderedList = order.map(id => map.get(id)).filter(Boolean);
+      const missing = foods.filter(f => !order.includes(f.id));
+      list = [...orderedList, ...missing];
+    }
+
+    list.sort((a, b) => {
+      const aP = pinned.has(a.id) ? 1 : 0;
+      const bP = pinned.has(b.id) ? 1 : 0;
+      return bP - aP;
+    });
+
+    return list;
+  }, [foods, order, pinned]);
+
+  const cartMap = useMemo(() => {
+    const map = new Map();
+    cartItems.forEach(item => {
+      if (item.id != null) {
+        map.set(item.id, (map.get(item.id) || 0) + (item.qty || 1));
+      }
+    });
+    return map;
+  }, [cartItems]);
+
+  // ★ شرط‌های خروج (Early Returns) حالا بعد از هوک‌ها قرار گرفته‌اند
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
@@ -68,23 +111,9 @@ export default function FoodGrid({
     );
   }
 
-  let sorted = [...foods];
-  if (order) {
-    const map = new Map(foods.map(f => [f.id, f]));
-    sorted = order.map(id => map.get(id)).filter(Boolean);
-    foods.forEach(f => { if (!order.includes(f.id)) sorted.push(f); });
-  }
-
-  sorted.sort((a, b) => {
-    const aP = pinned.has(a.id) ? 1 : 0;
-    const bP = pinned.has(b.id) ? 1 : 0;
-    return bP - aP;
-  });
-
   return (
     <Grid container spacing={1.5}>
-      {sorted.map((food, i) => {
-        // ★ استخراج تخفیف دسته‌بندی برای این آیتم
+      {sortedFoods.map((food, i) => {
         const catKey = food.category_name || food.category || "";
         const catDiscount = categoryDiscounts?.[catKey] || null;
 
@@ -121,6 +150,7 @@ export default function FoodGrid({
               categoryDiscount={catDiscount?.amount || 0}
               categoryDiscountType={catDiscount?.type || "fixed"}
               onExitEdit={onExitEdit}
+              cartQty={cartMap.get(food.id) || 0}
             />
           </Grid>
         );

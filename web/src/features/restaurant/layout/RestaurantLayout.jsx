@@ -40,13 +40,6 @@ const NAV_SECTIONS = [
       { icon: "📚", labelKey: "rest.nav_dictionary", basePath: "dictionary", serviceCode: "dictionary", permissionKey: "dictionary" },
     ],
   },
-  {
-    titleKey: "rest.nav_system",
-    serviceCode: null,
-    items: [
-      { icon: "👥", labelKey: "rest.nav_users", basePath: "users", serviceCode: "users", permissionKey: "users" },
-    ],
-  },
 ];
 
 const DASHBOARDS = [

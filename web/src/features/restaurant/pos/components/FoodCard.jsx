@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 import { Box, Typography, IconButton } from "@mui/material";
 import {
   CameraAlt,
@@ -11,7 +11,10 @@ import {
   Save,
 } from "@mui/icons-material";
 
-export default function FoodCard({
+// 1. ایمپورت استاتیک کلاینت (جایگزین ایمپورت داینامیک)
+import client from "../../api/client";
+
+function FoodCard({
   food = {},
   onAdd,
   onRemove,
@@ -25,6 +28,7 @@ export default function FoodCard({
   onSave,
   categoryDiscount = 0,
   categoryDiscountType = "fixed",
+  cartQty = 0, // 2. تعداد از سبد خرید (پدر) دریافت می‌شود
 }) {
   const [price, setPrice] = useState(food.price || 0);
   const [discount, setDiscount] = useState(0);
@@ -32,11 +36,11 @@ export default function FoodCard({
   const [imageUrl, setImageUrl] = useState(food.image || null);
   const [uploading, setUploading] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const [qty, setQty] = useState(0);
   const [stock, setStock] = useState(food.stock != null ? food.stock : "");
   const [saving, setSaving] = useState(false);
   const initialStock = useRef(food.stock != null ? food.stock : "");
   const fileRef = useRef(null);
+  
   const outOfStock = stock !== "" && Number(stock) <= 0;
   const lowStock = stock !== "" && Number(stock) > 0 && Number(stock) <= 5;
 
@@ -129,7 +133,6 @@ export default function FoodCard({
     e.stopPropagation();
     setSaving(true);
     try {
-      const client = (await import("../../api/client")).default;
       const finalPrice = effectivePrice;
       const payload = { price, final_price: finalPrice };
       if (stock !== "") payload.stock = Number(stock);
@@ -147,7 +150,6 @@ export default function FoodCard({
       setDiscount(0);
 
       if (typeof onExitEdit === "function") {
-        // ← اضافه شد
         onExitEdit(food.id);
       }
     } catch (err) {
@@ -160,8 +162,10 @@ export default function FoodCard({
   const handleAdd = (e) => {
     if (e) e.stopPropagation();
     if (outOfStock || editMode || typeof onAdd !== "function") return;
-    setQty((q) => q + 1);
+    
+    // مدیریت موجودی به صورت آپتیمیستیک (در صورت نیاز می‌توانید به سبد خرید منتقل کنید)
     if (stock !== "") setStock((s) => Math.max(0, Number(s) - 1));
+    
     onAdd({
       id: food.id,
       name: food.name,
@@ -170,7 +174,7 @@ export default function FoodCard({
       category_en: food.category_name_en || "",
       price,
       discount: serverDiscount,
-      effective_price: effectivePrice, // ← عوض شد
+      effective_price: effectivePrice,
       cat_discount: catDiscountAmount,
       cat_discount_type: categoryDiscountType,
       is_manual: false,
@@ -181,19 +185,17 @@ export default function FoodCard({
     e.stopPropagation();
     handleAdd();
   };
+  
   const dec = (e) => {
     e.stopPropagation();
-    setQty((q) => {
-      if (q > 0) {
-        if (stock !== "" && initialStock.current !== "") {
-          setStock((s) =>
-            Math.min(Number(initialStock.current), Number(s) + 1),
-          );
-        }
-        if (typeof onRemove === "function") onRemove(food.id);
+    if (cartQty > 0) {
+      if (stock !== "" && initialStock.current !== "") {
+        setStock((s) =>
+          Math.min(Number(initialStock.current), Number(s) + 1),
+        );
       }
-      return Math.max(0, q - 1);
-    });
+      if (typeof onRemove === "function") onRemove(food.id);
+    }
   };
 
   const handlePin = (e) => {
@@ -213,7 +215,6 @@ export default function FoodCard({
     if (!file) return;
     setUploading(true);
     try {
-      const client = (await import("../../api/client")).default;
       const fd = new FormData();
       fd.append("image", file);
       const res = await client.post(
@@ -860,7 +861,7 @@ export default function FoodCard({
                 </Typography>
               </Box>
 
-              {qty > 0 ? (
+              {cartQty > 0 ? (
                 <Box
                   sx={{
                     display: "flex",
@@ -895,7 +896,7 @@ export default function FoodCard({
                       fontFamily: "'Vazirmatn', sans-serif",
                     }}
                   >
-                    {qty}
+                    {cartQty}
                   </Typography>
                   <IconButton
                     onClick={inc}
@@ -942,3 +943,5 @@ export default function FoodCard({
     </Box>
   );
 }
+
+export default memo(FoodCard);

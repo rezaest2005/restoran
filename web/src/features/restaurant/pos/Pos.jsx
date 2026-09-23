@@ -140,10 +140,11 @@ export default function Pos() {
       items, customerName: custName, phone: custPhone,
       orderType, paymentMethod: method,
     });
+    
     if (result) {
-      for (const item of cart) {
-        await decreaseStock(item.id, item.qty);
-      }
+      // ★ استفاده از Promise.all برای کاهش موجودی به صورت همزمان و سریع‌تر
+      await Promise.all(cart.map(item => decreaseStock(item.id, item.qty)));
+      
       clearCart();
       setCustName("");
       setCustPhone("");
@@ -151,6 +152,18 @@ export default function Pos() {
       setToast({ open: true, message: `سفارش #${result.order_id} ثبت شد`, type: "success" });
     }
     return result;
+  };
+
+  // ★ استخراج پراپ‌های CartPanel برای جلوگیری از تکرار کد (DRY)
+  const cartPanelProps = {
+    cart, cartCount, cartTotal, categoryDiscounts,
+    onAdd: addToCart, onRemove: removeFromCart, onClear: clearCart,
+    orderType, setOrderType,
+    custName, setCustName, custPhone, setCustPhone,
+    requireCustomer,
+    onCheckout: handleCheckoutClick,
+    paymentMethod, setPaymentMethod,
+    submitting, C, isRtl,
   };
 
   return (
@@ -259,6 +272,7 @@ export default function Pos() {
                     onSave={reload}
                     onExitEdit={() => setEditMode(false)}
                     categoryDiscounts={categoryDiscounts}
+                    cartItems={cart} // ★ این پراپ اضافه شد تا تعداد در FoodCard آپدیت شود
                   />
                 ) : (
                   <ManualItemInput onAdd={handleAddManual} C={C} isRtl={isRtl} />
@@ -279,43 +293,27 @@ export default function Pos() {
               position: { md: "sticky" }, top: 48,
               height: { md: "calc(100vh - 48px)" }, flexShrink: 0,
             }}>
-              <CartPanel
-                cart={cart} cartCount={cartCount} cartTotal={cartTotal}
-                categoryDiscounts={categoryDiscounts}
-                onAdd={addToCart} onRemove={removeFromCart} onClear={clearCart}
-                orderType={orderType} setOrderType={setOrderType}
-                custName={custName} setCustName={setCustName}
-                custPhone={custPhone} setCustPhone={setCustPhone}
-                requireCustomer={requireCustomer}
-                onCheckout={handleCheckoutClick}
-                paymentMethod={paymentMethod}
-                setPaymentMethod={setPaymentMethod}
-                submitting={submitting}
-                C={C} isRtl={isRtl}
-              />
+              {/* ★ استفاده از پراپ‌های استخراج شده */}
+              <CartPanel {...cartPanelProps} />
             </Box>
 
-
-            {/* نوار پایین موبایل — همیشه نمایش داده بشه */}
-                        {/* نوار پایین موبایل */}
-            <Box sx={{
-              display: { xs: "flex", md: "none" },
-              position: "fixed", bottom: 0, left: 0, right: 0,
-              zIndex: 99, bgcolor: C.glass,
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
-              borderTop: `1px solid ${C.glassBorder}`,
-              px: 1.5, py: 1,
-              alignItems: "center", justifyContent: "space-between",
-              boxShadow: "0 -4px 20px rgba(0,0,0,0.2)",
-            }}>
-              <Box
-                onClick={() => setMobileCartOpen(true)}
-                sx={{
-                  display: "flex", alignItems: "center", gap: 1,
-                  cursor: "pointer", flex: 1,
-                }}
-              >
+            {/* نوار پایین موبایل */}
+            <Box 
+              onClick={() => cart.length > 0 && setMobileCartOpen(true)} 
+              sx={{
+                display: { xs: "flex", md: "none" },
+                position: "fixed", bottom: 0, left: 0, right: 0,
+                zIndex: 99, bgcolor: C.glass,
+                backdropFilter: "blur(20px)",
+                WebkitBackdropFilter: "blur(20px)",
+                borderTop: `1px solid ${C.glassBorder}`,
+                px: 1.5, py: 1,
+                alignItems: "center", justifyContent: "space-between",
+                boxShadow: "0 -4px 20px rgba(0,0,0,0.2)",
+                cursor: cart.length > 0 ? "pointer" : "default",
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, flex: 1 }}>
                 <Badge
                   badgeContent={cartCount}
                   color="error"
@@ -355,17 +353,14 @@ export default function Pos() {
                 </Box>
               </Box>
 
-              {/* ★ دکمه سبد خرید به جای تسویه */}
-              <Box onClick={() => setMobileCartOpen(true)} sx={{
+              <Box sx={{
                 bgcolor: cart.length > 0 ? C.olive : `${C.muted}30`,
                 color: cart.length > 0 ? "#fff" : C.muted,
                 borderRadius: "12px", px: { xs: 2, sm: 3 }, py: 1,
                 fontWeight: 800, fontSize: { xs: 13, sm: 14 },
                 fontFamily: "'Vazirmatn', sans-serif",
-                cursor: cart.length > 0 ? "pointer" : "default",
                 display: "flex", alignItems: "center", gap: 0.6,
                 transition: "all 0.2s ease",
-                "&:hover": cart.length > 0 ? { opacity: 0.88 } : {},
               }}>
                 <ShoppingCart sx={{ fontSize: 17 }} />
                 {isRtl ? "سبد خرید" : "Cart"}
@@ -430,20 +425,8 @@ export default function Pos() {
 
                 {/* محتوای سبد */}
                 <Box sx={{ flex: 1, overflow: "auto" }}>
-                  <CartPanel
-                    cart={cart} cartCount={cartCount} cartTotal={cartTotal}
-                    categoryDiscounts={categoryDiscounts}
-                    onAdd={addToCart} onRemove={removeFromCart} onClear={clearCart}
-                    orderType={orderType} setOrderType={setOrderType}
-                    custName={custName} setCustName={setCustName}
-                    custPhone={custPhone} setCustPhone={setCustPhone}
-                    requireCustomer={requireCustomer}
-                    onCheckout={handleCheckoutClick}
-                    paymentMethod={paymentMethod}
-                    setPaymentMethod={setPaymentMethod}
-                    submitting={submitting}
-                    C={C} isRtl={isRtl}
-                  />
+                  {/* ★ استفاده از پراپ‌های استخراج شده */}
+                  <CartPanel {...cartPanelProps} />
                 </Box>
               </Box>
             </Drawer>
