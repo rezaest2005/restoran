@@ -17,7 +17,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.conf import settings
 
-from .tenancy import TenantModel, AllObjectsManager
+from .tenancy import TenantModel
 
 # ═══════════════════════════════════════════
 #  ثابت‌ها و ابزارهای مشترک
@@ -252,6 +252,8 @@ class User(AbstractUser):
     # ★ NEW: سیستم دسترسی‌ها
     DASHBOARD_SECTIONS = [
         ("pos", "صندوق فروش"),
+        ("pos_report", "گزارش روز"),        
+        ("pos_settings", "تنظیمات صندوق"),  
         ("orders", "سفارشات"),
         ("kitchen", "آشپزخانه"),
         ("recipes", "رسپی‌ها"),
@@ -268,7 +270,7 @@ class User(AbstractUser):
     ROLE_DEFAULT_PERMISSIONS = {
         "owner": [s[0] for s in DASHBOARD_SECTIONS],
         "manager": [s[0] for s in DASHBOARD_SECTIONS],
-        "cashier": ["pos", "orders", "dictionary"],
+        "cashier": ["pos", "pos_report", "orders", "dictionary"],
         "kitchen": ["kitchen", "orders", "recipes"],
         "warehouse": [
             "raw_materials",
@@ -1034,7 +1036,6 @@ class Recipe(TenantModel):
             return round((fp - cs) / fp * 100, 2)
         return 0.0
 
-
 class RecipeIngredient(TenantModel):
     recipe = models.ForeignKey(
         Recipe,
@@ -1045,7 +1046,7 @@ class RecipeIngredient(TenantModel):
     )
     raw_material = models.ForeignKey(
         RawMaterial,
-        on_delete=models.PROTECT,  # ★ FIXED: PROTECT به‌جای CASCADE
+        on_delete=models.PROTECT,
         related_name="recipe_usages",
         verbose_name="ماده اولیه",
     )
@@ -1073,7 +1074,6 @@ class RecipeIngredient(TenantModel):
     @property
     def total_cost(self):
         return Decimal(str(self.effective_quantity)) * self.raw_material.price
-
 
 class RecipeSemiFinished(TenantModel):
     recipe = models.ForeignKey(

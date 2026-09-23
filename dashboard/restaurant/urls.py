@@ -70,6 +70,7 @@ urlpatterns = [
     path("api/users/approve/", views.approve_user_api, name="approve_user"),
     path("api/users/reject/", views.reject_user_api, name="reject_user"),
     path("api/users/delete/", views.user_delete, name="user_delete"),
+    path("api/users/tabs/", views.user_tabs_api, name="user_tabs_api"), 
     # ── Raw Materials & Suppliers ───────────────────────────
     path("api/raw-materials/save/", views.raw_material_save, name="raw_material_save"),
     path(
