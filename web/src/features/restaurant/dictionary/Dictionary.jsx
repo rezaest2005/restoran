@@ -10,11 +10,11 @@ import InvoiceSection from "./components/InvoiceSection";
 import RecipeSection from "./components/RecipeSection";
 import ManagersSection from "./components/ManagersSection";
 
-const TABS = [
-  { id: "menu", icon: "🍽️", labelKey: "dict.menu_tab" },
-  { id: "invoice", icon: "🧾", labelKey: "dict.invoice_tab" },
-  { id: "recipe", icon: "📖", labelKey: "dict.recipe_tab" },
-  { id: "managers", icon: "👥", labelKey: "dict.managers_tab" },
+const ALL_TABS = [
+  { id: "menu", icon: "🍽️", labelKey: "dict.menu_tab", adminOnly: false },
+  { id: "invoice", icon: "🧾", labelKey: "dict.invoice_tab", adminOnly: false },
+  { id: "recipe", icon: "📖", labelKey: "dict.recipe_tab", adminOnly: false },
+  { id: "managers", icon: "👥", labelKey: "dict.managers_tab", adminOnly: true },  // ★ فقط مدیر/مالک
 ];
 
 export default function Dictionary() {
@@ -24,6 +24,22 @@ export default function Dictionary() {
   const isDark = mode === "dark";
   const [activeTab, setActiveTab] = useState("menu");
   const [toast, setToast] = useState({ open: false, message: "", type: "info" });
+
+  // ★ کاربر فعلی
+  const currentUser = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem("user") || "{}"); }
+    catch { return {}; }
+  }, []);
+
+  const userRole = currentUser.role || "customer";
+  const isSuperuser = !!currentUser.is_superuser;
+  const isOwnerOrManager = isSuperuser || userRole === "owner" || userRole === "manager";
+
+  // ★ فیلتر تب‌ها بر اساس نقش
+  const TABS = useMemo(() =>
+    ALL_TABS.filter(tab => !tab.adminOnly || isOwnerOrManager),
+    [isOwnerOrManager]
+  );
 
   const showToast = (message, type = "info") => setToast({ open: true, message, type });
 
@@ -61,7 +77,7 @@ export default function Dictionary() {
         </Typography>
       </Box>
 
-      {/* تب‌ها */}
+      {/* تب‌ها — فقط تب‌های مجاز */}
       <Box sx={{
         display: "flex", gap: 0.5, mb: 3,
         bgcolor: C.glass, backdropFilter: "blur(16px)",
@@ -100,7 +116,7 @@ export default function Dictionary() {
         {activeTab === "menu" && <MenuSection C={C} isRtl={isRtl} isDark={isDark} showToast={showToast} />}
         {activeTab === "invoice" && <InvoiceSection C={C} />}
         {activeTab === "recipe" && <RecipeSection C={C} />}
-        {activeTab === "managers" && <ManagersSection C={C} />}
+        {activeTab === "managers" && isOwnerOrManager && <ManagersSection C={C} isRtl={isRtl} isDark={isDark} showToast={showToast} />}
       </Box>
 
       {/* Toast */}

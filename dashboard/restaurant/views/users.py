@@ -1,11 +1,10 @@
 """
-User management API (★ نسخه v9 — کامل اصلاح شده)
+User management API (★ نسخه v10 — داینامیک تب‌ها)
 
-★ v9 تغییرات:
-  - user_delete: فیلتر رستوران اضافه شد (رفع باگ امنیتی)
-  - create_user_api: بررسی تکرار شماره تلفن قبل از ساخت
-  - approve_user_api: بررسی دسترسی اضافه شد
-  - سایر endpoint‌ها: بدون تغییر
+★ v10 تغییرات:
+  - user_management_api: tabs → dashboard_permissions (لیست خام)
+  - user_tabs_api GET: tabs → dashboard_permissions
+  - user_tabs_api POST: ذخیره مستقیم هر تبی که فرانت بفرسته
 """
 
 import logging
@@ -131,8 +130,9 @@ def user_management_api(request):
                 u.last_login.strftime("%Y/%m/%d %H:%M") if u.last_login else "هرگز"
             ),
             "permissions": get_user_permissions(u),
+            # ★ v10: لیست خام — هر تبی که فرانت بفرسته ذخیره میشه
+            "dashboard_permissions": list(u.dashboard_permissions or []),
         })
-
     return Response({
         "success": True,
         "count": len(data),
@@ -142,7 +142,7 @@ def user_management_api(request):
 
 
 # ═══════════════════════════════════════
-#  ★ ایجاد کاربر — v9
+#  ★ ایجاد کاربر — v10
 # ═══════════════════════════════════════
 
 @api_view(["POST"])
@@ -173,7 +173,6 @@ def create_user_api(request):
             status=400,
         )
 
-    # ★ v9: بررسی تکرار شماره تلفن قبل از ساخت کاربر
     if phone and AuthUser.objects.filter(phone_number=phone).exists():
         return Response(
             {"success": False, "error": f"شماره «{phone}» قبلاً ثبت شده."},
@@ -367,13 +366,12 @@ def admin_reset_password(request):
 
 
 # ═══════════════════════════════════════
-#  ★ تأیید / رد کاربر — v9
+#  ★ تأیید / رد کاربر — v10
 # ═══════════════════════════════════════
 
 @api_view(["POST"])
 @permission_classes([UsersPerm])
 def approve_user_api(request):
-    # ★ v9: بررسی دسترسی
     if not has_permission(request.user, "users.edit"):
         return Response({"success": False, "error": "دسترسی ندارید."}, status=403)
 
@@ -428,7 +426,6 @@ def approve_user_api(request):
 @api_view(["POST"])
 @permission_classes([UsersPerm])
 def reject_user_api(request):
-    # ★ v9: بررسی دسترسی
     if not has_permission(request.user, "users.edit"):
         return Response({"success": False, "error": "دسترسی ندارید."}, status=403)
 
@@ -452,13 +449,12 @@ def reject_user_api(request):
 
 
 # ═══════════════════════════════════════
-#  ★ حذف کاربر — v9
+#  ★ حذف کاربر — v10
 # ═══════════════════════════════════════
 
 @api_view(["POST"])
 @permission_classes([UsersPerm])
 def user_delete(request):
-    # ★ v9: بررسی دسترسی
     if not has_permission(request.user, "users.delete"):
         return Response({"success": False, "error": "دسترسی ندارید."}, status=403)
 
@@ -467,7 +463,6 @@ def user_delete(request):
     if not user_id:
         return Response({"success": False, "error": "شناسه کاربر الزامی است."}, status=400)
 
-    # ★ v9: فیلتر رستوران — جلوگیری از حذف کاربر رستوران دیگر
     try:
         target = _get_restaurant_users_qs(request.user).get(id=user_id)
     except AuthUser.DoesNotExist:
@@ -483,3 +478,59 @@ def user_delete(request):
     target.delete()
 
     return Response({"success": True, "msg": f"کاربر «{username}» حذف شد."})
+
+
+# ═══════════════════════════════════════
+#  ★ مدیریت تب‌ها — v10 (داینامیک)
+# ═══════════════════════════════════════
+
+@api_view(["GET", "POST"])
+@permission_classes([UsersPerm])
+def user_tabs_api(request):
+    """
+    GET  → دسترسی‌های کاربر فعلی (لیست خام)
+    POST → آپدیت تب‌های یک کاربر (فقط owner/manager)
+
+    ★ داینامیک: هر تبی که فرانت بفرسته ذخیره میشه — نیازی به
+      تعریف هاردکد در بک‌اند نیست.
+    """
+    if request.method == "GET":
+        u = request.user
+        return Response({
+            "success": True,
+            "dashboard_permissions": list(u.dashboard_permissions or []),
+        })
+
+    # POST — فقط مدیر/مالک
+    if not (request.user.is_owner or request.user.is_manager or request.user.is_superuser):
+        return Response(
+            {"success": False, "error": "فقط مدیر یا مالک"},
+            status=403,
+        )
+
+    user_id = request.data.get("user_id")
+    tabs = request.data.get("tabs", {})
+
+    if not user_id:
+        return Response(
+            {"success": False, "error": "user_id الزامی است"},
+            status=400,
+        )
+
+    try:
+        target = _get_restaurant_users_qs(request.user).get(id=user_id)
+    except AuthUser.DoesNotExist:
+        return Response(
+            {"success": False, "error": "کاربر یافت نشد"},
+            status=404,
+        )
+
+    # ★ ذخیره مستقیم — هر تبی که فرانت بفرسته
+    target.dashboard_permissions = [k for k, v in tabs.items() if v]
+    target.save(update_fields=["dashboard_permissions"])
+
+    return Response({
+        "success": True,
+        "msg": f"تب‌های «{target.username}» بروزرسانی شد",
+        "dashboard_permissions": target.dashboard_permissions,
+    })

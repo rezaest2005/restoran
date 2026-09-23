@@ -56,21 +56,25 @@ PosPerm = make_service_permission("pos")
 #  resolve restaurant
 # ═══════════════════════════════════════
 def _resolve_restaurant(request):
+    # راه ۱: قبلاً میدونیم
     r = get_current_restaurant()
     if r:
         return r
+
+    # راه ۲: از آدرس URL
     r = get_restaurant_from_request(request)
     if r:
         set_current_restaurant(r)
         return r
-    # ★ NEW: fallback از user لاگین‌شده
-    if hasattr(request, "user") and hasattr(request.user, "restaurant"):
-        r = request.user.restaurant
-        if r:
-            set_current_restaurant(r)
-            return r
-    return None
 
+    # راه ۳: ★ از خود کاربر (رفع باگ ۴۰۰)
+    r = getattr(request.user, "restaurant", None)
+    if r:
+        set_current_restaurant(r)
+        return r
+
+    # هیچ راهی جواب نداد
+    return None
 
 # ═══════════════════════════════════════
 #  پیدا کردن KitchenProduct برای Food

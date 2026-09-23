@@ -145,3 +145,30 @@ try {
 } catch (_) {}
 
 export default client;
+// ═══════════════════════════════════════
+//  مدیریت کاربران
+// ═══════════════════════════════════════
+
+export const getUsers = () =>
+  client.get("/api/users/management/");
+
+export const createUser = (data) =>
+  client.post("/api/users/create/", data);
+
+export const updateUserRole = (data) =>
+  client.post("/api/users/update-role/", data);
+
+export const toggleUserActive = (data) =>
+  client.post("/api/users/toggle-active/", data);
+
+export const resetUserPassword = (data) =>
+  client.post("/api/users/reset-password/", data);
+
+export const deleteUser = (data) =>
+  client.post("/api/users/delete/", data);
+
+export const getUserTabs = () =>
+  client.get("/api/users/tabs/");
+
+export const updateUserTabs = (data) =>
+  client.post("/api/users/tabs/", data);

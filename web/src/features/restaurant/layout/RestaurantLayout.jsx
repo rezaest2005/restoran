@@ -17,34 +17,34 @@ const NAV_SECTIONS = [
     titleKey: "rest.nav_management",
     serviceCode: null,
     items: [
-      { icon: "🔥", labelKey: "rest.nav_kitchen", basePath: "kitchen", serviceCode: "kitchen" },
-      { icon: "💻", labelKey: "rest.nav_pos", basePath: "pos", serviceCode: "pos" },
-      { icon: "📒", labelKey: "rest.nav_orders", basePath: "orders", serviceCode: "pos" },
-      { icon: "📖", labelKey: "rest.nav_recipes", basePath: "recipes", serviceCode: "foods" },
+      { icon: "🔥", labelKey: "rest.nav_kitchen", basePath: "kitchen", serviceCode: "kitchen", permissionKey: "kitchen" },
+      { icon: "💻", labelKey: "rest.nav_pos", basePath: "pos", serviceCode: "pos", permissionKey: "pos" },
+      { icon: "📒", labelKey: "rest.nav_orders", basePath: "orders", serviceCode: "pos", permissionKey: "orders" },
+      { icon: "📖", labelKey: "rest.nav_recipes", basePath: "recipes", serviceCode: "foods", permissionKey: "recipes" },
     ],
   },
   {
     titleKey: "rest.nav_inventory",
     serviceCode: "inventory",
     items: [
-      { icon: "📦", labelKey: "rest.nav_raw_materials", basePath: "raw-materials", serviceCode: "inventory" },
-      { icon: "🛍️", labelKey: "rest.nav_ready_materials", basePath: "ready-materials", serviceCode: "inventory" },
-      { icon: "🧾", labelKey: "rest.nav_invoices", basePath: "invoices", serviceCode: "inventory" },
+      { icon: "📦", labelKey: "rest.nav_raw_materials", basePath: "raw-materials", serviceCode: "inventory", permissionKey: "raw_materials" },
+      { icon: "🛍️", labelKey: "rest.nav_ready_materials", basePath: "ready-materials", serviceCode: "inventory", permissionKey: "ready_materials" },
+      { icon: "🧾", labelKey: "rest.nav_invoices", basePath: "invoices", serviceCode: "inventory", permissionKey: "invoices" },
     ],
   },
   {
     titleKey: "rest.nav_tools",
     serviceCode: null,
     items: [
-      { icon: "⏱️", labelKey: "rest.nav_usage_log", basePath: "usage-log", serviceCode: "inventory" },
-      { icon: "📚", labelKey: "rest.nav_dictionary", basePath: "dictionary", serviceCode: "dictionary" },
+      { icon: "⏱️", labelKey: "rest.nav_usage_log", basePath: "usage-log", serviceCode: "inventory", permissionKey: "usage_log" },
+      { icon: "📚", labelKey: "rest.nav_dictionary", basePath: "dictionary", serviceCode: "dictionary", permissionKey: "dictionary" },
     ],
   },
   {
     titleKey: "rest.nav_system",
     serviceCode: null,
     items: [
-      { icon: "👥", labelKey: "rest.nav_users", basePath: "users", serviceCode: "users" },
+      { icon: "👥", labelKey: "rest.nav_users", basePath: "users", serviceCode: "users", permissionKey: "users" },
     ],
   },
 ];
@@ -82,6 +82,16 @@ export default function RestaurantLayout() {
 
   const [enabledServices, setEnabledServices] = useState(null);
   const [servicesLoaded, setServicesLoaded] = useState(false);
+
+  // ★ کاربر فعلی از localStorage
+  const currentUser = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem("user") || "{}"); }
+    catch { return {}; }
+  }, []);
+
+  const userRole = currentUser.role || "customer";
+  const isSuperuser = !!currentUser.is_superuser;
+  const isOwnerOrManager = isSuperuser || userRole === "owner" || userRole === "manager";
 
   const slug = useMemo(() => {
     if (urlSlug) return urlSlug;
@@ -127,26 +137,35 @@ export default function RestaurantLayout() {
       });
   }, [slug]);
 
+  // ★ فیلتر ترکیبی: سرویس + مجوز کاربر
   const filteredSections = useMemo(() => {
     if (!servicesLoaded) return null;
-    if (!slug) return NAV_SECTIONS;
-    if (enabledServices === null) return NAV_SECTIONS;
-    if (!enabledServices.length) return [];
-
-    const enabledSet = new Set(enabledServices);
 
     return NAV_SECTIONS
       .map(sec => {
-        if (sec.serviceCode && !enabledSet.has(sec.serviceCode)) return null;
+        // ── فیلتر سرویس ──
+        if (sec.serviceCode && slug) {
+          if (enabledServices !== null && !enabledServices.includes(sec.serviceCode)) return null;
+        }
+
         const items = sec.items.filter(item => {
-          if (!item.serviceCode) return true;
-          return enabledSet.has(item.serviceCode);
+          // ── فیلتر سرویس روی آیتم ──
+          if (item.serviceCode && slug) {
+            if (enabledServices !== null && !enabledServices.includes(item.serviceCode)) return false;
+          }
+          // ★ فیلتر مجوز کاربر
+          if (!isOwnerOrManager && item.permissionKey) {
+            const perms = currentUser.permissions || currentUser.dashboard_permissions || [];
+            if (!perms.includes(item.permissionKey)) return false;
+          }
+          return true;
         });
+
         if (!items.length) return null;
         return { ...sec, items };
       })
       .filter(Boolean);
-  }, [enabledServices, servicesLoaded, slug]);
+  }, [enabledServices, servicesLoaded, slug, isOwnerOrManager, currentUser]);
 
   const C = useMemo(() => ({
     bg: isDark ? "#0B0A0B" : "#E4E8F0",
@@ -294,7 +313,7 @@ export default function RestaurantLayout() {
 
       {isMobile && (
   <Drawer
-    key={isRtl ? "rtl" : "ltr"}          
+    key={isRtl ? "rtl" : "ltr"}
     anchor="left"
     open={sidebarOpen}
     onClose={() => setSidebarOpen(false)}

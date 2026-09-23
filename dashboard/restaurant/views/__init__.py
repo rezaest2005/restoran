@@ -124,6 +124,7 @@ from .users import (
     approve_user_api,
     reject_user_api,
     user_delete,
+    user_tabs_api,
 )
 
 # ── Card Reader API ──
@@ -299,6 +300,8 @@ __all__ = [
     "approve_user_api",
     "reject_user_api",
     "user_delete",
+    "user_tabs_api",
+
     # Card Reader
     "send_to_card_reader",
     "cancel_card_payment",
