@@ -29,6 +29,25 @@ export default function ManualItemInput({ onAdd, C, isRtl }) {
     if (e.key === "Enter") handleAdd();
   };
 
+  // ★ استایل مشترک برای تمام TextField ها (جلوگیری از تکرار کد - DRY)
+  const textFieldSx = {
+    "& .MuiOutlinedInput-root": {
+      borderRadius: "12px", 
+      bgcolor: C.inputBg, 
+      fontSize: 13,
+      fontFamily: "'Vazirmatn', sans-serif",
+      "& fieldset": { borderColor: C.glassBorder },
+      "&:hover fieldset": { borderColor: C.olive },
+      "&.Mui-focused fieldset": { borderColor: C.olive },
+    },
+    "& .MuiInputLabel-root": {
+      fontFamily: "'Vazirmatn', sans-serif", 
+      fontSize: 12, 
+      color: C.sub,
+      "&.Mui-focused": { color: C.olive },
+    },
+  };
+
   return (
     <Box sx={{
       p: 3,
@@ -52,20 +71,7 @@ export default function ManualItemInput({ onAdd, C, isRtl }) {
           value={name}
           onChange={e => setName(e.target.value)}
           onKeyDown={handleKeyDown}
-          sx={{
-            flex: 2, minWidth: 150,
-            "& .MuiOutlinedInput-root": {
-              borderRadius: "12px", bgcolor: C.inputBg, fontSize: 13,
-              fontFamily: "'Vazirmatn', sans-serif",
-              "& fieldset": { borderColor: C.glassBorder },
-              "&:hover fieldset": { borderColor: C.olive },
-              "&.Mui-focused fieldset": { borderColor: C.olive },
-            },
-            "& .MuiInputLabel-root": {
-              fontFamily: "'Vazirmatn', sans-serif", fontSize: 12, color: C.sub,
-              "&.Mui-focused": { color: C.olive },
-            },
-          }}
+          sx={{ ...textFieldSx, flex: 2, minWidth: 150 }}
         />
 
         <TextField
@@ -74,20 +80,7 @@ export default function ManualItemInput({ onAdd, C, isRtl }) {
           value={category}
           onChange={e => setCategory(e.target.value)}
           onKeyDown={handleKeyDown}
-          sx={{
-            flex: 1, minWidth: 100,
-            "& .MuiOutlinedInput-root": {
-              borderRadius: "12px", bgcolor: C.inputBg, fontSize: 13,
-              fontFamily: "'Vazirmatn', sans-serif",
-              "& fieldset": { borderColor: C.glassBorder },
-              "&:hover fieldset": { borderColor: C.olive },
-              "&.Mui-focused fieldset": { borderColor: C.olive },
-            },
-            "& .MuiInputLabel-root": {
-              fontFamily: "'Vazirmatn', sans-serif", fontSize: 12, color: C.sub,
-              "&.Mui-focused": { color: C.olive },
-            },
-          }}
+          sx={{ ...textFieldSx, flex: 1, minWidth: 100 }}
         />
 
         <TextField
@@ -97,20 +90,7 @@ export default function ManualItemInput({ onAdd, C, isRtl }) {
           value={price}
           onChange={e => setPrice(e.target.value)}
           onKeyDown={handleKeyDown}
-          sx={{
-            flex: 1, minWidth: 100,
-            "& .MuiOutlinedInput-root": {
-              borderRadius: "12px", bgcolor: C.inputBg, fontSize: 13,
-              fontFamily: "'Vazirmatn', sans-serif",
-              "& fieldset": { borderColor: C.glassBorder },
-              "&:hover fieldset": { borderColor: C.olive },
-              "&.Mui-focused fieldset": { borderColor: C.olive },
-            },
-            "& .MuiInputLabel-root": {
-              fontFamily: "'Vazirmatn', sans-serif", fontSize: 12, color: C.sub,
-              "&.Mui-focused": { color: C.olive },
-            },
-          }}
+          sx={{ ...textFieldSx, flex: 1, minWidth: 100 }}
         />
 
         <Button

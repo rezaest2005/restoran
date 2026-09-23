@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 import { Box, Chip } from "@mui/material";
 import { DragIndicator } from "@mui/icons-material";
 import CategoryDiscountButton from "./CategoryDiscountButton";
 
+// ★ استخراج توابع بیرون کامپوننت برای جلوگیری از ساخته شدن مجدد در هر رندر
 const isDiscountActive = (d) => {
   if (!d || !d.amount || d.amount <= 0) return false;
   if (!d.expiresAt) return true;
@@ -14,7 +15,16 @@ const formatDiscountLabel = (d) => {
   return d.type === "percent" ? `%${d.amount}` : d.amount.toLocaleString();
 };
 
-export default function CategoryBar({
+// ★ تابع ساخت لیبل برای تمیزتر شدن JSX
+const getChipLabel = (cat, discount, isRtl) => {
+  const baseLabel = cat === "all" ? (isRtl ? "همه" : "All") : cat;
+  if (isDiscountActive(discount)) {
+    return `${baseLabel} (${formatDiscountLabel(discount)})`;
+  }
+  return baseLabel;
+};
+
+function CategoryBar({
   categoryNames,
   activeCat,
   setActiveCat,
@@ -147,25 +157,11 @@ export default function CategoryBar({
             )}
 
             <Chip
-              label={
-                isAll
-                  ? hasDiscount
-                    ? `${isRtl ? "همه" : "All"} (${formatDiscountLabel(discount)})`
-                    : isRtl
-                      ? "همه"
-                      : "All"
-                  : hasDiscount
-                    ? `${cat} (${formatDiscountLabel(discount)})`
-                    : cat
-              }
+              label={getChipLabel(cat, discount, isRtl)}
               onClick={() => setActiveCat(cat)}
               variant={isActive ? "filled" : "outlined"}
               sx={{
-                bgcolor: isActive
-                  ? C.olive
-                  : hasDiscount
-                    ? C.dangerBg
-                    : "transparent",
+                bgcolor: isActive ? C.olive : hasDiscount ? C.dangerBg : "transparent",
                 color: isActive ? "#fff" : hasDiscount ? C.burgundy : C.sub,
                 borderColor: C.glassBorder,
                 fontWeight: isActive ? 800 : 600,
@@ -180,7 +176,6 @@ export default function CategoryBar({
               }}
             />
 
-            {/* ★ دیگه "all" استثنا نیست — روی همه محصولات هم می‌شه تخفیف زد */}
             <CategoryDiscountButton
               categoryName={cat}
               categoryDiscount={discount}
@@ -194,3 +189,5 @@ export default function CategoryBar({
     </Box>
   );
 }
+
+export default memo(CategoryBar);
