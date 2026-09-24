@@ -17,14 +17,14 @@ const NAV_SECTIONS = [
     titleKey: "rest.nav_management",
     serviceCode: null,
     items: [
-      { icon: "💻", labelKey: "rest.nav_pos", basePath: "pos", serviceCode: "pos", permissionKey: "pos" },
+      { icon: "💻", labelKey: "rest.nav_pos", basePath: "pos", serviceCode: null, permissionKey: null },
     ],
   },
   {
     titleKey: "rest.nav_system",
     serviceCode: null,
     items: [
-      { icon: "👥", labelKey: "rest.nav_users", basePath: "users", serviceCode: "users", permissionKey: "users" },
+      { icon: "📚", labelKey: "rest.nav_dictionary", basePath: "dictionary", serviceCode: null, permissionKey: null },
     ],
   },
 ];
@@ -129,17 +129,13 @@ export default function RestaurantLayout() {
         }
 
         const items = sec.items.filter(item => {
-          // ── فیلتر سرویس روی آیتم ──
-          if (item.serviceCode && slug) {
-            if (enabledServices !== null && !enabledServices.includes(item.serviceCode)) return false;
-          }
-          // ★ فیلتر مجوز کاربر
-          if (!isOwnerOrManager && item.permissionKey) {
-            const perms = currentUser.permissions || currentUser.dashboard_permissions || [];
-            if (!perms.includes(item.permissionKey)) return false;
-          }
-          return true;
-        });
+  // ── فیلتر سرویس (فقط وقتی slug هست) ──
+  if (item.serviceCode && slug) {
+    if (enabledServices !== null && !enabledServices.includes(item.serviceCode)) return false;
+  }
+  // ★ فعلاً مجوز فیلتر نکن
+  return true;
+});
 
         if (!items.length) return null;
         return { ...sec, items };
