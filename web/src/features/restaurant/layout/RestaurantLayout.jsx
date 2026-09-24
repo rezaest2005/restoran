@@ -60,19 +60,6 @@ export default function RestaurantLayout() {
   const [activeTab, setActiveTab] = useState("restaurant");
   const [toast, setToast] = useState({ open: false, message: "", type: "info" });
 
-  const [enabledServices, setEnabledServices] = useState(null);
-  const [servicesLoaded, setServicesLoaded] = useState(false);
-
-  // ★ کاربر فعلی از localStorage
-  const currentUser = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem("user") || "{}"); }
-    catch { return {}; }
-  }, []);
-
-  const userRole = currentUser.role || "customer";
-  const isSuperuser = !!currentUser.is_superuser;
-  const isOwnerOrManager = isSuperuser || userRole === "owner" || userRole === "manager";
-
   const slug = useMemo(() => {
     if (urlSlug) return urlSlug;
     const parts = window.location.pathname.split("/").filter(Boolean);
@@ -93,55 +80,8 @@ export default function RestaurantLayout() {
     return () => clearTimeout(tmr);
   }, []);
 
-  useEffect(() => {
-    if (!slug) {
-      setEnabledServices([]);
-      setServicesLoaded(true);
-      return;
-    }
-
-    fetch(`/api/restaurant/services/?slug=${encodeURIComponent(slug)}`)
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then(data => {
-        if (Array.isArray(data.enabled_services)) {
-          setEnabledServices(data.enabled_services);
-        }
-        setServicesLoaded(true);
-      })
-      .catch(() => {
-        setEnabledServices(null);
-        setServicesLoaded(true);
-      });
-  }, [slug]);
-
-  // ★ فیلتر ترکیبی: سرویس + مجوز کاربر
-  const filteredSections = useMemo(() => {
-    if (!servicesLoaded) return null;
-
-    return NAV_SECTIONS
-      .map(sec => {
-        // ── فیلتر سرویس ──
-        if (sec.serviceCode && slug) {
-          if (enabledServices !== null && !enabledServices.includes(sec.serviceCode)) return null;
-        }
-
-        const items = sec.items.filter(item => {
-  // ── فیلتر سرویس (فقط وقتی slug هست) ──
-  if (item.serviceCode && slug) {
-    if (enabledServices !== null && !enabledServices.includes(item.serviceCode)) return false;
-  }
-  // ★ فعلاً مجوز فیلتر نکن
-  return true;
-});
-
-        if (!items.length) return null;
-        return { ...sec, items };
-      })
-      .filter(Boolean);
-  }, [enabledServices, servicesLoaded, slug, isOwnerOrManager, currentUser]);
+  // ★ ساده: همیشه نشون بده
+  const filteredSections = useMemo(() => NAV_SECTIONS, []);
 
   const C = useMemo(() => ({
     bg: isDark ? "#0B0A0B" : "#E4E8F0",
@@ -217,31 +157,21 @@ export default function RestaurantLayout() {
 
       <Box sx={{ flex: 1, overflowY: "auto", py: 1, px: 1.5 }}>
         {activeTab === "restaurant" ? (
-          filteredSections === null ? (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-              <CircularProgress size={24} sx={{ color: C.olive }} />
+          filteredSections.map((section, si) => (
+            <Box key={si} sx={{ mb: 2 }}>
+              <Typography sx={{ fontSize: 9, fontWeight: 700, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase", px: 1.5, mb: 0.5 }}>
+                {t(section.titleKey)}
+              </Typography>
+              {section.items.map((item, ii) => (
+                <Box key={ii} component={Link} to={`${prefix}/${item.basePath}`}
+                  onClick={() => isMobile && setSidebarOpen(false)}
+                  sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1, borderRadius: "10px", textDecoration: "none", color: C.sub, transition: "all 0.2s ease", "&:hover": { bgcolor: C.oliveSubtle, color: C.olive } }}>
+                  <Typography sx={{ fontSize: 16, lineHeight: 1 }}>{item.icon}</Typography>
+                  <Typography sx={{ fontSize: 12.5, fontWeight: 500 }}>{t(item.labelKey)}</Typography>
+                </Box>
+              ))}
             </Box>
-          ) : filteredSections.length > 0 ? (
-            filteredSections.map((section, si) => (
-              <Box key={si} sx={{ mb: 2 }}>
-                <Typography sx={{ fontSize: 9, fontWeight: 700, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase", px: 1.5, mb: 0.5 }}>
-                  {t(section.titleKey)}
-                </Typography>
-                {section.items.map((item, ii) => (
-                  <Box key={ii} component={Link} to={`${prefix}/${item.basePath}`}
-                    onClick={() => isMobile && setSidebarOpen(false)}
-                    sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1, borderRadius: "10px", textDecoration: "none", color: C.sub, transition: "all 0.2s ease", "&:hover": { bgcolor: C.oliveSubtle, color: C.olive } }}>
-                    <Typography sx={{ fontSize: 16, lineHeight: 1 }}>{item.icon}</Typography>
-                    <Typography sx={{ fontSize: 12.5, fontWeight: 500 }}>{t(item.labelKey)}</Typography>
-                  </Box>
-                ))}
-              </Box>
-            ))
-          ) : (
-            <Box sx={{ textAlign: "center", color: C.muted, py: 4, fontSize: 12 }}>
-              هیچ سرویسی فعال نیست
-            </Box>
-          )
+          ))
         ) : (
           <Box sx={{ mb: 2 }}>
             <Typography sx={{ fontSize: 9, fontWeight: 700, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase", px: 1.5, mb: 0.5 }}>
@@ -288,16 +218,16 @@ export default function RestaurantLayout() {
       )}
 
       {isMobile && (
-  <Drawer
-    key={isRtl ? "rtl" : "ltr"}
-    anchor="left"
-    open={sidebarOpen}
-    onClose={() => setSidebarOpen(false)}
-    slotProps={{ paper: { sx: { width: 280, bgcolor: "transparent", border: "none" } } }}
-  >
-    {sidebarContent}
-  </Drawer>
-)}
+        <Drawer
+          key={isRtl ? "rtl" : "ltr"}
+          anchor="left"
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          slotProps={{ paper: { sx: { width: 280, bgcolor: "transparent", border: "none" } } }}
+        >
+          {sidebarContent}
+        </Drawer>
+      )}
 
       <Box sx={{
         position: "relative",
