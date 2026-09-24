@@ -8,7 +8,6 @@ import SuperProtectedRoute from "@super/auth/SuperProtectedRoute";
 import ProtectedRoute from "@restaurant/auth/ProtectedRoute";
 import RestaurantLayout from "@restaurant/layout/RestaurantLayout";
 import Dashboard from "@restaurant/dashboard";
-import Dictionary from "@restaurant/dictionary/Dictionary";
 import Pos from "@restaurant/pos/Pos";
 
 function App() {
@@ -23,7 +22,7 @@ function App() {
 
           <Route
             path="/dashboard"
-            element={<Navigate to="/dashboard/app" replace />}
+            element={<Navigate to="/dashboard/login" replace />}
           />
 
           {/* با slug */}
@@ -36,15 +35,7 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
-            <Route path="kitchen" element={<div>آشپزخانه</div>} />
             <Route path="pos" element={<Pos />} />
-            <Route path="orders" element={<div>سفارشات</div>} />
-            <Route path="recipes" element={<div>دستور پخت</div>} />
-            <Route path="raw-materials" element={<div>مواد اولیه</div>} />
-            <Route path="ready-materials" element={<div>مواد آماده</div>} />
-            <Route path="invoices" element={<div>فاکتورها</div>} />
-            <Route path="usage-log" element={<div>مصرف</div>} />
-            <Route path="dictionary" element={<Dictionary />} />
             <Route path="users" element={<div>کاربران</div>} />
           </Route>
 
@@ -58,15 +49,7 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
-            <Route path="kitchen" element={<div>آشپزخانه</div>} />
             <Route path="pos" element={<Pos />} />
-            <Route path="orders" element={<div>سفارشات</div>} />
-            <Route path="recipes" element={<div>دستور پخت</div>} />
-            <Route path="raw-materials" element={<div>مواد اولیه</div>} />
-            <Route path="ready-materials" element={<div>مواد آماده</div>} />
-            <Route path="invoices" element={<div>فاکتورها</div>} />
-            <Route path="usage-log" element={<div>مصرف</div>} />
-            <Route path="dictionary" element={<Dictionary />} />
             <Route path="users" element={<div>کاربران</div>} />
           </Route>
 

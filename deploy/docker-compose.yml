@@ -1,4 +1,15 @@
 ﻿services:
+  db:
+    image: postgres:16-alpine
+    container_name: postgres_db
+    environment:
+      POSTGRES_DB: restaurant
+      POSTGRES_USER: restaurant
+      POSTGRES_PASSWORD: reza1383db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
   web:
     build:
       context: ..
@@ -7,14 +18,18 @@
     container_name: django_app
     command: sh /app/entrypoint.sh
     volumes:
-      - ../dashboard:/app                    
+      - ../dashboard:/app
       - ./entrypoint.sh:/app/entrypoint.sh
     expose:
       - "8000"
     env_file:
       - ../.env
     environment:
-      - DEBUG=True
+      - DEBUG=False
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      - db
     restart: unless-stopped
 
   nginx:
@@ -24,7 +39,10 @@
       target: nginx
     container_name: nginx_proxy
     ports:
-      - "8000:8000"
+      - "80:80"
     depends_on:
       - web
     restart: unless-stopped
+
+volumes:
+  pgdata:

@@ -17,27 +17,14 @@ const NAV_SECTIONS = [
     titleKey: "rest.nav_management",
     serviceCode: null,
     items: [
-      { icon: "🔥", labelKey: "rest.nav_kitchen", basePath: "kitchen", serviceCode: "kitchen", permissionKey: "kitchen" },
       { icon: "💻", labelKey: "rest.nav_pos", basePath: "pos", serviceCode: "pos", permissionKey: "pos" },
-      { icon: "📒", labelKey: "rest.nav_orders", basePath: "orders", serviceCode: "pos", permissionKey: "orders" },
-      { icon: "📖", labelKey: "rest.nav_recipes", basePath: "recipes", serviceCode: "foods", permissionKey: "recipes" },
     ],
   },
   {
-    titleKey: "rest.nav_inventory",
-    serviceCode: "inventory",
-    items: [
-      { icon: "📦", labelKey: "rest.nav_raw_materials", basePath: "raw-materials", serviceCode: "inventory", permissionKey: "raw_materials" },
-      { icon: "🛍️", labelKey: "rest.nav_ready_materials", basePath: "ready-materials", serviceCode: "inventory", permissionKey: "ready_materials" },
-      { icon: "🧾", labelKey: "rest.nav_invoices", basePath: "invoices", serviceCode: "inventory", permissionKey: "invoices" },
-    ],
-  },
-  {
-    titleKey: "rest.nav_tools",
+    titleKey: "rest.nav_system",
     serviceCode: null,
     items: [
-      { icon: "⏱️", labelKey: "rest.nav_usage_log", basePath: "usage-log", serviceCode: "inventory", permissionKey: "usage_log" },
-      { icon: "📚", labelKey: "rest.nav_dictionary", basePath: "dictionary", serviceCode: "dictionary", permissionKey: "dictionary" },
+      { icon: "👥", labelKey: "rest.nav_users", basePath: "users", serviceCode: "users", permissionKey: "users" },
     ],
   },
 ];

@@ -1,38 +1,55 @@
 """
-Multi-tenant infrastructure — URL Rewriting + SCRIPT_NAME + Slug
+Multi-tenant infrastructure — v13
 
-★ نسخه v12 — پatch get_full_path برای رفع مشکل redirect
+تغییرات نسبت به v12:
+  • threading.local  →  ContextVar (سازگار با ASGI/async)
+  • TenantManager: فیلتر خودکار روی restaurant (بدون tenant = هیچ داده‌ای)
+  • all_objects: manager بدون فیلتر (ادمین، سیگنال‌ها، Celery، management command)
+  • bulk_create: restaurant را خودکار پر می‌کند
+  • middleware: چک عضویت کاربر در رستوران + کش کوتاه‌مدت رستوران
+  • tenant_context(): برای اجرای کد خارج از request (shell، seed، تسک‌ها)
+  • TenantAdminMixin: برای اینکه ادمین جنگو با manager فیلترشده خالی نشود
 
 /zfc-ali/dashboard/app/ → middleware:
-  request.path_info         = /dashboard/app/     ← Django URL resolution
-  request.path              = /dashboard/app/     ← باقی middleware‌ها
+  request.path_info         = /dashboard/app/
+  request.path              = /dashboard/app/
   request.META[SCRIPT_NAME] = /zfc-ali
-  set_script_prefix('/zfc-ali')  → Django reverse() میفهمه
   request._tenant_slug      = "zfc-ali"
-  request.get_full_path()   = /zfc-ali/dashboard/app/  ← ★ پچ شده
+  request.get_full_path()   = /zfc-ali/dashboard/app/   ← پچ شده
 """
 
-import re
-import threading
+import contextvars
 import logging
+import re
+from contextlib import contextmanager
 
+from django.conf import settings
+from django.core.cache import cache
 from django.db import models
+from django.http import HttpResponseForbidden, HttpResponseNotFound
 from django.urls import set_script_prefix
 
 logger = logging.getLogger(__name__)
 
-_context = threading.local()
+_current_restaurant = contextvars.ContextVar("current_restaurant", default=None)
 
 __all__ = [
-    'get_current_restaurant', 'set_current_restaurant',
-    'clear_current_restaurant',
-    'get_restaurant_from_request',
-    'get_tenant_id_from_request',
-    'get_tenant_slug_from_request',
-    'TenantMiddleware',
-    'TenantModel',
-    'AllObjectsManager',
-    'tenant_redirect',
+    "get_current_restaurant",
+    "set_current_restaurant",
+    "clear_current_restaurant",
+    "tenant_context",
+    "get_active_restaurant",
+    "invalidate_restaurant_cache",
+    "get_restaurant_from_request",
+    "get_tenant_id_from_request",
+    "get_tenant_slug_from_request",
+    "TenantMiddleware",
+    "TenantModel",
+    "TenantManager",
+    "TenantQuerySet",
+    "AllObjectsManager",
+    "TenantAdminMixin",
+    "tenant_redirect",
 ]
 
 
@@ -40,195 +57,273 @@ __all__ = [
 #  Context helpers
 # ═══════════════════════════════════════
 
+
 def get_current_restaurant():
-    return getattr(_context, 'restaurant', None)
+    return _current_restaurant.get()
 
 
 def set_current_restaurant(restaurant):
-    _context.restaurant = restaurant
+    _current_restaurant.set(restaurant)
 
 
 def clear_current_restaurant():
-    _context.restaurant = None
+    _current_restaurant.set(None)
+
+
+@contextmanager
+def tenant_context(restaurant):
+    """
+    اجرای کد در چارچوب یک رستوران (خارج از request).
+
+        with tenant_context(restaurant):
+            Food.objects.all()          # فقط غذاهای همین رستوران
+            Food.objects.create(...)    # restaurant خودکار پر می‌شود
+    """
+    token = _current_restaurant.set(restaurant)
+    try:
+        yield restaurant
+    finally:
+        _current_restaurant.reset(token)
 
 
 # ═══════════════════════════════════════
-#  AllObjectsManager
+#  Restaurant lookup (با کش کوتاه‌مدت)
 # ═══════════════════════════════════════
 
-class AllObjectsManager(models.Manager):
+
+def _cache_key(slug):
+    return f"tenant:restaurant:{slug}"
+
+
+def _cache_ttl():
+    return getattr(settings, "TENANT_CACHE_TTL", 30)
+
+
+def get_active_restaurant(slug):
+    key = _cache_key(slug)
+    restaurant = cache.get(key)
+    if restaurant is not None:
+        return restaurant
+
+    from .models import Restaurant
+
+    try:
+        restaurant = Restaurant.objects.select_related("tenant").get(
+            slug=slug, is_active=True
+        )
+    except Restaurant.DoesNotExist:
+        return None
+
+    ttl = _cache_ttl()
+    if ttl:
+        cache.set(key, restaurant, ttl)
+    return restaurant
+
+
+def invalidate_restaurant_cache(slug):
+    cache.delete(_cache_key(slug))
+
+
+# ═══════════════════════════════════════
+#  Managers
+# ═══════════════════════════════════════
+
+
+class TenantQuerySet(models.QuerySet):
+    def bulk_create(self, objs, *args, **kwargs):
+        """bulk_create از save() رد می‌شود؛ restaurant را اینجا پر می‌کنیم."""
+        objs = list(objs)
+        restaurant = get_current_restaurant()
+        for obj in objs:
+            if not obj.restaurant_id:
+                if restaurant is None:
+                    raise ValueError(
+                        f"{self.model.__name__}.bulk_create(): restaurant مشخص نشده."
+                    )
+                obj.restaurant = restaurant
+        return super().bulk_create(objs, *args, **kwargs)
+
+
+class TenantManager(models.Manager.from_queryset(TenantQuerySet)):
+    """
+    فقط داده‌های رستوران فعلی.
+    اگر رستورانی فعال نباشد، queryset خالی برمی‌گردد (امن‌تر از «همه‌ی داده‌ها»).
+    """
+
     def get_queryset(self):
-        return super().get_queryset()
+        qs = super().get_queryset()
+        restaurant = get_current_restaurant()
+        if restaurant is None:
+            return qs.none()
+        return qs.filter(restaurant_id=restaurant.pk)
+
+
+class AllObjectsManager(models.Manager.from_queryset(TenantQuerySet)):
+    """بدون فیلتر tenant — فقط برای ادمین، سیگنال‌ها و کارهای مدیریتی."""
 
 
 # ═══════════════════════════════════════
 #  Tenant helpers
 # ═══════════════════════════════════════
 
+
 def get_tenant_id_from_request(request):
     restaurant = get_current_restaurant()
-    if restaurant:
-        return restaurant.id
-    return None
+    return restaurant.id if restaurant else None
 
 
 def get_tenant_slug_from_request(request):
-    return getattr(request, '_tenant_slug', None)
+    return getattr(request, "_tenant_slug", None)
 
 
 def get_restaurant_from_request(request):
+    restaurant = get_current_restaurant()
+    if restaurant:
+        return restaurant
     slug = get_tenant_slug_from_request(request)
     if slug:
-        from .models import Restaurant
-        try:
-            return Restaurant.objects.get(slug=slug, is_active=True)
-        except Restaurant.DoesNotExist:
-            return None
+        return get_active_restaurant(slug)
     return None
 
 
 # ═══════════════════════════════════════
-#  tenant_redirect — کمکی برای redirect امن
+#  tenant_redirect — redirect امن با حفظ پیشوند
 # ═══════════════════════════════════════
+
 
 def tenant_redirect(request, to, *args, **kwargs):
     """
     redirect با حفظ پیشوند tenant.
 
-    استفاده:
         return tenant_redirect(request, 'dashboard_app')
-        return tenant_redirect(request, 'password_page')
         return tenant_redirect(request, '/dashboard/app/')
     """
     from django.shortcuts import redirect as django_redirect
     from django.urls import reverse
 
-    slug = getattr(request, '_tenant_slug', None)
+    slug = getattr(request, "_tenant_slug", None)
 
     if not slug:
         return django_redirect(to, *args, **kwargs)
 
-    if not to.startswith('/'):
-        # view name → reverse() خودش script_prefix رو اضافه میکنه
+    if not to.startswith("/"):
         url = reverse(to, args=args, kwargs=kwargs)
     else:
         url = to
 
-    # اطمینان از وجود پیشوند tenant
-    prefix = f'/{slug}'
-    if not url.startswith(prefix + '/') and url != prefix:
-        url = prefix + url if url.startswith('/') else f'{prefix}/{url}'
+    prefix = f"/{slug}"
+    if not url.startswith(prefix + "/") and url != prefix:
+        url = prefix + url if url.startswith("/") else f"{prefix}/{url}"
 
     return django_redirect(url)
 
 
 # ═══════════════════════════════════════
-#  Middleware — v12
+#  Middleware — v13
 # ═══════════════════════════════════════
 
-_TENANT_RE = re.compile(r'^/([a-zA-Z0-9_-]+)(/.*)$')
+_TENANT_RE = re.compile(r"^/([a-zA-Z0-9_-]+)(/.*)$")
 
 
 class TenantMiddleware:
     """
-    ★ v12: پچ get_full_path/build_absolute_uri برای شامل بودن پیشوند tenant
+    ⚠ باید در MIDDLEWARE **بعد از** AuthenticationMiddleware قرار بگیرد،
+      وگرنه چک عضویت کاربر اجرا نمی‌شود (هشدار در لاگ می‌بینید).
 
-    مشکل v11:
-      request.path = /dashboard/app/  ← get_full_path هم بدون پیشوند بود
-      → redirect بعد از ورود رمز ← بدون /reza/ ← خراب
-
-    راه‌حل v12:
-      request.get_full_path() = /reza/dashboard/app/  ← پچ شده
-      → redirect بعد از ورود رمز ← با /reza/ ← درست
+    مسیرهای غیر-tenant اضافه (مثلاً login) را در settings.py بدهید:
+        TENANT_NON_SLUGS = {"accounts", "login", "logout"}
     """
 
-    SKIP_PATHS = (
-        '/static/', '/media/', '/admin/', '/favicon.ico',
-    )
-
-    NON_TENANT_SLUGS = frozenset({'dashboard', 'api'})
+    SKIP_PATHS = ("/static/", "/media/", "/admin/", "/favicon.ico")
+    NON_TENANT_SLUGS = frozenset({"dashboard", "api"})
 
     def __init__(self, get_response):
         self.get_response = get_response
+        extra = frozenset(getattr(settings, "TENANT_NON_SLUGS", ()))
+        self.non_tenant_slugs = self.NON_TENANT_SLUGS | extra
+        self._warned_no_user = False
 
     def __call__(self, request):
         path = request.path
 
-        # Skip static files
         if any(path.startswith(p) for p in self.SKIP_PATHS):
             return self.get_response(request)
 
-        prev = getattr(_context, 'restaurant', None)
+        token = _current_restaurant.set(None)
 
         try:
             match = _TENANT_RE.match(path)
 
-            if match:
-                potential_slug = match.group(1)
+            if match and match.group(1) not in self.non_tenant_slugs:
+                slug = match.group(1)
                 rest_of_path = match.group(2)
 
-                if potential_slug not in self.NON_TENANT_SLUGS:
-                    script_name = f'/{potential_slug}'
+                restaurant = get_active_restaurant(slug)
+                if restaurant is None:
+                    return HttpResponseNotFound(f"رستوران «{slug}» یافت نشد")
 
-                    # ★ Rewrite path for URL resolution
-                    request.path = rest_of_path
-                    request.path_info = rest_of_path
+                if not self._user_allowed(request, restaurant):
+                    return HttpResponseForbidden("شما به این رستوران دسترسی ندارید.")
 
-                    # ★ SCRIPT_NAME + set_script_prefix
-                    request.META['SCRIPT_NAME'] = script_name
-                    set_script_prefix(script_name)
+                script_name = f"/{slug}"
 
-                    # ★★★ کلیدی: پچ get_full_path شامل پیشوند tenant ★★★
-                    self._patch_request_for_tenant(request, script_name)
+                # Rewrite برای URL resolution
+                request.path = rest_of_path
+                request.path_info = rest_of_path
+                request.META["SCRIPT_NAME"] = script_name
+                set_script_prefix(script_name)
+                self._patch_request_for_tenant(request, script_name)
 
-                    # Store slug
-                    request._tenant_slug = potential_slug
+                request._tenant_slug = slug
+                _current_restaurant.set(restaurant)
 
-                    # Set restaurant
-                    from .models import Restaurant
-                    try:
-                        restaurant = Restaurant.objects.get(
-                            slug=potential_slug, is_active=True,
-                        )
-                        set_current_restaurant(restaurant)
-                    except Restaurant.DoesNotExist:
-                        clear_current_restaurant()
-                        set_script_prefix('/')
-                        from django.http import HttpResponseNotFound
-                        return HttpResponseNotFound(
-                            f"رستوران «{potential_slug}» یافت نشد"
-                        )
+                return self.get_response(request)
 
-                    response = self.get_response(request)
-                    return response
-
-            # ★ بدون tenant — super admin, landing, etc.
+            # بدون tenant — super admin, landing, ...
             request._tenant_slug = None
-            request.META['SCRIPT_NAME'] = ''
-            set_script_prefix('/')
-            clear_current_restaurant()
-
-            response = self.get_response(request)
-            return response
+            request.META["SCRIPT_NAME"] = ""
+            set_script_prefix("/")
+            return self.get_response(request)
 
         finally:
-            _context.restaurant = prev
-            set_script_prefix('/')
+            _current_restaurant.reset(token)
+            set_script_prefix("/")
 
     # ───────────────────────────────────
-    #  ★ پچ get_full_path و build_absolute_uri
+    #  چک عضویت کاربر در رستوران
+    # ───────────────────────────────────
+
+    def _user_allowed(self, request, restaurant):
+        user = getattr(request, "user", None)
+        if user is None:
+            if not self._warned_no_user:
+                logger.warning(
+                    "TenantMiddleware قبل از AuthenticationMiddleware است؛ "
+                    "چک عضویت کاربر انجام نمی‌شود."
+                )
+                self._warned_no_user = True
+            return True
+
+        if not user.is_authenticated or user.is_superuser:
+            return True
+
+        # مشتری‌ها می‌توانند منوی هر رستوران را ببینند
+        if not getattr(user, "is_staff_role", False):
+            return True
+
+        if user.restaurant_id == restaurant.id:
+            return True
+
+        # مالک Tenant به همه‌ی شعبه‌های خودش دسترسی دارد
+        tenant = restaurant.tenant
+        return bool(tenant and tenant.owner_id == user.id)
+
+    # ───────────────────────────────────
+    #  پچ get_full_path
     # ───────────────────────────────────
 
     @staticmethod
     def _patch_request_for_tenant(request, script_name):
-        """
-        get_full_path() و build_absolute_uri() بدون پیشوند SCRIPT_NAME
-        کار میکنن. این پچ باعث میشه redirect بعد از ورود رمز،
-        آدرس درست (با /reza/) رو برگردونه.
-
-        قبل از پچ: request.get_full_path() → /dashboard/app/
-        بعد از پچ:  request.get_full_path() → /reza/dashboard/app/
-        """
         _original_get_full_path = request.get_full_path
 
         def tenant_get_full_path(force_append_slash=False):
@@ -242,14 +337,19 @@ class TenantMiddleware:
 #  Abstract base model
 # ═══════════════════════════════════════
 
+
 class TenantModel(models.Model):
     restaurant = models.ForeignKey(
-        'Restaurant',
+        "Restaurant",
         on_delete=models.CASCADE,
-        related_name='+',
-        verbose_name='رستوران',
+        related_name="+",
+        verbose_name="رستوران",
         db_index=True,
     )
+
+    # ترتیب مهم است: اولی manager پیش‌فرض (فرم‌ها و رابطه‌های معکوس) است
+    objects = TenantManager()
+    all_objects = AllObjectsManager()
 
     class Meta:
         abstract = True
@@ -261,7 +361,43 @@ class TenantModel(models.Model):
                 self.restaurant = restaurant
             else:
                 raise ValueError(
-                    f"{self.__class__.__name__}.save(): "
-                    f"restaurant مشخص نشده."
+                    f"{self.__class__.__name__}.save(): restaurant مشخص نشده."
                 )
         super().save(*args, **kwargs)
+
+
+# ═══════════════════════════════════════
+#  Admin mixin
+# ═══════════════════════════════════════
+
+
+class TenantAdminMixin:
+    """
+    ادمین جنگو در /admin/ رستوران فعالی ندارد، پس با TenantManager همه‌چیز
+    خالی می‌شود. این mixin ادمین (لیست، dropdownها) را روی all_objects می‌برد.
+
+        @admin.register(Food)
+        class FoodAdmin(TenantAdminMixin, admin.ModelAdmin): ...
+    """
+
+    def get_queryset(self, request):
+        manager = getattr(self.model, "all_objects", None)
+        if manager is None:
+            return super().get_queryset(request)
+        qs = manager.get_queryset()
+        ordering = self.get_ordering(request)
+        if ordering:
+            qs = qs.order_by(*ordering)
+        return qs
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        rel_model = db_field.remote_field.model
+        if "queryset" not in kwargs and hasattr(rel_model, "all_objects"):
+            kwargs["queryset"] = rel_model.all_objects.all()
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        rel_model = db_field.remote_field.model
+        if "queryset" not in kwargs and hasattr(rel_model, "all_objects"):
+            kwargs["queryset"] = rel_model.all_objects.all()
+        return super().formfield_for_manytomany(db_field, request, **kwargs)

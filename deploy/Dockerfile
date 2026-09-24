@@ -1,11 +1,11 @@
 ﻿# ═══════════════════════════════════════════════════════
-#  Stage 1: Build فرانت‌اند (menu)
+#  Stage 1: Build فرانت‌اند (web)
 # ═══════════════════════════════════════════════════════
 FROM node:20-alpine AS frontend-build
 WORKDIR /app
-COPY menu/package*.json ./
+COPY web/package*.json ./
 RUN npm ci
-COPY menu/ .
+COPY web/ .
 RUN npm run build
 
 # ═══════════════════════════════════════════════════════
@@ -17,7 +17,7 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 RUN apt-get update && apt-get install -y dos2unix && rm -rf /var/lib/apt/lists/*
 COPY dashboard/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt gunicorn
+RUN pip install --no-cache-dir -r requirements.txt gunicorn psycopg2-binary
 COPY dashboard/ .
 RUN python manage.py collectstatic --noinput 2>/dev/null || true
 COPY deploy/entrypoint.sh /app/entrypoint.sh
