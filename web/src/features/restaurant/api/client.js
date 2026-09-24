@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const client = axios.create({
-  baseURL: "http://127.0.0.1:8000",
+  baseURL: "",  // ★ خالی — از طریق nginx پروکسی میشه
   headers: { "Content-Type": "application/json" },
   withCredentials: true,
 });
@@ -34,10 +34,7 @@ client.interceptors.response.use(
     const originalRequest = err.config;
     const status = err.response?.status;
 
-    // فقط 401 رو retry کن — 403 رو مستقیم reject کن
     if (status === 401 && !originalRequest._retry) {
-
-      // ★ اگه اصلاً توکنی نبود → لاگین نیستی → redirect نکن
       const refreshToken = localStorage.getItem("refresh_token");
       if (!refreshToken) {
         return Promise.reject(err);
@@ -56,8 +53,8 @@ client.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const res = await axios.post(
-          "http://127.0.0.1:8000/api/auth/refresh/",
+        const res = await client.post(
+          "/api/auth/refresh/",  // ★ نسبی
           { refresh: refreshToken }
         );
 
@@ -86,7 +83,7 @@ client.interceptors.response.use(
 
 // ─── redirect به لاگین ────────────────────────────
 function redirectToLogin() {
-  if (redirecting) return;   // ★ جلوگیری از redirect تکراری
+  if (redirecting) return;
   redirecting = true;
 
   localStorage.removeItem("access_token");
@@ -94,7 +91,7 @@ function redirectToLogin() {
   localStorage.removeItem("user");
   localStorage.removeItem("db_auth");
   localStorage.setItem("__logout__", Date.now().toString());
-  window.location.href = "/login";
+  window.location.href = "/dashboard/login";  // ★ درست شد
 }
 
 // ─── اگه یه تب دیگه logout کرد ──────────────────
@@ -102,7 +99,7 @@ window.addEventListener("storage", (e) => {
   if (e.key === "__logout__") {
     if (!redirecting) {
       redirecting = true;
-      window.location.href = "/login";
+      window.location.href = "/dashboard/login";  // ★ درست شد
     }
   }
 });
@@ -112,17 +109,15 @@ setInterval(async () => {
   const refreshToken = localStorage.getItem("refresh_token");
   if (!refreshToken) return;
   try {
-    const res = await axios.post(
-      "http://127.0.0.1:8000/api/auth/refresh/",
+    const res = await client.post(
+      "/api/auth/refresh/",  // ★ نسبی
       { refresh: refreshToken }
     );
     localStorage.setItem("access_token", res.data.access);
     if (res.data.refresh) {
       localStorage.setItem("refresh_token", res.data.refresh);
     }
-  } catch (_) {
-    // interceptor بالا مدیریت می‌کنه
-  }
+  } catch (_) {}
 }, 20 * 60 * 1000);
 
 // ─── تشخیص تب اضافی ─────────────────────────────
@@ -145,6 +140,7 @@ try {
 } catch (_) {}
 
 export default client;
+
 // ═══════════════════════════════════════
 //  مدیریت کاربران
 // ═══════════════════════════════════════
