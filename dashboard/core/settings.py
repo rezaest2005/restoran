@@ -46,8 +46,8 @@ INSTALLED_APPS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
+    'restaurant.middleware.TenantJWTAuthentication',
+),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
@@ -110,9 +110,14 @@ TEMPLATES = [
 WSGI_APPLICATION = 'core.wsgi.application'
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.getenv('DATABASE_PATH', str(BASE_DIR / 'db.sqlite3')),
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("DB_NAME", "restaurant"),
+        "USER": os.getenv("DB_USER", "restaurant"),
+        "PASSWORD": os.getenv("DB_PASSWORD", ""),
+        "HOST": os.getenv("DB_HOST", "localhost"),
+        "PORT": os.getenv("DB_PORT", "5432"),
+        "CONN_MAX_AGE": 60,
     }
 }
 
@@ -150,6 +155,10 @@ SESSION_COOKIE_AGE = 86400 * 7
 
 LOGIN_URL = '/dashboard/'
 LOGIN_REDIRECT_URL = '/dashboard/app/'
+
+# مسیرهای سطح‌بالایی که اسم رستوران نیستند (اضافه بر dashboard و api که از قبل مستثنی‌اند)
+TENANT_NON_SLUGS = {"accounts", "login", "logout"}
+TENANT_CACHE_TTL = 30   # ثانیه؛ اختیاری
 
 # Proxy / Cloudflare SSL
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
