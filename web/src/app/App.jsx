@@ -9,6 +9,7 @@ import ProtectedRoute from "@restaurant/auth/ProtectedRoute";
 import RestaurantLayout from "@restaurant/layout/RestaurantLayout";
 import Dashboard from "@restaurant/dashboard";
 import Pos from "@restaurant/pos/Pos";
+import Dictionary from "@restaurant/dictionary/Dictionary";
 
 function App() {
   return (
@@ -36,7 +37,7 @@ function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="pos" element={<Pos />} />
-            <Route path="users" element={<div>کاربران</div>} />
+            <Route path="dictionary" element={<Dictionary />} />
           </Route>
 
           {/* بدون slug */}
@@ -50,7 +51,7 @@ function App() {
           >
             <Route index element={<Dashboard />} />
             <Route path="pos" element={<Pos />} />
-            <Route path="users" element={<div>کاربران</div>} />
+            <Route path="dictionary" element={<Dictionary />} />
           </Route>
 
           <Route path="/super/login" element={<SuperLogin />} />
