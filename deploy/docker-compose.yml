@@ -28,6 +28,9 @@
       - DEBUG=False
       - DB_HOST=db
       - DB_PORT=5432
+      # همگام‌سازی رمز پیش‌فرض در هر استارت (برای محیط تست پشت Arvan)
+      - BOOTSTRAP_SYNC_PASSWORDS=1
+      - BOOTSTRAP_ADMIN_PASSWORD=admin
     depends_on:
       - db
     restart: unless-stopped
@@ -38,8 +41,9 @@
       dockerfile: deploy/Dockerfile
       target: nginx
     container_name: nginx_proxy
+    # ArvanCloud origin روی این host به پورت 8000 وصل می‌شود
     ports:
-      - "80:80"
+      - "8000:80"
     depends_on:
       - web
     restart: unless-stopped

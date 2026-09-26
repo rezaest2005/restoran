@@ -15,7 +15,7 @@ function tryRefreshToken() {
   const refreshToken = localStorage.getItem("refresh_token");
   if (!refreshToken) return Promise.resolve(false);
 
-  return fetch("http://127.0.0.1:8000/api/auth/refresh/", {
+  return fetch("/api/auth/refresh/", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refresh: refreshToken }),
