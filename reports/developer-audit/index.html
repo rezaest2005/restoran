@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>گزارش ممیزی پروژه Restoran</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a222d;
+      --panel2: #232d3b;
+      --border: #2e3a4a;
+      --text: #e7eef7;
+      --muted: #9aabbd;
+      --crit: #ff5c5c;
+      --high: #ff9f43;
+      --med: #f6c945;
+      --low: #5dade2;
+      --ok: #3ddc97;
+      --accent: #6ea8fe;
+      --shadow: 0 10px 40px rgba(0,0,0,.35);
+      --radius: 14px;
+      --font: "Vazirmatn", "Tahoma", "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background:
+        radial-gradient(1200px 600px at 100% -10%, #1b3a5a 0%, transparent 50%),
+        radial-gradient(900px 500px at -10% 100%, #2a1f3d 0%, transparent 45%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 80px; }
+    header.hero {
+      background: linear-gradient(145deg, #1c2838, #15202b 60%, #1a2a3a);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px 28px 22px;
+      box-shadow: var(--shadow);
+      margin-bottom: 22px;
+    }
+    header.hero h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.4rem, 2.5vw, 2rem);
+      font-weight: 800;
+    }
+    header.hero .meta {
+      display: flex; flex-wrap: wrap; gap: 10px 18px;
+      color: var(--muted); font-size: .92rem; margin-top: 10px;
+    }
+    header.hero .meta code {
+      background: var(--panel2);
+      padding: 2px 8px;
+      border-radius: 6px;
+      color: #cde;
+      border: 1px solid var(--border);
+    }
+    .lead { color: var(--muted); margin: 12px 0 0; max-width: 75ch; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+      margin: 22px 0;
+    }
+    .stat {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      text-align: center;
+    }
+    .stat .n { font-size: 1.6rem; font-weight: 800; display: block; }
+    .stat .l { color: var(--muted); font-size: .85rem; }
+    .stat.crit .n { color: var(--crit); }
+    .stat.high .n { color: var(--high); }
+    .stat.med .n { color: var(--med); }
+    .stat.low .n { color: var(--low); }
+    .stat.ok .n { color: var(--ok); }
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin: 8px 0 18px; align-items: center;
+    }
+    .toolbar input[type="search"] {
+      flex: 1 1 220px;
+      min-width: 180px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font: inherit;
+    }
+    .chip {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-size: .85rem;
+      cursor: pointer;
+      user-select: none;
+    }
+    .chip.active { color: #fff; border-color: transparent; }
+    .chip[data-sev="all"].active { background: #3a4a5e; }
+    .chip[data-sev="critical"].active { background: var(--crit); }
+    .chip[data-sev="high"].active { background: var(--high); color: #221; }
+    .chip[data-sev="medium"].active { background: var(--med); color: #221; }
+    .chip[data-sev="low"].active { background: var(--low); color: #102; }
+    section.block {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-bottom: 16px;
+      box-shadow: var(--shadow);
+    }
+    section.block h2 {
+      margin: 0 0 10px;
+      font-size: 1.15rem;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .arch {
+      background: #0d1218;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .82rem;
+      line-height: 1.55;
+      color: #b8c9db;
+      direction: ltr;
+      text-align: left;
+      white-space: pre;
+    }
+    .issue {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-right: 4px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin: 10px 0;
+      transition: opacity .15s, transform .15s;
+    }
+    .issue[data-severity="critical"] { border-right-color: var(--crit); }
+    .issue[data-severity="high"] { border-right-color: var(--high); }
+    .issue[data-severity="medium"] { border-right-color: var(--med); }
+    .issue[data-severity="low"] { border-right-color: var(--low); }
+    .issue.hidden { display: none; }
+    .issue-head {
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+      margin-bottom: 6px;
+    }
+    .issue-head h3 { margin: 0; font-size: 1rem; flex: 1 1 220px; }
+    .badge {
+      font-size: .72rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 999px;
+      letter-spacing: .02em;
+    }
+    .badge.id { background: #314255; color: #d7e6f7; }
+    .badge.critical { background: rgba(255,92,92,.18); color: var(--crit); }
+    .badge.high { background: rgba(255,159,67,.18); color: var(--high); }
+    .badge.medium { background: rgba(246,201,69,.18); color: var(--med); }
+    .badge.low { background: rgba(93,173,226,.18); color: var(--low); }
+    .badge.cat { background: #2a3545; color: var(--muted); }
+    .loc {
+      direction: ltr;
+      text-align: left;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: .8rem;
+      color: #9ec5ff;
+      background: #121820;
+      padding: 6px 10px;
+      border-radius: 8px;
+      margin: 8px 0;
+      word-break: break-all;
+      border: 1px solid var(--border);
+    }
+    .issue p { margin: 6px 0; color: #d5e0ec; font-size: .94rem; }
+    .issue .fix {
+      margin-top: 8px;
+      padding: 10px 12px;
+      background: rgba(61,220,151,.07);
+      border: 1px solid rgba(61,220,151,.25);
+      border-radius: 10px;
+      color: #c9f5e0;
+      font-size: .9rem;
+    }
+    .issue .fix strong { color: var(--ok); }
+    ul.ok { margin: 8px 0 0; padding-right: 18px; color: #c9d8e8; }
+    ul.ok li { margin: 4px 0; }
+    ol.prio { margin: 8px 0 0; padding-right: 22px; }
+    ol.prio li { margin: 5px 0; }
+    footer {
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: .85rem;
+      text-align: center;
+    }
+    .empty-hint {
+      display: none;
+      text-align: center;
+      color: var(--muted);
+      padding: 24px;
+    }
+    .empty-hint.show { display: block; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <h1>گزارش ممیزی کد — پروژه Restoran</h1>
+      <p class="lead">
+        این گزارش از بررسی کدهای <code>dashboard</code>، <code>web</code>، <code>menu</code> و
+        <code>deploy</code> استخراج شده تا توسعه‌دهنده بتواند با اولویت مشخص روی باگ‌ها و ریسک‌های امنیتی کار کند.
+      </p>
+      <div class="meta">
+        <span>تاریخ: <code>2026-09-26 18:51</code></span>
+        <span>شاخه: <code>web</code></span>
+        <span>کامیت: <code>585ac97</code></span>
+        <span>مسیر گزارش: <code>reports/developer-audit/</code></span>
+      </div>
+    </header>
+
+    <div class="stats" id="stats">
+      <div class="stat crit"><span class="n" id="n-crit">0</span><span class="l">بحرانی</span></div>
+      <div class="stat high"><span class="n" id="n-high">0</span><span class="l">بالا</span></div>
+      <div class="stat med"><span class="n" id="n-med">0</span><span class="l">متوسط</span></div>
+      <div class="stat low"><span class="n" id="n-low">0</span><span class="l">پایین</span></div>
+      <div class="stat ok"><span class="n" id="n-total">0</span><span class="l">کل یافته‌ها</span></div>
+    </div>
+
+    <section class="block">
+      <h2>معماری دیپلوی فعلی</h2>
+      <div class="arch">Browser → ArvanCloud (est.rysh.ir:443)
+              ↓
+     Host:8000 → nginx_proxy
+                   ├─ /api /admin /static /media → django_app (gunicorn :8000)
+                   └─ / + /assets → React SPA (web build)
+              django_app → postgres_db (:5432 internal)
+
+۳ سرویس Docker (db / web / nginx) استاندارد و قابل‌قبول است.
+اپ menu/ در این دیپلوی سرو نمی‌شود.</div>
+    </section>
+
+    <section class="block">
+      <h2>نقاط قوت</h2>
+      <ul class="ok">
+        <li><code>TenantManager</code> بدون tenant، queryset خالی برمی‌گرداند (جلوگیری از نشت داده بین رستوران‌ها).</li>
+        <li>Docker multi-stage: بیلد فرانت + بک‌اند + nginx جدا.</li>
+        <li>API client رستوران با <code>baseURL</code> نسبی مناسب پشت پروکسی.</li>
+        <li>لایه Super Admin جدا با permission اختصاصی.</li>
+        <li>RBAC پایه روی مدل User (<code>get_permissions</code> / <code>has_section</code>).</li>
+        <li>حفظ slug در مسیر بعد از لاگین در <code>Login.jsx</code>.</li>
+      </ul>
+    </section>
+
+    <section class="block">
+      <h2>اولویت پیشنهادی اصلاح</h2>
+      <ol class="prio">
+        <li><code>SEC-01 … SEC-04</code> — secrets در git، رمزهای compose، reset-password بدون OTP، ثبت‌نام با role دلخواه</li>
+        <li><code>BUG-01 … BUG-03</code> + <code>FE-01</code> + <code>ARCH-01</code> — tenant خالی، دوگانگی middleware، JWT blacklist، super_client روی localhost</li>
+        <li><code>SEC-05/06/09</code>، <code>BUG-04</code>، <code>FE-02</code> — CORS، validators، پرداخت، منوی عمومی، slug در redirect</li>
+      </ol>
+    </section>
+
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="جستجو در عنوان، مسیر، توضیح…" />
+      <span class="chip active" data-sev="all">همه</span>
+      <span class="chip" data-sev="critical">بحرانی</span>
+      <span class="chip" data-sev="high">بالا</span>
+      <span class="chip" data-sev="medium">متوسط</span>
+      <span class="chip" data-sev="low">پایین</span>
+    </div>
+
+    <section class="block">
+      <h2>فهرست ایرادات <span id="visible-count" style="color:var(--muted);font-weight:500;font-size:.9rem"></span></h2>
+      <div id="issues"></div>
+      <div class="empty-hint" id="empty">موردی با این فیلتر پیدا نشد.</div>
+    </section>
+
+    <footer>
+      گزارش خودکار برای تیم توسعه — بدون امضا / بدون ابزار خاص.
+      برای باز کردن: فایل <code>index.html</code> را در مرورگر باز کنید.
+    </footer>
+  </div>
+
+  <script>
+    const ISSUES = [
+      {
+        id: "SEC-01", severity: "critical", category: "امنیت",
+        title: ".env با SECRET_KEY و رمز دیتابیس داخل گیت است",
+        location: ".env | .gitignore (فقط backend/.env را ignore می‌کند)",
+        description: "فایل ریشهٔ `.env` در ریپو tracked است و شامل SECRET_KEY و DB_PASSWORD است. هر کسی با دسترسی به ریپو به secrets واقعی دسترسی دارد.",
+        fix: "git rm --cached .env، اضافه کردن `.env` به gitignore، چرخش SECRET_KEY و رمز DB، نگهداری `.env.example` بدون secret."
+      },
+      {
+        id: "SEC-02", severity: "critical", category: "امنیت",
+        title: "رمز Postgres و bootstrap admin به صورت plaintext در compose",
+        location: "deploy/docker-compose.yml | deploy/docker-compose.db.yml | deploy/entrypoint.sh",
+        description: "POSTGRES_PASSWORD و BOOTSTRAP_ADMIN_PASSWORD=admin و BOOTSTRAP_SYNC_PASSWORDS=1 در فایل‌ها هستند؛ هر استارت رمز admin را به admin برمی‌گرداند — مناسب تست، خطرناک برای production.",
+        fix: "رمزها فقط از secret/env خارج از ریپو؛ SYNC را در prod خاموش کنید."
+      },
+      {
+        id: "SEC-03", severity: "critical", category: "امنیت",
+        title: "Reset password عمومی بدون OTP — هر کسی می‌تواند رمز را عوض کند",
+        location: "dashboard/restaurant/views/auth.py → ResetPasswordView | urls: api/auth/reset-password/",
+        description: "AllowAny + TODO صریح امنیتی. با دانستن شماره موبایل می‌توان new_password ست کرد. Serializer وجود/عدم وجود شماره را هم فاش می‌کند.",
+        fix: "endpoint را تا پیاده‌سازی OTP غیرفعال کنید؛ سپس one-time code + rate-limit اجباری."
+      },
+      {
+        id: "SEC-04", severity: "critical", category: "امنیت",
+        title: "ثبت‌نام عمومی اجازهٔ انتخاب role (حتی owner) می‌دهد",
+        location: "dashboard/restaurant/serializers.py → RegisterSerializer | auth_services.register_user",
+        description: "فیلد role در ورودی عمومی است؛ مهاجم می‌تواند با role=owner ثبت‌نام کند.",
+        fix: "role را از API عمومی حذف کنید و همیشه customer + is_approved=False بگذارید."
+      },
+      {
+        id: "SEC-05", severity: "high", category: "امنیت",
+        title: "CORS_ALLOW_ALL_ORIGINS=True همراه با credentials",
+        location: "dashboard/core/settings.py",
+        description: "همهٔ originها مجازند و credentials هم روشن است. در کنار JWT در localStorage ریسک XSS/CSRF cross-origin بالا می‌رود.",
+        fix: "allowlist دقیق (مثلاً https://est.rysh.ir و localhost در dev)."
+      },
+      {
+        id: "SEC-06", severity: "high", category: "امنیت",
+        title: "AUTH_PASSWORD_VALIDATORS خالی + رمزهای ضعیف",
+        location: "dashboard/core/settings.py | views/users.py | entrypoint",
+        description: "validators=[]؛ create_user حداقل طول ۴؛ bootstrap پیش‌فرض admin/admin.",
+        fix: "validators استاندارد Django؛ حداقل ۸ کاراکتر؛ bootstrap ضعیف فقط در محیط تست."
+      },
+      {
+        id: "SEC-07", severity: "high", category: "امنیت",
+        title: "SESSION_COOKIE_HTTPONLY=False و نبود Secure cookie flags",
+        location: "dashboard/core/settings.py",
+        description: "JS می‌تواند sessionid را بخواند. SESSION_COOKIE_SECURE / CSRF_COOKIE_SECURE / HSTS تنظیم نشده.",
+        fix: "SESSION_COOKIE_HTTPONLY=True؛ در prod Secure=True و SameSite مناسب + HSTS."
+      },
+      {
+        id: "SEC-08", severity: "high", category: "امنیت",
+        title: "SECRET_KEY و DEBUG پیش‌فرض ناامن در settings",
+        location: "dashboard/core/settings.py",
+        description: "اگر .env لود نشود: SECRET_KEY ناامن و DEBUG پیش‌فرض True؛ در DEBUG هم ALLOWED_HOSTS=['*'].",
+        fix: "بدون SECRET_KEY استارت fail شود؛ DEBUG پیش‌فرض False."
+      },
+      {
+        id: "SEC-09", severity: "high", category: "امنیت",
+        title: "Payment APIها csrf_exempt و احراز هویت سست مبتنی بر session",
+        location: "dashboard/restaurant/views/payment.py",
+        description: "چندین endpoint پرداخت @csrf_exempt هستند و tenant از session خوانده می‌شود؛ مدل User فیلد tenant ندارد — مسیر شکننده و ناامن.",
+        fix: "DRF + IsAuthenticated + tenant از user.restaurant؛ webhookها signed و جدا."
+      },
+      {
+        id: "SEC-10", severity: "high", category: "امنیت",
+        title: "JWT و super_token در localStorage",
+        location: "web/.../client.js | SuperLogin.jsx | SuperProtectedRoute.jsx",
+        description: "هر XSS = تصاحب حساب. SuperProtectedRoute فقط وجود token را چک می‌کند نه اعتبار/انقضا.",
+        fix: "ترجیحاً httpOnly cookie برای refresh؛ verify سروری برای super در mount؛ CSP سخت‌گیرانه."
+      },
+      {
+        id: "BUG-01", severity: "high", category: "باگ",
+        title: "Bootstrap admin بدون restaurant → TenantManager خالی",
+        location: "deploy/entrypoint.sh | models.User.restaurant",
+        description: "admin با role=owner ساخته می‌شود ولی restaurant=null. در نتیجه داده‌های tenant-scoped خالی می‌مانند و تست واقعی ممکن نیست.",
+        fix: "bootstrap را به یک Tenant/Restaurant مشخص bind کنید."
+      },
+      {
+        id: "BUG-02", severity: "high", category: "باگ",
+        title: "دو تعریف TenantMiddleware؛ URL-slug rewriter بلااستفاده",
+        location: "settings.py MIDDLEWARE | restaurant/middleware.py | restaurant/tenancy.py",
+        description: "settings از middleware ساده (از روی user) استفاده می‌کند. نسخهٔ tenancy.py با rewrite مسیر /{slug}/... در MIDDLEWARE نیست — مسیرهای nginx چندمستأجری با Django هم‌خوان نیستند.",
+        fix: "یک منبع حقیقت؛ اگر slug-URL می‌خواهید، middleware tenancy را wire کنید."
+      },
+      {
+        id: "BUG-03", severity: "high", category: "باگ",
+        title: "BLACKLIST_AFTER_ROTATION بدون app token_blacklist",
+        location: "dashboard/core/settings.py SIMPLE_JWT | views/auth.py LogoutView",
+        description: "blacklist روشن است ولی app در INSTALLED_APPS نیست. Logout با except خالی می‌میرد — refresh بعد از logout معتبر می‌ماند.",
+        fix: "token_blacklist را نصب/migrate کنید یا blacklist را خاموش کنید."
+      },
+      {
+        id: "BUG-04", severity: "high", category: "باگ",
+        title: "public_menu_api به URL وصل نیست؛ اپ menu به /api/menu/ می‌زند",
+        location: "dashboard/restaurant/views/pos.py | urls.py | menu/src/pages/Menu.jsx",
+        description: "تابع وجود دارد ولی در urls ثبت نشده → 404 برای منوی مشتری.",
+        fix: "path('api/menu/', ...) اضافه کنید و restaurant را از slug/header اجباری کنید."
+      },
+      {
+        id: "BUG-05", severity: "medium", category: "باگ",
+        title: "CustomTokenObtainSerializer: لاگین فقط-موبایل شکننده",
+        location: "dashboard/restaurant/serializers.py",
+        description: "phone_number اختیاری است ولی username والد احتمالاً required می‌ماند؛ validate دستی + super().validate دوباره authenticate می‌کند.",
+        fix: "username.required=False؛ یک مسیر auth واحد."
+      },
+      {
+        id: "BUG-06", severity: "medium", category: "باگ",
+        title: "LoginView توکن serializer را دور می‌ریزد و دوباره می‌سازد",
+        location: "dashboard/restaurant/views/auth.py → LoginView",
+        description: "بعد از validate، RefreshToken.for_user جدید ساخته می‌شود؛ claimهای role/restaurant_id ممکن است از بین بروند.",
+        fix: "از validated_data['access'/'refresh'] استفاده کنید."
+      },
+      {
+        id: "BUG-07", severity: "medium", category: "باگ",
+        title: "create_user بدون restaurant ممکن است کاربر یتیم بسازد",
+        location: "dashboard/restaurant/views/users.py → create_user_api",
+        description: "اگر _resolve_restaurant None باشد، کاربر بدون FK رستوران ذخیره می‌شود.",
+        fix: "بدون restaurant مشخص → 400."
+      },
+      {
+        id: "BUG-08", severity: "medium", category: "باگ",
+        title: "FinishedProducts import شکسته به super_client",
+        location: "web/src/features/restaurant/inventory/FinishedProducts.jsx",
+        description: "import از مسیر ناموجود ../api/super_client؛ ماژول در router هم نیست.",
+        fix: "client درست یا حذف/اتصال به route."
+      },
+      {
+        id: "ARCH-01", severity: "high", category: "معماری/دیپلوی",
+        title: "nginx Host و X-Forwarded-Proto هاردکد est.rysh.ir / https",
+        location: "deploy/nginx.conf",
+        description: "Host ثابت برای دور زدن IP از Arvan مفید است، ولی دسترسی با دامنه/IP دیگر و local HTTP را خراب می‌کند و همیشه HTTPS را به Django نشان می‌دهد.",
+        fix: "دامنه از env؛ Proto از هدر واقعی edge با fallback امن."
+      },
+      {
+        id: "ARCH-02", severity: "high", category: "معماری/دیپلوی",
+        title: "Volume bind کل dashboard روی /app در compose",
+        location: "deploy/docker-compose.yml",
+        description: "کد host روی image mount می‌شود؛ مناسب dev است نه prod. media بدون volume اختصاصی؛ entrypoint خالی در dashboard/ تله است.",
+        fix: "در prod بدون bind یا mount کنترل‌شده؛ volume برای MEDIA_ROOT."
+      },
+      {
+        id: "ARCH-03", severity: "medium", category: "معماری/دیپلوی",
+        title: "اپ menu در Docker/nginx سرو نمی‌شود",
+        location: "deploy/Dockerfile | menu/",
+        description: "فقط web/ بیلد می‌شود؛ منوی مشتری از دیپلوی فعلی خارج است.",
+        fix: "ادغام در SPA یا stage/location جدا برای menu."
+      },
+      {
+        id: "ARCH-04", severity: "medium", category: "معماری/دیپلوی",
+        title: "CSRF / ALLOWED_HOSTS پشت Arvan شکننده",
+        location: ".env | settings.py | nginx.conf",
+        description: "USE_X_FORWARDED_HOST=True + بازنویسی Host؛ mismatch دامنه/IP رایج است.",
+        fix: "یک دامنهٔ رسمی مستند و sync بین nginx/env/CSRF."
+      },
+      {
+        id: "ARCH-05", severity: "low", category: "معماری/دیپلوی",
+        title: "django-jazzmin در requirements بدون INSTALLED_APPS",
+        location: "dashboard/requirements.txt | core/settings.py",
+        description: "وابستگی نصب می‌شود ولی app فعال نیست — وابستگی مرده.",
+        fix: "اضافه کردن app یا حذف dependency."
+      },
+      {
+        id: "FE-01", severity: "high", category: "فرانت‌اند",
+        title: "super_client baseURL هاردکد http://127.0.0.1:8000",
+        location: "web/src/features/super_admin/api/super_client.js",
+        description: "در production همهٔ APIهای super به localhost مرورگر کاربر می‌روند و fail می‌شوند. همچنین Authorization: Token (نه Bearer).",
+        fix: "baseURL خالی/نسبی مثل client رستوران."
+      },
+      {
+        id: "FE-02", severity: "high", category: "فرانت‌اند",
+        title: "ProtectedRoute و client همیشه به /dashboard/login می‌فرستند",
+        location: "web/.../ProtectedRoute.jsx | api/client.js",
+        description: "slug مسیر /:slug/dashboard/... در redirect انقضا/خطا از بین می‌رود.",
+        fix: "از pathname برای prefix لاگین استفاده کنید."
+      },
+      {
+        id: "FE-03", severity: "medium", category: "فرانت‌اند",
+        title: "صفحات users/inventory/kitchen/orders در router نیستند",
+        location: "web/src/app/App.jsx | features/restaurant/*",
+        description: "کد UI زیاد است ولی فقط pos + dictionary در route/nav هستند — کد dead.",
+        fix: "route/nav را وصل کنید یا کد مرده را آرشیو کنید."
+      },
+      {
+        id: "FE-04", severity: "medium", category: "فرانت‌اند",
+        title: "BroadcastChannel kick تب دوم UX مخرب",
+        location: "web/src/features/restaurant/api/client.js",
+        description: "باز کردن تب دوم alert «تب اضافی» می‌دهد؛ برای POS چندمانیتوره نامناسب است.",
+        fix: "اختیاری/قابل تنظیم یا هشدار غیرمسدودکننده."
+      },
+      {
+        id: "FE-05", severity: "low", category: "فرانت‌اند",
+        title: "menu/.env tracked و VITE_API_URL خالی",
+        location: "menu/.env",
+        description: "بدون پروکسی، درخواست‌های نسبی به origin فرانت می‌خورند نه Django.",
+        fix: "gitignore + vite proxy در dev."
+      },
+      {
+        id: "DEBT-01", severity: "medium", category: "بدهی فنی",
+        title: "_resolve_restaurant حداقل ۱۰ بار کپی شده",
+        location: "dashboard/restaurant/views/{pos,dictionary,users,kitchen,...}.py",
+        description: "منطق یکسان با تفاوت جزئی تکرار شده؛ خطر واگرایی.",
+        fix: "helper مشترک در tenancy/utils."
+      },
+      {
+        id: "DEBT-02", severity: "medium", category: "بدهی فنی",
+        title: "requirements نیمه‌پین؛ gunicorn/psycopg فقط در Dockerfile",
+        location: "dashboard/requirements.txt | deploy/Dockerfile",
+        description: "محیط local/CI با prod فرق دارد.",
+        fix: "همه با pin در requirements + lockfile."
+      },
+      {
+        id: "DEBT-03", severity: "low", category: "بدهی فنی",
+        title: "آرتیفکت‌های حجیم در ریپو",
+        location: "web/structure.txt (~5MB) | dashboard/all_templates.txt",
+        description: "نویز review و کلون سنگین.",
+        fix: "از git حذف و ignore."
+      },
+      {
+        id: "DEBT-04", severity: "low", category: "بدهی فنی",
+        title: "HTML داشبورد قدیمی کنار React SPA",
+        location: "dashboard/restaurant/urls.py | web SPA",
+        description: "دو UI و دو مدل auth همزمان زندگی می‌کنند.",
+        fix: "یک front رسمی؛ بقیه deprecate."
+      },
+      {
+        id: "PERF-01", severity: "medium", category: "عملکرد",
+        title: "static/media از طریق Django proxy در nginx",
+        location: "deploy/nginx.conf location /static/ /media/",
+        description: "gunicorn برای فایل سنگین مناسب نیست؛ /assets مستقیم از nginx است ولی static جنگو پروکسی می‌شود.",
+        fix: "alias به volume/staticfiles؛ media از دیسک nginx."
+      },
+      {
+        id: "PERF-02", severity: "low", category: "عملکرد",
+        title: "auto-refresh JWT هر ۲۰ دقیقه + workers=2 ثابت",
+        location: "web/.../client.js | deploy/entrypoint.sh",
+        description: "refresh دوره‌ای حتی بدون فعالیت؛ ۲ worker برای ترافیک بالاتر کم است.",
+        fix: "refresh نزدیک expiry؛ workers بر اساس CPU."
+      },
+      {
+        id: "NOTE-01", severity: "low", category: "معماری/دیپلوی",
+        title: "ریسک تاریخی BOM در entrypoint (فعلاً mitigated)",
+        location: "deploy/entrypoint.sh | Dockerfile dos2unix",
+        description: "قبلاً BOM باعث not found شدن shebang شده بود؛ الان ASCII تمیز + dos2unix دارد.",
+        fix: ".gitattributes برای eol=lf روی *.sh؛ چک CI."
+      }
+    ];
+
+    const sevFa = { critical: "بحرانی", high: "بالا", medium: "متوسط", low: "پایین" };
+    const root = document.getElementById("issues");
+    const empty = document.getElementById("empty");
+    let activeSev = "all";
+
+    function count() {
+      const c = { critical: 0, high: 0, medium: 0, low: 0 };
+      ISSUES.forEach(i => { c[i.severity]++; });
+      document.getElementById("n-crit").textContent = c.critical;
+      document.getElementById("n-high").textContent = c.high;
+      document.getElementById("n-med").textContent = c.medium;
+      document.getElementById("n-low").textContent = c.low;
+      document.getElementById("n-total").textContent = ISSUES.length;
+    }
+
+    function render() {
+      const q = (document.getElementById("q").value || "").trim().toLowerCase();
+      let visible = 0;
+      root.innerHTML = ISSUES.map(i => {
+        const blob = `${i.id} ${i.title} ${i.location} ${i.description} ${i.fix} ${i.category}`.toLowerCase();
+        const matchSev = activeSev === "all" || i.severity === activeSev;
+        const matchQ = !q || blob.includes(q);
+        const show = matchSev && matchQ;
+        if (show) visible++;
+        return `
+          <article class="issue ${show ? "" : "hidden"}" data-severity="${i.severity}">
+            <div class="issue-head">
+              <span class="badge id">${i.id}</span>
+              <span class="badge ${i.severity}">${sevFa[i.severity]}</span>
+              <span class="badge cat">${i.category}</span>
+              <h3>${i.title}</h3>
+            </div>
+            <div class="loc">${i.location}</div>
+            <p>${i.description}</p>
+            <div class="fix"><strong>پیشنهاد اصلاح:</strong> ${i.fix}</div>
+          </article>`;
+      }).join("");
+      document.getElementById("visible-count").textContent = `(نمایش ${visible} از ${ISSUES.length})`;
+      empty.classList.toggle("show", visible === 0);
+    }
+
+    document.querySelectorAll(".chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+        chip.classList.add("active");
+        activeSev = chip.dataset.sev;
+        render();
+      });
+    });
+    document.getElementById("q").addEventListener("input", render);
+
+    count();
+    render();
+  </script>
+</body>
+</html>
