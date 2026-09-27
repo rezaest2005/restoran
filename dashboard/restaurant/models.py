@@ -698,6 +698,14 @@ class RawMaterial(TenantModel):
     unit = unit_field()
     # ★ FIXED: قبلاً decimal_places=0 بود و ۰٫۵ کیلو گرد می‌شد
     quantity = qty_field(max_digits=12, decimal_places=3, default=0)
+    minimum_stock = qty_field(
+        max_digits=12, decimal_places=3, default=0,
+        verbose_name="حداقل موجودی",
+    )
+    target_stock = qty_field(
+        max_digits=12, decimal_places=3, default=0,
+        verbose_name="موجودی هدف",
+    )
     material_type = models.CharField(
         max_length=20,
         choices=MATERIAL_TYPE_CHOICES,
@@ -1238,6 +1246,15 @@ class InventoryMovement(TenantModel):
         verbose_name="ماده اولیه",
         db_index=True,
     )
+    warehouse = models.ForeignKey(
+        "Warehouse",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="movements",
+        verbose_name="انبار",
+        db_index=True,
+    )
     movement_type = models.CharField(
         "نوع جابجایی", max_length=20, choices=MovementType.choices
     )
@@ -1248,6 +1265,18 @@ class InventoryMovement(TenantModel):
     reference_type = models.CharField("نوع مرجع", max_length=50, blank=True)
     reference_id = models.PositiveIntegerField("شناسه مرجع", blank=True, null=True)
     notes = description_field(verbose_name="یادداشت")
+    waste_reason = models.CharField(
+        max_length=20,
+        choices=[
+            ("spolied", "خراب شده"),
+            ("expired", "تاریخ گذشته"),
+            ("damaged", "آسیب دیده"),
+            ("other", "سایر"),
+        ],
+        blank=True,
+        default="",
+        verbose_name="دلیل ضایعات",
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -2119,3 +2148,522 @@ class PaymentTransaction(models.Model):
 
     def __str__(self):
         return f"#{self.id} - {self.get_method_display()} - {self.amount:,}"
+
+# ─── 9.5  MULTI-WAREHOUSE INVENTORY ─────
+# ★ جدید: سیستم چند انباره
+
+
+class Warehouse(TenantModel):
+    """انبار — هر رستوران یک انبار مرکزی (Mother) دارد."""
+
+    TYPE_CHOICES = [
+        ("mother", "انبار مرکزی"),
+        ("kitchen", "آشپزخانه"),
+        ("cold_storage", "سردخانه"),
+        ("freezer", "فریزر"),
+        ("vegetables", "انبار سبزیجات"),
+        ("branch", "شعبه"),
+        ("other", "سایر"),
+    ]
+
+    name = name_field(verbose_name="نام انبار")
+    warehouse_type = models.CharField(
+        max_length=20,
+        choices=TYPE_CHOICES,
+        default="other",
+        verbose_name="نوع انبار",
+        db_index=True,
+    )
+    is_mother = models.BooleanField(
+        default=False,
+        verbose_name="انبار مرکزی",
+        help_text="هر رستوران فقط یک انبار مرکزی می‌تواند داشته باشد",
+    )
+    description = description_field()
+    is_active = is_active_field()
+    created_at = created_at_field()
+    updated_at = updated_at_field()
+
+    class Meta:
+        ordering = ["-is_mother", "name"]
+        verbose_name = "انبار"
+        verbose_name_plural = "انبارها"
+        unique_together = ["restaurant", "name"]
+
+    def __str__(self):
+        prefix = "🏭 " if self.is_mother else ""
+        return f"{prefix}{self.name}"
+
+    def clean(self):
+        super().clean()
+        if self.is_mother:
+            existing = Warehouse.all_objects.filter(
+                restaurant_id=self.restaurant_id,
+                is_mother=True,
+            ).exclude(pk=self.pk)
+            if existing.exists():
+                raise ValidationError({
+                    "is_mother": "هر رستوران فقط یک انبار مرکزی می‌تواند داشته باشد."
+                })
+
+    @property
+    def stock_count(self):
+        return self.stock_items.filter(quantity__gt=0).count()
+
+
+class StockItem(TenantModel):
+    """موجودی هر کالا در هر انبار — منبع اصلی موجودی"""
+
+    warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.CASCADE,
+        related_name="stock_items",
+        verbose_name="انبار",
+        db_index=True,
+    )
+    raw_material = models.ForeignKey(
+        RawMaterial,
+        on_delete=models.CASCADE,
+        related_name="stock_items",
+        verbose_name="ماده اولیه",
+        db_index=True,
+    )
+    quantity = qty_field(
+        max_digits=12, decimal_places=3, default=0, verbose_name="موجودی"
+    )
+    updated_at = updated_at_field()
+
+    class Meta:
+        verbose_name = "موجودی انبار"
+        verbose_name_plural = "موجودی‌های انبار"
+        unique_together = ["restaurant", "warehouse", "raw_material"]
+        indexes = [
+            models.Index(fields=["restaurant", "warehouse", "raw_material"]),
+            models.Index(fields=["restaurant", "raw_material"]),
+        ]
+        constraints = [
+            check_constraint(Q(quantity__gte=0), "rms_stockitem_qty_gte_0"),
+        ]
+
+    def __str__(self):
+        return f"{self.raw_material.name} @ {self.warehouse.name}: {self.quantity}"
+
+    @property
+    def total_value(self):
+        return self.quantity * self.raw_material.price
+
+    @property
+    def is_low(self):
+        min_stock = getattr(self.raw_material, "minimum_stock", 0)
+        return min_stock > 0 and self.quantity <= min_stock
+
+    def increase(self, amount):
+        """افزایش اتمیک"""
+        if amount <= 0:
+            raise ValidationError("مقدار افزایش باید مثبت باشد.")
+        StockItem.all_objects.filter(pk=self.pk).update(
+            quantity=F("quantity") + amount,
+            updated_at=timezone.now(),
+        )
+        self.refresh_from_db(fields=["quantity", "updated_at"])
+
+    def decrease(self, amount):
+        """کاهش اتمیک — فقط اگر موجودی کافی باشد"""
+        if amount <= 0:
+            raise ValidationError("مقدار کاهش باید مثبت باشد.")
+        with transaction.atomic():
+            updated = StockItem.all_objects.filter(
+                pk=self.pk, quantity__gte=amount
+            ).update(
+                quantity=F("quantity") - amount,
+                updated_at=timezone.now(),
+            )
+        self.refresh_from_db(fields=["quantity", "updated_at"])
+        if not updated:
+            raise ValidationError(
+                f"موجودی کافی نیست. موجودی فعلی: {self.quantity}، درخواست: {amount}"
+            )
+
+
+class StockTransfer(TenantModel):
+    """انتقال کالا بین انبارها"""
+
+    STATUS_CHOICES = [
+        ("completed", "انجام شده"),
+        ("cancelled", "لغو شده"),
+    ]
+
+    source_warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.PROTECT,
+        related_name="transfers_out",
+        verbose_name="انبار مبدأ",
+        db_index=True,
+    )
+    destination_warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.PROTECT,
+        related_name="transfers_in",
+        verbose_name="انبار مقصد",
+        db_index=True,
+    )
+    raw_material = models.ForeignKey(
+        RawMaterial,
+        on_delete=models.PROTECT,
+        related_name="transfers",
+        verbose_name="ماده اولیه",
+        db_index=True,
+    )
+    quantity = qty_field(max_digits=12, decimal_places=3, verbose_name="مقدار")
+    unit = unit_field()
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="completed",
+        verbose_name="وضعیت",
+        db_index=True,
+    )
+    reference = models.CharField(max_length=200, blank=True, verbose_name="مرجع")
+    notes = description_field(verbose_name="توضیحات")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stock_transfers",
+        verbose_name="ثبت‌کننده",
+    )
+    created_at = created_at_field(verbose_name="تاریخ ثبت")
+    completed_at = models.DateTimeField(
+        null=True, blank=True, verbose_name="تاریخ انجام"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "انتقال کالا"
+        verbose_name_plural = "انتقال‌های کالا"
+        indexes = [
+            models.Index(fields=["restaurant", "-created_at"]),
+            models.Index(fields=["restaurant", "source_warehouse", "-created_at"]),
+            models.Index(
+                fields=["restaurant", "destination_warehouse", "-created_at"]
+            ),
+        ]
+        constraints = [
+            check_constraint(Q(quantity__gt=0), "rms_transfer_qty_gt_0"),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.raw_material.name}: {self.quantity} — "
+            f"{self.source_warehouse.name} ← {self.destination_warehouse.name}"
+        )
+
+    def clean(self):
+        super().clean()
+        if self.source_warehouse_id == self.destination_warehouse_id:
+            raise ValidationError({
+                "destination_warehouse": "انبار مبدأ و مقصد نمی‌توانند یکسان باشند."
+            })
+
+
+class Receiving(TenantModel):
+    """تحویل بار — دریافت فیزیکی کالا"""
+
+    STATUS_CHOICES = [
+        ("draft", "پیش‌نویس"),
+        ("received", "دریافت شده"),
+        ("partial", "دریافت جزئی"),
+    ]
+
+    purchase_invoice = models.ForeignKey(
+        PurchaseInvoice,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="receivings",
+        verbose_name="فاکتور خرید",
+    )
+    warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.PROTECT,
+        related_name="receivings",
+        verbose_name="انبار مقصد",
+        db_index=True,
+    )
+    supplier = models.ForeignKey(
+        Supplier,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="receivings",
+        verbose_name="تأمین‌کننده",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="received",
+        verbose_name="وضعیت",
+        db_index=True,
+    )
+    notes = description_field(verbose_name="توضیحات")
+    received_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="receivings",
+        verbose_name="تحویل‌گیرنده",
+    )
+    received_at = created_at_field(verbose_name="تاریخ تحویل")
+
+    class Meta:
+        ordering = ["-received_at"]
+        verbose_name = "تحویل بار"
+        verbose_name_plural = "تحویل‌های بار"
+        indexes = [
+            models.Index(fields=["restaurant", "-received_at"]),
+            models.Index(fields=["restaurant", "warehouse", "-received_at"]),
+        ]
+
+    def __str__(self):
+        return f"تحویل #{self.pk} — {self.warehouse.name}"
+
+    @property
+    def total_amount(self):
+        result = self.items.aggregate(
+            total=Sum(F("quantity_received") * F("unit_price"))
+        )
+        return result["total"] or Decimal("0")
+
+    @property
+    def item_count(self):
+        return self.items.count()
+
+
+class ReceivingItem(TenantModel):
+    """آیتم تحویل بار"""
+
+    receiving = models.ForeignKey(
+        Receiving,
+        on_delete=models.CASCADE,
+        related_name="items",
+        verbose_name="تحویل",
+        db_index=True,
+    )
+    raw_material = models.ForeignKey(
+        RawMaterial,
+        on_delete=models.PROTECT,
+        related_name="receiving_items",
+        verbose_name="ماده اولیه",
+        db_index=True,
+    )
+    quantity_ordered = qty_field(
+        max_digits=12, decimal_places=3, default=0,
+        verbose_name="مقدار سفارش‌داده‌شده",
+    )
+    quantity_received = qty_field(
+        max_digits=12, decimal_places=3, verbose_name="مقدار دریافت‌شده"
+    )
+    unit = unit_field()
+    unit_price = price_field(default=0, verbose_name="قیمت واحد")
+
+    class Meta:
+        verbose_name = "آیتم تحویل"
+        verbose_name_plural = "آیتم‌های تحویل"
+        constraints = [
+            check_constraint(
+                Q(quantity_received__gte=0), "rms_recvitem_qty_gte_0"
+            ),
+            check_constraint(Q(unit_price__gte=0), "rms_recvitem_price_gte_0"),
+        ]
+
+    def __str__(self):
+        return f"{self.raw_material.name} × {self.quantity_received}"
+
+    @property
+    def line_total(self):
+        return self.quantity_received * self.unit_price
+
+
+class StockLayer(TenantModel):
+    """لایه قیمت خرید — هر خرید یک لایه جداگانه (قیمت‌ها overwrite نمی‌شوند)"""
+
+    raw_material = models.ForeignKey(
+        RawMaterial,
+        on_delete=models.CASCADE,
+        related_name="stock_layers",
+        verbose_name="ماده اولیه",
+        db_index=True,
+    )
+    warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.CASCADE,
+        related_name="stock_layers",
+        verbose_name="انبار",
+        db_index=True,
+    )
+    quantity_original = qty_field(
+        max_digits=12, decimal_places=3, default=0, verbose_name="مقدار اولیه"
+    )
+    quantity_remaining = qty_field(
+        max_digits=12, decimal_places=3, default=0, verbose_name="مقدار باقیمانده"
+    )
+    unit_cost = price_field(default=0, verbose_name="قیمت واحد")
+    supplier = models.ForeignKey(
+        Supplier,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stock_layers",
+        verbose_name="تأمین‌کننده",
+    )
+    reference_type = models.CharField(
+        max_length=50, blank=True, default="", verbose_name="نوع مرجع"
+    )
+    reference_id = models.PositiveIntegerField(
+        null=True, blank=True, verbose_name="شناسه مرجع"
+    )
+    received_at = created_at_field(verbose_name="تاریخ ورود")
+
+    class Meta:
+        ordering = ["received_at"]
+        verbose_name = "لایه قیمت"
+        verbose_name_plural = "لایه‌های قیمت"
+        indexes = [
+            models.Index(fields=["restaurant", "raw_material", "warehouse"]),
+            models.Index(fields=["restaurant", "raw_material", "received_at"]),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.raw_material.name} — "
+            f"{self.quantity_remaining} @ {self.unit_cost}"
+        )
+
+    @property
+    def total_cost(self):
+        return self.quantity_remaining * self.unit_cost
+
+
+class StockAdjustment(TenantModel):
+    """اصلاح / شمارش موجودی"""
+
+    TYPE_CHOICES = [
+        ("count", "شمارش موجودی"),
+        ("correction", "اصلاح"),
+        ("damage", "آسیب دیدگی"),
+        ("other", "سایر"),
+    ]
+
+    warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.PROTECT,
+        related_name="adjustments",
+        verbose_name="انبار",
+        db_index=True,
+    )
+    raw_material = models.ForeignKey(
+        RawMaterial,
+        on_delete=models.PROTECT,
+        related_name="adjustments",
+        verbose_name="ماده اولیه",
+        db_index=True,
+    )
+    previous_quantity = qty_field(
+        max_digits=12, decimal_places=3, verbose_name="موجودی قبل"
+    )
+    new_quantity = qty_field(
+        max_digits=12, decimal_places=3, verbose_name="موجودی جدید"
+    )
+    difference = qty_field(
+        max_digits=12, decimal_places=3, verbose_name="اختلاف"
+    )
+    adjustment_type = models.CharField(
+        max_length=20,
+        choices=TYPE_CHOICES,
+        default="count",
+        verbose_name="نوع اصلاح",
+    )
+    reason = models.CharField(
+        max_length=500, blank=True, verbose_name="دلیل"
+    )
+    notes = description_field(verbose_name="توضیحات")
+    adjusted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="stock_adjustments",
+        verbose_name="انجام‌دهنده",
+    )
+    adjusted_at = created_at_field(verbose_name="تاریخ اصلاح")
+
+    class Meta:
+        ordering = ["-adjusted_at"]
+        verbose_name = "اصلاح موجودی"
+        verbose_name_plural = "اصلاحات موجودی"
+        indexes = [
+            models.Index(fields=["restaurant", "-adjusted_at"]),
+            models.Index(fields=["restaurant", "raw_material", "-adjusted_at"]),
+        ]
+
+    def __str__(self):
+        return (
+            f"{self.raw_material.name}: "
+            f"{self.previous_quantity} → {self.new_quantity} "
+            f"({self.get_adjustment_type_display()})"
+        )
+
+
+class PurchaseListItem(TenantModel):
+    """آیتم لیست خرید — چه چیزی باید خریداری شود"""
+
+    STATUS_CHOICES = [
+        ("need", "نیاز به خرید"),
+        ("purchasing", "در حال خرید"),
+        ("purchased", "خرید انجام شد"),
+        ("received", "وارد انبار شد"),
+    ]
+
+    raw_material = models.ForeignKey(
+        RawMaterial,
+        on_delete=models.CASCADE,
+        related_name="purchase_list_items",
+        verbose_name="ماده اولیه",
+        db_index=True,
+    )
+    suggested_quantity = qty_field(
+        max_digits=12, decimal_places=3, default=0,
+        verbose_name="مقدار پیشنهادی",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="need",
+        verbose_name="وضعیت",
+        db_index=True,
+    )
+    purchase_invoice = models.ForeignKey(
+        PurchaseInvoice,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="purchase_list_items",
+        verbose_name="فاکتور خرید",
+    )
+    notes = description_field(verbose_name="توضیحات")
+    created_at = created_at_field()
+    updated_at = updated_at_field()
+
+    class Meta:
+        ordering = ["status", "created_at"]
+        verbose_name = "آیتم لیست خرید"
+        verbose_name_plural = "آیتم‌های لیست خرید"
+        unique_together = ["restaurant", "raw_material"]
+        indexes = [
+            models.Index(fields=["restaurant", "status"]),
+        ]
+
+    def __str__(self):
+        return f"{self.raw_material.name} — {self.get_status_display()}"

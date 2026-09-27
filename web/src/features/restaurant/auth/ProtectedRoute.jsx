@@ -41,15 +41,6 @@ export default function ProtectedRoute({ children }) {
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
-    const sessionAlive = sessionStorage.getItem("session_alive");
-
-    // مرورگر بسته شده → sessionStorage پاک شده → اجبار لاگین
-    if (!sessionAlive) {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-      setStatus("no_session");
-      return;
-    }
 
     if (!token) {
       setStatus("no_token");
