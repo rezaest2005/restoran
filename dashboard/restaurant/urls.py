@@ -1,6 +1,7 @@
 """
-Restaurant Management System — URLs (★ نسخه v7)
+Restaurant Management System — URLs (★ نسخه v8)
 
+★ v8: Inventory / Warehouse endpoints اضافه شد
 ★ v7: restaurant_login + check_subscription اضافه شد
 """
 
@@ -70,7 +71,7 @@ urlpatterns = [
     path("api/users/approve/", views.approve_user_api, name="approve_user"),
     path("api/users/reject/", views.reject_user_api, name="reject_user"),
     path("api/users/delete/", views.user_delete, name="user_delete"),
-    path("api/users/tabs/", views.user_tabs_api, name="user_tabs_api"), 
+    path("api/users/tabs/", views.user_tabs_api, name="user_tabs_api"),
     # ── Raw Materials & Suppliers ───────────────────────────
     path("api/raw-materials/save/", views.raw_material_save, name="raw_material_save"),
     path(
@@ -91,7 +92,7 @@ urlpatterns = [
         views.supplier_suggestions,
         name="supplier_suggestions",
     ),
-    # ── Warehouse & Inventory ───────────────────────────────
+    # ── Warehouse & Inventory (قدیمی) ───────────────────────
     path("api/invoices/parse-excel/", views.parse_excel_file, name="parse_excel"),
     path("api/usage-log/json/", views.usage_log_json, name="usage_log_json"),
     path("api/usage-log/detail/", views.usage_log_detail_json, name="usage_log_detail"),
@@ -116,7 +117,132 @@ urlpatterns = [
         views.convert_to_ready_material,
         name="convert_to_ready_material",
     ),
-    # ── Recipes (specific paths BEFORE router) ──────────────
+
+    # ══════════════════════════════════════════════════════════
+    # ── Inventory (انبار) — ★ v8 جدید ───────────────────────
+    # ══════════════════════════════════════════════════════════
+
+    # ── انبارها (Warehouses) ──
+    path(
+        "api/inventory/warehouses/",
+        views.warehouse_list,
+        name="inv_warehouse_list",
+    ),
+    path(
+        "api/inventory/warehouses/save/",
+        views.warehouse_save,
+        name="inv_warehouse_save",
+    ),
+    path(
+        "api/inventory/warehouses/delete/",
+        views.warehouse_delete,
+        name="inv_warehouse_delete",
+    ),
+
+    # ── موجودی (Stock) ──
+    path(
+        "api/inventory/stock/",
+        views.stock_list,
+        name="inv_stock_list",
+    ),
+    path(
+        "api/inventory/stock/minimum-update/",
+        views.stock_minimum_update,
+        name="inv_stock_minimum_update",
+    ),
+
+    # ── انتقال (Transfer) ──
+    path(
+        "api/inventory/transfer/create/",
+        views.transfer_create,
+        name="inv_transfer_create",
+    ),
+    path(
+        "api/inventory/transfer/list/",
+        views.transfer_list,
+        name="inv_transfer_list",
+    ),
+    path(
+        "api/inventory/transfer/detail/",
+        views.transfer_detail,
+        name="inv_transfer_detail",
+    ),
+
+    # ── تحویل بار / ورود و خروج (Receiving / Issue) ──
+    path(
+        "api/inventory/receiving/create/",
+        views.receiving_create,
+        name="inv_receiving_create",
+    ),
+    path(
+        "api/inventory/issue/create/",
+        views.issue_create,
+        name="inv_issue_create",
+    ),
+
+    # ── ضایعات (Waste) ──
+    path(
+        "api/inventory/waste/create/",
+        views.waste_create,
+        name="inv_waste_create",
+    ),
+
+    # ── اصلاح / شمارش (Adjustment) ──
+    path(
+        "api/inventory/adjustment/create/",
+        views.adjustment_create,
+        name="inv_adjustment_create",
+    ),
+
+    # ── لیست خرید (Purchase List) ──
+    path(
+        "api/inventory/purchase-list/",
+        views.purchase_list,
+        name="inv_purchase_list",
+    ),
+    path(
+        "api/inventory/purchase-list/add/",
+        views.purchase_list_add,
+        name="inv_purchase_list_add",
+    ),
+    path(
+        "api/inventory/purchase-list/status/",
+        views.purchase_list_status,
+        name="inv_purchase_list_status",
+    ),
+
+    # ── گزارشات (Reports) ──
+    path(
+        "api/inventory/reports/item-movement/",
+        views.item_movement_report,
+        name="inv_item_movement_report",
+    ),
+    path(
+        "api/inventory/reports/transfer/",
+        views.transfer_report,
+        name="inv_transfer_report",
+    ),
+    path(
+        "api/inventory/reports/stock-value/",
+        views.stock_value_report,
+        name="inv_stock_value_report",
+    ),
+    path(
+        "api/inventory/reports/warehouse-movements/",
+        views.warehouse_movements,
+        name="inv_warehouse_movements",
+    ),
+
+    # ── داشبورد انبار ──
+    path(
+        "api/inventory/dashboard/",
+        views.inventory_dashboard,
+        name="inv_dashboard",
+    ),
+
+    # ══════════════════════════════════════════════════════════
+    #  Recipes
+    # ══════════════════════════════════════════════════════════
     path(
         "api/recipes/validate-inventory/",
         views.validate_order_inventory_view,
@@ -162,6 +288,7 @@ urlpatterns = [
         views.recipe_materials_api,
         name="recipe_materials",
     ),
+
     # ── Dictionary ──────────────────────────────────────────
     path("api/dictionary/list/", views.dictionary_list, name="dictionary_list"),
     path(
@@ -233,6 +360,7 @@ urlpatterns = [
         views.dictionary_group_delete,
         name="dictionary_group_delete",
     ),
+
     # ── Kitchen ─────────────────────────────────────────────
     path(
         "api/kitchen/dashboard/", views.kitchen_dashboard_api, name="kitchen_dashboard"
@@ -302,6 +430,7 @@ urlpatterns = [
         views.KitchenWasteDetail.as_view(),
         name="kitchen-waste-detail",
     ),
+
     # ── POS ─────────────────────────────────────────────────
     path("api/pos/settings/", views.pos_settings, name="pos_settings"),
     path("api/pos/create-order/", views.pos_create_order, name="pos_create_order"),
@@ -329,11 +458,13 @@ urlpatterns = [
         name="pos_update_food_price",
     ),
     path("api/pos/daily-orders/", views.pos_daily_orders, name="pos-daily-orders"),
+
     # ── Card Reader ─────────────────────────────────────────
     path("api/card-reader/pay/", views.send_to_card_reader, name="card_reader_pay"),
     path(
         "api/card-reader/cancel/", views.cancel_card_payment, name="card_reader_cancel"
     ),
+
     # ── Payment System ──────────────────────────────────────
     path("api/payment/config/", views.payment_config_api, name="payment_config"),
     path(
@@ -372,6 +503,7 @@ urlpatterns = [
         views.payment_transactions_list,
         name="payment_txn_list",
     ),
+
     # ── Orders (function-based) ─────────────────────────────
     path("api/orders/list/", views.order_list_api, name="order_list_api"),
     path(
@@ -385,6 +517,7 @@ urlpatterns = [
         name="order_send_to_kitchen",
     ),
     path("api/orders/kitchen/", views.kitchen_orders_api, name="kitchen_orders_api"),
+
     # ── Super Admin ─────────────────────────────────────────
     path("api/super/login/", views.super_admin_login_api, name="super_admin_login_api"),
     path(
@@ -421,8 +554,9 @@ urlpatterns = [
         views.super_user_permissions_api,
         name="super_user_permissions",
     ),
+
     # ══════════════════════════════════════════════════════════
-    # ★ v7: لاگین رستوران + بررسی اشتراک
+    # ★ لاگین رستوران + بررسی اشتراک
     # ══════════════════════════════════════════════════════════
     path("<slug:slug>/login/", views.restaurant_login, name="restaurant_login"),
     path(
@@ -435,6 +569,7 @@ urlpatterns = [
         views.restaurant_services_api,
         name="restaurant_services",
     ),
+
     # ── HTML Pages (Dashboard) ──────────────────────────────
     path("dashboard/", views.auth_page, name="auth_page"),
     path("dashboard/auth/", views.redirect_to_dashboard, name="auth_redirect"),
@@ -477,6 +612,7 @@ urlpatterns = [
         views.home,
         name="payment_settings",
     ),
+
     # ── Router (ViewSet-based endpoints) — MUST BE LAST ─────
     path("api/", include(router.urls)),
 ]

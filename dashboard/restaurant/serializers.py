@@ -52,6 +52,14 @@ from .models import (
     DictionaryGroup,
     ItemDictionary,
     PosSettings,
+    Warehouse,
+    StockItem,
+    StockTransfer,
+    Receiving,
+    ReceivingItem,
+    StockLayer,
+    StockAdjustment,
+    PurchaseListItem,
 )
 
 User = get_user_model()
@@ -430,6 +438,9 @@ class OrderItemSerializer(serializers.ModelSerializer):
     # ★ FIXED: فیلدهای جدید
     food_name = serializers.CharField(source="food.name", read_only=True, default="")
     display_name = serializers.CharField(read_only=True)
+    display_name_en = serializers.CharField(read_only=True)
+    category = serializers.SerializerMethodField()
+    category_en = serializers.SerializerMethodField()
     line_total = serializers.SerializerMethodField()
 
     class Meta:
@@ -463,10 +474,6 @@ class OrderItemSerializer(serializers.ModelSerializer):
             return obj.food.category.name_en or ""
         return ""
 
-    def get_line_total(self, obj):
-        if obj.price and obj.quantity:
-            return int(obj.price * obj.quantity)
-        return 0
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -640,9 +647,13 @@ class InventoryMovementSerializer(serializers.ModelSerializer):
     raw_material_name = serializers.CharField(
         source="raw_material.name", read_only=True
     )
+    warehouse_name = serializers.CharField(
+        source="warehouse.name", read_only=True, default=""
+    )
     movement_type_display = serializers.CharField(
         source="get_movement_type_display", read_only=True
     )
+    waste_reason_display = serializers.SerializerMethodField()
     created_by_name = serializers.SerializerMethodField()
 
     class Meta:
@@ -664,6 +675,13 @@ class InventoryMovementSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["created_at"]
+
+    def get_waste_reason_display(self, obj):
+        if obj.waste_reason:
+            return dict(InventoryMovement._meta.get_field("waste_reason").choices).get(
+                obj.waste_reason, ""
+            )
+        return ""
 
     def get_created_by_name(self, obj):
         try:
@@ -1591,3 +1609,373 @@ class DictionaryGroupSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["created_at"]
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  7. MULTI-WAREHOUSE INVENTORY — ★ جدید
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class WarehouseSerializer(serializers.ModelSerializer):
+    warehouse_type_display = serializers.CharField(
+        source="get_warehouse_type_display", read_only=True
+    )
+    stock_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Warehouse
+        fields = [
+            "id",
+            "name",
+            "warehouse_type",
+            "warehouse_type_display",
+            "is_mother",
+            "description",
+            "is_active",
+            "stock_count",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["created_at", "updated_at"]
+
+
+class StockItemSerializer(serializers.ModelSerializer):
+    material_name = serializers.CharField(
+        source="raw_material.name", read_only=True
+    )
+    material_unit = serializers.CharField(
+        source="raw_material.unit", read_only=True
+    )
+    material_unit_display = serializers.SerializerMethodField()
+    material_price = serializers.SerializerMethodField()
+    warehouse_name = serializers.CharField(
+        source="warehouse.name", read_only=True
+    )
+    total_value = serializers.SerializerMethodField()
+    minimum_stock = serializers.SerializerMethodField()
+    target_stock = serializers.SerializerMethodField()
+    is_low = serializers.SerializerMethodField()
+
+    class Meta:
+        model = StockItem
+        fields = [
+            "id",
+            "raw_material",
+            "material_name",
+            "material_unit",
+            "material_unit_display",
+            "material_price",
+            "warehouse",
+            "warehouse_name",
+            "quantity",
+            "total_value",
+            "minimum_stock",
+            "target_stock",
+            "is_low",
+            "updated_at",
+        ]
+        read_only_fields = ["updated_at"]
+
+    def get_material_unit_display(self, obj):
+        try:
+            return obj.raw_material.get_unit_display()
+        except Exception:
+            return obj.raw_material.unit if obj.raw_material else ""
+
+    def get_material_price(self, obj):
+        try:
+            return int(obj.raw_material.price)
+        except (TypeError, ValueError):
+            return 0
+
+    def get_total_value(self, obj):
+        try:
+            return int(obj.total_value)
+        except (TypeError, ValueError):
+            return 0
+
+    def get_minimum_stock(self, obj):
+        try:
+            return float(obj.raw_material.minimum_stock or 0)
+        except Exception:
+            return 0
+
+    def get_target_stock(self, obj):
+        try:
+            return float(obj.raw_material.target_stock or 0)
+        except Exception:
+            return 0
+
+    def get_is_low(self, obj):
+        try:
+            return obj.is_low
+        except Exception:
+            return False
+
+
+class StockTransferSerializer(serializers.ModelSerializer):
+    source_warehouse_name = serializers.CharField(
+        source="source_warehouse.name", read_only=True
+    )
+    destination_warehouse_name = serializers.CharField(
+        source="destination_warehouse.name", read_only=True
+    )
+    material_name = serializers.CharField(
+        source="raw_material.name", read_only=True
+    )
+    status_display = serializers.CharField(
+        source="get_status_display", read_only=True
+    )
+    created_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = StockTransfer
+        fields = [
+            "id",
+            "source_warehouse",
+            "source_warehouse_name",
+            "destination_warehouse",
+            "destination_warehouse_name",
+            "raw_material",
+            "material_name",
+            "quantity",
+            "unit",
+            "status",
+            "status_display",
+            "reference",
+            "notes",
+            "created_by",
+            "created_by_name",
+            "created_at",
+            "completed_at",
+        ]
+        read_only_fields = ["created_at", "completed_at"]
+
+    def get_created_by_name(self, obj):
+        try:
+            return obj.created_by.get_full_name() if obj.created_by else ""
+        except Exception:
+            return ""
+
+
+class ReceivingItemSerializer(serializers.ModelSerializer):
+    material_name = serializers.CharField(
+        source="raw_material.name", read_only=True
+    )
+    line_total = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ReceivingItem
+        fields = [
+            "id",
+            "raw_material",
+            "material_name",
+            "quantity_ordered",
+            "quantity_received",
+            "unit",
+            "unit_price",
+            "line_total",
+        ]
+
+    def get_line_total(self, obj):
+        try:
+            return int(obj.line_total)
+        except (TypeError, ValueError):
+            return 0
+
+
+class ReceivingSerializer(serializers.ModelSerializer):
+    items = ReceivingItemSerializer(many=True, read_only=True)
+    warehouse_name = serializers.CharField(
+        source="warehouse.name", read_only=True
+    )
+    supplier_name = serializers.CharField(
+        source="supplier.name", read_only=True, default=""
+    )
+    purchase_invoice_number = serializers.CharField(
+        source="purchase_invoice.invoice_number", read_only=True, default=""
+    )
+    status_display = serializers.CharField(
+        source="get_status_display", read_only=True
+    )
+    total_amount = serializers.SerializerMethodField()
+    item_count = serializers.SerializerMethodField()
+    received_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Receiving
+        fields = [
+            "id",
+            "purchase_invoice",
+            "purchase_invoice_number",
+            "warehouse",
+            "warehouse_name",
+            "supplier",
+            "supplier_name",
+            "status",
+            "status_display",
+            "items",
+            "total_amount",
+            "item_count",
+            "notes",
+            "received_by",
+            "received_by_name",
+            "received_at",
+        ]
+        read_only_fields = ["received_at"]
+
+    def get_total_amount(self, obj):
+        try:
+            return int(obj.total_amount)
+        except (TypeError, ValueError):
+            return 0
+
+    def get_item_count(self, obj):
+        return obj.items.count()
+
+    def get_received_by_name(self, obj):
+        try:
+            return obj.received_by.get_full_name() if obj.received_by else ""
+        except Exception:
+            return ""
+
+
+class StockLayerSerializer(serializers.ModelSerializer):
+    material_name = serializers.CharField(
+        source="raw_material.name", read_only=True
+    )
+    warehouse_name = serializers.CharField(
+        source="warehouse.name", read_only=True
+    )
+    supplier_name = serializers.CharField(
+        source="supplier.name", read_only=True, default=""
+    )
+    total_cost = serializers.SerializerMethodField()
+
+    class Meta:
+        model = StockLayer
+        fields = [
+            "id",
+            "raw_material",
+            "material_name",
+            "warehouse",
+            "warehouse_name",
+            "quantity_original",
+            "quantity_remaining",
+            "unit_cost",
+            "total_cost",
+            "supplier",
+            "supplier_name",
+            "reference_type",
+            "reference_id",
+            "received_at",
+        ]
+        read_only_fields = ["received_at"]
+
+    def get_total_cost(self, obj):
+        try:
+            return int(obj.total_cost)
+        except (TypeError, ValueError):
+            return 0
+
+
+class StockAdjustmentSerializer(serializers.ModelSerializer):
+    material_name = serializers.CharField(
+        source="raw_material.name", read_only=True
+    )
+    warehouse_name = serializers.CharField(
+        source="warehouse.name", read_only=True
+    )
+    adjustment_type_display = serializers.CharField(
+        source="get_adjustment_type_display", read_only=True
+    )
+    adjusted_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = StockAdjustment
+        fields = [
+            "id",
+            "warehouse",
+            "warehouse_name",
+            "raw_material",
+            "material_name",
+            "previous_quantity",
+            "new_quantity",
+            "difference",
+            "adjustment_type",
+            "adjustment_type_display",
+            "reason",
+            "notes",
+            "adjusted_by",
+            "adjusted_by_name",
+            "adjusted_at",
+        ]
+        read_only_fields = ["adjusted_at"]
+
+    def get_adjusted_by_name(self, obj):
+        try:
+            return obj.adjusted_by.get_full_name() if obj.adjusted_by else ""
+        except Exception:
+            return ""
+
+
+class PurchaseListItemSerializer(serializers.ModelSerializer):
+    material_name = serializers.CharField(
+        source="raw_material.name", read_only=True
+    )
+    material_unit = serializers.CharField(
+        source="raw_material.unit", read_only=True
+    )
+    current_stock = serializers.SerializerMethodField()
+    minimum_stock = serializers.SerializerMethodField()
+    target_stock = serializers.SerializerMethodField()
+    status_display = serializers.CharField(
+        source="get_status_display", read_only=True
+    )
+    supplier_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PurchaseListItem
+        fields = [
+            "id",
+            "raw_material",
+            "material_name",
+            "material_unit",
+            "current_stock",
+            "minimum_stock",
+            "target_stock",
+            "suggested_quantity",
+            "status",
+            "status_display",
+            "purchase_invoice",
+            "supplier_name",
+            "notes",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["created_at", "updated_at"]
+
+    def get_current_stock(self, obj):
+        try:
+            return float(obj.raw_material.quantity or 0)
+        except Exception:
+            return 0
+
+    def get_minimum_stock(self, obj):
+        try:
+            return float(obj.raw_material.minimum_stock or 0)
+        except Exception:
+            return 0
+
+    def get_target_stock(self, obj):
+        try:
+            return float(obj.raw_material.target_stock or 0)
+        except Exception:
+            return 0
+
+    def get_supplier_name(self, obj):
+        try:
+            if obj.purchase_invoice and obj.purchase_invoice.supplier:
+                return obj.purchase_invoice.supplier.name
+        except Exception:
+            pass
+        return ""

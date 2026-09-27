@@ -201,6 +201,31 @@ from .restaurant_page_views import (
     dictionary_page,
 )
 
+# ── Inventory API — ★ جدید ──
+from .inventory import (
+    warehouse_list,
+    warehouse_save,
+    warehouse_delete,
+    stock_list,
+    stock_minimum_update,
+    transfer_create,
+    transfer_list,
+    transfer_detail,
+    receiving_create,
+    issue_create,
+    waste_create,
+    adjustment_create,
+    purchase_list,
+    purchase_list_add,
+    purchase_list_status,
+    item_movement_report,
+    transfer_report,
+    stock_value_report,
+    warehouse_movements,
+    inventory_dashboard,
+)
+
+
 __all__ = [
     # Super Admin
     "super_admin_auth_page",
@@ -301,6 +326,28 @@ __all__ = [
     "reject_user_api",
     "user_delete",
     "user_tabs_api",
+
+        # Inventory — ★ جدید
+    "warehouse_list",
+    "warehouse_save",
+    "warehouse_delete",
+    "stock_list",
+    "stock_minimum_update",
+    "transfer_create",
+    "transfer_list",
+    "transfer_detail",
+    "receiving_create",
+    "issue_create",
+    "waste_create",
+    "adjustment_create",
+    "purchase_list",
+    "purchase_list_add",
+    "purchase_list_status",
+    "item_movement_report",
+    "transfer_report",
+    "stock_value_report",
+    "warehouse_movements",
+    "inventory_dashboard",
 
     # Card Reader
     "send_to_card_reader",
