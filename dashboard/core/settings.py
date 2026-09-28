@@ -116,11 +116,13 @@ DATABASES = {
         "USER": os.getenv("DB_USER", "restaurant"),
         "PASSWORD": os.getenv("DB_PASSWORD", ""),
         "HOST": os.getenv("DB_HOST", "localhost"),
-        "PORT": os.getenv("DB_PORT", "5432"),
-        "CONN_MAX_AGE": 60,
+        "PORT": os.getenv("DB_PORT", "5433"),
+        "CONN_MAX_AGE": 0,
+        "OPTIONS": {
+            "connect_timeout": 5,
+        },
     }
 }
-
 AUTH_PASSWORD_VALIDATORS = []
 
 LANGUAGE_CODE = 'en-us'

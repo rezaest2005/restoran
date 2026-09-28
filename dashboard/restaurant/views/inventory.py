@@ -1,5 +1,5 @@
 """
-Inventory / Warehouse API — ★ نسخه v1
+Inventory / Warehouse API — ★ نسخه v1.1
 
 تب‌های اصلی Inventory:
   📦 انبار       → Warehouse CRUD + Stock
@@ -7,10 +7,22 @@ Inventory / Warehouse API — ★ نسخه v1
   📊 گزارشات     → Reports
 
 ★ از الگوی پروژه پیروی می‌کند: @api_view + JsonResponse
+
+تغییرات v1.1:
+  - حذف N+1 در warehouse_list و inventory_dashboard
+  - رفع TypeError در stock_minimum_update (مقدار None)
+  - رفع race condition در adjustment_create → استفاده از delta
+  - receiving_create کاملاً atomic + سند Receiving مشترک
+  - حذف import‌های بدون استفاده
+  - تبدیل امن ورودی‌ها به Decimal
 """
 
 import logging
-from decimal import Decimal
+from datetime import date
+from decimal import Decimal, InvalidOperation
+
+from django.db import transaction
+from django.db.models import Count, Q
 from django.http import JsonResponse
 
 from rest_framework.decorators import api_view, permission_classes
@@ -21,16 +33,8 @@ from ..models import (
     StockItem,
     StockTransfer,
     Receiving,
-    ReceivingItem,
-    StockAdjustment,
-    PurchaseListItem,
-    InventoryMovement,
     Supplier,
     PurchaseInvoice,
-)
-from ..permissions import (
-    IsOwnerOrManagerOrWarehouseStaff,
-    IsOwnerOrManager,
 )
 from ..tenancy import (
     get_current_restaurant,
@@ -43,9 +47,9 @@ from ..inventory_services import (
     issue_stock,
     waste_stock,
     adjust_stock,
-    get_stock_level,
     get_total_stock,
     get_stock_by_warehouse,
+    get_stock_totals,
     get_purchase_list,
     add_to_purchase_list,
     update_purchase_list_status,
@@ -54,33 +58,78 @@ from ..inventory_services import (
     get_warehouse_movements,
     get_stock_value_report,
     get_transfer_report,
-    sync_raw_material_quantity,
 )
 from .decorators import make_service_permission
 
 logger = logging.getLogger(__name__)
 
+ZERO = Decimal("0")
 
-# ═══════════════════════════════════════
-#  Permissions
-# ═══════════════════════════════════════
-
-InventoryPerm = make_service_permission('inventory')
+InventoryPerm = make_service_permission("inventory")
 
 
 # ═══════════════════════════════════════
-#  resolve restaurant
+#  Helpers
 # ═══════════════════════════════════════
+
 
 def _resolve_restaurant(request):
     r = get_current_restaurant()
     if r:
         return r
+
+    r = getattr(request, "restaurant", None)
+    if r:
+        set_current_restaurant(r)
+        return r
+
+    user = getattr(request, "user", None)
+    if user and getattr(user, "is_authenticated", False):
+        r = getattr(user, "restaurant", None)
+        if r is not None and getattr(r, "is_active", True):
+            set_current_restaurant(r)
+            return r
+
     r = get_restaurant_from_request(request)
     if r:
         set_current_restaurant(r)
         return r
+
     return None
+
+
+def _no_restaurant():
+    return JsonResponse(
+        {"success": False, "error": "رستوران مشخص نشده."},
+        status=400,
+    )
+
+
+def _parse_decimal(value, field_name="مقدار", allow_zero=True):
+    """تبدیل امن ورودی به Decimal — برای اعتبارسنجی در view"""
+    if value is None or value == "":
+        raise ValueError(f"{field_name} الزامی است.")
+    try:
+        d = Decimal(str(value))
+    except (InvalidOperation, ValueError, TypeError):
+        raise ValueError(f"{field_name} نامعتبر است.")
+    if not allow_zero and d <= 0:
+        raise ValueError(f"{field_name} باید بیشتر از صفر باشد.")
+    return d
+
+
+def _parse_int(value, default=100, minimum=1, maximum=1000):
+    """تبدیل امن query param به int"""
+    try:
+        n = int(value)
+    except (ValueError, TypeError):
+        return default
+    return max(minimum, min(n, maximum))
+
+
+def _safe_float(value):
+    """تبدیل امن Decimal/None به float برای JSON"""
+    return float(value) if value is not None else None
 
 
 # ═══════════════════════════════════════
@@ -94,49 +143,36 @@ def warehouse_list(request):
     """لیست انبارها"""
     restaurant = _resolve_restaurant(request)
     if not restaurant:
-        return JsonResponse({"success": False, "error": "رستوران مشخص نشده."}, status=400)
+        return _no_restaurant()
 
     # اگر انبار مرکزی وجود نداشت، بساز
     get_or_create_mother_warehouse(restaurant)
 
-    from django.db.models import Count, Sum
-
     warehouses = (
         Warehouse.objects.filter(restaurant=restaurant, is_active=True)
         .annotate(
-            _item_count=Count("stock_items", filter=Q_stock_positive()),
-            _total_value=Sum(
-                "stock_items__quantity"
+            stock_count=Count(
+                "stock_items",
+                filter=Q(stock_items__quantity__gt=0),
             ),
         )
         .order_by("-is_mother", "name")
     )
 
-    data = []
-    for w in warehouses:
-        stock_count = StockItem.objects.filter(
-            restaurant=restaurant,
-            warehouse=w,
-            quantity__gt=0,
-        ).count()
-
-        data.append({
+    data = [
+        {
             "id": w.pk,
             "name": w.name,
             "warehouse_type": w.warehouse_type,
             "warehouse_type_display": w.get_warehouse_type_display(),
             "is_mother": w.is_mother,
             "description": w.description or "",
-            "stock_count": stock_count,
-        })
+            "stock_count": w.stock_count,
+        }
+        for w in warehouses
+    ]
 
     return JsonResponse({"success": True, "warehouses": data})
-
-
-def Q_stock_positive():
-    """فیلتر برای annotate"""
-    from django.db.models import Q
-    return Q(stock_items__quantity__gt=0)
 
 
 @api_view(["POST"])
@@ -145,22 +181,28 @@ def warehouse_save(request):
     """ایجاد / ویرایش انبار"""
     restaurant = _resolve_restaurant(request)
     if not restaurant:
-        return JsonResponse({"success": False, "error": "رستوران مشخص نشده."}, status=400)
+        return _no_restaurant()
 
     data = request.data
     pk = data.get("id")
-    name = data.get("name", "").strip()
+    name = (data.get("name") or "").strip()
     warehouse_type = data.get("warehouse_type", "other")
-    description = data.get("description", "").strip()
+    description = (data.get("description") or "").strip()
 
     if not name:
-        return JsonResponse({"success": False, "error": "نام انبار الزامی است."}, status=400)
+        return JsonResponse(
+            {"success": False, "error": "نام انبار الزامی است."},
+            status=400,
+        )
 
     try:
         if pk:
             wh = Warehouse.all_objects.filter(pk=pk, restaurant=restaurant).first()
             if not wh:
-                return JsonResponse({"success": False, "error": "انبار یافت نشد."}, status=404)
+                return JsonResponse(
+                    {"success": False, "error": "انبار یافت نشد."},
+                    status=404,
+                )
             wh.name = name
             wh.warehouse_type = warehouse_type
             wh.description = description
@@ -197,14 +239,22 @@ def warehouse_save(request):
 def warehouse_delete(request):
     """حذف انبار (فقط اگر خالی باشد)"""
     restaurant = _resolve_restaurant(request)
-    pk = request.data.get("id")
+    if not restaurant:
+        return _no_restaurant()
 
+    pk = request.data.get("id")
     if not pk:
-        return JsonResponse({"success": False, "error": "شناسه ارسال نشد."}, status=400)
+        return JsonResponse(
+            {"success": False, "error": "شناسه ارسال نشد."},
+            status=400,
+        )
 
     wh = Warehouse.all_objects.filter(pk=pk, restaurant=restaurant).first()
     if not wh:
-        return JsonResponse({"success": False, "error": "انبار یافت نشد."}, status=404)
+        return JsonResponse(
+            {"success": False, "error": "انبار یافت نشد."},
+            status=404,
+        )
 
     if wh.is_mother:
         return JsonResponse(
@@ -212,13 +262,15 @@ def warehouse_delete(request):
             status=400,
         )
 
-    # بررسی موجودی
     stock_count = StockItem.objects.filter(
         restaurant=restaurant, warehouse=wh, quantity__gt=0
     ).count()
     if stock_count > 0:
         return JsonResponse(
-            {"success": False, "error": f"این انبار {stock_count} قلم کالا دارد. ابتدا کالاها را منتقل کنید."},
+            {
+                "success": False,
+                "error": f"این انبار {stock_count} قلم کالا دارد. ابتدا کالاها را منتقل کنید.",
+            },
             status=400,
         )
 
@@ -240,10 +292,10 @@ def stock_list(request):
     """موجودی کالاها — در یک انبار مشخص یا همه"""
     restaurant = _resolve_restaurant(request)
     if not restaurant:
-        return JsonResponse({"success": False, "error": "رستوران مشخص نشده."}, status=400)
+        return _no_restaurant()
 
     warehouse_id = request.GET.get("warehouse_id")
-    search = request.GET.get("search", "").strip()
+    search = (request.GET.get("search") or "").strip()
 
     qs = StockItem.objects.select_related("raw_material", "warehouse").filter(
         restaurant=restaurant
@@ -253,26 +305,22 @@ def stock_list(request):
         qs = qs.filter(warehouse_id=warehouse_id)
 
     if search:
-        from django.db.models import Q
-        qs = qs.filter(
-            Q(raw_material__name__icontains=search)
-        )
-
-    stocks = qs.order_by("raw_material__name")
+        qs = qs.filter(Q(raw_material__name__icontains=search))
 
     items = []
-    for s in stocks:
+    for s in qs.order_by("raw_material__name"):
+        price = s.raw_material.price or ZERO
         items.append({
             "id": s.pk,
             "raw_material_id": s.raw_material.pk,
             "material_name": s.raw_material.name,
             "material_unit": s.raw_material.unit,
             "material_unit_display": s.raw_material.get_unit_display(),
-            "material_price": int(s.raw_material.price),
+            "material_price": int(price),
             "warehouse_id": s.warehouse.pk,
             "warehouse_name": s.warehouse.name,
             "quantity": float(s.quantity),
-            "total_value": int(s.quantity * s.raw_material.price),
+            "total_value": int(s.quantity * price),
             "minimum_stock": float(s.raw_material.minimum_stock or 0),
             "target_stock": float(s.raw_material.target_stock or 0),
         })
@@ -285,30 +333,44 @@ def stock_list(request):
 def stock_minimum_update(request):
     """ویرایش حداقل موجودی / موجودی هدف"""
     restaurant = _resolve_restaurant(request)
-    data = request.data
+    if not restaurant:
+        return _no_restaurant()
 
+    data = request.data
     material_id = data.get("raw_material_id")
-    minimum_stock = data.get("minimum_stock")
-    target_stock = data.get("target_stock")
 
     if not material_id:
-        return JsonResponse({"success": False, "error": "شناسه کالا ارسال نشد."}, status=400)
+        return JsonResponse(
+            {"success": False, "error": "شناسه کالا ارسال نشد."},
+            status=400,
+        )
 
-    mat = RawMaterial.objects.filter(pk=material_id, restaurant=restaurant).first()
+    mat = RawMaterial.all_objects.filter(pk=material_id, restaurant=restaurant).first()
     if not mat:
         return JsonResponse({"success": False, "error": "کالا یافت نشد."}, status=404)
 
-    if minimum_stock is not None:
-        mat.minimum_stock = float(minimum_stock)
-    if target_stock is not None:
-        mat.target_stock = float(target_stock)
+    minimum_stock = data.get("minimum_stock")
+    target_stock = data.get("target_stock")
+
+    try:
+        if minimum_stock is not None:
+            mat.minimum_stock = _parse_decimal(
+                minimum_stock, "حداقل موجودی"
+            )
+        if target_stock is not None:
+            mat.target_stock = _parse_decimal(
+                target_stock, "موجودی هدف"
+            )
+    except ValueError as exc:
+        return JsonResponse({"success": False, "error": str(exc)}, status=400)
+
     mat.save(update_fields=["minimum_stock", "target_stock"])
 
     return JsonResponse({
         "success": True,
         "msg": "بروزرسانی شد.",
-        "minimum_stock": float(mat.minimum_stock),
-        "target_stock": float(mat.target_stock),
+        "minimum_stock": _safe_float(mat.minimum_stock),
+        "target_stock": _safe_float(mat.target_stock),
     })
 
 
@@ -323,15 +385,14 @@ def transfer_create(request):
     """انتقال کالا بین انبارها"""
     restaurant = _resolve_restaurant(request)
     if not restaurant:
-        return JsonResponse({"success": False, "error": "رستوران مشخص نشده."}, status=400)
+        return _no_restaurant()
 
     data = request.data
     source_id = data.get("source_warehouse_id")
     dest_id = data.get("destination_warehouse_id")
     material_id = data.get("raw_material_id")
-    quantity = float(data.get("quantity", 0))
-    notes = data.get("notes", "").strip()
-    reference = data.get("reference", "").strip()
+    notes = (data.get("notes") or "").strip()
+    reference = (data.get("reference") or "").strip()
 
     if not source_id or not dest_id or not material_id:
         return JsonResponse(
@@ -339,20 +400,23 @@ def transfer_create(request):
             status=400,
         )
 
-    if quantity <= 0:
-        return JsonResponse(
-            {"success": False, "error": "مقدار انتقال باید بیشتر از صفر باشد."},
-            status=400,
-        )
+    try:
+        quantity = _parse_decimal(data.get("quantity"), "مقدار انتقال", allow_zero=False)
+    except ValueError as exc:
+        return JsonResponse({"success": False, "error": str(exc)}, status=400)
 
-    source_wh = Warehouse.objects.filter(pk=source_id, restaurant=restaurant).first()
-    dest_wh = Warehouse.objects.filter(pk=dest_id, restaurant=restaurant).first()
-    mat = RawMaterial.objects.filter(pk=material_id, restaurant=restaurant).first()
+    source_wh = Warehouse.all_objects.filter(pk=source_id, restaurant=restaurant).first()
+    dest_wh = Warehouse.all_objects.filter(pk=dest_id, restaurant=restaurant).first()
+    mat = RawMaterial.all_objects.filter(pk=material_id, restaurant=restaurant).first()
 
     if not source_wh:
-        return JsonResponse({"success": False, "error": "انبار مبدأ یافت نشد."}, status=404)
+        return JsonResponse(
+            {"success": False, "error": "انبار مبدأ یافت نشد."}, status=404
+        )
     if not dest_wh:
-        return JsonResponse({"success": False, "error": "انبار مقصد یافت نشد."}, status=404)
+        return JsonResponse(
+            {"success": False, "error": "انبار مقصد یافت نشد."}, status=404
+        )
     if not mat:
         return JsonResponse({"success": False, "error": "کالا یافت نشد."}, status=404)
 
@@ -381,13 +445,11 @@ def transfer_list(request):
     """لیست انتقال‌ها"""
     restaurant = _resolve_restaurant(request)
     if not restaurant:
-        return JsonResponse({"success": False, "error": "رستوران مشخص نشده."}, status=400)
+        return _no_restaurant()
 
-    limit = int(request.GET.get("limit", 100))
+    limit = _parse_int(request.GET.get("limit"), default=100)
     warehouse_id = request.GET.get("warehouse_id")
     material_id = request.GET.get("raw_material_id")
-
-    from django.db.models import Q
 
     qs = StockTransfer.objects.select_related(
         "source_warehouse", "destination_warehouse", "raw_material", "created_by"
@@ -395,7 +457,8 @@ def transfer_list(request):
 
     if warehouse_id:
         qs = qs.filter(
-            Q(source_warehouse_id=warehouse_id) | Q(destination_warehouse_id=warehouse_id)
+            Q(source_warehouse_id=warehouse_id)
+            | Q(destination_warehouse_id=warehouse_id)
         )
     if material_id:
         qs = qs.filter(raw_material_id=material_id)
@@ -427,17 +490,23 @@ def transfer_list(request):
 def transfer_detail(request):
     """جزئیات یک انتقال"""
     restaurant = _resolve_restaurant(request)
-    pk = request.GET.get("id")
+    if not restaurant:
+        return _no_restaurant()
 
+    pk = request.GET.get("id")
     if not pk:
-        return JsonResponse({"success": False, "error": "شناسه ارسال نشد."}, status=400)
+        return JsonResponse(
+            {"success": False, "error": "شناسه ارسال نشد."}, status=400
+        )
 
     t = StockTransfer.objects.select_related(
         "source_warehouse", "destination_warehouse", "raw_material", "created_by"
     ).filter(pk=pk, restaurant=restaurant).first()
 
     if not t:
-        return JsonResponse({"success": False, "error": "انتقال یافت نشد."}, status=404)
+        return JsonResponse(
+            {"success": False, "error": "انتقال یافت نشد."}, status=404
+        )
 
     return JsonResponse({
         "success": True,
@@ -454,7 +523,9 @@ def transfer_detail(request):
             "notes": t.notes or "",
             "user": t.created_by.get_full_name() if t.created_by else "",
             "created_at": t.created_at.strftime("%Y/%m/%d %H:%M"),
-            "completed_at": t.completed_at.strftime("%Y/%m/%d %H:%M") if t.completed_at else "",
+            "completed_at": (
+                t.completed_at.strftime("%Y/%m/%d %H:%M") if t.completed_at else ""
+            ),
         },
     })
 
@@ -466,82 +537,132 @@ def transfer_detail(request):
 
 @api_view(["POST"])
 @permission_classes([InventoryPerm])
+@transaction.atomic
 def receiving_create(request):
-    """ثبت ورود کالا / تحویل بار"""
+    """
+    ثبت ورود کالا / تحویل بار.
+
+    ★ کل عملیات atomic است — یا همه اقلام ثبت می‌شوند یا هیچ.
+    ★ یک سند Receiving مشترک برای همه اقلام ساخته می‌شود.
+    """
     restaurant = _resolve_restaurant(request)
     if not restaurant:
-        return JsonResponse({"success": False, "error": "رستوران مشخص نشده."}, status=400)
+        return _no_restaurant()
 
     data = request.data
     warehouse_id = data.get("warehouse_id")
     items = data.get("items", [])
     purchase_invoice_id = data.get("purchase_invoice_id")
     supplier_id = data.get("supplier_id")
-    notes = data.get("notes", "").strip()
+    notes = (data.get("notes") or "").strip()
 
     if not warehouse_id:
-        return JsonResponse({"success": False, "error": "انبار مقصد الزامی است."}, status=400)
+        return JsonResponse(
+            {"success": False, "error": "انبار مقصد الزامی است."},
+            status=400,
+        )
     if not items:
-        return JsonResponse({"success": False, "error": "حداقل یک کالا ارسال کنید."}, status=400)
+        return JsonResponse(
+            {"success": False, "error": "حداقل یک کالا ارسال کنید."},
+            status=400,
+        )
 
-    warehouse = Warehouse.objects.filter(pk=warehouse_id, restaurant=restaurant).first()
+    warehouse = Warehouse.all_objects.filter(
+        pk=warehouse_id, restaurant=restaurant
+    ).first()
     if not warehouse:
         return JsonResponse({"success": False, "error": "انبار یافت نشد."}, status=404)
 
     supplier = None
     if supplier_id:
-        supplier = Supplier.objects.filter(pk=supplier_id, restaurant=restaurant).first()
+        supplier = Supplier.all_objects.filter(
+            pk=supplier_id, restaurant=restaurant
+        ).first()
 
     purchase_invoice = None
     if purchase_invoice_id:
-        purchase_invoice = PurchaseInvoice.objects.filter(
+        purchase_invoice = PurchaseInvoice.all_objects.filter(
             pk=purchase_invoice_id, restaurant=restaurant
         ).first()
 
-    results = []
-    total_amount = 0
-
-    for item in items:
+    # ── مرحله ۱: اعتبارسنجی همه اقلام قبل از هر تغییر ──
+    validated = []
+    for idx, item in enumerate(items, start=1):
         material_id = item.get("raw_material_id")
-        quantity = float(item.get("quantity", 0))
-        unit_price = float(item.get("unit_price", 0))
 
-        if not material_id or quantity <= 0:
-            continue
-
-        mat = RawMaterial.objects.filter(pk=material_id, restaurant=restaurant).first()
-        if not mat:
-            results.append({
-                "material_id": material_id,
-                "success": False,
-                "error": "کالا یافت نشد.",
-            })
-            continue
+        if not material_id:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": f"ردیف {idx}: شناسه کالا الزامی است.",
+                },
+                status=400,
+            )
 
         try:
-            result = receive_stock(
-                restaurant=restaurant,
-                warehouse=warehouse,
-                raw_material=mat,
-                quantity=quantity,
-                unit_price=unit_price,
-                supplier=supplier,
-                purchase_invoice=purchase_invoice,
-                user=request.user if request.user.is_authenticated else None,
-                notes=notes,
+            quantity = _parse_decimal(
+                item.get("quantity"), f"ردیف {idx}: مقدار", allow_zero=False
             )
-            results.append(result)
-            total_amount += quantity * unit_price
+            unit_price = _parse_decimal(
+                item.get("unit_price", 0), f"ردیف {idx}: قیمت واحد"
+            )
         except ValueError as exc:
-            results.append({
-                "material_id": material_id,
-                "success": False,
-                "error": str(exc),
-            })
+            return JsonResponse(
+                {"success": False, "error": str(exc)},
+                status=400,
+            )
+
+        if unit_price < 0:
+            return JsonResponse(
+                {"success": False, "error": f"ردیف {idx}: قیمت واحد نمی‌تواند منفی باشد."},
+                status=400,
+            )
+
+        mat = RawMaterial.all_objects.filter(
+            pk=material_id, restaurant=restaurant
+        ).first()
+        if not mat:
+            return JsonResponse(
+                {"success": False, "error": f"ردیف {idx}: کالا یافت نشد."},
+                status=404,
+            )
+
+        validated.append({"material": mat, "quantity": quantity, "unit_price": unit_price})
+
+    # ── مرحله ۲: ساخت سند تحویل مشترک ──
+    receiving = Receiving.all_objects.create(
+        restaurant=restaurant,
+        warehouse=warehouse,
+        supplier=supplier,
+        purchase_invoice=purchase_invoice,
+        created_by=request.user if request.user.is_authenticated else None,
+        notes=notes,
+    )
+
+    # ── مرحله ۳: ثبت همه اقلام ──
+    results = []
+    total_amount = ZERO
+
+    for entry in validated:
+        result = receive_stock(
+            restaurant=restaurant,
+            warehouse=warehouse,
+            raw_material=entry["material"],
+            quantity=entry["quantity"],
+            unit_price=entry["unit_price"],
+            supplier=supplier,
+            purchase_invoice=purchase_invoice,
+            user=request.user if request.user.is_authenticated else None,
+            notes=notes,
+            receiving=receiving,
+        )
+        results.append(result)
+        total_amount += entry["quantity"] * entry["unit_price"]
 
     return JsonResponse({
         "success": True,
-        "msg": f"{len([r for r in results if r.get('success')])} کالا وارد انبار شد.",
+        "msg": f"{len(results)} کالا وارد انبار شد.",
+        "receiving_id": receiving.pk,
         "results": results,
         "total_amount": int(total_amount),
     })
@@ -553,27 +674,30 @@ def issue_create(request):
     """ثبت خروج کالا (مصرف / فروش)"""
     restaurant = _resolve_restaurant(request)
     if not restaurant:
-        return JsonResponse({"success": False, "error": "رستوران مشخص نشده."}, status=400)
+        return _no_restaurant()
 
     data = request.data
     warehouse_id = data.get("warehouse_id")
     material_id = data.get("raw_material_id")
-    quantity = float(data.get("quantity", 0))
     reason = data.get("reason", "consumption")
-    destination = data.get("destination", "").strip()
-    notes = data.get("notes", "").strip()
+    destination = (data.get("destination") or "").strip()
+    notes = (data.get("notes") or "").strip()
 
     if not warehouse_id or not material_id:
         return JsonResponse(
-            {"success": False, "error": "انبار و کالا الزامی است."}, status=400
-        )
-    if quantity <= 0:
-        return JsonResponse(
-            {"success": False, "error": "مقدار باید بیشتر از صفر باشد."}, status=400
+            {"success": False, "error": "انبار و کالا الزامی است."},
+            status=400,
         )
 
-    warehouse = Warehouse.objects.filter(pk=warehouse_id, restaurant=restaurant).first()
-    mat = RawMaterial.objects.filter(pk=material_id, restaurant=restaurant).first()
+    try:
+        quantity = _parse_decimal(data.get("quantity"), "مقدار", allow_zero=False)
+    except ValueError as exc:
+        return JsonResponse({"success": False, "error": str(exc)}, status=400)
+
+    warehouse = Warehouse.all_objects.filter(
+        pk=warehouse_id, restaurant=restaurant
+    ).first()
+    mat = RawMaterial.all_objects.filter(pk=material_id, restaurant=restaurant).first()
 
     if not warehouse:
         return JsonResponse({"success": False, "error": "انبار یافت نشد."}, status=404)
@@ -610,26 +734,29 @@ def waste_create(request):
     """ثبت ضایعات"""
     restaurant = _resolve_restaurant(request)
     if not restaurant:
-        return JsonResponse({"success": False, "error": "رستوران مشخص نشده."}, status=400)
+        return _no_restaurant()
 
     data = request.data
     warehouse_id = data.get("warehouse_id")
     material_id = data.get("raw_material_id")
-    quantity = float(data.get("quantity", 0))
     waste_reason = data.get("waste_reason", "other")
-    notes = data.get("notes", "").strip()
+    notes = (data.get("notes") or "").strip()
 
     if not warehouse_id or not material_id:
         return JsonResponse(
-            {"success": False, "error": "انبار و کالا الزامی است."}, status=400
-        )
-    if quantity <= 0:
-        return JsonResponse(
-            {"success": False, "error": "مقدار باید بیشتر از صفر باشد."}, status=400
+            {"success": False, "error": "انبار و کالا الزامی است."},
+            status=400,
         )
 
-    warehouse = Warehouse.objects.filter(pk=warehouse_id, restaurant=restaurant).first()
-    mat = RawMaterial.objects.filter(pk=material_id, restaurant=restaurant).first()
+    try:
+        quantity = _parse_decimal(data.get("quantity"), "مقدار", allow_zero=False)
+    except ValueError as exc:
+        return JsonResponse({"success": False, "error": str(exc)}, status=400)
+
+    warehouse = Warehouse.all_objects.filter(
+        pk=warehouse_id, restaurant=restaurant
+    ).first()
+    mat = RawMaterial.all_objects.filter(pk=material_id, restaurant=restaurant).first()
 
     if not warehouse:
         return JsonResponse({"success": False, "error": "انبار یافت نشد."}, status=404)
@@ -662,35 +789,84 @@ def waste_create(request):
 @api_view(["POST"])
 @permission_classes([InventoryPerm])
 def adjustment_create(request):
-    """اصلاح / شمارش موجودی"""
+    """
+    اصلاح / شمارش موجودی.
+
+    ورودی‌ها:
+      - new_quantity → مقدار مطلق شمارش‌شده
+      - quantity + adjustment_type → increase / decrease / set / count
+
+    ★ برای increase/decrease از delta استفاده می‌شود
+      تا محاسبه داخل قفل انجام شود (رفع race condition).
+    """
     restaurant = _resolve_restaurant(request)
     if not restaurant:
-        return JsonResponse({"success": False, "error": "رستوران مشخص نشده."}, status=400)
+        return _no_restaurant()
 
     data = request.data
     warehouse_id = data.get("warehouse_id")
     material_id = data.get("raw_material_id")
-    new_quantity = float(data.get("new_quantity", -1))
     adjustment_type = data.get("adjustment_type", "count")
-    reason = data.get("reason", "").strip()
-    notes = data.get("notes", "").strip()
+    reason = (data.get("reason") or "").strip()
+    notes = (data.get("notes") or "").strip()
 
     if not warehouse_id or not material_id:
         return JsonResponse(
-            {"success": False, "error": "انبار و کالا الزامی است."}, status=400
-        )
-    if new_quantity < 0:
-        return JsonResponse(
-            {"success": False, "error": "موجودی جدید نمی‌تواند منفی باشد."}, status=400
+            {"success": False, "error": "انبار و کالا الزامی است."},
+            status=400,
         )
 
-    warehouse = Warehouse.objects.filter(pk=warehouse_id, restaurant=restaurant).first()
-    mat = RawMaterial.objects.filter(pk=material_id, restaurant=restaurant).first()
+    warehouse = Warehouse.all_objects.filter(
+        pk=warehouse_id, restaurant=restaurant
+    ).first()
+    mat = RawMaterial.all_objects.filter(pk=material_id, restaurant=restaurant).first()
 
     if not warehouse:
         return JsonResponse({"success": False, "error": "انبار یافت نشد."}, status=404)
     if not mat:
         return JsonResponse({"success": False, "error": "کالا یافت نشد."}, status=404)
+
+    # ── تشخیص حالت ورودی ──
+    new_quantity_raw = data.get("new_quantity")
+    quantity_raw = data.get("quantity")
+
+    new_quantity = None
+    delta = None
+
+    if new_quantity_raw is not None:
+        try:
+            new_quantity = _parse_decimal(new_quantity_raw, "موجودی جدید")
+        except ValueError as exc:
+            return JsonResponse({"success": False, "error": str(exc)}, status=400)
+
+        if new_quantity < 0:
+            return JsonResponse(
+                {"success": False, "error": "موجودی جدید نمی‌تواند منفی باشد."},
+                status=400,
+            )
+
+    elif quantity_raw is not None:
+        try:
+            quantity_val = _parse_decimal(quantity_raw, "مقدار")
+        except ValueError as exc:
+            return JsonResponse({"success": False, "error": str(exc)}, status=400)
+
+        if adjustment_type == "increase":
+            delta = abs(quantity_val)
+        elif adjustment_type == "decrease":
+            delta = -abs(quantity_val)
+        elif adjustment_type in ("set", "count"):
+            new_quantity = quantity_val
+        else:
+            return JsonResponse(
+                {"success": False, "error": "نوع اصلاح نامعتبر است."},
+                status=400,
+            )
+    else:
+        return JsonResponse(
+            {"success": False, "error": "مقدار الزامی است."},
+            status=400,
+        )
 
     try:
         result = adjust_stock(
@@ -698,6 +874,7 @@ def adjustment_create(request):
             warehouse=warehouse,
             raw_material=mat,
             new_quantity=new_quantity,
+            delta=delta,
             adjustment_type=adjustment_type,
             reason=reason,
             user=request.user if request.user.is_authenticated else None,
@@ -722,12 +899,14 @@ def purchase_list(request):
     """لیست خرید — کالاهای نیازمند خرید"""
     restaurant = _resolve_restaurant(request)
     if not restaurant:
-        return JsonResponse({"success": False, "error": "رستوران مشخص نشده."}, status=400)
+        return _no_restaurant()
 
     warehouse_id = request.GET.get("warehouse_id")
     warehouse = None
     if warehouse_id:
-        warehouse = Warehouse.objects.filter(pk=warehouse_id, restaurant=restaurant).first()
+        warehouse = Warehouse.all_objects.filter(
+            pk=warehouse_id, restaurant=restaurant
+        ).first()
 
     items = get_purchase_list(restaurant, warehouse)
 
@@ -739,23 +918,35 @@ def purchase_list(request):
 def purchase_list_add(request):
     """افزودن دستی آیتم به لیست خرید"""
     restaurant = _resolve_restaurant(request)
-    data = request.data
+    if not restaurant:
+        return _no_restaurant()
 
+    data = request.data
     material_id = data.get("raw_material_id")
-    suggested_quantity = float(data.get("suggested_quantity", 0))
 
     if not material_id:
-        return JsonResponse({"success": False, "error": "شناسه کالا ارسال نشد."}, status=400)
+        return JsonResponse(
+            {"success": False, "error": "شناسه کالا ارسال نشد."},
+            status=400,
+        )
 
-    mat = RawMaterial.objects.filter(pk=material_id, restaurant=restaurant).first()
+    mat = RawMaterial.all_objects.filter(pk=material_id, restaurant=restaurant).first()
     if not mat:
         return JsonResponse({"success": False, "error": "کالا یافت نشد."}, status=404)
+
+    try:
+        suggested_quantity = _parse_decimal(
+            data.get("suggested_quantity", 0), "مقدار پیشنهادی"
+        )
+    except ValueError as exc:
+        return JsonResponse({"success": False, "error": str(exc)}, status=400)
 
     try:
         result = add_to_purchase_list(
             restaurant=restaurant,
             raw_material=mat,
             suggested_quantity=suggested_quantity,
+            user=request.user if request.user.is_authenticated else None,
         )
         return JsonResponse(result)
     except Exception as exc:
@@ -768,14 +959,17 @@ def purchase_list_add(request):
 def purchase_list_status(request):
     """بروزرسانی وضعیت آیتم لیست خرید"""
     restaurant = _resolve_restaurant(request)
-    data = request.data
+    if not restaurant:
+        return _no_restaurant()
 
+    data = request.data
     item_id = data.get("item_id")
     status = data.get("status")
 
     if not item_id or not status:
         return JsonResponse(
-            {"success": False, "error": "شناسه و وضعیت الزامی است."}, status=400
+            {"success": False, "error": "شناسه و وضعیت الزامی است."},
+            status=400,
         )
 
     try:
@@ -799,24 +993,27 @@ def item_movement_report(request):
     """گردش کالا — Traceability"""
     restaurant = _resolve_restaurant(request)
     if not restaurant:
-        return JsonResponse({"success": False, "error": "رستوران مشخص نشده."}, status=400)
+        return _no_restaurant()
 
     material_id = request.GET.get("raw_material_id")
     warehouse_id = request.GET.get("warehouse_id")
-    limit = int(request.GET.get("limit", 100))
+    limit = _parse_int(request.GET.get("limit"), default=100)
 
     if not material_id:
         return JsonResponse(
-            {"success": False, "error": "شناسه کالا الزامی است."}, status=400
+            {"success": False, "error": "شناسه کالا الزامی است."},
+            status=400,
         )
 
-    mat = RawMaterial.objects.filter(pk=material_id, restaurant=restaurant).first()
+    mat = RawMaterial.all_objects.filter(pk=material_id, restaurant=restaurant).first()
     if not mat:
         return JsonResponse({"success": False, "error": "کالا یافت نشد."}, status=404)
 
     warehouse = None
     if warehouse_id:
-        warehouse = Warehouse.objects.filter(pk=warehouse_id, restaurant=restaurant).first()
+        warehouse = Warehouse.all_objects.filter(
+            pk=warehouse_id, restaurant=restaurant
+        ).first()
 
     movements = get_item_movements(restaurant, mat, warehouse, limit)
     stock_by_wh = get_stock_by_warehouse(restaurant, mat)
@@ -828,7 +1025,7 @@ def item_movement_report(request):
             "name": mat.name,
             "unit": mat.unit,
             "unit_display": mat.get_unit_display(),
-            "price": int(mat.price),
+            "price": int(mat.price or 0),
         },
         "stock_by_warehouse": stock_by_wh,
         "total_stock": get_total_stock(restaurant, mat),
@@ -842,7 +1039,7 @@ def transfer_report(request):
     """گزارش گردش انتقال"""
     restaurant = _resolve_restaurant(request)
     if not restaurant:
-        return JsonResponse({"success": False, "error": "رستوران مشخص نشده."}, status=400)
+        return _no_restaurant()
 
     start_date = request.GET.get("start_date")
     end_date = request.GET.get("end_date")
@@ -862,12 +1059,14 @@ def stock_value_report(request):
     """ارزش موجودی انبار"""
     restaurant = _resolve_restaurant(request)
     if not restaurant:
-        return JsonResponse({"success": False, "error": "رستوران مشخص نشده."}, status=400)
+        return _no_restaurant()
 
     warehouse_id = request.GET.get("warehouse_id")
     warehouse = None
     if warehouse_id:
-        warehouse = Warehouse.objects.filter(pk=warehouse_id, restaurant=restaurant).first()
+        warehouse = Warehouse.all_objects.filter(
+            pk=warehouse_id, restaurant=restaurant
+        ).first()
 
     report = get_stock_value_report(restaurant, warehouse)
 
@@ -880,17 +1079,20 @@ def warehouse_movements(request):
     """گردش کالاهای یک انبار"""
     restaurant = _resolve_restaurant(request)
     if not restaurant:
-        return JsonResponse({"success": False, "error": "رستوران مشخص نشده."}, status=400)
+        return _no_restaurant()
 
     warehouse_id = request.GET.get("warehouse_id")
-    limit = int(request.GET.get("limit", 100))
+    limit = _parse_int(request.GET.get("limit"), default=100)
 
     if not warehouse_id:
         return JsonResponse(
-            {"success": False, "error": "شناسه انبار الزامی است."}, status=400
+            {"success": False, "error": "شناسه انبار الزامی است."},
+            status=400,
         )
 
-    warehouse = Warehouse.objects.filter(pk=warehouse_id, restaurant=restaurant).first()
+    warehouse = Warehouse.all_objects.filter(
+        pk=warehouse_id, restaurant=restaurant
+    ).first()
     if not warehouse:
         return JsonResponse({"success": False, "error": "انبار یافت نشد."}, status=404)
 
@@ -914,30 +1116,32 @@ def inventory_dashboard(request):
     """خلاصه وضعیت انبار"""
     restaurant = _resolve_restaurant(request)
     if not restaurant:
-        return JsonResponse({"success": False, "error": "رستوران مشخص نشده."}, status=400)
-
-    from django.db.models import Sum, Count, Q
-    from datetime import date
-
-    today = date.today()
+        return _no_restaurant()
 
     # تعداد کالاها
     total_materials = RawMaterial.objects.filter(restaurant=restaurant).count()
 
-    # موجودی کل (ارزش)
-    total_value = Decimal("0")
-    for s in StockItem.objects.select_related("raw_material").filter(restaurant=restaurant):
-        total_value += s.quantity * s.raw_material.price
+    # ارزش کل موجودی — یک کوئری
+    total_value = ZERO
+    for s in StockItem.objects.select_related("raw_material").filter(
+        restaurant=restaurant
+    ):
+        total_value += s.quantity * (s.raw_material.price or ZERO)
 
-    # کالاهای کمبود
+    # کالاهای کمبود — با یک کوئری batch (رفع N+1)
+    stock_totals = get_stock_totals(restaurant)
     low_stock = 0
-    for mat in RawMaterial.objects.filter(restaurant=restaurant, minimum_stock__gt=0):
-        total = get_total_stock(restaurant, mat)
-        if total < float(mat.minimum_stock):
+    for mat in RawMaterial.all_objects.filter(
+        restaurant=restaurant, minimum_stock__gt=0
+    ):
+        total = stock_totals.get(mat.pk, ZERO)
+        if total < (mat.minimum_stock or ZERO):
             low_stock += 1
 
     # تعداد انبارها
-    warehouse_count = Warehouse.objects.filter(restaurant=restaurant, is_active=True).count()
+    warehouse_count = Warehouse.objects.filter(
+        restaurant=restaurant, is_active=True
+    ).count()
 
     return JsonResponse({
         "success": True,

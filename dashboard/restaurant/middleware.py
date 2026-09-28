@@ -57,18 +57,26 @@ class JWTFromCookieMiddleware:
                     pass
         return self.get_response(request)
 
-
 class TenantJWTAuthentication(JWTAuthentication):
-    """
-    توکن در هدر Authorization: Bearer داخل DRF بررسی می‌شود، یعنی بعد از
-    middleware. این کلاس بعد از احراز هویت، رستوران کاربر را ست می‌کند تا
-    TenantManager در ViewSetها خالی برنگردد.
-    """
-
     def authenticate(self, request):
         result = super().authenticate(request)
         if result is not None:
-            restaurant = _restaurant_of(result[0])
+            user, validated_token = result
+            restaurant = _restaurant_of(user)
+
+            # fallback: خواندن restaurant_id از JWT claim
+            if not restaurant:
+                try:
+                    rid = validated_token.payload.get('restaurant_id')
+                    if rid:
+                        from .models import Restaurant
+                        restaurant = Restaurant.all_objects.filter(
+                            pk=rid, is_active=True
+                        ).first()
+                except Exception:
+                    pass
+
             if restaurant:
                 set_current_restaurant(restaurant)
+                request.restaurant = restaurant
         return result
