@@ -10,6 +10,7 @@ import RestaurantLayout from "@restaurant/layout/RestaurantLayout";
 import Dashboard from "@restaurant/dashboard";
 import Pos from "@restaurant/pos/Pos";
 import Dictionary from "@restaurant/dictionary/Dictionary";
+import InventoryPage from "@restaurant/inventory/InventoryPage";
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="pos" element={<Pos />} />
             <Route path="dictionary" element={<Dictionary />} />
+            <Route path="inventory" element={<InventoryPage />} />
           </Route>
 
           {/* بدون slug */}
@@ -52,6 +54,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="pos" element={<Pos />} />
             <Route path="dictionary" element={<Dictionary />} />
+            <Route path="inventory" element={<InventoryPage />} />
           </Route>
 
           <Route path="/super/login" element={<SuperLogin />} />

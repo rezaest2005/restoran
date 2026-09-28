@@ -9,12 +9,16 @@ import MenuSection from "./components/MenuSection";
 import InvoiceSection from "./components/InvoiceSection";
 import RecipeSection from "./components/RecipeSection";
 import ManagersSection from "./components/ManagersSection";
+import SupplierSection from "./components/SupplierSection";
+import WarehouseSection from "./components/WarehouseSection";
 
 const ALL_TABS = [
   { id: "menu", icon: "🍽️", labelKey: "dict.menu_tab", adminOnly: false },
   { id: "invoice", icon: "🧾", labelKey: "dict.invoice_tab", adminOnly: false },
   { id: "recipe", icon: "📖", labelKey: "dict.recipe_tab", adminOnly: false },
-  { id: "managers", icon: "👥", labelKey: "dict.managers_tab", adminOnly: true },  // ★ فقط مدیر/مالک
+  { id: "suppliers", icon: "🏭", label: "تأمین‌کنندگان", adminOnly: false },
+  { id: "warehouses", icon: "📦", label: "انبارها", adminOnly: false },
+  { id: "managers", icon: "👥", labelKey: "dict.managers_tab", adminOnly: true },
 ];
 
 export default function Dictionary() {
@@ -25,7 +29,6 @@ export default function Dictionary() {
   const [activeTab, setActiveTab] = useState("menu");
   const [toast, setToast] = useState({ open: false, message: "", type: "info" });
 
-  // ★ کاربر فعلی
   const currentUser = useMemo(() => {
     try { return JSON.parse(localStorage.getItem("user") || "{}"); }
     catch { return {}; }
@@ -35,7 +38,6 @@ export default function Dictionary() {
   const isSuperuser = !!currentUser.is_superuser;
   const isOwnerOrManager = isSuperuser || userRole === "owner" || userRole === "manager";
 
-  // ★ فیلتر تب‌ها بر اساس نقش
   const TABS = useMemo(() =>
     ALL_TABS.filter(tab => !tab.adminOnly || isOwnerOrManager),
     [isOwnerOrManager]
@@ -77,13 +79,14 @@ export default function Dictionary() {
         </Typography>
       </Box>
 
-      {/* تب‌ها — فقط تب‌های مجاز */}
+      {/* تب‌ها */}
       <Box sx={{
         display: "flex", gap: 0.5, mb: 3,
         bgcolor: C.glass, backdropFilter: "blur(16px)",
         border: `1px solid ${C.glassBorder}`,
         borderRadius: "14px", p: 0.5,
         width: "fit-content",
+        flexWrap: "wrap",
       }}>
         {TABS.map(tab => (
           <Button
@@ -99,7 +102,7 @@ export default function Dictionary() {
               "&:hover": { bgcolor: C.oliveSubtle },
             }}
           >
-            {tab.icon} {t(tab.labelKey)}
+            {tab.icon} {tab.label || t(tab.labelKey)}
           </Button>
         ))}
       </Box>
@@ -116,6 +119,8 @@ export default function Dictionary() {
         {activeTab === "menu" && <MenuSection C={C} isRtl={isRtl} isDark={isDark} showToast={showToast} />}
         {activeTab === "invoice" && <InvoiceSection C={C} />}
         {activeTab === "recipe" && <RecipeSection C={C} />}
+        {activeTab === "suppliers" && <SupplierSection C={C} isDark={isDark} showToast={showToast} />}
+        {activeTab === "warehouses" && <WarehouseSection C={C} isDark={isDark} showToast={showToast} />}
         {activeTab === "managers" && isOwnerOrManager && <ManagersSection C={C} isRtl={isRtl} isDark={isDark} showToast={showToast} />}
       </Box>
 
