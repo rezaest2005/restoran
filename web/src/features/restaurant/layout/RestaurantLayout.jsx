@@ -3,7 +3,7 @@ import { Link, Outlet, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Box, Typography, Button, IconButton, Drawer, Divider, Chip,
-  Snackbar, Alert, CircularProgress, useMediaQuery, useTheme,
+  Snackbar, Alert, useMediaQuery, useTheme,
 } from "@mui/material";
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
@@ -18,6 +18,13 @@ const NAV_SECTIONS = [
     serviceCode: null,
     items: [
       { icon: "💻", labelKey: "rest.nav_pos", basePath: "pos", serviceCode: null, permissionKey: null },
+    ],
+  },
+  {
+    titleKey: "rest.nav_inventory",
+    serviceCode: null,
+    items: [
+      { icon: "📦", label: "انبارداری", basePath: "inventory", serviceCode: null, permissionKey: null },
     ],
   },
   {
@@ -80,7 +87,6 @@ export default function RestaurantLayout() {
     return () => clearTimeout(tmr);
   }, []);
 
-  // ★ ساده: همیشه نشون بده
   const filteredSections = useMemo(() => NAV_SECTIONS, []);
 
   const C = useMemo(() => ({
@@ -160,14 +166,14 @@ export default function RestaurantLayout() {
           filteredSections.map((section, si) => (
             <Box key={si} sx={{ mb: 2 }}>
               <Typography sx={{ fontSize: 9, fontWeight: 700, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase", px: 1.5, mb: 0.5 }}>
-                {t(section.titleKey)}
+                {section.titleKey ? t(section.titleKey) : section.title || "انبارداری"}
               </Typography>
               {section.items.map((item, ii) => (
                 <Box key={ii} component={Link} to={`${prefix}/${item.basePath}`}
                   onClick={() => isMobile && setSidebarOpen(false)}
                   sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1, borderRadius: "10px", textDecoration: "none", color: C.sub, transition: "all 0.2s ease", "&:hover": { bgcolor: C.oliveSubtle, color: C.olive } }}>
                   <Typography sx={{ fontSize: 16, lineHeight: 1 }}>{item.icon}</Typography>
-                  <Typography sx={{ fontSize: 12.5, fontWeight: 500 }}>{t(item.labelKey)}</Typography>
+                  <Typography sx={{ fontSize: 12.5, fontWeight: 500 }}>{item.label ? item.label : t(item.labelKey)}</Typography>
                 </Box>
               ))}
             </Box>
