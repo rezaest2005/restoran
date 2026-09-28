@@ -24,9 +24,12 @@ class AdvancedBase(TestCase):
         cls.restaurant = Restaurant.objects.create(name='تست پیشرفته')
         set_current_restaurant(cls.restaurant)
 
+                # ── کاربر ──
         cls.user = User.objects.create_user(
-            username='admin_adv', password='AdvPass123!',
+            username='admin_inv', password='InvPass123!',
             is_staff=True, is_superuser=True)
+        cls.user.restaurant = cls.restaurant    
+        cls.user.save()                         
 
         # ── دسته‌بندی ──
         cls.cat_burger = Category.objects.create(
