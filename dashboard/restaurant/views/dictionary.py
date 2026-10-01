@@ -56,7 +56,7 @@ def _resolve_restaurant(request):
             set_current_restaurant(r)
             return r
 
-    # ★ جدید: خواندن از هدر X-Tenant-Slug
+    # ★ fallback: هدر X-Tenant-Slug
     slug = request.headers.get("X-Tenant-Slug", "")
     if slug:
         from ..tenancy import get_active_restaurant
@@ -65,25 +65,12 @@ def _resolve_restaurant(request):
             set_current_restaurant(r)
             return r
 
-    # ★ جدید: خواندن از هدر X-Restaurant-Id
-    rid = request.headers.get("X-Restaurant-Id", "")
-    if rid:
-        try:
-            from ..models import Restaurant
-            r = Restaurant.objects.get(id=int(rid))
-            set_current_restaurant(r)
-            return r
-        except Exception:
-            pass
-
-    # ★ جدید: خواندن از query string
-    slug = request.GET.get("tenant_slug", "")
-    if slug:
-        from ..tenancy import get_active_restaurant
-        r = get_active_restaurant(slug)
-        if r:
-            set_current_restaurant(r)
-            return r
+    # ★ fallback: رستوران پیش‌فرض (همیشه کار کنه)
+    from ..models import Restaurant
+    r = Restaurant.objects.filter(is_active=True).first()
+    if r:
+        set_current_restaurant(r)
+        return r
 
     return None
 
