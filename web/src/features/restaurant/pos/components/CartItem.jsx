@@ -1,73 +1,179 @@
-import { Box, Typography, IconButton } from "@mui/material";
-import { Add, Delete } from "@mui/icons-material";
+import { memo } from "react";
+import { Box, Typography, IconButton, Chip } from "@mui/material";
 
-export default function CartItem({ item, onAdd, onRemove, categoryDiscounts, C, isRtl }) {
-  const catDiscount = categoryDiscounts?.[item.category] || 0;
-  const totalDiscount = (item.discount || 0) + catDiscount;
+// ★ محاسبه تخفیف دسته (دقیقاً مثل useCart)
+const isDiscountActive = (d) => {
+  if (!d || !d.amount || d.amount <= 0) return false;
+  if (!d.expiresAt) return true;
+  return Date.now() < d.expiresAt;
+};
+
+const computeDiscountAmount = (basePrice, discount) => {
+  if (!isDiscountActive(discount)) return 0;
+  if (discount.type === "percent") return (basePrice * discount.amount) / 100;
+  return discount.amount;
+};
+
+const getItemCategoryKeys = (item) =>
+  [item.category, item.category_name, item.category_name_en].filter(Boolean);
+
+function CartItem({ item, onAdd, onRemove, categoryDiscounts, C, isRtl }) {
+  // ★ تخفیف دسته — بررسی همه فیلدهای دسته
+  const catKeys = getItemCategoryKeys(item);
+  let catDiscountAmt = 0;
+  for (const key of catKeys) {
+    const d = categoryDiscounts?.[key];
+    if (isDiscountActive(d)) {
+      catDiscountAmt = computeDiscountAmount(item.price, d);
+      break;
+    }
+  }
+
+  // ★ تخفیف "همه"
+  const allDiscount = categoryDiscounts?.["all"];
+  const allDiscountAmt = isDiscountActive(allDiscount)
+    ? computeDiscountAmount(item.price, allDiscount)
+    : 0;
+
+  const itemDiscount = item.discount || 0;
+  const totalDiscount = itemDiscount + catDiscountAmt + allDiscountAmt;
   const effective = Math.max(0, item.price - totalDiscount);
 
   return (
-    <Box sx={{
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      p: 1.5,
-      mb: 1,
-      borderRadius: "12px",
-      bgcolor: C.glass,
-      border: `1px solid ${C.glassBorder}`,
-    }}>
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        gap: 1.2,
+        p: 1.2,
+        borderRadius: "10px",
+        border: `1px solid ${C.glassBorder}`,
+        bgcolor: C.glass,
+        mb: 1,
+      }}
+    >
+      {/* اسم */}
       <Box sx={{ flex: 1, minWidth: 0 }}>
-        <Typography sx={{
-          fontWeight: 600,
-          fontSize: 13,
-          color: C.text,
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          fontFamily: "'Vazirmatn', sans-serif",
-        }}>
+        <Typography
+          sx={{
+            fontSize: 13,
+            fontWeight: 700,
+            color: C.text,
+            fontFamily: "'Vazirmatn', sans-serif",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
           {item.name}
         </Typography>
-        <Typography sx={{
-          fontSize: 11,
-          color: C.sub,
-          fontFamily: "'Vazirmatn', sans-serif",
-        }}>
-          {(effective * item.qty).toLocaleString()} {isRtl ? "تومان" : "T"}
-        </Typography>
+
+        {/* قیمت */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.3 }}>
+          {totalDiscount > 0 ? (
+            <>
+              <Typography
+                sx={{
+                  fontSize: 11,
+                  color: C.muted,
+                  textDecoration: "line-through",
+                }}
+              >
+                {item.price.toLocaleString()}
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: 13,
+                  fontWeight: 800,
+                  color: C.burgundy || C.danger,
+                }}
+              >
+                {effective.toLocaleString()}
+              </Typography>
+              <Chip
+                size="small"
+                label={`-${totalDiscount.toLocaleString()}`}
+                sx={{
+                  height: 16,
+                  fontSize: 8,
+                  fontWeight: 700,
+                  bgcolor: C.dangerBg,
+                  color: C.burgundy || C.danger,
+                  borderRadius: "4px",
+                }}
+              />
+            </>
+          ) : (
+            <Typography
+              sx={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: C.text,
+              }}
+            >
+              {item.price.toLocaleString()} تومان
+            </Typography>
+          )}
+        </Box>
       </Box>
 
+      {/* +/- */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
         <IconButton
           size="small"
           onClick={() => onRemove(item.cartId)}
-          sx={{ bgcolor: C.dangerBg, color: C.danger, width: 28, height: 28 }}
+          sx={{
+            width: 28,
+            height: 28,
+            border: `1px solid ${C.glassBorder}`,
+            color: C.sub,
+            fontSize: 14,
+            "&:hover": { bgcolor: C.dangerBg, color: C.danger },
+          }}
         >
-          {item.qty <= 1 ? (
-            <Delete sx={{ fontSize: 14 }} />
-          ) : (
-            <span style={{ fontSize: 14, fontWeight: 700 }}>−</span>
-          )}
+          −
         </IconButton>
-        <Typography sx={{
-          fontWeight: 700,
-          minWidth: 24,
-          textAlign: "center",
-          fontSize: 13,
-          color: C.text,
-          fontFamily: "'Vazirmatn', sans-serif",
-        }}>
+        <Typography
+          sx={{
+            fontSize: 14,
+            fontWeight: 800,
+            color: C.text,
+            minWidth: 24,
+            textAlign: "center",
+          }}
+        >
           {item.qty}
         </Typography>
         <IconButton
           size="small"
           onClick={() => onAdd(item)}
-          sx={{ bgcolor: C.oliveSubtle, color: C.olive, width: 28, height: 28 }}
+          sx={{
+            width: 28,
+            height: 28,
+            border: `1px solid ${C.olive}40`,
+            color: C.olive,
+            fontSize: 14,
+            "&:hover": { bgcolor: C.oliveSubtle },
+          }}
         >
-          <Add sx={{ fontSize: 14 }} />
+          +
         </IconButton>
       </Box>
+
+      {/* جمع کل این ردیف */}
+      <Typography
+        sx={{
+          fontSize: 13,
+          fontWeight: 800,
+          color: C.text,
+          minWidth: 70,
+          textAlign: isRtl ? "left" : "right",
+        }}
+      >
+        {(effective * item.qty).toLocaleString()}
+      </Typography>
     </Box>
   );
 }
+
+export default memo(CartItem);

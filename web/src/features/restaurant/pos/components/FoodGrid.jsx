@@ -2,19 +2,36 @@ import { useState, useCallback, useMemo } from "react";
 import { Box, Grid, Typography, CircularProgress } from "@mui/material";
 import FoodCard from "./FoodCard";
 
+// ★ توابع محاسبه تخفیف (دقیقاً مثل useCart)
+const isDiscountActive = (d) => {
+  if (!d || !d.amount || d.amount <= 0) return false;
+  if (!d.expiresAt) return true;
+  return Date.now() < d.expiresAt;
+};
+
+const computeDiscountAmount = (basePrice, discount) => {
+  if (!isDiscountActive(discount)) return 0;
+  if (discount.type === "percent")
+    return Math.round((basePrice * discount.amount) / 100);
+  return Math.min(discount.amount, basePrice);
+};
+
+const getItemCategoryKeys = (item) =>
+  [item.category, item.category_name, item.category_name_en].filter(Boolean);
+
 export default function FoodGrid({
-  foods = [], 
-  loading, 
-  onAdd, 
-  onRemove, 
-  C, 
-  showStock, 
-  isRtl, 
-  editMode, 
+  foods = [],
+  loading,
+  onAdd,
+  onRemove,
+  C,
+  showStock,
+  isRtl,
+  editMode,
   onSave,
-  categoryDiscounts, 
+  categoryDiscounts,
   onExitEdit,
-  cartItems = [] 
+  cartItems = [],
 }) {
   const [pinned, setPinned] = useState(new Set());
   const [order, setOrder] = useState(null);
@@ -22,7 +39,7 @@ export default function FoodGrid({
   const [overIdx, setOverIdx] = useState(null);
 
   const togglePin = useCallback((id) => {
-    setPinned(prev => {
+    setPinned((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -42,34 +59,39 @@ export default function FoodGrid({
     setOverIdx(idx);
   }, []);
 
-  const handleDrop = useCallback((e, dropIdx) => {
-    e.preventDefault();
-    setOverIdx(null);
-    if (dragIdx === null || dragIdx === dropIdx) { setDragIdx(null); return; }
-    setOrder(prev => {
-      const list = prev ? [...prev] : foods.map(f => f.id);
-      const [moved] = list.splice(dragIdx, 1);
-      list.splice(dropIdx, 0, moved);
-      return list;
-    });
-    setDragIdx(null);
-  }, [dragIdx, foods]);
+  const handleDrop = useCallback(
+    (e, dropIdx) => {
+      e.preventDefault();
+      setOverIdx(null);
+      if (dragIdx === null || dragIdx === dropIdx) {
+        setDragIdx(null);
+        return;
+      }
+      setOrder((prev) => {
+        const list = prev ? [...prev] : foods.map((f) => f.id);
+        const [moved] = list.splice(dragIdx, 1);
+        list.splice(dropIdx, 0, moved);
+        return list;
+      });
+      setDragIdx(null);
+    },
+    [dragIdx, foods],
+  );
 
   const handleDragEnd = useCallback(() => {
     setDragIdx(null);
     setOverIdx(null);
   }, []);
 
-  // ★ هوک‌ها حتما باید قبل از شرط‌های return باشند
   const sortedFoods = useMemo(() => {
     if (!foods || foods.length === 0) return [];
-    
+
     let list = [...foods];
-    
+
     if (order) {
-      const map = new Map(foods.map(f => [f.id, f]));
-      const orderedList = order.map(id => map.get(id)).filter(Boolean);
-      const missing = foods.filter(f => !order.includes(f.id));
+      const map = new Map(foods.map((f) => [f.id, f]));
+      const orderedList = order.map((id) => map.get(id)).filter(Boolean);
+      const missing = foods.filter((f) => !order.includes(f.id));
       list = [...orderedList, ...missing];
     }
 
@@ -84,7 +106,7 @@ export default function FoodGrid({
 
   const cartMap = useMemo(() => {
     const map = new Map();
-    cartItems.forEach(item => {
+    cartItems.forEach((item) => {
       if (item.id != null) {
         map.set(item.id, (map.get(item.id) || 0) + (item.qty || 1));
       }
@@ -92,7 +114,33 @@ export default function FoodGrid({
     return map;
   }, [cartItems]);
 
-  // ★ شرط‌های خروج (Early Returns) حالا بعد از هوک‌ها قرار گرفته‌اند
+  // ★ محاسبه تخفیف هر غذا (دسته + همه + بررسی انقضا)
+  const getFoodDiscount = useCallback(
+    (food) => {
+      const basePrice = food.price || 0;
+
+      // تخفیف دسته‌ای
+      const catKeys = getItemCategoryKeys(food);
+      let catDiscountAmt = 0;
+      for (const key of catKeys) {
+        const d = categoryDiscounts?.[key];
+        if (isDiscountActive(d)) {
+          catDiscountAmt = computeDiscountAmount(basePrice, d);
+          break;
+        }
+      }
+
+      // تخفیف "همه"
+      const allDiscount = categoryDiscounts?.["all"];
+      const allDiscountAmt = isDiscountActive(allDiscount)
+        ? computeDiscountAmount(basePrice, allDiscount)
+        : 0;
+
+      return catDiscountAmt + allDiscountAmt;
+    },
+    [categoryDiscounts],
+  );
+
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
@@ -104,7 +152,13 @@ export default function FoodGrid({
   if (!foods || foods.length === 0) {
     return (
       <Box sx={{ textAlign: "center", py: 6 }}>
-        <Typography sx={{ color: C.muted, fontSize: 14, fontFamily: "'Vazirmatn', sans-serif" }}>
+        <Typography
+          sx={{
+            color: C.muted,
+            fontSize: 14,
+            fontFamily: "'Vazirmatn', sans-serif",
+          }}
+        >
           {isRtl ? "غذایی یافت نشد" : "No food found"}
         </Typography>
       </Box>
@@ -114,8 +168,8 @@ export default function FoodGrid({
   return (
     <Grid container spacing={1.5}>
       {sortedFoods.map((food, i) => {
-        const catKey = food.category_name || food.category || "";
-        const catDiscount = categoryDiscounts?.[catKey] || null;
+        // ★ تخفیف محاسبه‌شده (دسته + همه + انقضا)
+        const totalCatDiscount = getFoodDiscount(food);
 
         return (
           <Grid
@@ -128,10 +182,14 @@ export default function FoodGrid({
             onDragEnd={handleDragEnd}
             sx={{
               transition: "all 0.2s ease",
-              transform: overIdx === i && dragIdx !== i ? "scale(1.02)" : "none",
+              transform:
+                overIdx === i && dragIdx !== i ? "scale(1.02)" : "none",
               opacity: dragIdx === i ? 0.35 : 1,
               borderRadius: "14px",
-              outline: overIdx === i && dragIdx !== i ? `2px dashed ${C.olive}55` : "none",
+              outline:
+                overIdx === i && dragIdx !== i
+                  ? `2px dashed ${C.olive}55`
+                  : "none",
               outlineOffset: 2,
             }}
           >
@@ -147,8 +205,8 @@ export default function FoodGrid({
               isPinned={pinned.has(food.id)}
               onPin={togglePin}
               onSave={onSave}
-              categoryDiscount={catDiscount?.amount || 0}
-              categoryDiscountType={catDiscount?.type || "fixed"}
+              categoryDiscount={totalCatDiscount}
+              categoryDiscountType="fixed"
               onExitEdit={onExitEdit}
               cartQty={cartMap.get(food.id) || 0}
             />
