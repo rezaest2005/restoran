@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo } from "react";
 import { Box, Grid, Typography, CircularProgress } from "@mui/material";
 import FoodCard from "./FoodCard";
 
-// ★ توابع محاسبه تخفیف (دقیقاً مثل useCart)
+// ★ توابع محاسبه تخفیف
 const isDiscountActive = (d) => {
   if (!d || !d.amount || d.amount <= 0) return false;
   if (!d.expiresAt) return true;
@@ -114,29 +114,26 @@ export default function FoodGrid({
     return map;
   }, [cartItems]);
 
-  // ★ محاسبه تخفیف هر غذا (دسته + همه + بررسی انقضا)
+  // ★ تابع جدید: برگرداندن نوع و مبلغ تخفیف
   const getFoodDiscount = useCallback(
     (food) => {
-      const basePrice = food.price || 0;
+      const catKeys = getItemCategoryKeys(food);
 
       // تخفیف دسته‌ای
-      const catKeys = getItemCategoryKeys(food);
-      let catDiscountAmt = 0;
       for (const key of catKeys) {
         const d = categoryDiscounts?.[key];
         if (isDiscountActive(d)) {
-          catDiscountAmt = computeDiscountAmount(basePrice, d);
-          break;
+          return { amount: d.amount, type: d.type || "fixed" };
         }
       }
 
       // تخفیف "همه"
       const allDiscount = categoryDiscounts?.["all"];
-      const allDiscountAmt = isDiscountActive(allDiscount)
-        ? computeDiscountAmount(basePrice, allDiscount)
-        : 0;
+      if (isDiscountActive(allDiscount)) {
+        return { amount: allDiscount.amount, type: allDiscount.type || "fixed" };
+      }
 
-      return catDiscountAmt + allDiscountAmt;
+      return { amount: 0, type: "fixed" };
     },
     [categoryDiscounts],
   );
@@ -168,8 +165,8 @@ export default function FoodGrid({
   return (
     <Grid container spacing={1.5}>
       {sortedFoods.map((food, i) => {
-        // ★ تخفیف محاسبه‌شده (دسته + همه + انقضا)
-        const totalCatDiscount = getFoodDiscount(food);
+        // ★ نوع و مبلغ تخفیف اصلی
+        const discountInfo = getFoodDiscount(food);
 
         return (
           <Grid
@@ -205,8 +202,8 @@ export default function FoodGrid({
               isPinned={pinned.has(food.id)}
               onPin={togglePin}
               onSave={onSave}
-              categoryDiscount={totalCatDiscount}
-              categoryDiscountType="fixed"
+              categoryDiscount={discountInfo.amount}
+              categoryDiscountType={discountInfo.type}
               onExitEdit={onExitEdit}
               cartQty={cartMap.get(food.id) || 0}
             />
