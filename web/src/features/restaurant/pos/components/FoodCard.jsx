@@ -40,7 +40,7 @@ function FoodCard({
   const [saving, setSaving] = useState(false);
   const initialStock = useRef(food.stock != null ? food.stock : "");
   const fileRef = useRef(null);
-  
+
   const outOfStock = stock !== "" && Number(stock) <= 0;
   const lowStock = stock !== "" && Number(stock) > 0 && Number(stock) <= 5;
 
@@ -162,10 +162,10 @@ function FoodCard({
   const handleAdd = (e) => {
     if (e) e.stopPropagation();
     if (outOfStock || editMode || typeof onAdd !== "function") return;
-    
+
     // مدیریت موجودی به صورت آپتیمیستیک (در صورت نیاز می‌توانید به سبد خرید منتقل کنید)
     if (stock !== "") setStock((s) => Math.max(0, Number(s) - 1));
-    
+
     onAdd({
       id: food.id,
       name: food.name,
@@ -185,14 +185,12 @@ function FoodCard({
     e.stopPropagation();
     handleAdd();
   };
-  
+
   const dec = (e) => {
     e.stopPropagation();
     if (cartQty > 0) {
       if (stock !== "" && initialStock.current !== "") {
-        setStock((s) =>
-          Math.min(Number(initialStock.current), Number(s) + 1),
-        );
+        setStock((s) => Math.min(Number(initialStock.current), Number(s) + 1));
       }
       if (typeof onRemove === "function") onRemove(food.id);
     }
@@ -363,8 +361,8 @@ function FoodCard({
                 if (hasCatDiscount) {
                   parts.push(
                     categoryDiscountType === "percent"
-                      ? `دسته ${categoryDiscount}%`
-                      : `دسته ${formatNum(catDiscountAmount)} ت`,
+                      ? `${categoryDiscount}%`
+                      : `-${formatNum(catDiscountAmount)} تومان`,
                   );
                 }
                 return parts.join(" + ") || "";
