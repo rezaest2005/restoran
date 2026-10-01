@@ -9,11 +9,10 @@ import { autoTranslate } from "../api";
 export default function MenuForm({ open, onClose, onSave, editItem, categories = [], C, isRtl, isDark }) {
   const { t } = useTranslation();
   const [name, setName] = useState("");
-  const [nameEn, setNameEn] = useState("");
+  const [nameEn, setNameEn] = useState("");          // ★ پشت صحنه — نمایش داده نمی‌شود
   const [categoryName, setCategoryName] = useState("");
-  const [categoryNameEn, setCategoryNameEn] = useState("");
+  const [categoryNameEn, setCategoryNameEn] = useState(""); // ★ پشت صحنه
   const [translating, setTranslating] = useState(false);
-  const [translatingCat, setTranslatingCat] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -30,20 +29,11 @@ export default function MenuForm({ open, onClose, onSave, editItem, categories =
         setCategoryNameEn("");
       }
       setTranslating(false);
-      setTranslatingCat(false);
       setSaving(false);
     }
   }, [open, editItem]);
 
-  // ── Auto-translate: Food name ──
-  const handleAutoTranslate = async () => {
-    if (!name.trim()) return;
-    setTranslating(true);
-    const result = await autoTranslate(name);
-    if (result) setNameEn(result);
-    setTranslating(false);
-  };
-
+  // ── ترجمه خودکار نام غذا (پشت صحنه) ──
   const handleNameBlur = async () => {
     if (name.trim() && !nameEn.trim()) {
       setTranslating(true);
@@ -53,34 +43,38 @@ export default function MenuForm({ open, onClose, onSave, editItem, categories =
     }
   };
 
-  // ── Auto-translate: Category name ──
-  const handleCategoryAutoTranslate = async () => {
-    if (!categoryName.trim()) return;
-    setTranslatingCat(true);
-    const result = await autoTranslate(categoryName);
-    if (result) setCategoryNameEn(result);
-    setTranslatingCat(false);
-  };
-
+  // ── ترجمه خودکار دسته‌بندی (پشت صحنه) ──
   const handleCategoryBlur = async () => {
     if (categoryName.trim() && !categoryNameEn.trim()) {
-      setTranslatingCat(true);
       const result = await autoTranslate(categoryName);
       if (result) setCategoryNameEn(result);
-      setTranslatingCat(false);
     }
   };
 
-  // ── Save ──
+  // ── ذخیره (نام انگلیسی خودکار همراه داده فرستاده می‌شود) ──
   const handleSave = async () => {
     if (!name.trim()) return;
     setSaving(true);
+
+    // ★ اگر ترجمه انجام نشده، الان انجام بده
+    let finalNameEn = nameEn;
+    if (!finalNameEn.trim()) {
+      setTranslating(true);
+      finalNameEn = (await autoTranslate(name)) || "";
+      setTranslating(false);
+    }
+
+    let finalCatEn = categoryNameEn;
+    if (categoryName.trim() && !finalCatEn.trim()) {
+      finalCatEn = (await autoTranslate(categoryName)) || "";
+    }
+
     await onSave({
       id: editItem?.id,
       name: name.trim(),
-      name_en: nameEn.trim(),
+      name_en: finalNameEn.trim(),
       category_name: categoryName.trim(),
-      category_name_en: categoryNameEn.trim(),
+      category_name_en: finalCatEn.trim(),
     });
     setSaving(false);
   };
@@ -146,43 +140,49 @@ export default function MenuForm({ open, onClose, onSave, editItem, categories =
             </Box>
           </Box>
 
-          {/* Form */}
+          {/* Form — فقط فارسی */}
           <Box sx={{ px: 3, pt: 3, pb: 2, display: "flex", flexDirection: "column", gap: 2.5 }}>
 
-            {/* Food Name (Farsi) — auto-translates to English on blur */}
+            {/* نام غذا */}
             <Box>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: textSub, mb: 0.8, textTransform: "uppercase" }}>
                 {t("dict.food_name")}
               </Typography>
               <TextField
-                value={name} onChange={(e) => setName(e.target.value)} onBlur={handleNameBlur}
+                value={name} onChange={(e) => setName(e.target.value)}
+                onBlur={handleNameBlur}
                 fullWidth autoFocus placeholder="مثلاً: پیتزا مارگاریتا"
                 sx={inputSx}
-                slotProps={{ input: { endAdornment: (
-                  <InputAdornment position="end">
-                    {translating ? <CircularProgress size={18} sx={{ color: olive }} /> : (
-                      <IconButton size="small" onClick={handleAutoTranslate} disabled={!name.trim()} sx={{ color: olive, "&:hover": { bgcolor: oliveBg } }}>
-                        <Typography sx={{ fontSize: 14 }}>🌐</Typography>
-                      </IconButton>
-                    )}
-                  </InputAdornment>
-                )}}}
+                slotProps={{ input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Typography sx={{ fontSize: 12, color: textMuted, fontWeight: 600 }}>
+                        {isRtl ? "فا" : "EN"}
+                      </Typography>
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      {translating ? (
+                        <CircularProgress size={16} sx={{ color: olive }} />
+                      ) : nameEn ? (
+                        <Typography sx={{ fontSize: 11, color: olive, fontWeight: 600 }}>
+                          ✓ {nameEn.length > 12 ? nameEn.slice(0, 12) + "..." : nameEn}
+                        </Typography>
+                      ) : null}
+                    </InputAdornment>
+                  ),
+                }}}
               />
+              {/* ★ نشان‌دهنده ترجمه خودکار */}
+              {nameEn && (
+                <Typography sx={{ fontSize: 11, color: olive, mt: 0.5, opacity: 0.7 }}>
+                  🌐 ترجمه شد: {nameEn}
+                </Typography>
+              )}
             </Box>
 
-            {/* Food Name (English) */}
-            <Box>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: textSub, mb: 0.8, textTransform: "uppercase" }}>
-                {t("dict.food_name_en")}
-              </Typography>
-              <TextField
-                value={nameEn} onChange={(e) => setNameEn(e.target.value)}
-                fullWidth placeholder="e.g. Margherita Pizza" sx={inputSx}
-                slotProps={{ input: { startAdornment: <InputAdornment position="start"><Typography sx={{ fontSize: 12, color: textMuted, fontWeight: 600 }}>EN</Typography></InputAdornment> }}}
-              />
-            </Box>
-
-            {/* Category (Farsi) — auto-translates to English on blur */}
+            {/* دسته‌بندی */}
             <Box>
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: textSub, mb: 0.8, textTransform: "uppercase" }}>
                 📁 {t("dict.category")}
@@ -193,16 +193,32 @@ export default function MenuForm({ open, onClose, onSave, editItem, categories =
                 onBlur={handleCategoryBlur}
                 placeholder="تایپ یا انتخاب دسته‌بندی..."
                 sx={inputSx}
-                slotProps={{ input: { endAdornment: (
-                  <InputAdornment position="end">
-                    {translatingCat ? <CircularProgress size={18} sx={{ color: olive }} /> : (
-                      <IconButton size="small" onClick={handleCategoryAutoTranslate} disabled={!categoryName.trim()} sx={{ color: olive, "&:hover": { bgcolor: oliveBg } }}>
-                        <Typography sx={{ fontSize: 14 }}>🌐</Typography>
-                      </IconButton>
-                    )}
-                  </InputAdornment>
-                )}}}
+                slotProps={{ input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Typography sx={{ fontSize: 12, color: textMuted, fontWeight: 600 }}>
+                        {isRtl ? "فا" : "EN"}
+                      </Typography>
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      {categoryNameEn && (
+                        <Typography sx={{ fontSize: 11, color: olive, fontWeight: 600 }}>
+                          ✓ {categoryNameEn.length > 12 ? categoryNameEn.slice(0, 12) + "..." : categoryNameEn}
+                        </Typography>
+                      )}
+                    </InputAdornment>
+                  ),
+                }}}
               />
+              {categoryNameEn && (
+                <Typography sx={{ fontSize: 11, color: olive, mt: 0.5, opacity: 0.7 }}>
+                  🌐 ترجمه شد: {categoryNameEn}
+                </Typography>
+              )}
+
+              {/* دسته‌بندی‌های موجود */}
               {categories.length > 0 && (
                 <Box sx={{ display: "flex", gap: 0.8, mt: 1.5, flexWrap: "wrap" }}>
                   {categories.map(cat => (
@@ -224,20 +240,6 @@ export default function MenuForm({ open, onClose, onSave, editItem, categories =
               )}
             </Box>
 
-            {/* Category (English) */}
-            <Box>
-              <Typography sx={{ fontSize: 12, fontWeight: 700, color: textSub, mb: 0.8, textTransform: "uppercase" }}>
-                📁 {t("dict.category")} (EN)
-              </Typography>
-              <TextField
-                fullWidth value={categoryNameEn}
-                onChange={(e) => setCategoryNameEn(e.target.value)}
-                placeholder="e.g. Pizza"
-                sx={inputSx}
-                slotProps={{ input: { startAdornment: <InputAdornment position="start"><Typography sx={{ fontSize: 12, color: textMuted, fontWeight: 600 }}>EN</Typography></InputAdornment> }}}
-              />
-            </Box>
-
           </Box>
 
           {/* Buttons */}
@@ -245,8 +247,8 @@ export default function MenuForm({ open, onClose, onSave, editItem, categories =
             <Button onClick={onClose} fullWidth sx={{ borderRadius: "14px", fontSize: 14, fontWeight: 600, color: textSub, textTransform: "none", py: 1.3, border: "1.5px solid " + borderColor, "&:hover": { bgcolor: oliveBg } }}>
               {t("dict.cancel")}
             </Button>
-            <Button onClick={handleSave} disabled={!name.trim() || saving} fullWidth sx={{ borderRadius: "14px", fontSize: 14, fontWeight: 700, textTransform: "none", py: 1.3, color: "#fff", background: "linear-gradient(135deg, " + olive + ", #556b2f)", boxShadow: "0 6px 24px " + olive + "30", "&:hover": { transform: "translateY(-2px)" }, "&.Mui-disabled": { bgcolor: textMuted, color: textSub } }}>
-              {saving ? <CircularProgress size={20} sx={{ color: "#fff" }} /> : t("dict.btn_save")}
+            <Button onClick={handleSave} disabled={!name.trim() || saving || translating} fullWidth sx={{ borderRadius: "14px", fontSize: 14, fontWeight: 700, textTransform: "none", py: 1.3, color: "#fff", background: "linear-gradient(135deg, " + olive + ", #556b2f)", boxShadow: "0 6px 24px " + olive + "30", "&:hover": { transform: "translateY(-2px)" }, "&.Mui-disabled": { bgcolor: textMuted, color: textSub } }}>
+              {saving ? <CircularProgress size={20} sx={{ color: "#fff" }} /> : translating ? "🌐 در حال ترجمه..." : t("dict.btn_save")}
             </Button>
           </Box>
         </Box>
