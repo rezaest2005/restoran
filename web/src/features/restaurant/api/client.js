@@ -1,17 +1,34 @@
 import axios from "axios";
 
+// ═══════════════════════════════════════════════════
+//  ★ ذخیره tenant slug از URL (یکبار هنگام لود)
+// ═══════════════════════════════════════════════════
+(function saveTenantSlug() {
+  const parts = window.location.pathname.split("/").filter(Boolean);
+  const slug = parts[0] || "";
+  if (slug && !["dashboard", "api", "super", "static", "media"].includes(slug)) {
+    localStorage.setItem("tenant_slug", slug);
+  }
+})();
+
 const client = axios.create({
-  baseURL: "",  // ★ خالی — از طریق nginx پروکسی میشه
+  baseURL: "",
   headers: { "Content-Type": "application/json" },
   withCredentials: true,
 });
 
-// ─── ارسال توکن ───────────────────────────────────
+// ─── ارسال توکن + CSRF + tenant ──────────────────
 client.interceptors.request.use((config) => {
   const token = localStorage.getItem("access_token");
   if (token) config.headers.Authorization = "Bearer " + token;
+
   const csrf = document.cookie.match(/csrftoken=([^;]+)/);
   if (csrf) config.headers["X-CSRFToken"] = csrf[1];
+
+  // ★ ارسال tenant slug به بک‌اند
+  const slug = localStorage.getItem("tenant_slug");
+  if (slug) config.headers["X-Tenant-Slug"] = slug;
+
   return config;
 });
 
@@ -53,10 +70,9 @@ client.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const res = await client.post(
-          "/api/auth/refresh/",
-          { refresh: refreshToken }
-        );
+        const res = await client.post("/api/auth/refresh/", {
+          refresh: refreshToken,
+        });
 
         const newAccess = res.data.access;
         const newRefresh = res.data.refresh || refreshToken;
@@ -109,10 +125,9 @@ setInterval(async () => {
   const refreshToken = localStorage.getItem("refresh_token");
   if (!refreshToken) return;
   try {
-    const res = await client.post(
-      "/api/auth/refresh/",
-      { refresh: refreshToken }
-    );
+    const res = await client.post("/api/auth/refresh/", {
+      refresh: refreshToken,
+    });
     localStorage.setItem("access_token", res.data.access);
     if (res.data.refresh) {
       localStorage.setItem("refresh_token", res.data.refresh);
@@ -121,15 +136,12 @@ setInterval(async () => {
 }, 20 * 60 * 1000);
 
 // ═══════════════════════════════════════════════════
-//  تشخیص تب اضافی (per-user) ★ جدید
+//  تشخیص تب اضافی (per-user)
 // ═══════════════════════════════════════════════════
 
 const CHANNEL_NAME = "restaurant_tabs";
-
-// ★ شناسه یکتای هر تب
 const TAB_ID = `tab_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-// ★ شناسه کاربر فعلی
 function getCurrentUserId() {
   try {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -139,16 +151,14 @@ function getCurrentUserId() {
   }
 }
 
-// ★ حداکثر تب مجاز per-user
 const MAX_TABS_PER_USER = 2;
 
 let channel = null;
-const knownTabs = new Map(); // { tabId: { userId, timestamp } }
+const knownTabs = new Map();
 
 try {
   channel = new BroadcastChannel(CHANNEL_NAME);
 
-  // اعلام باز شدن این تب
   channel.postMessage({
     type: "tab_open",
     tabId: TAB_ID,
@@ -160,12 +170,13 @@ try {
     const msg = e.data;
     const myUserId = getCurrentUserId();
 
-    // ── تب جدید باز شده ──
     if (msg.type === "tab_open" && msg.tabId !== TAB_ID) {
-      knownTabs.set(msg.tabId, { userId: msg.userId, timestamp: msg.timestamp });
+      knownTabs.set(msg.tabId, {
+        userId: msg.userId,
+        timestamp: msg.timestamp,
+      });
       cleanOldTabs();
 
-      // پاسخ: من هم اینجا هستم
       channel.postMessage({
         type: "tab_alive",
         tabId: TAB_ID,
@@ -173,11 +184,9 @@ try {
         timestamp: Date.now(),
       });
 
-      // فقط تب‌های همین کاربر را بشمار
       if (msg.userId !== myUserId) return;
 
       const activeCount = countUserTabs(myUserId);
-
       if (activeCount > MAX_TABS_PER_USER) {
         channel.postMessage({
           type: "kick",
@@ -187,28 +196,28 @@ try {
       }
     }
 
-    // ── تب موجود اعلام حیات کرد ──
     if (msg.type === "tab_alive" && msg.tabId !== TAB_ID) {
-      knownTabs.set(msg.tabId, { userId: msg.userId, timestamp: msg.timestamp });
+      knownTabs.set(msg.tabId, {
+        userId: msg.userId,
+        timestamp: msg.timestamp,
+      });
     }
 
-    // ── تب بسته شد ──
     if (msg.type === "tab_close" && msg.tabId !== TAB_ID) {
       knownTabs.delete(msg.tabId);
     }
 
-    // ── kick دریافت شد ──
     if (msg.type === "kick" && msg.tabId === TAB_ID) {
       document.title = "⚠️ تب اضافی";
       alert(
-        "شما حداکثر " + MAX_TABS_PER_USER +
-        " تب باز دارید.\n\nلطفاً این تب را ببندید."
+        "شما حداکثر " +
+          MAX_TABS_PER_USER +
+          " تب باز دارید.\n\nلطفاً این تب را ببندید."
       );
       setTimeout(() => window.close(), 3000);
     }
   };
 
-  // ── بستن تب → اطلاع بقیه ──
   window.addEventListener("beforeunload", () => {
     channel.postMessage({
       type: "tab_close",
@@ -217,7 +226,6 @@ try {
     });
   });
 
-  // ── پاک‌سازی تب‌های قدیمی ──
   function cleanOldTabs() {
     const now = Date.now();
     for (const [id, info] of knownTabs.entries()) {
@@ -227,9 +235,8 @@ try {
     }
   }
 
-  // ── شمارش تب‌های فعال همان کاربر ──
   function countUserTabs(userId) {
-    let count = 1; // خودم
+    let count = 1;
     for (const [, info] of knownTabs.entries()) {
       if (info.userId === userId) count++;
     }
@@ -243,11 +250,9 @@ export default client;
 //  مدیریت کاربران
 // ═══════════════════════════════════════
 
-export const getUsers = () =>
-  client.get("/api/users/management/");
+export const getUsers = () => client.get("/api/users/management/");
 
-export const createUser = (data) =>
-  client.post("/api/users/create/", data);
+export const createUser = (data) => client.post("/api/users/create/", data);
 
 export const updateUserRole = (data) =>
   client.post("/api/users/update-role/", data);
@@ -258,11 +263,8 @@ export const toggleUserActive = (data) =>
 export const resetUserPassword = (data) =>
   client.post("/api/users/reset-password/", data);
 
-export const deleteUser = (data) =>
-  client.post("/api/users/delete/", data);
+export const deleteUser = (data) => client.post("/api/users/delete/", data);
 
-export const getUserTabs = () =>
-  client.get("/api/users/tabs/");
+export const getUserTabs = () => client.get("/api/users/tabs/");
 
-export const updateUserTabs = (data) =>
-  client.post("/api/users/tabs/", data);
+export const updateUserTabs = (data) => client.post("/api/users/tabs/", data);
