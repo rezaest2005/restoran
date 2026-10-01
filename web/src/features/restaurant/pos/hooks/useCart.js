@@ -16,17 +16,60 @@ const computeDiscountAmount = (basePrice, discount) => {
   return discount.amount;
 };
 
+// ★ بارگذاری تخفیف‌ها از localStorage + حذف منقضی‌شده‌ها
+const loadDiscounts = () => {
+  try {
+    const saved = localStorage.getItem("pos_category_discounts");
+    if (!saved) return {};
+    const parsed = JSON.parse(saved);
+    const now = Date.now();
+    const clean = {};
+    for (const [key, d] of Object.entries(parsed)) {
+      if (!d.expiresAt || now < d.expiresAt) {
+        clean[key] = d;
+      }
+    }
+    return clean;
+  } catch {
+    return {};
+  }
+};
+
 export default function useCart() {
   const [cart, setCart] = useState([]);
-  // ★ ساختار هر مقدار: { type: "fixed" | "percent", amount: number, expiresAt: number|null }
-  // ★ کلید "all" یعنی تخفیف روی همه‌ی محصولات، صرف‌نظر از دسته
-  const [categoryDiscounts, setCategoryDiscounts] = useState({});
 
-  // ★ هر ۳۰ ثانیه یک‌بار re-render اجباری تا وقتی تخفیفی منقضی شد،
-  //   قیمت‌ها خودکار به‌روز بشن حتی بدون اکشن کاربر
+  // ★ بارگذاری اولیه از localStorage
+  const [categoryDiscounts, setCategoryDiscounts] = useState(loadDiscounts);
+
+  // ★ هر ۳۰ ثانیه یک‌بار re-render اجباری
   const [, forceTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => forceTick(t => t + 1), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  // ★ ذخیره خودکار تخفیف‌ها در localStorage
+  useEffect(() => {
+    localStorage.setItem("pos_category_discounts", JSON.stringify(categoryDiscounts));
+  }, [categoryDiscounts]);
+
+  // ★ حذف خودکار تخفیف‌های منقضی شده (هر دقیقه)
+  useEffect(() => {
+    const id = setInterval(() => {
+      setCategoryDiscounts(prev => {
+        const now = Date.now();
+        const clean = {};
+        let changed = false;
+        for (const [key, d] of Object.entries(prev)) {
+          if (!d.expiresAt || now < d.expiresAt) {
+            clean[key] = d;
+          } else {
+            changed = true;
+          }
+        }
+        return changed ? clean : prev;
+      });
+    }, 60000);
     return () => clearInterval(id);
   }, []);
 
@@ -94,13 +137,12 @@ export default function useCart() {
     });
   }, []);
 
-  // ★ رفع باگ اصلی: چون فیلد دسته‌بندی غذا بسته به زبان category_name یا
-  //   category_name_en هست (نه category)، هر سه احتمال رو چک می‌کنیم
+  // ★ بررسی همه فیلدهای دسته
   const getItemCategoryKeys = (item) => (
     [item.category, item.category_name, item.category_name_en].filter(Boolean)
   );
 
-  // ★ مجموع تخفیف قابل‌اعمال روی یک آیتم: تخفیف خودِ آیتم + تخفیف دسته‌اش + تخفیف "همه"
+  // ★ مجموع تخفیف قابل‌اعمال روی یک آیتم
   const getItemDiscountAmount = useCallback((item) => {
     const base = item.price;
     const itemLevelDiscount = item.discount || 0;
