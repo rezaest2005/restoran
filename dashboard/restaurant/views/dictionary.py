@@ -43,16 +43,48 @@ def _resolve_restaurant(request):
     r = get_current_restaurant()
     if r:
         return r
+
     r = get_restaurant_from_request(request)
     if r:
         set_current_restaurant(r)
         return r
+
     # ★ fallback: user.restaurant
     if hasattr(request, "user") and request.user.is_authenticated:
         r = getattr(request.user, "restaurant", None)
         if r:
             set_current_restaurant(r)
             return r
+
+    # ★ جدید: خواندن از هدر X-Tenant-Slug
+    slug = request.headers.get("X-Tenant-Slug", "")
+    if slug:
+        from ..tenancy import get_active_restaurant
+        r = get_active_restaurant(slug)
+        if r:
+            set_current_restaurant(r)
+            return r
+
+    # ★ جدید: خواندن از هدر X-Restaurant-Id
+    rid = request.headers.get("X-Restaurant-Id", "")
+    if rid:
+        try:
+            from ..models import Restaurant
+            r = Restaurant.objects.get(id=int(rid))
+            set_current_restaurant(r)
+            return r
+        except Exception:
+            pass
+
+    # ★ جدید: خواندن از query string
+    slug = request.GET.get("tenant_slug", "")
+    if slug:
+        from ..tenancy import get_active_restaurant
+        r = get_active_restaurant(slug)
+        if r:
+            set_current_restaurant(r)
+            return r
+
     return None
 
 
