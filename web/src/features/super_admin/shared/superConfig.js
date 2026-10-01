@@ -1,53 +1,238 @@
-// src/theme/superConfig.js
+// src/features/super_admin/shared/superConfig.js
+
+// ═══════════════════════════════════════
+//  نویگیشن
+// ═══════════════════════════════════════
+
 export const NAV_SECTIONS = [
-  { titleKey: "super.nav.management", items: [{ icon: "📊", labelKey: "super.nav.dashboard", path: "/super" }] },
-  { titleKey: "super.nav.restaurant", items: [
-    { icon: "🏠", labelKey: "super.nav.main_dashboard", path: "/dashboard" },
-    { icon: "📖", labelKey: "super.nav.dictionary", path: "/dashboard/dictionary" },
-    { icon: "🍽️", labelKey: "super.nav.food_menu", path: "/dashboard/foods" },
-    { icon: "💰", labelKey: "super.nav.pos", path: "/dashboard/pos" },
-    { icon: "📋", labelKey: "super.nav.orders", path: "/dashboard/orders" },
-  ]},
-  { titleKey: "super.nav.warehouse", items: [
-    { icon: "🧾", labelKey: "super.nav.purchase_invoice", path: "/dashboard/invoices/create" },
-    { icon: "🥕", labelKey: "super.nav.raw_materials", path: "/dashboard/raw-materials" },
-    { icon: "🥘", labelKey: "super.nav.semi_finished", path: "/dashboard/semi-finished" },
-    { icon: "📦", labelKey: "super.nav.ready_materials", path: "/dashboard/ready-materials" },
-    { icon: "📝", labelKey: "super.nav.usage_log", path: "/dashboard/usage-log" },
-    { icon: "📋", labelKey: "super.nav.recipes", path: "/dashboard/recipes" },
-    { icon: "👨‍🍳", labelKey: "super.nav.kitchen", path: "/dashboard/kitchen" },
-  ]},
-  { titleKey: "super.nav.customers", items: [
-    { icon: "🏆", labelKey: "super.nav.loyalty", path: "/dashboard/loyalty" },
-    { icon: "👥", labelKey: "super.nav.customer_list", path: "/dashboard/loyalty/customers" },
-    { icon: "🎟️", labelKey: "super.nav.coupons", path: "/dashboard/loyalty/coupons" },
-    { icon: "🎁", labelKey: "super.nav.rewards", path: "/dashboard/loyalty/rewards" },
-  ]},
+  {
+    titleKey: "super.nav.management",
+    items: [
+      { icon: "📊", labelKey: "super.nav.dashboard", path: "/super" },
+    ],
+  },
+  {
+    titleKey: "super.nav.restaurant",
+    items: [
+      { icon: "🏠", labelKey: "super.nav.main_dashboard", path: "/dashboard" },
+      { icon: "📖", labelKey: "super.nav.dictionary", path: "/dashboard/dictionary" },
+      { icon: "🍽️", labelKey: "super.nav.food_menu", path: "/dashboard/foods" },
+      { icon: "💰", labelKey: "super.nav.pos", path: "/dashboard/pos" },
+      { icon: "📋", labelKey: "super.nav.orders", path: "/dashboard/orders" },
+    ],
+  },
+  {
+    titleKey: "super.nav.warehouse",
+    items: [
+      { icon: "🧾", labelKey: "super.nav.purchase_invoice", path: "/dashboard/invoices/create" },
+      { icon: "🥕", labelKey: "super.nav.raw_materials", path: "/dashboard/raw-materials" },
+      { icon: "🥘", labelKey: "super.nav.semi_finished", path: "/dashboard/semi-finished" },
+      { icon: "📦", labelKey: "super.nav.ready_materials", path: "/dashboard/ready-materials" },
+      { icon: "📝", labelKey: "super.nav.usage_log", path: "/dashboard/usage-log" },
+      { icon: "📋", labelKey: "super.nav.recipes", path: "/dashboard/recipes" },
+      { icon: "👨‍🍳", labelKey: "super.nav.kitchen", path: "/dashboard/kitchen" },
+    ],
+  },
+  {
+    titleKey: "super.nav.customers",
+    items: [
+      { icon: "🏆", labelKey: "super.nav.loyalty", path: "/dashboard/loyalty" },
+      { icon: "👥", labelKey: "super.nav.customer_list", path: "/dashboard/loyalty/customers" },
+      { icon: "🎟️", labelKey: "super.nav.coupons", path: "/dashboard/loyalty/coupons" },
+      { icon: "🎁", labelKey: "super.nav.rewards", path: "/dashboard/loyalty/rewards" },
+    ],
+  },
 ];
+
+// ═══════════════════════════════════════
+//  نقش‌ها
+// ═══════════════════════════════════════
 
 export const ROLE_OPTIONS = [
-  { value: "owner", labelKey: "super.role.owner" }, { value: "manager", labelKey: "super.role.manager" },
-  { value: "cashier", labelKey: "super.role.cashier" }, { value: "kitchen", labelKey: "super.role.kitchen" },
-  { value: "warehouse", labelKey: "super.role.warehouse" }, { value: "customer", labelKey: "super.role.customer" },
+  { value: "owner", labelKey: "super.role.owner" },
+  { value: "manager", labelKey: "super.role.manager" },
+  { value: "cashier", labelKey: "super.role.cashier" },
+  { value: "kitchen", labelKey: "super.role.kitchen" },
+  { value: "warehouse", labelKey: "super.role.warehouse" },
+  { value: "customer", labelKey: "super.role.customer" },
+  { value: "other", labelKey: "سایر (سفارشی)" },
 ];
 
+// ═══════════════════════════════════════
+//  کدهای دسترسی + برچسب‌ها
+// ═══════════════════════════════════════
+
 export const ALL_PERM_CODES = [
-  'home', 'dictionary', 'foods', 'pos', 'orders', 'invoices',
-  'raw_materials', 'semi_finished', 'ready_materials', 'usage_log',
-  'recipes', 'kitchen', 'loyalty', 'loyalty_customers', 'loyalty_coupons',
-  'loyalty_rewards', 'loyalty_notifications', 'loyalty_register', 'users',
-  'warehouse', 'ready', 'reports'
+  // داشبورد
+  'home',
+  // دیکشنری و منو
+  'dictionary', 'foods', 'dictionary_menu', 'dictionary_suppliers', 'dictionary_warehouses',
+  // صندوق و سفارشات
+  'pos', 'pos_report', 'pos_settings', 'orders',
+  // آشپزخانه
+  'kitchen', 'kitchen_menu', 'kitchen_waste',
+  // انبار — موجود
+  'invoices', 'raw_materials', 'semi_finished', 'ready_materials', 'usage_log', 'recipes',
+  // انبار — جدید ★
+  'warehouse', 'inventory_warehouse', 'inventory_receiving', 'inventory_transfer',
+  'inventory_waste', 'inventory_adjustment', 'inventory_purchase_list', 'inventory_reports',
+  // باشگاه مشتریان
+  'loyalty', 'loyalty_customers', 'loyalty_coupons', 'loyalty_rewards',
+  'loyalty_notifications', 'loyalty_register',
+  // مدیریت
+  'users', 'reports', 'settings',
 ];
 
 export const PERM_LABELS = {
-  home: 'داشبورد', dictionary: 'دیکشنری', foods: 'غذا و منو', pos: 'صندوق فروش',
-  orders: 'سفارشات', invoices: 'فاکتورها', raw_materials: 'مواد اولیه',
-  semi_finished: 'نیمه‌آماده', ready_materials: 'مواد آماده', usage_log: 'لاگ مصرف',
-  recipes: 'رسپی‌ها', kitchen: 'آشپزخانه', loyalty: 'باشگاه مشتریان',
-  loyalty_customers: 'مشتریان', loyalty_coupons: 'کوپن‌ها', loyalty_rewards: 'جوایز',
-  loyalty_notifications: 'اعلان‌ها', loyalty_register: 'ثبت‌نام', users: 'مدیریت کاربران',
-  warehouse: 'انبار', ready: 'آماده', reports: 'گزارشات'
+  // داشبورد
+  home: 'داشبورد',
+  // دیکشنری و منو
+  dictionary: 'دیکشنری',
+  foods: 'غذا و منو',
+  dictionary_menu: 'منوی غذا',
+  dictionary_suppliers: 'تأمین‌کنندگان',
+  dictionary_warehouses: 'انبارها (دیکشنری)',
+  // صندوق و سفارشات
+  pos: 'صندوق فروش',
+  pos_report: 'گزارش روز صندوق',
+  pos_settings: 'تنظیمات صندوق',
+  orders: 'سفارشات',
+  // آشپزخانه
+  kitchen: 'آشپزخانه',
+  kitchen_menu: 'منوی آشپزخانه',
+  kitchen_waste: 'ضایعات آشپزخانه',
+  // انبار — موجود
+  invoices: 'فاکتورهای خرید',
+  raw_materials: 'مواد اولیه',
+  semi_finished: 'نیمه‌آماده',
+  ready_materials: 'مواد آماده',
+  usage_log: 'لاگ مصرف',
+  recipes: 'رسپی‌ها',
+  // انبار — جدید ★
+  warehouse: 'انبار',
+  inventory_warehouse: 'مدیریت انبارها',
+  inventory_receiving: 'تحویل بار',
+  inventory_transfer: 'انتقال بین انبارها',
+  inventory_waste: 'ضایعات انبار',
+  inventory_adjustment: 'اصلاح موجودی',
+  inventory_purchase_list: 'لیست خرید',
+  inventory_reports: 'گزارشات انبار',
+  // باشگاه مشتریان
+  loyalty: 'باشگاه مشتریان',
+  loyalty_customers: 'مشتریان',
+  loyalty_coupons: 'کوپن‌ها',
+  loyalty_rewards: 'جوایز',
+  loyalty_notifications: 'اعلان‌ها',
+  loyalty_register: 'ثبت‌نام',
+  // مدیریت
+  users: 'مدیریت کاربران',
+  reports: 'گزارشات کلی',
+  settings: 'تنظیمات',
 };
+
+// ═══════════════════════════════════════
+//  گروه‌بندی دسترسی‌ها (برای نمایش در UI)
+// ═══════════════════════════════════════
+
+export const PERM_GROUPS = {
+  "📊 داشبورد": {
+    icon: "📊",
+    codes: ["home"],
+  },
+  "📚 دیکشنری و منو": {
+    icon: "📚",
+    codes: ["dictionary", "foods", "dictionary_menu", "dictionary_suppliers", "dictionary_warehouses"],
+  },
+  "💳 صندوق و سفارشات": {
+    icon: "💳",
+    codes: ["pos", "pos_report", "pos_settings", "orders"],
+  },
+  "🍳 آشپزخانه": {
+    icon: "🍳",
+    codes: ["kitchen", "kitchen_menu", "kitchen_waste"],
+  },
+  "📦 انبار — مواد و رسپی": {
+    icon: "📦",
+    codes: ["invoices", "raw_materials", "semi_finished", "ready_materials", "usage_log", "recipes"],
+  },
+  "🏪 انبار — مدیریت و عملیات": {
+    icon: "🏪",
+    codes: ["warehouse", "inventory_warehouse", "inventory_receiving", "inventory_transfer",
+            "inventory_waste", "inventory_adjustment", "inventory_purchase_list", "inventory_reports"],
+  },
+  "🏆 باشگاه مشتریان": {
+    icon: "🏆",
+    codes: ["loyalty", "loyalty_customers", "loyalty_coupons", "loyalty_rewards",
+            "loyalty_notifications", "loyalty_register"],
+  },
+  "👥 مدیریت": {
+    icon: "👥",
+    codes: ["users", "reports", "settings"],
+  },
+};
+
+// ═══════════════════════════════════════
+//  پریست دسترسی‌ها per-role ★
+// ═══════════════════════════════════════
+
+export const ROLE_PERM_PRESETS = {
+  owner: {
+    label: "👑 مالک",
+    description: "دسترسی کامل",
+    perms: [...ALL_PERM_CODES],
+  },
+  manager: {
+    label: "👤 مدیر",
+    description: "همه به‌جز مدیریت کاربران",
+    perms: ALL_PERM_CODES.filter((c) => c !== "users"),
+  },
+  cashier: {
+    label: "💳 صندوقدار",
+    description: "صندوق، سفارشات، منو",
+    perms: [
+      "home", "dictionary", "foods", "dictionary_menu",
+      "pos", "pos_report", "orders", "reports",
+    ],
+  },
+  kitchen: {
+    label: "🍳 آشپزخانه",
+    description: "آشپزخانه، سفارشات، رسپی، ضایعات",
+    perms: [
+      "home", "dictionary_menu", "orders",
+      "kitchen", "kitchen_menu", "kitchen_waste",
+      "raw_materials", "semi_finished", "ready_materials",
+      "usage_log", "recipes", "inventory_waste",
+    ],
+  },
+  warehouse: {
+    label: "📦 انباردار",
+    description: "همه بخش‌های انبار + رسپی + گزارشات",
+    perms: [
+      "home",
+      "dictionary", "dictionary_suppliers", "dictionary_warehouses",
+      "invoices", "raw_materials", "semi_finished", "ready_materials",
+      "usage_log", "recipes",
+      "warehouse", "inventory_warehouse", "inventory_receiving",
+      "inventory_transfer", "inventory_waste", "inventory_adjustment",
+      "inventory_purchase_list", "inventory_reports",
+      "reports",
+    ],
+  },
+  customer: {
+    label: "🧑 مشتری",
+    description: "فقط مشاهده منو",
+    perms: ["home", "dictionary_menu", "foods"],
+  },
+  other: {
+    label: "📝 سایر (سفارشی)",
+    description: "نام شغل + دسترسی دلخواه",
+    perms: [],
+  },
+};
+
+// ═══════════════════════════════════════
+//  رنگ‌ها
+// ═══════════════════════════════════════
 
 export const getSuperColors = (isDark) => ({
   bg: isDark ? "#0B0A0B" : "#E4E8F0",

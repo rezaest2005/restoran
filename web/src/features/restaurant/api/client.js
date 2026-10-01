@@ -54,7 +54,7 @@ client.interceptors.response.use(
 
       try {
         const res = await client.post(
-          "/api/auth/refresh/",  // ★ نسبی
+          "/api/auth/refresh/",
           { refresh: refreshToken }
         );
 
@@ -91,7 +91,7 @@ function redirectToLogin() {
   localStorage.removeItem("user");
   localStorage.removeItem("db_auth");
   localStorage.setItem("__logout__", Date.now().toString());
-  window.location.href = "/dashboard/login";  // ★ درست شد
+  window.location.href = "/dashboard/login";
 }
 
 // ─── اگه یه تب دیگه logout کرد ──────────────────
@@ -99,7 +99,7 @@ window.addEventListener("storage", (e) => {
   if (e.key === "__logout__") {
     if (!redirecting) {
       redirecting = true;
-      window.location.href = "/dashboard/login";  // ★ درست شد
+      window.location.href = "/dashboard/login";
     }
   }
 });
@@ -110,7 +110,7 @@ setInterval(async () => {
   if (!refreshToken) return;
   try {
     const res = await client.post(
-      "/api/auth/refresh/",  // ★ نسبی
+      "/api/auth/refresh/",
       { refresh: refreshToken }
     );
     localStorage.setItem("access_token", res.data.access);
@@ -120,23 +120,121 @@ setInterval(async () => {
   } catch (_) {}
 }, 20 * 60 * 1000);
 
-// ─── تشخیص تب اضافی ─────────────────────────────
+// ═══════════════════════════════════════════════════
+//  تشخیص تب اضافی (per-user) ★ جدید
+// ═══════════════════════════════════════════════════
+
 const CHANNEL_NAME = "restaurant_tabs";
+
+// ★ شناسه یکتای هر تب
+const TAB_ID = `tab_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+// ★ شناسه کاربر فعلی
+function getCurrentUserId() {
+  try {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    return user.id || "anonymous";
+  } catch {
+    return "anonymous";
+  }
+}
+
+// ★ حداکثر تب مجاز per-user
+const MAX_TABS_PER_USER = 2;
+
 let channel = null;
+const knownTabs = new Map(); // { tabId: { userId, timestamp } }
 
 try {
   channel = new BroadcastChannel(CHANNEL_NAME);
-  channel.postMessage({ type: "new_tab", id: Date.now() });
+
+  // اعلام باز شدن این تب
+  channel.postMessage({
+    type: "tab_open",
+    tabId: TAB_ID,
+    userId: getCurrentUserId(),
+    timestamp: Date.now(),
+  });
 
   channel.onmessage = (e) => {
-    if (e.data.type === "new_tab") {
-      channel.postMessage({ type: "kick", id: e.data.id });
+    const msg = e.data;
+    const myUserId = getCurrentUserId();
+
+    // ── تب جدید باز شده ──
+    if (msg.type === "tab_open" && msg.tabId !== TAB_ID) {
+      knownTabs.set(msg.tabId, { userId: msg.userId, timestamp: msg.timestamp });
+      cleanOldTabs();
+
+      // پاسخ: من هم اینجا هستم
+      channel.postMessage({
+        type: "tab_alive",
+        tabId: TAB_ID,
+        userId: myUserId,
+        timestamp: Date.now(),
+      });
+
+      // فقط تب‌های همین کاربر را بشمار
+      if (msg.userId !== myUserId) return;
+
+      const activeCount = countUserTabs(myUserId);
+
+      if (activeCount > MAX_TABS_PER_USER) {
+        channel.postMessage({
+          type: "kick",
+          tabId: msg.tabId,
+          userId: msg.userId,
+        });
+      }
     }
-    if (e.data.type === "kick") {
+
+    // ── تب موجود اعلام حیات کرد ──
+    if (msg.type === "tab_alive" && msg.tabId !== TAB_ID) {
+      knownTabs.set(msg.tabId, { userId: msg.userId, timestamp: msg.timestamp });
+    }
+
+    // ── تب بسته شد ──
+    if (msg.type === "tab_close" && msg.tabId !== TAB_ID) {
+      knownTabs.delete(msg.tabId);
+    }
+
+    // ── kick دریافت شد ──
+    if (msg.type === "kick" && msg.tabId === TAB_ID) {
       document.title = "⚠️ تب اضافی";
-      alert("یک نمونه دیگه از داشبورد باز هست. لطفاً این تب رو ببندید.");
+      alert(
+        "شما حداکثر " + MAX_TABS_PER_USER +
+        " تب باز دارید.\n\nلطفاً این تب را ببندید."
+      );
+      setTimeout(() => window.close(), 3000);
     }
   };
+
+  // ── بستن تب → اطلاع بقیه ──
+  window.addEventListener("beforeunload", () => {
+    channel.postMessage({
+      type: "tab_close",
+      tabId: TAB_ID,
+      userId: getCurrentUserId(),
+    });
+  });
+
+  // ── پاک‌سازی تب‌های قدیمی ──
+  function cleanOldTabs() {
+    const now = Date.now();
+    for (const [id, info] of knownTabs.entries()) {
+      if (now - info.timestamp > 30000) {
+        knownTabs.delete(id);
+      }
+    }
+  }
+
+  // ── شمارش تب‌های فعال همان کاربر ──
+  function countUserTabs(userId) {
+    let count = 1; // خودم
+    for (const [, info] of knownTabs.entries()) {
+      if (info.userId === userId) count++;
+    }
+    return count;
+  }
 } catch (_) {}
 
 export default client;
