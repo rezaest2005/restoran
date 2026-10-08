@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { fetchDailyOrders } from "../api";
+import client from "../../api/client";
 
 export default function useDailyReport() {
   const [orders, setOrders] = useState([]);
@@ -14,10 +14,19 @@ export default function useDailyReport() {
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetchDailyOrders(selectedDate);
-      setOrders(res.orders || []);
+      // ★ فراخوانی مستقیم از بک‌اند با استفاده از client
+      // این دقیقاً به تابع pos_daily_orders در pos.py می‌رود
+      const res = await client.get(`/api/pos/daily-orders/?date=${selectedDate}`);
+      const data = res.data;
+      
+      if (data.success) {
+        setOrders(data.orders || []);
+      } else {
+        setOrders([]);
+      }
     } catch (err) {
       console.error("Failed to load daily orders:", err);
+      setOrders([]);
     } finally {
       setLoading(false);
     }

@@ -2,7 +2,7 @@ import { Box, Typography } from "@mui/material";
 import {
   PieChart, Pie, Cell, Tooltip as RTooltip, Legend, ResponsiveContainer,
 } from "recharts";
-import GlassCard from "./GlassCard";
+import GlassCard from "../common/GlassCard";
 
 export default function CategoryPieChart({ categories, L, C, isRtl, tooltipStyle }) {
     const displayCategories = categories.map(cat => ({

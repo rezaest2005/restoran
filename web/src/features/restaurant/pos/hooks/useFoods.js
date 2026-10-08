@@ -1,14 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { fetchFoods, fetchCategories } from "../api";
 import client from "../../api/client";
-
-const api = {
-  post: (path, body) => client.post(path, body).then((r) => r.data),
-};
 
 export default function useFoods(useDictionary, isRtl) {
   const [foods, setFoods] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeCat, setActiveCat] = useState("all");
@@ -18,18 +12,15 @@ export default function useFoods(useDictionary, isRtl) {
   const load = useCallback(async () => {
     if (!useDictionary) {
       setFoods([]);
-      setCategories([]);
       setLoading(false);
       return;
     }
     try {
       setLoading(true);
-      const [foodsRes, catsRes] = await Promise.all([
-        fetchFoods(),
-        fetchCategories(),
-      ]);
-      setFoods(foodsRes || []);
-      setCategories(catsRes || []);
+      // فراخوانی لیست غذاها از API بک‌اند
+      const res = await client.get("/api/dictionary/foods/");
+      const data = res.data?.items || [];
+      setFoods(data);
     } catch (err) {
       console.error("Failed to load foods:", err);
     } finally {
@@ -39,61 +30,41 @@ export default function useFoods(useDictionary, isRtl) {
 
   useEffect(() => { load(); }, [load]);
 
-  // ★ موجودی یه آیتم خاص رو آپدیت کن (هم local هم API)
-  const updateStock = useCallback(async (foodId, newStock) => {
-    const stock = Math.max(0, Number(newStock) || 0);
+  // ★ آپدیت قیمت و موجودی (فقط در حالت ویرایش FoodCard استفاده می‌شود)
+  const updateFoodData = useCallback(async (foodId, data) => {
+    // آپدیت آپتیمیستیک (اول UI آپدیت شود تا سریع باشد)
     setFoods((prev) =>
-      prev.map((f) => (f.id === foodId ? { ...f, stock } : f))
+      prev.map((f) => (f.id === foodId ? { ...f, ...data } : f))
     );
     try {
-      await api.post(`/api/dictionary/food/${foodId}/update/`, { stock });
+      await client.post(`/api/dictionary/food/${foodId}/update/`, data);
     } catch (err) {
-      console.error("Stock update failed:", err);
-      await load();
+      console.error("Food update failed:", err);
+      await load(); // در صورت خطا، داده‌های اصلی از سرور دوباره لود شوند
     }
   }, [load]);
 
-  // ★ کم کدن موجودی هنگام افزودن به سبد
-  const decreaseStock = useCallback(async (foodId, qty = 1) => {
-    let newStock;
+  // ★ کاهش موجودی فقط در UI (برای سرعت بالا هنگام زدن دکمه +)
+  const decreaseStock = useCallback((foodId, qty = 1) => {
     setFoods((prev) =>
       prev.map((f) => {
         if (f.id !== foodId) return f;
         const current = Number(f.stock) || 0;
-        newStock = Math.max(0, current - qty);
-        return { ...f, stock: newStock };
+        return { ...f, stock: Math.max(0, current - qty) };
       })
     );
-    if (newStock !== undefined) {
-      try {
-        await api.post(`/api/dictionary/food/${foodId}/update/`, { stock: newStock });
-      } catch (err) {
-        console.error("Stock update failed:", err);
-        await load();
-      }
-    }
-  }, [load]);
+  }, []);
 
-  // ★ افزایش موجودی هنگام حذف از سبد
-  const increaseStock = useCallback(async (foodId, qty = 1) => {
-    let newStock;
+  // ★ افزایش موجودی فقط در UI (هنگام زدن دکمه - یا حذف از سبد)
+  const increaseStock = useCallback((foodId, qty = 1) => {
     setFoods((prev) =>
       prev.map((f) => {
         if (f.id !== foodId) return f;
         const current = Number(f.stock) || 0;
-        newStock = current + qty;
-        return { ...f, stock: newStock };
+        return { ...f, stock: current + qty };
       })
     );
-    if (newStock !== undefined) {
-      try {
-        await api.post(`/api/dictionary/food/${foodId}/update/`, { stock: newStock });
-      } catch (err) {
-        console.error("Stock restore failed:", err);
-        await load();
-      }
-    }
-  }, [load]);
+  }, []);
 
   const filteredFoods = useMemo(() => {
     return foods.filter((f) => {
@@ -106,20 +77,16 @@ export default function useFoods(useDictionary, isRtl) {
     });
   }, [foods, activeCat, search, catField]);
 
+  // استخراج دسته‌بندی‌ها از داخل لیست غذاها
   const categoryNames = useMemo(() => {
-    if (categories.length > 0) {
-      const names = categories.map((c) =>
-        typeof c === "string" ? c : c.name || c.title || String(c)
-      );
-      return ["all", ...names];
-    }
-    return ["all", ...new Set(foods.map((f) => f[catField]).filter(Boolean))];
-  }, [categories, foods, catField]);
+    const names = new Set(foods.map((f) => f[catField]).filter(Boolean));
+    return ["all", ...Array.from(names)];
+  }, [foods, catField]);
 
   return {
     foods: filteredFoods,
     allFoods: foods,
-    categories,
+    categories: categoryNames,
     categoryNames,
     loading,
     search,
@@ -129,6 +96,8 @@ export default function useFoods(useDictionary, isRtl) {
     reload: load,
     decreaseStock,
     increaseStock,
-    updateStock,
+    // تابع آپدیت برای استفاده در Edit Mode
+    updateStock: (id, stock) => updateFoodData(id, { stock }),
+    updatePrice: (id, price, final_price) => updateFoodData(id, { price, final_price }),
   };
-} 
+}

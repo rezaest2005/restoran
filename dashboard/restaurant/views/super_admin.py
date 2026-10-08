@@ -11,7 +11,7 @@ import logging
 import re
 from datetime import date
 from functools import wraps
-
+from ..seeders import seed_sample_data
 from django.contrib.auth import (
     authenticate, login as auth_login, logout as auth_logout,
 )
@@ -281,6 +281,15 @@ def restaurant_login(request, slug):
                 user_restaurant = getattr(user, 'restaurant', None)
                 if user_restaurant and user_restaurant.pk == restaurant.pk:
                     if user.is_active and getattr(user, 'is_approved', True):
+                        
+                        # ★★★ مدیریت حالت دمو (بار اول دمو نشان بده، بار دوم غیرفعال) ★★★
+                        if not user.has_seen_demo:
+                            request.session['show_demo'] = True
+                            user.has_seen_demo = True
+                            user.save(update_fields=['has_seen_demo'])
+                        else:
+                            request.session['show_demo'] = False
+
                         auth_login(request, user)
                         return redirect(f'/{slug}/dashboard/app/')
                     else:
@@ -440,6 +449,7 @@ def super_services_list_api(request):
 #  API: CRUD رستوران‌ها — ★ v14: is_expired
 # ═══════════════════════════════════════════
 
+
 @api_view(["GET", "POST"])
 @permission_classes([IsSuperAdmin])
 def super_tenants_api(request):
@@ -477,7 +487,7 @@ def super_tenants_api(request):
                 'phone': t.phone or '',
                 'address': t.address or '',
                 'is_active': t.is_active,
-                'is_expired': expired,  # ★ جدید
+                'is_expired': expired,
                 'active_services': t.active_services_count,
                 'monthly_revenue': t.monthly_revenue,
                 'username_prefix': getattr(t, 'username_prefix', '') or '',
@@ -553,6 +563,14 @@ def super_tenants_api(request):
                 owner.restaurant = restaurant
                 owner.save(update_fields=['restaurant'])
 
+            # ★★★ اضافه شدن این بخش: اجرای کاشت داده‌های نمونه ★★★
+            try:
+                seed_sample_data(restaurant)
+                logger.info(f"Sample data seeded for restaurant {restaurant.id}")
+            except Exception as seed_err:
+                logger.error(f"Error seeding data for restaurant {restaurant.id}: {seed_err}")
+            # ★★★ پایان بخش اضافه شده ★★★
+
             _ensure_services_exist()
             for svc in Service.objects.all():
                 TenantService.objects.get_or_create(
@@ -627,7 +645,7 @@ def super_tenant_detail_api(request, pk):
             'phone': tenant.phone or '',
             'address': tenant.address or '',
             'is_active': tenant.is_active,
-            'is_expired': not is_tenant_subscription_valid(tenant),  # ★
+            'is_expired': not is_tenant_subscription_valid(tenant),
             'username_prefix': (
                 getattr(tenant, 'username_prefix', '') or ''
             ),

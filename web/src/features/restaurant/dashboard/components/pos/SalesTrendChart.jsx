@@ -3,7 +3,7 @@ import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, Legend, ResponsiveContainer,
 } from "recharts";
-import GlassCard from "./GlassCard";
+import GlassCard from "../common/GlassCard";
 
 export default function SalesTrendChart({
   chartView, setChartView, chartData, L, C, isDark, isRtl,

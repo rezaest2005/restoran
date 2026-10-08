@@ -1,6 +1,7 @@
 """
-Restaurant Management System — URLs (★ نسخه v8)
+Restaurant Management System — URLs (★ نسخه v8 + Dashboard Analytics)
 
+★ v8.1: dashboard_analytics اضافه شد
 ★ v8: Inventory / Warehouse endpoints اضافه شد
 ★ v7: restaurant_login + check_subscription اضافه شد
 """
@@ -9,6 +10,9 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from . import views
+
+# ★ ایمپورت ویو داشبورد جدید
+from .views.dashboard import dashboard_analytics
 
 # ═══════════════════════════════════════
 #  Router — ViewSet-based endpoints
@@ -238,6 +242,15 @@ urlpatterns = [
         "api/inventory/dashboard/",
         views.inventory_dashboard,
         name="inv_dashboard",
+    ),
+
+    # ══════════════════════════════════════════════════════════
+    # ── داشبورد اصلی (تحلیل کل سیستم) — ★ جدید ─────────────
+    # ══════════════════════════════════════════════════════════
+    path(
+        "api/dashboard/analytics/",
+        dashboard_analytics,
+        name="dashboard_analytics",
     ),
 
     # ══════════════════════════════════════════════════════════

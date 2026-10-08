@@ -38,7 +38,6 @@ class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainSerializer
 
     def post(self, request, *args, **kwargs):
-        # ★ FIXED: serializer فقط یکبار صدا زده میشه
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.user
@@ -49,6 +48,14 @@ class LoginView(TokenObtainPairView):
             backend='django.contrib.auth.backends.ModelBackend',
         )
 
+        # ★★★ مدیریت حالت دمو ★★★
+        if not user.has_seen_demo:
+            request.session['show_demo'] = True
+            user.has_seen_demo = True
+            user.save(update_fields=['has_seen_demo'])
+        else:
+            request.session['show_demo'] = False
+
         # JWT بساز
         refresh = RefreshToken.for_user(user)
         return Response({
@@ -56,8 +63,6 @@ class LoginView(TokenObtainPairView):
             "refresh": str(refresh),
             "user": UserDetailSerializer(user).data,
         }, status=status.HTTP_200_OK)
-
-
 class RefreshView(TokenRefreshView):
     pass
 
