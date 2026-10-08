@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { createOrder } from "../api";
+import client from "../../api/client"; // استفاده مستقیم از کلاینت
 
 export default function useCheckout() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
@@ -31,8 +31,18 @@ export default function useCheckout() {
       setSubmitting(true);
       setError(null);
 
+      // ★ مپ کردن دقیق آیتم‌ها به فرمتی که بک‌اند (pos.py) انتظار دارد
+      const apiItems = items.map(item => ({
+        id: item.id,
+        food_id: item.id, // بک‌اند هر دو را چک می‌کند
+        quantity: item.qty || item.quantity || 1, // بک‌اند quantity می‌خواهد
+        price: item.effective_price || item.price || 0,
+        is_manual: item.is_manual || false,
+        is_ready: item.is_ready || false,
+      }));
+
       const payload = {
-        items,
+        items: apiItems,
         customer_name: customerName || "مشتری",
         phone: phone || "",
         table_id: tableId || null,
@@ -40,18 +50,16 @@ export default function useCheckout() {
         payment_method: paymentMethod,
       };
 
-      if (orderType === "delivery") {
-        payload.source = "pos";
-      }
+      // ★ ارسال درخواست به EndPoint ثبت سفارش
+      // (مطمئن شوید این آدرس با آدرس ثبت شده در urls.py شما یکی باشد)
+      const res = await client.post("/api/pos/create-order/", payload);
+      const data = res.data;
 
-      const res = await createOrder(payload);
-
-      if (res.success) {
-        setLastOrder(res);
-        // ★ دیالوگ رو نبند — CheckoutDialog خودش فاز رو مدیریت میکنه
-        return res;
+      if (data.success) {
+        setLastOrder(data);
+        return data;
       } else {
-        setError(res.error || "خطا در ثبت سفارش");
+        setError(data.error || "خطا در ثبت سفارش");
         return null;
       }
     } catch (err) {

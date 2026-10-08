@@ -1,15 +1,16 @@
-import { Box, Typography, Chip } from "@mui/material";
-import GlassCard from "./GlassCard";
-import ChangeChip from "./ChangeChip";
+// src/features/restaurant/dashboard/components/pos/WeeklyComparison.jsx
+import { Box, Typography } from "@mui/material";
+import GlassCard from "../common/GlassCard";
+import ChangeChip from "../common/ChangeChip";
 
 export default function WeeklyComparison({ weeklyCompare, L, C, isRtl, isDark, fmtN }) {
   return (
-    <GlassCard C={C} delay={0.55}>
+    <GlassCard C={C} delay={0.55} sx={{ width: "100%", minHeight: 450 }}>
       <Box sx={{ p: { xs: 2, md: 3 }, flex: 1, display: "flex", flexDirection: "column" }}>
-        <Typography sx={{ fontSize: 15, fontWeight: 800, color: C.text, mb: 2.5 }}>
+        <Typography sx={{ fontSize: 16, fontWeight: 800, color: C.text, mb: 3 }}>
           {L.weeklyComparison}
         </Typography>
-        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 3 }}>
           {[
             { label: L.totalSales, thisW: weeklyCompare.thisWeek.sales, lastW: weeklyCompare.lastWeek.sales, suffix: ` ${L.tuman}` },
             { label: L.totalOrders, thisW: weeklyCompare.thisWeek.orders, lastW: weeklyCompare.lastWeek.orders, suffix: "" },
@@ -18,32 +19,32 @@ export default function WeeklyComparison({ weeklyCompare, L, C, isRtl, isDark, f
             const pct = row.lastW > 0 ? ((row.thisW - row.lastW) / row.lastW * 100) : 0;
             const barPct = row.thisW > 0 ? Math.min((row.thisW / (row.thisW + row.lastW)) * 100, 100) : 50;
             return (
-              <Box key={i} sx={{ mb: i < 2 ? 2.5 : 0 }}>
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.8 }}>
-                  <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: C.sub }}>{row.label}</Typography>
+              <Box key={i}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+                  <Typography sx={{ fontSize: 13.5, fontWeight: 600, color: C.sub }}>{row.label}</Typography>
                   <ChangeChip value={parseFloat(pct.toFixed(1))} />
                 </Box>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.2 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                   <Box sx={{
-                    flex: 1, height: 10, borderRadius: 5,
+                    flex: 1, height: 14, borderRadius: 7,
                     bgcolor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
                     overflow: "hidden",
                   }}>
                     <Box sx={{
-                      width: `${barPct}%`, height: "100%", borderRadius: 5,
+                      width: `${barPct}%`, height: "100%", borderRadius: 7,
                       background: `linear-gradient(90deg, ${C.olive}, ${C.olive}CC)`,
                       transition: "width 1.2s cubic-bezier(.4,0,.2,1)",
                     }} />
                   </Box>
                   <Typography sx={{
-                    fontSize: 11.5, fontWeight: 700, color: C.text,
-                    minWidth: 75, textAlign: isRtl ? "left" : "right",
+                    fontSize: 12.5, fontWeight: 700, color: C.text,
+                    minWidth: 90, textAlign: isRtl ? "left" : "right",
                   }}>
                     {fmtN(row.thisW)}{row.suffix}
                   </Typography>
                 </Box>
                 <Typography sx={{
-                  fontSize: 10, color: C.muted, mt: 0.4,
+                  fontSize: 11, color: C.muted, mt: 0.5,
                   textAlign: isRtl ? "right" : "left",
                 }}>
                   {L.lastWeek}: {fmtN(row.lastW)}{row.suffix}

@@ -1,15 +1,3 @@
-"""
-Restaurant Management System — Serializers (★ نسخه اصلاح‌شده v3)
-
-★ تغییرات نسبت به نسخه قبل:
-  ۱. OrderSerializer: فیلدهای source, payment_status, payment_method, confirmed_by اضافه شد
-  ۲. OrderItemSerializer: فیلدهای item_name, display_name اضافه شد
-  ۳. LoyaltyTransactionSerializer: order_id → order (FK) سازگار شد
-  ۴. WalletTransactionSerializer: مشابه بالا
-  ۵. ProcessOrderLoyaltySerializer: order_id سازگار با service layer
-  ۶. سریالایزر جدید: RawMaterial, Supplier, PurchaseInvoice, InventoryMovement,
-     WasteLog, DayCloseReport, OnlineOrderSettings
-"""
 
 from rest_framework import serializers
 from django.utils import timezone

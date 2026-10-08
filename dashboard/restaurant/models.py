@@ -214,7 +214,6 @@ class Restaurant(models.Model):
 def _invalidate_restaurant_cache(sender, instance, **kwargs):
     invalidate_restaurant_cache(instance.slug)
 
-
 class User(AbstractUser):
     class Role(models.TextChoices):
         OWNER = "owner", "مالک"
@@ -250,6 +249,14 @@ class User(AbstractUser):
         validators=[validate_dashboard_permissions],
         help_text="لیست بخش‌های قابل دسترسی. خالی = پیش‌فرض نقش",
     )
+    
+    # ★★★ فیلد جدید برای مدیریت نمایش دمو در بار اول لاگین ★★★
+    has_seen_demo = models.BooleanField(
+        "دمو را دیده است", 
+        default=False, 
+        help_text="اگر False باشد، در اولین ورود داده‌های تستی نشان داده می‌شود."
+    )
+
     created_at = created_at_field(verbose_name="تاریخ ایجاد")
     updated_at = updated_at_field(verbose_name="تاریخ بروزرسانی")
 
@@ -337,8 +344,6 @@ class User(AbstractUser):
         if self.restaurant and self.restaurant.username_prefix:
             return self.restaurant.username_prefix
         return ""
-
-
 # ═══════════════════════════════════════════
 #  TENANT MODELS
 # ═══════════════════════════════════════════

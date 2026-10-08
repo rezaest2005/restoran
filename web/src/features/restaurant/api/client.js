@@ -1,15 +1,28 @@
 import axios from "axios";
 
 // ═══════════════════════════════════════════════════
-//  ★ ذخیره tenant slug از URL (یکبار هنگام لود)
+//  ★ ذخیره tenant slug از URL
 // ═══════════════════════════════════════════════════
-(function saveTenantSlug() {
+
+// ★ تغییر ۱: IIFE → تابع جداگانه + شنونده popstate
+function saveTenantSlug() {
   const parts = window.location.pathname.split("/").filter(Boolean);
   const slug = parts[0] || "";
-  if (slug && !["dashboard", "api", "super", "static", "media"].includes(slug)) {
+  if (
+    slug &&
+    !["dashboard", "api", "super", "static", "media"].includes(slug)
+  ) {
     localStorage.setItem("tenant_slug", slug);
+    return slug;
   }
-})();
+  return null;
+}
+
+// ✅ یکبار هنگام لود
+saveTenantSlug();
+
+// ✅ + هر بار کاربر back/forward بزنه
+window.addEventListener("popstate", saveTenantSlug);
 
 const client = axios.create({
   baseURL: "",
@@ -25,8 +38,8 @@ client.interceptors.request.use((config) => {
   const csrf = document.cookie.match(/csrftoken=([^;]+)/);
   if (csrf) config.headers["X-CSRFToken"] = csrf[1];
 
-  // ★ ارسال tenant slug به بک‌اند
-  const slug = localStorage.getItem("tenant_slug");
+  // ★ تغییر ۲: هر بار slug رو تازه از URL بخون
+  const slug = saveTenantSlug() || localStorage.getItem("tenant_slug");
   if (slug) config.headers["X-Tenant-Slug"] = slug;
 
   return config;
@@ -108,6 +121,11 @@ function redirectToLogin() {
   localStorage.removeItem("db_auth");
   localStorage.setItem("__logout__", Date.now().toString());
   window.location.href = "/dashboard/login";
+
+  // ★ تغییر ۳: reset بعد از ۲ ثانیه تا SPA باز بتونه redirect کنه
+  setTimeout(() => {
+    redirecting = false;
+  }, 2000);
 }
 
 // ─── اگه یه تب دیگه logout کرد ──────────────────
@@ -116,24 +134,32 @@ window.addEventListener("storage", (e) => {
     if (!redirecting) {
       redirecting = true;
       window.location.href = "/dashboard/login";
+
+      // ★ تغییر ۳ (همون): reset
+      setTimeout(() => {
+        redirecting = false;
+      }, 2000);
     }
   }
 });
 
 // ─── auto-refresh: هر ۲۰ دقیقه ──────────────────
-setInterval(async () => {
-  const refreshToken = localStorage.getItem("refresh_token");
-  if (!refreshToken) return;
-  try {
-    const res = await client.post("/api/auth/refresh/", {
-      refresh: refreshToken,
-    });
-    localStorage.setItem("access_token", res.data.access);
-    if (res.data.refresh) {
-      localStorage.setItem("refresh_token", res.data.refresh);
-    }
-  } catch (_) {}
-}, 20 * 60 * 1000);
+// ★ تغییر ۴: جلوگیری از چند بار setInterval
+if (!window.__tokenRefreshInterval) {
+  window.__tokenRefreshInterval = setInterval(async () => {
+    const refreshToken = localStorage.getItem("refresh_token");
+    if (!refreshToken) return;
+    try {
+      const res = await client.post("/api/auth/refresh/", {
+        refresh: refreshToken,
+      });
+      localStorage.setItem("access_token", res.data.access);
+      if (res.data.refresh) {
+        localStorage.setItem("refresh_token", res.data.refresh);
+      }
+    } catch (_) {}
+  }, 20 * 60 * 1000);
+}
 
 // ═══════════════════════════════════════════════════
 //  تشخیص تب اضافی (per-user)

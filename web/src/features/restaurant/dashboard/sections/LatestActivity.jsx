@@ -32,3 +32,4 @@ export default function LatestActivity({ activities, C, isRtl }) {
     </GlassCard>
   );
 }
+

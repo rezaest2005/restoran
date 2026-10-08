@@ -1,25 +1,26 @@
+// src/features/restaurant/dashboard/components/pos/PeakHoursChart.jsx
 import { Box, Typography } from "@mui/material";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip as RTooltip, ResponsiveContainer,
 } from "recharts";
-import GlassCard from "./GlassCard";
+import GlassCard from "../common/GlassCard";
 
 export default function PeakHoursChart({
   hourlyData, L, C, isDark, chartGridStroke, tooltipStyle,
 }) {
   return (
-    <GlassCard C={C} delay={0.5}>
+    <GlassCard C={C} delay={0.5} sx={{ width: "100%", minHeight: 450 }}>
       <Box sx={{ p: { xs: 2, md: 3 }, flex: 1, display: "flex", flexDirection: "column" }}>
-        <Typography sx={{ fontSize: 15, fontWeight: 800, color: C.text, mb: 2.5 }}>
+        <Typography sx={{ fontSize: 16, fontWeight: 800, color: C.text, mb: 3 }}>
           {L.peakHours}
         </Typography>
-        <Box sx={{ flex: 1, minHeight: 300, width: "100%" }}>
+        <Box sx={{ flex: 1, minHeight: 380, width: "100%" }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={hourlyData}>
               <CartesianGrid strokeDasharray="3 3" stroke={chartGridStroke} />
-              <XAxis dataKey="displayName" stroke={C.muted} tick={{ fontSize: 10 }} />
-              <YAxis stroke={C.muted} tick={{ fontSize: 10 }} />
+              <XAxis dataKey="displayName" stroke={C.muted} tick={{ fontSize: 11 }} />
+              <YAxis stroke={C.muted} tick={{ fontSize: 11 }} />
               <RTooltip contentStyle={tooltipStyle}
                 formatter={(v) => [`${v} ${L.ordersWord}`, L.orders]}
               />
@@ -29,7 +30,7 @@ export default function PeakHoursChart({
                   <stop offset="100%" stopColor={isDark ? "#6B9B6E" : "#2E4D30"} stopOpacity={0.3} />
                 </linearGradient>
               </defs>
-              <Bar dataKey="orders" fill="url(#hourGrad)" radius={[5, 5, 0, 0]} barSize={18} />
+              <Bar dataKey="orders" fill="url(#hourGrad)" radius={[5, 5, 0, 0]} barSize={22} />
             </BarChart>
           </ResponsiveContainer>
         </Box>

@@ -7,7 +7,7 @@ import SuperAdmin from "@super/layout/SuperAdminLayout";
 import SuperProtectedRoute from "@super/auth/SuperProtectedRoute";
 import ProtectedRoute from "@restaurant/auth/ProtectedRoute";
 import RestaurantLayout from "@restaurant/layout/RestaurantLayout";
-import Dashboard from "@restaurant/dashboard";
+import Dashboard from "@restaurant/dashboard/dashboard";
 import Pos from "@restaurant/pos/Pos";
 import Dictionary from "@restaurant/dictionary/Dictionary";
 import InventoryPage from "@restaurant/inventory/InventoryPage";
@@ -37,6 +37,7 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
+            <Route path="dashboard" element={<Dashboard />} />
             <Route path="pos" element={<Pos />} />
             <Route path="dictionary" element={<Dictionary />} />
             <Route path="inventory" element={<InventoryPage />} />
@@ -52,6 +53,7 @@ function App() {
             }
           >
             <Route index element={<Dashboard />} />
+            <Route path="dashboard" element={<Dashboard />} />
             <Route path="pos" element={<Pos />} />
             <Route path="dictionary" element={<Dictionary />} />
             <Route path="inventory" element={<InventoryPage />} />

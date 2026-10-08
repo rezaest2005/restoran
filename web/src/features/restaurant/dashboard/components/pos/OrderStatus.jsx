@@ -1,5 +1,5 @@
 import { Box, Typography, LinearProgress } from "@mui/material";
-import GlassCard from "./GlassCard";
+import GlassCard from "../common/GlassCard";
 
 export default function OrderStatus({ orderStatus, totalOrders, L, C, isRtl, isDark, fmtN }) {
   return (

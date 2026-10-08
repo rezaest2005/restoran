@@ -1,5 +1,5 @@
 import { Box, Typography, Chip } from "@mui/material";
-import GlassCard from "./GlassCard";
+import GlassCard from "../common/GlassCard";
 
 export default function LeastSellers({ lowItems, L, C, isRtl, isDark, fmtN }) {
   return (

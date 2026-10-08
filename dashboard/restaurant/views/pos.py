@@ -76,6 +76,7 @@ def _resolve_restaurant(request):
     # هیچ راهی جواب نداد
     return None
 
+
 # ═══════════════════════════════════════
 #  پیدا کردن KitchenProduct برای Food
 # ═══════════════════════════════════════
@@ -100,6 +101,7 @@ def _find_kp_for_food(food, restaurant=None):
 # ═══════════════════════════════════════
 #  ایجاد سفارش
 # ═══════════════════════════════════════
+
 
 @api_view(["POST"])
 @permission_classes([PosPerm])
@@ -202,6 +204,13 @@ def pos_create_order(request: HttpRequest):
                             f"{food.name}: سفارش {qty} ولی موجودی {available}"
                         )
                         continue
+                else:
+                    # ★ اضافه شد: بررسی موجودی خود غذا اگر محصول آشپزخانه نداشت
+                    if food.stock is not None and qty > food.stock:
+                        stock_errors.append(
+                            f"{food.name}: سفارش {qty} ولی موجودی {food.stock}"
+                        )
+                        continue
 
                 validated_items.append(
                     {
@@ -289,6 +298,11 @@ def pos_create_order(request: HttpRequest):
                         if updated == 0:
                             raise ValueError(f"موجودی {food.name} کافی نیست")
 
+                    # ★ اضافه شد: کاهش موجودی غذا در دیتابیس به صورت اتمیک
+                    Food.objects.filter(
+                        id=food.id, stock__gte=qty  # جلوگیری از منفی شدن موجودی
+                    ).update(stock=F("stock") - qty)
+
                     OrderItem.objects.create(
                         restaurant=restaurant,
                         order=order,
@@ -330,9 +344,11 @@ def pos_create_order(request: HttpRequest):
         logger.exception("Error creating POS order")
         return JsonResponse({"success": False, "error": str(exc)})
 
+
 # ═══════════════════════════════════════
 #  گزارش روزانه
 # ═══════════════════════════════════════
+
 
 @api_view(["GET"])
 @permission_classes([PosPerm])
@@ -412,9 +428,12 @@ def pos_daily_report(request: HttpRequest):
     except Exception as exc:
         logger.exception("Error in daily report")
         return JsonResponse({"success": False, "error": str(exc)})
+
+
 # ═══════════════════════════════════════
 #  بستن روز — خلاصه — ★ FIXED: فیلتر restaurant روی KP
 # ═══════════════════════════════════════
+
 
 @api_view(["GET"])
 @permission_classes([PosPerm])
@@ -442,7 +461,8 @@ def pos_close_summary(request):
                 {
                     "name": oi.food.name if oi.food else (oi.item_name or "?"),
                     "name_en": (
-                        oi.food.name_en if oi.food and oi.food.name_en
+                        oi.food.name_en
+                        if oi.food and oi.food.name_en
                         else (oi.item_name_en or "")
                     ),
                     "qty": oi.quantity,
@@ -487,8 +507,7 @@ def pos_close_summary(request):
     for oi in oi_qs:
         name = oi.food.name if oi.food else (oi.item_name or "?")
         name_en = (
-            oi.food.name_en if oi.food and oi.food.name_en
-            else (oi.item_name_en or "")
+            oi.food.name_en if oi.food and oi.food.name_en else (oi.item_name_en or "")
         )
         if name not in item_stats:
             item_stats[name] = {"name_en": name_en, "qty": 0, "revenue": 0}
@@ -540,6 +559,8 @@ def pos_close_summary(request):
             "report_id": existing_report.id if existing_report else None,
         }
     )
+
+
 # ═══════════════════════════════════════
 #  ثبت ضایعات از صندوق — ★ FIXED: فیلتر restaurant روی KP
 # ═══════════════════════════════════════
@@ -672,12 +693,11 @@ def pos_close_day(request):
         )
 
         if existing:
-            return JsonResponse(
-                {"success": False, "error": "این روز قبلاً بسته شده."}
-            )
+            return JsonResponse({"success": False, "error": "این روز قبلاً بسته شده."})
 
         orders = Order.objects.filter(
-            created_at__date=today, restaurant=restaurant,
+            created_at__date=today,
+            restaurant=restaurant,
         )
         pending = orders.exclude(status="delivered")
         pending_count = pending.count()
@@ -688,7 +708,8 @@ def pos_close_day(request):
         delivered_count = orders.filter(status="delivered").count()
 
         waste_qs = WasteLog.objects.filter(
-            created_at__date=today, restaurant=restaurant,
+            created_at__date=today,
+            restaurant=restaurant,
         )
         waste_count = waste_qs.aggregate(s=Sum("quantity"))["s"] or 0
         waste_value = sum(w.total_cost for w in waste_qs)
@@ -706,7 +727,8 @@ def pos_close_day(request):
         for oi in oi_qs:
             name = oi.food.name if oi.food else (oi.item_name or "?")
             name_en = (
-                oi.food.name_en if oi.food and oi.food.name_en
+                oi.food.name_en
+                if oi.food and oi.food.name_en
                 else (oi.item_name_en or "")
             )
             if name not in item_stats:
@@ -735,7 +757,8 @@ def pos_close_day(request):
 
         inventory_snapshot = {}
         for kp in KitchenProduct.objects.filter(
-            is_active=True, restaurant=restaurant,
+            is_active=True,
+            restaurant=restaurant,
         ):
             inv = kp.get_inventory()
             inventory_snapshot[kp.name] = {
@@ -785,6 +808,8 @@ def pos_close_day(request):
             ),
         }
     )
+
+
 # ═══════════════════════════════════════
 #  تاریخچه بستن
 # ═══════════════════════════════════════
@@ -1079,6 +1104,7 @@ def public_menu_api(request):
 #  فروش آنلاین — ★ FIXED: فیلتر restaurant
 # ═══════════════════════════════════════
 
+
 @api_view(["GET"])
 @permission_classes([PosPerm])
 def pos_online_orders(request):
@@ -1107,7 +1133,8 @@ def pos_online_orders(request):
                         oi.food.name if oi.food else (oi.item_name or "کالای آماده")
                     ),
                     "name_en": (
-                        oi.food.name_en if oi.food and oi.food.name_en
+                        oi.food.name_en
+                        if oi.food and oi.food.name_en
                         else (oi.item_name_en or "")
                     ),
                     "quantity": oi.quantity,
@@ -1132,6 +1159,7 @@ def pos_online_orders(request):
         )
 
     return JsonResponse({"success": True, "orders": data})
+
 
 @api_view(["POST"])
 @permission_classes([PosPerm])
@@ -1409,7 +1437,8 @@ def pos_daily_orders(request):
                 {
                     "name": name,
                     "name_en": (
-                        item.food.name_en if item.food and item.food.name_en
+                        item.food.name_en
+                        if item.food and item.food.name_en
                         else (item.item_name_en or "")
                     ),
                     "quantity": item.quantity,
