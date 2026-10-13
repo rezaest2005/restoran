@@ -49,14 +49,14 @@ class LoginView(TokenObtainPairView):
             backend='django.contrib.auth.backends.ModelBackend',
         )
 
-        # ★★★ مدیریت خودکار حالت دمو و پاکسازی داده‌های نمونه ★★★
-        if not user.has_seen_demo:
-            # بار اول: دمو نشان بده
+        # ★★★ مدیریت شمارنده دمو ★★★
+        if user.demo_logins_remaining > 0:
+            # بار اول و دوم: دمو نشان بده و یکی از شمارنده کم کن
             request.session['show_demo'] = True
-            user.has_seen_demo = True
-            user.save(update_fields=['has_seen_demo'])
+            user.demo_logins_remaining -= 1
+            user.save(update_fields=['demo_logins_remaining'])
         else:
-            # بار دوم به بعد: دمو غیرفعال و پاکسازی کامل داده‌های نمونه
+            # بار سوم به بعد: دمو غیرفعال و پاکسازی کامل داده‌های نمونه
             request.session['show_demo'] = False
             
             # ★★★ پاک کردن کامل داده‌های نمونه از دیتابیس ★★★
@@ -93,9 +93,9 @@ class LoginView(TokenObtainPairView):
             "refresh": str(refresh),
             "user": UserDetailSerializer(user).data,
         }, status=status.HTTP_200_OK)
+
 class RefreshView(TokenRefreshView):
     pass
-
 
 # ═══════════════════════════════════════
 #  Register

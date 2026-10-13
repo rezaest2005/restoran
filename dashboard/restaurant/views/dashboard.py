@@ -74,7 +74,7 @@ def dashboard_analytics(request):
         return JsonResponse({"error": "رستوران یافت نشد"}, status=400)
 
     # ★★★ کلید هوشمند: اگر کاربر دمو را دیده باشد (بار دوم لاگین)، این کلید False است ★★★
-    show_demo = not request.user.has_seen_demo
+    show_demo = request.user.demo_logins_remaining > 0
 
     today = datetime.date.today()
     week_start = today - datetime.timedelta(days=6)
