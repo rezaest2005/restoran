@@ -251,10 +251,11 @@ class User(AbstractUser):
     )
     
     # ★★★ فیلد جدید برای مدیریت نمایش دمو در بار اول لاگین ★★★
-    has_seen_demo = models.BooleanField(
-        "دمو را دیده است", 
-        default=False, 
-        help_text="اگر False باشد، در اولین ورود داده‌های تستی نشان داده می‌شود."
+        # ★★★ شمارنده لاگین‌های دمو
+    demo_logins_remaining = models.PositiveIntegerField(
+        "لاگین‌های باقی‌مانده دمو", 
+        default=2, 
+        help_text="بار اول و دوم دمو نشان داده می‌شود، بار سوم پاک می‌شود."
     )
 
     created_at = created_at_field(verbose_name="تاریخ ایجاد")

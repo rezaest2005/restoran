@@ -270,14 +270,14 @@ def restaurant_login(request, slug):
                 if user_restaurant and user_restaurant.pk == restaurant.pk:
                     if user.is_active and getattr(user, 'is_approved', True):
                         
-                        # ★★★ مدیریت خودکار حالت دمو و پاکسازی داده‌های نمونه ★★★
-                        if not user.has_seen_demo:
-                            # بار اول: دمو نشان بده
+                        # ★★★ مدیریت شمارنده دمو ★★★
+                        if user.demo_logins_remaining > 0:
+                            # بار اول و دوم: دمو نشان بده و یکی از شمارنده کم کن
                             request.session['show_demo'] = True
-                            user.has_seen_demo = True
-                            user.save(update_fields=['has_seen_demo'])
+                            user.demo_logins_remaining -= 1
+                            user.save(update_fields=['demo_logins_remaining'])
                         else:
-                            # بار دوم به بعد: دمو غیرفعال و پاکسازی کامل داده‌های نمونه
+                            # بار سوم به بعد: دمو غیرفعال و پاکسازی کامل داده‌های نمونه
                             request.session['show_demo'] = False
                             
                             # ★★★ پاک کردن کامل داده‌های نمونه از دیتابیس ★★★
@@ -287,36 +287,24 @@ def restaurant_login(request, slug):
                                 from django.db import transaction
                                 
                                 try:
-                                    # تنظیم کانتکست رستوران برای کوئری‌ها
                                     set_current_restaurant(user.restaurant)
-                                    
                                     with transaction.atomic():
-                                        # ۱. پیدا کردن غذاهای نمونه
                                         sample_foods = Food.objects.filter(
                                             restaurant=user.restaurant, 
                                             name__in=["پیتزا پپرونی", "پیتزا قارچ", "برگر کلاسیک", "برگر مخصوص", "نوشابه"]
                                         )
-                                        
-                                        # ۲. پاک کردن محصولات آشپزخانه و رسپی‌های مرتبط (چون PROTECT هستند)
                                         KitchenProduct.objects.filter(restaurant=user.restaurant, recipe__food__in=sample_foods).delete()
                                         Recipe.objects.filter(restaurant=user.restaurant, food__in=sample_foods).delete()
-                                        
-                                        # ۳. حالا می‌توانیم غذاهای نمونه را پاک کنیم
                                         sample_foods.delete()
-                                        
-                                        # ۴. پاک کردن مواد اولیه نمونه
                                         RawMaterial.objects.filter(
                                             restaurant=user.restaurant, 
                                             name__in=["خمیر پیتزا", "پنیر موزارلا", "گوشت چرخ‌کرده", "سس مخصوص", "پیاز"]
                                         ).delete()
-                                        
-                                        # ۵. پاک کردن دسته‌بندی‌های نمونه
                                         Category.objects.filter(
                                             restaurant=user.restaurant,
                                             name__in=["پیتزاها", "برگرها", "نوشیدنی‌ها"]
                                         ).delete()
                                 except Exception as cleanup_err:
-                                    # اگر پاکسازی خطایی داد، جلوی لاگین را نگیرد و فقط در لاگ سرور ثبت شود
                                     logger.error(f"Error cleaning up demo data: {cleanup_err}")
 
                         auth_login(request, user)
@@ -335,6 +323,7 @@ def restaurant_login(request, slug):
         'error': error,
         'expired': expired,
     })
+
 
 # ★══════════════════════════════════════════
 # ★  API: بررسی وضعیت اشتراک
