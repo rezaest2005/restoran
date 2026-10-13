@@ -73,7 +73,7 @@ def dashboard_analytics(request):
     if not restaurant:
         return JsonResponse({"error": "رستوران یافت نشد"}, status=400)
 
-    # ★★★ کلید هوشمند: اتصال به دیتابیس کاربر ★★★
+    # ★★★ کلید هوشمند: اگر کاربر دمو را دیده باشد (بار دوم لاگین)، این کلید False است ★★★
     show_demo = not request.user.has_seen_demo
 
     today = datetime.date.today()
@@ -90,6 +90,7 @@ def dashboard_analytics(request):
     today_cancelled = today_orders.filter(status="cancelled").count()
     today_customers = active_orders.values("customer_name").exclude(customer_name="").distinct().count()
 
+    # ─── stats ───
     if show_demo and today_count == 0:
         pos_stats = {"sales": 1250000, "orders": 14, "customers": 9, "avgTime": 18, "delivered": 12, "cancelled": 1, "avgOrder": 89285}
     else:
