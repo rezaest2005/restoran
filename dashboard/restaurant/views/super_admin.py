@@ -282,19 +282,19 @@ def restaurant_login(request, slug):
                 if user_restaurant and user_restaurant.pk == restaurant.pk:
                     if user.is_active and getattr(user, 'is_approved', True):
                         
-                        # ★★★ مدیریت حالت دمو و پاکسازی داده‌های نمونه ★★★
+                        # ★★★ مدیریت خودکار حالت دمو و پاکسازی داده‌های نمونه ★★★
                         if not user.has_seen_demo:
                             # بار اول: دمو نشان بده
                             request.session['show_demo'] = True
                             user.has_seen_demo = True
                             user.save(update_fields=['has_seen_demo'])
                         else:
-                            # بار دوم به بعد: دمو غیرفعال و پاکسازی داده‌های نمونه
+                            # بار دوم به بعد: دمو غیرفعال و پاکسازی کامل داده‌های نمونه
                             request.session['show_demo'] = False
                             
-                            # ★★★ پاک کردن غذاهای و مواد اولیه نمونه ★★★
+                            # ★★★ پاک کردن غذاهای، مواد اولیه و دسته‌بندی‌های نمونه ★★★
                             if user.restaurant:
-                                from ..models import Food, RawMaterial
+                                from ..models import Food, RawMaterial, Category
                                 Food.objects.filter(
                                     restaurant=user.restaurant, 
                                     name__in=["پیتزا پپرونی", "پیتزا قارچ", "برگر کلاسیک", "نوشابه"]
@@ -302,6 +302,10 @@ def restaurant_login(request, slug):
                                 RawMaterial.objects.filter(
                                     restaurant=user.restaurant, 
                                     name__in=["خمیر پیتزا", "پنیر موزارلا", "گوشت چرخ‌کرده"]
+                                ).delete()
+                                Category.objects.filter(
+                                    restaurant=user.restaurant,
+                                    name__in=["پیتزاها", "برگرها", "نوشیدنی‌ها"]
                                 ).delete()
 
                         auth_login(request, user)
@@ -320,7 +324,6 @@ def restaurant_login(request, slug):
         'error': error,
         'expired': expired,
     })
-
 
 # ★══════════════════════════════════════════
 # ★  API: بررسی وضعیت اشتراک
