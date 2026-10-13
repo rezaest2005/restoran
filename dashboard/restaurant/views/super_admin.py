@@ -292,17 +292,30 @@ def restaurant_login(request, slug):
                             # بار دوم به بعد: دمو غیرفعال و پاکسازی کامل داده‌های نمونه
                             request.session['show_demo'] = False
                             
-                            # ★★★ پاک کردن غذاهای، مواد اولیه و دسته‌بندی‌های نمونه ★★★
+                            # ★★★ پاک کردن کامل داده‌های نمونه از دیتابیس ★★★
                             if user.restaurant:
-                                from ..models import Food, RawMaterial, Category
-                                Food.objects.filter(
+                                from ..models import Food, RawMaterial, Category, Recipe, KitchenProduct
+                                
+                                # ۱. پیدا کردن غذاهای نمونه
+                                sample_foods = Food.objects.filter(
                                     restaurant=user.restaurant, 
                                     name__in=["پیتزا پپرونی", "پیتزا قارچ", "برگر کلاسیک", "نوشابه"]
-                                ).delete()
+                                )
+                                
+                                # ۲. پاک کردن محصولات آشپزخانه و رسپی‌های مرتبط (چون PROTECT هستند)
+                                KitchenProduct.objects.filter(restaurant=user.restaurant, recipe__food__in=sample_foods).delete()
+                                Recipe.objects.filter(restaurant=user.restaurant, food__in=sample_foods).delete()
+                                
+                                # ۳. حالا می‌توانیم غذاهای نمونه را پاک کنیم
+                                sample_foods.delete()
+                                
+                                # ۴. پاک کردن مواد اولیه نمونه
                                 RawMaterial.objects.filter(
                                     restaurant=user.restaurant, 
                                     name__in=["خمیر پیتزا", "پنیر موزارلا", "گوشت چرخ‌کرده"]
                                 ).delete()
+                                
+                                # ۵. پاک کردن دسته‌بندی‌های نمونه
                                 Category.objects.filter(
                                     restaurant=user.restaurant,
                                     name__in=["پیتزاها", "برگرها", "نوشیدنی‌ها"]
@@ -324,7 +337,6 @@ def restaurant_login(request, slug):
         'error': error,
         'expired': expired,
     })
-
 # ★══════════════════════════════════════════
 # ★  API: بررسی وضعیت اشتراک
 # ★══════════════════════════════════════════
