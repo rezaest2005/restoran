@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Box, Typography, Chip, Grid, IconButton } from "@mui/material";
+import { Box, Typography, Chip, Grid } from "@mui/material";
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import { useTranslation } from "react-i18next";
@@ -24,6 +24,7 @@ export default function SharedSection() {
     inventory: isRtl ? "مدیریت انبار" : "Inventory",
     menu: isRtl ? "منو غذاها" : "Menu",
     reports: isRtl ? "گزارش‌ها" : "Reports",
+    noActivity: isRtl ? "هنوز فعالیتی ثبت نشده است." : "No activity yet."
   };
 
   const C = useMemo(() => ({
@@ -32,9 +33,9 @@ export default function SharedSection() {
     olive: isDark ? "#6B9B6E" : "#2E4D30",
     text: isDark ? "#F0ECE8" : "#1A1A24",
     sub: isDark ? "#8A8588" : "#555568",
+    muted: isDark ? "#4A4548" : "#8A8A9E",
   }), [isDark]);
 
-  // ★★★ مسیرها بدون اسلش اول هستند تا به انتهای آدرس فعلی (مثل /test1/dashboard/app/) اضافه شوند
   const quickActions = [
     { id: 1, icon: "💰", label: L.pos, path: "pos", color: "#10b981", bg: "rgba(16,185,129,0.1)" },
     { id: 2, icon: "📦", label: L.inventory, path: "inventory", color: "#3b82f6", bg: "rgba(59,130,246,0.1)" },
@@ -42,20 +43,14 @@ export default function SharedSection() {
     { id: 4, icon: "📊", label: L.reports, path: "reports", color: "#8b5cf6", bg: "rgba(139,92,246,0.1)" },
   ];
 
-  const activities = [
-    { time: "۲ دقیقه پیش", timeEn: "2 min ago", action: "سفارش #۱۲۳۴ ثبت شد", actionEn: "Order #1234 placed", type: "pos", icon: "🛒" },
-    { time: "۵ دقیقه پیش", timeEn: "5 min ago", action: "موجودی برنج کم شد", actionEn: "Rice stock low", type: "inventory", icon: "📦" },
-    { time: "۱۵ دقیقه پیش", timeEn: "15 min ago", action: "پرداخت نقدی ۵۰۰,۰۰۰ تومان", actionEn: "Cash payment 500k", type: "pos", icon: "💰" },
-    { time: "۳۰ دقیقه پیش", timeEn: "30 min ago", action: "ورود کالا: گوشت ۲۰ کیلو", actionEn: "Stock in: Meat 20kg", type: "inventory", icon: "📥" },
-    { time: "۱ ساعت پیش", timeEn: "1 hour ago", action: "سفارش #۱۲۳۳ تکمیل شد", actionEn: "Order #1233 completed", type: "pos", icon: "✅" },
-    { time: "۲ ساعت پیش", timeEn: "2 hours ago", action: "هشدار انقضای ماست", actionEn: "Yogurt expiry alert", type: "inventory", icon: "⚠️" },
-  ];
+  // ★★★ حذف لیست ثابت فعالیت‌ها. در آینده می‌توان این را از API گرفت ★★★
+  const activities = [];
 
   return (
     <Box>
       <SectionHeader icon="⚡" title={L.quickAccess} subtitle={L.secOpsDesc} C={C} isRtl={isRtl} delay={0.7} />
       
-      {/* ★ بخش دسترسی‌های سریع (کارت‌های خالی را پر می‌کند) */}
+      {/* بخش دسترسی‌های سریع */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
         {quickActions.map((action) => (
           <Grid item xs={12} sm={6} md={3} key={action.id}>
@@ -97,32 +92,41 @@ export default function SharedSection() {
       <SectionHeader icon="🕐" title={L.latestActivity} subtitle={L.secOpsDesc} C={C} isRtl={isRtl} delay={0.8} />
       <GlassCard C={C} delay={0.85}>
         <Box sx={{ p: { xs: 2, md: 3 }, display: "flex", flexDirection: "column", gap: 1.5 }}>
-          {activities.map((a, i) => (
-            <Box key={i} sx={{
-              display: "flex", alignItems: "center", gap: 1.5, p: 1.2, borderRadius: 2,
-              background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
-              borderRight: `3px solid ${a.type === "pos" ? "#6B9B6E" : "#3b82f6"}`,
-            }}>
-              <span style={{ fontSize: "1.1rem" }}>{a.icon}</span>
-              <Box sx={{ flex: 1 }}>
-                <Typography sx={{ color: C.text, fontSize: 12.5 }}>
-                  {isRtl ? a.action : a.actionEn}
-                </Typography>
-                <Typography sx={{ color: C.sub, fontSize: 11 }}>
-                  {isRtl ? a.time : a.timeEn}
-                </Typography>
+          {activities.length > 0 ? (
+            activities.map((a, i) => (
+              <Box key={i} sx={{
+                display: "flex", alignItems: "center", gap: 1.5, p: 1.2, borderRadius: 2,
+                background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
+                borderRight: `3px solid ${a.type === "pos" ? "#6B9B6E" : "#3b82f6"}`,
+              }}>
+                <span style={{ fontSize: "1.1rem" }}>{a.icon}</span>
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ color: C.text, fontSize: 12.5 }}>
+                    {isRtl ? a.action : a.actionEn}
+                  </Typography>
+                  <Typography sx={{ color: C.sub, fontSize: 11 }}>
+                    {isRtl ? a.time : a.timeEn}
+                  </Typography>
+                </Box>
+                <Chip
+                  label={a.type === "pos" ? (isRtl ? "صندوق" : "POS") : (isRtl ? "انبار" : "Inv")}
+                  size="small"
+                  sx={{
+                    bgcolor: a.type === "pos" ? "rgba(107,155,110,0.12)" : "rgba(59,130,246,0.12)",
+                    color: a.type === "pos" ? "#6B9B6E" : "#3b82f6",
+                    fontWeight: 600, fontSize: 10,
+                  }}
+                />
               </Box>
-              <Chip
-                label={a.type === "pos" ? (isRtl ? "صندوق" : "POS") : (isRtl ? "انبار" : "Inv")}
-                size="small"
-                sx={{
-                  bgcolor: a.type === "pos" ? "rgba(107,155,110,0.12)" : "rgba(59,130,246,0.12)",
-                  color: a.type === "pos" ? "#6B9B6E" : "#3b82f6",
-                  fontWeight: 600, fontSize: 10,
-                }}
-              />
+            ))
+          ) : (
+            // ★★★ نمایش این پیام وقتی فعالیتی وجود ندارد ★★★
+            <Box sx={{ textAlign: "center", py: 4 }}>
+              <Typography sx={{ color: C.muted, fontSize: 14 }}>
+                {L.noActivity}
+              </Typography>
             </Box>
-          ))}
+          )}
         </Box>
       </GlassCard>
     </Box>

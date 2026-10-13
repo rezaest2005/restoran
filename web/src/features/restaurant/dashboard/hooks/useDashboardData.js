@@ -6,6 +6,7 @@ export function useDashboardData(serviceType = SERVICE_TYPES.BOTH) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // ★ مقادیر پیش‌فرض خالی (بدون هیچ داده فیک)
   const [data, setData] = useState({
     posStats: null,
     salesTrend: [],
@@ -44,6 +45,7 @@ export function useDashboardData(serviceType = SERVICE_TYPES.BOTH) {
 
       const d = res.data;
 
+      // ★ فقط داده‌های واقعی دریافت شده از سرور را ست می‌کنیم
       setData({
         posStats: d.posStats || null,
         salesTrend: d.salesTrend || [],
