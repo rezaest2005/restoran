@@ -34,12 +34,12 @@ export default function SharedSection() {
     sub: isDark ? "#8A8588" : "#555568",
   }), [isDark]);
 
-  // لیست دسترسی‌های سریع برای پر کردن کارت‌های خالی
+  // ★★★ مسیرها بدون اسلش اول هستند تا به انتهای آدرس فعلی (مثل /test1/dashboard/app/) اضافه شوند
   const quickActions = [
-    { id: 1, icon: "💰", label: L.pos, path: "/pos", color: "#10b981", bg: "rgba(16,185,129,0.1)" },
-    { id: 2, icon: "📦", label: L.inventory, path: "/inventory", color: "#3b82f6", bg: "rgba(59,130,246,0.1)" },
-    { id: 3, icon: "🍽️", label: L.menu, path: "/dictionary", color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
-    { id: 4, icon: "📊", label: L.reports, path: "/reports", color: "#8b5cf6", bg: "rgba(139,92,246,0.1)" },
+    { id: 1, icon: "💰", label: L.pos, path: "pos", color: "#10b981", bg: "rgba(16,185,129,0.1)" },
+    { id: 2, icon: "📦", label: L.inventory, path: "inventory", color: "#3b82f6", bg: "rgba(59,130,246,0.1)" },
+    { id: 3, icon: "🍽️", label: L.menu, path: "dictionary", color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
+    { id: 4, icon: "📊", label: L.reports, path: "reports", color: "#8b5cf6", bg: "rgba(139,92,246,0.1)" },
   ];
 
   const activities = [

@@ -282,13 +282,27 @@ def restaurant_login(request, slug):
                 if user_restaurant and user_restaurant.pk == restaurant.pk:
                     if user.is_active and getattr(user, 'is_approved', True):
                         
-                        # ★★★ مدیریت حالت دمو (بار اول دمو نشان بده، بار دوم غیرفعال) ★★★
+                        # ★★★ مدیریت حالت دمو و پاکسازی داده‌های نمونه ★★★
                         if not user.has_seen_demo:
+                            # بار اول: دمو نشان بده
                             request.session['show_demo'] = True
                             user.has_seen_demo = True
                             user.save(update_fields=['has_seen_demo'])
                         else:
+                            # بار دوم به بعد: دمو غیرفعال و پاکسازی داده‌های نمونه
                             request.session['show_demo'] = False
+                            
+                            # ★★★ پاک کردن غذاهای و مواد اولیه نمونه ★★★
+                            if user.restaurant:
+                                from ..models import Food, RawMaterial
+                                Food.objects.filter(
+                                    restaurant=user.restaurant, 
+                                    name__in=["پیتزا پپرونی", "پیتزا قارچ", "برگر کلاسیک", "نوشابه"]
+                                ).delete()
+                                RawMaterial.objects.filter(
+                                    restaurant=user.restaurant, 
+                                    name__in=["خمیر پیتزا", "پنیر موزارلا", "گوشت چرخ‌کرده"]
+                                ).delete()
 
                         auth_login(request, user)
                         return redirect(f'/{slug}/dashboard/app/')
