@@ -295,31 +295,41 @@ def restaurant_login(request, slug):
                             # ★★★ پاک کردن کامل داده‌های نمونه از دیتابیس ★★★
                             if user.restaurant:
                                 from ..models import Food, RawMaterial, Category, Recipe, KitchenProduct
+                                from ..tenancy import set_current_restaurant
+                                from django.db import transaction
                                 
-                                # ۱. پیدا کردن غذاهای نمونه
-                                sample_foods = Food.objects.filter(
-                                    restaurant=user.restaurant, 
-                                    name__in=["پیتزا پپرونی", "پیتزا قارچ", "برگر کلاسیک", "نوشابه"]
-                                )
-                                
-                                # ۲. پاک کردن محصولات آشپزخانه و رسپی‌های مرتبط (چون PROTECT هستند)
-                                KitchenProduct.objects.filter(restaurant=user.restaurant, recipe__food__in=sample_foods).delete()
-                                Recipe.objects.filter(restaurant=user.restaurant, food__in=sample_foods).delete()
-                                
-                                # ۳. حالا می‌توانیم غذاهای نمونه را پاک کنیم
-                                sample_foods.delete()
-                                
-                                # ۴. پاک کردن مواد اولیه نمونه
-                                RawMaterial.objects.filter(
-                                    restaurant=user.restaurant, 
-                                    name__in=["خمیر پیتزا", "پنیر موزارلا", "گوشت چرخ‌کرده"]
-                                ).delete()
-                                
-                                # ۵. پاک کردن دسته‌بندی‌های نمونه
-                                Category.objects.filter(
-                                    restaurant=user.restaurant,
-                                    name__in=["پیتزاها", "برگرها", "نوشیدنی‌ها"]
-                                ).delete()
+                                try:
+                                    # تنظیم کانتکست رستوران برای کوئری‌ها
+                                    set_current_restaurant(user.restaurant)
+                                    
+                                    with transaction.atomic():
+                                        # ۱. پیدا کردن غذاهای نمونه
+                                        sample_foods = Food.objects.filter(
+                                            restaurant=user.restaurant, 
+                                            name__in=["پیتزا پپرونی", "پیتزا قارچ", "برگر کلاسیک", "برگر مخصوص", "نوشابه"]
+                                        )
+                                        
+                                        # ۲. پاک کردن محصولات آشپزخانه و رسپی‌های مرتبط (چون PROTECT هستند)
+                                        KitchenProduct.objects.filter(restaurant=user.restaurant, recipe__food__in=sample_foods).delete()
+                                        Recipe.objects.filter(restaurant=user.restaurant, food__in=sample_foods).delete()
+                                        
+                                        # ۳. حالا می‌توانیم غذاهای نمونه را پاک کنیم
+                                        sample_foods.delete()
+                                        
+                                        # ۴. پاک کردن مواد اولیه نمونه
+                                        RawMaterial.objects.filter(
+                                            restaurant=user.restaurant, 
+                                            name__in=["خمیر پیتزا", "پنیر موزارلا", "گوشت چرخ‌کرده", "سس مخصوص", "پیاز"]
+                                        ).delete()
+                                        
+                                        # ۵. پاک کردن دسته‌بندی‌های نمونه
+                                        Category.objects.filter(
+                                            restaurant=user.restaurant,
+                                            name__in=["پیتزاها", "برگرها", "نوشیدنی‌ها"]
+                                        ).delete()
+                                except Exception as cleanup_err:
+                                    # اگر پاکسازی خطایی داد، جلوی لاگین را نگیرد و فقط در لاگ سرور ثبت شود
+                                    logger.error(f"Error cleaning up demo data: {cleanup_err}")
 
                         auth_login(request, user)
                         return redirect(f'/{slug}/dashboard/app/')
@@ -337,6 +347,7 @@ def restaurant_login(request, slug):
         'error': error,
         'expired': expired,
     })
+
 # ★══════════════════════════════════════════
 # ★  API: بررسی وضعیت اشتراک
 # ★══════════════════════════════════════════
