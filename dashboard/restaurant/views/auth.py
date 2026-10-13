@@ -7,8 +7,9 @@ Authentication views — v7 (★ اصلاح شده)
   3. UserListView: فیلتر is_approved
   4. UserDetailView: بررسی دسترسی حذف
 """
-
-from django.contrib.auth import authenticate, login as django_login, get_user_model
+import logging
+logger = logging.getLogger(__name__)
+from django.contrib.auth import  login as django_login, get_user_model
 from django.db.models import Q
 
 from rest_framework import generics, permissions, status
@@ -65,36 +66,24 @@ class LoginView(TokenObtainPairView):
                 from django.db import transaction
                 
                 try:
-                    # تنظیم کانتکست رستوران برای کوئری‌ها
                     set_current_restaurant(user.restaurant)
-                    
                     with transaction.atomic():
-                        # ۱. پیدا کردن غذاهای نمونه
                         sample_foods = Food.objects.filter(
                             restaurant=user.restaurant, 
                             name__in=["پیتزا پپرونی", "پیتزا قارچ", "برگر کلاسیک", "برگر مخصوص", "نوشابه"]
                         )
-                        
-                        # ۲. پاک کردن محصولات آشپزخانه و رسپی‌های مرتبط (چون PROTECT هستند)
                         KitchenProduct.objects.filter(restaurant=user.restaurant, recipe__food__in=sample_foods).delete()
                         Recipe.objects.filter(restaurant=user.restaurant, food__in=sample_foods).delete()
-                        
-                        # ۳. حالا می‌توانیم غذاهای نمونه را پاک کنیم
                         sample_foods.delete()
-                        
-                        # ۴. پاک کردن مواد اولیه نمونه
                         RawMaterial.objects.filter(
                             restaurant=user.restaurant, 
                             name__in=["خمیر پیتزا", "پنیر موزارلا", "گوشت چرخ‌کرده", "سس مخصوص", "پیاز"]
                         ).delete()
-                        
-                        # ۵. پاک کردن دسته‌بندی‌های نمونه
                         Category.objects.filter(
                             restaurant=user.restaurant,
                             name__in=["پیتزاها", "برگرها", "نوشیدنی‌ها"]
                         ).delete()
                 except Exception as cleanup_err:
-                    # اگر پاکسازی خطایی داد، جلوی لاگین را نگیرد و فقط در لاگ سرور ثبت شود
                     logger.error(f"Error cleaning up demo data: {cleanup_err}")
 
         # JWT بساز
