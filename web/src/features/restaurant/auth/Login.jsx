@@ -86,7 +86,7 @@ export default function Login() {
     if (u) setUsername(u);
   }, [searchParams]);
 
-  const handleSubmit = async (e) => {
+    const handleSubmit = async (e) => {
     e.preventDefault();
     if (!username.trim() || !password) {
       setError(t("login.errorEmpty"));
@@ -98,9 +98,15 @@ export default function Login() {
     try {
       const id = { username: username.trim() };
       const { data } = await authApi.login({ ...id, password });
-      localStorage.setItem("access_token", data.access);
-      localStorage.setItem("refresh_token", data.refresh);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      
+      // ★★★ تغییر از localStorage به sessionStorage
+      sessionStorage.setItem("access_token", data.access);
+      sessionStorage.setItem("refresh_token", data.refresh);
+      sessionStorage.setItem("user", JSON.stringify(data.user));
+      
+      // ★★★ اضافه شدن این خط: ذخیره شمارنده دمو برای استفاده در داشبورد
+      sessionStorage.setItem("demo_logins_remaining", data.user.demo_logins_remaining || 0);
+      
       sessionStorage.setItem("session_alive", "1");
       await authApi.setSession({
         access_token: data.access,

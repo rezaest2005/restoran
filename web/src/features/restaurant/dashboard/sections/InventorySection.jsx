@@ -73,11 +73,20 @@ export default function InventorySection({ data }) {
     ok: { bg: isDark ? "rgba(16,185,129,0.12)" : "rgba(5,150,105,0.1)", color: isDark ? "#10B981" : "#059669" },
   };
 
+  // ★ ایمن‌سازی داده‌ها با || [] تا اگر بک‌اند خالی فرستاد، کرش نکند
+  const stockLevelData = (data.stockLevel || []).map(d => ({ ...d, displayName: isRtl ? d.name : d.nameEn }));
+  const stockFlowData = (data.stockFlow || []).map(d => ({ ...d, displayName: isRtl ? d.day : d.dayEn }));
+  const wastePieData = (data.wastePie || []).map(d => ({ ...d, displayName: isRtl ? d.name : d.nameEn }));
+  const stockAlertsData = data.stockAlerts || [];
+  const expiringData = data.expiring || [];
+  const topUsedData = data.topUsed || [];
+  const slowMoversData = data.slowMovers || [];
+
   const stats = [
-    { icon: "📦", color: "#10b981", value: fmtN(data.stats.stockValue), unit: L.tuman, label: L.stockValue },
-    { icon: "⚠️", color: "#f59e0b", value: fmtN(data.stats.lowStock), unit: "", label: L.lowStock },
-    { icon: "⏳", color: "#ef4444", value: fmtN(data.stats.expiring), unit: "", label: L.expiring },
-    { icon: "🗑️", color: "#8b5cf6", value: fmtN(data.stats.monthlyWaste), unit: L.tuman, label: L.monthlyWaste }
+    { icon: "📦", color: "#10b981", value: fmtN(data.stats?.stockValue), unit: L.tuman, label: L.stockValue },
+    { icon: "⚠️", color: "#f59e0b", value: fmtN(data.stats?.lowStock), unit: "", label: L.lowStock },
+    { icon: "⏳", color: "#ef4444", value: fmtN(data.stats?.expiring), unit: "", label: L.expiring },
+    { icon: "🗑️", color: "#8b5cf6", value: fmtN(data.stats?.monthlyWaste), unit: L.tuman, label: L.monthlyWaste }
   ];
 
   return (
@@ -105,97 +114,43 @@ export default function InventorySection({ data }) {
       </Box>
 
       {/* === سطح موجودی + جریان === */}
-<SectionHeader icon="📊" title={L.secStock} subtitle={L.secStockDesc} C={C} isRtl={isRtl} delay={0.2} />
-<Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "7fr 5fr" }, gap: 3, mb: 5, width: "100%" }}>
+      <SectionHeader icon="📊" title={L.secStock} subtitle={L.secStockDesc} C={C} isRtl={isRtl} delay={0.2} />
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "7fr 5fr" }, gap: 3, mb: 5, width: "100%" }}>
 
-  <GlassCard C={C} sx={{ p: 3, width: "100%", height: 500, overflow: "visible" }}>
-    <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>
-      📊 {L.stockLevel}
-    </Typography>
-    <Box sx={{ width: "100%", height: 420 }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={data.stockLevel.map(d => ({ ...d, displayName: isRtl ? d.name : d.nameEn }))}
-          layout="vertical"
-          margin={{ top: 20, right: isRtl ? 180 : 30, left: isRtl ? 30 : 180, bottom: 10 }}
-          barGap={8}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke={chartGridStroke} horizontal={true} vertical={false} />
+        <GlassCard C={C} sx={{ p: 3, width: "100%", height: 500, overflow: "visible" }}>
+          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>📊 {L.stockLevel}</Typography>
+          <Box sx={{ width: "100%", height: 420 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stockLevelData} layout="vertical" margin={{ top: 20, right: isRtl ? 180 : 30, left: isRtl ? 30 : 180, bottom: 10 }} barGap={8}>
+                <CartesianGrid strokeDasharray="3 3" stroke={chartGridStroke} horizontal={true} vertical={false} />
+                <XAxis type="number" tick={{ fill: C.sub, fontSize: 13 }} tickLine={false} axisLine={{ stroke: C.glassBorder, strokeWidth: 2 }} dy={10} />
+                <YAxis dataKey="displayName" type="category" tick={{ fill: C.text, fontSize: 13, fontWeight: 600, textAnchor: isRtl ? "start" : "end" }} width={160} interval={0} orientation={isRtl ? "left" : "right"} tickLine={false} axisLine={{ stroke: C.glassBorder, strokeWidth: 2 }} tickMargin={isRtl ? 25 : 15} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "transparent" }} formatter={(v, name) => [v, name === "current" ? L.current : L.minLabel]} />
+                <Legend wrapperStyle={{ fontSize: 14, paddingTop: "15px" }} />
+                <Bar dataKey="min" name={L.minLabel} fill="#E84057" radius={[0, 8, 8, 0]} opacity={0.4} barSize={14} />
+                <Bar dataKey="current" name={L.current} fill={C.olive} radius={[0, 8, 8, 0]} barSize={14} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Box>
+        </GlassCard>
 
-          {/* محور X — اعداد پایین */}
-          <XAxis
-            type="number"
-            tick={{ fill: C.sub, fontSize: 13 }}
-            tickLine={false}
-            axisLine={{ stroke: C.glassBorder, strokeWidth: 2 }}
-            dy={10}
-          />
-
-          {/* ✅ محور Y — اسم محصولات کنار نمودار */}
-          <YAxis
-            dataKey="displayName"
-            type="category"
-            tick={{
-              fill: C.text,
-              fontSize: 13,
-              fontWeight: 600,
-              textAnchor: isRtl ? "start" : "end",
-            }}
-            width={160}
-            interval={0}
-            orientation={isRtl ? "left" : "right"}
-            tickLine={false}
-            axisLine={{ stroke: C.glassBorder, strokeWidth: 2 }}
-            tickMargin={isRtl ? 25 : 15}
-          />
-
-          <Tooltip
-            contentStyle={tooltipStyle}
-            cursor={{ fill: "transparent" }}
-            formatter={(v, name) => [v, name === "current" ? L.current : L.minLabel]}
-          />
-          <Legend wrapperStyle={{ fontSize: 14, paddingTop: "15px" }} />
-
-          <Bar dataKey="min" name={L.minLabel} fill="#E84057" radius={[0, 8, 8, 0]} opacity={0.4} barSize={14} />
-          <Bar dataKey="current" name={L.current} fill={C.olive} radius={[0, 8, 8, 0]} barSize={14} />
-        </BarChart>
-      </ResponsiveContainer>
-    </Box>
-  </GlassCard>
-
-  <GlassCard C={C} sx={{ p: 3, width: "100%", height: 500, overflow: "visible" }}>
-    <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>
-      📈 {L.stockFlow}
-    </Typography>
-    <Box sx={{ width: "100%", height: 420 }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart
-          data={data.stockFlow.map(d => ({ ...d, displayName: isRtl ? d.day : d.dayEn }))}
-          margin={{ top: 20, right: 30, left: 10, bottom: 20 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke={chartGridStroke} vertical={false} />
-          <XAxis
-            dataKey="displayName"
-            stroke={C.muted}
-            fontSize={14}
-            tickLine={false}
-            axisLine={false}
-            dy={10}
-          />
-          <YAxis stroke={C.muted} fontSize={14} tickLine={false} axisLine={false} dx={-10} />
-          <Tooltip
-            contentStyle={tooltipStyle}
-            cursor={{ fill: "transparent" }}
-            formatter={(v, name) => [v, name === "inbound" ? L.inbound : L.outbound]}
-          />
-          <Legend wrapperStyle={{ fontSize: 14, paddingTop: "15px" }} />
-          <Bar dataKey="inbound" name={L.inbound} fill="#6B9B6E" radius={[6, 6, 0, 0]} barSize={22} />
-          <Bar dataKey="outbound" name={L.outbound} fill="#E84057" radius={[6, 6, 0, 0]} barSize={22} />
-        </BarChart>
-      </ResponsiveContainer>
-    </Box>
-  </GlassCard>
-</Box>
+        <GlassCard C={C} sx={{ p: 3, width: "100%", height: 500, overflow: "visible" }}>
+          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>📈 {L.stockFlow}</Typography>
+          <Box sx={{ width: "100%", height: 420 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stockFlowData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={chartGridStroke} vertical={false} />
+                <XAxis dataKey="displayName" stroke={C.muted} fontSize={14} tickLine={false} axisLine={false} dy={10} />
+                <YAxis stroke={C.muted} fontSize={14} tickLine={false} axisLine={false} dx={-10} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "transparent" }} formatter={(v, name) => [v, name === "inbound" ? L.inbound : L.outbound]} />
+                <Legend wrapperStyle={{ fontSize: 14, paddingTop: "15px" }} />
+                <Bar dataKey="inbound" name={L.inbound} fill="#6B9B6E" radius={[6, 6, 0, 0]} barSize={22} />
+                <Bar dataKey="outbound" name={L.outbound} fill="#E84057" radius={[6, 6, 0, 0]} barSize={22} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Box>
+        </GlassCard>
+      </Box>
 
       {/* === ضایعات + هشدارها === */}
       <SectionHeader icon="🗑️" title={L.secWaste} subtitle={L.secWasteDesc} C={C} isRtl={isRtl} delay={0.4} />
@@ -206,9 +161,8 @@ export default function InventorySection({ data }) {
           <Box sx={{ width: "100%", height: 420 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
-                {/* حذف لیبل خطی برای جلوگیری از تداخل متن، انتقال به Legend */}
-                <Pie data={data.wastePie.map(d => ({ ...d, displayName: isRtl ? d.name : d.nameEn }))} cx="50%" cy="45%" innerRadius={80} outerRadius={130} paddingAngle={3} dataKey="value">
-                  {data.wastePie.map((e, i) => <Cell key={i} fill={e.color} />)}
+                <Pie data={wastePieData} cx="50%" cy="45%" innerRadius={80} outerRadius={130} paddingAngle={3} dataKey="value">
+                  {wastePieData.map((e, i) => <Cell key={i} fill={e.color} />)}
                 </Pie>
                 <Tooltip contentStyle={tooltipStyle} formatter={(v) => [`${v}%`, ""]} />
                 <Legend wrapperStyle={{ fontSize: 16, paddingTop: "20px" }} />
@@ -220,7 +174,7 @@ export default function InventorySection({ data }) {
         <GlassCard C={C} sx={{ p: 3, width: "100%", height: 500, display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3, flexShrink: 0 }}>⚠️ {L.stockAlerts}</Typography>
           <Box sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 2, width: "100%", overflowY: "auto" }}>
-            {data.stockAlerts.map((alert, i) => {
+            {stockAlertsData.map((alert, i) => {
               const sev = SEVERITY[alert.level] || SEVERITY.ok;
               return (
                 <Box key={i} sx={{ p: 2.5, borderRadius: 3, background: sev.bg, border: `1px solid ${sev.color}33`, display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
@@ -242,7 +196,7 @@ export default function InventorySection({ data }) {
         <GlassCard C={C} sx={{ p: 3, width: "100%", minHeight: 450, overflow: "hidden" }}>
           <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>⏳ {L.expiringItems}</Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
-            {data.expiring.map((item, i) => {
+            {expiringData.map((item, i) => {
               const sev = SEVERITY[item.severity] || SEVERITY.ok;
               return (
                 <Box key={i} sx={{ p: 2, borderRadius: 2, background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)", borderRight: `4px solid ${sev.color}`, display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
@@ -260,7 +214,7 @@ export default function InventorySection({ data }) {
         <GlassCard C={C} sx={{ p: 3, width: "100%", minHeight: 450, overflow: "hidden" }}>
           <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>🆙 {L.topUsed}</Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
-            {data.topUsed.map((item, i) => (
+            {topUsedData.map((item, i) => (
               <Box key={i} sx={{ p: 2, borderRadius: 2, background: i === 0 ? `${C.olive}15` : (isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)"), display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0, flex: 1 }}>
                   <Box sx={{ width: 32, height: 32, borderRadius: "50%", background: i < 3 ? C.olive : C.glassBorder, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 14, fontWeight: 800, flexShrink: 0 }}>{isRtl ? (i+1).toLocaleString("fa-IR") : i+1}</Box>
@@ -275,7 +229,7 @@ export default function InventorySection({ data }) {
         <GlassCard C={C} sx={{ p: 3, width: "100%", minHeight: 450, overflow: "hidden" }}>
           <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>📉 {L.slowMovers}</Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
-            {data.slowMovers.map((item, i) => (
+            {slowMoversData.map((item, i) => (
               <Box key={i} sx={{ p: 2, borderRadius: 2, background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)", display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
                 <Box sx={{ minWidth: 0, flex: 1 }}>
                   <Typography sx={{ color: C.text, fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{isRtl ? item.name : item.nameEn}</Typography>

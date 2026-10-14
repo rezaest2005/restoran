@@ -4,7 +4,6 @@ import axios from "axios";
 //  ★ ذخیره tenant slug از URL
 // ═══════════════════════════════════════════════════
 
-// ★ تغییر ۱: IIFE → تابع جداگانه + شنونده popstate
 function saveTenantSlug() {
   const parts = window.location.pathname.split("/").filter(Boolean);
   const slug = parts[0] || "";
@@ -18,10 +17,7 @@ function saveTenantSlug() {
   return null;
 }
 
-// ✅ یکبار هنگام لود
 saveTenantSlug();
-
-// ✅ + هر بار کاربر back/forward بزنه
 window.addEventListener("popstate", saveTenantSlug);
 
 const client = axios.create({
@@ -32,13 +28,13 @@ const client = axios.create({
 
 // ─── ارسال توکن + CSRF + tenant ──────────────────
 client.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
+  // ★★★ تغییر به sessionStorage
+  const token = sessionStorage.getItem("access_token");
   if (token) config.headers.Authorization = "Bearer " + token;
 
   const csrf = document.cookie.match(/csrftoken=([^;]+)/);
   if (csrf) config.headers["X-CSRFToken"] = csrf[1];
 
-  // ★ تغییر ۲: هر بار slug رو تازه از URL بخون
   const slug = saveTenantSlug() || localStorage.getItem("tenant_slug");
   if (slug) config.headers["X-Tenant-Slug"] = slug;
 
@@ -65,7 +61,8 @@ client.interceptors.response.use(
     const status = err.response?.status;
 
     if (status === 401 && !originalRequest._retry) {
-      const refreshToken = localStorage.getItem("refresh_token");
+      // ★★★ تغییر به sessionStorage
+      const refreshToken = sessionStorage.getItem("refresh_token");
       if (!refreshToken) {
         return Promise.reject(err);
       }
@@ -90,8 +87,9 @@ client.interceptors.response.use(
         const newAccess = res.data.access;
         const newRefresh = res.data.refresh || refreshToken;
 
-        localStorage.setItem("access_token", newAccess);
-        localStorage.setItem("refresh_token", newRefresh);
+        // ★★★ تغییر به sessionStorage
+        sessionStorage.setItem("access_token", newAccess);
+        sessionStorage.setItem("refresh_token", newRefresh);
 
         processQueue(null, newAccess);
 
@@ -115,14 +113,16 @@ function redirectToLogin() {
   if (redirecting) return;
   redirecting = true;
 
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("refresh_token");
-  localStorage.removeItem("user");
-  localStorage.removeItem("db_auth");
+  // ★★★ تغییر به sessionStorage
+  sessionStorage.removeItem("access_token");
+  sessionStorage.removeItem("refresh_token");
+  sessionStorage.removeItem("user");
+  sessionStorage.removeItem("db_auth");
+  
+  // این برای اطلاع به سایر تب‌ها است، در localStorage بماند
   localStorage.setItem("__logout__", Date.now().toString());
   window.location.href = "/dashboard/login";
 
-  // ★ تغییر ۳: reset بعد از ۲ ثانیه تا SPA باز بتونه redirect کنه
   setTimeout(() => {
     redirecting = false;
   }, 2000);
@@ -134,8 +134,6 @@ window.addEventListener("storage", (e) => {
     if (!redirecting) {
       redirecting = true;
       window.location.href = "/dashboard/login";
-
-      // ★ تغییر ۳ (همون): reset
       setTimeout(() => {
         redirecting = false;
       }, 2000);
@@ -144,18 +142,19 @@ window.addEventListener("storage", (e) => {
 });
 
 // ─── auto-refresh: هر ۲۰ دقیقه ──────────────────
-// ★ تغییر ۴: جلوگیری از چند بار setInterval
 if (!window.__tokenRefreshInterval) {
   window.__tokenRefreshInterval = setInterval(async () => {
-    const refreshToken = localStorage.getItem("refresh_token");
+    // ★★★ تغییر به sessionStorage
+    const refreshToken = sessionStorage.getItem("refresh_token");
     if (!refreshToken) return;
     try {
       const res = await client.post("/api/auth/refresh/", {
         refresh: refreshToken,
       });
-      localStorage.setItem("access_token", res.data.access);
+      // ★★★ تغییر به sessionStorage
+      sessionStorage.setItem("access_token", res.data.access);
       if (res.data.refresh) {
-        localStorage.setItem("refresh_token", res.data.refresh);
+        sessionStorage.setItem("refresh_token", res.data.refresh);
       }
     } catch (_) {}
   }, 20 * 60 * 1000);
@@ -170,7 +169,8 @@ const TAB_ID = `tab_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
 function getCurrentUserId() {
   try {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    // ★★★ تغییر به sessionStorage
+    const user = JSON.parse(sessionStorage.getItem("user") || "{}");
     return user.id || "anonymous";
   } catch {
     return "anonymous";
