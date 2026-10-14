@@ -59,6 +59,9 @@ def dashboard_analytics(request):
     if not restaurant:
         return JsonResponse({"error": "رستوران یافت نشد"}, status=400)
 
+    # ★★★ خواندن وضعیت دمو از سشن کاربر ★★★
+    is_demo = request.session.get('show_demo', False)
+
     today = datetime.date.today()
     week_start = today - datetime.timedelta(days=6)
     prev_week_start = week_start - datetime.timedelta(days=7)
@@ -153,7 +156,9 @@ def dashboard_analytics(request):
         slow_movers.append({"name": s["raw_material__name"], "nameEn": s["raw_material__name"], "lastUsed": last.strftime("%Y-%m-%d") if last else "—", "lastUsedEn": last.strftime("%Y-%m-%d") if last else "—", "quantity": float(s["total_qty"] or 0), "unit": s["raw_material__unit"] or ""})
 
     return JsonResponse({
-        "success": True, "posStats": pos_stats, "salesTrend": sales_trend, "hourly": hourly, "categories": categories,
+        "success": True, 
+        "is_demo": is_demo,  # ★★★ این پراپرتی به فرانت‌اند می‌گوید دمو است یا واقعی
+        "posStats": pos_stats, "salesTrend": sales_trend, "hourly": hourly, "categories": categories,
         "topItems": top_items, "lowItems": low_items, "orderStatus": order_status, "weeklyCompare": weekly_compare, "monthlyTrend": monthly_trend,
         "invStats": inv_stats, "stockLevel": stock_level, "stockFlow": stock_flow, "wastePie": waste_pie, "stockAlerts": stock_alerts,
         "expiring": [], "topUsed": top_used, "slowMovers": slow_movers, "invWeekly": [],
