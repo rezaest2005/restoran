@@ -1430,6 +1430,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
             "is_active",
             "created_at",
             "updated_at",
+            "demo_logins_remaining",  
         ]
         read_only_fields = [
             "id",
@@ -1438,11 +1439,11 @@ class UserDetailSerializer(serializers.ModelSerializer):
             "is_verified",
             "created_at",
             "updated_at",
+            "demo_logins_remaining", 
         ]
 
     def get_full_name(self, obj):
         return obj.get_full_name() or obj.username
-
 
 class UserListSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()

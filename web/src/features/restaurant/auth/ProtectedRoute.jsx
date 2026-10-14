@@ -12,7 +12,8 @@ function isTokenExpired(token) {
 }
 
 function tryRefreshToken() {
-  const refreshToken = localStorage.getItem("refresh_token");
+  // ★★★ تغییر به sessionStorage
+  const refreshToken = sessionStorage.getItem("refresh_token");
   if (!refreshToken) return Promise.resolve(false);
 
   return fetch("/api/auth/refresh/", {
@@ -26,8 +27,9 @@ function tryRefreshToken() {
     })
     .then(data => {
       if (data?.access) {
-        localStorage.setItem("access_token", data.access);
-        if (data.refresh) localStorage.setItem("refresh_token", data.refresh);
+        // ★★★ تغییر به sessionStorage
+        sessionStorage.setItem("access_token", data.access);
+        if (data.refresh) sessionStorage.setItem("refresh_token", data.refresh);
         return true;
       }
       return false;
@@ -40,7 +42,8 @@ export default function ProtectedRoute({ children }) {
   const [status, setStatus] = useState("checking");
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
+    // ★★★ تغییر به sessionStorage
+    const token = sessionStorage.getItem("access_token");
 
     if (!token) {
       setStatus("no_token");
@@ -68,8 +71,9 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (status !== "ok") {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
+    // ★★★ تغییر به sessionStorage
+    sessionStorage.removeItem("access_token");
+    sessionStorage.removeItem("refresh_token");
     return <Navigate to="/dashboard/login" state={{ from: location }} replace />;
   }
 

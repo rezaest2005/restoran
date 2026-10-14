@@ -6,9 +6,9 @@ export function useDashboardData(serviceType = SERVICE_TYPES.BOTH) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // ★ مقادیر پیش‌فرض خالی (بدون هیچ داده فیک)
+  // ★★★ تمام مقادیر اولیه کاملاً خالی هستند (بدون هیچ داده فیک)
   const [data, setData] = useState({
-    posStats: null,
+    posStats: { sales: 0, orders: 0, customers: 0, avgTime: 0, delivered: 0, cancelled: 0, avgOrder: 0 },
     salesTrend: [],
     monthlyTrend: [],
     hourly: [],
@@ -16,8 +16,8 @@ export function useDashboardData(serviceType = SERVICE_TYPES.BOTH) {
     topItems: [],
     lowItems: [],
     orderStatus: [],
-    weeklyCompare: {},
-    invStats: null,
+    weeklyCompare: { thisWeek: 0, lastWeek: 0, change: 0 },
+    invStats: { stockValue: 0, lowStock: 0, expiring: 0, monthlyWaste: 0 },
     stockLevel: [],
     stockFlow: [],
     wastePie: [],
@@ -45,9 +45,8 @@ export function useDashboardData(serviceType = SERVICE_TYPES.BOTH) {
 
       const d = res.data;
 
-      // ★ فقط داده‌های واقعی دریافت شده از سرور را ست می‌کنیم
       setData({
-        posStats: d.posStats || null,
+        posStats: d.posStats || { sales: 0, orders: 0, customers: 0, avgTime: 0, delivered: 0, cancelled: 0, avgOrder: 0 },
         salesTrend: d.salesTrend || [],
         monthlyTrend: d.monthlyTrend || [],
         hourly: d.hourly || [],
@@ -55,8 +54,8 @@ export function useDashboardData(serviceType = SERVICE_TYPES.BOTH) {
         topItems: d.topItems || [],
         lowItems: d.lowItems || [],
         orderStatus: d.orderStatus || [],
-        weeklyCompare: d.weeklyCompare || {},
-        invStats: d.invStats || null,
+        weeklyCompare: d.weeklyCompare || { thisWeek: 0, lastWeek: 0, change: 0 },
+        invStats: d.invStats || { stockValue: 0, lowStock: 0, expiring: 0, monthlyWaste: 0 },
         stockLevel: d.stockLevel || [],
         stockFlow: d.stockFlow || [],
         wastePie: d.wastePie || [],
@@ -89,12 +88,7 @@ export function useDashboardData(serviceType = SERVICE_TYPES.BOTH) {
   }, [fetchData]);
 
   const posData = useMemo(() => {
-    if (
-      serviceType !== SERVICE_TYPES.POS &&
-      serviceType !== SERVICE_TYPES.BOTH
-    )
-      return null;
-
+    if (serviceType !== SERVICE_TYPES.POS && serviceType !== SERVICE_TYPES.BOTH) return null;
     return {
       stats: data.posStats,
       salesTrend: data.salesTrend,
@@ -109,12 +103,7 @@ export function useDashboardData(serviceType = SERVICE_TYPES.BOTH) {
   }, [serviceType, data]);
 
   const inventoryData = useMemo(() => {
-    if (
-      serviceType !== SERVICE_TYPES.INVENTORY &&
-      serviceType !== SERVICE_TYPES.BOTH
-    )
-      return null;
-
+    if (serviceType !== SERVICE_TYPES.INVENTORY && serviceType !== SERVICE_TYPES.BOTH) return null;
     return {
       stats: data.invStats,
       stockLevel: data.stockLevel,
@@ -128,13 +117,7 @@ export function useDashboardData(serviceType = SERVICE_TYPES.BOTH) {
     };
   }, [serviceType, data]);
 
-  return {
-    loading,
-    error,
-    posData,
-    inventoryData,
-    refetch: fetchData,
-  };
+  return { loading, error, posData, inventoryData, refetch: fetchData };
 }
 
 export default useDashboardData;
