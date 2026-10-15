@@ -849,3 +849,17 @@ def usage_log_detail_json(request: HttpRequest):
             "stock": str(material.quantity),
         } if material else None,
     })
+# ═══════════════════════════════════════
+#  ★ API جدید: لیست مواد اولیه برای فرم فاکتور
+# ═══════════════════════════════════════
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def raw_material_list_api(request: HttpRequest):
+    """لیست تمام مواد اولیه انبار برای استفاده در فرم فاکتور خرید"""
+    restaurant = _resolve_restaurant(request)
+    if not restaurant:
+        return JsonResponse([], safe=False)
+
+    qs = RawMaterial.objects.filter(restaurant=restaurant).values("id", "name", "unit", "price", "quantity", "minimum_stock")
+    return JsonResponse(list(qs), safe=False)

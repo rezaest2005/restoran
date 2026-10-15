@@ -24,7 +24,8 @@ const NAV_SECTIONS = [
     titleKey: "rest.nav_inventory",
     serviceCode: null,
     items: [
-      { icon: "📦", label: "انبارداری", basePath: "inventory", serviceCode: null, permissionKey: null },
+      // ★★★ تغییر از label به labelKey
+      { icon: "📦", labelKey: "rest.nav_inventory", basePath: "inventory", serviceCode: null, permissionKey: null },
     ],
   },
   {
@@ -173,7 +174,8 @@ export default function RestaurantLayout() {
                   onClick={() => isMobile && setSidebarOpen(false)}
                   sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1, borderRadius: "10px", textDecoration: "none", color: C.sub, transition: "all 0.2s ease", "&:hover": { bgcolor: C.oliveSubtle, color: C.olive } }}>
                   <Typography sx={{ fontSize: 16, lineHeight: 1 }}>{item.icon}</Typography>
-                  <Typography sx={{ fontSize: 12.5, fontWeight: 500 }}>{item.label ? item.label : t(item.labelKey)}</Typography>
+                  {/* ★★★ استفاده از labelKey به جای label ثابت */}
+                  <Typography sx={{ fontSize: 12.5, fontWeight: 500 }}>{t(item.labelKey)}</Typography>
                 </Box>
               ))}
             </Box>
