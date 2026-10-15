@@ -43,6 +43,8 @@ urlpatterns = [
     path("api/users/tabs/", views.user_tabs_api, name="user_tabs_api"),
     
     # ── Raw Materials & Suppliers ───────────────────────────
+        # ── Raw Materials & Suppliers ───────────────────────────
+    path("api/raw-materials/", views.raw_material_list_api, name="raw_material_list_api"), 
     path("api/raw-materials/save/", views.raw_material_save, name="raw_material_save"),
     path("api/raw-materials/delete/", views.raw_material_delete, name="raw_material_delete"),
     path("api/raw-materials/suggestions/", views.raw_material_suggestions, name="raw_material_suggestions"),

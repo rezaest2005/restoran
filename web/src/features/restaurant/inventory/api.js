@@ -116,8 +116,9 @@ export const fetchInventoryDashboard = () =>
    مواد اولیه (برای Dropdown‌ها)
 ═══════════════════════════════════════ */
 
+// ★★★ تغییر مسیر به API جدید و استاندارد
 export const fetchRawMaterials = () =>
-  client.get("/api/warehouse-json/").then(r => r.data);
+  client.get("/api/raw-materials/").then(r => r.data);
 
 /* ═══════════════════════════════════════
    تأمین‌کنندگان (برای Dropdown)
