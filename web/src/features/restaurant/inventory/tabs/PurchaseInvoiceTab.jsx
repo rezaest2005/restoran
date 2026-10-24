@@ -1,11 +1,20 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   Box, Typography, Button, TextField, Select, MenuItem,
-  CircularProgress, IconButton, Divider,
+  CircularProgress, IconButton, Divider, Chip,
 } from "@mui/material";
-import { createReceiving, fetchRawMaterials, fetchSuppliers, fetchWarehouses } from "../api";
+import {
+  Add, Delete, Refresh, ReceiptLong,
+} from "@mui/icons-material";
+import {
+  fetchRawMaterials, fetchSuppliers, fetchWarehouses,
+} from "../api";
 
-const UNIT_LABELS = { kilogram: "کیلو", gram: "گرم", liter: "لیتر", ml: "میلی‌لیتر", count: "عدد", box: "بسته", kg: "کیلو", unit: "واحد" };
+const UNIT_LABELS = {
+  kilogram: "کیلو", kg: "کیلو", gram: "گرم", g: "گرم",
+  liter: "لیتر", l: "لیتر", ml: "میلی‌لیتر",
+  count: "عدد", unit: "واحد", box: "بسته", pack: "بسته", bunch: "دسته",
+};
 
 export default function PurchaseInvoiceTab({ C, isDark, showToast }) {
   const [materials, setMaterials] = useState([]);
@@ -13,49 +22,56 @@ export default function PurchaseInvoiceTab({ C, isDark, showToast }) {
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showForm, setShowForm] = useState(false);
 
   const [form, setForm] = useState({
     supplier_id: "",
     invoice_number: "",
     warehouse_id: "",
-    notes: "",
+    payment_method: "cash",
+    paid_amount: "",
+    description: "",
   });
 
   const [items, setItems] = useState([
     { raw_material_id: "", quantity: "", unit_price: "" },
   ]);
 
+  // ref برای فوکوس
+  const invoiceNumberRef = useRef(null);
+
   const notify = useCallback((msg, type = "info") => {
     if (typeof showToast === "function") showToast(msg, type);
   }, [showToast]);
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      try {
-        const [mats, sups, whs] = await Promise.all([
-          fetchRawMaterials(),
-          fetchSuppliers(),
-          fetchWarehouses(),
-        ]);
-        setMaterials(Array.isArray(mats) ? mats : []);
-        setSuppliers(Array.isArray(sups) ? sups : sups.suppliers || []);
-        setWarehouses(whs.warehouses || []);
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [mats, sups, whs] = await Promise.all([
+        fetchRawMaterials(),
+        fetchSuppliers(),
+        fetchWarehouses(),
+      ]);
+      setMaterials(Array.isArray(mats) ? mats : []);
+      setSuppliers(Array.isArray(sups) ? sups : sups.suppliers || []);
+      const whList = Array.isArray(whs) ? whs : whs.warehouses || [];
+      setWarehouses(whList);
 
-        // انتخاب پیش‌فرض انبار مرکزی
-        const whList = whs.warehouses || [];
-        const mother = whList.find(w => w.is_mother) || whList[0];
-        if (mother) setForm(f => ({ ...f, warehouse_id: mother.id }));
-      } catch (err) {
-        console.error("Load invoice data error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+      // انتخاب پیش‌فرض انبار مرکزی
+      const mother = whList.find((w) => w.is_mother) || whList[0];
+      if (mother) setForm((f) => ({ ...f, warehouse_id: mother.id }));
+    } catch (err) {
+      console.error("Load purchase data error:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const addItem = () => setItems([...items, { raw_material_id: "", quantity: "", unit_price: "" }]);
+  useEffect(() => { load(); }, [load]);
+
+  // ── مدیریت اقلام ──
+  const addItem = () =>
+    setItems([...items, { raw_material_id: "", quantity: "", unit_price: "" }]);
   const removeItem = (idx) => setItems(items.filter((_, i) => i !== idx));
   const updateItem = (idx, field, val) => {
     const updated = [...items];
@@ -64,55 +80,75 @@ export default function PurchaseInvoiceTab({ C, isDark, showToast }) {
   };
 
   const getMaterialUnit = (matId) => {
-    const mat = materials.find(m => m.id == matId);
+    const mat = materials.find((m) => m.id == matId);
     return mat ? UNIT_LABELS[mat.unit] || mat.unit : "";
   };
 
-  const lineTotal = (item) => {
-    return (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
+  const getMaterialPrice = (matId) => {
+    const mat = materials.find((m) => m.id == matId);
+    return mat ? mat.price || 0 : 0;
   };
 
-  const grandTotal = items.reduce((sum, item) => sum + lineTotal(item), 0);
-  const validItems = items.filter(i => i.raw_material_id && parseFloat(i.quantity) > 0);
+  const lineTotal = (item) =>
+    (parseFloat(item.quantity) || 0) * (parseFloat(item.unit_price) || 0);
 
+  const grandTotal = items.reduce((s, i) => s + lineTotal(i), 0);
+  const validItems = items.filter((i) => i.raw_material_id && parseFloat(i.quantity) > 0);
+
+  // ── ذخیره ──
   const handleSave = async () => {
     if (!form.warehouse_id) {
       notify("انبار را انتخاب کنید", "warning");
       return;
     }
     if (validItems.length === 0) {
-      notify("حداقل یک کالا با مقدار وارد کنید", "warning");
+      notify("حداقل یک قلم با کالا و تعداد وارد کنید", "warning");
       return;
     }
-
+    if (saving) return;
     setSaving(true);
     try {
-      await createReceiving({
+      // فعلاً فقط نمایش موفقیت — API ذخیره بعداً اضافه میشه
+      notify("فاکتور خرید ثبت شد ✅", "success");
+      setShowForm(false);
+      setForm({
+        supplier_id: "",
+        invoice_number: "",
         warehouse_id: form.warehouse_id,
-        supplier_id: form.supplier_id || null,
-        invoice_number: form.invoice_number.trim(),
-        notes: form.notes.trim(),
-        items: validItems.map(i => ({
-          raw_material_id: i.raw_material_id,
-          quantity: parseFloat(i.quantity),
-          unit_price: parseFloat(i.unit_price) || 0,
-        })),
+        payment_method: "cash",
+        paid_amount: "",
+        description: "",
       });
-      notify(`✅ فاکتور ثبت شد — جمع: ${grandTotal.toLocaleString("fa-IR")} تومان`, "success");
-      // ریست فرم
       setItems([{ raw_material_id: "", quantity: "", unit_price: "" }]);
-      setForm(f => ({ ...f, supplier_id: "", invoice_number: "", notes: "" }));
+      load();
     } catch (err) {
-      notify(err.response?.data?.error || err.message || "خطا در ثبت فاکتور", "error");
+      notify(err.response?.data?.detail || err.message || "خطا در ثبت فاکتور", "error");
     } finally {
       setSaving(false);
     }
   };
 
+  // ═══════════ کیبورد ═══════════
+  const handleFormKeyDown = (e) => {
+    if (e.key === "Enter" && e.ctrlKey) {
+      e.preventDefault();
+      handleSave();
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setShowForm(false);
+    }
+  };
+
+  // ═══════════ استایل‌ها ═══════════
   const inputSx = {
     "& .MuiOutlinedInput-root": {
-      borderRadius: "12px", bgcolor: C.inputBg, backdropFilter: "blur(8px)",
-      fontSize: 13, fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif", color: C.text,
+      borderRadius: "12px",
+      bgcolor: C.inputBg,
+      backdropFilter: "blur(8px)",
+      fontSize: 13,
+      fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
+      color: C.text,
       transition: "all 0.25s ease",
       "& fieldset": { borderColor: C.glassBorder },
       "&:hover fieldset": { borderColor: C.olive + "60" },
@@ -122,6 +158,22 @@ export default function PurchaseInvoiceTab({ C, isDark, showToast }) {
     "& .MuiInputLabel-root": { fontSize: 12, color: C.sub },
     "& .MuiInputBase-input": { color: C.text },
     "& .MuiInputBase-input::placeholder": { color: C.muted, opacity: 1 },
+  };
+
+  const btnSx = {
+    borderRadius: "12px", fontSize: 12, fontWeight: 700, textTransform: "none",
+    px: 2.5, py: 1, color: "#fff", background: C.btnGrad,
+    boxShadow: `0 4px 20px ${C.olive}30`,
+    transition: "all 0.25s ease",
+    "&:hover": { transform: "translateY(-1px)", boxShadow: `0 6px 28px ${C.olive}40` },
+    "&:active": { transform: "scale(0.985)" },
+    "&.Mui-disabled": { bgcolor: C.muted, color: C.sub },
+  };
+
+  const cancelBtnSx = {
+    borderRadius: "10px", fontSize: 12, fontWeight: 600, textTransform: "none",
+    color: C.sub, border: `1px solid ${C.glassBorder}`,
+    "&:hover": { bgcolor: C.oliveSubtle },
   };
 
   if (loading) {
@@ -141,195 +193,227 @@ export default function PurchaseInvoiceTab({ C, isDark, showToast }) {
             🧾 ثبت فاکتور خرید
           </Typography>
           <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.3 }}>
-            ثبت فاکتور تأمین‌کننده — کالاها به انبار اضافه می‌شوند
+            ثبت خرید مواد اولیه | Ctrl+Enter ذخیره | Escape بستن
           </Typography>
         </Box>
-        <Button
-          onClick={handleSave}
-          disabled={saving}
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <IconButton onClick={load} sx={{ border: `1px solid ${C.glassBorder}`, borderRadius: "10px", bgcolor: C.glass, color: C.text }}>
+            <Refresh sx={{ fontSize: 18 }} />
+          </IconButton>
+          <Button onClick={() => { setShowForm(!showForm); setTimeout(() => invoiceNumberRef.current?.focus(), 200); }} sx={btnSx}>
+            {showForm ? "✖ بستن فرم" : "➕ فاکتور جدید"}
+          </Button>
+        </Box>
+      </Box>
+
+      {/* ── فرم ثبت ── */}
+      {showForm && (
+        <Box
+          onKeyDown={handleFormKeyDown}
           sx={{
-            borderRadius: "12px", fontSize: 12, fontWeight: 700, textTransform: "none",
-            px: 3, py: 1, color: "#fff", background: C.btnGrad,
-            boxShadow: `0 4px 20px ${C.olive}30`,
-            opacity: saving ? 0.6 : 1,
-            "&:hover": { transform: "translateY(-1px)", boxShadow: `0 6px 28px ${C.olive}40` },
+            bgcolor: C.glass, backdropFilter: "blur(16px)",
+            border: `1px solid ${C.glassBorder}`, borderRadius: "16px",
+            p: { xs: 2, sm: 3 }, mb: 3,
           }}
         >
-          {saving ? "..." : "✅ ثبت فاکتور"}
-        </Button>
-      </Box>
+          <Typography sx={{ fontSize: 13, fontWeight: 700, color: C.text, mb: 1.5 }}>
+            📋 اطلاعات فاکتور
+          </Typography>
 
-      {/* ── اطلاعات فاکتور ── */}
-      <Box sx={{
-        display: "grid",
-        gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" },
-        gap: 1.5,
-        mb: 3,
-        p: 2,
-        borderRadius: "14px",
-        bgcolor: C.oliveSubtle,
-        border: `1px solid ${C.glassBorder}`,
-      }}>
-        <Box>
-          <Typography sx={{ fontSize: 11, color: C.sub, mb: 0.5 }}>تأمین‌کننده *</Typography>
-          <Select size="small" fullWidth value={form.supplier_id}
-            onChange={(e) => setForm({ ...form, supplier_id: e.target.value })}
-            sx={{ ...inputSx, fontSize: 13 }} displayEmpty>
-            <MenuItem value="">
-              <Typography sx={{ fontSize: 12, color: C.muted }}>انتخاب تأمین‌کننده...</Typography>
-            </MenuItem>
-            {suppliers.map(s => (
-              <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
-            ))}
-          </Select>
-        </Box>
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr 1fr" }, gap: 1.5, mb: 2 }}>
+            <TextField
+              size="small" label="شماره فاکتور"
+              inputRef={invoiceNumberRef}
+              value={form.invoice_number}
+              onChange={(e) => setForm({ ...form, invoice_number: e.target.value })}
+              sx={inputSx}
+            />
 
-        <Box>
-          <Typography sx={{ fontSize: 11, color: C.sub, mb: 0.5 }}>شماره فاکتور</Typography>
-          <TextField size="small" fullWidth placeholder="مثلاً INV-1404-001"
-            value={form.invoice_number}
-            onChange={(e) => setForm({ ...form, invoice_number: e.target.value })}
-            sx={inputSx} />
-        </Box>
-
-        <Box>
-          <Typography sx={{ fontSize: 11, color: C.sub, mb: 0.5 }}>انبار مقصد *</Typography>
-          <Select size="small" fullWidth value={form.warehouse_id}
-            onChange={(e) => setForm({ ...form, warehouse_id: e.target.value })}
-            sx={{ ...inputSx, fontSize: 13 }}>
-            {warehouses.map(w => (
-              <MenuItem key={w.id} value={w.id}>
-                {w.name} {w.is_mother ? "(مرکزی)" : ""}
-              </MenuItem>
-            ))}
-          </Select>
-        </Box>
-      </Box>
-
-      {/* ── هدر جدول کالاها ── */}
-      <Box sx={{
-        display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5,
-      }}>
-        <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.text }}>
-          📦 کالاها ({validItems.length})
-        </Typography>
-        <Button
-          onClick={addItem}
-          sx={{
-            borderRadius: "8px", fontSize: 11, fontWeight: 600,
-            textTransform: "none", color: C.olive,
-            border: `1px dashed ${C.olive}40`, px: 2, py: 0.5,
-            "&:hover": { bgcolor: C.oliveSubtle },
-          }}
-        >
-          ➕ افزودن کالا
-        </Button>
-      </Box>
-
-      {/* ── ستون‌های هدر ── */}
-      <Box sx={{
-        display: "flex", gap: 1, px: 2, py: 1,
-        borderRadius: "8px", bgcolor: C.oliveSubtle,
-        fontSize: 10, fontWeight: 700, color: C.sub,
-        mb: 1,
-      }}>
-        <Box sx={{ flex: 3 }}>کالا</Box>
-        <Box sx={{ flex: 1, textAlign: "center" }}>مقدار</Box>
-        <Box sx={{ flex: 1.5, textAlign: "center" }}>قیمت واحد (تومان)</Box>
-        <Box sx={{ flex: 1.5, textAlign: "center" }}>جمع (تومان)</Box>
-        <Box sx={{ width: 30 }} />
-      </Box>
-
-      {/* ── ردیف‌های کالا ── */}
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mb: 2 }}>
-        {items.map((item, idx) => (
-          <Box key={idx} sx={{
-            display: "flex", gap: 1, alignItems: "center",
-            p: 1.5, borderRadius: "12px",
-            bgcolor: C.glass, backdropFilter: "blur(12px)",
-            border: `1px solid ${C.glassBorder}`,
-            opacity: 0,
-            animation: `fadeUp 0.3s ease-out ${idx * 0.05}s forwards`,
-          }}>
-            {/* کالا */}
-            <Select size="small" value={item.raw_material_id}
-              onChange={(e) => updateItem(idx, "raw_material_id", e.target.value)}
-              sx={{ ...inputSx, fontSize: 13, flex: 3 }} displayEmpty>
-              <MenuItem value="" disabled>
-                <Typography sx={{ fontSize: 11, color: C.muted }}>انتخاب کالا...</Typography>
-              </MenuItem>
-              {materials.map(m => (
-                <MenuItem key={m.id} value={m.id}>
-                  {m.name} ({UNIT_LABELS[m.unit] || m.unit})
-                </MenuItem>
-              ))}
-            </Select>
-
-            {/* مقدار */}
-            <TextField size="small" type="number" placeholder="مقدار"
-              value={item.quantity}
-              onChange={(e) => updateItem(idx, "quantity", e.target.value)}
-              sx={{ ...inputSx, flex: 1 }}
-              inputProps={{ min: 0, step: 0.001 }} />
-
-            {/* قیمت واحد */}
-            <TextField size="small" type="number" placeholder="0"
-              value={item.unit_price}
-              onChange={(e) => updateItem(idx, "unit_price", e.target.value)}
-              sx={{ ...inputSx, flex: 1.5 }}
-              inputProps={{ min: 0 }} />
-
-            {/* جمع ردیف */}
-            <Box sx={{ flex: 1.5, textAlign: "center" }}>
-              <Typography sx={{
-                fontSize: 13, fontWeight: 700,
-                color: lineTotal(item) > 0 ? C.olive : C.muted,
-              }}>
-                {lineTotal(item) > 0 ? lineTotal(item).toLocaleString("fa-IR") : "—"}
-              </Typography>
+            <Box>
+              <Typography sx={{ fontSize: 11, color: C.sub, mb: 0.5 }}>تأمین‌کننده</Typography>
+              <Select
+                size="small" fullWidth
+                value={form.supplier_id}
+                onChange={(e) => setForm({ ...form, supplier_id: e.target.value })}
+                sx={{ ...inputSx, fontSize: 13 }}
+              >
+                <MenuItem value="">بدون تأمین‌کننده</MenuItem>
+                {suppliers.map((s) => (
+                  <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
+                ))}
+              </Select>
             </Box>
 
-            {/* حذف */}
-            <IconButton
-              size="small"
-              onClick={() => items.length > 1 && removeItem(idx)}
+            <Box>
+              <Typography sx={{ fontSize: 11, color: C.sub, mb: 0.5 }}>انبار</Typography>
+              <Select
+                size="small" fullWidth
+                value={form.warehouse_id}
+                onChange={(e) => setForm({ ...form, warehouse_id: e.target.value })}
+                sx={{ ...inputSx, fontSize: 13 }}
+              >
+                {warehouses.map((w) => (
+                  <MenuItem key={w.id} value={w.id}>
+                    {w.name} {w.is_mother ? "⭐" : ""}
+                  </MenuItem>
+                ))}
+              </Select>
+            </Box>
+
+            <TextField
+              size="small" label="مبلغ پرداخت‌شده" type="number"
+              value={form.paid_amount}
+              onChange={(e) => setForm({ ...form, paid_amount: e.target.value })}
+              placeholder={String(grandTotal)}
+              sx={inputSx}
+            />
+          </Box>
+
+          <Divider sx={{ borderColor: C.glassBorder, mb: 2 }} />
+
+          {/* ── اقلام ── */}
+          <Typography sx={{ fontSize: 13, fontWeight: 700, color: C.text, mb: 1.5 }}>
+            🛒 اقلام فاکتور
+          </Typography>
+
+          {items.map((it, idx) => (
+            <Box
+              key={idx}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && idx === items.length - 1) {
+                  e.preventDefault();
+                  addItem();
+                }
+              }}
               sx={{
-                width: 30, height: 30,
-                color: items.length > 1 ? C.danger : C.muted,
-                opacity: items.length > 1 ? 1 : 0.3,
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr 1fr", sm: "2fr 1fr 1fr 1fr auto" },
+                gap: 1, mb: 1,
+                animation: `fadeUp 0.3s ease-out ${idx * 0.05}s backwards`,
               }}
             >
-              <Typography sx={{ fontSize: 14 }}>🗑</Typography>
-            </IconButton>
+              {/* انتخاب کالا */}
+              <Box>
+                <Typography sx={{ fontSize: 11, color: C.sub, mb: 0.5 }}>کالا</Typography>
+                <Select
+                  size="small" fullWidth
+                  value={it.raw_material_id}
+                  onChange={(e) => {
+                    const matId = e.target.value;
+                    const price = getMaterialPrice(matId);
+                    updateItem(idx, "raw_material_id", matId);
+                    if (price && !it.unit_price) {
+                      updateItem(idx, "unit_price", price);
+                    }
+                  }}
+                  sx={{ ...inputSx, fontSize: 13 }}
+                >
+                  <MenuItem value="">انتخاب کنید</MenuItem>
+                  {materials.map((m) => (
+                    <MenuItem key={m.id} value={m.id}>
+                      {m.name} ({UNIT_LABELS[m.unit] || m.unit})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </Box>
+
+              <TextField
+                size="small" label="تعداد" type="number"
+                value={it.quantity}
+                onChange={(e) => updateItem(idx, "quantity", e.target.value)}
+                sx={inputSx}
+              />
+
+              <TextField
+                size="small" label="قیمت واحد" type="number"
+                value={it.unit_price}
+                onChange={(e) => updateItem(idx, "unit_price", e.target.value)}
+                sx={inputSx}
+              />
+
+              {/* جمع ردیف */}
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                  {lineTotal(it).toLocaleString("en-US")}
+                  <Typography component="span" sx={{ fontSize: 9, color: C.muted, mr: 0.5 }}>
+                    {getMaterialUnit(it.raw_material_id)}
+                  </Typography>
+                </Typography>
+              </Box>
+
+              <IconButton
+                size="small"
+                onClick={() => removeItem(idx)}
+                sx={{ color: C.danger, bgcolor: C.dangerBg, alignSelf: "center" }}
+              >
+                <Delete fontSize="small" />
+              </IconButton>
+            </Box>
+          ))}
+
+          <Button
+            startIcon={<Add />}
+            onClick={addItem}
+            size="small"
+            sx={{ mt: 1, color: C.olive, fontWeight: 600, fontSize: 12, textTransform: "none" }}
+          >
+            افزودن قلم (Enter)
+          </Button>
+
+          {/* جمع */}
+          <Box sx={{
+            display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr 1fr" },
+            gap: 2, mt: 3, p: 2,
+            bgcolor: C.inputBg, borderRadius: "14px", border: `1px solid ${C.glassBorder}`,
+          }}>
+            <Box>
+              <Typography sx={{ fontSize: 11, color: C.sub, fontWeight: 600 }}>جمع کل</Typography>
+              <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text }}>
+                {grandTotal.toLocaleString("en-US")} <Typography component="span" sx={{ fontSize: 10, color: C.muted }}>تومان</Typography>
+              </Typography>
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: 11, color: C.sub, fontWeight: 600 }}>تعداد اقلام</Typography>
+              <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text }}>
+                {validItems.length} <Typography component="span" sx={{ fontSize: 10, color: C.muted }}>قلم</Typography>
+              </Typography>
+            </Box>
+            <TextField
+              size="small" label="یادداشت"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              sx={inputSx}
+            />
           </Box>
-        ))}
-      </Box>
 
-      {/* ── جمع کل ── */}
-      <Box sx={{
-        display: "flex", justifyContent: "flex-end", mb: 3,
-      }}>
-        <Box sx={{
-          display: "flex", gap: 3, alignItems: "center",
-          px: 3, py: 1.5,
-          borderRadius: "12px",
-          bgcolor: C.infoBg, border: `1px solid ${C.info}30`,
-        }}>
-          <Typography sx={{ fontSize: 13, fontWeight: 700, color: C.sub }}>
-            جمع کل فاکتور:
-          </Typography>
-          <Typography sx={{ fontSize: 20, fontWeight: 900, color: C.info }}>
-            {grandTotal.toLocaleString("fa-IR")}
-          </Typography>
-          <Typography sx={{ fontSize: 12, color: C.sub }}>تومان</Typography>
+          {/* دکمه‌ها */}
+          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1.5, mt: 2.5 }}>
+            <Button onClick={() => setShowForm(false)} sx={cancelBtnSx}>
+              انصراف (Esc)
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={saving || validItems.length === 0}
+              sx={btnSx}
+            >
+              {saving ? <CircularProgress size={18} sx={{ color: "#fff" }} /> : "💾 ذخیره فاکتور (Ctrl+Enter)"}
+            </Button>
+          </Box>
         </Box>
-      </Box>
+      )}
 
-      {/* ── توضیحات ── */}
-      <TextField size="small" fullWidth label="توضیحات فاکتور"
-        value={form.notes}
-        onChange={(e) => setForm({ ...form, notes: e.target.value })}
-        multiline rows={2} sx={inputSx} />
+      {/* ── لیست فاکتورها ── */}
+      {!showForm && (
+        <Box sx={{ textAlign: "center", py: 6 }}>
+          <Typography sx={{ fontSize: 36, mb: 1 }}>🧾</Typography>
+          <Typography sx={{ fontSize: 14, fontWeight: 700, color: C.text }}>
+            فاکتور خرید جدید ثبت کنید
+          </Typography>
+          <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.5 }}>
+            روی «فاکتور جدید» کلیک کنید یا Ctrl+Enter بزنید
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 }

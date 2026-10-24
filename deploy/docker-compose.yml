@@ -1,25 +1,56 @@
 ﻿services:
   db:
     image: postgres:16-alpine
-    container_name: postgres_db
+    ports:
+      - "5433:5432"
     environment:
-      POSTGRES_DB: restaurant
-      POSTGRES_USER: restaurant
-      POSTGRES_PASSWORD: reza1383db
+      POSTGRES_DB: ${DB_NAME:-restaurant}
+      POSTGRES_USER: ${DB_USER:-restaurant}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env or environment}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-restaurant} -d ${DB_NAME:-restaurant}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     restart: unless-stopped
+
+  # سرویس یک‌بارمصرف: فقط migrate + ساخت کاربران اولیه
+  migrate:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+      target: backend
+    command: sh /app/migrate.sh
+    volumes:
+      - ../dashboard:/app
+      - ./migrate.sh:/app/migrate.sh
+      - static_data:/app/staticfiles
+      - media_data:/app/media
+    env_file:
+      - ../.env
+    environment:
+      - DEBUG=False
+      - DB_HOST=db
+      - DB_PORT=5432
+      - BOOTSTRAP_SYNC_PASSWORDS=${BOOTSTRAP_SYNC_PASSWORDS:-0}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
 
   web:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
       target: backend
-    container_name: django_app
     command: sh /app/entrypoint.sh
     volumes:
       - ../dashboard:/app
       - ./entrypoint.sh:/app/entrypoint.sh
+      - static_data:/app/staticfiles
+      - media_data:/app/media
     expose:
       - "8000"
     env_file:
@@ -28,23 +59,29 @@
       - DEBUG=False
       - DB_HOST=db
       - DB_PORT=5432
-      - BOOTSTRAP_SYNC_PASSWORDS=1
-      - BOOTSTRAP_ADMIN_PASSWORD=admin
     depends_on:
-      - db
+      migrate:
+        condition: service_completed_successfully
     restart: unless-stopped
+    # عمداً بدون container_name تا scale افقی ممکن باشد:
+    # docker-compose up --scale web=5
 
   nginx:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
       target: nginx
-    container_name: nginx_proxy
     ports:
       - "8000:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - static_data:/app/staticfiles:ro
+      - media_data:/app/media:ro
     depends_on:
       - web
     restart: unless-stopped
 
 volumes:
   pgdata:
+  static_data:
+  media_data:

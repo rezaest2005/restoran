@@ -33,3 +33,5 @@ Thumbs.db
 
 # Docker
 backend/nginx.conf
+
+deploy/.env

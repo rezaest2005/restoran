@@ -7,7 +7,7 @@ from django.db.models import Q
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 
-from ..models import ItemDictionary, DictionaryGroup, Food, Category, Restaurant
+from ..models import Food, Category, Restaurant
 from ..tenancy import (
     get_current_restaurant, set_current_restaurant, get_restaurant_from_request
 )
@@ -64,159 +64,159 @@ def _serialize_dict_item(item):
 
 @api_view(["GET"])
 @permission_classes([DictionaryPerm])
-def raw_materials_api(request):
-    restaurant = _resolve_restaurant(request)
-    if not restaurant: return JsonResponse({"tabs": [], "items": []})
-    groups = DictionaryGroup.objects.filter(restaurant=restaurant, is_active=True, usage_invoice=True).order_by("sort_order", "name")
-    tabs = [{"id": g.id, "slug": g.slug, "name": g.name, "icon": g.icon, "color": g.color} for g in groups]
-    items_qs = ItemDictionary.objects.filter(restaurant=restaurant, is_active=True, group__isnull=False, group__is_active=True, group__usage_invoice=True).select_related("group").order_by("group__sort_order", "name")
-    items_data = [{"id": item.id, "name": item.name, "unit": item.unit, "description": item.description or "", "dict_category": item.dict_category or "", "material_type": getattr(item, "material_type", "raw") or "raw", "group": item.group_id, "group_slug": item.group.slug, "group_name": item.group.name, "group_color": item.group.color, "group_icon": item.group.icon} for item in items_qs]
-    return JsonResponse({"tabs": tabs, "items": items_data})
-
+# [COMMENTED] def raw_materials_api(request):
+# [COMMENTED]     restaurant = _resolve_restaurant(request)
+# [COMMENTED]     if not restaurant: return JsonResponse({"tabs": [], "items": []})
+# [X] # [COMMENTED]     groups = DictionaryGroup.objects.filter(restaurant=restaurant, is_active=True, usage_invoice=True).order_by("sort_order", "name")
+# [COMMENTED]     tabs = [{"id": g.id, "slug": g.slug, "name": g.name, "icon": g.icon, "color": g.color} for g in groups]
+# [X] # [COMMENTED]     items_qs = ItemDictionary.objects.filter(restaurant=restaurant, is_active=True, group__isnull=False, group__is_active=True, group__usage_invoice=True).select_related("group").order_by("group__sort_order", "name")
+# [COMMENTED]     items_data = [{"id": item.id, "name": item.name, "unit": item.unit, "description": item.description or "", "dict_category": item.dict_category or "", "material_type": getattr(item, "material_type", "raw") or "raw", "group": item.group_id, "group_slug": item.group.slug, "group_name": item.group.name, "group_color": item.group.color, "group_icon": item.group.icon} for item in items_qs]
+# [COMMENTED]     return JsonResponse({"tabs": tabs, "items": items_data})
+# [COMMENTED] 
 @api_view(["GET"])
 @permission_classes([DictionaryPerm])
-def dictionary_group_list(request):
-    restaurant = _resolve_restaurant(request)
-    qs = DictionaryGroup.objects.filter(is_active=True)
-    if restaurant: qs = qs.filter(restaurant=restaurant)
-    groups = [_serialize_group(g) for g in qs.order_by("sort_order", "name")]
-    return JsonResponse({"groups": groups})
-
+# [COMMENTED] def dictionary_group_list(request):
+# [COMMENTED]     restaurant = _resolve_restaurant(request)
+# [X] # [COMMENTED]     qs = DictionaryGroup.objects.filter(is_active=True)
+# [COMMENTED]     if restaurant: qs = qs.filter(restaurant=restaurant)
+# [COMMENTED]     groups = [_serialize_group(g) for g in qs.order_by("sort_order", "name")]
+# [COMMENTED]     return JsonResponse({"groups": groups})
+# [COMMENTED] 
 @api_view(["POST"])
 @permission_classes([DictionaryPerm])
-def dictionary_group_save(request):
-    data = request.data
-    group_id = data.get("id"); name = (data.get("name") or "").strip(); slug = (data.get("slug") or "").strip()
-    icon = (data.get("icon") or "bi-archive").strip(); color = (data.get("color") or "#6b7280").strip()
-    sort_order = int(data.get("sort_order", 0))
-    usage_recipes = bool(data.get("usage_recipes", False)); usage_warehouse = bool(data.get("usage_warehouse", False))
-    usage_pos = bool(data.get("usage_pos", False)); usage_invoice = bool(data.get("usage_invoice", False)); usage_kitchen = bool(data.get("usage_kitchen", False))
-    if not name: return JsonResponse({"error": "نام گروه الزامی است"}, status=400)
-    if not slug: slug = "group_" + str(abs(hash(name)) % 0xFFFFFF)
-    restaurant = _resolve_restaurant(request)
-    if not restaurant: return JsonResponse({"error": "رستوران مشخص نشده"}, status=400)
-    if group_id:
-        try: g = DictionaryGroup.objects.get(id=group_id, restaurant=restaurant)
-        except DictionaryGroup.DoesNotExist: return JsonResponse({"error": "گروه یافت نشد"}, status=404)
-        if g.is_system:
-            g.usage_recipes = usage_recipes; g.usage_warehouse = usage_warehouse; g.usage_pos = usage_pos; g.usage_invoice = usage_invoice; g.usage_kitchen = usage_kitchen
-            g.save()
-            return JsonResponse({"group": _serialize_group(g), "message": "تنظیمات گروه سیستمی بروزرسانی شد"})
-        g.name = name; g.slug = slug; g.icon = icon; g.color = color; g.sort_order = sort_order
-        g.usage_recipes = usage_recipes; g.usage_warehouse = usage_warehouse; g.usage_pos = usage_pos; g.usage_invoice = usage_invoice; g.usage_kitchen = usage_kitchen
-        g.save()
-        return JsonResponse({"group": _serialize_group(g), "message": "گروه ویرایش شد"})
-    if DictionaryGroup.objects.filter(restaurant=restaurant, slug=slug).exists():
-        slug = f"{slug}_{DictionaryGroup.objects.filter(restaurant=restaurant).count()}"
-    g = DictionaryGroup.objects.create(restaurant=restaurant, name=name, slug=slug, icon=icon, color=color, sort_order=sort_order, usage_recipes=usage_recipes, usage_warehouse=usage_warehouse, usage_pos=usage_pos, usage_invoice=usage_invoice, usage_kitchen=usage_kitchen, is_system=False)
-    return JsonResponse({"group": _serialize_group(g), "message": "گروه جدید ساخته شد"})
-
+# [COMMENTED] def dictionary_group_save(request):
+# [COMMENTED]     data = request.data
+# [COMMENTED]     group_id = data.get("id"); name = (data.get("name") or "").strip(); slug = (data.get("slug") or "").strip()
+# [COMMENTED]     icon = (data.get("icon") or "bi-archive").strip(); color = (data.get("color") or "#6b7280").strip()
+# [COMMENTED]     sort_order = int(data.get("sort_order", 0))
+# [COMMENTED]     usage_recipes = bool(data.get("usage_recipes", False)); usage_warehouse = bool(data.get("usage_warehouse", False))
+# [COMMENTED]     usage_pos = bool(data.get("usage_pos", False)); usage_invoice = bool(data.get("usage_invoice", False)); usage_kitchen = bool(data.get("usage_kitchen", False))
+# [COMMENTED]     if not name: return JsonResponse({"error": "نام گروه الزامی است"}, status=400)
+# [COMMENTED]     if not slug: slug = "group_" + str(abs(hash(name)) % 0xFFFFFF)
+# [COMMENTED]     restaurant = _resolve_restaurant(request)
+# [COMMENTED]     if not restaurant: return JsonResponse({"error": "رستوران مشخص نشده"}, status=400)
+# [COMMENTED]     if group_id:
+# [X] # [COMMENTED]         try: g = DictionaryGroup.objects.get(id=group_id, restaurant=restaurant)
+# [X] # [COMMENTED]         except DictionaryGroup.DoesNotExist: return JsonResponse({"error": "گروه یافت نشد"}, status=404)
+# [COMMENTED]         if g.is_system:
+# [COMMENTED]             g.usage_recipes = usage_recipes; g.usage_warehouse = usage_warehouse; g.usage_pos = usage_pos; g.usage_invoice = usage_invoice; g.usage_kitchen = usage_kitchen
+# [COMMENTED]             g.save()
+# [COMMENTED]             return JsonResponse({"group": _serialize_group(g), "message": "تنظیمات گروه سیستمی بروزرسانی شد"})
+# [COMMENTED]         g.name = name; g.slug = slug; g.icon = icon; g.color = color; g.sort_order = sort_order
+# [COMMENTED]         g.usage_recipes = usage_recipes; g.usage_warehouse = usage_warehouse; g.usage_pos = usage_pos; g.usage_invoice = usage_invoice; g.usage_kitchen = usage_kitchen
+# [COMMENTED]         g.save()
+# [COMMENTED]         return JsonResponse({"group": _serialize_group(g), "message": "گروه ویرایش شد"})
+# [X] # [COMMENTED]     if DictionaryGroup.objects.filter(restaurant=restaurant, slug=slug).exists():
+# [X] # [COMMENTED]         slug = f"{slug}_{DictionaryGroup.objects.filter(restaurant=restaurant).count()}"
+# [X] # [COMMENTED]     g = DictionaryGroup.objects.create(restaurant=restaurant, name=name, slug=slug, icon=icon, color=color, sort_order=sort_order, usage_recipes=usage_recipes, usage_warehouse=usage_warehouse, usage_pos=usage_pos, usage_invoice=usage_invoice, usage_kitchen=usage_kitchen, is_system=False)
+# [COMMENTED]     return JsonResponse({"group": _serialize_group(g), "message": "گروه جدید ساخته شد"})
+# [COMMENTED] 
 @api_view(["POST"])
 @permission_classes([DictionaryPerm])
-def dictionary_group_delete(request):
-    group_id = request.data.get("id")
-    if not group_id: return JsonResponse({"error": "شناسه گروه الزامی است"}, status=400)
-    restaurant = _resolve_restaurant(request)
-    try:
-        g = DictionaryGroup.objects.get(id=group_id)
-        if restaurant and g.restaurant_id != restaurant.id: return JsonResponse({"error": "گروه یافت نشد"}, status=404)
-    except DictionaryGroup.DoesNotExist: return JsonResponse({"error": "گروه یافت نشد"}, status=404)
-    if g.is_system: return JsonResponse({"error": "گروه سیستمی قابل حذف نیست"}, status=400)
-    deleted_count = ItemDictionary.objects.filter(group=g).count()
-    group_name = g.name
-    logger.info("Deleting group '%s' (id=%s) with %s items by user %s", group_name, g.id, deleted_count, request.user.username)
-    ItemDictionary.objects.filter(group=g).delete()
-    g.delete()
-    return JsonResponse({"message": f"گروه «{group_name}» و {deleted_count} آیتم حذف شد"})
-
+# [COMMENTED] def dictionary_group_delete(request):
+# [COMMENTED]     group_id = request.data.get("id")
+# [COMMENTED]     if not group_id: return JsonResponse({"error": "شناسه گروه الزامی است"}, status=400)
+# [COMMENTED]     restaurant = _resolve_restaurant(request)
+# [COMMENTED]     try:
+# [X] # [COMMENTED]         g = DictionaryGroup.objects.get(id=group_id)
+# [COMMENTED]         if restaurant and g.restaurant_id != restaurant.id: return JsonResponse({"error": "گروه یافت نشد"}, status=404)
+# [X] # [COMMENTED]     except DictionaryGroup.DoesNotExist: return JsonResponse({"error": "گروه یافت نشد"}, status=404)
+# [COMMENTED]     if g.is_system: return JsonResponse({"error": "گروه سیستمی قابل حذف نیست"}, status=400)
+# [X] # [COMMENTED]     deleted_count = ItemDictionary.objects.filter(group=g).count()
+# [COMMENTED]     group_name = g.name
+# [COMMENTED]     logger.info("Deleting group '%s' (id=%s) with %s items by user %s", group_name, g.id, deleted_count, request.user.username)
+# [X] # [COMMENTED]     ItemDictionary.objects.filter(group=g).delete()
+# [COMMENTED]     g.delete()
+# [COMMENTED]     return JsonResponse({"message": f"گروه «{group_name}» و {deleted_count} آیتم حذف شد"})
+# [COMMENTED] 
 @api_view(["GET"])
 @permission_classes([DictionaryPerm])
-def dictionary_list(request):
-    restaurant = _resolve_restaurant(request)
-    category = request.GET.get("category", "")
-    qs = ItemDictionary.objects.filter(is_active=True)
-    if restaurant: qs = qs.filter(restaurant=restaurant)
-    if category: qs = qs.filter(category=category)
-    data = [_serialize_dict_item(item) for item in qs]
-    return JsonResponse({"items": data})
-
+# [COMMENTED] def dictionary_list(request):
+# [COMMENTED]     restaurant = _resolve_restaurant(request)
+# [COMMENTED]     category = request.GET.get("category", "")
+# [X] # [COMMENTED]     qs = ItemDictionary.objects.filter(is_active=True)
+# [COMMENTED]     if restaurant: qs = qs.filter(restaurant=restaurant)
+# [COMMENTED]     if category: qs = qs.filter(category=category)
+# [COMMENTED]     data = [_serialize_dict_item(item) for item in qs]
+# [COMMENTED]     return JsonResponse({"items": data})
+# [COMMENTED] 
 @api_view(["GET"])
 @permission_classes([DictionaryPerm])
-def dictionary_autocomplete(request):
-    q = request.GET.get("q", "").strip()
-    category = request.GET.get("category", "")
-    if len(q) < 1: return JsonResponse({"items": []})
-    restaurant = _resolve_restaurant(request)
-    qs = ItemDictionary.objects.filter(name__icontains=q, is_active=True)
-    if restaurant: qs = qs.filter(restaurant=restaurant)
-    if category: qs = qs.filter(category=category)
-    data = [_serialize_dict_item(item) for item in qs[:15]]
-    return JsonResponse({"items": data})
-
+# [COMMENTED] def dictionary_autocomplete(request):
+# [COMMENTED]     q = request.GET.get("q", "").strip()
+# [COMMENTED]     category = request.GET.get("category", "")
+# [COMMENTED]     if len(q) < 1: return JsonResponse({"items": []})
+# [COMMENTED]     restaurant = _resolve_restaurant(request)
+# [X] # [COMMENTED]     qs = ItemDictionary.objects.filter(name__icontains=q, is_active=True)
+# [COMMENTED]     if restaurant: qs = qs.filter(restaurant=restaurant)
+# [COMMENTED]     if category: qs = qs.filter(category=category)
+# [COMMENTED]     data = [_serialize_dict_item(item) for item in qs[:15]]
+# [COMMENTED]     return JsonResponse({"items": data})
+# [COMMENTED] 
 @api_view(["POST"])
 @permission_classes([DictionaryPerm])
-def dictionary_create(request):
-    data = request.data
-    name = (data.get("name") or "").strip(); unit = (data.get("unit") or "").strip()
-    category = (data.get("category") or "").strip(); desc = (data.get("description") or "").strip()
-    dict_category = (data.get("dict_category") or "").strip(); material_type = (data.get("material_type") or "raw").strip()
-    group_id = data.get("group_id")
-    if not name or not unit or not category: return JsonResponse({"error": "نام، واحد و دسته‌بندی الزامی است"}, status=400)
-    restaurant = _resolve_restaurant(request)
-    if not restaurant: return JsonResponse({"error": "رستوران مشخص نشده"}, status=400)
-    if ItemDictionary.objects.filter(name=name, category=category, restaurant=restaurant).exists():
-        return JsonResponse({"error": "این اسم قبلاً در این دسته‌بندی ثبت شده"}, status=400)
-    group = None
-    if group_id: group = DictionaryGroup.objects.filter(id=group_id, restaurant=restaurant).first()
-    try:
-        item = ItemDictionary.objects.create(restaurant=restaurant, name=name, unit=unit, category=category, description=desc, dict_category=dict_category, material_type=material_type, group=group)
-        return JsonResponse(_serialize_dict_item(item), status=201)
-    except Exception as e:
-        logger.exception("Error creating dictionary item")
-        return JsonResponse({"error": str(e)}, status=500)
-
+# [COMMENTED] def dictionary_create(request):
+# [COMMENTED]     data = request.data
+# [COMMENTED]     name = (data.get("name") or "").strip(); unit = (data.get("unit") or "").strip()
+# [COMMENTED]     category = (data.get("category") or "").strip(); desc = (data.get("description") or "").strip()
+# [COMMENTED]     dict_category = (data.get("dict_category") or "").strip(); material_type = (data.get("material_type") or "raw").strip()
+# [COMMENTED]     group_id = data.get("group_id")
+# [COMMENTED]     if not name or not unit or not category: return JsonResponse({"error": "نام، واحد و دسته‌بندی الزامی است"}, status=400)
+# [COMMENTED]     restaurant = _resolve_restaurant(request)
+# [COMMENTED]     if not restaurant: return JsonResponse({"error": "رستوران مشخص نشده"}, status=400)
+# [X] # [COMMENTED]     if ItemDictionary.objects.filter(name=name, category=category, restaurant=restaurant).exists():
+# [COMMENTED]         return JsonResponse({"error": "این اسم قبلاً در این دسته‌بندی ثبت شده"}, status=400)
+# [COMMENTED]     group = None
+# [X] # [COMMENTED]     if group_id: group = DictionaryGroup.objects.filter(id=group_id, restaurant=restaurant).first()
+# [COMMENTED]     try:
+# [X] # [COMMENTED]         item = ItemDictionary.objects.create(restaurant=restaurant, name=name, unit=unit, category=category, description=desc, dict_category=dict_category, material_type=material_type, group=group)
+# [COMMENTED]         return JsonResponse(_serialize_dict_item(item), status=201)
+# [COMMENTED]     except Exception as e:
+# [COMMENTED]         logger.exception("Error creating dictionary item")
+# [COMMENTED]         return JsonResponse({"error": str(e)}, status=500)
+# [COMMENTED] 
 @api_view(["POST"])
 @permission_classes([DictionaryPerm])
-def dictionary_update(request, pk):
-    restaurant = _resolve_restaurant(request)
-    try:
-        qs = ItemDictionary.objects.all()
-        if restaurant: qs = qs.filter(restaurant=restaurant)
-        item = qs.get(pk=pk)
-    except ItemDictionary.DoesNotExist: return JsonResponse({"error": "آیتم یافت نشد"}, status=404)
-    data = request.data
-    if "name" in data: item.name = (data["name"] or "").strip()
-    if "unit" in data: item.unit = (data["unit"] or "").strip()
-    if "description" in data: item.description = (data["description"] or "").strip()
-    if "dict_category" in data: item.dict_category = (data["dict_category"] or "").strip()
-    if "material_type" in data: item.material_type = (data.get("material_type") or "raw").strip()
-    if "group_id" in data:
-        gid = data.get("group_id")
-        if gid and restaurant: item.group = DictionaryGroup.objects.filter(id=gid, restaurant=restaurant).first()
-        elif not gid: item.group = None
-    item.save()
-    return JsonResponse(_serialize_dict_item(item))
-
+# [COMMENTED] def dictionary_update(request, pk):
+# [COMMENTED]     restaurant = _resolve_restaurant(request)
+# [COMMENTED]     try:
+# [X] # [COMMENTED]         qs = ItemDictionary.objects.all()
+# [COMMENTED]         if restaurant: qs = qs.filter(restaurant=restaurant)
+# [COMMENTED]         item = qs.get(pk=pk)
+# [X] # [COMMENTED]     except ItemDictionary.DoesNotExist: return JsonResponse({"error": "آیتم یافت نشد"}, status=404)
+# [COMMENTED]     data = request.data
+# [COMMENTED]     if "name" in data: item.name = (data["name"] or "").strip()
+# [COMMENTED]     if "unit" in data: item.unit = (data["unit"] or "").strip()
+# [COMMENTED]     if "description" in data: item.description = (data["description"] or "").strip()
+# [COMMENTED]     if "dict_category" in data: item.dict_category = (data["dict_category"] or "").strip()
+# [COMMENTED]     if "material_type" in data: item.material_type = (data.get("material_type") or "raw").strip()
+# [COMMENTED]     if "group_id" in data:
+# [COMMENTED]         gid = data.get("group_id")
+# [X] # [COMMENTED]         if gid and restaurant: item.group = DictionaryGroup.objects.filter(id=gid, restaurant=restaurant).first()
+# [COMMENTED]         elif not gid: item.group = None
+# [COMMENTED]     item.save()
+# [COMMENTED]     return JsonResponse(_serialize_dict_item(item))
+# [COMMENTED] 
 @api_view(["POST"])
 @permission_classes([DictionaryPerm])
-def dictionary_delete(request, pk):
-    restaurant = _resolve_restaurant(request)
-    try:
-        qs = ItemDictionary.objects.all()
-        if restaurant: qs = qs.filter(restaurant=restaurant)
-        item = qs.get(pk=pk)
-    except ItemDictionary.DoesNotExist: return JsonResponse({"error": "آیتم یافت نشد"}, status=404)
-    name = item.name
-    item.delete()
-    return JsonResponse({"success": True, "msg": f"آیتم «{name}» حذف شد"})
-
-def _dict_list_by_category(request, category):
-    restaurant = _resolve_restaurant(request)
-    qs = ItemDictionary.objects.filter(category=category, is_active=True)
-    if restaurant: qs = qs.filter(restaurant=restaurant)
-    data = [_serialize_dict_item(item) for item in qs]
-    return JsonResponse({"items": data})
-
+# [COMMENTED] def dictionary_delete(request, pk):
+# [COMMENTED]     restaurant = _resolve_restaurant(request)
+# [COMMENTED]     try:
+# [X] # [COMMENTED]         qs = ItemDictionary.objects.all()
+# [COMMENTED]         if restaurant: qs = qs.filter(restaurant=restaurant)
+# [COMMENTED]         item = qs.get(pk=pk)
+# [X] # [COMMENTED]     except ItemDictionary.DoesNotExist: return JsonResponse({"error": "آیتم یافت نشد"}, status=404)
+# [COMMENTED]     name = item.name
+# [COMMENTED]     item.delete()
+# [COMMENTED]     return JsonResponse({"success": True, "msg": f"آیتم «{name}» حذف شد"})
+# [COMMENTED] 
+# [COMMENTED] def _dict_list_by_category(request, category):
+# [COMMENTED]     restaurant = _resolve_restaurant(request)
+# [X] # [COMMENTED]     qs = ItemDictionary.objects.filter(category=category, is_active=True)
+# [COMMENTED]     if restaurant: qs = qs.filter(restaurant=restaurant)
+# [COMMENTED]     data = [_serialize_dict_item(item) for item in qs]
+# [COMMENTED]     return JsonResponse({"items": data})
+# [COMMENTED] 
 @api_view(["GET"])
 @permission_classes([DictionaryPerm])
 def dictionary_raw_materials(request): return _dict_list_by_category(request, "raw_material")
@@ -297,35 +297,35 @@ def dictionary_food_update(request, pk):
 
 @api_view(["POST"])
 @permission_classes([DictionaryPerm])
-def dictionary_food_delete(request, pk):
-    from ..models import Recipe, KitchenProduct
-    restaurant = _resolve_restaurant(request)
-    try:
-        qs = Food.objects.all()
-        if restaurant: qs = qs.filter(restaurant=restaurant)
-        food = qs.get(pk=pk)
-    except Food.DoesNotExist: return JsonResponse({"error": "غذا یافت نشد"}, status=404)
-    deleted = {"food": food.name, "recipes": 0, "kitchen_products": 0}
-    try:
-        recipe = Recipe.objects.get(food=food)
-        kps = KitchenProduct.objects.filter(recipe=recipe)
-        deleted["kitchen_products"] = kps.count()
-        kps.delete()
-        recipe.delete()
-        deleted["recipes"] = 1
-    except Recipe.DoesNotExist: pass
-    logger.info("Deleting food '%s' (id=%s) by user %s: %s recipes, %s kitchen products", food.name, pk, request.user.username, deleted["recipes"], deleted["kitchen_products"])
-    food.delete()
-    parts = [f"غذا «{deleted['food']}»"]
-    if deleted["recipes"]: parts.append(f"{deleted['recipes']} دستور پخت")
-    if deleted["kitchen_products"]: parts.append(f"{deleted['kitchen_products']} محصول آشپزخانه")
-    return JsonResponse({"success": True, "message": " و ".join(parts) + " حذف شد"})
-
+# [COMMENTED] def dictionary_food_delete(request, pk):
+# [COMMENTED]     from ..models import   # removed
+# [COMMENTED]     restaurant = _resolve_restaurant(request)
+# [COMMENTED]     try:
+# [COMMENTED]         qs = Food.objects.all()
+# [COMMENTED]         if restaurant: qs = qs.filter(restaurant=restaurant)
+# [COMMENTED]         food = qs.get(pk=pk)
+# [COMMENTED]     except Food.DoesNotExist: return JsonResponse({"error": "غذا یافت نشد"}, status=404)
+# [COMMENTED]     deleted = {"food": food.name, "recipes": 0, "kitchen_products": 0}
+# [COMMENTED]     try:
+# [X] # [COMMENTED]         recipe = Recipe.objects.get(food=food)
+# [X] # [COMMENTED]         kps = KitchenProduct.objects.filter(recipe=recipe)
+# [COMMENTED]         deleted["kitchen_products"] = kps.count()
+# [COMMENTED]         kps.delete()
+# [COMMENTED]         recipe.delete()
+# [COMMENTED]         deleted["recipes"] = 1
+# [X] # [COMMENTED]     except Recipe.DoesNotExist: pass
+# [COMMENTED]     logger.info("Deleting food '%s' (id=%s) by user %s: %s recipes, %s kitchen products", food.name, pk, request.user.username, deleted["recipes"], deleted["kitchen_products"])
+# [COMMENTED]     food.delete()
+# [COMMENTED]     parts = [f"غذا «{deleted['food']}»"]
+# [COMMENTED]     if deleted["recipes"]: parts.append(f"{deleted['recipes']} دستور پخت")
+# [COMMENTED]     if deleted["kitchen_products"]: parts.append(f"{deleted['kitchen_products']} محصول آشپزخانه")
+# [COMMENTED]     return JsonResponse({"success": True, "message": " و ".join(parts) + " حذف شد"})
+# [COMMENTED] 
 @api_view(["GET"])
 @permission_classes([DictionaryPerm])
-def dictionary_recipe_materials_api(request):
-    restaurant = _resolve_restaurant(request)
-    if not restaurant: return JsonResponse({"items": []})
-    items_qs = ItemDictionary.objects.filter(restaurant=restaurant, is_active=True, category="semi_finished", group__isnull=False, group__is_active=True, group__usage_recipes=True).select_related("group").order_by("group__sort_order", "name")
-    items_data = [{"id": item.id, "name": item.name, "unit": item.unit, "unit_display": item.get_unit_display(), "description": item.description or "", "dict_category": item.dict_category or "", "group": item.group_id, "group_name": item.group.name if item.group else ""} for item in items_qs]
-    return JsonResponse({"items": items_data})
+# [COMMENTED] def dictionary_recipe_materials_api(request):
+# [COMMENTED]     restaurant = _resolve_restaurant(request)
+# [COMMENTED]     if not restaurant: return JsonResponse({"items": []})
+# [X] # [COMMENTED]     items_qs = ItemDictionary.objects.filter(restaurant=restaurant, is_active=True, category="semi_finished", group__isnull=False, group__is_active=True, group__usage_recipes=True).select_related("group").order_by("group__sort_order", "name")
+# [COMMENTED]     items_data = [{"id": item.id, "name": item.name, "unit": item.unit, "unit_display": item.get_unit_display(), "description": item.description or "", "dict_category": item.dict_category or "", "group": item.group_id, "group_name": item.group.name if item.group else ""} for item in items_qs]
+# [COMMENTED]     return JsonResponse({"items": items_data})

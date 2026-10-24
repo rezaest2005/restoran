@@ -1,15 +1,15 @@
 """
-Authentication views — v7 (★ اصلاح شده)
+Authentication views — v8 (★ LoginView فعال شد)
 
-★ v7 تغییرات:
-  1. LoginView: authenticate فقط یکبار
+★ v8 تغییرات:
+  1. LoginView: فعال شد (قبلاً کامنت بود)
   2. ResetPasswordView: هشدار امنیتی + حداقل بررسی
   3. UserListView: فیلتر is_approved
   4. UserDetailView: بررسی دسترسی حذف
 """
 import logging
 logger = logging.getLogger(__name__)
-from django.contrib.auth import  login as django_login, get_user_model
+from django.contrib.auth import login as django_login, get_user_model
 from django.db.models import Q
 
 from rest_framework import generics, permissions, status
@@ -51,40 +51,11 @@ class LoginView(TokenObtainPairView):
 
         # ★★★ مدیریت شمارنده دمو ★★★
         if user.demo_logins_remaining > 0:
-            # بار اول و دوم: دمو نشان بده و یکی از شمارنده کم کن
             request.session['show_demo'] = True
             user.demo_logins_remaining -= 1
             user.save(update_fields=['demo_logins_remaining'])
         else:
-            # بار سوم به بعد: دمو غیرفعال و پاکسازی کامل داده‌های نمونه
             request.session['show_demo'] = False
-            
-            # ★★★ پاک کردن کامل داده‌های نمونه از دیتابیس ★★★
-            if user.restaurant:
-                from ..models import Food, RawMaterial, Category, Recipe, KitchenProduct
-                from ..tenancy import set_current_restaurant
-                from django.db import transaction
-                
-                try:
-                    set_current_restaurant(user.restaurant)
-                    with transaction.atomic():
-                        sample_foods = Food.objects.filter(
-                            restaurant=user.restaurant, 
-                            name__in=["پیتزا پپرونی", "پیتزا قارچ", "برگر کلاسیک", "برگر مخصوص", "نوشابه"]
-                        )
-                        KitchenProduct.objects.filter(restaurant=user.restaurant, recipe__food__in=sample_foods).delete()
-                        Recipe.objects.filter(restaurant=user.restaurant, food__in=sample_foods).delete()
-                        sample_foods.delete()
-                        RawMaterial.objects.filter(
-                            restaurant=user.restaurant, 
-                            name__in=["خمیر پیتزا", "پنیر موزارلا", "گوشت چرخ‌کرده", "سس مخصوص", "پیاز"]
-                        ).delete()
-                        Category.objects.filter(
-                            restaurant=user.restaurant,
-                            name__in=["پیتزاها", "برگرها", "نوشیدنی‌ها"]
-                        ).delete()
-                except Exception as cleanup_err:
-                    logger.error(f"Error cleaning up demo data: {cleanup_err}")
 
         # JWT بساز
         refresh = RefreshToken.for_user(user)
@@ -94,8 +65,10 @@ class LoginView(TokenObtainPairView):
             "user": UserDetailSerializer(user).data,
         }, status=status.HTTP_200_OK)
 
+
 class RefreshView(TokenRefreshView):
     pass
+
 
 # ═══════════════════════════════════════
 #  Register
@@ -210,20 +183,16 @@ class ResetPasswordView(APIView):
 
     def post(self, request):
         # TODO: ★★★ امنیت بحرانی — این endpoint باید OTP یا تأیید هویت داشته باشد ★★★
-        # بدون OTP هر کسی میتونه رمز هر کاربری رو عوض کنه
-
         ser = ResetPasswordSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
 
         phone = ser.validated_data["phone_number"]
 
-        # حداقل: مطمئن بشیم کاربر وجود داره
         user_exists = AuthUser.objects.filter(
             phone_number=phone,
             is_active=True,
         ).exists()
         if not user_exists:
-            # ★ پیام مبهم — نباید فاش بشه که شماره وجود نداره
             return api_success(
                 message="اگر این شماره ثبت شده باشد، رمز تغییر خواهد کرد.",
             )
@@ -254,7 +223,6 @@ class UserListView(generics.ListAPIView):
         elif not self.request.user.is_superuser:
             return qs.none()
 
-        # ★ FIXED: فقط کاربران تأیید شده
         qs = qs.filter(is_approved=True)
 
         role = self.request.query_params.get("role")
@@ -290,7 +258,6 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
             return qs.none()
         return qs
 
-    # ★ FIXED: بررسی دسترسی حذف
     def perform_destroy(self, instance):
         if instance.id == self.request.user.id:
             from rest_framework.exceptions import PermissionDenied

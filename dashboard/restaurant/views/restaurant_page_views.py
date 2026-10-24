@@ -1,12 +1,6 @@
 """
 Restaurant Management — Page Views (★ نسخه v13 — Django auth بازگشت)
-
-★ v13 تغییرات:
-  1. auth_page: برگشت به Django auth (مدل Restaurant password نداره)
-  2. home: @login_required برگشت
-  3. logout_page: Django logout برگشت
-  4. redirect_to_dashboard: ساده شد
-  5. @login_required اضافه شد
+★ فقط import ها اصلاح شد
 """
 
 import json as json_module
@@ -24,15 +18,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from ..models import (
-    Category, RawMaterial, SemiFinished, ReadyMaterial,
+    RawMaterial,
     Food, Supplier, PurchaseInvoice, PurchaseInvoiceItem,
-    InventoryUsageLog, InventoryMovement,
-    Order,KitchenProduct, Recipe,
-    ItemDictionary,
+    InventoryMovement,
+    Order,
 )
 from .helpers import (
-    _build_foods_with_discounts, _merge_warehouse_data,
-    _detect_material_type,
+    _merge_warehouse_data,
 )
 from ..tenancy import (
     get_current_restaurant, set_current_restaurant,
@@ -73,12 +65,16 @@ def _get_restaurant_object_or_404(model, pk, restaurant):
     return obj
 
 
+def _detect_material_type(name, restaurant=None):
+    """تشخیص نوع ماده — بدون ItemDictionary"""
+    return "raw"
+
+
 # ═══════════════════════════════════════════
 #  عمومی — ریشه، لاگین، خروج، داشبورد
 # ═══════════════════════════════════════════
 
 def root_redirect(request: HttpRequest):
-    """http://127.0.0.1:8000/ → اگه لاگینه بره داشبورد، اگه نیست بره لاگین"""
     if request.user.is_authenticated:
         return redirect("dashboard_app")
     return redirect("auth_page")
@@ -86,16 +82,12 @@ def root_redirect(request: HttpRequest):
 
 @login_required(login_url='auth_page')
 def home(request: HttpRequest):
-    """داشبورد اصلی"""
     return render(request, "admin/index.html")
 
 
 def auth_page(request: HttpRequest):
-    """صفحه لاگین"""
-    # ★ اگه ?logout=1 هست، session رو پاک کن
     if request.GET.get('logout') == '1':
         logout(request)
-
     if request.user.is_authenticated:
         return redirect("dashboard_app")
     return render(request, "auth.html")
@@ -237,21 +229,11 @@ def create_purchase_invoice(request: HttpRequest):
                         price=price,
                     )
                     mat.refresh_from_db()
-
-                    if mat.material_type == 'raw' and restaurant:
-                        _mt = _detect_material_type(name, restaurant)
-                        if _mt == 'packaging':
-                            mat.material_type = 'packaging'
-                            mat.save(update_fields=['material_type'])
                 else:
-                    _mt = (
-                        _detect_material_type(name, restaurant)
-                        if restaurant else 'raw'
-                    )
                     mat = RawMaterial.objects.create(
                         restaurant=restaurant,
                         name=name, label='', price=price,
-                        unit=unit, quantity=qty, material_type=_mt,
+                        unit=unit, quantity=qty, material_type='raw',
                     )
                     old_qty = Decimal('0')
 
@@ -315,273 +297,9 @@ def raw_materials_view(request: HttpRequest):
     })
 
 
-@require_service('inventory')
-def semi_finished_view(request: HttpRequest):
-    restaurant = _resolve_restaurant(request)
-
-    sf_qs = SemiFinished.objects.prefetch_related(
-        "ingredients__raw_material",
-    ).all()
-    rm_qs = RawMaterial.objects.all()
-    if restaurant:
-        sf_qs = sf_qs.filter(restaurant=restaurant)
-        rm_qs = rm_qs.filter(restaurant=restaurant)
-
-    merged = _merge_warehouse_data(restaurant=restaurant)
-    raw_materials_json = json_module.dumps(
-        sorted(merged.values(), key=lambda x: x["name"]),
-        ensure_ascii=False,
-    )
-
-    return render(request, "restaurant/semi_finished.html", {
-        "semi_finished_list": sf_qs,
-        "raw_materials": rm_qs,
-        "raw_materials_json": raw_materials_json,
-    })
-
-
-@require_service('inventory')
-def usage_log_view(request: HttpRequest):
-    restaurant = _resolve_restaurant(request)
-
-    sf_qs = SemiFinished.objects.prefetch_related(
-        "ingredients__raw_material",
-    ).all()
-    if restaurant:
-        sf_qs = sf_qs.filter(restaurant=restaurant)
-
-    semi_finished_list = sf_qs.order_by("name")
-
-    log_qs = InventoryUsageLog.objects.all()
-    if restaurant:
-        log_qs = log_qs.filter(restaurant=restaurant)
-    total_logs = log_qs.count()
-
-    by_type = {}
-    for choice_val, choice_label in InventoryUsageLog.USAGE_TYPE_CHOICES:
-        by_type[choice_val] = {
-            "label": choice_label,
-            "count": log_qs.filter(usage_type=choice_val).count(),
-        }
-
-    semi_finished_data = []
-    for sf in semi_finished_list:
-        ingredients = [{
-            "name": ing.raw_material.name,
-            "unit": ing.raw_material.get_unit_display(),
-            "quantity": str(ing.quantity),
-            "stock": str(ing.raw_material.quantity),
-            "price": str(ing.raw_material.price),
-            "total_cost": str(int(ing.total_cost)),
-        } for ing in sf.ingredients.all()]
-        semi_finished_data.append({
-            "id": sf.id, "name": sf.name,
-            "category": sf.get_category_display(),
-            "unit": sf.get_unit_display(),
-            "quantity_produced": str(sf.quantity_produced),
-            "total_cost": str(int(sf.total_cost)),
-            "cost_per_unit": str(int(sf.cost_per_unit)),
-            "suggested_price": str(int(sf.suggested_price)),
-            "can_produce": sf.can_produce,
-            "ingredients": ingredients,
-        })
-
-    sup_qs = Supplier.objects.all()
-    if restaurant:
-        sup_qs = sup_qs.filter(restaurant=restaurant)
-
-    return render(request, "restaurant/usage_log.html", {
-        "semi_finished_list": semi_finished_list,
-        "semi_finished_json": json_module.dumps(
-            semi_finished_data, ensure_ascii=False,
-        ),
-        "total_logs": total_logs,
-        "by_type": by_type,
-        "type_choices": InventoryUsageLog.USAGE_TYPE_CHOICES,
-        "suppliers": sup_qs.order_by("name"),
-        "order_stats": {
-            "total_orders": 0, "total_revenue": 0, "top_foods": [],
-        },
-    })
-
-
-@require_service('inventory')
-def ready_materials_page(request: HttpRequest):
-    restaurant = _resolve_restaurant(request)
-
-    dict_qs = ItemDictionary.objects.filter(
-        category='ready_material', is_active=True,
-    )
-    if restaurant:
-        dict_qs = dict_qs.filter(restaurant=restaurant)
-
-    rm_qs = RawMaterial.objects.all()
-    if restaurant:
-        rm_qs = rm_qs.filter(restaurant=restaurant)
-
-    raw_map = {}
-    for rm in rm_qs:
-        raw_map[rm.name.strip().lower()] = rm
-
-    items = []
-    for d in dict_qs.order_by('name'):
-        matched = raw_map.get(d.name.strip().lower())
-        items.append({
-            'id': d.id,
-            'name': d.name,
-            'unit': d.unit,
-            'unit_display': d.get_unit_display(),
-            'quantity': float(matched.quantity) if matched else None,
-            'price': float(matched.price) if matched else None,
-            'in_stock': matched is not None and matched.quantity > 0,
-        })
-
-    cat_qs = Category.objects.filter(is_active=True)
-    if restaurant:
-        cat_qs = cat_qs.filter(restaurant=restaurant)
-
-    return render(request, 'restaurant/ready_materials.html', {
-        'items': items,
-        'categories': cat_qs.order_by('order'),
-    })
-
-
-# ═══════════════════════════════════════════
-#  آشپزخانه
-# ═══════════════════════════════════════════
-
-@require_service('kitchen')
-def kitchen_page(request: HttpRequest):
-    restaurant = _resolve_restaurant(request)
-
-    kp_qs = KitchenProduct.objects.all()
-    if restaurant:
-        kp_qs = kp_qs.filter(restaurant=restaurant)
-
-    recipes = list(
-        Recipe.objects.values("id").annotate(name=F("food__name"))
-    )
-    categories = list(KitchenProduct.CATEGORY_CHOICES)
-
-    food_qs = Food.objects.select_related('category').all()
-    if restaurant:
-        food_qs = food_qs.filter(restaurant=restaurant)
-
-    foods_list = []
-    for f in food_qs.order_by('category__order', 'name'):
-        foods_list.append({
-            'name_en': f.name_en or '',
-            'id': f.id, 'name': f.name,
-            'category_id': f.category_id,
-            'category_name': f.category.name if f.category else '',
-            'final_price': int(f.final_price or 0),
-            'image': (
-                f.image.url
-                if getattr(f, 'image', None) and f.image else ''
-            ),
-            'is_ready': False, 'purchase_price': 0,
-        })
-
-    cat_qs = Category.objects.filter(is_active=True)
-    if restaurant:
-        cat_qs = cat_qs.filter(restaurant=restaurant)
-    food_cats = list(cat_qs.order_by('order').values('id', 'name'))
-    existing_names = {c['name'] for c in food_cats}
-
-    rm_qs = ReadyMaterial.objects.filter(quantity__gt=0).exclude(
-        category__isnull=True,
-    ).select_related('category')
-    if restaurant:
-        rm_qs = rm_qs.filter(restaurant=restaurant)
-
-    for rm in rm_qs:
-        foods_list.append({
-            'id': f'ready_{rm.id}', 'name': rm.name,
-            'category_id': rm.category_id,
-            'category_name': rm.category.name if rm.category else '',
-            'final_price': int(rm.selling_price or 0), 'image': '',
-            'is_ready': True,
-            'purchase_price': int(rm.purchase_price or 0),
-        })
-        if rm.category and rm.category.name not in existing_names:
-            food_cats.append({
-                'id': rm.category_id, 'name': rm.category.name,
-            })
-            existing_names.add(rm.category.name)
-
-    return render(request, "restaurant/kitchen_page.html", {
-        "recipes_json": json_module.dumps(recipes, ensure_ascii=False),
-        "categories_json": json_module.dumps(categories, ensure_ascii=False),
-        "foods_json": json_module.dumps(foods_list, ensure_ascii=False),
-        "food_cats_json": json_module.dumps(food_cats, ensure_ascii=False),
-    })
-
-
 # ═══════════════════════════════════════════
 #  صندوق فروش
 # ═══════════════════════════════════════════
-
-@require_service('pos')
-def pos_page(request: HttpRequest):
-    restaurant = _resolve_restaurant(request)
-
-    foods_data, cats_data = _build_foods_with_discounts(restaurant=restaurant)
-    existing_names = {c['name']: c['id'] for c in cats_data}
-
-    for food_item in foods_data:
-        if food_item.get('is_ready'):
-            continue
-        stock = 0
-        kp_qs = KitchenProduct.objects.filter(name=food_item['name'])
-        if restaurant:
-            kp_qs = kp_qs.filter(restaurant=restaurant)
-        kp = kp_qs.first()
-        if kp:
-            try:
-                inv = kp.get_inventory()
-                if inv:
-                    stock = inv.available_quantity or 0
-            except Exception:
-                stock = 0
-        food_item['stock'] = stock
-
-    rm_qs = ReadyMaterial.objects.filter(
-        quantity__gt=0,
-    ).select_related('category')
-    if restaurant:
-        rm_qs = rm_qs.filter(restaurant=restaurant)
-
-    for rm in rm_qs:
-        cat_id = (
-            rm.category_id if rm.category
-            else existing_names.get('سایر', -99)
-        )
-        cat_name = rm.category.name if rm.category else 'سایر'
-        foods_data.append({
-            'id': f'ready_{rm.id}', 'name': rm.name,
-            'category_id': cat_id, 'category_name': cat_name,
-            'final_price': int(rm.selling_price or 0),
-            'kitchen_price': int(rm.selling_price or 0),
-            'has_kitchen': False, 'discount': None, 'image': '',
-            'is_ready': True, 'stock': int(rm.quantity or 0),
-        })
-        if rm.category and rm.category.name not in existing_names:
-            cats_data.append({
-                'id': rm.category_id, 'name': rm.category.name,
-            })
-            existing_names[rm.category.name] = rm.category_id
-
-    if (
-        any(not rm.category for rm in rm_qs)
-        and 'سایر' not in existing_names
-    ):
-        cats_data.append({'id': -99, 'name': 'سایر'})
-
-    return render(request, 'restaurant/pos.html', {
-        'foods_json': json_module.dumps(foods_data, ensure_ascii=False),
-        'categories_json': json_module.dumps(cats_data, ensure_ascii=False),
-    })
-
 
 @require_service('pos')
 def pos_receipt(request: HttpRequest, pk: int):
@@ -653,6 +371,7 @@ def recipe_manager_page(request):
         'restaurant': restaurant,
     })
 
+
 # ═══════════════════════════════════════════
 #  مدیریت کاربران
 # ═══════════════════════════════════════════
@@ -668,10 +387,10 @@ def user_management_page(request: HttpRequest):
         {"value": "manager", "label": "مدیر", "permissions": [
             "kitchen", "pos", "orders", "recipes",
             "raw_materials", "ready_materials", "invoices",
-            "usage_log", "dictionary", 
+            "usage_log", "dictionary",
         ]},
         {"value": "cashier", "label": "صندوقدار", "permissions": [
-            "pos", "orders", 
+            "pos", "orders",
         ]},
         {"value": "kitchen", "label": "آشپز", "permissions": [
             "kitchen", "recipes",
@@ -685,6 +404,8 @@ def user_management_page(request: HttpRequest):
         "roles_json": json_module.dumps(roles, ensure_ascii=False),
         "current_user_id": request.user.id,
     })
+
+
 # ═══════════════════════════════════════════
 #  دیکشنری
 # ═══════════════════════════════════════════

@@ -1,10 +1,10 @@
-"""
-All DRF ModelViewSets (★ نسخه v4 — اصلاح شده)
+﻿"""
+All DRF ModelViewSets (â˜… Ù†Ø³Ø®Ù‡ v4 â€” Ø§ØµÙ„Ø§Ø­ Ø´Ø¯Ù‡)
 
-★ v4 تغییرات:
-  ۱. تمام ViewSet‌ها فیلتر restaurant دارن
-  ۲. RewardViewSet.redeem_action: از self.get_object() استفاده میکنه
-  ۳. OrderViewSet.create: final_price = 0 درست هندل میشه
+â˜… v4 ØªØºÛŒÛŒØ±Ø§Øª:
+  Û±. ØªÙ…Ø§Ù… ViewSetâ€ŒÙ‡Ø§ ÙÛŒÙ„ØªØ± restaurant Ø¯Ø§Ø±Ù†
+  Û². RewardViewSet.redeem_action: Ø§Ø² self.get_object() Ø§Ø³ØªÙØ§Ø¯Ù‡ Ù…ÛŒÚ©Ù†Ù‡
+  Û³. OrderViewSet.create: final_price = 0 Ø¯Ø±Ø³Øª Ù‡Ù†Ø¯Ù„ Ù…ÛŒØ´Ù‡
 """
 
 import logging
@@ -20,21 +20,13 @@ from rest_framework.response import Response
 from ..models import (
     Category,
     Food,
-    Table,
-    Reservation,
     Order,
     OrderItem,
-    SemiFinished,
-    ReadyMaterial,
 )
 from ..serializers import (
     CategorySerializer,
     FoodSerializer,
-    TableSerializer,
-    ReservationSerializer,
     OrderSerializer,
-    SemiFinishedSerializer,
-    ReadyMaterialSerializer,
 )
 
 from ..tenancy import (
@@ -46,9 +38,9 @@ from ..tenancy import (
 logger = logging.getLogger(__name__)
 
 
-# ═══════════════════════════════════════
-#  resolve restaurant — fallback
-# ═══════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+#  resolve restaurant â€” fallback
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 def _resolve_restaurant(request):
@@ -62,9 +54,9 @@ def _resolve_restaurant(request):
     return None
 
 
-# ═══════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 #  1. FOOD & CATEGORY
-# ═══════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -108,40 +100,40 @@ class FoodViewSet(viewsets.ModelViewSet):
         return qs.order_by("category__order", "name")
 
 
-# ═══════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 #  2. TABLES & RESERVATIONS
-# ═══════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
-class TableViewSet(viewsets.ModelViewSet):
-    serializer_class = TableSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        qs = Table.objects.all()
-        restaurant = _resolve_restaurant(self.request)
-        if restaurant:
-            qs = qs.filter(restaurant=restaurant)
-        return qs
-
-
-class ReservationViewSet(viewsets.ModelViewSet):
-    serializer_class = ReservationSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        qs = Reservation.objects.all()
-        restaurant = _resolve_restaurant(self.request)
-        if restaurant:
-            qs = qs.filter(restaurant=restaurant)
-        return qs.order_by("-date", "-time")
-
-
-# ═══════════════════════════════════════════════════════════════════
-#  3. ORDERS
-# ═══════════════════════════════════════════════════════════════════
-
-
+# [COMMENTED] class TableViewSet(viewsets.ModelViewSet):
+# [COMMENTED]     serializer_class = TableSerializer
+# [COMMENTED]     permission_classes = [IsAuthenticated]
+# [COMMENTED] 
+# [COMMENTED]     def get_queryset(self):
+# [X] # [COMMENTED]         qs = Table.objects.all()
+# [COMMENTED]         restaurant = _resolve_restaurant(self.request)
+# [COMMENTED]         if restaurant:
+# [COMMENTED]             qs = qs.filter(restaurant=restaurant)
+# [COMMENTED]         return qs
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class ReservationViewSet(viewsets.ModelViewSet):
+# [COMMENTED]     serializer_class = ReservationSerializer
+# [COMMENTED]     permission_classes = [IsAuthenticated]
+# [COMMENTED] 
+# [COMMENTED]     def get_queryset(self):
+# [X] # [COMMENTED]         qs = Reservation.objects.all()
+# [COMMENTED]         restaurant = _resolve_restaurant(self.request)
+# [COMMENTED]         if restaurant:
+# [COMMENTED]             qs = qs.filter(restaurant=restaurant)
+# [COMMENTED]         return qs.order_by("-date", "-time")
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# [COMMENTED] #  3. ORDERS
+# [COMMENTED] # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# [COMMENTED] 
+# [COMMENTED] 
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
@@ -166,25 +158,25 @@ class OrderViewSet(viewsets.ModelViewSet):
         restaurant = _resolve_restaurant(request)
         if not restaurant:
             return Response(
-                {"error": "رستوران مشخص نشده."},
+                {"error": "Ø±Ø³ØªÙˆØ±Ø§Ù† Ù…Ø´Ø®Øµ Ù†Ø´Ø¯Ù‡."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         items_data = request.data.get("items", [])
         if not items_data:
             return Response(
-                {"error": "آیتمی ارسال نشد."},
+                {"error": "Ø¢ÛŒØªÙ…ÛŒ Ø§Ø±Ø³Ø§Ù„ Ù†Ø´Ø¯."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         for field in ("customer_name", "phone"):
             if field not in request.data or not str(request.data[field]).strip():
                 return Response(
-                    {"error": f"فیلد «{field}» الزامی است."},
+                    {"error": f"ÙÛŒÙ„Ø¯ Â«{field}Â» Ø§Ù„Ø²Ø§Ù…ÛŒ Ø§Ø³Øª."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        # قیمت از دیتابیس — نه از کلاینت
+        # Ù‚ÛŒÙ…Øª Ø§Ø² Ø¯ÛŒØªØ§Ø¨ÛŒØ³ â€” Ù†Ù‡ Ø§Ø² Ú©Ù„Ø§ÛŒÙ†Øª
         food_ids = [item.get("food") for item in items_data if item.get("food")]
         foods_map = {
             f.id: f for f in Food.objects.filter(id__in=food_ids, restaurant=restaurant)
@@ -194,13 +186,13 @@ class OrderViewSet(viewsets.ModelViewSet):
             fid = item.get("food")
             if not fid or fid not in foods_map:
                 return Response(
-                    {"error": f"غذا با شناسه {fid} یافت نشد."},
+                    {"error": f"ØºØ°Ø§ Ø¨Ø§ Ø´Ù†Ø§Ø³Ù‡ {fid} ÛŒØ§ÙØª Ù†Ø´Ø¯."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             qty = item.get("quantity", 0)
             if not qty or int(qty) < 1:
                 return Response(
-                    {"error": f"تعداد غذا با شناسه {fid} نامعتبر است."},
+                    {"error": f"ØªØ¹Ø¯Ø§Ø¯ ØºØ°Ø§ Ø¨Ø§ Ø´Ù†Ø§Ø³Ù‡ {fid} Ù†Ø§Ù…Ø¹ØªØ¨Ø± Ø§Ø³Øª."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -219,7 +211,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             for item in items_data:
                 food = foods_map[item["food"]]
                 qty = int(item["quantity"])
-                # ★ FIXED: final_price = 0 درست هندل میشه
+                # â˜… FIXED: final_price = 0 Ø¯Ø±Ø³Øª Ù‡Ù†Ø¯Ù„ Ù…ÛŒØ´Ù‡
                 fp = getattr(food, "final_price", None)
                 price = int(fp if fp is not None else food.price)
                 total_price += price * qty
@@ -247,7 +239,7 @@ class OrderViewSet(viewsets.ModelViewSet):
             valid = [c[0] for c in Order.STATUS_CHOICES]
             if new_status not in valid:
                 return Response(
-                    {"error": f"وضعیت نامعتبر. مقادیر مجاز: {', '.join(valid)}"},
+                    {"error": f"ÙˆØ¶Ø¹ÛŒØª Ù†Ø§Ù…Ø¹ØªØ¨Ø±. Ù…Ù‚Ø§Ø¯ÛŒØ± Ù…Ø¬Ø§Ø²: {', '.join(valid)}"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             order.status = new_status
@@ -262,49 +254,50 @@ class OrderViewSet(viewsets.ModelViewSet):
                 order.save(update_fields=update_fields)
             else:
                 return Response(
-                    {"error": "فیلدی برای بروزرسانی ارسال نشد."},
+                    {"error": "ÙÛŒÙ„Ø¯ÛŒ Ø¨Ø±Ø§ÛŒ Ø¨Ø±ÙˆØ²Ø±Ø³Ø§Ù†ÛŒ Ø§Ø±Ø³Ø§Ù„ Ù†Ø´Ø¯."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
         return Response(OrderSerializer(order).data)
 
 
-# ═══════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 #  4. INVENTORY
-# ═══════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
-class SemiFinishedViewSet(viewsets.ModelViewSet):
-    serializer_class = SemiFinishedSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        qs = SemiFinished.objects.all()
-        restaurant = _resolve_restaurant(self.request)
-        if restaurant:
-            qs = qs.filter(restaurant=restaurant)
-        return qs
-
-
-class ReadyMaterialViewSet(viewsets.ModelViewSet):
-    serializer_class = ReadyMaterialSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        qs = ReadyMaterial.objects.select_related("supplier").all()
-
-        restaurant = _resolve_restaurant(self.request)
-        if restaurant:
-            qs = qs.filter(restaurant=restaurant)
-
-        search = self.request.query_params.get("search")
-        if search:
-            qs = qs.filter(
-                Q(name__icontains=search) | Q(barcode__icontains=search),
-            )
-
-        category = self.request.query_params.get("category")
-        if category:
-            qs = qs.filter(category_id=category)
-
-        return qs.order_by("name")
+# [COMMENTED] class SemiFinishedViewSet(viewsets.ModelViewSet):
+# [COMMENTED]     serializer_class = SemiFinishedSerializer
+# [COMMENTED]     permission_classes = [IsAuthenticated]
+# [COMMENTED] 
+# [COMMENTED]     def get_queryset(self):
+# [X] # [COMMENTED]         qs = SemiFinished.objects.all()
+# [COMMENTED]         restaurant = _resolve_restaurant(self.request)
+# [COMMENTED]         if restaurant:
+# [COMMENTED]             qs = qs.filter(restaurant=restaurant)
+# [COMMENTED]         return qs
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class ReadyMaterialViewSet(viewsets.ModelViewSet):
+# [COMMENTED]     serializer_class = ReadyMaterialSerializer
+# [COMMENTED]     permission_classes = [IsAuthenticated]
+# [COMMENTED] 
+# [COMMENTED]     def get_queryset(self):
+# [X] # [COMMENTED]         qs = ReadyMaterial.objects.select_related("supplier").all()
+# [COMMENTED] 
+# [COMMENTED]         restaurant = _resolve_restaurant(self.request)
+# [COMMENTED]         if restaurant:
+# [COMMENTED]             qs = qs.filter(restaurant=restaurant)
+# [COMMENTED] 
+# [COMMENTED]         search = self.request.query_params.get("search")
+# [COMMENTED]         if search:
+# [COMMENTED]             qs = qs.filter(
+# [COMMENTED]                 Q(name__icontains=search) | Q(barcode__icontains=search),
+# [COMMENTED]             )
+# [COMMENTED] 
+# [COMMENTED]         category = self.request.query_params.get("category")
+# [COMMENTED]         if category:
+# [COMMENTED]             qs = qs.filter(category_id=category)
+# [COMMENTED] 
+# [COMMENTED]         return qs.order_by("name")
+# [COMMENTED] 
