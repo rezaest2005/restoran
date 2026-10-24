@@ -9,45 +9,16 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import (
     Category,
     Food,
-    Table,
-    Reservation,
     Order,
     OrderItem,
     RawMaterial,
-    InventoryUsageLog,
     InventoryMovement,
     Supplier,
     PurchaseInvoice,
     PurchaseInvoiceItem,
-    ReadyMaterial,
-    SemiFinished,
-    SemiFinishedIngredient,
     Restaurant,
-    Recipe,
-    RecipeIngredient,
-    RecipeSemiFinished,
-    RecipePackagingItem,
-    KitchenProduct,
-    KitchenInventory,
-    ProductionPlan,
-    ProductionPlanItem,
-    ProductionBatch,
-    ProductionLog,
-    WasteLog,
-    OnlineOrderSettings,
-    DayCloseReport,
-    DayCloseLog,
-    DictionaryGroup,
-    ItemDictionary,
-    PosSettings,
     Warehouse,
     StockItem,
-    StockTransfer,
-    Receiving,
-    ReceivingItem,
-    StockLayer,
-    StockAdjustment,
-    PurchaseListItem,
 )
 
 User = get_user_model()
@@ -132,296 +103,296 @@ class RawMaterialSerializer(serializers.ModelSerializer):
 # ══════════════════════════════════════════════════════════════════════════════
 
 
-class RecipeIngredientSerializer(serializers.ModelSerializer):
-    raw_material_name = serializers.SerializerMethodField()
-    raw_material_id = serializers.PrimaryKeyRelatedField(
-        queryset=RawMaterial.objects.all(),
-        source="raw_material",
-        write_only=True,
-    )
-    raw_material = serializers.SerializerMethodField()
-    unit_display = serializers.SerializerMethodField()
-    effective_quantity = serializers.SerializerMethodField()
-    total_cost = serializers.SerializerMethodField()
-
-    class Meta:
-        model = RecipeIngredient
-        fields = [
-            "id",
-            "raw_material",
-            "raw_material_id",
-            "raw_material_name",
-            "quantity",
-            "unit",
-            "unit_display",
-            "wastage_percent",
-            "optional",
-            "notes",
-            "effective_quantity",
-            "total_cost",
-        ]
-
-    def get_raw_material(self, obj):
-        if obj.raw_material:
-            return {
-                "id": obj.raw_material.id,
-                "name": obj.raw_material.name,
-                "unit": obj.raw_material.unit,
-                "price": int(obj.raw_material.price or 0),
-                "quantity": float(obj.raw_material.quantity or 0),
-            }
-        return None
-
-    def get_raw_material_name(self, obj):
-        return obj.raw_material.name if obj.raw_material else ""
-
-    def get_unit_display(self, obj):
-        try:
-            return obj.get_unit_display() or ""
-        except Exception:
-            return obj.unit or ""
-
-    def get_effective_quantity(self, obj):
-        try:
-            return round(obj.effective_quantity, 3)
-        except Exception:
-            return float(obj.quantity)
-
-    def get_total_cost(self, obj):
-        try:
-            return int(obj.total_cost)
-        except (TypeError, ValueError):
-            return 0
-
-
-class RecipeSemiFinishedSerializer(serializers.ModelSerializer):
-    semi_finished_name = serializers.SerializerMethodField()
-    semi_finished_id = serializers.PrimaryKeyRelatedField(
-        queryset=SemiFinished.objects.all(),
-        source="semi_finished",
-        write_only=True,
-    )
-    semi_finished = serializers.SerializerMethodField()
-    unit_display = serializers.SerializerMethodField()
-    total_cost = serializers.SerializerMethodField()
-
-    class Meta:
-        model = RecipeSemiFinished
-        fields = [
-            "id",
-            "semi_finished",
-            "semi_finished_id",
-            "semi_finished_name",
-            "quantity",
-            "unit",
-            "unit_display",
-            "total_cost",
-        ]
-
-    def get_semi_finished(self, obj):
-        if obj.semi_finished:
-            return {
-                "id": obj.semi_finished.id,
-                "name": obj.semi_finished.name,
-                "unit": obj.semi_finished.unit,
-                "cost_per_unit": int(obj.semi_finished.cost_per_unit or 0),
-            }
-        return None
-
-    def get_semi_finished_name(self, obj):
-        return obj.semi_finished.name if obj.semi_finished else ""
-
-    def get_unit_display(self, obj):
-        try:
-            return obj.get_unit_display() or ""
-        except Exception:
-            return obj.unit or ""
-
-    def get_total_cost(self, obj):
-        try:
-            return int(obj.total_cost)
-        except (TypeError, ValueError):
-            return 0
-
-
-class RecipePackagingItemSerializer(serializers.ModelSerializer):
-    raw_material_name = serializers.SerializerMethodField()
-    raw_material_id = serializers.PrimaryKeyRelatedField(
-        queryset=RawMaterial.objects.all(),
-        source="raw_material",
-        write_only=True,
-    )
-    raw_material = serializers.SerializerMethodField()
-    unit_display = serializers.SerializerMethodField()
-    total_cost = serializers.SerializerMethodField()
-
-    class Meta:
-        model = RecipePackagingItem
-        fields = [
-            "id",
-            "raw_material",
-            "raw_material_id",
-            "raw_material_name",
-            "quantity",
-            "unit",
-            "unit_display",
-            "notes",
-            "total_cost",
-        ]
-
-    def get_raw_material(self, obj):
-        if obj.raw_material:
-            return {
-                "id": obj.raw_material.id,
-                "name": obj.raw_material.name,
-                "unit": obj.raw_material.unit,
-                "price": int(obj.raw_material.price or 0),
-                "quantity": float(obj.raw_material.quantity or 0),
-            }
-        return None
-
-    def get_raw_material_name(self, obj):
-        return obj.raw_material.name if obj.raw_material else ""
-
-    def get_unit_display(self, obj):
-        try:
-            return obj.get_unit_display() or ""
-        except Exception:
-            return obj.unit or ""
-
-    def get_total_cost(self, obj):
-        try:
-            return int(obj.total_cost)
-        except (TypeError, ValueError):
-            return 0
-
-
-class RecipeSerializer(serializers.ModelSerializer):
-    food_name = serializers.CharField(source="food.name", read_only=True)
-    ingredients = RecipeIngredientSerializer(many=True, required=False)
-    semi_finished_items = RecipeSemiFinishedSerializer(many=True, required=False)
-    packaging_items = RecipePackagingItemSerializer(many=True, required=False)
-    profit_margin = serializers.FloatField(read_only=True)
-
-    class Meta:
-        model = Recipe
-        fields = [
-            "id",
-            "food",
-            "food_name",
-            "yield_quantity",
-            "instructions",
-            "estimated_preparation_time",
-            "notes",
-            "version",
-            "is_active",
-            "ingredients",
-            "semi_finished_items",
-            "packaging_items",
-            "total_raw_material_cost",
-            "total_semi_finished_cost",
-            "total_packaging_cost",
-            "total_cost",
-            "cost_per_serving",
-            "suggested_price",
-            "profit_margin",
-            "created_at",
-            "updated_at",
-        ]
-        read_only_fields = [
-            "total_raw_material_cost",
-            "total_semi_finished_cost",
-            "total_packaging_cost",
-            "total_cost",
-            "cost_per_serving",
-            "suggested_price",
-            "version",
-            "created_at",
-            "updated_at",
-        ]
-
-    def create(self, validated_data):
-        ingredients_data = validated_data.pop("ingredients", [])
-        semi_items_data = validated_data.pop("semi_finished_items", [])
-        packaging_items_data = validated_data.pop("packaging_items", [])
-        food = validated_data.pop("food", None)
-
-        if food:
-            recipe, created = Recipe.objects.update_or_create(
-                food=food,
-                defaults=validated_data,
-            )
-            if not created:
-                recipe.ingredients.all().delete()
-                recipe.semi_finished_items.all().delete()
-                recipe.packaging_items.all().delete()
-        else:
-            raise serializers.ValidationError(
-                {"food": "انتخاب غذا برای رسپی الزامی است."}
-            )
-
-        for ing_data in ingredients_data:
-            RecipeIngredient.objects.create(recipe=recipe, **ing_data)
-
-        for sf_data in semi_items_data:
-            RecipeSemiFinished.objects.create(recipe=recipe, **sf_data)
-
-        for pk_data in packaging_items_data:
-            RecipePackagingItem.objects.create(recipe=recipe, **pk_data)
-
-        recipe.recalculate_cost()
-        return recipe
-
-    def update(self, instance, validated_data):
-        ingredients_data = validated_data.pop("ingredients", None)
-        semi_items_data = validated_data.pop("semi_finished_items", None)
-        packaging_items_data = validated_data.pop("packaging_items", None)
-
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-
-        if ingredients_data is not None:
-            instance.ingredients.all().delete()
-            for ing_data in ingredients_data:
-                RecipeIngredient.objects.create(recipe=instance, **ing_data)
-
-        if semi_items_data is not None:
-            instance.semi_finished_items.all().delete()
-            for sf_data in semi_items_data:
-                RecipeSemiFinished.objects.create(recipe=instance, **sf_data)
-
-        if packaging_items_data is not None:
-            instance.packaging_items.all().delete()
-            for pk_data in packaging_items_data:
-                RecipePackagingItem.objects.create(recipe=instance, **pk_data)
-
-        instance.recalculate_cost()
-        return instance
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  2. TABLES & RESERVATIONS
-# ══════════════════════════════════════════════════════════════════════════════
-
-
-class TableSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Table
-        fields = "__all__"
-
-
-class ReservationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Reservation
-        fields = "__all__"
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  3. ORDERS — ★ اصلاح‌شده
-# ══════════════════════════════════════════════════════════════════════════════
-
-
+# [COMMENTED] class RecipeIngredientSerializer(serializers.ModelSerializer):
+# [COMMENTED]     raw_material_name = serializers.SerializerMethodField()
+# [COMMENTED]     raw_material_id = serializers.PrimaryKeyRelatedField(
+# [COMMENTED]         queryset=RawMaterial.objects.all(),
+# [COMMENTED]         source="raw_material",
+# [COMMENTED]         write_only=True,
+# [COMMENTED]     )
+# [COMMENTED]     raw_material = serializers.SerializerMethodField()
+# [COMMENTED]     unit_display = serializers.SerializerMethodField()
+# [COMMENTED]     effective_quantity = serializers.SerializerMethodField()
+# [COMMENTED]     total_cost = serializers.SerializerMethodField()
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = RecipeIngredient
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "raw_material",
+# [COMMENTED]             "raw_material_id",
+# [COMMENTED]             "raw_material_name",
+# [COMMENTED]             "quantity",
+# [COMMENTED]             "unit",
+# [COMMENTED]             "unit_display",
+# [COMMENTED]             "wastage_percent",
+# [COMMENTED]             "optional",
+# [COMMENTED]             "notes",
+# [COMMENTED]             "effective_quantity",
+# [COMMENTED]             "total_cost",
+# [COMMENTED]         ]
+# [COMMENTED] 
+# [COMMENTED]     def get_raw_material(self, obj):
+# [COMMENTED]         if obj.raw_material:
+# [COMMENTED]             return {
+# [COMMENTED]                 "id": obj.raw_material.id,
+# [COMMENTED]                 "name": obj.raw_material.name,
+# [COMMENTED]                 "unit": obj.raw_material.unit,
+# [COMMENTED]                 "price": int(obj.raw_material.price or 0),
+# [COMMENTED]                 "quantity": float(obj.raw_material.quantity or 0),
+# [COMMENTED]             }
+# [COMMENTED]         return None
+# [COMMENTED] 
+# [COMMENTED]     def get_raw_material_name(self, obj):
+# [COMMENTED]         return obj.raw_material.name if obj.raw_material else ""
+# [COMMENTED] 
+# [COMMENTED]     def get_unit_display(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return obj.get_unit_display() or ""
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return obj.unit or ""
+# [COMMENTED] 
+# [COMMENTED]     def get_effective_quantity(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return round(obj.effective_quantity, 3)
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return float(obj.quantity)
+# [COMMENTED] 
+# [COMMENTED]     def get_total_cost(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return int(obj.total_cost)
+# [COMMENTED]         except (TypeError, ValueError):
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class RecipeSemiFinishedSerializer(serializers.ModelSerializer):
+# [COMMENTED]     semi_finished_name = serializers.SerializerMethodField()
+# [COMMENTED]     semi_finished_id = serializers.PrimaryKeyRelatedField(
+# [X] # [COMMENTED]         queryset=SemiFinished.objects.all(),
+# [COMMENTED]         source="semi_finished",
+# [COMMENTED]         write_only=True,
+# [COMMENTED]     )
+# [COMMENTED]     semi_finished = serializers.SerializerMethodField()
+# [COMMENTED]     unit_display = serializers.SerializerMethodField()
+# [COMMENTED]     total_cost = serializers.SerializerMethodField()
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = RecipeSemiFinished
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "semi_finished",
+# [COMMENTED]             "semi_finished_id",
+# [COMMENTED]             "semi_finished_name",
+# [COMMENTED]             "quantity",
+# [COMMENTED]             "unit",
+# [COMMENTED]             "unit_display",
+# [COMMENTED]             "total_cost",
+# [COMMENTED]         ]
+# [COMMENTED] 
+# [COMMENTED]     def get_semi_finished(self, obj):
+# [COMMENTED]         if obj.semi_finished:
+# [COMMENTED]             return {
+# [COMMENTED]                 "id": obj.semi_finished.id,
+# [COMMENTED]                 "name": obj.semi_finished.name,
+# [COMMENTED]                 "unit": obj.semi_finished.unit,
+# [COMMENTED]                 "cost_per_unit": int(obj.semi_finished.cost_per_unit or 0),
+# [COMMENTED]             }
+# [COMMENTED]         return None
+# [COMMENTED] 
+# [COMMENTED]     def get_semi_finished_name(self, obj):
+# [COMMENTED]         return obj.semi_finished.name if obj.semi_finished else ""
+# [COMMENTED] 
+# [COMMENTED]     def get_unit_display(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return obj.get_unit_display() or ""
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return obj.unit or ""
+# [COMMENTED] 
+# [COMMENTED]     def get_total_cost(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return int(obj.total_cost)
+# [COMMENTED]         except (TypeError, ValueError):
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class RecipePackagingItemSerializer(serializers.ModelSerializer):
+# [COMMENTED]     raw_material_name = serializers.SerializerMethodField()
+# [COMMENTED]     raw_material_id = serializers.PrimaryKeyRelatedField(
+# [COMMENTED]         queryset=RawMaterial.objects.all(),
+# [COMMENTED]         source="raw_material",
+# [COMMENTED]         write_only=True,
+# [COMMENTED]     )
+# [COMMENTED]     raw_material = serializers.SerializerMethodField()
+# [COMMENTED]     unit_display = serializers.SerializerMethodField()
+# [COMMENTED]     total_cost = serializers.SerializerMethodField()
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = RecipePackagingItem
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "raw_material",
+# [COMMENTED]             "raw_material_id",
+# [COMMENTED]             "raw_material_name",
+# [COMMENTED]             "quantity",
+# [COMMENTED]             "unit",
+# [COMMENTED]             "unit_display",
+# [COMMENTED]             "notes",
+# [COMMENTED]             "total_cost",
+# [COMMENTED]         ]
+# [COMMENTED] 
+# [COMMENTED]     def get_raw_material(self, obj):
+# [COMMENTED]         if obj.raw_material:
+# [COMMENTED]             return {
+# [COMMENTED]                 "id": obj.raw_material.id,
+# [COMMENTED]                 "name": obj.raw_material.name,
+# [COMMENTED]                 "unit": obj.raw_material.unit,
+# [COMMENTED]                 "price": int(obj.raw_material.price or 0),
+# [COMMENTED]                 "quantity": float(obj.raw_material.quantity or 0),
+# [COMMENTED]             }
+# [COMMENTED]         return None
+# [COMMENTED] 
+# [COMMENTED]     def get_raw_material_name(self, obj):
+# [COMMENTED]         return obj.raw_material.name if obj.raw_material else ""
+# [COMMENTED] 
+# [COMMENTED]     def get_unit_display(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return obj.get_unit_display() or ""
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return obj.unit or ""
+# [COMMENTED] 
+# [COMMENTED]     def get_total_cost(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return int(obj.total_cost)
+# [COMMENTED]         except (TypeError, ValueError):
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class RecipeSerializer(serializers.ModelSerializer):
+# [COMMENTED]     food_name = serializers.CharField(source="food.name", read_only=True)
+# [COMMENTED]     ingredients = RecipeIngredientSerializer(many=True, required=False)
+# [COMMENTED]     semi_finished_items = RecipeSemiFinishedSerializer(many=True, required=False)
+# [COMMENTED]     packaging_items = RecipePackagingItemSerializer(many=True, required=False)
+# [COMMENTED]     profit_margin = serializers.FloatField(read_only=True)
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = Recipe
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "food",
+# [COMMENTED]             "food_name",
+# [COMMENTED]             "yield_quantity",
+# [COMMENTED]             "instructions",
+# [COMMENTED]             "estimated_preparation_time",
+# [COMMENTED]             "notes",
+# [COMMENTED]             "version",
+# [COMMENTED]             "is_active",
+# [COMMENTED]             "ingredients",
+# [COMMENTED]             "semi_finished_items",
+# [COMMENTED]             "packaging_items",
+# [COMMENTED]             "total_raw_material_cost",
+# [COMMENTED]             "total_semi_finished_cost",
+# [COMMENTED]             "total_packaging_cost",
+# [COMMENTED]             "total_cost",
+# [COMMENTED]             "cost_per_serving",
+# [COMMENTED]             "suggested_price",
+# [COMMENTED]             "profit_margin",
+# [COMMENTED]             "created_at",
+# [COMMENTED]             "updated_at",
+# [COMMENTED]         ]
+# [COMMENTED]         read_only_fields = [
+# [COMMENTED]             "total_raw_material_cost",
+# [COMMENTED]             "total_semi_finished_cost",
+# [COMMENTED]             "total_packaging_cost",
+# [COMMENTED]             "total_cost",
+# [COMMENTED]             "cost_per_serving",
+# [COMMENTED]             "suggested_price",
+# [COMMENTED]             "version",
+# [COMMENTED]             "created_at",
+# [COMMENTED]             "updated_at",
+# [COMMENTED]         ]
+# [COMMENTED] 
+# [COMMENTED]     def create(self, validated_data):
+# [COMMENTED]         ingredients_data = validated_data.pop("ingredients", [])
+# [COMMENTED]         semi_items_data = validated_data.pop("semi_finished_items", [])
+# [COMMENTED]         packaging_items_data = validated_data.pop("packaging_items", [])
+# [COMMENTED]         food = validated_data.pop("food", None)
+# [COMMENTED] 
+# [COMMENTED]         if food:
+# [X] # [COMMENTED]             recipe, created = Recipe.objects.update_or_create(
+# [COMMENTED]                 food=food,
+# [COMMENTED]                 defaults=validated_data,
+# [COMMENTED]             )
+# [COMMENTED]             if not created:
+# [COMMENTED]                 recipe.ingredients.all().delete()
+# [COMMENTED]                 recipe.semi_finished_items.all().delete()
+# [COMMENTED]                 recipe.packaging_items.all().delete()
+# [COMMENTED]         else:
+# [COMMENTED]             raise serializers.ValidationError(
+# [COMMENTED]                 {"food": "انتخاب غذا برای رسپی الزامی است."}
+# [COMMENTED]             )
+# [COMMENTED] 
+# [COMMENTED]         for ing_data in ingredients_data:
+# [X] # [COMMENTED]             RecipeIngredient.objects.create(recipe=recipe, **ing_data)
+# [COMMENTED] 
+# [COMMENTED]         for sf_data in semi_items_data:
+# [X] # [COMMENTED]             RecipeSemiFinished.objects.create(recipe=recipe, **sf_data)
+# [COMMENTED] 
+# [COMMENTED]         for pk_data in packaging_items_data:
+# [X] # [COMMENTED]             RecipePackagingItem.objects.create(recipe=recipe, **pk_data)
+# [COMMENTED] 
+# [COMMENTED]         recipe.recalculate_cost()
+# [COMMENTED]         return recipe
+# [COMMENTED] 
+# [COMMENTED]     def update(self, instance, validated_data):
+# [COMMENTED]         ingredients_data = validated_data.pop("ingredients", None)
+# [COMMENTED]         semi_items_data = validated_data.pop("semi_finished_items", None)
+# [COMMENTED]         packaging_items_data = validated_data.pop("packaging_items", None)
+# [COMMENTED] 
+# [COMMENTED]         for attr, value in validated_data.items():
+# [COMMENTED]             setattr(instance, attr, value)
+# [COMMENTED]         instance.save()
+# [COMMENTED] 
+# [COMMENTED]         if ingredients_data is not None:
+# [COMMENTED]             instance.ingredients.all().delete()
+# [COMMENTED]             for ing_data in ingredients_data:
+# [X] # [COMMENTED]                 RecipeIngredient.objects.create(recipe=instance, **ing_data)
+# [COMMENTED] 
+# [COMMENTED]         if semi_items_data is not None:
+# [COMMENTED]             instance.semi_finished_items.all().delete()
+# [COMMENTED]             for sf_data in semi_items_data:
+# [X] # [COMMENTED]                 RecipeSemiFinished.objects.create(recipe=instance, **sf_data)
+# [COMMENTED] 
+# [COMMENTED]         if packaging_items_data is not None:
+# [COMMENTED]             instance.packaging_items.all().delete()
+# [COMMENTED]             for pk_data in packaging_items_data:
+# [X] # [COMMENTED]                 RecipePackagingItem.objects.create(recipe=instance, **pk_data)
+# [COMMENTED] 
+# [COMMENTED]         instance.recalculate_cost()
+# [COMMENTED]         return instance
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] # ══════════════════════════════════════════════════════════════════════════════
+# [COMMENTED] #  2. TABLES & RESERVATIONS
+# [COMMENTED] # ══════════════════════════════════════════════════════════════════════════════
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class TableSerializer(serializers.ModelSerializer):
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = Table
+# [COMMENTED]         fields = "__all__"
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class ReservationSerializer(serializers.ModelSerializer):
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = Reservation
+# [COMMENTED]         fields = "__all__"
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] # ══════════════════════════════════════════════════════════════════════════════
+# [COMMENTED] #  3. ORDERS — ★ اصلاح‌شده
+# [COMMENTED] # ══════════════════════════════════════════════════════════════════════════════
+# [COMMENTED] 
+# [COMMENTED] 
 class OrderItemSerializer(serializers.ModelSerializer):
     # ★ FIXED: فیلدهای جدید
     food_name = serializers.CharField(source="food.name", read_only=True, default="")
@@ -461,7 +432,6 @@ class OrderItemSerializer(serializers.ModelSerializer):
         if obj.food_id and obj.food and obj.food.category:
             return obj.food.category.name_en or ""
         return ""
-
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -678,396 +648,396 @@ class InventoryMovementSerializer(serializers.ModelSerializer):
             return ""
 
 
-class InventoryUsageLogSerializer(serializers.ModelSerializer):
-    raw_material_name = serializers.CharField(
-        source="raw_material.name", read_only=True
-    )
-    usage_type_display = serializers.CharField(
-        source="get_usage_type_display", read_only=True
-    )
-
-    class Meta:
-        model = InventoryUsageLog
-        fields = [
-            "id",
-            "raw_material",
-            "raw_material_name",
-            "usage_type",
-            "usage_type_display",
-            "quantity_used",
-            "reference",
-            "note",
-            "used_at",
-        ]
-        read_only_fields = ["used_at"]
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  4. SEMI-FINISHED PRODUCTS
-# ══════════════════════════════════════════════════════════════════════════════
-
-
-class SemiFinishedIngredientSerializer(serializers.ModelSerializer):
-    raw_material_name = serializers.SerializerMethodField()
-    raw_material_id = serializers.SerializerMethodField()
-    unit = serializers.SerializerMethodField()
-    price = serializers.SerializerMethodField()
-    stock = serializers.SerializerMethodField()
-
-    class Meta:
-        model = SemiFinishedIngredient
-        fields = [
-            "id",
-            "raw_material",
-            "raw_material_id",
-            "raw_material_name",
-            "quantity",
-            "unit",
-            "price",
-            "stock",
-        ]
-
-    def get_raw_material_name(self, obj):
-        return obj.raw_material.name if obj.raw_material else ""
-
-    def get_raw_material_id(self, obj):
-        return obj.raw_material.id if obj.raw_material else None
-
-    def get_unit(self, obj):
-        return obj.raw_material.unit if obj.raw_material else ""
-
-    def get_price(self, obj):
-        return (
-            int(obj.raw_material.price)
-            if obj.raw_material and obj.raw_material.price
-            else 0
-        )
-
-    def get_stock(self, obj):
-        if obj.raw_material:
-            return float(obj.raw_material.quantity or 0)
-        return 0
-
-
-class SemiFinishedSerializer(serializers.ModelSerializer):
-    ingredients = SemiFinishedIngredientSerializer(many=True, read_only=True)
-    total_cost = serializers.SerializerMethodField()
-    cost_per_unit = serializers.SerializerMethodField()
-    suggested_price = serializers.SerializerMethodField()
-    can_produce = serializers.SerializerMethodField()
-
-    class Meta:
-        model = SemiFinished
-        fields = "__all__"
-
-    def get_total_cost(self, obj):
-        try:
-            return int(obj.total_cost)
-        except (TypeError, ValueError):
-            return 0
-
-    def get_cost_per_unit(self, obj):
-        try:
-            return int(obj.cost_per_unit)
-        except (TypeError, ValueError):
-            return 0
-
-    def get_suggested_price(self, obj):
-        try:
-            return int(obj.suggested_price)
-        except (TypeError, ValueError):
-            return 0
-
-    def get_can_produce(self, obj):
-        try:
-            return obj.can_produce
-        except Exception:
-            return 0
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  5. READY MATERIALS
-# ══════════════════════════════════════════════════════════════════════════════
-
-
-class ReadyMaterialSerializer(serializers.ModelSerializer):
-    total_value = serializers.SerializerMethodField()
-    stock_status = serializers.SerializerMethodField()
-    unit_display = serializers.CharField(source="get_unit_display", read_only=True)
-    supplier_name = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ReadyMaterial
-        fields = [
-            "id",
-            "name",
-            "description",
-            "unit",
-            "unit_display",
-            "quantity",
-            "purchase_price",
-            "selling_price",
-            "minimum_stock",
-            "supplier",
-            "supplier_name",
-            "barcode",
-            "is_active",
-            "total_value",
-            "stock_status",
-            "created_at",
-            "updated_at",
-        ]
-        read_only_fields = ["created_at", "updated_at"]
-
-    def get_total_value(self, obj):
-        try:
-            return (
-                int(obj.total_value)
-                if hasattr(obj, "total_value")
-                else (
-                    int(obj.quantity * obj.purchase_price) if obj.purchase_price else 0
-                )
-            )
-        except (TypeError, AttributeError):
-            return 0
-
-    def get_stock_status(self, obj):
-        try:
-            if hasattr(obj, "stock_status"):
-                return obj.stock_status
-            if obj.quantity <= 0:
-                return "out"
-            if obj.minimum_stock and obj.quantity <= obj.minimum_stock:
-                return "low"
-            return "ok"
-        except (TypeError, AttributeError):
-            return "unknown"
-
-    def get_supplier_name(self, obj):
-        try:
-            return obj.supplier.name if obj.supplier else ""
-        except Exception:
-            return ""
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  6. KITCHEN MANAGEMENT
-# ══════════════════════════════════════════════════════════════════════════════
-
-
-class KitchenProductSerializer(serializers.ModelSerializer):
-    recipe_name = serializers.SerializerMethodField()
-    category_display = serializers.CharField(
-        source="get_category_display", read_only=True
-    )
-    cost = serializers.SerializerMethodField()
-    profit = serializers.SerializerMethodField()
-    max_production = serializers.SerializerMethodField()
-    limiting_material = serializers.SerializerMethodField()
-    current_stock = serializers.SerializerMethodField()
-    available_stock = serializers.SerializerMethodField()
-    is_low_stock = serializers.SerializerMethodField()
-
-    class Meta:
-        model = KitchenProduct
-        fields = [
-            "id",
-            "name",
-            "recipe",
-            "recipe_name",
-            "category",
-            "category_display",
-            "description",
-            "image",
-            "selling_price",
-            "min_stock",
-            "is_active",
-            "cost",
-            "profit",
-            "max_production",
-            "limiting_material",
-            "current_stock",
-            "available_stock",
-            "is_low_stock",
-            "created_at",
-            "updated_at",
-        ]
-
-    def get_recipe_name(self, obj):
-        try:
-            if obj.recipe and hasattr(obj.recipe, "food") and obj.recipe.food:
-                return obj.recipe.food.name
-        except Exception:
-            pass
-        return ""
-
-    def get_cost(self, obj):
-        try:
-            c = obj.calculate_cost()
-            return int(c) if c is not None else 0
-        except Exception:
-            return 0
-
-    def get_profit(self, obj):
-        try:
-            p = obj.calculate_profit()
-            return int(p) if p is not None else 0
-        except Exception:
-            return 0
-
-    def get_max_production(self, obj):
-        try:
-            result = obj.calculate_max_production()
-            if isinstance(result, (tuple, list)) and len(result) >= 1:
-                return result[0]
-            return result
-        except Exception:
-            return 0
-
-    def get_limiting_material(self, obj):
-        try:
-            result = obj.calculate_max_production()
-            if isinstance(result, (tuple, list)) and len(result) >= 2:
-                return result[1]
-            return None
-        except Exception:
-            return None
-
-    def get_current_stock(self, obj):
-        try:
-            inv = obj.get_inventory()
-            return inv.quantity if inv else 0
-        except Exception:
-            return 0
-
-    def get_available_stock(self, obj):
-        try:
-            inv = obj.get_inventory()
-            return inv.available_quantity if inv else 0
-        except Exception:
-            return 0
-
-    def get_is_low_stock(self, obj):
-        try:
-            inv = obj.get_inventory()
-            return inv.is_low_stock if inv else False
-        except Exception:
-            return False
-
-
-class KitchenInventorySerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source="kitchen_product.name", read_only=True)
-    available = serializers.IntegerField(source="available_quantity", read_only=True)
-    is_low = serializers.BooleanField(source="is_low_stock", read_only=True)
-
-    class Meta:
-        model = KitchenInventory
-        fields = "__all__"
-
-
-class ProductionPlanItemSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source="kitchen_product.name", read_only=True)
-    required_materials = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ProductionPlanItem
-        fields = [
-            "id",
-            "kitchen_product",
-            "product_name",
-            "quantity",
-            "required_materials",
-        ]
-
-    def get_required_materials(self, obj):
-        try:
-            return obj.required_materials()
-        except Exception:
-            return []
-
-
-class ProductionPlanSerializer(serializers.ModelSerializer):
-    items = ProductionPlanItemSerializer(many=True, read_only=True)
-    status_display = serializers.CharField(source="get_status_display", read_only=True)
-    created_by_name = serializers.SerializerMethodField()
-    items_data = serializers.ListField(
-        child=serializers.DictField(),
-        write_only=True,
-        required=False,
-    )
-
-    class Meta:
-        model = ProductionPlan
-        fields = [
-            "id",
-            "date",
-            "status",
-            "status_display",
-            "created_by",
-            "created_by_name",
-            "notes",
-            "items",
-            "items_data",
-            "created_at",
-            "updated_at",
-        ]
-
-    def get_created_by_name(self, obj):
-        try:
-            return obj.created_by.get_full_name() if obj.created_by else ""
-        except Exception:
-            return ""
-
-    def create(self, validated_data):
-        items = validated_data.pop("items_data", [])
-        plan = ProductionPlan.objects.create(**validated_data)
-        for d in items:
-            ProductionPlanItem.objects.create(
-                production_plan=plan,
-                kitchen_product_id=(
-                    d.get("kitchen_product_id") or d.get("kitchen_product")
-                ),
-                quantity=d.get("quantity", 0),
-            )
-        return plan
-
-
-class ProductionBatchSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source="kitchen_product.name", read_only=True)
-    produced_by_name = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ProductionBatch
-        fields = "__all__"
-
-    def get_produced_by_name(self, obj):
-        try:
-            return obj.produced_by.get_full_name() if obj.produced_by else ""
-        except Exception:
-            return ""
-
-
-class ProductionLogSerializer(serializers.ModelSerializer):
-    user_name = serializers.SerializerMethodField()
-    product_name = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ProductionLog
-        fields = "__all__"
-
-    def get_user_name(self, obj):
-        try:
-            return obj.user.get_full_name() if obj.user else "—"
-        except Exception:
-            return "—"
-
-    def get_product_name(self, obj):
-        try:
-            return obj.kitchen_product.name if obj.kitchen_product else "—"
-        except Exception:
-            return "—"
-
-
+# [COMMENTED] class InventoryUsageLogSerializer(serializers.ModelSerializer):
+# [COMMENTED]     raw_material_name = serializers.CharField(
+# [COMMENTED]         source="raw_material.name", read_only=True
+# [COMMENTED]     )
+# [COMMENTED]     usage_type_display = serializers.CharField(
+# [COMMENTED]         source="get_usage_type_display", read_only=True
+# [COMMENTED]     )
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = InventoryUsageLog
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "raw_material",
+# [COMMENTED]             "raw_material_name",
+# [COMMENTED]             "usage_type",
+# [COMMENTED]             "usage_type_display",
+# [COMMENTED]             "quantity_used",
+# [COMMENTED]             "reference",
+# [COMMENTED]             "note",
+# [COMMENTED]             "used_at",
+# [COMMENTED]         ]
+# [COMMENTED]         read_only_fields = ["used_at"]
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] # ══════════════════════════════════════════════════════════════════════════════
+# [COMMENTED] #  4. SEMI-FINISHED PRODUCTS
+# [COMMENTED] # ══════════════════════════════════════════════════════════════════════════════
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class SemiFinishedIngredientSerializer(serializers.ModelSerializer):
+# [COMMENTED]     raw_material_name = serializers.SerializerMethodField()
+# [COMMENTED]     raw_material_id = serializers.SerializerMethodField()
+# [COMMENTED]     unit = serializers.SerializerMethodField()
+# [COMMENTED]     price = serializers.SerializerMethodField()
+# [COMMENTED]     stock = serializers.SerializerMethodField()
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = SemiFinishedIngredient
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "raw_material",
+# [COMMENTED]             "raw_material_id",
+# [COMMENTED]             "raw_material_name",
+# [COMMENTED]             "quantity",
+# [COMMENTED]             "unit",
+# [COMMENTED]             "price",
+# [COMMENTED]             "stock",
+# [COMMENTED]         ]
+# [COMMENTED] 
+# [COMMENTED]     def get_raw_material_name(self, obj):
+# [COMMENTED]         return obj.raw_material.name if obj.raw_material else ""
+# [COMMENTED] 
+# [COMMENTED]     def get_raw_material_id(self, obj):
+# [COMMENTED]         return obj.raw_material.id if obj.raw_material else None
+# [COMMENTED] 
+# [COMMENTED]     def get_unit(self, obj):
+# [COMMENTED]         return obj.raw_material.unit if obj.raw_material else ""
+# [COMMENTED] 
+# [COMMENTED]     def get_price(self, obj):
+# [COMMENTED]         return (
+# [COMMENTED]             int(obj.raw_material.price)
+# [COMMENTED]             if obj.raw_material and obj.raw_material.price
+# [COMMENTED]             else 0
+# [COMMENTED]         )
+# [COMMENTED] 
+# [COMMENTED]     def get_stock(self, obj):
+# [COMMENTED]         if obj.raw_material:
+# [COMMENTED]             return float(obj.raw_material.quantity or 0)
+# [COMMENTED]         return 0
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class SemiFinishedSerializer(serializers.ModelSerializer):
+# [COMMENTED]     ingredients = SemiFinishedIngredientSerializer(many=True, read_only=True)
+# [COMMENTED]     total_cost = serializers.SerializerMethodField()
+# [COMMENTED]     cost_per_unit = serializers.SerializerMethodField()
+# [COMMENTED]     suggested_price = serializers.SerializerMethodField()
+# [COMMENTED]     can_produce = serializers.SerializerMethodField()
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = SemiFinished
+# [COMMENTED]         fields = "__all__"
+# [COMMENTED] 
+# [COMMENTED]     def get_total_cost(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return int(obj.total_cost)
+# [COMMENTED]         except (TypeError, ValueError):
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED]     def get_cost_per_unit(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return int(obj.cost_per_unit)
+# [COMMENTED]         except (TypeError, ValueError):
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED]     def get_suggested_price(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return int(obj.suggested_price)
+# [COMMENTED]         except (TypeError, ValueError):
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED]     def get_can_produce(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return obj.can_produce
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] # ══════════════════════════════════════════════════════════════════════════════
+# [COMMENTED] #  5. READY MATERIALS
+# [COMMENTED] # ══════════════════════════════════════════════════════════════════════════════
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class ReadyMaterialSerializer(serializers.ModelSerializer):
+# [COMMENTED]     total_value = serializers.SerializerMethodField()
+# [COMMENTED]     stock_status = serializers.SerializerMethodField()
+# [COMMENTED]     unit_display = serializers.CharField(source="get_unit_display", read_only=True)
+# [COMMENTED]     supplier_name = serializers.SerializerMethodField()
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = ReadyMaterial
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "name",
+# [COMMENTED]             "description",
+# [COMMENTED]             "unit",
+# [COMMENTED]             "unit_display",
+# [COMMENTED]             "quantity",
+# [COMMENTED]             "purchase_price",
+# [COMMENTED]             "selling_price",
+# [COMMENTED]             "minimum_stock",
+# [COMMENTED]             "supplier",
+# [COMMENTED]             "supplier_name",
+# [COMMENTED]             "barcode",
+# [COMMENTED]             "is_active",
+# [COMMENTED]             "total_value",
+# [COMMENTED]             "stock_status",
+# [COMMENTED]             "created_at",
+# [COMMENTED]             "updated_at",
+# [COMMENTED]         ]
+# [COMMENTED]         read_only_fields = ["created_at", "updated_at"]
+# [COMMENTED] 
+# [COMMENTED]     def get_total_value(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return (
+# [COMMENTED]                 int(obj.total_value)
+# [COMMENTED]                 if hasattr(obj, "total_value")
+# [COMMENTED]                 else (
+# [COMMENTED]                     int(obj.quantity * obj.purchase_price) if obj.purchase_price else 0
+# [COMMENTED]                 )
+# [COMMENTED]             )
+# [COMMENTED]         except (TypeError, AttributeError):
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED]     def get_stock_status(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             if hasattr(obj, "stock_status"):
+# [COMMENTED]                 return obj.stock_status
+# [COMMENTED]             if obj.quantity <= 0:
+# [COMMENTED]                 return "out"
+# [COMMENTED]             if obj.minimum_stock and obj.quantity <= obj.minimum_stock:
+# [COMMENTED]                 return "low"
+# [COMMENTED]             return "ok"
+# [COMMENTED]         except (TypeError, AttributeError):
+# [COMMENTED]             return "unknown"
+# [COMMENTED] 
+# [COMMENTED]     def get_supplier_name(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return obj.supplier.name if obj.supplier else ""
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return ""
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] # ══════════════════════════════════════════════════════════════════════════════
+# [COMMENTED] #  6. KITCHEN MANAGEMENT
+# [COMMENTED] # ══════════════════════════════════════════════════════════════════════════════
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class KitchenProductSerializer(serializers.ModelSerializer):
+# [COMMENTED]     recipe_name = serializers.SerializerMethodField()
+# [COMMENTED]     category_display = serializers.CharField(
+# [COMMENTED]         source="get_category_display", read_only=True
+# [COMMENTED]     )
+# [COMMENTED]     cost = serializers.SerializerMethodField()
+# [COMMENTED]     profit = serializers.SerializerMethodField()
+# [COMMENTED]     max_production = serializers.SerializerMethodField()
+# [COMMENTED]     limiting_material = serializers.SerializerMethodField()
+# [COMMENTED]     current_stock = serializers.SerializerMethodField()
+# [COMMENTED]     available_stock = serializers.SerializerMethodField()
+# [COMMENTED]     is_low_stock = serializers.SerializerMethodField()
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = KitchenProduct
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "name",
+# [COMMENTED]             "recipe",
+# [COMMENTED]             "recipe_name",
+# [COMMENTED]             "category",
+# [COMMENTED]             "category_display",
+# [COMMENTED]             "description",
+# [COMMENTED]             "image",
+# [COMMENTED]             "selling_price",
+# [COMMENTED]             "min_stock",
+# [COMMENTED]             "is_active",
+# [COMMENTED]             "cost",
+# [COMMENTED]             "profit",
+# [COMMENTED]             "max_production",
+# [COMMENTED]             "limiting_material",
+# [COMMENTED]             "current_stock",
+# [COMMENTED]             "available_stock",
+# [COMMENTED]             "is_low_stock",
+# [COMMENTED]             "created_at",
+# [COMMENTED]             "updated_at",
+# [COMMENTED]         ]
+# [COMMENTED] 
+# [COMMENTED]     def get_recipe_name(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             if obj.recipe and hasattr(obj.recipe, "food") and obj.recipe.food:
+# [COMMENTED]                 return obj.recipe.food.name
+# [COMMENTED]         except Exception:
+# [COMMENTED]             pass
+# [COMMENTED]         return ""
+# [COMMENTED] 
+# [COMMENTED]     def get_cost(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             c = obj.calculate_cost()
+# [COMMENTED]             return int(c) if c is not None else 0
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED]     def get_profit(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             p = obj.calculate_profit()
+# [COMMENTED]             return int(p) if p is not None else 0
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED]     def get_max_production(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             result = obj.calculate_max_production()
+# [COMMENTED]             if isinstance(result, (tuple, list)) and len(result) >= 1:
+# [COMMENTED]                 return result[0]
+# [COMMENTED]             return result
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED]     def get_limiting_material(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             result = obj.calculate_max_production()
+# [COMMENTED]             if isinstance(result, (tuple, list)) and len(result) >= 2:
+# [COMMENTED]                 return result[1]
+# [COMMENTED]             return None
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return None
+# [COMMENTED] 
+# [COMMENTED]     def get_current_stock(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             inv = obj.get_inventory()
+# [COMMENTED]             return inv.quantity if inv else 0
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED]     def get_available_stock(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             inv = obj.get_inventory()
+# [COMMENTED]             return inv.available_quantity if inv else 0
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED]     def get_is_low_stock(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             inv = obj.get_inventory()
+# [COMMENTED]             return inv.is_low_stock if inv else False
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return False
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class KitchenInventorySerializer(serializers.ModelSerializer):
+# [COMMENTED]     product_name = serializers.CharField(source="kitchen_product.name", read_only=True)
+# [COMMENTED]     available = serializers.IntegerField(source="available_quantity", read_only=True)
+# [COMMENTED]     is_low = serializers.BooleanField(source="is_low_stock", read_only=True)
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = KitchenInventory
+# [COMMENTED]         fields = "__all__"
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class ProductionPlanItemSerializer(serializers.ModelSerializer):
+# [COMMENTED]     product_name = serializers.CharField(source="kitchen_product.name", read_only=True)
+# [COMMENTED]     required_materials = serializers.SerializerMethodField()
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = ProductionPlanItem
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "kitchen_product",
+# [COMMENTED]             "product_name",
+# [COMMENTED]             "quantity",
+# [COMMENTED]             "required_materials",
+# [COMMENTED]         ]
+# [COMMENTED] 
+# [COMMENTED]     def get_required_materials(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return obj.required_materials()
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return []
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class ProductionPlanSerializer(serializers.ModelSerializer):
+# [COMMENTED]     items = ProductionPlanItemSerializer(many=True, read_only=True)
+# [COMMENTED]     status_display = serializers.CharField(source="get_status_display", read_only=True)
+# [COMMENTED]     created_by_name = serializers.SerializerMethodField()
+# [COMMENTED]     items_data = serializers.ListField(
+# [COMMENTED]         child=serializers.DictField(),
+# [COMMENTED]         write_only=True,
+# [COMMENTED]         required=False,
+# [COMMENTED]     )
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = ProductionPlan
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "date",
+# [COMMENTED]             "status",
+# [COMMENTED]             "status_display",
+# [COMMENTED]             "created_by",
+# [COMMENTED]             "created_by_name",
+# [COMMENTED]             "notes",
+# [COMMENTED]             "items",
+# [COMMENTED]             "items_data",
+# [COMMENTED]             "created_at",
+# [COMMENTED]             "updated_at",
+# [COMMENTED]         ]
+# [COMMENTED] 
+# [COMMENTED]     def get_created_by_name(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return obj.created_by.get_full_name() if obj.created_by else ""
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return ""
+# [COMMENTED] 
+# [COMMENTED]     def create(self, validated_data):
+# [COMMENTED]         items = validated_data.pop("items_data", [])
+# [X] # [COMMENTED]         plan = ProductionPlan.objects.create(**validated_data)
+# [COMMENTED]         for d in items:
+# [X] # [COMMENTED]             ProductionPlanItem.objects.create(
+# [COMMENTED]                 production_plan=plan,
+# [COMMENTED]                 kitchen_product_id=(
+# [COMMENTED]                     d.get("kitchen_product_id") or d.get("kitchen_product")
+# [COMMENTED]                 ),
+# [COMMENTED]                 quantity=d.get("quantity", 0),
+# [COMMENTED]             )
+# [COMMENTED]         return plan
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class ProductionBatchSerializer(serializers.ModelSerializer):
+# [COMMENTED]     product_name = serializers.CharField(source="kitchen_product.name", read_only=True)
+# [COMMENTED]     produced_by_name = serializers.SerializerMethodField()
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = ProductionBatch
+# [COMMENTED]         fields = "__all__"
+# [COMMENTED] 
+# [COMMENTED]     def get_produced_by_name(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return obj.produced_by.get_full_name() if obj.produced_by else ""
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return ""
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class ProductionLogSerializer(serializers.ModelSerializer):
+# [COMMENTED]     user_name = serializers.SerializerMethodField()
+# [COMMENTED]     product_name = serializers.SerializerMethodField()
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = ProductionLog
+# [COMMENTED]         fields = "__all__"
+# [COMMENTED] 
+# [COMMENTED]     def get_user_name(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return obj.user.get_full_name() if obj.user else "—"
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return "—"
+# [COMMENTED] 
+# [COMMENTED]     def get_product_name(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return obj.kitchen_product.name if obj.kitchen_product else "—"
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return "—"
+# [COMMENTED] 
+# [COMMENTED] 
 class ProduceSerializer(serializers.Serializer):
     quantity = serializers.FloatField(min_value=0.01, max_value=10000, default=1)
 
@@ -1082,158 +1052,158 @@ class ProduceSerializer(serializers.Serializer):
 # ══════════════════════════════════════════════════════════════════════════════
 
 
-class WasteLogSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source="kitchen_product.name", read_only=True)
-    reason_display = serializers.CharField(source="get_reason_display", read_only=True)
-    total_cost = serializers.SerializerMethodField()
-    created_by_name = serializers.SerializerMethodField()
-
-    class Meta:
-        model = WasteLog
-        fields = [
-            "id",
-            "kitchen_product",
-            "product_name",
-            "quantity",
-            "reason",
-            "reason_display",
-            "cost_per_unit",
-            "total_cost",
-            "notes",
-            "created_by",
-            "created_by_name",
-            "created_at",
-        ]
-        read_only_fields = ["created_at", "cost_per_unit"]
-
-    def get_total_cost(self, obj):
-        try:
-            return obj.total_cost
-        except (TypeError, AttributeError):
-            return 0
-
-    def get_created_by_name(self, obj):
-        try:
-            return obj.created_by.get_full_name() if obj.created_by else ""
-        except Exception:
-            return ""
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  6.6 ONLINE ORDER SETTINGS — ★ جدید
-# ══════════════════════════════════════════════════════════════════════════════
-
-
-class OnlineOrderSettingsSerializer(serializers.ModelSerializer):
-    status_text = serializers.CharField(read_only=True)
-    restaurant_name = serializers.CharField(source="restaurant.name", read_only=True)
-
-    class Meta:
-        model = OnlineOrderSettings
-        fields = [
-            "id",
-            "restaurant",
-            "restaurant_name",
-            "is_open",
-            "status_text",
-            "closed_message",
-            "updated_at",
-            "updated_by",
-        ]
-        read_only_fields = ["updated_at", "updated_by"]
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  POS SETTINGS — ★ جدید
-# ══════════════════════════════════════════════════════════════════════════════
-
-
-class PosSettingsSerializer(serializers.ModelSerializer):
-    restaurant_name = serializers.CharField(source="restaurant.name", read_only=True)
-
-    class Meta:
-        model = PosSettings
-        fields = [
-            "id",
-            "restaurant",
-            "restaurant_name",
-            "use_dictionary",
-            "allow_price_edit",
-            "show_stock",
-            "default_payment",
-            "require_customer",
-            "updated_at",
-        ]
-        read_only_fields = ["id", "restaurant", "updated_at"]
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  6.7 DAY CLOSE — ★ جدید
-# ══════════════════════════════════════════════════════════════════════════════
-
-
-class DayCloseReportSerializer(serializers.ModelSerializer):
-    closed_by_name = serializers.SerializerMethodField()
-
-    class Meta:
-        model = DayCloseReport
-        fields = [
-            "id",
-            "date",
-            "total_sales",
-            "total_cost",
-            "total_profit",
-            "order_count",
-            "delivered_count",
-            "waste_count",
-            "waste_value",
-            "discount_total",
-            "inventory_snapshot",
-            "items_detail",
-            "top_items",
-            "closed_by",
-            "closed_by_name",
-            "closed_at",
-        ]
-        read_only_fields = ["closed_at"]
-
-    def get_closed_by_name(self, obj):
-        try:
-            return obj.closed_by.get_full_name() if obj.closed_by else ""
-        except Exception:
-            return ""
-
-
-class DayCloseLogSerializer(serializers.ModelSerializer):
-    user_name = serializers.SerializerMethodField()
-    action_display = serializers.CharField(source="get_action_display", read_only=True)
-
-    class Meta:
-        model = DayCloseLog
-        fields = [
-            "id",
-            "date",
-            "action",
-            "action_display",
-            "user",
-            "user_name",
-            "details",
-            "created_at",
-        ]
-        read_only_fields = ["created_at"]
-
-    def get_user_name(self, obj):
-        try:
-            return obj.user.get_full_name() if obj.user else ""
-        except Exception:
-            return ""
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  15. POINTS — EARN & REDEEM — ★ اصلاح‌شده
-# ══════════════════════════════════════════════════════════════════════════════
-
-
+# [COMMENTED] class WasteLogSerializer(serializers.ModelSerializer):
+# [COMMENTED]     product_name = serializers.CharField(source="kitchen_product.name", read_only=True)
+# [COMMENTED]     reason_display = serializers.CharField(source="get_reason_display", read_only=True)
+# [COMMENTED]     total_cost = serializers.SerializerMethodField()
+# [COMMENTED]     created_by_name = serializers.SerializerMethodField()
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = WasteLog
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "kitchen_product",
+# [COMMENTED]             "product_name",
+# [COMMENTED]             "quantity",
+# [COMMENTED]             "reason",
+# [COMMENTED]             "reason_display",
+# [COMMENTED]             "cost_per_unit",
+# [COMMENTED]             "total_cost",
+# [COMMENTED]             "notes",
+# [COMMENTED]             "created_by",
+# [COMMENTED]             "created_by_name",
+# [COMMENTED]             "created_at",
+# [COMMENTED]         ]
+# [COMMENTED]         read_only_fields = ["created_at", "cost_per_unit"]
+# [COMMENTED] 
+# [COMMENTED]     def get_total_cost(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return obj.total_cost
+# [COMMENTED]         except (TypeError, AttributeError):
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED]     def get_created_by_name(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return obj.created_by.get_full_name() if obj.created_by else ""
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return ""
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] # ══════════════════════════════════════════════════════════════════════════════
+# [COMMENTED] #  6.6 ONLINE ORDER SETTINGS — ★ جدید
+# [COMMENTED] # ══════════════════════════════════════════════════════════════════════════════
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class OnlineOrderSettingsSerializer(serializers.ModelSerializer):
+# [COMMENTED]     status_text = serializers.CharField(read_only=True)
+# [COMMENTED]     restaurant_name = serializers.CharField(source="restaurant.name", read_only=True)
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = OnlineOrderSettings
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "restaurant",
+# [COMMENTED]             "restaurant_name",
+# [COMMENTED]             "is_open",
+# [COMMENTED]             "status_text",
+# [COMMENTED]             "closed_message",
+# [COMMENTED]             "updated_at",
+# [COMMENTED]             "updated_by",
+# [COMMENTED]         ]
+# [COMMENTED]         read_only_fields = ["updated_at", "updated_by"]
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] # ══════════════════════════════════════════════════════════════════════════════
+# [COMMENTED] #  POS SETTINGS — ★ جدید
+# [COMMENTED] # ══════════════════════════════════════════════════════════════════════════════
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class PosSettingsSerializer(serializers.ModelSerializer):
+# [COMMENTED]     restaurant_name = serializers.CharField(source="restaurant.name", read_only=True)
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = PosSettings
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "restaurant",
+# [COMMENTED]             "restaurant_name",
+# [COMMENTED]             "use_dictionary",
+# [COMMENTED]             "allow_price_edit",
+# [COMMENTED]             "show_stock",
+# [COMMENTED]             "default_payment",
+# [COMMENTED]             "require_customer",
+# [COMMENTED]             "updated_at",
+# [COMMENTED]         ]
+# [COMMENTED]         read_only_fields = ["id", "restaurant", "updated_at"]
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] # ══════════════════════════════════════════════════════════════════════════════
+# [COMMENTED] #  6.7 DAY CLOSE — ★ جدید
+# [COMMENTED] # ══════════════════════════════════════════════════════════════════════════════
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class DayCloseReportSerializer(serializers.ModelSerializer):
+# [COMMENTED]     closed_by_name = serializers.SerializerMethodField()
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = DayCloseReport
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "date",
+# [COMMENTED]             "total_sales",
+# [COMMENTED]             "total_cost",
+# [COMMENTED]             "total_profit",
+# [COMMENTED]             "order_count",
+# [COMMENTED]             "delivered_count",
+# [COMMENTED]             "waste_count",
+# [COMMENTED]             "waste_value",
+# [COMMENTED]             "discount_total",
+# [COMMENTED]             "inventory_snapshot",
+# [COMMENTED]             "items_detail",
+# [COMMENTED]             "top_items",
+# [COMMENTED]             "closed_by",
+# [COMMENTED]             "closed_by_name",
+# [COMMENTED]             "closed_at",
+# [COMMENTED]         ]
+# [COMMENTED]         read_only_fields = ["closed_at"]
+# [COMMENTED] 
+# [COMMENTED]     def get_closed_by_name(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return obj.closed_by.get_full_name() if obj.closed_by else ""
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return ""
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class DayCloseLogSerializer(serializers.ModelSerializer):
+# [COMMENTED]     user_name = serializers.SerializerMethodField()
+# [COMMENTED]     action_display = serializers.CharField(source="get_action_display", read_only=True)
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = DayCloseLog
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "date",
+# [COMMENTED]             "action",
+# [COMMENTED]             "action_display",
+# [COMMENTED]             "user",
+# [COMMENTED]             "user_name",
+# [COMMENTED]             "details",
+# [COMMENTED]             "created_at",
+# [COMMENTED]         ]
+# [COMMENTED]         read_only_fields = ["created_at"]
+# [COMMENTED] 
+# [COMMENTED]     def get_user_name(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return obj.user.get_full_name() if obj.user else ""
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return ""
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] # ══════════════════════════════════════════════════════════════════════════════
+# [COMMENTED] #  15. POINTS — EARN & REDEEM — ★ اصلاح‌شده
+# [COMMENTED] # ══════════════════════════════════════════════════════════════════════════════
+# [COMMENTED] 
+# [COMMENTED] 
 class EarnPointsSerializer(serializers.Serializer):
     # ★ FIXED: order_id — view باید به Order instance تبدیل کند
     order_id = serializers.IntegerField()
@@ -1542,67 +1512,6 @@ class RestaurantAuthSerializer(serializers.ModelSerializer):
 RestaurantSerializer = RestaurantAuthSerializer
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  DICTIONARY
-# ══════════════════════════════════════════════════════════════════════════════
-
-
-class ItemDictionarySerializer(serializers.ModelSerializer):
-    group_slug = serializers.CharField(source="group.slug", default="", read_only=True)
-    group_name = serializers.CharField(source="group.name", default="", read_only=True)
-    group_color = serializers.CharField(
-        source="group.color", default="#78716c", read_only=True
-    )
-    group_icon = serializers.CharField(
-        source="group.icon", default="bi-archive", read_only=True
-    )
-
-    class Meta:
-        model = ItemDictionary
-        fields = [
-            "id",
-            "name",
-            "unit",
-            "description",
-            "dict_category",
-            "material_type",
-            "category",
-            "group",
-            "group_slug",
-            "group_name",
-            "group_color",
-            "group_icon",
-        ]
-
-
-class DictionaryGroupSerializer(serializers.ModelSerializer):
-    item_count = serializers.IntegerField(read_only=True)
-
-    class Meta:
-        model = DictionaryGroup
-        fields = [
-            "id",
-            "name",
-            "slug",
-            "icon",
-            "color",
-            "sort_order",
-            "usage_recipes",
-            "usage_warehouse",
-            "usage_pos",
-            "usage_invoice",
-            "usage_kitchen",
-            "is_system",
-            "is_active",
-            "item_count",
-            "created_at",
-        ]
-        read_only_fields = ["created_at"]
-
-# ══════════════════════════════════════════════════════════════════════════════
-#  7. MULTI-WAREHOUSE INVENTORY — ★ جدید
-# ══════════════════════════════════════════════════════════════════════════════
-
 
 class WarehouseSerializer(serializers.ModelSerializer):
     warehouse_type_display = serializers.CharField(
@@ -1701,270 +1610,270 @@ class StockItemSerializer(serializers.ModelSerializer):
             return False
 
 
-class StockTransferSerializer(serializers.ModelSerializer):
-    source_warehouse_name = serializers.CharField(
-        source="source_warehouse.name", read_only=True
-    )
-    destination_warehouse_name = serializers.CharField(
-        source="destination_warehouse.name", read_only=True
-    )
-    material_name = serializers.CharField(
-        source="raw_material.name", read_only=True
-    )
-    status_display = serializers.CharField(
-        source="get_status_display", read_only=True
-    )
-    created_by_name = serializers.SerializerMethodField()
-
-    class Meta:
-        model = StockTransfer
-        fields = [
-            "id",
-            "source_warehouse",
-            "source_warehouse_name",
-            "destination_warehouse",
-            "destination_warehouse_name",
-            "raw_material",
-            "material_name",
-            "quantity",
-            "unit",
-            "status",
-            "status_display",
-            "reference",
-            "notes",
-            "created_by",
-            "created_by_name",
-            "created_at",
-            "completed_at",
-        ]
-        read_only_fields = ["created_at", "completed_at"]
-
-    def get_created_by_name(self, obj):
-        try:
-            return obj.created_by.get_full_name() if obj.created_by else ""
-        except Exception:
-            return ""
-
-
-class ReceivingItemSerializer(serializers.ModelSerializer):
-    material_name = serializers.CharField(
-        source="raw_material.name", read_only=True
-    )
-    line_total = serializers.SerializerMethodField()
-
-    class Meta:
-        model = ReceivingItem
-        fields = [
-            "id",
-            "raw_material",
-            "material_name",
-            "quantity_ordered",
-            "quantity_received",
-            "unit",
-            "unit_price",
-            "line_total",
-        ]
-
-    def get_line_total(self, obj):
-        try:
-            return int(obj.line_total)
-        except (TypeError, ValueError):
-            return 0
-
-
-class ReceivingSerializer(serializers.ModelSerializer):
-    items = ReceivingItemSerializer(many=True, read_only=True)
-    warehouse_name = serializers.CharField(
-        source="warehouse.name", read_only=True
-    )
-    supplier_name = serializers.CharField(
-        source="supplier.name", read_only=True, default=""
-    )
-    purchase_invoice_number = serializers.CharField(
-        source="purchase_invoice.invoice_number", read_only=True, default=""
-    )
-    status_display = serializers.CharField(
-        source="get_status_display", read_only=True
-    )
-    total_amount = serializers.SerializerMethodField()
-    item_count = serializers.SerializerMethodField()
-    received_by_name = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Receiving
-        fields = [
-            "id",
-            "purchase_invoice",
-            "purchase_invoice_number",
-            "warehouse",
-            "warehouse_name",
-            "supplier",
-            "supplier_name",
-            "status",
-            "status_display",
-            "items",
-            "total_amount",
-            "item_count",
-            "notes",
-            "received_by",
-            "received_by_name",
-            "received_at",
-        ]
-        read_only_fields = ["received_at"]
-
-    def get_total_amount(self, obj):
-        try:
-            return int(obj.total_amount)
-        except (TypeError, ValueError):
-            return 0
-
-    def get_item_count(self, obj):
-        return obj.items.count()
-
-    def get_received_by_name(self, obj):
-        try:
-            return obj.received_by.get_full_name() if obj.received_by else ""
-        except Exception:
-            return ""
-
-
-class StockLayerSerializer(serializers.ModelSerializer):
-    material_name = serializers.CharField(
-        source="raw_material.name", read_only=True
-    )
-    warehouse_name = serializers.CharField(
-        source="warehouse.name", read_only=True
-    )
-    supplier_name = serializers.CharField(
-        source="supplier.name", read_only=True, default=""
-    )
-    total_cost = serializers.SerializerMethodField()
-
-    class Meta:
-        model = StockLayer
-        fields = [
-            "id",
-            "raw_material",
-            "material_name",
-            "warehouse",
-            "warehouse_name",
-            "quantity_original",
-            "quantity_remaining",
-            "unit_cost",
-            "total_cost",
-            "supplier",
-            "supplier_name",
-            "reference_type",
-            "reference_id",
-            "received_at",
-        ]
-        read_only_fields = ["received_at"]
-
-    def get_total_cost(self, obj):
-        try:
-            return int(obj.total_cost)
-        except (TypeError, ValueError):
-            return 0
-
-
-class StockAdjustmentSerializer(serializers.ModelSerializer):
-    material_name = serializers.CharField(
-        source="raw_material.name", read_only=True
-    )
-    warehouse_name = serializers.CharField(
-        source="warehouse.name", read_only=True
-    )
-    adjustment_type_display = serializers.CharField(
-        source="get_adjustment_type_display", read_only=True
-    )
-    adjusted_by_name = serializers.SerializerMethodField()
-
-    class Meta:
-        model = StockAdjustment
-        fields = [
-            "id",
-            "warehouse",
-            "warehouse_name",
-            "raw_material",
-            "material_name",
-            "previous_quantity",
-            "new_quantity",
-            "difference",
-            "adjustment_type",
-            "adjustment_type_display",
-            "reason",
-            "notes",
-            "adjusted_by",
-            "adjusted_by_name",
-            "adjusted_at",
-        ]
-        read_only_fields = ["adjusted_at"]
-
-    def get_adjusted_by_name(self, obj):
-        try:
-            return obj.adjusted_by.get_full_name() if obj.adjusted_by else ""
-        except Exception:
-            return ""
-
-
-class PurchaseListItemSerializer(serializers.ModelSerializer):
-    material_name = serializers.CharField(
-        source="raw_material.name", read_only=True
-    )
-    material_unit = serializers.CharField(
-        source="raw_material.unit", read_only=True
-    )
-    current_stock = serializers.SerializerMethodField()
-    minimum_stock = serializers.SerializerMethodField()
-    target_stock = serializers.SerializerMethodField()
-    status_display = serializers.CharField(
-        source="get_status_display", read_only=True
-    )
-    supplier_name = serializers.SerializerMethodField()
-
-    class Meta:
-        model = PurchaseListItem
-        fields = [
-            "id",
-            "raw_material",
-            "material_name",
-            "material_unit",
-            "current_stock",
-            "minimum_stock",
-            "target_stock",
-            "suggested_quantity",
-            "status",
-            "status_display",
-            "purchase_invoice",
-            "supplier_name",
-            "notes",
-            "created_at",
-            "updated_at",
-        ]
-        read_only_fields = ["created_at", "updated_at"]
-
-    def get_current_stock(self, obj):
-        try:
-            return float(obj.raw_material.quantity or 0)
-        except Exception:
-            return 0
-
-    def get_minimum_stock(self, obj):
-        try:
-            return float(obj.raw_material.minimum_stock or 0)
-        except Exception:
-            return 0
-
-    def get_target_stock(self, obj):
-        try:
-            return float(obj.raw_material.target_stock or 0)
-        except Exception:
-            return 0
-
-    def get_supplier_name(self, obj):
-        try:
-            if obj.purchase_invoice and obj.purchase_invoice.supplier:
-                return obj.purchase_invoice.supplier.name
-        except Exception:
-            pass
-        return ""
+# [COMMENTED] class StockTransferSerializer(serializers.ModelSerializer):
+# [COMMENTED]     source_warehouse_name = serializers.CharField(
+# [COMMENTED]         source="source_warehouse.name", read_only=True
+# [COMMENTED]     )
+# [COMMENTED]     destination_warehouse_name = serializers.CharField(
+# [COMMENTED]         source="destination_warehouse.name", read_only=True
+# [COMMENTED]     )
+# [COMMENTED]     material_name = serializers.CharField(
+# [COMMENTED]         source="raw_material.name", read_only=True
+# [COMMENTED]     )
+# [COMMENTED]     status_display = serializers.CharField(
+# [COMMENTED]         source="get_status_display", read_only=True
+# [COMMENTED]     )
+# [COMMENTED]     created_by_name = serializers.SerializerMethodField()
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = StockTransfer
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "source_warehouse",
+# [COMMENTED]             "source_warehouse_name",
+# [COMMENTED]             "destination_warehouse",
+# [COMMENTED]             "destination_warehouse_name",
+# [COMMENTED]             "raw_material",
+# [COMMENTED]             "material_name",
+# [COMMENTED]             "quantity",
+# [COMMENTED]             "unit",
+# [COMMENTED]             "status",
+# [COMMENTED]             "status_display",
+# [COMMENTED]             "reference",
+# [COMMENTED]             "notes",
+# [COMMENTED]             "created_by",
+# [COMMENTED]             "created_by_name",
+# [COMMENTED]             "created_at",
+# [COMMENTED]             "completed_at",
+# [COMMENTED]         ]
+# [COMMENTED]         read_only_fields = ["created_at", "completed_at"]
+# [COMMENTED] 
+# [COMMENTED]     def get_created_by_name(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return obj.created_by.get_full_name() if obj.created_by else ""
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return ""
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class ReceivingItemSerializer(serializers.ModelSerializer):
+# [COMMENTED]     material_name = serializers.CharField(
+# [COMMENTED]         source="raw_material.name", read_only=True
+# [COMMENTED]     )
+# [COMMENTED]     line_total = serializers.SerializerMethodField()
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = ReceivingItem
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "raw_material",
+# [COMMENTED]             "material_name",
+# [COMMENTED]             "quantity_ordered",
+# [COMMENTED]             "quantity_received",
+# [COMMENTED]             "unit",
+# [COMMENTED]             "unit_price",
+# [COMMENTED]             "line_total",
+# [COMMENTED]         ]
+# [COMMENTED] 
+# [COMMENTED]     def get_line_total(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return int(obj.line_total)
+# [COMMENTED]         except (TypeError, ValueError):
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class ReceivingSerializer(serializers.ModelSerializer):
+# [COMMENTED]     items = ReceivingItemSerializer(many=True, read_only=True)
+# [COMMENTED]     warehouse_name = serializers.CharField(
+# [COMMENTED]         source="warehouse.name", read_only=True
+# [COMMENTED]     )
+# [COMMENTED]     supplier_name = serializers.CharField(
+# [COMMENTED]         source="supplier.name", read_only=True, default=""
+# [COMMENTED]     )
+# [COMMENTED]     purchase_invoice_number = serializers.CharField(
+# [COMMENTED]         source="purchase_invoice.invoice_number", read_only=True, default=""
+# [COMMENTED]     )
+# [COMMENTED]     status_display = serializers.CharField(
+# [COMMENTED]         source="get_status_display", read_only=True
+# [COMMENTED]     )
+# [COMMENTED]     total_amount = serializers.SerializerMethodField()
+# [COMMENTED]     item_count = serializers.SerializerMethodField()
+# [COMMENTED]     received_by_name = serializers.SerializerMethodField()
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = Receiving
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "purchase_invoice",
+# [COMMENTED]             "purchase_invoice_number",
+# [COMMENTED]             "warehouse",
+# [COMMENTED]             "warehouse_name",
+# [COMMENTED]             "supplier",
+# [COMMENTED]             "supplier_name",
+# [COMMENTED]             "status",
+# [COMMENTED]             "status_display",
+# [COMMENTED]             "items",
+# [COMMENTED]             "total_amount",
+# [COMMENTED]             "item_count",
+# [COMMENTED]             "notes",
+# [COMMENTED]             "received_by",
+# [COMMENTED]             "received_by_name",
+# [COMMENTED]             "received_at",
+# [COMMENTED]         ]
+# [COMMENTED]         read_only_fields = ["received_at"]
+# [COMMENTED] 
+# [COMMENTED]     def get_total_amount(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return int(obj.total_amount)
+# [COMMENTED]         except (TypeError, ValueError):
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED]     def get_item_count(self, obj):
+# [COMMENTED]         return obj.items.count()
+# [COMMENTED] 
+# [COMMENTED]     def get_received_by_name(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return obj.received_by.get_full_name() if obj.received_by else ""
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return ""
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class StockLayerSerializer(serializers.ModelSerializer):
+# [COMMENTED]     material_name = serializers.CharField(
+# [COMMENTED]         source="raw_material.name", read_only=True
+# [COMMENTED]     )
+# [COMMENTED]     warehouse_name = serializers.CharField(
+# [COMMENTED]         source="warehouse.name", read_only=True
+# [COMMENTED]     )
+# [COMMENTED]     supplier_name = serializers.CharField(
+# [COMMENTED]         source="supplier.name", read_only=True, default=""
+# [COMMENTED]     )
+# [COMMENTED]     total_cost = serializers.SerializerMethodField()
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = StockLayer
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "raw_material",
+# [COMMENTED]             "material_name",
+# [COMMENTED]             "warehouse",
+# [COMMENTED]             "warehouse_name",
+# [COMMENTED]             "quantity_original",
+# [COMMENTED]             "quantity_remaining",
+# [COMMENTED]             "unit_cost",
+# [COMMENTED]             "total_cost",
+# [COMMENTED]             "supplier",
+# [COMMENTED]             "supplier_name",
+# [COMMENTED]             "reference_type",
+# [COMMENTED]             "reference_id",
+# [COMMENTED]             "received_at",
+# [COMMENTED]         ]
+# [COMMENTED]         read_only_fields = ["received_at"]
+# [COMMENTED] 
+# [COMMENTED]     def get_total_cost(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return int(obj.total_cost)
+# [COMMENTED]         except (TypeError, ValueError):
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class StockAdjustmentSerializer(serializers.ModelSerializer):
+# [COMMENTED]     material_name = serializers.CharField(
+# [COMMENTED]         source="raw_material.name", read_only=True
+# [COMMENTED]     )
+# [COMMENTED]     warehouse_name = serializers.CharField(
+# [COMMENTED]         source="warehouse.name", read_only=True
+# [COMMENTED]     )
+# [COMMENTED]     adjustment_type_display = serializers.CharField(
+# [COMMENTED]         source="get_adjustment_type_display", read_only=True
+# [COMMENTED]     )
+# [COMMENTED]     adjusted_by_name = serializers.SerializerMethodField()
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = StockAdjustment
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "warehouse",
+# [COMMENTED]             "warehouse_name",
+# [COMMENTED]             "raw_material",
+# [COMMENTED]             "material_name",
+# [COMMENTED]             "previous_quantity",
+# [COMMENTED]             "new_quantity",
+# [COMMENTED]             "difference",
+# [COMMENTED]             "adjustment_type",
+# [COMMENTED]             "adjustment_type_display",
+# [COMMENTED]             "reason",
+# [COMMENTED]             "notes",
+# [COMMENTED]             "adjusted_by",
+# [COMMENTED]             "adjusted_by_name",
+# [COMMENTED]             "adjusted_at",
+# [COMMENTED]         ]
+# [COMMENTED]         read_only_fields = ["adjusted_at"]
+# [COMMENTED] 
+# [COMMENTED]     def get_adjusted_by_name(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return obj.adjusted_by.get_full_name() if obj.adjusted_by else ""
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return ""
+# [COMMENTED] 
+# [COMMENTED] 
+# [COMMENTED] class PurchaseListItemSerializer(serializers.ModelSerializer):
+# [COMMENTED]     material_name = serializers.CharField(
+# [COMMENTED]         source="raw_material.name", read_only=True
+# [COMMENTED]     )
+# [COMMENTED]     material_unit = serializers.CharField(
+# [COMMENTED]         source="raw_material.unit", read_only=True
+# [COMMENTED]     )
+# [COMMENTED]     current_stock = serializers.SerializerMethodField()
+# [COMMENTED]     minimum_stock = serializers.SerializerMethodField()
+# [COMMENTED]     target_stock = serializers.SerializerMethodField()
+# [COMMENTED]     status_display = serializers.CharField(
+# [COMMENTED]         source="get_status_display", read_only=True
+# [COMMENTED]     )
+# [COMMENTED]     supplier_name = serializers.SerializerMethodField()
+# [COMMENTED] 
+# [COMMENTED]     class Meta:
+# [X] # [COMMENTED]         model = PurchaseListItem
+# [COMMENTED]         fields = [
+# [COMMENTED]             "id",
+# [COMMENTED]             "raw_material",
+# [COMMENTED]             "material_name",
+# [COMMENTED]             "material_unit",
+# [COMMENTED]             "current_stock",
+# [COMMENTED]             "minimum_stock",
+# [COMMENTED]             "target_stock",
+# [COMMENTED]             "suggested_quantity",
+# [COMMENTED]             "status",
+# [COMMENTED]             "status_display",
+# [COMMENTED]             "purchase_invoice",
+# [COMMENTED]             "supplier_name",
+# [COMMENTED]             "notes",
+# [COMMENTED]             "created_at",
+# [COMMENTED]             "updated_at",
+# [COMMENTED]         ]
+# [COMMENTED]         read_only_fields = ["created_at", "updated_at"]
+# [COMMENTED] 
+# [COMMENTED]     def get_current_stock(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return float(obj.raw_material.quantity or 0)
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED]     def get_minimum_stock(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return float(obj.raw_material.minimum_stock or 0)
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED]     def get_target_stock(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             return float(obj.raw_material.target_stock or 0)
+# [COMMENTED]         except Exception:
+# [COMMENTED]             return 0
+# [COMMENTED] 
+# [COMMENTED]     def get_supplier_name(self, obj):
+# [COMMENTED]         try:
+# [COMMENTED]             if obj.purchase_invoice and obj.purchase_invoice.supplier:
+# [COMMENTED]                 return obj.purchase_invoice.supplier.name
+# [COMMENTED]         except Exception:
+# [COMMENTED]             pass
+# [COMMENTED]         return ""

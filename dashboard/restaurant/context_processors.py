@@ -1,5 +1,5 @@
 from .tenancy import get_tenant_slug_from_request
-from .models import TenantService, Restaurant
+from .models import Restaurant
 
 
 def user_permissions_context(request):
@@ -18,7 +18,7 @@ def user_permissions_context(request):
                 tenant = getattr(restaurant, 'tenant', None)
                 if tenant:
                     enabled_services = list(
-                        TenantService.objects.filter(
+# [X]                         TenantService.objects.filter(
                             tenant=tenant, is_enabled=True,
                         ).values_list('service__code', flat=True)
                     )

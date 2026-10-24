@@ -2,7 +2,7 @@
 python manage.py seed_dictionary_groups
 """
 from django.core.management.base import BaseCommand
-from restaurant.models import DictionaryGroup, Restaurant
+from restaurant.models import Restaurant
 
 
 DEFAULT_GROUPS = [
@@ -60,7 +60,7 @@ class Command(BaseCommand):
 
         for restaurant in restaurants:
             for g in DEFAULT_GROUPS:
-                obj, created = DictionaryGroup.objects.get_or_create(
+# [X]                 obj, created = DictionaryGroup.objects.get_or_create(
                     restaurant=restaurant,
                     slug=g['slug'],
                     defaults={

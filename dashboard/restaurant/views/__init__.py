@@ -1,7 +1,6 @@
 """
 Restaurant Views Package — Re-export everything.
-
-★ نسخه v9 — restaurant_login + check_subscription_api اضافه شد
+★ نسخه v10 — cleanup: حذف مدل‌های بلااستفاده
 """
 
 # ── Super Admin ──
@@ -13,24 +12,11 @@ from .super_admin import (
     super_stats_api,
     super_tenants_api,
     super_tenant_detail_api,
-    super_tenant_services_api,
-    super_services_list_api,
     super_users_api,
     super_user_create_api,
     super_user_detail_api,
     super_user_permissions_api,
-    restaurant_login,
-    check_subscription_api,
-    restaurant_services_api,
-)
-
-# ── ViewSets ──
-from .viewsets import (
-    TableViewSet,
-    ReservationViewSet,
-    OrderViewSet,
-    SemiFinishedViewSet,
-    ReadyMaterialViewSet,
+    IsSuperAdmin,
 )
 
 # ── Auth ──
@@ -47,135 +33,46 @@ from .auth import (
     SetSessionView,
 )
 
-# ── Warehouse API ──
-from .warehouse import (
-    raw_material_save,
-    raw_material_delete,
-    raw_material_suggestions,
-    supplier_list,
-    supplier_suggestions,
-    supplier_save,
-    supplier_delete,
-    warehouse_json,
-    parse_excel_file,
-    ready_material_save,
-    ready_material_delete,
-    ready_material_update_price,
-    convert_to_ready_material,
-    usage_log_json,
-    usage_log_detail_json,
+# ── Orders ──
+from .orders import (
+    order_change_status,
+    order_list_api,
 )
 
-# ── Kitchen API ──
-from .kitchen import (
-    kitchen_dashboard_api,
-    KitchenProductListCreate,
-    KitchenProductDetail,
-    kitchen_product_capacity,
-    kitchen_product_produce,
-    KitchenInventoryList,
-    ProductionPlanListCreate,
-    ProductionPlanDetail,
-    kitchen_calculate_materials,
-    production_plan_approve,
-    production_plan_execute,
-    ProductionLogList,
-    KitchenWasteListCreate,
-    KitchenWasteDetail,
-)
-
-# ── POS API ──
+# ── POS ──
 from .pos import (
     pos_create_order,
     pos_daily_report,
     pos_daily_orders,
-    pos_close_summary,
-    pos_register_waste,
-    pos_close_all_pending,
-    pos_close_day,
-    pos_close_history,
-    pos_close_report_detail,
-    pos_close_logs,
-    pos_online_orders,
-    pos_confirm_online_order,
-    pos_reject_online_order,
-    online_orders_status,
-    toggle_online_orders,
     public_menu_api,
-    pos_update_food_price,
-    pos_settings,
 )
 
-# ── Orders API ──
-from .orders import (
-    order_change_status,
-    order_send_to_kitchen,
-    kitchen_orders_api,
-    order_list_api,
-)
-
-# ── Users API ──
+# ── Users ──
 from .users import (
     user_management_api,
     create_user_api,
     user_update_role,
     user_toggle_active,
     admin_reset_password,
-    approve_user_api,
-    reject_user_api,
     user_delete,
-    user_tabs_api,
 )
 
-# ── Card Reader API ──
-from .card_reader import send_to_card_reader, cancel_card_payment
-
-# ── Payment API ──
-from .payment import (
-    payment_config_api,
-    payment_config_delete,
-    test_payment_connection,
-    payment_card_pay,
-    payment_card_cancel,
-    payment_online_create,
-    zarinpal_callback,
-    payment_transaction_status,
-    payment_transactions_list,
+# ── Inventory ──
+from .inventory import (
+    item_movement_report,
+    stock_value_report,
+    inventory_dashboard,
 )
 
-# ── Recipe API ──
-from .recipe import (
-    RecipeViewSet,
-    InventoryMovementViewSet,
-    validate_order_inventory_view,
-    deduct_inventory_view,
-    recalculate_costs_view,
-    inventory_analytics_view,
-    produce_semi_finished_view,
-    food_suggestions_view,
-    raw_material_suggestions_api,
-    semi_finished_suggestions_api,
-    recipe_materials_api,
-)
-
-# ── Dictionary API ──
-from .dictionary import (
-    dictionary_list,
-    dictionary_autocomplete,
-    dictionary_create,
-    dictionary_update,
-    dictionary_delete,
-    raw_materials_api,
-    dictionary_semi_finished,
-    dictionary_ready_materials,
-    dictionary_food_menu,
-    dictionary_recipe_materials_api,
-    dictionary_group_list,
-    dictionary_group_save,
-    dictionary_group_delete,
-    dictionary_food_create,
-    dictionary_food_update,
-    dictionary_food_delete,
+# ── Warehouse ──
+from .warehouse import (
+    raw_material_save,
+    raw_material_delete,
+    raw_material_suggestions,
+    supplier_list,
+    supplier_save,
+    supplier_delete,
+    warehouse_json,
 )
 
 # ── Page Views (HTML) ──
@@ -185,44 +82,8 @@ from .restaurant_page_views import (
     auth_page,
     logout_page,
     redirect_to_dashboard,
-    purchase_invoice_list,
-    purchase_invoice_detail,
-    create_purchase_invoice,
-    create_invoice_view,
-    raw_materials_view,
-    usage_log_view,
-    ready_materials_page,
-    kitchen_page,
-    pos_page,
-    pos_receipt,
     orders_dashboard,
-    recipe_manager_page,
     user_management_page,
-    dictionary_page,
-)
-
-# ── Inventory API — ★ جدید ──
-from .inventory import (
-    warehouse_list,
-    warehouse_save,
-    warehouse_delete,
-    stock_list,
-    stock_minimum_update,
-    transfer_create,
-    transfer_list,
-    transfer_detail,
-    receiving_create,
-    issue_create,
-    waste_create,
-    adjustment_create,
-    purchase_list,
-    purchase_list_add,
-    purchase_list_status,
-    item_movement_report,
-    transfer_report,
-    stock_value_report,
-    warehouse_movements,
-    inventory_dashboard,
 )
 
 
@@ -235,21 +96,11 @@ __all__ = [
     "super_stats_api",
     "super_tenants_api",
     "super_tenant_detail_api",
-    "super_tenant_services_api",
-    "super_services_list_api",
     "super_users_api",
     "super_user_create_api",
     "super_user_detail_api",
     "super_user_permissions_api",
-    "restaurant_login",  # ★ جدید
-    "check_subscription_api",  # ★ جدید
-    "restaurant_services_api",
-    # ViewSets
-    "TableViewSet",
-    "ReservationViewSet",
-    "OrderViewSet",
-    "SemiFinishedViewSet",
-    "ReadyMaterialViewSet",
+    "IsSuperAdmin",
     # Auth
     "LoginView",
     "RefreshView",
@@ -261,154 +112,39 @@ __all__ = [
     "UserListView",
     "UserDetailView",
     "SetSessionView",
-    # Warehouse
-    "raw_material_save",
-    "raw_material_delete",
-    "raw_material_suggestions",
-    "supplier_list",
-    "supplier_suggestions",
-    "supplier_save",
-    "supplier_delete",
-    "warehouse_json",
-    "parse_excel_file",
-    "ready_material_save",
-    "ready_material_delete",
-    "ready_material_update_price",
-    "convert_to_ready_material",
-    "usage_log_json",
-    "usage_log_detail_json",
-    # Kitchen
-    "kitchen_dashboard_api",
-    "KitchenProductListCreate",
-    "KitchenProductDetail",
-    "kitchen_product_capacity",
-    "kitchen_product_produce",
-    "KitchenInventoryList",
-    "ProductionPlanListCreate",
-    "ProductionPlanDetail",
-    "kitchen_calculate_materials",
-    "production_plan_approve",
-    "production_plan_execute",
-    "ProductionLogList",
-    "KitchenWasteListCreate",
-    "KitchenWasteDetail",
+    # Orders
+    "order_change_status",
+    "order_list_api",
     # POS
     "pos_create_order",
     "pos_daily_report",
-    "pos_close_summary",
-    "pos_register_waste",
-    "pos_close_all_pending",
-    "pos_close_day",
-    "pos_close_history",
-    "pos_close_report_detail",
-    "pos_close_logs",
-    "pos_online_orders",
-    "pos_confirm_online_order",
-    "pos_reject_online_order",
-    "online_orders_status",
-    "toggle_online_orders",
     "pos_daily_orders",
     "public_menu_api",
-    "pos_update_food_price",
-    "pos_settings",
-    # Orders
-    "order_change_status",
-    "order_send_to_kitchen",
-    "kitchen_orders_api",
-    "order_list_api",
     # Users
     "user_management_api",
     "create_user_api",
     "user_update_role",
     "user_toggle_active",
     "admin_reset_password",
-    "approve_user_api",
-    "reject_user_api",
     "user_delete",
-    "user_tabs_api",
-
-        # Inventory — ★ جدید
-    "warehouse_list",
-    "warehouse_save",
-    "warehouse_delete",
-    "stock_list",
-    "stock_minimum_update",
-    "transfer_create",
-    "transfer_list",
-    "transfer_detail",
-    "receiving_create",
-    "issue_create",
-    "waste_create",
-    "adjustment_create",
-    "purchase_list",
-    "purchase_list_add",
-    "purchase_list_status",
+    # Inventory
     "item_movement_report",
-    "transfer_report",
     "stock_value_report",
-    "warehouse_movements",
     "inventory_dashboard",
-
-    # Card Reader
-    "send_to_card_reader",
-    "cancel_card_payment",
-    # Payment
-    "payment_config_api",
-    "payment_config_delete",
-    "test_payment_connection",
-    "payment_card_pay",
-    "payment_card_cancel",
-    "payment_online_create",
-    "zarinpal_callback",
-    "payment_transaction_status",
-    "payment_transactions_list",
-    # Recipe
-    "RecipeViewSet",
-    "InventoryMovementViewSet",
-    "validate_order_inventory_view",
-    "deduct_inventory_view",
-    "recalculate_costs_view",
-    "inventory_analytics_view",
-    "produce_semi_finished_view",
-    "food_suggestions_view",
-    "raw_material_suggestions_api",
-    "semi_finished_suggestions_api",
-    "recipe_materials_api",
-    # Dictionary
-    "dictionary_list",
-    "dictionary_autocomplete",
-    "dictionary_create",
-    "dictionary_update",
-    "dictionary_delete",
-    "raw_materials_api",
-    "dictionary_semi_finished",
-    "dictionary_ready_materials",
-    "dictionary_food_menu",
-    "dictionary_recipe_materials_api",
-    "dictionary_group_list",
-    "dictionary_group_save",
-    "dictionary_group_delete",
-    "dictionary_food_create",
-    "dictionary_food_update",
-    "dictionary_food_delete",
+    # Warehouse
+    "raw_material_save",
+    "raw_material_delete",
+    "raw_material_suggestions",
+    "supplier_list",
+    "supplier_save",
+    "supplier_delete",
+    "warehouse_json",
     # Page Views
     "root_redirect",
     "home",
     "auth_page",
     "logout_page",
     "redirect_to_dashboard",
-    "purchase_invoice_list",
-    "purchase_invoice_detail",
-    "create_purchase_invoice",
-    "create_invoice_view",
-    "raw_materials_view",
-    "usage_log_view",
-    "ready_materials_page",
-    "kitchen_page",
-    "pos_page",
-    "pos_receipt",
     "orders_dashboard",
-    "recipe_manager_page",
     "user_management_page",
-    "dictionary_page",
 ]

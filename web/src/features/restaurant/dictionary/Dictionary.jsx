@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Box, Typography, Button, Snackbar, Alert,
@@ -10,15 +10,17 @@ import InvoiceSection from "./components/InvoiceSection";
 import RecipeSection from "./components/RecipeSection";
 import ManagersSection from "./components/ManagersSection";
 import SupplierSection from "./components/SupplierSection";
+import CustomerSection from "./components/CustomerSection";
 import WarehouseSection from "./components/WarehouseSection";
 
 const ALL_TABS = [
   { id: "menu", icon: "🍽️", labelKey: "dict.menu_tab", adminOnly: false },
-  { id: "invoice", icon: "🧾", labelKey: "dict.invoice_tab", adminOnly: false },
+  { id: "invoice", icon: "🥜", label: "اجناس", adminOnly: false },
   { id: "recipe", icon: "📖", labelKey: "dict.recipe_tab", adminOnly: false },
   { id: "suppliers", icon: "🏭", label: "تأمین‌کنندگان", adminOnly: false },
+  { id: "customers", icon: "👥", label: "مشتریان", adminOnly: false },
   { id: "warehouses", icon: "📦", label: "انبارها", adminOnly: false },
-  { id: "managers", icon: "👥", labelKey: "dict.managers_tab", adminOnly: true },
+  { id: "managers", icon: "🔧", labelKey: "dict.managers_tab", adminOnly: true },
 ];
 
 export default function Dictionary() {
@@ -26,8 +28,22 @@ export default function Dictionary() {
   const { isRtl } = useLang();
   const { t } = useTranslation();
   const isDark = mode === "dark";
+
   const [activeTab, setActiveTab] = useState("menu");
   const [toast, setToast] = useState({ open: false, message: "", type: "info" });
+
+  // ── ترتیب تب‌ها (قابل جابجایی با Drag & Drop) ──
+  const [tabOrder, setTabOrder] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("dict_tab_order") || "[]");
+      return saved.length ? saved : ALL_TABS.map((tb) => tb.id);
+    } catch {
+      return ALL_TABS.map((tb) => tb.id);
+    }
+  });
+
+  const dragItem = useRef(null);
+  const dragOverItem = useRef(null);
 
   const currentUser = useMemo(() => {
     try { return JSON.parse(localStorage.getItem("user") || "{}"); }
@@ -38,12 +54,53 @@ export default function Dictionary() {
   const isSuperuser = !!currentUser.is_superuser;
   const isOwnerOrManager = isSuperuser || userRole === "owner" || userRole === "manager";
 
-  const TABS = useMemo(() =>
-    ALL_TABS.filter(tab => !tab.adminOnly || isOwnerOrManager),
-    [isOwnerOrManager]
-  );
+  // ترتیب + فیلتر نقش
+  const TABS = useMemo(() => {
+    const filtered = ALL_TABS.filter((tab) => !tab.adminOnly || isOwnerOrManager);
+    const sorted = tabOrder
+      .map((id) => filtered.find((tb) => tb.id === id))
+      .filter(Boolean);
+    const missing = filtered.filter((tb) => !tabOrder.includes(tb.id));
+    return [...sorted, ...missing];
+  }, [tabOrder, isOwnerOrManager]);
+
+  // ── میان‌برهای کیبورد (داخل تابع!) ──
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.altKey && e.key >= "1" && e.key <= "9") {
+        e.preventDefault();
+        const idx = parseInt(e.key) - 1;
+        if (TABS[idx]) setActiveTab(TABS[idx].id);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [TABS]);
 
   const showToast = (message, type = "info") => setToast({ open: true, message, type });
+
+  // ── Drag & Drop ──
+  const handleDragStart = (idx) => {
+    dragItem.current = idx;
+  };
+
+  const handleDragEnter = (idx) => {
+    dragOverItem.current = idx;
+  };
+
+  const handleDragEnd = () => {
+    const from = dragItem.current;
+    const to = dragOverItem.current;
+    if (from === null || to === null || from === to) return;
+
+    const newOrder = [...tabOrder];
+    const moved = newOrder.splice(from, 1)[0];
+    newOrder.splice(to, 0, moved);
+    setTabOrder(newOrder);
+    localStorage.setItem("dict_tab_order", JSON.stringify(newOrder));
+    dragItem.current = null;
+    dragOverItem.current = null;
+  };
 
   const C = useMemo(() => ({
     glass: isDark ? "rgba(16,18,16,0.6)" : "rgba(240,244,252,0.7)",
@@ -79,7 +136,7 @@ export default function Dictionary() {
         </Typography>
       </Box>
 
-      {/* تب‌ها */}
+      {/* تب‌ها — قابل Drag & Drop */}
       <Box sx={{
         display: "flex", gap: 0.5, mb: 3,
         bgcolor: C.glass, backdropFilter: "blur(16px)",
@@ -88,9 +145,14 @@ export default function Dictionary() {
         width: "fit-content",
         flexWrap: "wrap",
       }}>
-        {TABS.map(tab => (
+        {TABS.map((tab, idx) => (
           <Button
             key={tab.id}
+            draggable
+            onDragStart={() => handleDragStart(idx)}
+            onDragEnter={() => handleDragEnter(idx)}
+            onDragEnd={handleDragEnd}
+            onDragOver={(e) => e.preventDefault()}
             onClick={() => setActiveTab(tab.id)}
             sx={{
               borderRadius: "10px", px: { xs: 1.5, md: 2.5 }, py: 1,
@@ -99,13 +161,22 @@ export default function Dictionary() {
               color: activeTab === tab.id ? C.olive : C.sub,
               bgcolor: activeTab === tab.id ? C.oliveSubtle : "transparent",
               border: activeTab === tab.id ? `1px solid ${C.olive}30` : "1px solid transparent",
+              cursor: "grab",
+              "&:active": { cursor: "grabbing" },
               "&:hover": { bgcolor: C.oliveSubtle },
+              opacity: dragItem.current === idx ? 0.5 : 1,
             }}
+            title="برای جابجایی بکشید و رها کنید"
           >
             {tab.icon} {tab.label || t(tab.labelKey)}
           </Button>
         ))}
       </Box>
+
+      {/* راهنمای کوچیک */}
+      <Typography sx={{ fontSize: 10, color: C.muted, mb: 2, mt: -2 }}>
+        💡 برای تغییر ترتیب تب‌ها، آن‌ها را بکشید و رها کنید | ⌨️ Alt+1 تا Alt+7 = رفتن به تب
+      </Typography>
 
       {/* محتوای تب */}
       <Box sx={{
@@ -117,9 +188,10 @@ export default function Dictionary() {
         p: { xs: 2, md: 3 },
       }}>
         {activeTab === "menu" && <MenuSection C={C} isRtl={isRtl} isDark={isDark} showToast={showToast} />}
-        {activeTab === "invoice" && <InvoiceSection C={C} />}
+        {activeTab === "invoice" && <InvoiceSection C={C} isDark={isDark} showToast={showToast} />}
         {activeTab === "recipe" && <RecipeSection C={C} />}
         {activeTab === "suppliers" && <SupplierSection C={C} isDark={isDark} showToast={showToast} />}
+        {activeTab === "customers" && <CustomerSection C={C} isDark={isDark} showToast={showToast} />}
         {activeTab === "warehouses" && <WarehouseSection C={C} isDark={isDark} showToast={showToast} />}
         {activeTab === "managers" && isOwnerOrManager && <ManagersSection C={C} isRtl={isRtl} isDark={isDark} showToast={showToast} />}
       </Box>
@@ -128,11 +200,11 @@ export default function Dictionary() {
       <Snackbar
         open={toast.open}
         autoHideDuration={3000}
-        onClose={() => setToast(s => ({ ...s, open: false }))}
+        onClose={() => setToast((s) => ({ ...s, open: false }))}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
         <Alert
-          onClose={() => setToast(s => ({ ...s, open: false }))}
+          onClose={() => setToast((s) => ({ ...s, open: false }))}
           severity={toast.type}
           sx={{
             bgcolor: C.glass, backdropFilter: "blur(16px)",
