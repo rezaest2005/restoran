@@ -9,7 +9,6 @@ export default function useGlobalShortcuts({
   showUnitInput = false,
   onNew,        // F2
   onNewUnit,    // F3
-  onSave,       // Ctrl+S
   onAdd,        // Ctrl+D
   onNext,       // Ctrl+A
   onPrev,       // Ctrl+Z
@@ -18,7 +17,7 @@ export default function useGlobalShortcuts({
   onAddUnit,    // Enter در فیلد واحد جدید
 }) {
   const ref = useRef({});
-  ref.current = { showForm, showUnitInput, onNew, onNewUnit, onSave, onAdd, onNext, onPrev, onEnter, onClose, onAddUnit };
+  ref.current = { showForm, showUnitInput, onNew, onNewUnit, onAdd, onNext, onPrev, onEnter, onClose, onAddUnit };
 
   useEffect(() => {
     const handler = (e) => {
@@ -33,12 +32,6 @@ export default function useGlobalShortcuts({
       if (e.key === "F3") {
         e.preventDefault();
         s.onNewUnit?.();
-        return;
-      }
-
-      if (isCtrl(e, "KeyS") && s.showForm) {
-        e.preventDefault();
-        s.onSave?.();
         return;
       }
 

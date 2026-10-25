@@ -1,25 +1,42 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import {
-  Box,
-  Typography,
-  Button,
-  TextField,
-  Select,
-  MenuItem,
-  CircularProgress,
-  Chip,
+  Box, Typography, Button, TextField, Select, MenuItem,
+  CircularProgress, Chip,
 } from "@mui/material";
-import { Delete, Search, Edit } from "@mui/icons-material";
+import { Delete, Edit, DragIndicator } from "@mui/icons-material";
 import client from "../../api/client";
-
-// ── مشترک: فقط واحد‌ها ──
 import {
-  getAllUnits,
-  saveCustomUnit,
-  getUnitLabel,
+  getAllUnits, saveCustomUnit, getUnitLabel,
 } from "../../../../shared/common/units";
 
 const F = (size) => Math.round(size * 1.15);
+const LS_ITEMS = "local_materials";
+const LS_CATS = "local_categories";
+const LS_ORDER = "local_materials_order";
+
+const readJSON = (key, def = []) => {
+  try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(def)); }
+  catch { return def; }
+};
+const writeJSON = (key, val) => {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+};
+
+const DEFAULT_CATS = ["خشکبار", "مایعات", "پروتئینی", "ادویه‌جات", "سبزیجات", "سایر"];
+
+// ── مرتب‌سازی بر اساس order ذخیره‌شده ──
+const sortByOrder = (items) => {
+  const order = readJSON(LS_ORDER, []);
+  if (!order.length) return items;
+  const map = new Map(items.map((it) => [String(it.id), it]));
+  const sorted = [];
+  for (const id of order) {
+    const item = map.get(String(id));
+    if (item) { sorted.push(item); map.delete(String(id)); }
+  }
+  for (const item of map.values()) sorted.push(item);
+  return sorted;
+};
 
 export default function InvoiceSection({ C, isDark, showToast }) {
   const [materials, setMaterials] = useState([]);
@@ -31,138 +48,144 @@ export default function InvoiceSection({ C, isDark, showToast }) {
   const [allUnits, setAllUnits] = useState(() => getAllUnits());
   const [showUnitInput, setShowUnitInput] = useState(false);
   const [newUnitName, setNewUnitName] = useState("");
-  const [form, setForm] = useState({ code: "", name: "", unit: "kg" });
+  const [form, setForm] = useState({ code: "", name: "", unit: "kg", category: "" });
+
+  // ── دسته‌بندی ──
+  const [categories, setCategories] = useState(() => {
+    const saved = readJSON(LS_CATS, []);
+    return saved.length ? saved : DEFAULT_CATS;
+  });
+  const [showCatInput, setShowCatInput] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+
+  // ── نمایش ──
+  const [viewMode, setViewMode] = useState("all"); // "all" | "category"
+
+  // ── Drag & Drop ──
+  const dragItemIdx = useRef(null);
+  const dragOverIdx = useRef(null);
+  const [dragActive, setDragActive] = useState(null);
 
   const codeRef = useRef(null);
   const nameRef = useRef(null);
   const unitRef = useRef(null);
+  const catRef = useRef(null);
   const newUnitRef = useRef(null);
+  const newCatRef = useRef(null);
   const saveBtnRef = useRef(null);
   const searchRef = useRef(null);
   const savingRef = useRef(false);
 
-  const formRef = useRef(form);
-  formRef.current = form;
-  const editIdRef = useRef(editId);
-  editIdRef.current = editId;
-  const showFormRef = useRef(showForm);
-  showFormRef.current = showForm;
-  const showUnitInputRef = useRef(showUnitInput);
-  showUnitInputRef.current = showUnitInput;
+  const formRef = useRef(form); formRef.current = form;
+  const editIdRef = useRef(editId); editIdRef.current = editId;
+  const showFormRef = useRef(showForm); showFormRef.current = showForm;
+  const showUnitInputRef = useRef(showUnitInput); showUnitInputRef.current = showUnitInput;
+  const showCatInputRef = useRef(showCatInput); showCatInputRef.current = showCatInput;
 
   const notify = (msg, type = "info") => {
     if (typeof showToast === "function") showToast(msg, type);
   };
 
-  // ── دریافت لیست (با fallback محلی) ──
+  // ═══════════ بارگذاری ═══════════
   const fetchMaterials = useCallback(async () => {
-    setLoading(true);
+    const local = sortByOrder(readJSON(LS_ITEMS, []));
+    setMaterials(local);
+
     try {
       const res = await client.get("/api/raw-materials/suggestions/");
       const d = res.data;
-      const arr = Array.isArray(d)
-        ? d
-        : d.suggestions || d.materials || d.results || d.items || [];
-      if (Array.isArray(arr) && arr.length > 0) {
-        setMaterials(arr);
-      } else {
-        // ── fallback: از localStorage ──
-        const local = JSON.parse(
-          localStorage.getItem("local_materials") || "[]",
-        );
-        setMaterials(local);
+      const apiArr = Array.isArray(d) ? d : d?.suggestions || d?.materials || d?.results || d?.items || [];
+      if (Array.isArray(apiArr) && apiArr.length > 0) {
+        const merged = [...local];
+        for (const item of apiArr) {
+          const idx = merged.findIndex(
+            (m) => (item.id != null && m.id === item.id) || (m.name === item.name && (m.code || "") === (item.code || ""))
+          );
+          if (idx >= 0) merged[idx] = { ...merged[idx], ...item };
+          else merged.push(item);
+        }
+        const sorted = sortByOrder(merged);
+        setMaterials(sorted);
+        writeJSON(LS_ITEMS, sorted);
       }
-    } catch (err) {
-      console.warn(
-        "[Fetch] API failed, using localStorage:",
-        err.response?.status,
-      );
-      // ── fallback: از localStorage ──
-      const local = JSON.parse(localStorage.getItem("local_materials") || "[]");
-      setMaterials(local);
+    } catch {
+      // fallback
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchMaterials();
-  }, [fetchMaterials]);
+  useEffect(() => { fetchMaterials(); }, [fetchMaterials]);
 
-  // ── ذخیره localStorage ──
-  const saveToLocal = (list) => {
-    try {
-      localStorage.setItem("local_materials", JSON.stringify(list));
-    } catch {
-      /* ignore */
-    }
+  // ── ذخیره order ──
+  const saveOrder = (list) => {
+    writeJSON(LS_ORDER, list.map((it) => String(it.id)));
+    writeJSON(LS_ITEMS, list);
+  };
+
+  // ── Drag & Drop ──
+  const handleDragStart = (idx) => { dragItemIdx.current = idx; setDragActive(idx); };
+  const handleDragEnter = (idx) => { dragOverIdx.current = idx; };
+  const handleDragOver = (e) => e.preventDefault();
+  const handleDragEnd = () => {
+    const from = dragItemIdx.current;
+    const to = dragOverIdx.current;
+    setDragActive(null);
+    if (from === null || to === null || from === to) return;
+    const next = [...materials];
+    const moved = next.splice(from, 1)[0];
+    next.splice(to, 0, moved);
+    setMaterials(next);
+    saveOrder(next);
+    dragItemIdx.current = null;
+    dragOverIdx.current = null;
+    notify("ترتیب تغییر کرد ✅", "info");
   };
 
   // ── فوکوس ──
-  const focusCode = useCallback(
-    () =>
-      setTimeout(() => {
-        const el = codeRef.current?.querySelector?.("input") || codeRef.current;
-        el?.focus();
-        el?.select?.();
-      }, 150),
-    [],
-  );
-
-  const focusName = useCallback(
-    () =>
-      setTimeout(() => {
-        const el = nameRef.current?.querySelector?.("input") || nameRef.current;
-        el?.focus();
-        el?.select?.();
-      }, 50),
-    [],
-  );
-
-  const focusUnit = useCallback(
-    () =>
-      setTimeout(() => {
-        const btn =
-          unitRef.current?.querySelector?.("[role='combobox']") ||
-          unitRef.current;
-        btn?.focus();
-      }, 50),
-    [],
-  );
-
-  const focusSave = useCallback(
-    () =>
-      setTimeout(() => {
-        saveBtnRef.current?.focus();
-      }, 50),
-    [],
-  );
+  const focusCode = useCallback(() => setTimeout(() => {
+    const el = codeRef.current?.querySelector?.("input") || codeRef.current;
+    el?.focus(); el?.select?.();
+  }, 150), []);
+  const focusName = useCallback(() => setTimeout(() => {
+    const el = nameRef.current?.querySelector?.("input") || nameRef.current;
+    el?.focus(); el?.select?.();
+  }, 50), []);
+  const focusUnit = useCallback(() => setTimeout(() => {
+    const btn = unitRef.current?.querySelector?.("[role='combobox']") || unitRef.current;
+    btn?.focus();
+  }, 50), []);
+  const focusCat = useCallback(() => setTimeout(() => {
+    const btn = catRef.current?.querySelector?.("[role='combobox']") || catRef.current;
+    btn?.focus();
+  }, 50), []);
+  const focusSave = useCallback(() => setTimeout(() => saveBtnRef.current?.focus(), 50), []);
 
   // ── باز / بستن ──
   const handleOpenAdd = useCallback(() => {
     setEditId(null);
-    setForm({ code: "", name: "", unit: "kg" });
+    setForm({ code: "", name: "", unit: "kg", category: categories[0] || "" });
     setShowForm(true);
     setShowUnitInput(false);
+    setShowCatInput(false);
+    focusCode();
+  }, [focusCode, categories]);
+
+  const handleOpenEdit = useCallback((m) => {
+    setEditId(m.id);
+    setForm({ code: m.code || "", name: m.name || "", unit: m.unit || "kg", category: m.category || "" });
+    setShowForm(true);
+    setShowUnitInput(false);
+    setShowCatInput(false);
     focusCode();
   }, [focusCode]);
-
-  const handleOpenEdit = useCallback(
-    (m) => {
-      setEditId(m.id);
-      setForm({ code: m.code || "", name: m.name || "", unit: m.unit || "kg" });
-      setShowForm(true);
-      setShowUnitInput(false);
-      focusCode();
-    },
-    [focusCode],
-  );
 
   const handleCloseForm = useCallback(() => {
     setShowForm(false);
     setEditId(null);
-    setForm({ code: "", name: "", unit: "kg" });
+    setForm({ code: "", name: "", unit: "kg", category: "" });
     setShowUnitInput(false);
+    setShowCatInput(false);
     searchRef.current?.focus();
   }, []);
 
@@ -171,14 +194,11 @@ export default function InvoiceSection({ C, isDark, showToast }) {
     const f = formRef.current;
     const currentEditId = editIdRef.current;
 
-    console.log("[Save] form:", JSON.stringify(f), "editId:", currentEditId);
-
-    if (!f.name || !f.name.trim()) {
+    if (!f.name?.trim()) {
       notify("نام کالا الزامی است", "warning");
       focusName();
       return;
     }
-
     if (savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
@@ -187,94 +207,57 @@ export default function InvoiceSection({ C, isDark, showToast }) {
       name: f.name.trim(),
       code: (f.code || "").trim(),
       unit: f.unit || "kg",
+      category: f.category || "",
     };
 
-    // ── آیتم جدید ──
-    const newItem = {
-      ...payload,
-      id: currentEditId || Date.now(),
-    };
-
+    const newItem = { ...payload, id: currentEditId || Date.now() };
     let savedToServer = false;
 
     try {
-      console.log("[Save] 📤 sending:", JSON.stringify(payload));
       const res = await client.post("/api/raw-materials/save/", payload);
-      console.log(
-        "[Save] ✅ status:",
-        res.status,
-        "data:",
-        JSON.stringify(res.data),
-      );
-
       if (res.data?.id) newItem.id = res.data.id;
       savedToServer = true;
-    } catch (err) {
-      console.warn(
-        "[Save] ⚠️ API failed:",
-        err.response?.status,
-        "— saving locally",
-      );
+    } catch {
+      // fallback محلی
     }
 
-    // ── همیشه به لیست اضافه کن (حتی اگه API خطا بده) ──
     setMaterials((prev) => {
       let next;
       if (currentEditId) {
-        next = prev.map((m) =>
-          m.id === currentEditId ? { ...m, ...payload, id: currentEditId } : m,
-        );
+        next = prev.map((m) => (m.id === currentEditId ? { ...m, ...payload, id: currentEditId } : m));
       } else {
-        // ── جلوگیری از تکرار ──
-        const exists = prev.find(
-          (m) => m.name === payload.name && m.code === payload.code,
-        );
+        const exists = prev.find((m) => m.name === payload.name && m.code === payload.code);
         if (exists) {
-          next = prev.map((m) =>
-            m.id === exists.id ? { ...m, ...payload } : m,
-          );
+          next = prev.map((m) => (m.id === exists.id ? { ...m, ...payload } : m));
           newItem.id = exists.id;
         } else {
           next = [...prev, newItem];
         }
       }
-      saveToLocal(next);
+      writeJSON(LS_ITEMS, next);
       return next;
     });
 
     notify(
-      currentEditId
-        ? "کالا بروزرسانی شد ✅"
-        : savedToServer
-          ? "کالا اضافه شد ✅"
-          : "کالا اضافه شد (محلی) ✅",
-      "success",
+      currentEditId ? "کالا بروزرسانی شد ✅" : savedToServer ? "کالا اضافه شد ✅" : "کالا اضافه شد (محلی) ✅",
+      "success"
     );
-
     setEditId(null);
-    setForm({ code: "", name: "", unit: "kg" });
+    setForm({ code: "", name: "", unit: "kg", category: "" });
     focusCode();
-
     savingRef.current = false;
     setSaving(false);
   }, [notify, focusName, focusCode]);
 
-  const handleDelete = useCallback(
-    async (id) => {
-      try {
-        await client.post("/api/raw-materials/delete/", { id });
-      } catch {
-        // ignore API error
-      }
-      setMaterials((prev) => {
-        const next = prev.filter((m) => m.id !== id);
-        saveToLocal(next);
-        return next;
-      });
-      notify("کالا حذف شد", "info");
-    },
-    [notify],
-  );
+  const handleDelete = useCallback(async (id) => {
+    try { await client.post("/api/raw-materials/delete/", { id }); } catch {}
+    setMaterials((prev) => {
+      const next = prev.filter((m) => m.id !== id);
+      writeJSON(LS_ITEMS, next);
+      return next;
+    });
+    notify("کالا حذف شد", "info");
+  }, [notify]);
 
   // ── واحد جدید ──
   const handleAddUnit = useCallback(() => {
@@ -298,40 +281,60 @@ export default function InvoiceSection({ C, isDark, showToast }) {
     setForm((f) => ({ ...f, unit: val }));
   };
 
+  // ── دسته‌بندی جدید ──
+  const handleAddCat = useCallback(() => {
+    const name = newCatName.trim();
+    if (!name) return;
+    setCategories((prev) => {
+      if (prev.includes(name)) return prev;
+      const next = [...prev, name];
+      writeJSON(LS_CATS, next);
+      return next;
+    });
+    setForm((f) => ({ ...f, category: name }));
+    setNewCatName("");
+    setShowCatInput(false);
+    notify(`دسته‌بندی «${name}» اضافه شد`, "success");
+    focusCat();
+  }, [newCatName, notify, focusCat]);
+
+  const handleCatChange = (val) => {
+    if (val === "__other__") {
+      setShowCatInput(true);
+      setTimeout(() => newCatRef.current?.focus(), 150);
+      return;
+    }
+    setForm((f) => ({ ...f, category: val }));
+  };
+
   // ── ناوبری ──
   const gotoNext = useCallback(() => {
-    const codeInput =
-      codeRef.current?.querySelector?.("input") || codeRef.current;
-    const nameInput =
-      nameRef.current?.querySelector?.("input") || nameRef.current;
-    const unitBtn =
-      unitRef.current?.querySelector?.("[role='combobox']") || unitRef.current;
+    const codeInput = codeRef.current?.querySelector?.("input") || codeRef.current;
+    const nameInput = nameRef.current?.querySelector?.("input") || nameRef.current;
+    const unitBtn = unitRef.current?.querySelector?.("[role='combobox']") || unitRef.current;
+    const catBtn = catRef.current?.querySelector?.("[role='combobox']") || catRef.current;
     const active = document.activeElement;
 
     if (active === codeInput) focusName();
     else if (active === nameInput) focusUnit();
-    else if (active === unitBtn || unitRef.current?.contains?.(active))
-      focusSave();
+    else if (active === unitBtn || unitRef.current?.contains?.(active)) focusCat();
+    else if (active === catBtn || catRef.current?.contains?.(active)) focusSave();
     else focusCode();
-  }, [focusName, focusUnit, focusSave, focusCode]);
+  }, [focusName, focusUnit, focusCat, focusSave, focusCode]);
 
   const gotoPrev = useCallback(() => {
-    const nameInput =
-      nameRef.current?.querySelector?.("input") || nameRef.current;
-    const unitBtn =
-      unitRef.current?.querySelector?.("[role='combobox']") || unitRef.current;
+    const codeInput = codeRef.current?.querySelector?.("input") || codeRef.current;
+    const nameInput = nameRef.current?.querySelector?.("input") || nameRef.current;
+    const unitBtn = unitRef.current?.querySelector?.("[role='combobox']") || unitRef.current;
+    const catBtn = catRef.current?.querySelector?.("[role='combobox']") || catRef.current;
     const active = document.activeElement;
 
     if (active === nameInput) focusCode();
-    else if (active === unitBtn || unitRef.current?.contains?.(active))
-      focusName();
-    else if (
-      saveBtnRef.current?.contains?.(active) ||
-      active === saveBtnRef.current
-    )
-      focusUnit();
+    else if (active === unitBtn || unitRef.current?.contains?.(active)) focusName();
+    else if (active === catBtn || catRef.current?.contains?.(active)) focusUnit();
+    else if (saveBtnRef.current?.contains?.(active)) focusCat();
     else focusName();
-  }, [focusCode, focusName, focusUnit]);
+  }, [focusCode, focusName, focusUnit, focusCat]);
 
   // ═══════════ کیبورد ═══════════
   useEffect(() => {
@@ -340,12 +343,9 @@ export default function InvoiceSection({ C, isDark, showToast }) {
     const handler = (e) => {
       const sf = showFormRef.current;
       const su = showUnitInputRef.current;
+      const sc = showCatInputRef.current;
 
-      if (e.key === "F2") {
-        e.preventDefault();
-        handleOpenAdd();
-        return;
-      }
+      if (e.key === "F2") { e.preventDefault(); handleOpenAdd(); return; }
 
       if (e.key === "F3") {
         e.preventDefault();
@@ -353,58 +353,39 @@ export default function InvoiceSection({ C, isDark, showToast }) {
           setShowUnitInput(true);
           setTimeout(() => newUnitRef.current?.focus(), 150);
         };
-        if (!sf) {
-          handleOpenAdd();
-          setTimeout(openUnitInput, 300);
-        } else {
-          openUnitInput();
-        }
+        if (!sf) { handleOpenAdd(); setTimeout(openUnitInput, 300); }
+        else openUnitInput();
         return;
       }
 
-      if (isCtrl(e, "KeyS") && sf) {
+      if (e.key === "F4") {
         e.preventDefault();
-        doSave();
+        const openCatInput = () => {
+          setShowCatInput(true);
+          setTimeout(() => newCatRef.current?.focus(), 150);
+        };
+        if (!sf) { handleOpenAdd(); setTimeout(openCatInput, 300); }
+        else openCatInput();
         return;
       }
 
-      if (isCtrl(e, "KeyD") && sf) {
-        e.preventDefault();
-        doSave();
-        return;
-      }
-
-      if (isCtrl(e, "KeyA") && sf && !su) {
-        e.preventDefault();
-        gotoNext();
-        return;
-      }
-
-      if (isCtrl(e, "KeyZ") && sf && !su) {
-        e.preventDefault();
-        gotoPrev();
-        return;
-      }
+      if (isCtrl(e, "KeyD") && sf) { e.preventDefault(); doSave(); return; }
+      if (isCtrl(e, "KeyA") && sf && !su && !sc) { e.preventDefault(); gotoNext(); return; }
+      if (isCtrl(e, "KeyZ") && sf && !su && !sc) { e.preventDefault(); gotoPrev(); return; }
 
       if (e.key === "Enter" && !e.ctrlKey && !e.altKey && sf) {
-        if (su) {
-          e.preventDefault();
-          handleAddUnit();
-          return;
-        }
+        if (su) { e.preventDefault(); handleAddUnit(); return; }
+        if (sc) { e.preventDefault(); handleAddCat(); return; }
+
         const target = e.target;
-        const codeInput =
-          codeRef.current?.querySelector?.("input") || codeRef.current;
-        const nameInput =
-          nameRef.current?.querySelector?.("input") || nameRef.current;
-        const unitBtn =
-          unitRef.current?.querySelector?.("[role='combobox']") ||
-          unitRef.current;
+        const codeInput = codeRef.current?.querySelector?.("input") || codeRef.current;
+        const nameInput = nameRef.current?.querySelector?.("input") || nameRef.current;
+        const unitBtn = unitRef.current?.querySelector?.("[role='combobox']") || unitRef.current;
+        const catBtn = catRef.current?.querySelector?.("[role='combobox']") || catRef.current;
 
         if (
-          target === codeInput ||
-          target === nameInput ||
-          target === unitBtn ||
+          target === codeInput || target === nameInput ||
+          target === unitBtn || target === catBtn ||
           saveBtnRef.current?.contains?.(target)
         ) {
           e.preventDefault();
@@ -415,90 +396,182 @@ export default function InvoiceSection({ C, isDark, showToast }) {
 
       if (e.key === "Escape" && sf) {
         e.preventDefault();
-        if (su) {
-          setShowUnitInput(false);
-          focusUnit();
-        } else {
-          handleCloseForm();
-        }
+        if (su) { setShowUnitInput(false); focusUnit(); return; }
+        if (sc) { setShowCatInput(false); focusCat(); return; }
+        handleCloseForm();
         return;
       }
     };
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [
-    handleOpenAdd,
-    doSave,
-    handleAddUnit,
-    gotoNext,
-    gotoPrev,
-    handleCloseForm,
-    focusUnit,
-  ]);
+  }, [handleOpenAdd, doSave, handleAddUnit, handleAddCat, gotoNext, gotoPrev, handleCloseForm, focusUnit, focusCat]);
 
-  const filtered = materials.filter(
-    (m) =>
-      !search ||
-      (m.name || "").includes(search) ||
-      (m.code || "").includes(search),
-  );
+  // ── فیلتر + گروه‌بندی ──
+  const filtered = useMemo(() => {
+    if (!search.trim()) return materials;
+    const q = search.toLowerCase();
+    return materials.filter(
+      (m) => (m.name || "").toLowerCase().includes(q) || (m.code || "").toLowerCase().includes(q)
+    );
+  }, [materials, search]);
+
+  const groupedByCat = useMemo(() => {
+    const groups = {};
+    for (const m of filtered) {
+      const cat = m.category || "بدون دسته";
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(m);
+    }
+    // مرتب‌سازی گروه‌ها بر اساس ترتیب categories
+    const catOrder = [...categories, "بدون دسته"];
+    return catOrder
+      .filter((c) => groups[c]?.length)
+      .map((c) => ({ category: c, items: groups[c] }));
+  }, [filtered, categories]);
 
   const isRtl =
     typeof document !== "undefined"
-      ? document.documentElement.dir === "rtl" ||
-        document.documentElement.lang === "fa"
+      ? document.documentElement.dir === "rtl" || document.documentElement.lang === "fa"
       : true;
 
   // ── استایل‌ها ──
   const inputSx = {
     "& .MuiOutlinedInput-root": {
-      borderRadius: "10px",
-      bgcolor: C.inputBg,
-      backdropFilter: "blur(8px)",
-      fontSize: F(13),
-      color: C.text,
+      borderRadius: "10px", bgcolor: C.inputBg, backdropFilter: "blur(8px)",
+      fontSize: F(13), color: C.text,
       "& fieldset": { borderColor: C.glassBorder },
       "&:hover fieldset": { borderColor: C.olive + "60" },
       "&.Mui-focused fieldset": { borderColor: C.olive, borderWidth: 1.5 },
       "&.Mui-focused": { boxShadow: `0 0 0 3px ${C.olive}18` },
     },
     "& .MuiInputLabel-root": { fontSize: F(12), color: C.sub },
-    "& .MuiInputBase-input": {
-      color: C.text,
-      "&::selection": { bgcolor: C.olive + "30", color: C.text },
-    },
+    "& .MuiInputBase-input": { color: C.text, "&::selection": { bgcolor: C.olive + "30", color: C.text } },
     "& .MuiInputBase-input::placeholder": { color: C.muted, opacity: 1 },
   };
 
   const btnSx = {
-    borderRadius: "10px",
-    fontSize: F(12),
-    fontWeight: 700,
-    textTransform: "none",
-    px: 2.5,
-    py: 1,
-    color: "#fff",
-    background: C.btnGrad,
+    borderRadius: "10px", fontSize: F(12), fontWeight: 700, textTransform: "none",
+    px: 2.5, py: 1, color: "#fff", background: C.btnGrad,
     boxShadow: `0 4px 20px ${C.olive}30`,
     transition: "all 0.25s ease",
-    "&:hover": {
-      transform: "translateY(-1px)",
-      boxShadow: `0 6px 28px ${C.olive}40`,
-      filter: "brightness(1.1)",
-    },
+    "&:hover": { transform: "translateY(-1px)", boxShadow: `0 6px 28px ${C.olive}40`, filter: "brightness(1.1)" },
     "&:active": { transform: "scale(0.985)" },
   };
 
   const cancelBtnSx = {
-    borderRadius: "10px",
-    fontSize: F(12),
-    fontWeight: 600,
-    textTransform: "none",
-    color: C.sub,
-    border: `1px solid ${C.glassBorder}`,
+    borderRadius: "10px", fontSize: F(12), fontWeight: 600, textTransform: "none",
+    color: C.sub, border: `1px solid ${C.glassBorder}`,
     "&:hover": { bgcolor: C.oliveSubtle },
   };
+
+  // ── هدر جدول ──
+  const TableHeader = () => (
+    <Box sx={{
+      display: "flex", alignItems: "center",
+      px: { xs: 1.5, sm: 2 }, py: 0.8,
+      borderRadius: "10px",
+      bgcolor: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
+    }}>
+      <Box sx={{ width: 24 }} />
+      <Typography sx={{ width: 80, fontSize: F(10), fontWeight: 700, color: C.muted }}>کد</Typography>
+      <Typography sx={{ flex: 3, fontSize: F(10), fontWeight: 700, color: C.muted }}>نام کالا</Typography>
+      <Typography sx={{ flex: 1, fontSize: F(10), fontWeight: 700, color: C.muted, textAlign: "center" }}>واحد</Typography>
+      <Typography sx={{ flex: 1, fontSize: F(10), fontWeight: 700, color: C.muted, textAlign: "center" }}>دسته‌بندی</Typography>
+      <Box sx={{ minWidth: 100 }} />
+    </Box>
+  );
+
+  // ── آیتم لیست ──
+  const ItemRow = ({ m, idx, draggable = true }) => (
+    <Box
+      draggable={draggable}
+      onDragStart={() => draggable && handleDragStart(idx)}
+      onDragEnter={() => draggable && handleDragEnter(idx)}
+      onDragOver={handleDragOver}
+      onDragEnd={draggable ? handleDragEnd : undefined}
+      sx={{
+        display: "flex", alignItems: "center",
+        px: { xs: 1.5, sm: 2 }, py: { xs: 1, sm: 1.2 },
+        borderRadius: "12px",
+        bgcolor: dragActive === idx ? C.oliveSubtle : C.glass,
+        backdropFilter: "blur(12px)",
+        border: `1px solid ${dragActive === idx ? C.olive + "50" : C.glassBorder}`,
+        transition: "all 0.2s ease",
+        cursor: draggable ? "grab" : "default",
+        opacity: dragActive === idx ? 0.6 : 1,
+        "&:hover": {
+          bgcolor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)",
+        },
+      }}
+    >
+      {/* ── دستگیره Drag ── */}
+      <Box sx={{ width: 24, display: "flex", justifyContent: "center", color: C.muted }}>
+        {draggable && <DragIndicator sx={{ fontSize: 18, cursor: "grab", "&:active": { cursor: "grabbing" } }} />}
+      </Box>
+
+      {/* ── کد ── */}
+      <Box sx={{ width: 80 }}>
+        <Chip size="small" label={m.code || "—"}
+          sx={{
+            height: 24, fontSize: F(11), fontWeight: 700,
+            borderRadius: "6px", bgcolor: C.oliveSubtle, color: C.olive, fontFamily: "monospace",
+          }} />
+      </Box>
+
+      {/* ── نام ── */}
+      <Box sx={{ flex: 3, minWidth: 0 }}>
+        <Typography sx={{
+          fontSize: F(13), fontWeight: 700, color: C.text,
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>
+          {m.name}
+        </Typography>
+      </Box>
+
+      {/* ── واحد ── */}
+      <Box sx={{ flex: 1, textAlign: "center" }}>
+        <Typography sx={{ fontSize: F(12), color: C.sub }}>{getUnitLabel(m.unit)}</Typography>
+      </Box>
+
+      {/* ── دسته‌بندی ── */}
+      <Box sx={{ flex: 1, textAlign: "center" }}>
+        {m.category ? (
+          <Chip size="small" label={m.category}
+            sx={{
+              height: 22, fontSize: F(10), fontWeight: 600,
+              borderRadius: "6px",
+              bgcolor: isDark ? "rgba(100,140,255,0.12)" : "rgba(50,90,200,0.1)",
+              color: isDark ? "#8AAFFF" : "#2A4AAA",
+            }} />
+        ) : (
+          <Typography sx={{ fontSize: F(11), color: C.muted }}>—</Typography>
+        )}
+      </Box>
+
+      {/* ── عملیات ── */}
+      <Box sx={{ minWidth: 100, display: "flex", gap: 0.5, justifyContent: "center" }}>
+        <Box onClick={() => handleOpenEdit(m)}
+          sx={{
+            display: "flex", flexDirection: "column", alignItems: "center",
+            gap: 0.2, px: 0.8, py: 0.4, borderRadius: "8px",
+            cursor: "pointer", color: C.olive, "&:hover": { bgcolor: C.oliveSubtle },
+          }}>
+          <Edit sx={{ fontSize: 16 }} />
+          <Typography sx={{ fontSize: F(9), fontWeight: 600 }}>ویرایش</Typography>
+        </Box>
+        <Box onClick={() => handleDelete(m.id)}
+          sx={{
+            display: "flex", flexDirection: "column", alignItems: "center",
+            gap: 0.2, px: 0.8, py: 0.4, borderRadius: "8px",
+            cursor: "pointer", color: C.danger, "&:hover": { bgcolor: C.dangerBg },
+          }}>
+          <Delete sx={{ fontSize: 16 }} />
+          <Typography sx={{ fontSize: F(9), fontWeight: 600 }}>حذف</Typography>
+        </Box>
+      </Box>
+    </Box>
+  );
 
   if (loading) {
     return (
@@ -511,341 +584,245 @@ export default function InvoiceSection({ C, isDark, showToast }) {
   return (
     <Box>
       {/* ── هدر ── */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 2.5,
-          flexWrap: "wrap",
-          gap: 1.5,
-        }}
-      >
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5, flexWrap: "wrap", gap: 1.5 }}>
         <Box>
-          <Typography
-            sx={{
-              fontSize: { xs: F(16), sm: F(18) },
-              fontWeight: 800,
-              color: C.text,
-            }}
-          >
+          <Typography sx={{ fontSize: { xs: F(16), sm: F(18) }, fontWeight: 800, color: C.text }}>
             🥜 اجناس
           </Typography>
           <Typography sx={{ fontSize: F(11), color: C.muted, mt: 0.3 }}>
-            {materials.length} کالا ثبت شده
+            {materials.length} کالا • {categories.length} دسته‌بندی
           </Typography>
         </Box>
-        <Button onClick={handleOpenAdd} sx={btnSx}>
-          ➕ کالای جدید (F2)
-        </Button>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button onClick={handleOpenAdd} sx={btnSx}>➕ کالای جدید (F2)</Button>
+        </Box>
       </Box>
 
-      {/* ── جستجو ── */}
-      <TextField
-        size="small"
-        placeholder="🔍 جستجو با نام یا کد کالا..."
-        inputRef={searchRef}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            if (filtered.length > 0) handleOpenEdit(filtered[0]);
-            else handleOpenAdd();
-          }
-        }}
-        sx={{ ...inputSx, width: "100%", maxWidth: 360, mb: 2 }}
-      />
+      {/* ── نوار ابزار: جستجو + نمایش ── */}
+      <Box sx={{ display: "flex", gap: 1.5, mb: 2, flexWrap: "wrap", alignItems: "center" }}>
+        <TextField
+          size="small" placeholder="🔍 جستجو..."
+          inputRef={searchRef}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              if (filtered.length > 0) handleOpenEdit(filtered[0]);
+              else handleOpenAdd();
+            }
+          }}
+          sx={{ ...inputSx, width: "100%", maxWidth: 280 }}
+        />
+
+        {/* ── دکمه‌های نمایش ── */}
+        <Box sx={{
+          display: "flex", borderRadius: "10px", overflow: "hidden",
+          border: `1px solid ${C.glassBorder}`,
+        }}>
+          {[
+            { id: "all", label: "📋 همه", icon: "📋" },
+            { id: "category", label: "🏷️ دسته‌بندی", icon: "🏷️" },
+          ].map((v) => (
+            <Button
+              key={v.id}
+              onClick={() => setViewMode(v.id)}
+              sx={{
+                borderRadius: 0, px: 2, py: 0.8,
+                fontSize: F(11), fontWeight: viewMode === v.id ? 700 : 500,
+                textTransform: "none",
+                color: viewMode === v.id ? "#fff" : C.sub,
+                bgcolor: viewMode === v.id ? C.olive : "transparent",
+                "&:hover": { bgcolor: viewMode === v.id ? C.olive : C.oliveSubtle },
+              }}
+            >
+              {v.label}
+            </Button>
+          ))}
+        </Box>
+
+        {/* ── شمارنده ── */}
+        <Chip size="small"
+          label={viewMode === "all" ? `${filtered.length} آیتم` : `${groupedByCat.length} دسته`}
+          sx={{
+            height: 28, fontSize: F(11), fontWeight: 700,
+            borderRadius: "8px", bgcolor: C.oliveSubtle, color: C.olive,
+          }} />
+      </Box>
 
       {/* ── فرم ── */}
       {showForm && (
-        <Box
-          sx={{
-            bgcolor: C.glass,
-            backdropFilter: "blur(16px)",
-            border: `1px solid ${C.glassBorder}`,
-            borderRadius: "14px",
-            p: { xs: 2, sm: 2.5 },
-            mb: 2.5,
-            animation: "fadeUp 0.25s ease-out",
-            overflow: "visible",
-          }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mb: 1.5,
-            }}
-          >
-            <Typography
-              sx={{ fontSize: F(13), fontWeight: 700, color: C.text }}
-            >
+        <Box sx={{
+          bgcolor: C.glass, backdropFilter: "blur(16px)",
+          border: `1px solid ${C.glassBorder}`, borderRadius: "14px",
+          p: { xs: 2, sm: 2.5 }, mb: 2.5,
+          animation: "fadeUp 0.25s ease-out",
+        }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+            <Typography sx={{ fontSize: F(13), fontWeight: 700, color: C.text }}>
               {editId ? "✏️ ویرایش کالا" : "➕ افزودن کالای جدید"}
             </Typography>
-            <Button
-              onClick={handleCloseForm}
-              sx={{ ...cancelBtnSx, px: 1.5, py: 0.3, fontSize: F(11) }}
-            >
+            <Button onClick={handleCloseForm} sx={{ ...cancelBtnSx, px: 1.5, py: 0.3, fontSize: F(11) }}>
               ✖ بستن
             </Button>
           </Box>
 
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "row",
-              gap: 1.5,
-              alignItems: "flex-end",
-              flexWrap: "wrap",
-            }}
-          >
-            <Box sx={{ width: { xs: "100%", sm: 140 }, flexShrink: 0 }}>
-              <TextField
-                size="small"
-                label="کد کالا"
-                fullWidth
-                inputRef={codeRef}
-                value={form.code}
-                onChange={(e) => setForm({ ...form, code: e.target.value })}
-                placeholder="مثال: 1001"
-                sx={inputSx}
-              />
+          <Box sx={{ display: "flex", flexDirection: "row", gap: 1.5, alignItems: "flex-end", flexWrap: "wrap" }}>
+            {/* کد */}
+            <Box sx={{ width: { xs: "100%", sm: 110 }, flexShrink: 0 }}>
+              <TextField size="small" label="کد" fullWidth inputRef={codeRef}
+                value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })}
+                placeholder="1001" sx={inputSx} />
             </Box>
 
-            <Box sx={{ flex: 1, minWidth: 180 }}>
-              <TextField
-                size="small"
-                label="نام کالا *"
-                fullWidth
-                inputRef={nameRef}
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                sx={inputSx}
-              />
+            {/* نام */}
+            <Box sx={{ flex: 1, minWidth: 150 }}>
+              <TextField size="small" label="نام کالا *" fullWidth inputRef={nameRef}
+                value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} sx={inputSx} />
             </Box>
 
             {/* واحد */}
-            <Box sx={{ width: { xs: "100%", sm: 160 }, flexShrink: 0 }}>
-              <Typography
-                sx={{ fontSize: F(11), color: C.sub, mb: 0.5, fontWeight: 600 }}
-              >
-                واحد
-              </Typography>
-              <Select
-                size="small"
-                fullWidth
-                inputRef={unitRef}
-                value={form.unit}
-                onChange={(e) => handleUnitChange(e.target.value)}
-                sx={{
-                  ...inputSx,
-                  "& .MuiSelect-select": { fontSize: F(13), py: 1 },
-                }}
+            <Box sx={{ width: { xs: "100%", sm: 130 }, flexShrink: 0 }}>
+              <Typography sx={{ fontSize: F(11), color: C.sub, mb: 0.5, fontWeight: 600 }}>واحد</Typography>
+              <Select size="small" fullWidth inputRef={unitRef}
+                value={form.unit} onChange={(e) => handleUnitChange(e.target.value)}
+                sx={{ ...inputSx, "& .MuiSelect-select": { fontSize: F(13), py: 1 } }}
                 MenuProps={{
                   slotProps: {
                     paper: {
                       sx: {
-                        bgcolor: isDark ? "#1e1e30" : "#fff",
-                        borderRadius: "12px",
-                        border: `1px solid ${C.olive}30`,
-                        boxShadow: "0 12px 40px rgba(0,0,0,0.3)",
-                        maxHeight: 180,
-                        overflowY: "auto",
-                        direction: isRtl ? "rtl" : "ltr",
-                        "& .MuiList-root": {
-                          direction: isRtl ? "rtl" : "ltr",
-                        },
+                        bgcolor: isDark ? "#1e1e30" : "#fff", borderRadius: "12px",
+                        border: `1px solid ${C.olive}30`, boxShadow: "0 12px 40px rgba(0,0,0,0.3)",
+                        maxHeight: 180, overflowY: "auto",
                         "& .MuiMenuItem-root": {
-                          direction: isRtl ? "rtl" : "ltr",
-                          display: "flex",
-                          justifyContent: isRtl ? "flex-end" : "flex-start",
-                          textAlign: isRtl ? "right" : "left",
-                          fontSize: F(12),
-                          minHeight: 32,
-                          py: 0.3,
-                          px: 1.5,
-                          borderRadius: "8px",
-                          mx: 0.5,
-                          "&.Mui-selected": {
-                            bgcolor: C.oliveSubtle,
-                            color: C.olive,
-                            fontWeight: 700,
-                          },
+                          fontSize: F(12), minHeight: 32, py: 0.3, px: 1.5,
+                          borderRadius: "8px", mx: 0.5,
+                          "&.Mui-selected": { bgcolor: C.oliveSubtle, color: C.olive, fontWeight: 700 },
                           "&:hover": { bgcolor: C.oliveSubtle },
                         },
                       },
                     },
                   },
-                  MenuListProps: {
-                    sx: {
-                      maxHeight: 180,
-                      overflowY: "auto",
-                      py: 0.5,
-                      direction: isRtl ? "rtl" : "ltr",
-                    },
-                  },
-                  anchorOrigin: { vertical: "bottom", horizontal: "left" },
-                  transformOrigin: { vertical: "top", horizontal: "left" },
                   disableScrollLock: true,
-                }}
-              >
+                }}>
                 {allUnits.map((u) => (
-                  <MenuItem key={u.value} value={u.value}>
-                    {u.label}
-                  </MenuItem>
+                  <MenuItem key={u.value} value={u.value}>{u.label}</MenuItem>
                 ))}
-                <MenuItem
-                  value="__other__"
-                  sx={{
-                    borderTop: `1px dashed ${C.olive}30`,
-                    mt: 0.5,
-                    pt: 1,
-                    justifyContent: isRtl ? "flex-end" : "flex-start",
-                  }}
-                >
-                  <Typography
-                    sx={{
-                      fontSize: F(12),
-                      fontWeight: 700,
-                      color: C.olive,
-                      textAlign: isRtl ? "right" : "left",
-                    }}
-                  >
-                    ✏️ سایر (واحد جدید...)
+                <MenuItem value="__other__" sx={{ borderTop: `1px dashed ${C.olive}30`, mt: 0.5, pt: 1 }}>
+                  <Typography sx={{ fontSize: F(12), fontWeight: 700, color: C.olive }}>
+                    ✏️ واحد جدید...
                   </Typography>
                 </MenuItem>
               </Select>
             </Box>
 
+            {/* دسته‌بندی */}
+            <Box sx={{ width: { xs: "100%", sm: 140 }, flexShrink: 0 }}>
+              <Typography sx={{ fontSize: F(11), color: C.sub, mb: 0.5, fontWeight: 600 }}>دسته‌بندی</Typography>
+              <Select size="small" fullWidth inputRef={catRef}
+                value={form.category || ""} onChange={(e) => handleCatChange(e.target.value)}
+                sx={{ ...inputSx, "& .MuiSelect-select": { fontSize: F(13), py: 1 } }}
+                MenuProps={{
+                  slotProps: {
+                    paper: {
+                      sx: {
+                        bgcolor: isDark ? "#1e1e30" : "#fff", borderRadius: "12px",
+                        border: `1px solid ${C.olive}30`, boxShadow: "0 12px 40px rgba(0,0,0,0.3)",
+                        maxHeight: 180, overflowY: "auto",
+                        "& .MuiMenuItem-root": {
+                          fontSize: F(12), minHeight: 32, py: 0.3, px: 1.5,
+                          borderRadius: "8px", mx: 0.5,
+                          "&.Mui-selected": { bgcolor: C.oliveSubtle, color: C.olive, fontWeight: 700 },
+                          "&:hover": { bgcolor: C.oliveSubtle },
+                        },
+                      },
+                    },
+                  },
+                  disableScrollLock: true,
+                }}>
+                {categories.map((c) => (
+                  <MenuItem key={c} value={c}>{c}</MenuItem>
+                ))}
+                <MenuItem value="__other__" sx={{ borderTop: `1px dashed ${C.olive}30`, mt: 0.5, pt: 1 }}>
+                  <Typography sx={{ fontSize: F(12), fontWeight: 700, color: C.olive }}>
+                    ✏️ دسته جدید...
+                  </Typography>
+                </MenuItem>
+              </Select>
+            </Box>
+
+            {/* واحد جدید */}
             {showUnitInput && (
-              <Box
-                sx={{
-                  width: { xs: "100%", sm: 180 },
-                  flexShrink: 0,
-                  display: "flex",
-                  gap: 0.5,
-                  alignItems: "flex-end",
-                }}
-              >
-                <TextField
-                  size="small"
-                  label="واحد جدید"
-                  fullWidth
-                  inputRef={newUnitRef}
-                  value={newUnitName}
-                  onChange={(e) => setNewUnitName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleAddUnit();
-                    }
-                  }}
-                  sx={inputSx}
-                />
-                <Button
-                  onClick={handleAddUnit}
-                  sx={{ ...btnSx, px: 1.5, py: 1, fontSize: F(11) }}
-                >
-                  ✓
-                </Button>
+              <Box sx={{ width: { xs: "100%", sm: 160 }, display: "flex", gap: 0.5, alignItems: "flex-end" }}>
+                <TextField size="small" label="واحد جدید" fullWidth inputRef={newUnitRef}
+                  value={newUnitName} onChange={(e) => setNewUnitName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); handleAddUnit(); } }}
+                  sx={inputSx} />
+                <Button onClick={handleAddUnit} sx={{ ...btnSx, px: 1.5, py: 1, fontSize: F(11) }}>✓</Button>
               </Box>
             )}
 
-            {/* ── دکمه ذخیره (همیشه فعال) ── */}
+            {/* دسته جدید */}
+            {showCatInput && (
+              <Box sx={{ width: { xs: "100%", sm: 160 }, display: "flex", gap: 0.5, alignItems: "flex-end" }}>
+                <TextField size="small" label="دسته جدید" fullWidth inputRef={newCatRef}
+                  value={newCatName} onChange={(e) => setNewCatName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); handleAddCat(); } }}
+                  sx={inputSx} />
+                <Button onClick={handleAddCat} sx={{ ...btnSx, px: 1.5, py: 1, fontSize: F(11) }}>✓</Button>
+              </Box>
+            )}
+
+            {/* ذخیره */}
             <Box sx={{ display: "flex", gap: 0.5, pb: 0.1 }}>
-              <Button
-                ref={saveBtnRef}
-                onClick={doSave}
-                disabled={saving}
-                sx={{
-                  ...btnSx,
-                  opacity: saving ? 0.7 : 1,
-                  minWidth: 110,
-                }}
-              >
+              <Button ref={saveBtnRef} onClick={doSave} disabled={saving}
+                sx={{ ...btnSx, opacity: saving ? 0.7 : 1, minWidth: 110 }}>
                 {saving ? "⏳ ذخیره..." : editId ? "💾 بروزرسانی" : "➕ افزودن"}
               </Button>
-              {editId && (
-                <Button onClick={handleCloseForm} sx={cancelBtnSx}>
-                  انصراف
-                </Button>
-              )}
+              {editId && <Button onClick={handleCloseForm} sx={cancelBtnSx}>انصراف</Button>}
             </Box>
           </Box>
         </Box>
       )}
 
       {/* ══ راهنمای کیبورد ══ */}
-      <Box
-        sx={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 0.8,
-          alignItems: "center",
-          mb: 2.5,
-          px: 2,
-          py: 1.2,
-          borderRadius: "12px",
-          bgcolor: isDark ? "rgba(107,155,110,0.07)" : "rgba(46,77,48,0.06)",
-          border: `1px solid ${C.olive}20`,
-        }}
-      >
-        <Chip
-          size="small"
-          label="راهنما"
+      <Box sx={{
+        display: "flex", flexWrap: "wrap", gap: 0.8,
+        alignItems: "center", mb: 2.5, px: 2, py: 1.2,
+        borderRadius: "12px",
+        bgcolor: isDark ? "rgba(107,155,110,0.07)" : "rgba(46,77,48,0.06)",
+        border: `1px solid ${C.olive}20`,
+      }}>
+        <Chip size="small" label="راهنما"
           sx={{
-            height: 26,
-            fontSize: F(11),
-            fontWeight: 900,
-            borderRadius: "6px",
-            bgcolor: "#FFD600",
-            color: "#1A1A00",
-            px: 1,
-            mr: 0.5,
-            "&:hover": { bgcolor: "#FFD600" },
-          }}
-        />
+            height: 26, fontSize: F(11), fontWeight: 900,
+            borderRadius: "6px", bgcolor: "#FFD600", color: "#1A1A00",
+            px: 1, mr: 0.5, "&:hover": { bgcolor: "#FFD600" },
+          }} />
         {[
+          { key: "Ctrl+D", label: "ذخیره" },
           { key: "Ctrl+A", label: "بعدی" },
           { key: "Ctrl+Z", label: "قبلی" },
-          { key: "Ctrl+S", label: "ذخیره" },
-          { key: "Ctrl+D", label: "افزودن" },
           { key: "F2", label: "کالای جدید" },
           { key: "F3", label: "واحد جدید" },
+          { key: "F4", label: "دسته جدید" },
           { key: "Enter", label: "بعدی" },
           { key: "Esc", label: "بستن" },
-          { key: "↑↓", label: "انتخاب واحد" },
         ].map((item) => (
-          <Box
-            key={item.key}
-            sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
-          >
-            <Chip
-              size="small"
-              label={item.key}
+          <Box key={item.key} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Chip size="small" label={item.key}
               sx={{
-                height: 24,
-                fontSize: F(11),
-                fontWeight: 800,
-                borderRadius: "6px",
-                fontFamily: "monospace",
-                bgcolor: C.oliveSubtle,
-                color: C.olive,
-                border: `1px solid ${C.olive}30`,
-                px: 0.5,
-              }}
-            />
-            <Typography sx={{ fontSize: F(11), color: C.sub, fontWeight: 600 }}>
-              {item.label}
-            </Typography>
+                height: 24, fontSize: F(11), fontWeight: 800,
+                borderRadius: "6px", fontFamily: "monospace",
+                bgcolor: C.oliveSubtle, color: C.olive,
+                border: `1px solid ${C.olive}30`, px: 0.5,
+              }} />
+            <Typography sx={{ fontSize: F(11), color: C.sub, fontWeight: 600 }}>{item.label}</Typography>
           </Box>
         ))}
       </Box>
 
-      {/* ── لیست ── */}
+      {/* ═══════════ لیست ═══════════ */}
       {filtered.length === 0 ? (
         <Box sx={{ textAlign: "center", py: 6 }}>
           <Typography sx={{ fontSize: 36, mb: 1 }}>🥜</Typography>
@@ -856,160 +833,50 @@ export default function InvoiceSection({ C, isDark, showToast }) {
             F2 بزنید یا روی «کالای جدید» کلیک کنید
           </Typography>
         </Box>
-      ) : (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.8 }}>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              px: { xs: 1.5, sm: 2 },
-              py: { xs: 0.8, sm: 1 },
-              borderRadius: "10px",
-              bgcolor: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
-            }}
-          >
-            <Typography
-              sx={{
-                width: 90,
-                fontSize: F(10),
-                fontWeight: 700,
-                color: C.muted,
-                letterSpacing: "0.05em",
-              }}
-            >
-              کد
-            </Typography>
-            <Typography
-              sx={{
-                flex: 3,
-                fontSize: F(10),
-                fontWeight: 700,
-                color: C.muted,
-                letterSpacing: "0.05em",
-              }}
-            >
-              نام کالا
-            </Typography>
-            <Typography
-              sx={{
-                flex: 1,
-                fontSize: F(10),
-                fontWeight: 700,
-                color: C.muted,
-                letterSpacing: "0.05em",
-                textAlign: "center",
-              }}
-            >
-              واحد
-            </Typography>
-            <Box sx={{ minWidth: 100 }} />
+      ) : viewMode === "all" ? (
+        /* ── نمایش همه (با Drag & Drop) ── */
+        <Box>
+          <Typography sx={{ fontSize: F(10), color: C.muted, mb: 1 }}>
+            💡 برای تغییر ترتیب، آیتم‌ها را بکشید و رها کنید
+          </Typography>
+          <TableHeader />
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.8 }}>
+            {filtered.map((m, i) => (
+              <ItemRow key={m.id || `item-${i}`} m={m} idx={materials.indexOf(m)} />
+            ))}
           </Box>
-
-          {filtered.map((m, i) => (
-            <Box
-              key={m.id}
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                px: { xs: 1.5, sm: 2 },
-                py: { xs: 1, sm: 1.2 },
-                borderRadius: "12px",
-                bgcolor: C.glass,
-                backdropFilter: "blur(12px)",
-                border: `1px solid ${C.glassBorder}`,
-                transition: "all 0.2s ease",
-                opacity: 0,
-                animation: `fadeUp 0.35s ease-out ${i * 0.04}s forwards`,
-                "&:hover": {
-                  bgcolor: isDark
-                    ? "rgba(255,255,255,0.04)"
-                    : "rgba(0,0,0,0.02)",
-                  transform: "translateX(-2px)",
-                },
-              }}
-            >
-              <Box sx={{ width: 90 }}>
-                <Chip
-                  size="small"
-                  label={m.code || "—"}
-                  sx={{
-                    height: 24,
-                    fontSize: F(11),
-                    fontWeight: 700,
-                    borderRadius: "6px",
-                    bgcolor: C.oliveSubtle,
-                    color: C.olive,
-                    fontFamily: "monospace",
-                  }}
-                />
-              </Box>
-              <Box sx={{ flex: 3, minWidth: 0 }}>
-                <Typography
-                  sx={{
-                    fontSize: F(13),
-                    fontWeight: 700,
-                    color: C.text,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {m.name}
+        </Box>
+      ) : (
+        /* ── نمایش دسته‌بندی ── */
+        <Box>
+          <Typography sx={{ fontSize: F(10), color: C.muted, mb: 1 }}>
+            🏷️ نمایش گروهی بر اساس دسته‌بندی
+          </Typography>
+          <TableHeader />
+          {groupedByCat.map((group) => (
+            <Box key={group.category} sx={{ mb: 2 }}>
+              {/* ── هدر دسته ── */}
+              <Box sx={{
+                display: "flex", alignItems: "center", gap: 1,
+                px: 2, py: 1, mt: 1,
+                borderRadius: "10px",
+                bgcolor: isDark ? "rgba(107,155,110,0.1)" : "rgba(46,77,48,0.08)",
+                border: `1px solid ${C.olive}25`,
+              }}>
+                <Typography sx={{ fontSize: F(13), fontWeight: 800, color: C.olive }}>
+                  🏷️ {group.category}
                 </Typography>
-              </Box>
-              <Box sx={{ flex: 1, textAlign: "center" }}>
-                <Typography sx={{ fontSize: F(12), color: C.sub }}>
-                  {getUnitLabel(m.unit)}
-                </Typography>
-              </Box>
-              <Box
-                sx={{
-                  minWidth: 100,
-                  display: "flex",
-                  gap: 0.5,
-                  justifyContent: "center",
-                }}
-              >
-                <Box
-                  onClick={() => handleOpenEdit(m)}
+                <Chip size="small" label={`${group.items.length} کالا`}
                   sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 0.2,
-                    px: 0.8,
-                    py: 0.4,
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    color: C.olive,
-                    "&:hover": { bgcolor: C.oliveSubtle },
-                  }}
-                >
-                  <Edit sx={{ fontSize: 16 }} />
-                  <Typography sx={{ fontSize: F(9), fontWeight: 600 }}>
-                    ویرایش
-                  </Typography>
-                </Box>
-                <Box
-                  onClick={() => handleDelete(m.id)}
-                  sx={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: 0.2,
-                    px: 0.8,
-                    py: 0.4,
-                    borderRadius: "8px",
-                    cursor: "pointer",
-                    color: C.danger,
-                    "&:hover": { bgcolor: C.dangerBg },
-                  }}
-                >
-                  <Delete sx={{ fontSize: 16 }} />
-                  <Typography sx={{ fontSize: F(9), fontWeight: 600 }}>
-                    حذف
-                  </Typography>
-                </Box>
+                    height: 22, fontSize: F(10), fontWeight: 700,
+                    borderRadius: "6px", bgcolor: C.olive, color: "#fff",
+                  }} />
+              </Box>
+              {/* ── آیتم‌های دسته ── */}
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.8, mt: 0.8 }}>
+                {group.items.map((m) => (
+                  <ItemRow key={m.id} m={m} idx={-1} draggable={false} />
+                ))}
               </Box>
             </Box>
           ))}

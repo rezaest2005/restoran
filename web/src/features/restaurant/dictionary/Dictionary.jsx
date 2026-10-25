@@ -29,7 +29,7 @@ export default function Dictionary() {
   const { t } = useTranslation();
   const isDark = mode === "dark";
 
-  const [activeTab, setActiveTab] = useState("menu");
+  const [activeTab, setActiveTab] = useState("");
   const [toast, setToast] = useState({ open: false, message: "", type: "info" });
 
   // ── ترتیب تب‌ها (قابل جابجایی با Drag & Drop) ──
@@ -64,18 +64,12 @@ export default function Dictionary() {
     return [...sorted, ...missing];
   }, [tabOrder, isOwnerOrManager]);
 
-  // ── میان‌برهای کیبورد (داخل تابع!) ──
+   // ── تب پیش‌فرض: اولین تب (راست‌ترین در فارسی / چپ‌ترین در انگلیسی) ──
   useEffect(() => {
-    const handler = (e) => {
-      if (e.altKey && e.key >= "1" && e.key <= "9") {
-        e.preventDefault();
-        const idx = parseInt(e.key) - 1;
-        if (TABS[idx]) setActiveTab(TABS[idx].id);
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [TABS]);
+    if (TABS.length > 0 && (!activeTab || !TABS.find((t) => t.id === activeTab))) {
+      setActiveTab(TABS[0].id);
+    }
+  }, [TABS, activeTab]);
 
   const showToast = (message, type = "info") => setToast({ open: true, message, type });
 
