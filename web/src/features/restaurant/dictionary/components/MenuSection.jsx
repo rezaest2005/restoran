@@ -28,7 +28,6 @@ export default function MenuSection({ C, isRtl, isDark, showToast }) {
       const data = await fetchFoods();
       setFoods(data);
     } catch (err) {
-      console.error("Fetch foods error:", err);
     } finally {
       setLoading(false);
     }

@@ -3,38 +3,47 @@ import client from "../api/client";
 /* ── Food CRUD ─────────────────────────────── */
 
 export const fetchFoods = () =>
-  client.get("/api/dictionary/food-menu/").then(r => r.data.items || []);
+  client.get("/api/dictionary/food-menu/").then((r) => {
+    const d = r.data;
+    return Array.isArray(d) ? d : d?.items || d?.foods || d?.results || [];
+  });
 
 export const createFood = (data) =>
-  client.post("/api/dictionary/food/create/", data).then(r => r.data);
+  client.post("/api/dictionary/food/create/", data).then((r) => r.data);
 
 export const updateFood = (id, data) =>
-  client.post(`/api/dictionary/food/${id}/update/`, data).then(r => r.data);
+  client.post(`/api/dictionary/food/${id}/update/`, data).then((r) => r.data);
 
 export const deleteFood = (id) =>
-  client.post(`/api/dictionary/food/${id}/delete/`).then(r => r.data);
+  client.post(`/api/dictionary/food/${id}/delete/`).then((r) => r.data);
 
-/* ── Suppliers — ★ جدید ────────────────────── */
+/* ── Suppliers ─────────────────────────────── */
 
 export const fetchSuppliers = () =>
-  client.get("/api/suppliers/").then(r => r.data);
+  client.get("/api/suppliers/").then((r) => {
+    const d = r.data;
+    return Array.isArray(d) ? d : d?.suppliers || d?.results || [];
+  });
 
 export const saveSupplier = (data) =>
-  client.post("/api/suppliers/save/", data).then(r => r.data);
+  client.post("/api/suppliers/save/", data).then((r) => r.data);
 
 export const deleteSupplier = (data) =>
-  client.post("/api/suppliers/delete/", data).then(r => r.data);
+  client.post("/api/suppliers/delete/", data).then((r) => r.data);
 
-/* ── Warehouses — ★ جدید ───────────────────── */
+/* ── Warehouses ────────────────────────────── */
 
 export const fetchWarehouses = () =>
-  client.get("/api/inventory/warehouses/").then(r => r.data);
+  client.get("/api/inventory/warehouses/").then((r) => {
+    const d = r.data;
+    return Array.isArray(d) ? { warehouses: d } : d || { warehouses: [] };
+  });
 
 export const saveWarehouse = (data) =>
-  client.post("/api/inventory/warehouses/save/", data).then(r => r.data);
+  client.post("/api/inventory/warehouses/save/", data).then((r) => r.data);
 
 export const deleteWarehouse = (data) =>
-  client.post("/api/inventory/warehouses/delete/", data).then(r => r.data);
+  client.post("/api/inventory/warehouses/delete/", data).then((r) => r.data);
 
 /* ── Auto Translate (MyMemory) ─────────────── */
 
@@ -53,4 +62,4 @@ export const autoTranslate = async (text, from = "fa", to = "en") => {
   } catch {
     return "";
   }
-};
+}; 
