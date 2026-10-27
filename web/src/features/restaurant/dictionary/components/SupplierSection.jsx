@@ -1,35 +1,71 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
-  Box, Typography, Button, TextField, Chip, CircularProgress,
-  Dialog, DialogTitle, DialogContent, DialogActions,
+  Box, Typography, Button, TextField, Chip, CircularProgress, IconButton,
 } from "@mui/material";
+import { Add, Delete, Edit, Refresh, Person } from "@mui/icons-material";
 import {
   fetchSuppliers,
   saveSupplier,
   deleteSupplier,
 } from "../api";
 
-export default function SupplierSection({ C, isDark, showToast }) {
+// ═══════════ ثابت‌ها و ابزارها (هم‌سبک با «ثبت فاکتور خرید») ═══════════
+const F = (size) => Math.round(size * 1.1);
+const CTRL_H = 34;
+
+const FA_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
+const toLatin = (s) =>
+  String(s)
+    .replace(/[۰-۹]/g, (d) => FA_DIGITS.indexOf(d))
+    .replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+
+const emptyForm = () => ({
+  first_name: "",
+  last_name: "",
+  mobile: "",
+  address: "",
+  description: "",
+});
+
+// برچسب بالای فیلد (یکسان برای همه فیلدها تا هم‌راستا شوند)
+function FieldBox({ C, label, children }) {
+  return (
+    <Box sx={{ minWidth: 0 }}>
+      <Typography sx={{ fontSize: F(11), color: C.sub, mb: 0.3, fontWeight: 700, lineHeight: 1.4 }}>
+        {label}
+      </Typography>
+      {children}
+    </Box>
+  );
+}
+
+export default function SupplierSection({ C: CBase, isDark, showToast }) {
+  // همه متن‌ها سفید/واضح: رنگ‌های کم‌رنگ (sub/muted) با رنگ اصلی متن جایگزین می‌شوند
+  const C = useMemo(() => ({ ...CBase, sub: CBase.text, muted: CBase.text }), [CBase]);
+
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [formOpen, setFormOpen] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [editSupplier, setEditSupplier] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState(emptyForm());
 
-  const [form, setForm] = useState({
-    name: "",
-    phone: "",
-    address: "",
-    contact_person: "",
-    description: "",
-  });
+  // ── refs ──
+  const rootRef = useRef(null);
+  const formBoxRef = useRef(null);
+  const firstNameRef = useRef(null);
+  const savingRef = useRef(false);
+  const formStateRef = useRef(form); formStateRef.current = form;
+  const editRef = useRef(editSupplier); editRef.current = editSupplier;
+  const showFormRef = useRef(showForm); showFormRef.current = showForm;
 
-  const notify = (msg, type = "info") => {
+  const notify = useCallback((msg, type = "info") => {
     if (typeof showToast === "function") showToast(msg, type);
-  };
+  }, [showToast]);
 
-  const load = async () => {
+  // ═══════════ بارگذاری ═══════════
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const data = await fetchSuppliers();
@@ -39,67 +75,96 @@ export default function SupplierSection({ C, isDark, showToast }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return suppliers;
     const q = search.toLowerCase();
-    return suppliers.filter(s =>
+    return suppliers.filter((s) =>
       s.name?.toLowerCase().includes(q) ||
+      s.first_name?.toLowerCase().includes(q) ||
+      s.last_name?.toLowerCase().includes(q) ||
+      s.mobile?.includes(q) ||
       s.phone?.includes(q) ||
       s.contact_person?.toLowerCase().includes(q)
     );
   }, [suppliers, search]);
 
-  const openCreate = () => {
-    setEditSupplier(null);
-    setForm({ name: "", phone: "", address: "", contact_person: "", description: "" });
-    setFormOpen(true);
-  };
+  // ── باز/بستن فرم ──
+  const focusFirst = useCallback(() => {
+    setTimeout(() => firstNameRef.current?.focus(), 150);
+  }, []);
 
-  const openEdit = (s) => {
+  const openCreate = useCallback(() => {
+    setEditSupplier(null);
+    setForm(emptyForm());
+    setShowForm(true);
+    focusFirst();
+  }, [focusFirst]);
+
+  const openEdit = useCallback((s) => {
     setEditSupplier(s);
+    // رکوردهای قدیمی فقط «name» دارند؛ آن را در «نام» می‌گذاریم تا چیزی گم نشود
     setForm({
-      name: s.name || "",
-      phone: s.phone || "",
+      first_name: s.first_name ?? s.name ?? "",
+      last_name: s.last_name ?? "",
+      mobile: s.mobile || s.phone || "",
       address: s.address || "",
-      contact_person: s.contact_person || "",
       description: s.description || "",
     });
-    setFormOpen(true);
-  };
+    setShowForm(true);
+    focusFirst();
+  }, [focusFirst]);
 
-  const handleSave = async () => {
-    if (!form.name.trim()) {
-      notify("نام شرکت الزامی است", "warning");
+  const closeForm = useCallback(() => {
+    setShowForm(false);
+    setEditSupplier(null);
+  }, []);
+
+  // ═══════════ ذخیره ═══════════
+  const handleSave = useCallback(async () => {
+    const f = formStateRef.current;
+    const first = f.first_name.trim();
+    const last = f.last_name.trim();
+    if (!first && !last) {
+      notify("نام تأمین‌کننده الزامی است", "warning");
       return;
     }
-    if (saving) return;
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
+      const mobile = f.mobile.trim();
+      const edit = editRef.current;
       const payload = {
-        id: editSupplier?.id,
-        name: form.name.trim(),
-        phone: form.phone.trim(),
-        address: form.address.trim(),
-        contact_person: form.contact_person.trim(),
-        description: form.description.trim(),
+        id: edit?.id,
+        // «name» = نام کامل؛ بقیه‌ی بخش‌ها (فاکتور، لیست‌ها) همچنان از آن استفاده می‌کنند
+        name: [first, last].filter(Boolean).join(" "),
+        first_name: first,
+        last_name: last,
+        mobile,
+        phone: mobile, // سازگاری با بخش‌هایی که هنوز «phone» می‌خوانند
+        address: f.address.trim(),
+        contact_person: edit?.contact_person || "", // مقدار قبلی حفظ می‌شود
+        description: f.description.trim(),
       };
       const res = await saveSupplier(payload);
-      notify(res.msg || "ذخیره شد", "success");
-      setFormOpen(false);
+      notify(res?.msg || "ذخیره شد ✅", "success");
+      setShowForm(false);
       setEditSupplier(null);
+      setForm(emptyForm());
       load();
     } catch (err) {
       notify(err.response?.data?.error || err.message || "خطا", "error");
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
-  };
+  }, [notify, load]);
 
-  const handleDelete = async (s) => {
+  const handleDelete = useCallback(async (s) => {
     if (!window.confirm(`«${s.name}» حذف شود؟`)) return;
     try {
       await deleteSupplier({ id: s.id });
@@ -108,85 +173,282 @@ export default function SupplierSection({ C, isDark, showToast }) {
     } catch (err) {
       notify(err.response?.data?.error || err.message || "خطا", "error");
     }
-  };
+  }, [notify, load]);
 
+  // ═══════════ کیبورد (همان کلیدهای «ثبت فاکتور خرید») ═══════════
+  // حرکت بین همه‌ی خانه‌های فرم: نام ← نام خانوادگی ← موبایل ← آدرس ← توضیحات
+  const moveFocus = useCallback((delta) => {
+    const root = formBoxRef.current;
+    if (!root) return;
+    const nodes = Array.from(root.querySelectorAll("input, textarea")).filter(
+      (el) => !el.disabled && el.tabIndex !== -1 && el.offsetParent !== null
+    );
+    if (!nodes.length) return;
+    const cur = nodes.findIndex((n) => n === document.activeElement);
+    const next = cur === -1 ? (delta > 0 ? 0 : nodes.length - 1) : cur + delta;
+    if (next < 0 || next >= nodes.length) return;
+    nodes[next].focus();
+    nodes[next].select?.();
+  }, []);
+
+  const isVisible = () => !!rootRef.current && rootRef.current.offsetParent !== null;
+
+  const handleKeyDown = useCallback((e) => {
+    if (!isVisible()) return;
+    const sf = showFormRef.current;
+    const isCtrl = e.ctrlKey && !e.altKey;
+
+    // F2 = تأمین‌کننده جدید
+    if (e.key === "F2") {
+      e.preventDefault();
+      if (!sf || editRef.current) openCreate();
+      else firstNameRef.current?.focus();
+      return;
+    }
+
+    // Esc = بستن
+    if (e.key === "Escape") {
+      if (sf) { e.preventDefault(); closeForm(); }
+      return;
+    }
+
+    // Enter = خانه بعدی
+    if (e.key === "Enter" && !isCtrl && !e.altKey && sf) {
+      const tag = e.target.tagName;
+      if ((tag === "INPUT" || tag === "TEXTAREA") && formBoxRef.current?.contains(e.target)) {
+        e.preventDefault();
+        moveFocus(1);
+      }
+      return;
+    }
+
+    // Ctrl+A = بعدی ، Ctrl+Z = قبلی
+    if (isCtrl && sf && (e.code === "KeyA" || e.code === "KeyZ")) {
+      e.preventDefault();
+      moveFocus(e.code === "KeyA" ? 1 : -1);
+    }
+  }, [openCreate, closeForm, moveFocus]);
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+
+  // Ctrl+D = ذخیره (فاز capture تا قبل از «افزودن نشانک» مرورگر اجرا شود)
+  const handleSaveRef = useRef(handleSave); handleSaveRef.current = handleSave;
+  useEffect(() => {
+    const onSaveKey = (e) => {
+      if (!showFormRef.current || !isVisible()) return;
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const k = String(e.key || "").toLowerCase();
+      if (!(e.code === "KeyD" || k === "d" || k === "ی")) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      if (!e.repeat) handleSaveRef.current();
+    };
+    window.addEventListener("keydown", onSaveKey, true);
+    return () => window.removeEventListener("keydown", onSaveKey, true);
+  }, []);
+
+  // ── استایل‌ها (همان استایل ثبت فاکتور) ──
   const inputSx = {
     "& .MuiOutlinedInput-root": {
-      borderRadius: "12px",
-      bgcolor: C.inputBg,
-      backdropFilter: "blur(8px)",
-      fontSize: 13,
-      fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
-      color: C.text,
-      transition: "all 0.25s ease",
+      borderRadius: "8px", bgcolor: C.inputBg,
+      fontSize: F(11), color: C.text, height: CTRL_H,
       "& fieldset": { borderColor: C.glassBorder },
       "&:hover fieldset": { borderColor: C.olive + "60" },
       "&.Mui-focused fieldset": { borderColor: C.olive, borderWidth: 1.5 },
-      "&.Mui-focused": { boxShadow: `0 0 0 3px ${C.olive}18` },
+      "&.Mui-focused": { boxShadow: `0 0 0 2px ${C.olive}18` },
     },
-    "& .MuiInputLabel-root": { fontSize: 12, color: C.sub },
-    "& .MuiInputBase-input": { color: C.text },
-    "& .MuiInputBase-input::placeholder": { color: C.muted, opacity: 1 },
+    "& .MuiInputLabel-root": { fontSize: F(12), color: C.sub },
+    "& .MuiInputBase-input": { color: C.text, py: 0, px: 1.2, height: CTRL_H, boxSizing: "border-box" },
+    "& .MuiInputBase-input::placeholder": { color: C.text, opacity: 0.45 },
   };
 
-  const dialogPaperSx = {
-    borderRadius: "16px",
-    bgcolor: isDark ? "#1A1A2E" : "#fff",
-    border: `1px solid ${C.glassBorder}`,
+  const btnSx = {
+    borderRadius: "8px", fontSize: F(11), fontWeight: 700, textTransform: "none",
+    px: 2, py: 0.7, color: "#fff", background: C.btnGrad,
+    boxShadow: `0 2px 12px ${C.olive}25`,
+    transition: "all 0.2s ease",
+    "&:hover": { transform: "translateY(-1px)", boxShadow: `0 4px 16px ${C.olive}35` },
+    "&:active": { transform: "scale(0.98)" },
   };
 
-  if (loading) {
+  const cancelBtnSx = {
+    borderRadius: "8px", fontSize: F(11), fontWeight: 700, textTransform: "none",
+    color: C.sub, border: `1px solid ${C.glassBorder}`, px: 2, py: 0.7,
+    "&:hover": { bgcolor: C.oliveSubtle },
+  };
+
+  const blueChip = {
+    bgcolor: isDark ? "rgba(100,140,255,0.1)" : "rgba(50,90,200,0.08)",
+    color: isDark ? "#8AAFFF" : "#2A4AAA",
+  };
+
+  if (loading && suppliers.length === 0) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-        <CircularProgress sx={{ color: C.olive }} size={36} />
+        <CircularProgress sx={{ color: C.olive }} size={32} />
       </Box>
     );
   }
 
   return (
-    <Box>
-      {/* هدر */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5, flexWrap: "wrap", gap: 1.5 }}>
+    <Box ref={rootRef}>
+      {/* ── هدر ── */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
         <Box>
-          <Typography sx={{ fontSize: { xs: 16, sm: 18 }, fontWeight: 800, color: C.text }}>
+          <Typography sx={{ fontSize: F(15), fontWeight: 800, color: C.text }}>
             🏭 تأمین‌کنندگان
           </Typography>
-          <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.3 }}>
-            تعریف و مدیریت شرکت‌های تأمین‌کننده
+          <Typography sx={{ fontSize: F(12), color: C.sub, mt: 0.2 }}>
+            {suppliers.length} تأمین‌کننده ثبت شده
           </Typography>
         </Box>
-        <Button
-          onClick={openCreate}
-          sx={{
-            borderRadius: "12px", fontSize: 12, fontWeight: 700, textTransform: "none",
-            px: 2.5, py: 1, color: "#fff", background: C.btnGrad,
-            boxShadow: `0 4px 20px ${C.olive}30`,
-            "&:hover": { transform: "translateY(-1px)", boxShadow: `0 6px 28px ${C.olive}40` },
-          }}
-        >
-          ➕ تأمین‌کننده جدید
-        </Button>
+        <Box sx={{ display: "flex", gap: 0.8 }}>
+          <IconButton onClick={load} size="small"
+            sx={{ border: `1px solid ${C.glassBorder}`, borderRadius: "8px", bgcolor: C.glass, color: C.text, p: 0.8 }}>
+            <Refresh sx={{ fontSize: 16 }} />
+          </IconButton>
+          <Button onClick={() => (showForm ? closeForm() : openCreate())} sx={btnSx}>
+            {showForm ? "✖ بستن فرم (Esc)" : "➕ تأمین‌کننده جدید (F2)"}
+          </Button>
+        </Box>
       </Box>
 
-      {/* جستجو */}
-      <TextField
-        size="small"
-        placeholder="جستجو تأمین‌کننده..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        sx={{ ...inputSx, width: "100%", maxWidth: 300, mb: 2 }}
-      />
+      {/* ═══════════ فرم (داخل صفحه، نه مودال) ═══════════ */}
+      {showForm && (
+        <Box ref={formBoxRef} sx={{
+          bgcolor: C.glass, border: `1px solid ${C.glassBorder}`,
+          borderRadius: "12px", p: { xs: 1.5, sm: 2 }, mb: 2,
+          animation: "fadeUp 0.2s ease-out",
+        }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
+            <Typography sx={{ fontSize: F(12), fontWeight: 800, color: C.text }}>
+              👤 {editSupplier ? `ویرایش «${editSupplier.name}»` : "تأمین‌کننده جدید"}
+            </Typography>
+            <Chip size="small" label={editSupplier ? "✏️ حالت ویرایش" : "🆕 جدید"}
+              sx={{ height: 20, fontSize: F(10), fontWeight: 700, borderRadius: "5px", ...(editSupplier ? { bgcolor: C.oliveSubtle, color: C.olive } : blueChip) }} />
+          </Box>
 
-      {/* لیست */}
+          {/* ردیف ۱: نام، نام خانوادگی، موبایل، آدرس در یک خط */}
+          <Box sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr 1fr", md: "minmax(120px,1fr) minmax(120px,1fr) 170px minmax(220px,2fr)" },
+            gap: 1, mb: 1.2, alignItems: "end",
+          }}>
+            <FieldBox C={C} label="نام *">
+              <TextField size="small" fullWidth autoComplete="off" inputRef={firstNameRef}
+                value={form.first_name}
+                onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+                sx={inputSx} />
+            </FieldBox>
+
+            <FieldBox C={C} label="نام خانوادگی">
+              <TextField size="small" fullWidth autoComplete="off"
+                value={form.last_name}
+                onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+                sx={inputSx} />
+            </FieldBox>
+
+            <FieldBox C={C} label="شماره موبایل">
+              <TextField size="small" fullWidth autoComplete="off" placeholder="09123456789"
+                value={form.mobile}
+                onChange={(e) => setForm({ ...form, mobile: toLatin(e.target.value) })}
+                inputProps={{ inputMode: "tel", dir: "ltr", style: { textAlign: "center" } }}
+                sx={inputSx} />
+            </FieldBox>
+
+            <FieldBox C={C} label="آدرس">
+              <TextField size="small" fullWidth autoComplete="off"
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                sx={inputSx} />
+            </FieldBox>
+          </Box>
+
+          {/* ردیف ۲: توضیحات */}
+          <FieldBox C={C} label="توضیحات">
+            <TextField size="small" fullWidth autoComplete="off"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              sx={inputSx} />
+          </FieldBox>
+
+          {/* ── دکمه‌ها ── */}
+          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 1.5 }}>
+            <Button onClick={closeForm} sx={cancelBtnSx}>انصراف (Esc)</Button>
+            <Button onClick={handleSave} disabled={saving} sx={btnSx}>
+              {saving
+                ? <CircularProgress size={14} sx={{ color: "#fff" }} />
+                : editSupplier ? "💾 بروزرسانی (Ctrl+D)" : "💾 ذخیره (Ctrl+D)"}
+            </Button>
+          </Box>
+        </Box>
+      )}
+
+      {/* ══ راهنمای کیبورد ══ */}
+      <Box sx={{
+        display: "flex", flexWrap: "wrap", gap: 0.6,
+        alignItems: "center", mb: 2, px: 1.5, py: 1,
+        borderRadius: "10px",
+        bgcolor: isDark ? "rgba(107,155,110,0.07)" : "rgba(46,77,48,0.06)",
+        border: `1px solid ${C.olive}20`,
+      }}>
+        <Chip size="small" label="راهنما"
+          sx={{
+            height: 22, fontSize: F(11), fontWeight: 900,
+            borderRadius: "5px", bgcolor: "#FFD600", color: "#1A1A00",
+            px: 0.8, mr: 0.5,
+          }} />
+        {[
+          { key: "Ctrl+D", label: "ذخیره" },
+          { key: "Ctrl+A", label: "بعدی" },
+          { key: "Ctrl+Z", label: "قبلی" },
+          { key: "F2", label: "جدید" },
+          { key: "Enter", label: "بعدی" },
+          { key: "Esc", label: "بستن" },
+        ].map((item, i) => (
+          <Box key={i} sx={{ display: "flex", alignItems: "center", gap: 0.4 }}>
+            <Chip size="small" label={item.key}
+              sx={{
+                height: 20, fontSize: F(11), fontWeight: 800,
+                borderRadius: "5px", fontFamily: "monospace",
+                bgcolor: C.oliveSubtle, color: C.olive,
+                border: `1px solid ${C.olive}30`, px: 0.4,
+              }} />
+            <Typography sx={{ fontSize: F(11), color: C.sub, fontWeight: 700 }}>
+              {item.label}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+
+      {/* ═══════════ لیست تأمین‌کنندگان ═══════════ */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1, mb: 1 }}>
+        <Typography sx={{ fontSize: F(12), fontWeight: 700, color: C.text }}>
+          📋 تأمین‌کنندگان ثبت‌شده ({filtered.length})
+        </Typography>
+        <TextField
+          size="small"
+          placeholder="جستجو (نام، موبایل)..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          sx={{ ...inputSx, width: "100%", maxWidth: 280 }}
+        />
+      </Box>
+
       {filtered.length === 0 ? (
-        <Box sx={{ textAlign: "center", py: 6 }}>
-          <Typography sx={{ fontSize: 36, mb: 1 }}>🏭</Typography>
-          <Typography sx={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-            هنوز تأمین‌کننده‌ای ثبت نشده
+        <Box sx={{ textAlign: "center", py: 5 }}>
+          <Typography sx={{ fontSize: 32, mb: 0.5 }}>🏭</Typography>
+          <Typography sx={{ fontSize: F(13), fontWeight: 700, color: C.text }}>
+            {suppliers.length === 0 ? "هنوز تأمین‌کننده‌ای ثبت نشده" : "موردی پیدا نشد"}
           </Typography>
-          <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.5 }}>
-            برای شروع، تأمین‌کننده جدید اضافه کنید
-          </Typography>
+          {suppliers.length === 0 && (
+            <Typography sx={{ fontSize: F(12), color: C.sub, mt: 0.3 }}>
+              F2 بزنید یا روی «تأمین‌کننده جدید» کلیک کنید
+            </Typography>
+          )}
         </Box>
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.8 }}>
@@ -194,136 +456,56 @@ export default function SupplierSection({ C, isDark, showToast }) {
             <Box
               key={s.id}
               sx={{
-                display: "flex", alignItems: "center", flexWrap: "wrap", gap: 1,
-                px: { xs: 1.5, sm: 2 }, py: { xs: 1, sm: 1.5 },
-                borderRadius: "12px", bgcolor: C.glass, backdropFilter: "blur(12px)",
-                border: `1px solid ${C.glassBorder}`,
-                transition: "all 0.2s ease",
+                bgcolor: C.glass, border: `1px solid ${C.glassBorder}`,
+                borderRadius: "10px", p: 1.5,
                 opacity: 0,
-                animation: `fadeUp 0.35s ease-out ${i * 0.04}s forwards`,
-                "&:hover": { bgcolor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)" },
+                animation: `fadeUp 0.3s ease-out ${i * 0.04}s forwards`,
+                transition: "border-color 0.15s ease",
+                "&:hover": { borderColor: C.olive + "50" },
               }}
             >
-              <Box sx={{ flex: 1, minWidth: 140 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 0.8 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-                  <Typography sx={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                  <Person sx={{ fontSize: 18, color: C.olive }} />
+                  <Typography sx={{ fontSize: F(12), fontWeight: 800, color: C.text }}>
                     {s.name}
                   </Typography>
+                  {(s.mobile || s.phone) && (
+                    <Chip size="small" label={`📞 ${s.mobile || s.phone}`}
+                      sx={{ height: 20, fontSize: F(10), fontWeight: 700, borderRadius: "5px", fontFamily: "monospace", ...blueChip }} />
+                  )}
                   {s.contact_person && (
-                    <Chip size="small" label={s.contact_person} sx={{
-                      height: 18, fontSize: 9, fontWeight: 600,
-                      borderRadius: "5px", bgcolor: C.oliveSubtle, color: C.olive,
-                    }} />
+                    <Chip size="small" label={s.contact_person}
+                      sx={{ height: 20, fontSize: F(10), fontWeight: 700, borderRadius: "5px", bgcolor: C.oliveSubtle, color: C.olive }} />
                   )}
                 </Box>
-                <Box sx={{ display: "flex", gap: 1, mt: 0.5 }}>
-                  {s.phone && (
-                    <Typography sx={{ fontSize: 11, color: C.sub }}>
-                      📞 {s.phone}
-                    </Typography>
-                  )}
-                  {s.address && (
-                    <Typography sx={{ fontSize: 11, color: C.muted }}>
-                      📍 {s.address}
-                    </Typography>
-                  )}
+
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
+                  <IconButton size="small" onClick={() => openEdit(s)} title="ویرایش"
+                    sx={{ color: C.olive, bgcolor: C.oliveSubtle, borderRadius: "6px", p: 0.4 }}>
+                    <Edit sx={{ fontSize: 14 }} />
+                  </IconButton>
+                  <IconButton size="small" onClick={() => handleDelete(s)} title="حذف"
+                    sx={{ color: C.danger, bgcolor: C.dangerBg, borderRadius: "6px", p: 0.4 }}>
+                    <Delete sx={{ fontSize: 14 }} />
+                  </IconButton>
                 </Box>
               </Box>
 
-              <Box sx={{ display: "flex", gap: 0.5, flexShrink: 0 }}>
-                <Box
-                  onClick={() => openEdit(s)}
-                  sx={{
-                    display: "flex", flexDirection: "column", alignItems: "center",
-                    gap: 0.3, px: 1, py: 0.5, borderRadius: "8px", cursor: "pointer",
-                    color: C.olive, transition: "all 0.2s ease",
-                    "&:hover": { bgcolor: C.oliveSubtle },
-                  }}
-                >
-                  <Typography sx={{ fontSize: 14, lineHeight: 1 }}>✏️</Typography>
-                  <Typography sx={{ fontSize: 8, fontWeight: 600 }}>ویرایش</Typography>
-                </Box>
-                <Box
-                  onClick={() => handleDelete(s)}
-                  sx={{
-                    display: "flex", flexDirection: "column", alignItems: "center",
-                    gap: 0.3, px: 1, py: 0.5, borderRadius: "8px", cursor: "pointer",
-                    color: C.danger, transition: "all 0.2s ease",
-                    "&:hover": { bgcolor: C.dangerBg },
-                  }}
-                >
-                  <Typography sx={{ fontSize: 14, lineHeight: 1 }}>🗑️</Typography>
-                  <Typography sx={{ fontSize: 8, fontWeight: 600 }}>حذف</Typography>
-                </Box>
-              </Box>
+              {s.address && (
+                <Typography sx={{ fontSize: F(11), color: C.sub, mt: 0.5, pr: 3 }}>
+                  📍 {s.address}
+                </Typography>
+              )}
+              {s.description && (
+                <Typography sx={{ fontSize: F(11), color: C.sub, mt: 0.3, pr: 3 }}>
+                  📝 {s.description}
+                </Typography>
+              )}
             </Box>
           ))}
         </Box>
       )}
-
-      {/* دیالوگ ایجاد/ویرایش */}
-      <Dialog
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        maxWidth="xs"
-        fullWidth
-        slotProps={{ paper: { sx: dialogPaperSx } }}
-      >
-        <DialogTitle sx={{ fontSize: 15, fontWeight: 800, color: C.text }}>
-          {editSupplier ? `✏️ ویرایش ${editSupplier.name}` : "➕ تأمین‌کننده جدید"}
-        </DialogTitle>
-        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 1.5, pt: "12px !important" }}>
-          <TextField
-            size="small" label="نام شرکت *"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            sx={inputSx}
-          />
-          <TextField
-            size="small" label="تلفن"
-            value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            sx={inputSx}
-          />
-          <TextField
-            size="small" label="آدرس"
-            value={form.address}
-            onChange={(e) => setForm({ ...form, address: e.target.value })}
-            sx={inputSx}
-          />
-          <TextField
-            size="small" label="مسئول فروش"
-            value={form.contact_person}
-            onChange={(e) => setForm({ ...form, contact_person: e.target.value })}
-            sx={inputSx}
-          />
-          <TextField
-            size="small" label="توضیحات"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            multiline rows={2}
-            sx={inputSx}
-          />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            onClick={() => setFormOpen(false)}
-            sx={{ borderRadius: "10px", fontSize: 12, textTransform: "none", color: C.sub }}
-          >
-            انصراف
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            sx={{
-              borderRadius: "10px", fontSize: 12, fontWeight: 700, textTransform: "none",
-              px: 2.5, color: "#fff", background: C.btnGrad, opacity: saving ? 0.6 : 1,
-            }}
-          >
-            {saving ? "..." : editSupplier ? "بروزرسانی" : "ایجاد"}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }
