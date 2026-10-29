@@ -24,7 +24,7 @@ export default function InventoryPage() {
   const { isRtl } = useLang();
   const isDark = mode === "dark";
 
-  const [activeTab, setActiveTab] = useState("warehouse");
+  const [activeTab, setActiveTab] = useState(TABS[0].id);
   const [toast, setToast] = useState({
     open: false,
     message: "",

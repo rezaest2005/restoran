@@ -3,16 +3,10 @@ import {
   Box, Typography, Button, TextField, Chip, CircularProgress,
 } from "@mui/material";
 import { Delete, Edit, Warehouse } from "@mui/icons-material";
-import {
-  fetchWarehouses,
-  saveWarehouse,
-  deleteWarehouse,
-} from "../api";
 
 const F = (size) => Math.round(size * 1.15);
 const LS_KEY = "local_warehouses";
 
-// ── انبار مرکزی پیش‌فرض ──
 const MOTHER_WAREHOUSE = {
   id: "mother",
   name: "انبار مرکزی",
@@ -21,19 +15,12 @@ const MOTHER_WAREHOUSE = {
 };
 
 const readLocal = () => {
-  try {
-    return JSON.parse(localStorage.getItem(LS_KEY) || "[]");
-  } catch {
-    return [];
-  }
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }
+  catch { return []; }
 };
 
 const writeLocal = (list) => {
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(list));
-  } catch {
-    /* ignore */
-  }
+  try { localStorage.setItem(LS_KEY, JSON.stringify(list)); } catch {}
 };
 
 export default function WarehouseSection({ C, isDark, showToast }) {
@@ -46,40 +33,23 @@ export default function WarehouseSection({ C, isDark, showToast }) {
   const [name, setName] = useState("");
 
   const nameRef = useRef(null);
-  const saveBtnRef = useRef(null);
   const searchRef = useRef(null);
   const savingRef = useRef(false);
 
-  const nameRefState = useRef(name);
-  nameRefState.current = name;
-  const editIdRef = useRef(editId);
-  editIdRef.current = editId;
-  const showFormRef = useRef(showForm);
-  showFormRef.current = showForm;
+  const nameRefState = useRef(name); nameRefState.current = name;
+  const editIdRef = useRef(editId); editIdRef.current = editId;
+  const showFormRef = useRef(showForm); showFormRef.current = showForm;
 
   const notify = (msg, type = "info") => {
     if (typeof showToast === "function") showToast(msg, type);
   };
 
-  // ── بارگذاری ──
-  const load = useCallback(async () => {
+  // ── بارگذاری فقط از localStorage ──
+  const load = useCallback(() => {
     setLoading(true);
     const local = readLocal();
-
-    try {
-      const data = await fetchWarehouses();
-      const arr = Array.isArray(data) ? data : data?.warehouses || [];
-      const subs = arr.filter((w) => !w.is_mother);
-      if (subs.length > 0) {
-        setSubWarehouses(subs);
-      } else {
-        setSubWarehouses(local);
-      }
-    } catch {
-      setSubWarehouses(local);
-    } finally {
-      setLoading(false);
-    }
+    setSubWarehouses(local);
+    setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -110,8 +80,8 @@ export default function WarehouseSection({ C, isDark, showToast }) {
     searchRef.current?.focus();
   }, []);
 
-  // ── ذخیره زیرمجموعه ──
-  const handleSave = useCallback(async () => {
+  // ── ذخیره (فقط localStorage) ──
+  const handleSave = useCallback(() => {
     const n = nameRefState.current.trim();
     if (!n) {
       notify("نام انبار الزامی است", "warning");
@@ -131,16 +101,6 @@ export default function WarehouseSection({ C, isDark, showToast }) {
       is_mother: false,
     };
 
-    let savedToServer = false;
-    try {
-      const res = await saveWarehouse(payload);
-      const newId = res?.id || res?.warehouse?.id;
-      if (newId) payload.id = newId;
-      savedToServer = true;
-    } catch {
-      // fallback محلی
-    }
-
     setSubWarehouses((prev) => {
       let next;
       if (editIdRef.current) {
@@ -159,15 +119,7 @@ export default function WarehouseSection({ C, isDark, showToast }) {
       return next;
     });
 
-    notify(
-      editIdRef.current
-        ? "انبار بروزرسانی شد ✅"
-        : savedToServer
-          ? "زیرمجموعه اضافه شد ✅"
-          : "زیرمجموعه اضافه شد (محلی) ✅",
-      "success"
-    );
-
+    notify(editIdRef.current ? "انبار بروزرسانی شد ✅" : "زیرمجموعه اضافه شد ✅", "success");
     setEditId(null);
     setName("");
     focusName();
@@ -175,12 +127,9 @@ export default function WarehouseSection({ C, isDark, showToast }) {
     setSaving(false);
   }, [notify, focusName]);
 
-  const handleDelete = useCallback(async (w) => {
-    try {
-      await deleteWarehouse({ id: w.id });
-    } catch {
-      // ignore
-    }
+  // ── حذف (فقط localStorage) ──
+  const handleDelete = useCallback((w) => {
+    if (!window.confirm(`«${w.name}» حذف شود؟`)) return;
     setSubWarehouses((prev) => {
       const next = prev.filter((x) => x.id !== w.id);
       writeLocal(next);
@@ -193,27 +142,10 @@ export default function WarehouseSection({ C, isDark, showToast }) {
   useEffect(() => {
     const handler = (e) => {
       const sf = showFormRef.current;
-
-      if (e.key === "F2") {
-        e.preventDefault();
-        openCreate();
-        return;
-      }
-      if (e.ctrlKey && !e.altKey && e.code === "KeyD" && sf) {
-        e.preventDefault();
-        handleSave();
-        return;
-      }
-      if (e.key === "Enter" && !e.ctrlKey && !e.altKey && sf) {
-        e.preventDefault();
-        handleSave();
-        return;
-      }
-      if (e.key === "Escape" && sf) {
-        e.preventDefault();
-        closeForm();
-        return;
-      }
+      if (e.key === "F2") { e.preventDefault(); openCreate(); return; }
+      if (e.ctrlKey && !e.altKey && e.code === "KeyD" && sf) { e.preventDefault(); handleSave(); return; }
+      if (e.key === "Enter" && !e.ctrlKey && !e.altKey && sf) { e.preventDefault(); handleSave(); return; }
+      if (e.key === "Escape" && sf) { e.preventDefault(); closeForm(); return; }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -328,19 +260,11 @@ export default function WarehouseSection({ C, isDark, showToast }) {
                 sx={inputSx}
               />
             </Box>
-
             <Box sx={{ display: "flex", gap: 0.5, pb: 0.1 }}>
-              <Button
-                ref={saveBtnRef}
-                onClick={handleSave}
-                disabled={saving}
-                sx={{ ...btnSx, minWidth: 110 }}
-              >
+              <Button onClick={handleSave} disabled={saving} sx={{ ...btnSx, minWidth: 110 }}>
                 {saving ? "⏳ ذخیره..." : editId ? "💾 بروزرسانی" : "➕ افزودن"}
               </Button>
-              {editId && (
-                <Button onClick={closeForm} sx={cancelBtnSx}>انصراف</Button>
-              )}
+              {editId && <Button onClick={closeForm} sx={cancelBtnSx}>انصراف</Button>}
             </Box>
           </Box>
         </Box>
@@ -350,8 +274,7 @@ export default function WarehouseSection({ C, isDark, showToast }) {
       <Box sx={{
         display: "flex", flexWrap: "wrap", gap: 0.8,
         alignItems: "center", mb: 2.5,
-        px: 2, py: 1.2,
-        borderRadius: "12px",
+        px: 2, py: 1.2, borderRadius: "12px",
         bgcolor: isDark ? "rgba(107,155,110,0.07)" : "rgba(46,77,48,0.06)",
         border: `1px solid ${C.olive}20`,
       }}>
@@ -359,7 +282,7 @@ export default function WarehouseSection({ C, isDark, showToast }) {
           sx={{
             height: 26, fontSize: F(11), fontWeight: 900,
             borderRadius: "6px", bgcolor: "#FFD600", color: "#1A1A00",
-            px: 1, mr: 0.5, "&:hover": { bgcolor: "#FFD600" },
+            px: 1, mr: 0.5,
           }} />
         {[
           { key: "F2", label: "انبار جدید" },
@@ -375,22 +298,17 @@ export default function WarehouseSection({ C, isDark, showToast }) {
                 bgcolor: C.oliveSubtle, color: C.olive,
                 border: `1px solid ${C.olive}30`, px: 0.5,
               }} />
-            <Typography sx={{ fontSize: F(11), color: C.sub, fontWeight: 600 }}>
-              {item.label}
-            </Typography>
+            <Typography sx={{ fontSize: F(11), color: C.sub, fontWeight: 600 }}>{item.label}</Typography>
           </Box>
         ))}
       </Box>
 
-      {/* ══ 🏛️ انبار مرکزی (همیشه ثابت) ══ */}
+      {/* ══ انبار مرکزی ══ */}
       <Box sx={{
         display: "flex", alignItems: "center",
-        px: { xs: 1.5, sm: 2 }, py: 1.5,
-        borderRadius: "12px",
-        bgcolor: C.oliveSubtle,
-        border: `2px solid ${C.olive}50`,
-        mb: 1.5,
-        boxShadow: `0 2px 12px ${C.olive}15`,
+        px: { xs: 1.5, sm: 2 }, py: 1.5, borderRadius: "12px",
+        bgcolor: C.oliveSubtle, border: `2px solid ${C.olive}50`,
+        mb: 1.5, boxShadow: `0 2px 12px ${C.olive}15`,
       }}>
         <Warehouse sx={{ fontSize: 28, color: C.olive, ml: 1 }} />
         <Box sx={{ flex: 1 }}>
@@ -402,11 +320,7 @@ export default function WarehouseSection({ C, isDark, showToast }) {
           </Typography>
         </Box>
         <Chip size="small" label="مرکزی"
-          sx={{
-            height: 24, fontSize: F(11), fontWeight: 800,
-            borderRadius: "8px", bgcolor: C.olive, color: "#fff",
-            px: 1,
-          }} />
+          sx={{ height: 24, fontSize: F(11), fontWeight: 800, borderRadius: "8px", bgcolor: C.olive, color: "#fff", px: 1 }} />
       </Box>
 
       {/* ══ زیرمجموعه‌ها ══ */}
@@ -425,42 +339,24 @@ export default function WarehouseSection({ C, isDark, showToast }) {
           {filtered.map((w, i) => (
             <Box key={w.id} sx={{
               display: "flex", alignItems: "center",
-              px: { xs: 1.5, sm: 2 }, py: { xs: 1, sm: 1.2 },
-              borderRadius: "12px",
+              px: { xs: 1.5, sm: 2 }, py: { xs: 1, sm: 1.2 }, borderRadius: "12px",
               bgcolor: C.glass, backdropFilter: "blur(12px)",
               border: `1px solid ${C.glassBorder}`,
               transition: "all 0.2s ease",
-              opacity: 0,
-              animation: `fadeUp 0.35s ease-out ${i * 0.04}s forwards`,
+              opacity: 0, animation: `fadeUp 0.35s ease-out ${i * 0.04}s forwards`,
               "&:hover": {
                 bgcolor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)",
                 transform: "translateX(-2px)",
               },
             }}>
-              {/* ── خط اتصال به مرکزی ── */}
-              <Box sx={{
-                display: { xs: "none", sm: "flex" },
-                alignItems: "center", mr: 1.5,
-              }}>
-                <Box sx={{
-                  width: 2, height: 20, bgcolor: C.olive + "30",
-                  borderRadius: 1,
-                }} />
-                <Box sx={{
-                  width: 8, height: 8, borderRadius: "50%",
-                  bgcolor: C.olive + "50", mr: 0.5,
-                }} />
+              <Box sx={{ display: { xs: "none", sm: "flex" }, alignItems: "center", mr: 1.5 }}>
+                <Box sx={{ width: 2, height: 20, bgcolor: C.olive + "30", borderRadius: 1 }} />
+                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: C.olive + "50", mr: 0.5 }} />
               </Box>
-
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography sx={{ fontSize: F(13), fontWeight: 700, color: C.text }}>
-                  {w.name}
-                </Typography>
-                <Typography sx={{ fontSize: F(10), color: C.muted, mt: 0.2 }}>
-                  زیرمجموعه انبار مرکزی
-                </Typography>
+                <Typography sx={{ fontSize: F(13), fontWeight: 700, color: C.text }}>{w.name}</Typography>
+                <Typography sx={{ fontSize: F(10), color: C.muted, mt: 0.2 }}>زیرمجموعه انبار مرکزی</Typography>
               </Box>
-
               <Box sx={{ minWidth: 100, display: "flex", gap: 0.5, justifyContent: "center" }}>
                 <Box onClick={() => openEdit(w)}
                   sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.2, px: 0.8, py: 0.4, borderRadius: "8px", cursor: "pointer", color: C.olive, "&:hover": { bgcolor: C.oliveSubtle } }}>

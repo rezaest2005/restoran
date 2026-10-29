@@ -1,413 +1,474 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
-  Box, Typography, Button, TextField, Select, MenuItem,
-  CircularProgress, Chip,
+  Box, Typography, Chip, TextField, Select, MenuItem, CircularProgress, Divider,
 } from "@mui/material";
-import {
-  fetchStockValueReport,
-  fetchItemMovement,
-  fetchWarehouseMovements,
-  fetchWarehouses,
-} from "../api";
+import { getUnitLabel } from "../../../../shared/common/units";
 
-const REPORT_TABS = [
-  { id: "stock_value", icon: "💰", label: "ارزش موجودی" },
-  { id: "movements", icon: "📋", label: "حرکات کالا" },
-  { id: "low_stock", icon: "⚠️", label: "کمبود موجودی" },
-];
+const F = (size) => Math.round(size * 1.1);
 
-const MOVEMENT_TYPE_LABELS = {
-  receive: { label: "ورود", icon: "📥", color: "olive", bg: "oliveSubtle" },
-  issue: { label: "خروج", icon: "📤", color: "warning", bg: "warningBg" },
-  waste: { label: "ضایعات", icon: "🗑", color: "danger", bg: "dangerBg" },
-  transfer: { label: "انتقال", icon: "🔄", color: "info", bg: "infoBg" },
-  adjustment: { label: "اصلاح", icon: "✏️", color: "olive", bg: "oliveSubtle" },
+const readJSON = (key, def = []) => {
+  try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(def)); }
+  catch { return def; }
 };
 
-function formatDate(dateStr) {
-  if (!dateStr) return "";
-  try {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString("fa-IR") + " " + d.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" });
-  } catch { return dateStr; }
-}
+const PAYMENTS = {
+  cash: { label: "نقد", color: "#2E7D32", icon: "💵" },
+  credit: { label: "نسیه", color: "#E65100", icon: "📝" },
+  check: { label: "چک", color: "#1565C0", icon: "📄" },
+};
+
+const PERIODS = [
+  { value: "all", label: "همه" },
+  { value: "daily", label: "روزانه" },
+  { value: "monthly", label: "ماهانه" },
+  { value: "seasonly", label: "فصلی" },
+  { value: "yearly", label: "سالانه" },
+];
 
 export default function ReportsTab({ C, isDark, showToast }) {
-  const [activeReport, setActiveReport] = useState("stock_value");
+  const [tab, setTab] = useState("sales");
+  const [period, setPeriod] = useState("all");
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // داده‌ها
-  const [stockValue, setStockValue] = useState(null);
-  const [movements, setMovements] = useState([]);
-  const [lowStock, setLowStock] = useState([]);
-  const [warehouses, setWarehouses] = useState([]);
+  // ── داده‌ها ──
+  const invoices = useMemo(() => readJSON("local_purchase_invoices", []), []);
+  const salesInvoices = useMemo(() => readJSON("local_sales_invoices", []), []);
+  const transfers = useMemo(() => readJSON("local_transfers", []), []);
+  const materials = useMemo(() => readJSON("local_materials", []), []);
+  const warehouses = useMemo(() => readJSON("local_warehouses", []), []);
 
-  // فیلترها
-  const [warehouseFilter, setWarehouseFilter] = useState("");
-
-  const notify = useCallback((msg, type = "info") => {
-    if (typeof showToast === "function") showToast(msg, type);
-  }, [showToast]);
-
-  // ── لود داده بر اساس تب فعال ──
-  const loadReport = async () => {
-    setLoading(true);
-    try {
-      const whData = await fetchWarehouses().catch(() => ({ warehouses: [] }));
-      setWarehouses(whData.warehouses || []);
-
-      const params = {};
-      if (warehouseFilter) params.warehouse_id = warehouseFilter;
-
-      if (activeReport === "stock_value") {
-        const data = await fetchStockValueReport(params);
-        setStockValue(data);
-        setLowStock(data.low_stock_items || []);
-      } else if (activeReport === "movements") {
-        const data = await fetchWarehouseMovements(params);
-        setMovements(data.movements || []);
-      } else if (activeReport === "low_stock") {
-        const data = await fetchStockValueReport(params);
-        setLowStock(data.low_stock_items || []);
+  // ── فیلتر تاریخ ──
+  const filterByDate = useCallback((items) => {
+    if (period === "all") return items;
+    const now = new Date();
+    return items.filter((item) => {
+      const d = new Date(item.created_at || item.date);
+      if (isNaN(d)) return true;
+      switch (period) {
+        case "daily": return d.toDateString() === now.toDateString();
+        case "monthly": return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        case "seasonly": {
+          const season = Math.floor(now.getMonth() / 3);
+          return Math.floor(d.getMonth() / 3) === season && d.getFullYear() === now.getFullYear();
+        }
+        case "yearly": return d.getFullYear() === now.getFullYear();
+        default: return true;
       }
-    } catch (err) {
-      console.error("Load report error:", err);
-    } finally {
-      setLoading(false);
+    });
+  }, [period]);
+
+  const filteredSales = useMemo(() => filterByDate(salesInvoices), [salesInvoices, filterByDate]);
+  const filteredPurchases = useMemo(() => filterByDate(invoices), [invoices, filterByDate]);
+  const filteredTransfers = useMemo(() => filterByDate(transfers), [transfers, filterByDate]);
+
+  // ── محاسبات ──
+  const totalSales = useMemo(() => filteredSales.reduce((s, i) => s + (i.grand_total || 0), 0), [filteredSales]);
+  const totalPurchases = useMemo(() => filteredPurchases.reduce((s, i) => {
+    return s + (i.items?.reduce((is, it) => is + (it.line_total || (it.quantity * it.unit_price) || 0), 0) || 0);
+  }, 0), [filteredPurchases]);
+  const totalProfit = totalSales - totalPurchases;
+  const totalDebt = useMemo(() => filteredSales.reduce((s, i) => s + (i.remaining || 0), 0), [filteredSales]);
+
+  // ── سود هر محصول ──
+  const productProfit = useMemo(() => {
+    const map = {};
+    // خرید
+    for (const inv of filteredPurchases) {
+      for (const it of inv.items || []) {
+        const key = it.material_code || it.material_name;
+        if (!map[key]) map[key] = { name: it.material_name, code: it.material_code, buyQty: 0, sellQty: 0, buyTotal: 0, sellTotal: 0 };
+        map[key].buyQty += it.quantity;
+        map[key].buyTotal += it.line_total || (it.quantity * it.unit_price);
+      }
     }
-  };
+    // فروش
+    for (const inv of filteredSales) {
+      for (const it of inv.items || []) {
+        const key = it.material_code || it.material_name;
+        if (!map[key]) map[key] = { name: it.material_name, code: it.material_code, buyQty: 0, sellQty: 0, buyTotal: 0, sellTotal: 0 };
+        map[key].sellQty += it.quantity;
+        map[key].sellTotal += it.line_total || (it.quantity * it.unit_price);
+      }
+    }
+    return Object.values(map).map((p) => ({
+      ...p,
+      profit: p.sellTotal - p.buyTotal,
+      avgBuy: p.buyQty > 0 ? p.buyTotal / p.buyQty : 0,
+      avgSell: p.sellQty > 0 ? p.sellTotal / p.sellQty : 0,
+    })).sort((a, b) => b.profit - a.profit);
+  }, [filteredPurchases, filteredSales]);
 
-  useEffect(() => { loadReport(); }, [activeReport, warehouseFilter]);
+  // ── پرداخت‌ها ──
+  const paymentSummary = useMemo(() => {
+    const summary = { cash: { count: 0, total: 0 }, credit: { count: 0, total: 0 }, check: { count: 0, total: 0 } };
+    for (const inv of filteredSales) {
+      const method = inv.payment_method || "cash";
+      if (summary[method]) {
+        summary[method].count++;
+        summary[method].total += inv.grand_total || 0;
+      }
+    }
+    return summary;
+  }, [filteredSales]);
 
-  const inputSx = {
-    "& .MuiOutlinedInput-root": {
-      borderRadius: "12px", bgcolor: C.inputBg, backdropFilter: "blur(8px)",
-      fontSize: 13, fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif", color: C.text,
-      transition: "all 0.25s ease",
-      "& fieldset": { borderColor: C.glassBorder },
-      "&:hover fieldset": { borderColor: C.olive + "60" },
-      "&.Mui-focused fieldset": { borderColor: C.olive, borderWidth: 1.5 },
-      "&.Mui-focused": { boxShadow: `0 0 0 3px ${C.olive}18` },
-    },
-    "& .MuiInputLabel-root": { fontSize: 12, color: C.sub },
-    "& .MuiInputBase-input": { color: C.text },
-  };
+  // ── جستجو ──
+  const searchFilter = useCallback((items, fields) => {
+    if (!search.trim()) return items;
+    const q = search.toLowerCase();
+    return items.filter((item) =>
+      fields.some((f) => {
+        const val = f.split(".").reduce((o, k) => o?.[k], item);
+        return val?.toString().toLowerCase().includes(q);
+      })
+    );
+  }, [search]);
+
+  // ── استایل‌ها ──
+  const cardSx = (color) => ({
+    p: 1.5, borderRadius: "12px", flex: "1 1 180px",
+    bgcolor: color + "10", border: `1.5px solid ${color}25`,
+  });
+
+  const tabs = [
+    { value: "sales", label: "💰 فروش", count: filteredSales.length },
+    { value: "purchases", label: "🛒 خرید", count: filteredPurchases.length },
+    { value: "transfers", label: "🔄 حواله", count: filteredTransfers.length },
+    { value: "products", label: "📈 محصولات", count: productProfit.length },
+    { value: "payments", label: "💳 مالی", count: 3 },
+  ];
+
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+        <CircularProgress sx={{ color: C.olive }} size={32} />
+      </Box>
+    );
+  }
 
   return (
     <Box>
-      {/* ── هدر ── */}
-      <Box sx={{
-        display: "flex", justifyContent: "space-between",
-        alignItems: "center", mb: 2.5, flexWrap: "wrap", gap: 1.5,
-      }}>
+      {/* ═══════════ هدر ═══════════ */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
         <Box>
-          <Typography sx={{ fontSize: { xs: 16, sm: 18 }, fontWeight: 800, color: C.text }}>
-            📊 گزارشات انبار
-          </Typography>
-          <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.3 }}>
-            آنالیز موجودی، حرکات و گزارشات
+          <Typography sx={{ fontSize: F(15), fontWeight: 800, color: C.text }}>📊 گزارشات جامع سیستم انبار</Typography>
+          <Typography sx={{ fontSize: F(10), color: C.sub, mt: 0.2 }}>
+            فروش + خرید + حواله + سود/زیان + مالی
           </Typography>
         </Box>
-
-        {/* فیلتر انبار */}
-        <Select
-          size="small"
-          value={warehouseFilter}
-          onChange={(e) => setWarehouseFilter(e.target.value)}
-          displayEmpty
-          sx={{ ...inputSx, fontSize: 12, minWidth: 160 }}
-        >
-          <MenuItem value="">همه انبارها</MenuItem>
-          {warehouses.map(w => (
-            <MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>
-          ))}
-        </Select>
-      </Box>
-
-      {/* ── تب‌های گزارش ── */}
-      <Box sx={{ display: "flex", gap: 0.5, mb: 2.5, flexWrap: "wrap" }}>
-        {REPORT_TABS.map(tab => (
-          <Button
-            key={tab.id}
-            onClick={() => setActiveReport(tab.id)}
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+          <TextField size="small" placeholder="🔍 جستجو..."
+            value={search} onChange={(e) => setSearch(e.target.value)}
             sx={{
-              borderRadius: "10px", px: 2, py: 0.8,
-              fontSize: 11, fontWeight: activeReport === tab.id ? 700 : 500,
-              textTransform: "none", transition: "all 0.2s ease",
-              color: activeReport === tab.id ? C.olive : C.sub,
-              bgcolor: activeReport === tab.id ? C.oliveSubtle : C.glass,
-              border: `1px solid ${activeReport === tab.id ? C.olive + "30" : C.glassBorder}`,
-              "&:hover": { bgcolor: C.oliveSubtle },
+              width: 180,
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "8px", bgcolor: C.inputBg, fontSize: F(11),
+                "& fieldset": { borderColor: C.glassBorder },
+                "&.Mui-focused fieldset": { borderColor: C.olive },
+              },
+              "& .MuiInputBase-input": { color: C.text, py: 0.6 },
+            }} />
+          <Select size="small" value={period} onChange={(e) => setPeriod(e.target.value)}
+            sx={{
+              minWidth: 120,
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "8px", bgcolor: C.inputBg, fontSize: F(11),
+                "& fieldset": { borderColor: C.glassBorder },
+              },
+              "& .MuiSelect-select": { color: C.text, py: 0.6 },
             }}
           >
-            {tab.icon} {tab.label}
-          </Button>
+            {PERIODS.map((p) => (
+              <MenuItem key={p.value} value={p.value}>{p.label}</MenuItem>
+            ))}
+          </Select>
+        </Box>
+      </Box>
+
+      {/* ═══════════ کارت‌های خلاصه ═══════════ */}
+      <Box sx={{ display: "flex", gap: 1.5, mb: 2, flexWrap: "wrap" }}>
+        {[
+          { label: "فروش کل", value: `${totalSales.toLocaleString("en-US")} تومان`, color: "#2E7D32" },
+          { label: "خرید کل", value: `${totalPurchases.toLocaleString("en-US")} تومان`, color: "#1565C0" },
+          { label: totalProfit >= 0 ? "سود خالص" : "زیان خالص", value: `${Math.abs(totalProfit).toLocaleString("en-US")} تومان`, color: totalProfit >= 0 ? "#2E7D32" : "#C62828" },
+          { label: "بدهکاری مشتریان", value: `${totalDebt.toLocaleString("en-US")} تومان`, color: "#E65100" },
+          { label: "حواله‌ها", value: `${filteredTransfers.length} فقره`, color: "#7C4DFF" },
+        ].map((c, i) => (
+          <Box key={i} sx={cardSx(c.color)}>
+            <Typography sx={{ fontSize: 11, color: C.sub, fontWeight: 600 }}>{c.label}</Typography>
+            <Typography sx={{ fontSize: 16, fontWeight: 900, color: c.color, mt: 0.3 }}>{c.value}</Typography>
+          </Box>
         ))}
       </Box>
 
-      {/* ── محتوا ── */}
-      {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-          <CircularProgress sx={{ color: C.olive }} size={36} />
-        </Box>
-      ) : (
-        <>
-          {/* ══ ۱. ارزش موجودی ══ */}
-          {activeReport === "stock_value" && (
-            <Box>
-              {/* کارت‌های خلاصه */}
-              <Box sx={{
-                display: "grid",
-                gridTemplateColumns: { xs: "1fr 1fr", sm: "1fr 1fr 1fr 1fr" },
-                gap: 1.5,
-                mb: 3,
-              }}>
-                {[
-                  { label: "ارزش کل", value: stockValue?.total_value || 0, icon: "💰", color: C.olive },
-                  { label: "تعداد قلم", value: stockValue?.total_items || 0, icon: "📦", color: C.info },
-                  { label: "کمبود", value: lowStock.length, icon: "⚠️", color: C.warning },
-                  { label: "ناموجود", value: stockValue?.out_of_stock || 0, icon: "🚫", color: C.danger },
-                ].map((card, i) => (
-                  <Box key={i} sx={{
-                    p: 2, borderRadius: "14px",
-                    bgcolor: C.glass, backdropFilter: "blur(12px)",
-                    border: `1px solid ${C.glassBorder}`,
-                    opacity: 0,
-                    animation: `fadeUp 0.3s ease-out ${i * 0.08}s forwards`,
-                  }}>
-                    <Typography sx={{ fontSize: 10, color: C.sub, mb: 0.5 }}>
-                      {card.icon} {card.label}
-                    </Typography>
-                    <Typography sx={{ fontSize: 20, fontWeight: 900, color: card.color }}>
-                      {typeof card.value === "number" && card.label === "ارزش کل"
-                        ? card.value.toLocaleString("fa-IR")
-                        : card.value.toLocaleString("fa-IR")}
-                    </Typography>
-                    {card.label === "ارزش کل" && (
-                      <Typography sx={{ fontSize: 9, color: C.muted }}>تومان</Typography>
-                    )}
-                  </Box>
-                ))}
-              </Box>
+      {/* ═══════════ تب‌ها ═══════════ */}
+      <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}>
+        {tabs.map((t) => (
+          <Chip key={t.value} clickable
+            label={`${t.label} (${t.count})`}
+            onClick={() => setTab(t.value)}
+            sx={{
+              height: 34, fontSize: 12, fontWeight: 700, borderRadius: "10px",
+              bgcolor: tab === t.value ? C.olive : (isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"),
+              color: tab === t.value ? "#fff" : C.sub,
+              border: `1.5px solid ${tab === t.value ? C.olive : "transparent"}`,
+              px: 2,
+            }}
+          />
+        ))}
+      </Box>
 
-              {/* لیست کمبود */}
-              {lowStock.length > 0 && (
-                <Box sx={{
-                  mb: 3, p: 2, borderRadius: "14px",
-                  bgcolor: C.warningBg, border: `1px solid ${C.warning}30`,
+      {/* ═══════════ محتوای تب‌ها ═══════════ */}
+
+      {/* ── فروش ── */}
+      {tab === "sales" && (
+        <Box>
+          {searchFilter(filteredSales, ["invoice_number", "customer.first_name", "customer.last_name", "customer.mobile", "user"]).length === 0 ? (
+            <Box sx={{ textAlign: "center", py: 4 }}>
+              <Typography sx={{ fontSize: 28, mb: 0.5 }}>💰</Typography>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: C.text }}>داده‌ای یافت نشد</Typography>
+            </Box>
+          ) : (
+            searchFilter(filteredSales, ["invoice_number", "customer.first_name", "customer.last_name", "customer.mobile", "user"]).map((inv, i) => (
+              <Box key={inv.id} sx={{
+                p: 1.5, borderRadius: "12px", mb: 1,
+                bgcolor: C.glass, border: `1px solid ${C.glassBorder}`,
+                opacity: 0, animation: `fadeUp 0.3s ease-out ${i * 0.03}s forwards`,
+              }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
+                  <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+                    <Chip size="small" label={inv.invoice_number} sx={{
+                      height: 22, fontSize: 10, fontWeight: 700, fontFamily: "monospace",
+                      bgcolor: C.oliveSubtle, color: C.olive, borderRadius: "5px",
+                    }} />
+                    <Typography sx={{ fontSize: 12, fontWeight: 700, color: C.text }}>
+                      {inv.customer?.first_name} {inv.customer?.last_name}
+                    </Typography>
+                    <Typography sx={{ fontSize: 10, color: C.sub }}>📱 {inv.customer?.mobile}</Typography>
+                  </Box>
+                  <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+                    <Chip size="small" label={`${(PAYMENTS[inv.payment_method] || PAYMENTS.cash).icon} ${(PAYMENTS[inv.payment_method] || PAYMENTS.cash).label}`} sx={{
+                      height: 20, fontSize: 9, borderRadius: "5px",
+                      bgcolor: (PAYMENTS[inv.payment_method] || PAYMENTS.cash).color + "18",
+                      color: (PAYMENTS[inv.payment_method] || PAYMENTS.cash).color,
+                    }} />
+                    <Typography sx={{ fontSize: 10, color: C.sub }}>{inv.date} | {inv.time}</Typography>
+                    <Typography sx={{ fontSize: 12, fontWeight: 800, color: C.olive }}>
+                      {(inv.grand_total || 0).toLocaleString("en-US")} تومان
+                    </Typography>
+                  </Box>
+                </Box>
+                <Typography sx={{ fontSize: 10, color: C.muted, mt: 0.5 }}>
+                  👤 {inv.user} | 📍 {inv.customer?.address || "—"} | 📋 {inv.items_count} قلم
+                  {inv.remaining > 0 && ` | ⚠️ بدهکاری: ${inv.remaining.toLocaleString("en-US")}`}
+                </Typography>
+                <Box sx={{ display: "flex", gap: 0.5, mt: 0.5, flexWrap: "wrap" }}>
+                  {inv.items?.map((it, j) => (
+                    <Chip key={j} size="small" label={`${it.material_name} × ${it.quantity} ${getUnitLabel(it.unit)}`} sx={{
+                      height: 18, fontSize: 8, borderRadius: "4px",
+                      bgcolor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", color: C.sub,
+                    }} />
+                  ))}
+                </Box>
+              </Box>
+            ))
+          )}
+        </Box>
+      )}
+
+      {/* ── خرید ── */}
+      {tab === "purchases" && (
+        <Box>
+          {filteredPurchases.length === 0 ? (
+            <Box sx={{ textAlign: "center", py: 4 }}>
+              <Typography sx={{ fontSize: 28, mb: 0.5 }}>🛒</Typography>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: C.text }}>داده‌ای یافت نشد</Typography>
+            </Box>
+          ) : (
+            filteredPurchases.map((inv, i) => (
+              <Box key={inv.id} sx={{
+                p: 1.5, borderRadius: "12px", mb: 1,
+                bgcolor: C.glass, border: `1px solid ${C.glassBorder}`,
+                opacity: 0, animation: `fadeUp 0.3s ease-out ${i * 0.03}s forwards`,
+              }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
+                  <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                    <Chip size="small" label={inv.invoice_number} sx={{
+                      height: 22, fontSize: 10, fontWeight: 700, fontFamily: "monospace",
+                      bgcolor: "rgba(21,101,192,0.1)", color: "#1565C0", borderRadius: "5px",
+                    }} />
+                    <Typography sx={{ fontSize: 11, color: C.sub }}>
+                      {inv.supplier || inv.supplier_name || "—"} | 👤 {inv.user}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                    <Typography sx={{ fontSize: 10, color: C.sub }}>{inv.date}</Typography>
+                    <Typography sx={{ fontSize: 12, fontWeight: 800, color: "#1565C0" }}>
+                      {(inv.items?.reduce((s, it) => s + (it.line_total || it.quantity * it.unit_price), 0) || 0).toLocaleString("en-US")} تومان
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ display: "flex", gap: 0.5, mt: 0.5, flexWrap: "wrap" }}>
+                  {inv.items?.map((it, j) => (
+                    <Chip key={j} size="small" label={`${it.material_name} × ${it.quantity} ${getUnitLabel(it.unit)}`} sx={{
+                      height: 18, fontSize: 8, borderRadius: "4px",
+                      bgcolor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", color: C.sub,
+                    }} />
+                  ))}
+                </Box>
+              </Box>
+            ))
+          )}
+        </Box>
+      )}
+
+      {/* ── حواله ── */}
+      {tab === "transfers" && (
+        <Box>
+          {filteredTransfers.length === 0 ? (
+            <Box sx={{ textAlign: "center", py: 4 }}>
+              <Typography sx={{ fontSize: 28, mb: 0.5 }}>🔄</Typography>
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: C.text }}>حواله‌ای یافت نشد</Typography>
+            </Box>
+          ) : (
+            filteredTransfers.map((tr, i) => {
+              const fromWh = warehouses.find((w) => String(w.id) === String(tr.from_warehouse));
+              const toWh = warehouses.find((w) => String(w.id) === String(tr.to_warehouse));
+              return (
+                <Box key={tr.id} sx={{
+                  p: 1.5, borderRadius: "12px", mb: 1,
+                  bgcolor: C.glass, border: `1px solid ${C.glassBorder}`,
+                  opacity: 0, animation: `fadeUp 0.3s ease-out ${i * 0.03}s forwards`,
                 }}>
-                  <Typography sx={{ fontSize: 13, fontWeight: 800, color: C.warning, mb: 1 }}>
-                    ⚠️ کالاهای دارای کمبود
-                  </Typography>
-                  <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-                    {lowStock.map((item, i) => (
-                      <Chip key={i} size="small"
-                        label={`${item.material_name}: ${item.quantity}/${item.minimum_stock}`}
-                        sx={{
-                          height: 22, fontSize: 9, fontWeight: 600, borderRadius: "6px",
-                          bgcolor: C.warningBg, color: C.warning,
-                          border: `1px solid ${C.warning}40`,
-                        }}
-                      />
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
+                    <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+                      <Chip size="small" label={tr.transfer_number} sx={{
+                        height: 22, fontSize: 10, fontWeight: 700, fontFamily: "monospace",
+                        bgcolor: "rgba(124,77,255,0.1)", color: "#7C4DFF", borderRadius: "5px",
+                      }} />
+                      <Typography sx={{ fontSize: 11, color: C.text }}>
+                        {fromWh?.icon} {fromWh?.name || tr.from_warehouse} → {toWh?.icon} {toWh?.name || tr.to_warehouse}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                      <Typography sx={{ fontSize: 10, color: C.sub }}>👤 {tr.user} | {tr.date} | {tr.time}</Typography>
+                    </Box>
+                  </Box>
+                  <Box sx={{ display: "flex", gap: 0.5, mt: 0.5, flexWrap: "wrap" }}>
+                    {tr.items?.map((it, j) => (
+                      <Chip key={j} size="small" label={`${it.material_name} × ${it.quantity} ${getUnitLabel(it.unit)}`} sx={{
+                        height: 18, fontSize: 8, borderRadius: "4px",
+                        bgcolor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)", color: C.sub,
+                      }} />
                     ))}
                   </Box>
                 </Box>
-              )}
-
-              {/* جدول کالاها */}
-              {stockValue?.items?.length > 0 ? (
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.6 }}>
-                  <Box sx={{
-                    display: "flex", px: 2, py: 1,
-                    borderRadius: "8px", bgcolor: C.oliveSubtle,
-                    fontSize: 10, fontWeight: 700, color: C.sub,
-                  }}>
-                    <Box sx={{ flex: 2 }}>کالا</Box>
-                    <Box sx={{ flex: 1, textAlign: "center" }}>موجودی</Box>
-                    <Box sx={{ flex: 1, textAlign: "center" }}>قیمت واحد</Box>
-                    <Box sx={{ flex: 1, textAlign: "center" }}>ارزش</Box>
-                  </Box>
-                  {stockValue.items.map((item, i) => (
-                    <Box key={i} sx={{
-                      display: "flex", alignItems: "center",
-                      px: 2, py: 1, borderRadius: "10px",
-                      bgcolor: C.glass, backdropFilter: "blur(12px)",
-                      border: `1px solid ${C.glassBorder}`,
-                      opacity: 0,
-                      animation: `fadeUp 0.3s ease-out ${i * 0.03}s forwards`,
-                    }}>
-                      <Box sx={{ flex: 2 }}>
-                        <Typography sx={{ fontSize: 12, fontWeight: 700, color: C.text }}>
-                          {item.material_name}
-                        </Typography>
-                        <Typography sx={{ fontSize: 9, color: C.muted }}>
-                          {item.warehouse_name}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ flex: 1, textAlign: "center" }}>
-                        <Typography sx={{ fontSize: 12, fontWeight: 700, color: C.text }}>
-                          {Number(item.quantity).toLocaleString("fa-IR")}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ flex: 1, textAlign: "center" }}>
-                        <Typography sx={{ fontSize: 11, color: C.sub }}>
-                          {Number(item.unit_price || 0).toLocaleString("fa-IR")}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ flex: 1, textAlign: "center" }}>
-                        <Typography sx={{ fontSize: 12, fontWeight: 700, color: C.olive }}>
-                          {Number(item.total_value || 0).toLocaleString("fa-IR")}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  ))}
-                </Box>
-              ) : (
-                <Box sx={{ textAlign: "center", py: 6 }}>
-                  <Typography sx={{ fontSize: 36, mb: 1 }}>💰</Typography>
-                  <Typography sx={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                    داده‌ای موجود نیست
-                  </Typography>
-                </Box>
-              )}
-            </Box>
+              );
+            })
           )}
+        </Box>
+      )}
 
-          {/* ══ ۲. حرکات کالا ══ */}
-          {activeReport === "movements" && (
-            <Box>
-              {movements.length === 0 ? (
-                <Box sx={{ textAlign: "center", py: 8 }}>
-                  <Typography sx={{ fontSize: 40, mb: 1 }}>📋</Typography>
-                  <Typography sx={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                    حرکتی ثبت نشده
-                  </Typography>
-                </Box>
-              ) : (
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.6 }}>
-                  <Box sx={{
-                    display: "flex", px: 2, py: 1,
-                    borderRadius: "8px", bgcolor: C.oliveSubtle,
-                    fontSize: 10, fontWeight: 700, color: C.sub,
-                  }}>
-                    <Box sx={{ width: 50 }}>نوع</Box>
-                    <Box sx={{ flex: 1.5 }}>تاریخ</Box>
-                    <Box sx={{ flex: 1.5 }}>کالا</Box>
-                    <Box sx={{ flex: 1, textAlign: "center" }}>مقدار</Box>
-                    <Box sx={{ flex: 1, textAlign: "center" }}>ارزش</Box>
-                    <Box sx={{ flex: 1 }}>انبار</Box>
-                  </Box>
+      {/* ── محصولات (سود/زیان) ── */}
+      {tab === "products" && (
+        <Box>
+          {/* هدر جدول */}
+          <Box sx={{
+            display: "grid", gridTemplateColumns: "60px 1.5fr 80px 100px 80px 100px 110px 110px",
+            gap: 1, px: 1.5, py: 0.8, borderRadius: "8px",
+            bgcolor: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
+          }}>
+            {["کد", "نام کالا", "خرید", "فروش", "سود واحد", "تعداد فروش", "درآمد فروش", "سود/زیان"].map((h) => (
+              <Typography key={h} sx={{ fontSize: F(9), fontWeight: 700, color: C.muted }}>{h}</Typography>
+            ))}
+          </Box>
 
-                  {movements.map((m, i) => {
-                    const mt = MOVEMENT_TYPE_LABELS[m.movement_type] || MOVEMENT_TYPE_LABELS.adjustment;
-                    return (
-                      <Box key={m.id || i} sx={{
-                        display: "flex", alignItems: "center",
-                        px: 2, py: 1, borderRadius: "10px",
-                        bgcolor: C.glass, backdropFilter: "blur(12px)",
-                        border: `1px solid ${C.glassBorder}`,
-                        opacity: 0,
-                        animation: `fadeUp 0.3s ease-out ${i * 0.02}s forwards`,
-                      }}>
-                        <Box sx={{ width: 50 }}>
-                          <Chip size="small" label={`${mt.icon} ${mt.label}`} sx={{
-                            height: 18, fontSize: 8, fontWeight: 700,
-                            borderRadius: "5px", bgcolor: C[mt.bg], color: C[mt.color],
-                          }} />
-                        </Box>
-                        <Box sx={{ flex: 1.5 }}>
-                          <Typography sx={{ fontSize: 11, color: C.sub }}>
-                            {formatDate(m.created_at)}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ flex: 1.5, minWidth: 0 }}>
-                          <Typography sx={{
-                            fontSize: 12, fontWeight: 700, color: C.text,
-                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                          }}>
-                            {m.material_name}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ flex: 1, textAlign: "center" }}>
-                          <Typography sx={{
-                            fontSize: 12, fontWeight: 700,
-                            color: m.movement_type === "receive" ? C.olive :
-                                   m.movement_type === "waste" ? C.danger :
-                                   m.movement_type === "issue" ? C.warning : C.text,
-                          }}>
-                            {m.movement_type === "receive" ? "+" : "-"}
-                            {Math.abs(Number(m.quantity)).toLocaleString("fa-IR")}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ flex: 1, textAlign: "center" }}>
-                          <Typography sx={{ fontSize: 11, color: C.sub, fontWeight: 600 }}>
-                            {Number(m.total_value || 0).toLocaleString("fa-IR")}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography sx={{
-                            fontSize: 11, color: C.muted,
-                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                          }}>
-                            {m.warehouse_name}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    );
-                  })}
-                </Box>
-              )}
+          {productProfit.map((p, i) => (
+            <Box key={p.code || p.name} sx={{
+              display: "grid", gridTemplateColumns: "60px 1.5fr 80px 100px 80px 100px 110px 110px",
+              gap: 1, px: 1.5, py: 1, borderRadius: "10px", mt: 0.5,
+              bgcolor: C.glass, border: `1px solid ${C.glassBorder}`,
+              opacity: 0, animation: `fadeUp 0.3s ease-out ${i * 0.03}s forwards`,
+            }}>
+              <Chip size="small" label={p.code || "—"} sx={{
+                height: 22, fontSize: 9, fontWeight: 700, borderRadius: "5px",
+                bgcolor: C.oliveSubtle, color: C.olive, fontFamily: "monospace",
+                width: "100%", justifyContent: "center",
+              }} />
+              <Typography sx={{ fontSize: 12, fontWeight: 700, color: C.text, alignSelf: "center" }}>{p.name}</Typography>
+              <Typography sx={{ fontSize: 10, color: C.sub, alignSelf: "center" }}>{p.avgBuy.toLocaleString("en-US")}</Typography>
+              <Typography sx={{ fontSize: 10, color: C.sub, alignSelf: "center" }}>{p.avgSell.toLocaleString("en-US")}</Typography>
+              <Typography sx={{
+                fontSize: 11, fontWeight: 700, alignSelf: "center",
+                color: (p.avgSell - p.avgBuy) >= 0 ? "#2E7D32" : "#C62828",
+              }}>
+                {(p.avgSell - p.avgBuy).toLocaleString("en-US")}
+              </Typography>
+              <Typography sx={{ fontSize: 11, color: C.text, alignSelf: "center" }}>{p.sellQty.toLocaleString("en-US")}</Typography>
+              <Typography sx={{ fontSize: 11, color: C.olive, alignSelf: "center" }}>{p.sellTotal.toLocaleString("en-US")}</Typography>
+              <Chip size="small"
+                label={`${p.profit >= 0 ? "+" : ""}${p.profit.toLocaleString("en-US")}`}
+                sx={{
+                  height: 22, fontSize: 10, fontWeight: 800, borderRadius: "6px",
+                  alignSelf: "center", justifyContent: "center",
+                  bgcolor: p.profit >= 0 ? "rgba(46,125,50,0.1)" : "rgba(198,40,40,0.1)",
+                  color: p.profit >= 0 ? "#2E7D32" : "#C62828",
+                  border: `1px solid ${p.profit >= 0 ? "#2E7D3230" : "#C6282830"}`,
+                }} />
             </Box>
-          )}
+          ))}
+        </Box>
+      )}
 
-          {/* ══ ۳. کمبود موجودی ══ */}
-          {activeReport === "low_stock" && (
-            <Box>
-              {lowStock.length === 0 ? (
-                <Box sx={{ textAlign: "center", py: 8 }}>
-                  <Typography sx={{ fontSize: 40, mb: 1 }}>✅</Typography>
-                  <Typography sx={{ fontSize: 14, fontWeight: 700, color: C.olive }}>
-                    همه کالاها موجودی کافی دارند
+      {/* ── مالی ── */}
+      {tab === "payments" && (
+        <Box>
+          <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.olive, mb: 1.5 }}>💳 تفکیک روش پرداخت</Typography>
+          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
+            {Object.entries(paymentSummary).map(([key, val]) => {
+              const pay = PAYMENTS[key];
+              return (
+                <Box key={key} sx={{
+                  flex: "1 1 250px", p: 2, borderRadius: "14px",
+                  bgcolor: pay.color + "10", border: `2px solid ${pay.color}25`,
+                }}>
+                  <Typography sx={{ fontSize: 16, fontWeight: 900, color: pay.color, mb: 1 }}>
+                    {pay.icon} {pay.label}
                   </Typography>
+                  <Typography sx={{ fontSize: 12, color: C.sub }}>
+                    {val.count} فاکتور
+                  </Typography>
+                  <Typography sx={{ fontSize: 20, fontWeight: 900, color: pay.color, mt: 0.5 }}>
+                    {val.total.toLocaleString("en-US")}
+                  </Typography>
+                  <Typography sx={{ fontSize: 11, color: C.muted }}>تومان</Typography>
                 </Box>
-              ) : (
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.8 }}>
-                  {lowStock.map((item, i) => (
-                    <Box key={i} sx={{
-                      display: "flex", alignItems: "center",
-                      px: 2, py: 1.5, borderRadius: "12px",
-                      bgcolor: C.warningBg,
-                      border: `1px solid ${C.warning}30`,
-                      opacity: 0,
-                      animation: `fadeUp 0.3s ease-out ${i * 0.05}s forwards`,
-                    }}>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography sx={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                          {item.material_name}
-                        </Typography>
-                        <Typography sx={{ fontSize: 11, color: C.sub }}>
-                          {item.warehouse_name}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ textAlign: "center", mx: 2 }}>
-                        <Typography sx={{ fontSize: 11, color: C.sub }}>موجودی فعلی</Typography>
-                        <Typography sx={{ fontSize: 18, fontWeight: 900, color: C.danger }}>
-                          {Number(item.quantity).toLocaleString("fa-IR")}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ textAlign: "center" }}>
-                        <Typography sx={{ fontSize: 11, color: C.sub }}>حداقل</Typography>
-                        <Typography sx={{ fontSize: 18, fontWeight: 900, color: C.warning }}>
-                          {Number(item.minimum_stock).toLocaleString("fa-IR")}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  ))}
-                </Box>
-              )}
+              );
+            })}
+          </Box>
+
+          <Divider sx={{ my: 2, borderColor: C.olive + "25" }} />
+
+          <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.olive, mb: 1 }}>📊 خلاصه مالی</Typography>
+          {[
+            { label: "مجموع فروش", value: totalSales, color: "#2E7D32" },
+            { label: "مجموع خرید", value: totalPurchases, color: "#1565C0" },
+            { label: totalProfit >= 0 ? "سود خالص" : "زیان خالص", value: Math.abs(totalProfit), color: totalProfit >= 0 ? "#2E7D32" : "#C62828" },
+            { label: "بدهکاری مشتریان", value: totalDebt, color: "#E65100" },
+            { label: "نقد دریافتی", value: paymentSummary.cash.total, color: "#2E7D32" },
+          ].map((row, i) => (
+            <Box key={i} sx={{
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+              px: 2, py: 1, borderRadius: "8px", mb: 0.5,
+              bgcolor: i % 2 === 0 ? (isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.015)") : "transparent",
+            }}>
+              <Typography sx={{ fontSize: 13, color: C.text, fontWeight: 600 }}>{row.label}</Typography>
+              <Typography sx={{ fontSize: 15, fontWeight: 900, color: row.color }}>
+                {row.value.toLocaleString("en-US")} تومان
+              </Typography>
             </Box>
-          )}
-        </>
+          ))}
+        </Box>
       )}
     </Box>
   );
