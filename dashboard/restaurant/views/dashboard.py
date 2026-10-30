@@ -10,20 +10,26 @@ from rest_framework.permissions import IsAuthenticated
 
 from ..models import (
     Order, OrderItem, RawMaterial, StockItem,
-    InventoryMovement,
-    PurchaseInvoice, Restaurant
+    InventoryMovement, PurchaseInvoice, Restaurant, Expense,
 )
 from ..tenancy import (
     get_current_restaurant,
     set_current_restaurant,
-    get_restaurant_from_request
+    get_restaurant_from_request,
 )
 
 CATEGORY_COLORS = ["#ff6b35", "#3b82f6", "#10b981", "#8b5cf6", "#f59e0b", "#ef4444", "#06b6d4", "#84cc16"]
-WASTE_COLORS = {"expired": "#ef4444", "damaged": "#f59e0b", "overcooked": "#8b5cf6", "quality_issue": "#3b82f6", "returned": "#10b981", "other": "#6b7280"}
-WASTE_LABELS = {"expired": "تاریخ گذشته", "damaged": "آسیب‌دیده", "overcooked": "بیش‌پخت", "quality_issue": "مشکل کیفیت", "returned": "برگشتی مشتری", "other": "سایر"}
+WASTE_COLORS = {
+    "expired": "#ef4444", "damaged": "#f59e0b", "overcooked": "#8b5cf6",
+    "quality_issue": "#3b82f6", "returned": "#10b981", "other": "#6b7280",
+}
+WASTE_LABELS = {
+    "expired": "تاریخ گذشته", "damaged": "آسیب‌دیده", "overcooked": "بیش‌پخت",
+    "quality_issue": "مشکل کیفیت", "returned": "برگشتی مشتری", "other": "سایر",
+}
 DAY_FA = ["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"]
 DAY_EN = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"]
+
 
 def day_label_fa(d): return DAY_FA[d.weekday()]
 def day_label_en(d): return DAY_EN[d.weekday()]
@@ -69,8 +75,13 @@ def dashboard_analytics(request):
     prev_week_start = week_start - datetime.timedelta(days=7)
     month_start = today.replace(day=1)
     month_start_dt = datetime.datetime.combine(month_start, datetime.time.min)
+    week_start_dt = datetime.datetime.combine(week_start, datetime.time.min)
+    prev_week_start_dt = datetime.datetime.combine(prev_week_start, datetime.time.min)
 
-    # ── آمار امروز ──
+    # ═══════════════════════════════════════════
+    #  بخش صندوق (POS)
+    # ═══════════════════════════════════════════
+
     today_orders = Order.objects.filter(restaurant=restaurant, created_at__date=today)
     active_orders = today_orders.exclude(status="cancelled")
     today_sales = active_orders.aggregate(t=Sum("total_price"))["t"] or Decimal("0")
@@ -79,14 +90,59 @@ def dashboard_analytics(request):
     today_cancelled = today_orders.filter(status="cancelled").count()
     today_customers = active_orders.values("customer_name").exclude(customer_name="").distinct().count()
 
+    # ── میانگین زمان سفارش ──
+    avg_minutes = 0
+    try:
+        delivered_orders = today_orders.filter(status="delivered")
+        total_secs = 0
+        count = 0
+        for o in delivered_orders:
+            updated = getattr(o, "updated_at", None) or getattr(o, "delivered_at", None)
+            if updated and o.created_at:
+                delta = updated - o.created_at
+                total_secs += delta.total_seconds()
+                count += 1
+        if count > 0:
+            avg_minutes = round(total_secs / count / 60, 1)
+    except Exception:
+        pass
+
+    # ── سود امروز ──
+    today_cost = 0
+    try:
+        cost_agg = OrderItem.objects.filter(
+            order__restaurant=restaurant,
+            order__created_at__date=today,
+        ).exclude(order__status="cancelled").aggregate(
+            total_cost=Sum(F("quantity") * F("food__cost_price"))
+        )
+        today_cost = int(cost_agg["total_cost"] or 0)
+    except Exception:
+        today_cost = 0
+
+    # ── هزینه‌های امروز ──
+    today_expense = int(
+        Expense.objects.filter(
+            restaurant=restaurant, date=today
+        ).aggregate(t=Sum("amount"))["t"] or 0
+    )
+
+    today_profit = int(today_sales) - today_cost - today_expense
+
     pos_stats = {
         "sales": int(today_sales),
+        "salesChange": 0,
         "orders": today_count,
+        "ordersChange": 0,
+        "avgOrderValue": int(today_sales / today_count) if today_count else 0,
+        "avgTime": avg_minutes,
+        "avgTimeChange": 0,
         "customers": today_customers,
-        "avgTime": 0,
+        "newCustomers": 0,
+        "profit": today_profit,
+        "profitChange": 0,
         "delivered": today_delivered,
         "cancelled": today_cancelled,
-        "avgOrder": int(today_sales / today_count) if today_count else 0,
     }
 
     # ── روند فروش هفتگی ──
@@ -151,7 +207,7 @@ def dashboard_analytics(request):
         for i, c in enumerate(cat_qs)
     ]
 
-    # ── پرفروش‌ترین / کم‌فروش‌ترین ──
+    # ── پرفروش‌ترین ──
     top_qs = (
         OrderItem.objects.filter(
             order__restaurant=restaurant,
@@ -160,7 +216,10 @@ def dashboard_analytics(request):
         )
         .exclude(order__status="cancelled")
         .values("food__name", "food__name_en")
-        .annotate(total_qty=Sum("quantity"))
+        .annotate(
+            total_qty=Sum("quantity"),
+            total_revenue=Sum(F("price") * F("quantity")),
+        )
         .order_by("-total_qty")[:5]
     )
     top_items = [
@@ -168,10 +227,12 @@ def dashboard_analytics(request):
             "name": t["food__name"],
             "nameEn": t["food__name_en"] or t["food__name"],
             "sales": t["total_qty"],
+            "revenue": int(t["total_revenue"] or 0),
         }
         for t in top_qs
     ]
 
+    # ── کم‌فروش‌ترین ──
     low_qs = (
         OrderItem.objects.filter(
             order__restaurant=restaurant,
@@ -180,7 +241,10 @@ def dashboard_analytics(request):
         )
         .exclude(order__status="cancelled")
         .values("food__name", "food__name_en")
-        .annotate(total_qty=Sum("quantity"))
+        .annotate(
+            total_qty=Sum("quantity"),
+            total_revenue=Sum(F("price") * F("quantity")),
+        )
         .order_by("total_qty")[:5]
     )
     low_items = [
@@ -188,13 +252,30 @@ def dashboard_analytics(request):
             "name": t["food__name"],
             "nameEn": t["food__name_en"] or t["food__name"],
             "sales": t["total_qty"],
+            "revenue": int(t["total_revenue"] or 0),
         }
         for t in low_qs
     ]
 
     # ── وضعیت سفارشات ──
+    STATUS_MAP = {
+        "completed": {"name": "تکمیل شده", "nameEn": "Completed", "color": "#10b981"},
+        "delivered": {"name": "تحویل شده", "nameEn": "Delivered", "color": "#10b981"},
+        "preparing": {"name": "در حال آماده‌سازی", "nameEn": "Preparing", "color": "#f59e0b"},
+        "pending": {"name": "در انتظار", "nameEn": "Pending", "color": "#3b82f6"},
+        "delivering": {"name": "در حال ارسال", "nameEn": "Delivering", "color": "#3b82f6"},
+        "cancelled": {"name": "لغو شده", "nameEn": "Cancelled", "color": "#ef4444"},
+    }
     status_counts = today_orders.values("status").annotate(cnt=Count("id"))
-    order_status = [{"name": s["status"], "value": s["cnt"]} for s in status_counts]
+    order_status = []
+    for s in status_counts:
+        info = STATUS_MAP.get(s["status"], {"name": s["status"], "nameEn": s["status"], "color": "#6b7280"})
+        order_status.append({
+            "name": info["name"],
+            "nameEn": info["nameEn"],
+            "count": s["cnt"],
+            "color": info["color"],
+        })
 
     # ── مقایسه هفتگی ──
     this_week_total = sum(d["sales"] for d in sales_trend)
@@ -239,14 +320,16 @@ def dashboard_analytics(request):
         for m in monthly_qs
     ]
 
-    # ── موجودی انبار ──
+    # ═══════════════════════════════════════════
+    #  بخش انبار (Inventory)
+    # ═══════════════════════════════════════════
+
     stock_items = StockItem.objects.filter(
         warehouse__restaurant=restaurant
     ).select_related("raw_material", "warehouse")
 
     inv_agg = stock_items.aggregate(
         tv=Sum(F("quantity") * F("raw_material__price")),
-        tc=Count("id"),
     )
     total_inv_value = int(inv_agg["tv"] or 0)
 
@@ -255,11 +338,54 @@ def dashboard_analytics(request):
         quantity__lte=F("raw_material__minimum_stock"),
     )
 
+    # ── ضایعات ماه جاری (از InventoryMovement با waste_reason) ──
+    monthly_waste_agg = InventoryMovement.objects.filter(
+        restaurant=restaurant,
+        created_at__gte=month_start_dt,
+        waste_reason__isnull=False,
+    ).exclude(waste_reason="").aggregate(
+        t=Sum(F("quantity") * F("raw_material__price"))
+    )
+    monthly_waste_value = int(monthly_waste_agg["t"] or 0)
+
+    # ── اقلام نزدیک انقضا (از RawMaterial اگه فیلد داشته باشه) ──
+    expiring_items = []
+    try:
+        soon = today + datetime.timedelta(days=7)
+        # بررسی اینکه آیا فیلد expiry_date وجود داره
+        raw_fields = [f.name for f in RawMaterial._meta.get_fields()]
+        if "expiry_date" in raw_fields or "shelf_life_days" in raw_fields:
+            # اگه RawMaterial تاریخ انقضا داره
+            expiring_qs = stock_items.filter(
+                quantity__gt=0,
+            ).select_related("raw_material")[:10]
+            for si in expiring_qs:
+                rm = si.raw_material
+                expiry = getattr(rm, "expiry_date", None)
+                if expiry and expiry <= soon:
+                    days_left = (expiry - today).days
+                    severity = "critical" if days_left <= 1 else ("warning" if days_left <= 3 else "ok")
+                    expiring_items.append({
+                        "name": rm.name,
+                        "nameEn": rm.name,
+                        "expiry": f"{days_left} روز",
+                        "expiryEn": f"{days_left} days",
+                        "quantity": float(si.quantity),
+                        "unit": rm.unit or "",
+                        "severity": severity,
+                    })
+    except Exception:
+        pass
+
     inv_stats = {
         "stockValue": total_inv_value,
+        "stockValueChange": 0,
         "lowStock": low_stock_qs.count(),
-        "expiring": 0,
-        "monthlyWaste": 0,
+        "lowStockChange": 0,
+        "expiring": len(expiring_items),
+        "expiringChange": 0,
+        "monthlyWaste": monthly_waste_value,
+        "wasteChange": 0,
     }
 
     stock_level = [
@@ -268,6 +394,7 @@ def dashboard_analytics(request):
             "nameEn": si.raw_material.name,
             "current": float(si.quantity),
             "min": float(si.raw_material.minimum_stock),
+            "unit": si.raw_material.unit or "",
         }
         for si in low_stock_qs.select_related("raw_material", "warehouse")[:10]
     ]
@@ -303,6 +430,31 @@ def dashboard_analytics(request):
             "inbound": round(entry["in"], 1),
             "outbound": round(entry["out"], 1),
         })
+
+    # ── نمودار دایره‌ای ضایعات (از waste_reason) ★ ──
+    waste_pie = []
+    try:
+        waste_breakdown = (
+            InventoryMovement.objects.filter(
+                restaurant=restaurant,
+                created_at__gte=month_start_dt,
+            )
+            .exclude(waste_reason="")
+            .exclude(waste_reason__isnull=True)
+            .values("waste_reason")
+            .annotate(total=Sum("quantity"))
+            .order_by("-total")
+        )
+        for w in waste_breakdown:
+            reason = w["waste_reason"] or "other"
+            waste_pie.append({
+                "name": WASTE_LABELS.get(reason, reason),
+                "nameEn": reason.replace("_", " ").title(),
+                "value": float(w["total"] or 0),
+                "color": WASTE_COLORS.get(reason, "#6b7280"),
+            })
+    except Exception:
+        pass
 
     # ── هشدارهای موجودی ──
     stock_alerts = []
@@ -364,9 +516,45 @@ def dashboard_analytics(request):
             "unit": s["raw_material__unit"] or "",
         })
 
+    # ── مقایسه هفتگی انبار ★ ──
+    def calc_movements(start, end=None):
+        qs = InventoryMovement.objects.filter(
+            restaurant=restaurant, created_at__date__gte=start
+        )
+        if end:
+            qs = qs.filter(created_at__date__lt=end)
+        inbound = float(qs.filter(
+            movement_type__in=["in", "production", "adjustment"]
+        ).aggregate(t=Sum("quantity"))["t"] or 0)
+        outbound = float(qs.exclude(
+            movement_type__in=["in", "production", "adjustment"]
+        ).aggregate(t=Sum("quantity"))["t"] or 0)
+        waste = float(qs.exclude(
+            waste_reason=""
+        ).exclude(
+            waste_reason__isnull=True
+        ).aggregate(t=Sum("quantity"))["t"] or 0)
+        return inbound, outbound, waste
+
+    this_in, this_out, this_waste = calc_movements(week_start)
+    prev_in, prev_out, prev_waste = calc_movements(prev_week_start, week_start)
+
+    inv_weekly = {
+        "thisWeekStock": total_inv_value,
+        "lastWeekStock": 0,
+        "thisWeekInbound": round(this_in, 1),
+        "lastWeekInbound": round(prev_in, 1),
+        "thisWeekWaste": round(this_waste, 1),
+        "lastWeekWaste": round(prev_waste, 1),
+        "stockChange": 0,
+        "inboundChange": round((this_in - prev_in) / prev_in * 100, 1) if prev_in > 0 else 0,
+        "wasteChange": round((this_waste - prev_waste) / prev_waste * 100, 1) if prev_waste > 0 else 0,
+    }
+
     return JsonResponse({
         "success": True,
         "is_demo": is_demo,
+        # ── صندوق ──
         "posStats": pos_stats,
         "salesTrend": sales_trend,
         "hourly": hourly,
@@ -376,13 +564,14 @@ def dashboard_analytics(request):
         "orderStatus": order_status,
         "weeklyCompare": weekly_compare,
         "monthlyTrend": monthly_trend,
+        # ── انبار ──
         "invStats": inv_stats,
         "stockLevel": stock_level,
         "stockFlow": stock_flow,
-        "wastePie": [],
+        "wastePie": waste_pie,
         "stockAlerts": stock_alerts,
-        "expiring": [],
+        "expiring": expiring_items,
         "topUsed": top_used,
         "slowMovers": slow_movers,
-        "invWeekly": [],
+        "invWeekly": inv_weekly,
     })
