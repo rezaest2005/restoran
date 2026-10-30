@@ -59,115 +59,75 @@ export const ROLE_OPTIONS = [
 ];
 
 // ═══════════════════════════════════════
-//  کدهای دسترسی + برچسب‌ها
+//  کدهای دسترسی + برچسب‌ها ★ هماهنگ با داشبورد
 // ═══════════════════════════════════════
 
 export const ALL_PERM_CODES = [
   // داشبورد
-  'home',
-  // دیکشنری و منو
-  'dictionary', 'foods', 'dictionary_menu', 'dictionary_suppliers', 'dictionary_warehouses',
-  // صندوق و سفارشات
-  'pos', 'pos_report', 'pos_settings', 'orders',
-  // آشپزخانه
-  'kitchen', 'kitchen_menu', 'kitchen_waste',
-  // انبار — موجود
-  'invoices', 'raw_materials', 'semi_finished', 'ready_materials', 'usage_log', 'recipes',
-  // انبار — جدید ★
-  'warehouse', 'inventory_warehouse', 'inventory_receiving', 'inventory_transfer',
-  'inventory_waste', 'inventory_adjustment', 'inventory_purchase_list', 'inventory_reports',
-  // باشگاه مشتریان
-  'loyalty', 'loyalty_customers', 'loyalty_coupons', 'loyalty_rewards',
-  'loyalty_notifications', 'loyalty_register',
-  // مدیریت
-  'users', 'reports', 'settings',
+  "home",
+  // 📦 انبار
+  "inventory_invoice", "inventory_sales", "inventory_warehouse",
+  "inventory_receiving", "inventory_purchase_list", "inventory_reports",
+  // 📖 تعاریف
+  "dictionary", "dictionary_menu", "dictionary_suppliers",
+  "dictionary_warehouses", "dictionary_customers",
+  "dictionary_managers", "dictionary_recipes",
+  // 💰 صندوق
+  "pos", "pos_report", "pos_settings", "orders",
 ];
 
 export const PERM_LABELS = {
   // داشبورد
-  home: 'داشبورد',
-  // دیکشنری و منو
-  dictionary: 'دیکشنری',
-  foods: 'غذا و منو',
-  dictionary_menu: 'منوی غذا',
-  dictionary_suppliers: 'تأمین‌کنندگان',
-  dictionary_warehouses: 'انبارها (دیکشنری)',
-  // صندوق و سفارشات
-  pos: 'صندوق فروش',
-  pos_report: 'گزارش روز صندوق',
-  pos_settings: 'تنظیمات صندوق',
-  orders: 'سفارشات',
-  // آشپزخانه
-  kitchen: 'آشپزخانه',
-  kitchen_menu: 'منوی آشپزخانه',
-  kitchen_waste: 'ضایعات آشپزخانه',
-  // انبار — موجود
-  invoices: 'فاکتورهای خرید',
-  raw_materials: 'مواد اولیه',
-  semi_finished: 'نیمه‌آماده',
-  ready_materials: 'مواد آماده',
-  usage_log: 'لاگ مصرف',
-  recipes: 'رسپی‌ها',
-  // انبار — جدید ★
-  warehouse: 'انبار',
-  inventory_warehouse: 'مدیریت انبارها',
-  inventory_receiving: 'تحویل بار',
-  inventory_transfer: 'انتقال بین انبارها',
-  inventory_waste: 'ضایعات انبار',
-  inventory_adjustment: 'اصلاح موجودی',
-  inventory_purchase_list: 'لیست خرید',
-  inventory_reports: 'گزارشات انبار',
-  // باشگاه مشتریان
-  loyalty: 'باشگاه مشتریان',
-  loyalty_customers: 'مشتریان',
-  loyalty_coupons: 'کوپن‌ها',
-  loyalty_rewards: 'جوایز',
-  loyalty_notifications: 'اعلان‌ها',
-  loyalty_register: 'ثبت‌نام',
-  // مدیریت
-  users: 'مدیریت کاربران',
-  reports: 'گزارشات کلی',
-  settings: 'تنظیمات',
+  home: "داشبورد اصلی",
+  // 📦 انبار
+  inventory_invoice: "ثبت فاکتور خرید",
+  inventory_sales: "ثبت فاکتور فروش",
+  inventory_warehouse: "انبار",
+  inventory_receiving: "تحویل بار",
+  inventory_purchase_list: "لیست خرید",
+  inventory_reports: "گزارشات",
+  // 📖 تعاریف
+  dictionary: "دیکشنری",
+  dictionary_menu: "منوی غذا",
+  dictionary_suppliers: "تأمین‌کنندگان",
+  dictionary_warehouses: "انبارها",
+  dictionary_customers: "مشتریان",
+  dictionary_managers: "مدیران",
+  dictionary_recipes: "رسپی‌ها",
+  // 💰 صندوق
+  pos: "صندوق فروش",
+  pos_report: "گزارش روز صندوق",
+  pos_settings: "تنظیمات صندوق",
+  orders: "سفارشات",
 };
 
 // ═══════════════════════════════════════
-//  گروه‌بندی دسترسی‌ها (برای نمایش در UI)
+//  گروه‌بندی دسترسی‌ها ★ هماهنگ با ۳ بخش داشبورد
 // ═══════════════════════════════════════
 
 export const PERM_GROUPS = {
-  "📊 داشبورد": {
-    icon: "📊",
+  "🏠 داشبورد": {
+    icon: "🏠",
     codes: ["home"],
   },
-  "📚 دیکشنری و منو": {
-    icon: "📚",
-    codes: ["dictionary", "foods", "dictionary_menu", "dictionary_suppliers", "dictionary_warehouses"],
-  },
-  "💳 صندوق و سفارشات": {
-    icon: "💳",
-    codes: ["pos", "pos_report", "pos_settings", "orders"],
-  },
-  "🍳 آشپزخانه": {
-    icon: "🍳",
-    codes: ["kitchen", "kitchen_menu", "kitchen_waste"],
-  },
-  "📦 انبار — مواد و رسپی": {
+  "📦 انبار": {
     icon: "📦",
-    codes: ["invoices", "raw_materials", "semi_finished", "ready_materials", "usage_log", "recipes"],
+    codes: [
+      "inventory_invoice", "inventory_sales", "inventory_warehouse",
+      "inventory_receiving", "inventory_purchase_list", "inventory_reports",
+    ],
   },
-  "🏪 انبار — مدیریت و عملیات": {
-    icon: "🏪",
-    codes: ["warehouse", "inventory_warehouse", "inventory_receiving", "inventory_transfer",
-            "inventory_waste", "inventory_adjustment", "inventory_purchase_list", "inventory_reports"],
+  "📖 تعاریف": {
+    icon: "📖",
+    codes: [
+      "dictionary", "dictionary_menu", "dictionary_suppliers",
+      "dictionary_warehouses", "dictionary_customers",
+      "dictionary_managers", "dictionary_recipes",
+    ],
   },
-  "🏆 باشگاه مشتریان": {
-    icon: "🏆",
-    codes: ["loyalty", "loyalty_customers", "loyalty_coupons", "loyalty_rewards",
-            "loyalty_notifications", "loyalty_register"],
-  },
-  "👥 مدیریت": {
-    icon: "👥",
-    codes: ["users", "reports", "settings"],
+  "💰 صندوق": {
+    icon: "💰",
+    codes: ["pos", "pos_report", "pos_settings", "orders"],
   },
 };
 
@@ -184,44 +144,40 @@ export const ROLE_PERM_PRESETS = {
   manager: {
     label: "👤 مدیر",
     description: "همه به‌جز مدیریت کاربران",
-    perms: ALL_PERM_CODES.filter((c) => c !== "users"),
+    perms: [...ALL_PERM_CODES],
   },
   cashier: {
-    label: "💳 صندوقدار",
-    description: "صندوق، سفارشات، منو",
+    label: "💰 صندوقدار",
+    description: "فقط بخش صندوق + منو",
     perms: [
-      "home", "dictionary", "foods", "dictionary_menu",
-      "pos", "pos_report", "orders", "reports",
+      "home",
+      "pos", "pos_report", "pos_settings", "orders",
+      "dictionary_menu",
     ],
   },
   kitchen: {
     label: "🍳 آشپزخانه",
-    description: "آشپزخانه، سفارشات، رسپی، ضایعات",
+    description: "رسپی + منو + سفارشات",
     perms: [
-      "home", "dictionary_menu", "orders",
-      "kitchen", "kitchen_menu", "kitchen_waste",
-      "raw_materials", "semi_finished", "ready_materials",
-      "usage_log", "recipes", "inventory_waste",
+      "home",
+      "dictionary_menu", "dictionary_recipes",
+      "orders",
     ],
   },
   warehouse: {
     label: "📦 انباردار",
-    description: "همه بخش‌های انبار + رسپی + گزارشات",
+    description: "فقط بخش انبار + تعاریف",
     perms: [
       "home",
+      "inventory_invoice", "inventory_sales", "inventory_warehouse",
+      "inventory_receiving", "inventory_purchase_list", "inventory_reports",
       "dictionary", "dictionary_suppliers", "dictionary_warehouses",
-      "invoices", "raw_materials", "semi_finished", "ready_materials",
-      "usage_log", "recipes",
-      "warehouse", "inventory_warehouse", "inventory_receiving",
-      "inventory_transfer", "inventory_waste", "inventory_adjustment",
-      "inventory_purchase_list", "inventory_reports",
-      "reports",
     ],
   },
   customer: {
     label: "🧑 مشتری",
     description: "فقط مشاهده منو",
-    perms: ["home", "dictionary_menu", "foods"],
+    perms: ["home", "dictionary_menu"],
   },
   other: {
     label: "📝 سایر (سفارشی)",
