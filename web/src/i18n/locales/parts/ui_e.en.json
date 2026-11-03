@@ -1,0 +1,58 @@
+{
+  "ui_e": {
+    "nav_production": "Production Line",
+    "page": {
+      "title": "Production Line",
+      "subtitle": "Define formulations (bill of materials) and run production orders for your business."
+    },
+    "tabs": { "formulas": "Formulations", "orders": "Production Line" },
+    "common": {
+      "cancel": "Cancel", "close": "Close", "save": "Save", "edit": "Edit", "delete": "Delete",
+      "remove": "Remove",
+      "load_failed": "Failed to load data.", "save_failed": "The operation failed."
+    },
+    "types": {
+      "raw": "Raw material", "packaging": "Packaging", "semi_finished": "Semi-finished", "finished": "Finished product"
+    },
+    "status": {
+      "planned": "Planned", "in_progress": "In progress", "completed": "Completed", "cancelled": "Cancelled"
+    },
+    "formulas": {
+      "list_title": "Formulations", "new": "New formulation", "empty": "No formulations defined yet.",
+      "col_name": "Name", "col_code": "Code", "col_output": "Output product", "col_batch": "Batch size",
+      "col_version": "Version", "col_active": "Active", "col_actions": "Actions",
+      "new_title": "New formulation", "edit_title": "Edit formulation",
+      "f_name": "Formulation name", "f_code": "Code (optional)", "f_output": "Output product",
+      "f_batch_qty": "Batch output quantity", "f_notes": "Notes",
+      "lines_title": "Components", "l_material": "Material", "l_quantity": "Quantity", "l_wastage": "Wastage %",
+      "add_line": "Add component", "est_cost": "Estimated batch cost", "per_unit": "per unit",
+      "saved": "Formulation saved.", "deleted": "Formulation deleted.",
+      "delete_title": "Delete formulation",
+      "delete_text": "Are you sure you want to delete \"{{name}}\"?",
+      "delete_hint": "If it is used by production orders, deactivate it instead."
+    },
+    "orders": {
+      "filter_status": "Status", "all": "All", "new": "New production order", "empty": "No production orders found.",
+      "col_number": "Number", "col_formula": "Formulation", "col_product": "Product", "col_planned": "Planned",
+      "col_produced": "Produced", "col_status": "Status", "col_unit_cost": "Unit cost", "col_total_cost": "Total cost",
+      "col_date": "Created", "col_created": "Created", "col_actions": "Actions",
+      "details": "Details", "start": "Start", "complete": "Complete", "cancel": "Cancel order", "create": "Create order",
+      "new_title": "New production order", "f_formula": "Formulation", "f_planned": "Planned quantity",
+      "f_notes": "Notes (optional)", "no_active_formulas": "No active formulations available.",
+      "detail_title": "Production order",
+      "required_title": "Required materials",
+      "r_material": "Material", "r_required": "Required", "r_available": "Available", "r_missing": "Missing",
+      "shortage_warning": "{{count}} material(s) are short in stock. Starting may fail until they are replenished.",
+      "created": "Production order created.",
+      "done_start": "Production started.", "done_complete": "Production completed.", "done_cancel": "Order cancelled.",
+      "confirm_start_title": "Start production",
+      "confirm_start_text": "Start order {{number}}? The required materials will be consumed from stock.",
+      "confirm_complete_title": "Complete production",
+      "confirm_complete_text": "Enter the actual produced quantity for order {{number}}.",
+      "confirm_cancel_title": "Cancel order",
+      "confirm_cancel_text": "Cancel order {{number}}? This cannot be undone.",
+      "produced_qty": "Produced quantity",
+      "qty_invalid": "Quantity must be greater than zero."
+    }
+  }
+}

@@ -9,6 +9,7 @@ import PurchaseListTab from "./tabs/PurchaseListTab";
 import ReportsTab from "./tabs/ReportsTab";
 import PurchaseInvoiceTab from "./tabs/PurchaseInvoiceTab";
 import SalesInvoiceTab from "./tabs/SalesInvoiceTab";
+import { buildColors } from "@shared/palette";
 
 const TABS = [
   { id: "invoice", icon: "🧾", label: "ثبت فاکتور خرید" },
@@ -36,31 +37,7 @@ export default function InventoryPage() {
     [],
   );
 
-  const C = useMemo(
-    () => ({
-      glass: isDark ? "rgba(16,18,16,0.6)" : "rgba(240,244,252,0.7)",
-      glassBorder: isDark ? "rgba(107,155,110,0.1)" : "rgba(80,100,140,0.15)",
-      olive: isDark ? "#6B9B6E" : "#2E4D30",
-      oliveSubtle: isDark ? "rgba(107,155,110,0.08)" : "rgba(46,77,48,0.08)",
-      text: isDark ? "#F0ECE8" : "#1A1A24",
-      sub: isDark ? "#8A8588" : "#555568",
-      muted: isDark ? "#4A4548" : "#8A8A9E",
-      inputBg: isDark ? "rgba(11,10,11,0.5)" : "rgba(240,244,252,0.85)",
-      btnGrad: isDark
-        ? "linear-gradient(135deg, #3D6B40, #5A8A5D, #6B9B6E, #4A7A4D)"
-        : "linear-gradient(135deg, #1E3A20, #2E4D30, #3D5A3E, #2E4D30)",
-      danger: isDark ? "#E84057" : "#C83048",
-      dangerBg: isDark ? "rgba(232,64,87,0.12)" : "rgba(200,48,72,0.1)",
-      warning: isDark ? "#F59E0B" : "#D97706",
-      warningBg: isDark ? "rgba(245,158,11,0.12)" : "rgba(217,119,6,0.1)",
-      info: isDark ? "#3B82F6" : "#2563EB",
-      infoBg: isDark ? "rgba(59,130,246,0.12)" : "rgba(37,99,235,0.1)",
-      cardShadow: isDark
-        ? "0 8px 60px rgba(0,0,0,0.5), 0 0 80px rgba(107,155,110,0.04)"
-        : "0 8px 60px rgba(0,0,0,0.1), 0 0 60px rgba(74,106,148,0.08)",
-    }),
-    [isDark],
-  );
+  const C = useMemo(() => buildColors(isDark), [isDark]);
 
   return (
     <Box

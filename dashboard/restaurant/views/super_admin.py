@@ -1,5 +1,5 @@
 """
-پنل مدیریت کلان — ویوها (★ نسخه v16 — cleanup)
+پنل مدیریت کلان — ویوها (★ نسخه v17 — dashboard_permissions)
 """
 
 import json
@@ -140,6 +140,34 @@ def _clean_phone(val):
     return v if v else None
 
 
+# ★ helper: آبجکت کامل tenant + restaurant برای response
+def _tenant_to_dict(tenant, restaurant=None):
+    if restaurant is None:
+        restaurant = Restaurant.objects.filter(tenant=tenant).first()
+    return {
+        'id': tenant.id,
+        'name': tenant.name,
+        'slug': restaurant.slug if restaurant else '',
+        'dashboard_url': f'/{restaurant.slug}/dashboard/app/' if restaurant else '',
+        'owner_id': tenant.owner_id,
+        'owner_name': (
+            (tenant.owner.get_full_name() or tenant.owner.username)
+            if tenant.owner else '?'
+        ),
+        'phone': tenant.phone or '',
+        'address': tenant.address or '',
+        'is_active': tenant.is_active,
+        'username_prefix': (
+            restaurant.username_prefix if restaurant else ''
+        ) or '',
+        # ★★★ فیلد جدید — تب‌های مجاز رستوران ★★★
+        'dashboard_permissions': (
+            list(restaurant.dashboard_permissions) if restaurant else []
+        ),
+        'created_at': tenant.created_at.strftime('%Y/%m/%d'),
+    }
+
+
 # ═══════════════════════════════════════════
 #  صفحات HTML
 # ═══════════════════════════════════════════
@@ -243,24 +271,8 @@ def super_tenants_api(request):
         data = []
         for t in tenants:
             restaurant = Restaurant.objects.filter(tenant=t).first()
-            slug = restaurant.slug if restaurant else ''
+            data.append(_tenant_to_dict(t, restaurant))
 
-            data.append({
-                'id': t.id,
-                'name': t.name,
-                'slug': slug,
-                'dashboard_url': f'/{slug}/dashboard/app/' if slug else '',
-                'owner_id': t.owner_id,
-                'owner_name': (
-                    (t.owner.get_full_name() or t.owner.username)
-                    if t.owner else '?'
-                ),
-                'phone': t.phone or '',
-                'address': t.address or '',
-                'is_active': t.is_active,
-                'username_prefix': getattr(t, 'username_prefix', '') or '',
-                'created_at': t.created_at.strftime('%Y/%m/%d'),
-            })
         return Response({'tenants': data})
 
     # POST — ساخت رستوران جدید
@@ -310,6 +322,8 @@ def super_tenants_api(request):
                 slug=slug,
                 phone=data.get('phone', ''),
                 address=data.get('address', ''),
+                # ★★★ ذخیره تب‌های مجاز هنگام ساخت ★★★
+                dashboard_permissions=data.get('dashboard_permissions', []),
             )
 
             if not owner.restaurant:
@@ -340,25 +354,12 @@ def super_tenant_detail_api(request, pk):
     restaurant = Restaurant.objects.filter(tenant=tenant).first()
 
     if request.method == "GET":
-        return Response({
-            'id': tenant.id,
-            'name': tenant.name,
-            'slug': restaurant.slug if restaurant else '',
-            'dashboard_url': f'/{restaurant.slug}/dashboard/app/' if restaurant else '',
-            'owner_id': tenant.owner_id,
-            'owner_name': (
-                (tenant.owner.get_full_name() or tenant.owner.username)
-                if tenant.owner else '?'
-            ),
-            'phone': tenant.phone or '',
-            'address': tenant.address or '',
-            'is_active': tenant.is_active,
-            'username_prefix': getattr(tenant, 'username_prefix', '') or '',
-            'created_at': tenant.created_at.strftime('%Y/%m/%d'),
-        })
+        # ★ استفاده از helper — شامل dashboard_permissions
+        return Response(_tenant_to_dict(tenant, restaurant))
 
     elif request.method == "PUT":
         data = request.data
+
         for field in ('name', 'phone', 'address'):
             if field in data:
                 setattr(tenant, field, data[field])
@@ -366,16 +367,34 @@ def super_tenant_detail_api(request, pk):
             tenant.is_active = bool(data['is_active'])
         tenant.save()
 
-        if 'slug' in data and restaurant:
-            new_slug = (data['slug'] or '').strip()
-            if new_slug != restaurant.slug:
-                valid, msg = _validate_slug(new_slug, exclude_restaurant_id=restaurant.pk)
-                if not valid:
-                    return Response({'error': msg}, status=status.HTTP_400_BAD_REQUEST)
-                restaurant.slug = new_slug
-                restaurant.save(update_fields=['slug'])
+        if restaurant:
+            # ★ ذخیره تب‌های مجاز
+            if 'dashboard_permissions' in data:
+                restaurant.dashboard_permissions = data['dashboard_permissions']
+                restaurant.save(update_fields=['dashboard_permissions'])
 
-        return Response({'ok': True, 'msg': f'رستوران «{tenant.name}» بروزرسانی شد'})
+            # ★ ذخیره username_prefix
+            if 'username_prefix' in data:
+                restaurant.username_prefix = (data['username_prefix'] or '').strip()
+                restaurant.save(update_fields=['username_prefix'])
+
+            # ★ تغییر slug
+            if 'slug' in data:
+                new_slug = (data['slug'] or '').strip()
+                if new_slug != restaurant.slug:
+                    valid, msg = _validate_slug(new_slug, exclude_restaurant_id=restaurant.pk)
+                    if not valid:
+                        return Response({'error': msg}, status=status.HTTP_400_BAD_REQUEST)
+                    restaurant.slug = new_slug
+                    restaurant.save(update_fields=['slug'])
+
+        return Response({
+            'ok': True,
+            'msg': f'رستوران «{tenant.name}» بروزرسانی شد',
+            'dashboard_permissions': (
+                list(restaurant.dashboard_permissions) if restaurant else []
+            ),
+        })
 
     elif request.method == "DELETE":
         name = tenant.name

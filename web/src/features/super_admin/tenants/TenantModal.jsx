@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, Typography, Box, TextField, Chip, Checkbox,
-  IconButton, Collapse,
+  IconButton, Collapse, Alert,
 } from "@mui/material";
 import { ExpandMore, ExpandLess } from "@mui/icons-material";
 import superClient from "@super/api/super_client";
@@ -38,9 +38,13 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState({});
   const [role, setRole] = useState("warehouse");
+  const [errorMsg, setErrorMsg] = useState("");          // ★ جدید
+  const [fieldErrors, setFieldErrors] = useState({});     // ★ جدید
 
   useEffect(() => {
     if (open) {
+      setErrorMsg("");                                    // ★ ریست خطا
+      setFieldErrors({});                                 // ★ ریست خطا
       if (editData) {
         setForm({
           name: editData.name || "",
@@ -66,8 +70,16 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
     }
   }, [open, editData]);
 
-  const set = (key) => (e) =>
+  const set = (key) => (e) => {
     setForm((f) => ({ ...f, [key]: e.target.value }));
+    // ★ پاک کردن خطای فیلد وقتی کاربر تایپ میکنه
+    setFieldErrors((p) => {
+      if (!p[key]) return p;
+      const n = { ...p };
+      delete n[key];
+      return n;
+    });
+  };
 
   // ── مدیریت تب‌ها ──
   const toggleExpand = (id) =>
@@ -103,23 +115,89 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
     }
   };
 
+  // ── ★ اعتبارسنجی قبل از ارسال ──
+  const validate = () => {
+    const errors = {};
+
+    if (!form.name.trim()) errors.name = t("ui_c.super.tenant.err_name");
+    if (!editId) {
+      if (!form.slug.trim()) errors.slug = t("ui_c.super.tenant.err_slug");
+      if (!form.owner_username.trim()) errors.owner_username = t("ui_c.super.tenant.err_owner_username");
+      if (!form.owner_password || form.owner_password.length < 4)
+        errors.owner_password = t("ui_c.super.tenant.err_owner_password");
+    }
+    if (form.slug && !/^[a-z0-9-]+$/.test(form.slug))
+      errors.slug = t("ui_c.super.tenant.err_slug_format");
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   // ── ذخیره ──
   const handleSave = async () => {
+    setErrorMsg("");
+
+    if (!validate()) return;
+
     setLoading(true);
     try {
+      // ★ پاکسازی payload — فقط فیلدهای مورد نیاز بک‌اند
       const payload = {
-        ...form,
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        address: form.address.trim(),
+        start_date: form.start_date || null,
+        end_date: form.end_date || null,
         dashboard_permissions: form.perms,
       };
+
+      if (!editId) {
+        payload.slug = form.slug.trim();
+        payload.owner_username = form.owner_username.trim();
+        payload.owner_password = form.owner_password;
+        payload.owner_name = form.owner_name.trim();
+      } else {
+        payload.owner_name = form.owner_name.trim();
+        // رمز فقط اگه پر شده باشه
+        if (form.owner_password && form.owner_password.length >= 4) {
+          payload.owner_password = form.owner_password;
+        }
+      }
+
       if (editId) {
         await superClient.put(`/api/super/tenants/${editId}/`, payload);
       } else {
         await superClient.post(`/api/super/tenants/`, payload);
       }
+
       if (onSave) onSave();
       onClose();
     } catch (err) {
       console.error("Save tenant error:", err);
+
+      // ★ نمایش خطای بک‌اند به کاربر
+      const data = err?.response?.data;
+      if (data) {
+        // اگه خطاها فیلدی باشن
+        if (typeof data === "object" && !data.error && !data.detail) {
+          const fe = {};
+          let general = "";
+          Object.entries(data).forEach(([key, val]) => {
+            const msg = Array.isArray(val) ? val.join(t("ui_c.super.list_sep")) : String(val);
+            if (["name", "slug", "owner_username", "owner_password", "phone"].includes(key)) {
+              fe[key] = msg;
+            } else {
+              general += (general ? " | " : "") + `${key}: ${msg}`;
+            }
+          });
+          setFieldErrors(fe);
+          setErrorMsg(general || t("ui_c.super.tenant.err_check_fields"));
+        } else {
+          setErrorMsg(data.error || data.detail || JSON.stringify(data));
+        }
+      } else {
+        setErrorMsg(t("ui_c.super.tenant.err_server"));
+      }
     } finally {
       setLoading(false);
     }
@@ -141,35 +219,80 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
         color: C.text, fontWeight: 800, fontSize: 17,
         borderBottom: `1px solid ${C.glassBorder}`,
       }}>
-        {editId ? "✏️ ویرایش رستوران" : "➕ ساخت رستوران جدید"}
+        {editId ? t("ui_c.super.tenant.title_edit") : t("ui_c.super.tenant.title_new")}
       </DialogTitle>
 
       <DialogContent sx={{ pt: 2.5 }}>
+        {/* ★ نمایش خطای کلی */}
+        {errorMsg && (
+          <Alert severity="error" sx={{ mb: 2, borderRadius: "12px", fontSize: 12, fontWeight: 600 }}
+            onClose={() => setErrorMsg("")}>
+            {errorMsg}
+          </Alert>
+        )}
+
         {/* ═══ اطلاعات اصلی ═══ */}
         <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.text, mb: 1.5 }}>
-          📋 اطلاعات اصلی
+          {t("ui_c.super.tenant.section_main")}
         </Typography>
         <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-          <TextField label="نام رستوران" value={form.name} onChange={set("name")} sx={fieldSx} />
-          <TextField label="Slug (آدرس)" value={form.slug} onChange={set("slug")} disabled={!!editId} sx={fieldSx} />
-          <TextField label="نام کاربری مالک" value={form.owner_username} onChange={set("owner_username")} disabled={!!editId} sx={fieldSx} />
-          <TextField label="رمز عبور" type="password" value={form.owner_password} onChange={set("owner_password")}
-            placeholder={editId ? "برای عدم تغییر خالی بگذارید" : ""} sx={fieldSx} />
-          <TextField label="نام مالک" value={form.owner_name} onChange={set("owner_name")} sx={fieldSx} />
-          <TextField label="تلفن" value={form.phone} onChange={set("phone")} sx={fieldSx} />
-          <TextField label="آدرس" value={form.address} onChange={set("address")} multiline rows={2}
+          <TextField
+            label={t("ui_c.super.tenant.f_name")}
+            value={form.name}
+            onChange={set("name")}
+            error={!!fieldErrors.name}
+            helperText={fieldErrors.name}
+            sx={fieldSx}
+          />
+          <TextField
+            label={t("ui_c.super.tenant.f_slug")}
+            value={form.slug}
+            onChange={set("slug")}
+            disabled={!!editId}
+            error={!!fieldErrors.slug}
+            helperText={fieldErrors.slug || t("ui_c.super.tenant.slug_hint")}
+            sx={fieldSx}
+          />
+          <TextField
+            label={t("ui_c.super.tenant.f_owner_username")}
+            value={form.owner_username}
+            onChange={set("owner_username")}
+            disabled={!!editId}
+            error={!!fieldErrors.owner_username}
+            helperText={fieldErrors.owner_username}
+            sx={fieldSx}
+          />
+          <TextField
+            label={editId ? t("ui_c.super.tenant.f_new_password") : t("ui_c.super.tenant.f_password")}
+            type="password"
+            value={form.owner_password}
+            onChange={set("owner_password")}
+            error={!!fieldErrors.owner_password}
+            helperText={fieldErrors.owner_password || (editId ? t("ui_c.super.tenant.pw_keep") : t("ui_c.super.tenant.pw_min"))}
+            sx={fieldSx}
+          />
+          <TextField label={t("ui_c.super.tenant.f_owner_name")} value={form.owner_name} onChange={set("owner_name")} sx={fieldSx} />
+          <TextField
+            label={t("ui_c.super.tenant.f_phone")}
+            value={form.phone}
+            onChange={set("phone")}
+            error={!!fieldErrors.phone}
+            helperText={fieldErrors.phone}
+            sx={fieldSx}
+          />
+          <TextField label={t("ui_c.super.tenant.f_address")} value={form.address} onChange={set("address")} multiline rows={2}
             sx={{ ...fieldSx, gridColumn: "1 / -1" }} />
         </Box>
 
         {/* ═══ تاریخ اشتراک ═══ */}
         <Box sx={{ bgcolor: C.oliveSubtle, borderRadius: "14px", p: 2, mt: 2.5 }}>
           <Typography sx={{ fontSize: 13, fontWeight: 800, color: C.olive, mb: 1.5 }}>
-            📅 تاریخ اشتراک
+            {t("ui_c.super.tenant.section_dates")}
           </Typography>
           <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
             <Box sx={{ flex: "1 1 200px" }}>
               <Typography sx={{ fontSize: 11, fontWeight: 600, color: C.sub, mb: 0.5 }}>
-                شروع
+                {t("ui_c.super.tenant.start")}
               </Typography>
               <input type="date" value={form.start_date} onChange={set("start_date")}
                 style={{
@@ -182,7 +305,7 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
             </Box>
             <Box sx={{ flex: "1 1 200px" }}>
               <Typography sx={{ fontSize: 11, fontWeight: 600, color: C.sub, mb: 0.5 }}>
-                پایان
+                {t("ui_c.super.tenant.end")}
               </Typography>
               <input type="date" value={form.end_date} onChange={set("end_date")}
                 style={{
@@ -197,17 +320,16 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
         </Box>
 
         {/* ═══════════════════════════════════════════ */}
-        {/*   📌 تب‌ها و دسترسی‌ها (جدید)               */}
+        {/*   📌 تب‌ها و دسترسی‌ها                       */}
         {/* ═══════════════════════════════════════════ */}
         <Box sx={{ mt: 3 }}>
-          {/* ── تیتر ── */}
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
             <Typography sx={{ fontSize: 15, fontWeight: 800, color: C.text }}>
-              🔐 تب‌ها و دسترسی‌ها
+              {t("ui_c.super.tenant.section_perms")}
             </Typography>
             <Chip
               size="small"
-              label={`${form.perms.length}/${ALL_PERM_CODES.length} فعال`}
+              label={t("ui_c.super.tenant.active_count", { n: form.perms.length, total: ALL_PERM_CODES.length })}
               sx={{
                 height: 24, fontSize: 11, fontWeight: 700,
                 bgcolor: form.perms.length > 0 ? C.olive + "20" : C.muted + "20",
@@ -216,12 +338,12 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
             />
           </Box>
           <Typography sx={{ fontSize: 11, color: C.sub, mb: 1.5 }}>
-            تب‌هایی که این رستوران می‌تونه ببینه رو انتخاب کنید
+            {t("ui_c.super.tenant.perms_hint")}
           </Typography>
 
           {/* ── پروفایل‌های آماده ── */}
           <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}>
-            <Chip clickable label="🟢 همه"
+            <Chip clickable label={t("ui_c.super.tenant.chip_all")}
               onClick={() => handleRoleChange("all")}
               sx={{
                 height: 34, fontSize: 12, fontWeight: 700, borderRadius: "10px",
@@ -231,7 +353,7 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
               }}
             />
             {Object.entries(ROLE_PERM_PRESETS).map(([key, preset]) => (
-              <Chip key={key} clickable label={preset.label}
+              <Chip key={key} clickable label={t(preset.labelKey)}
                 onClick={() => handleRoleChange(key)}
                 sx={{
                   height: 34, fontSize: 12, fontWeight: 700, borderRadius: "10px",
@@ -241,7 +363,7 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
                 }}
               />
             ))}
-            <Chip clickable label="🧹 هیچ"
+            <Chip clickable label={t("ui_c.super.tenant.chip_none")}
               onClick={() => { setForm((f) => ({ ...f, perms: [] })); setRole("none"); }}
               sx={{
                 height: 34, fontSize: 12, fontWeight: 700, borderRadius: "10px",
@@ -256,11 +378,11 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
           <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
             <Button size="small" onClick={() => setForm((f) => ({ ...f, perms: [...ALL_PERM_CODES] }))}
               sx={{ fontSize: 11, color: C.olive, textTransform: "none", fontWeight: 700 }}>
-              ☑ انتخاب همه
+              {t("ui_c.super.tenant.select_all")}
             </Button>
             <Button size="small" onClick={() => setForm((f) => ({ ...f, perms: [] }))}
               sx={{ fontSize: 11, color: C.danger, textTransform: "none", fontWeight: 700 }}>
-              ☒ لغو همه
+              {t("ui_c.super.tenant.deselect_all")}
             </Button>
           </Box>
 
@@ -301,7 +423,7 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
                         }}
                       />
                       <Typography sx={{ fontSize: 12, fontWeight: 800, color: groupAll ? C.olive : C.text }}>
-                        {group.icon} {groupName}
+                        {group.icon} {t(group.labelKey)}
                       </Typography>
                     </Box>
 
@@ -360,7 +482,7 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
                               fontWeight: active ? 700 : 400,
                               lineHeight: 1.3,
                             }}>
-                              {PERM_LABELS[code] || code}
+                              {PERM_LABELS[code] ? t(PERM_LABELS[code]) : code}
                             </Typography>
                           </Box>
                         );
@@ -380,7 +502,7 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
         borderTop: `1px solid ${C.glassBorder}`,
       }}>
         <Button onClick={onClose} sx={{ color: C.sub, textTransform: "none", fontSize: 13 }}>
-          انصراف
+          {t("ui_c.super.cancel")}
         </Button>
         <Button onClick={handleSave} disabled={loading}
           sx={{
@@ -388,7 +510,7 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
             fontWeight: 700, textTransform: "none",
             borderRadius: "12px", px: 4, fontSize: 13,
           }}>
-          {loading ? "..." : "ذخیره"}
+          {loading ? "..." : editId ? t("ui_c.super.tenant.save_changes") : t("ui_c.super.tenant.create")}
         </Button>
       </DialogActions>
     </Dialog>

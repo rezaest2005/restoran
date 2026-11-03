@@ -1,10 +1,11 @@
 """
-User management API (★ نسخه v10 — داینامیک تب‌ها)
+User management API (★ نسخه v11 — فیکس تیک خودکار تب‌ها)
 
-★ v10 تغییرات:
-  - user_management_api: tabs → dashboard_permissions (لیست خام)
-  - user_tabs_api GET: tabs → dashboard_permissions
-  - user_tabs_api POST: ذخیره مستقیم هر تبی که فرانت بفرسته
+★ v11 تغییرات:
+  - _get_normalized_tabs: همه کلیدها explicit برمیگردونه (ناموجود = False)
+  - user_management_api: tabs نرمال‌شده
+  - user_tabs_api GET/POST: tabs نرمال‌شده + ذخیره کامل
+  - فیکس: تیک خودکار تب‌ها حل شد
 """
 
 import logging
@@ -37,6 +38,39 @@ logger = logging.getLogger(__name__)
 # ═══════════════════════════════════════
 
 UsersPerm = make_service_permission('users')
+
+
+# ═══════════════════════════════════════
+#  ★ همه کلیدهای مجاز تب‌ها
+# ═══════════════════════════════════════
+
+ALL_TAB_KEYS = [
+    "home",
+    "pos", "pos_report", "pos_settings", "orders",
+    "inventory_invoice", "inventory_sales", "inventory_warehouse",
+    "inventory_receiving", "inventory_purchase_list", "inventory_reports",
+    "dictionary_items", "dictionary_menu", "dictionary_recipe",
+    "dictionary_suppliers", "dictionary_warehouses", "dictionary_customers",
+    "dictionary_users",
+    "feedback", "club",
+]
+
+
+def _get_normalized_tabs(user):
+    """
+    ★ فیکس تیک خودکار:
+      همه کلیدهای ALL_TAB_KEYS رو برمیگردونه
+      هر کلیدی که ذخیره نشده = False (خودکار True نمیشه!)
+    """
+    raw = getattr(user, "tabs", None)
+
+    # حالت ۱: tabs ذخیره شده → نرمال کن
+    if raw and isinstance(raw, dict) and len(raw) > 0:
+        return {k: bool(raw.get(k, False)) for k in ALL_TAB_KEYS}
+
+    # حالت ۲: tabs خالیه → از dashboard_permissions بساز
+    perms = set(user.dashboard_permissions or [])
+    return {k: (k in perms) for k in ALL_TAB_KEYS}
 
 
 # ═══════════════════════════════════════
@@ -130,8 +164,10 @@ def user_management_api(request):
                 u.last_login.strftime("%Y/%m/%d %H:%M") if u.last_login else "هرگز"
             ),
             "permissions": get_user_permissions(u),
-            # ★ v10: لیست خام — هر تبی که فرانت بفرسته ذخیره میشه
             "dashboard_permissions": list(u.dashboard_permissions or []),
+
+            # ★ فیکس — نرمال‌شده، همه کلیدها explicit
+            "tabs": _get_normalized_tabs(u),
         })
     return Response({
         "success": True,
@@ -142,7 +178,7 @@ def user_management_api(request):
 
 
 # ═══════════════════════════════════════
-#  ★ ایجاد کاربر — v10
+#  ★ ایجاد کاربر
 # ═══════════════════════════════════════
 
 @api_view(["POST"])
@@ -211,6 +247,10 @@ def create_user_api(request):
         if hasattr(user, "is_approved"):
             user.is_approved = True
 
+        # ★ کاربر جدید: tabs خالی — بعداً مدیر تعیین میکنه
+        if hasattr(user, "tabs"):
+            user.tabs = {}
+
         update_fields = [
             "first_name", "last_name", "is_staff",
             "is_superuser",
@@ -223,6 +263,8 @@ def create_user_api(request):
             update_fields.append("restaurant")
         if hasattr(user, "is_approved"):
             update_fields.append("is_approved")
+        if hasattr(user, "tabs"):
+            update_fields.append("tabs")
 
         user.save(update_fields=update_fields)
 
@@ -366,7 +408,7 @@ def admin_reset_password(request):
 
 
 # ═══════════════════════════════════════
-#  ★ تأیید / رد کاربر — v10
+#  ★ تأیید / رد کاربر
 # ═══════════════════════════════════════
 
 @api_view(["POST"])
@@ -449,7 +491,7 @@ def reject_user_api(request):
 
 
 # ═══════════════════════════════════════
-#  ★ حذف کاربر — v10
+#  ★ حذف کاربر
 # ═══════════════════════════════════════
 
 @api_view(["POST"])
@@ -481,24 +523,25 @@ def user_delete(request):
 
 
 # ═══════════════════════════════════════
-#  ★ مدیریت تب‌ها — v10 (داینامیک)
+#  ★ مدیریت تب‌ها — v11 (فیکس تیک خودکار)
 # ═══════════════════════════════════════
 
 @api_view(["GET", "POST"])
 @permission_classes([UsersPerm])
 def user_tabs_api(request):
     """
-    GET  → دسترسی‌های کاربر فعلی (لیست خام)
-    POST → آپدیت تب‌های یک کاربر (فقط owner/manager)
+    GET  → tabs نرمال‌شده کاربر فعلی
+    POST → ذخیره tabs یک کاربر (فقط owner/manager)
 
-    ★ داینامیک: هر تبی که فرانت بفرسته ذخیره میشه — نیازی به
-      تعریف هاردکد در بک‌اند نیست.
+    ★ فیکس v11: همه کلیدها explicit ذخیره و برمیگرده
+      کلید ناموجود = False (خودکار True نمیشه!)
     """
     if request.method == "GET":
         u = request.user
         return Response({
             "success": True,
             "dashboard_permissions": list(u.dashboard_permissions or []),
+            "tabs": _get_normalized_tabs(u),       # ★ فیکس — نرمال‌شده
         })
 
     # POST — فقط مدیر/مالک
@@ -525,12 +568,16 @@ def user_tabs_api(request):
             status=404,
         )
 
-    # ★ ذخیره مستقیم — هر تبی که فرانت بفرسته
-    target.dashboard_permissions = [k for k, v in tabs.items() if v]
-    target.save(update_fields=["dashboard_permissions"])
+    # ★ فیکس — نرمال‌سازی: همه کلیدها explicit ذخیره بشن
+    normalized = {k: bool((tabs or {}).get(k, False)) for k in ALL_TAB_KEYS}
+
+    target.tabs = normalized
+    target.dashboard_permissions = [k for k, v in normalized.items() if v]
+    target.save(update_fields=["tabs", "dashboard_permissions"])
 
     return Response({
         "success": True,
         "msg": f"تب‌های «{target.username}» بروزرسانی شد",
         "dashboard_permissions": target.dashboard_permissions,
+        "tabs": _get_normalized_tabs(target),      # ★ فیکس — نرمال‌شده
     })

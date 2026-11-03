@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, Box, IconButton,
@@ -8,6 +9,7 @@ import superClient from "@super/api/super_client";
 import { ROLE_OPTIONS, ROLE_PERM_PRESETS } from "@super/shared/superConfig";
 
 export default function UserModal({ open, editId, onClose, tenants, C }) {
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     username: "",
     password: "",
@@ -116,7 +118,7 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
           borderBottom: `1px solid ${C.glassBorder}`,
         }}
       >
-        {editId ? "✏️ ویرایش کاربر" : "➕ کاربر جدید"}
+        {editId ? t("ui_c.super.user.title_edit") : t("ui_c.super.user.title_new")}
         <IconButton
           onClick={onClose}
           sx={{ position: "absolute", left: 8, top: 8, color: C.sub }}
@@ -131,14 +133,14 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
           {/* ── اطلاعات پایه ── */}
           <TextField
             size="small"
-            label="نام کاربری"
+            label={t("ui_c.super.user.username")}
             value={form.username}
             onChange={(e) => setForm({ ...form, username: e.target.value })}
             sx={{ "& .MuiOutlinedInput-root": { bgcolor: C.inputBg, borderRadius: "10px" } }}
           />
           <TextField
             size="small"
-            label="رمز عبور"
+            label={t("ui_c.super.user.password")}
             type="password"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
@@ -147,7 +149,7 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
           <Box sx={{ display: "flex", gap: 2 }}>
             <TextField
               size="small"
-              label="نام"
+              label={t("ui_c.super.user.first_name")}
               value={form.first_name}
               onChange={(e) => setForm({ ...form, first_name: e.target.value })}
               sx={{
@@ -157,7 +159,7 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
             />
             <TextField
               size="small"
-              label="نام خانوادگی"
+              label={t("ui_c.super.user.last_name")}
               value={form.last_name}
               onChange={(e) => setForm({ ...form, last_name: e.target.value })}
               sx={{
@@ -168,7 +170,7 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
           </Box>
           <TextField
             size="small"
-            label="شماره تلفن"
+            label={t("ui_c.super.user.phone")}
             value={form.phone_number}
             onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
             sx={{ "& .MuiOutlinedInput-root": { bgcolor: C.inputBg, borderRadius: "10px" } }}
@@ -177,7 +179,7 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
           {/* ── نقش ── */}
           <Box>
             <Typography sx={{ fontSize: 11, fontWeight: 700, color: C.sub, mb: 0.5 }}>
-              🎭 نقش / شغل
+              {t("ui_c.super.role_job")}
             </Typography>
             <Select
               size="small"
@@ -190,10 +192,10 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
                 <MenuItem key={r.value} value={r.value}>
                   <Box>
                     <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
-                      {ROLE_PERM_PRESETS[r.value]?.label || r.labelKey || r.value}
+                      {ROLE_PERM_PRESETS[r.value] ? t(ROLE_PERM_PRESETS[r.value].labelKey) : (r.labelKey ? t(r.labelKey) : r.value)}
                     </Typography>
                     <Typography sx={{ fontSize: 10, color: C.muted }}>
-                      {ROLE_PERM_PRESETS[r.value]?.description || ""}
+                      {ROLE_PERM_PRESETS[r.value]?.descKey ? t(ROLE_PERM_PRESETS[r.value].descKey) : ""}
                     </Typography>
                   </Box>
                 </MenuItem>
@@ -205,8 +207,8 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
           {form.role === "other" && (
             <TextField
               size="small"
-              label="نام شغل سفارشی"
-              placeholder="مثلاً: منشی، حسابدار، نظافتچی..."
+              label={t("ui_c.super.custom_job")}
+              placeholder={t("ui_c.super.custom_job_ph")}
               value={form.customRole}
               onChange={(e) => setForm({ ...form, customRole: e.target.value })}
               sx={{ "& .MuiOutlinedInput-root": { bgcolor: C.inputBg, borderRadius: "10px" } }}
@@ -224,7 +226,7 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
               }}
             >
               <Typography sx={{ fontSize: 11, fontWeight: 700, color: C.text, mb: 0.8 }}>
-                🔐 دسترسی‌های خودکار ({activePermsCount} مورد)
+                {t("ui_c.super.user.auto_perms", { n: activePermsCount })}
               </Typography>
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                 {form.dashboard_permissions.slice(0, 12).map((code) => (
@@ -250,18 +252,18 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
                 )}
               </Box>
               <Typography sx={{ fontSize: 10, color: C.muted, mt: 0.5 }}>
-                💡 برای تغییر تک‌تک دسترسی‌ها، بعد از ایجاد از دکمه "دسترسی‌ها" استفاده کنید
+                {t("ui_c.super.user.perms_tip")}
               </Typography>
             </Box>
           )}
 
-          {/* ── رستوران ── */}
+          {/* ── کسب‌وکار ── */}
           <FormControl fullWidth size="small">
-            <InputLabel sx={{ fontSize: 12 }}>رستوران</InputLabel>
+            <InputLabel sx={{ fontSize: 12 }}>{t("ui_c.super.user.tenant")}</InputLabel>
             <Select
               value={form.restaurant_id}
               onChange={(e) => setForm({ ...form, restaurant_id: e.target.value })}
-              label="رستوران"
+              label={t("ui_c.super.user.tenant")}
               sx={{ bgcolor: C.inputBg, borderRadius: "10px", fontSize: 13 }}
             >
               {tenants?.map((t) => (
@@ -285,7 +287,7 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
             fontSize: 12,
           }}
         >
-          انصراف
+          {t("ui_c.super.cancel")}
         </Button>
         <Button
           onClick={handleSave}
@@ -300,7 +302,7 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
             fontSize: 12,
           }}
         >
-          ذخیره
+          {t("ui_c.super.save")}
         </Button>
       </DialogActions>
     </Dialog>

@@ -40,10 +40,33 @@ from .orders import (
 )
 
 # ── POS ──
+from .qr_order import qr_order_submit
+from .club import (
+    club_settings,
+    club_members,
+    club_member_detail,
+    club_member_adjust,
+    club_lookup,
+    club_redeem,
+)
+from .production import (
+    formulas,
+    production_materials,
+    formula_detail,
+    production_orders,
+    production_order_detail,
+    production_order_start,
+    production_order_complete,
+    production_order_cancel,
+)
 from .pos import (
     pos_create_order,
     pos_daily_report,
     pos_daily_orders,
+    pos_close_all_pending,
+    pos_update_food_price,
+    pos_online_orders,
+    pos_reject_online_order,
     public_menu_api,
 )
 
@@ -55,6 +78,7 @@ from .users import (
     user_toggle_active,
     admin_reset_password,
     user_delete,
+    user_tabs_api, 
 )
 
 # ── Inventory ──
@@ -84,6 +108,15 @@ from .restaurant_page_views import (
     redirect_to_dashboard,
     orders_dashboard,
     user_management_page,
+)
+
+# ── Feedback ──
+from .feedback import (
+    feedback_submit,
+    feedback_list,
+    feedback_update,
+    feedback_page,
+    feedback_form,
 )
 
 
@@ -119,7 +152,26 @@ __all__ = [
     "pos_create_order",
     "pos_daily_report",
     "pos_daily_orders",
+    "pos_close_all_pending",
+    "pos_update_food_price",
+    "pos_online_orders",
+    "pos_reject_online_order",
     "public_menu_api",
+    "qr_order_submit",
+    "club_settings",
+    "club_members",
+    "club_member_detail",
+    "club_member_adjust",
+    "club_lookup",
+    "club_redeem",
+    "formulas",
+    "production_materials",
+    "formula_detail",
+    "production_orders",
+    "production_order_detail",
+    "production_order_start",
+    "production_order_complete",
+    "production_order_cancel",
     # Users
     "user_management_api",
     "create_user_api",
@@ -127,6 +179,7 @@ __all__ = [
     "user_toggle_active",
     "admin_reset_password",
     "user_delete",
+    "user_tabs_api",
     # Inventory
     "item_movement_report",
     "stock_value_report",
@@ -147,4 +200,10 @@ __all__ = [
     "redirect_to_dashboard",
     "orders_dashboard",
     "user_management_page",
+    # Feedback
+    "feedback_submit",
+    "feedback_list",
+    "feedback_update",
+    "feedback_page",
+    "feedback_form",
 ]

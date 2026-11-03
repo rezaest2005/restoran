@@ -52,10 +52,10 @@ export default function ServicesPanel({ tenantId, tenantName, services, loading,
           })),
         },
       );
-      setToast({ open: true, type: "success", msg: data.msg || "ذخیره شد" });
+      setToast({ open: true, type: "success", msg: data.msg || t("ui_c.super.services.saved") });
       if (onSave) onSave();
     } catch {
-      setToast({ open: true, type: "error", msg: "خطا در ذخیره" });
+      setToast({ open: true, type: "error", msg: t("ui_c.super.services.save_error") });
     } finally {
       setSaving(false);
     }

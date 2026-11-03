@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box, Typography, Button, TextField, Select, MenuItem,
   CircularProgress, Chip,
@@ -13,6 +14,7 @@ const F = (size) => Math.round(size * 1.15);
 const LS_ITEMS = "local_materials";
 const LS_CATS = "local_categories";
 const LS_ORDER = "local_materials_order";
+const NO_CAT = "__no_category__";
 
 const readJSON = (key, def = []) => {
   try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(def)); }
@@ -38,6 +40,7 @@ const sortByOrder = (items) => {
 };
 
 export default function InvoiceSection({ C, isDark, showToast }) {
+  const { t } = useTranslation();
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -162,8 +165,8 @@ export default function InvoiceSection({ C, isDark, showToast }) {
       writeJSON(LS_CATS, next);
       return next;
     });
-    notify(`دسته «${name}» حذف شد`, "info");
-  }, [notify]);
+    notify(t("ui_b.invoice.catDeleted", { name }), "info");
+  }, [notify, t]);
 
   // ═══════════ Drag & Drop ═══════════
   const handleDragStart = (idx) => { dragItemIdx.current = idx; setDragActive(idx); };
@@ -181,7 +184,7 @@ export default function InvoiceSection({ C, isDark, showToast }) {
     saveOrder(next);
     dragItemIdx.current = null;
     dragOverIdx.current = null;
-    notify("ترتیب تغییر کرد ✅", "info");
+    notify(`${t("ui_b.invoice.orderChanged")} ✅`, "info");
   };
 
   // ═══════════ فوکوس ═══════════
@@ -237,7 +240,7 @@ export default function InvoiceSection({ C, isDark, showToast }) {
   const doSave = useCallback(async () => {
     const f = formRef.current;
     const currentEditId = editIdRef.current;
-    if (!f.name?.trim()) { notify("نام کالا الزامی است", "warning"); focusName(); return; }
+    if (!f.name?.trim()) { notify(t("ui_b.invoice.nameRequired"), "warning"); focusName(); return; }
     if (savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
@@ -269,13 +272,13 @@ export default function InvoiceSection({ C, isDark, showToast }) {
       return next;
     });
 
-    notify(currentEditId ? "کالا بروزرسانی شد ✅" : savedToServer ? "کالا اضافه شد ✅" : "کالا اضافه شد (محلی) ✅", "success");
+    notify(`${currentEditId ? t("ui_b.invoice.itemUpdated") : savedToServer ? t("ui_b.invoice.itemAdded") : t("ui_b.invoice.itemAddedLocal")} ✅`, "success");
     setEditId(null);
     setForm({ code: "", name: "", unit: "kg", category: "" });
     focusCode();
     savingRef.current = false;
     setSaving(false);
-  }, [notify, focusName, focusCode]);
+  }, [notify, focusName, focusCode, t]);
 
   const handleDelete = useCallback(async (id) => {
     try { await client.post("/api/raw-materials/delete/", { id }); } catch {}
@@ -284,8 +287,8 @@ export default function InvoiceSection({ C, isDark, showToast }) {
       writeJSON(LS_ITEMS, next);
       return next;
     });
-    notify("کالا حذف شد", "info");
-  }, [notify]);
+    notify(t("ui_b.invoice.itemDeleted"), "info");
+  }, [notify, t]);
 
   // ── واحد جدید ──
   const handleAddUnit = useCallback(() => {
@@ -296,9 +299,9 @@ export default function InvoiceSection({ C, isDark, showToast }) {
     setForm((f) => ({ ...f, unit: unit.value }));
     setNewUnitName("");
     setShowUnitInput(false);
-    notify(`واحد «${name}» اضافه شد`, "success");
+    notify(t("ui_b.invoice.unitAdded", { name }), "success");
     focusUnit();
-  }, [newUnitName, notify, focusUnit]);
+  }, [newUnitName, notify, focusUnit, t]);
 
   const handleUnitChange = (val) => {
     if (val === "__other__") { setShowUnitInput(true); focusNewUnit(); return; }
@@ -318,9 +321,9 @@ export default function InvoiceSection({ C, isDark, showToast }) {
     setForm((f) => ({ ...f, category: name }));
     setNewCatName("");
     setShowCatInput(false);
-    notify(`دسته «${name}» اضافه شد`, "success");
+    notify(t("ui_b.invoice.catAdded", { name }), "success");
     focusCat();
-  }, [newCatName, notify, focusCat]);
+  }, [newCatName, notify, focusCat, t]);
 
   const handleCatChange = (val) => {
     if (val === "__other__") { setShowCatInput(true); focusNewCat(); return; }
@@ -481,11 +484,11 @@ export default function InvoiceSection({ C, isDark, showToast }) {
   const groupedByCat = useMemo(() => {
     const groups = {};
     for (const m of filtered) {
-      const cat = m.category || "بدون دسته";
+      const cat = m.category || NO_CAT;
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(m);
     }
-    const catOrder = [...categories, "بدون دسته"];
+    const catOrder = [...categories, NO_CAT];
     return catOrder
       .filter((c) => groups[c]?.length)
       .map((c) => ({ category: c, items: groups[c] }));
@@ -544,10 +547,10 @@ export default function InvoiceSection({ C, isDark, showToast }) {
     }}>
       <Box sx={{ width: 24 }} />
       <Box sx={{ width: 56, display: "flex", gap: 0.3, justifyContent: "center" }} />
-      <Typography sx={{ width: 80, fontSize: F(10), fontWeight: 700, color: C.muted }}>کد</Typography>
-      <Typography sx={{ flex: 3, fontSize: F(10), fontWeight: 700, color: C.muted }}>نام کالا</Typography>
-      <Typography sx={{ flex: 1, fontSize: F(10), fontWeight: 700, color: C.muted, textAlign: "center" }}>واحد</Typography>
-      <Typography sx={{ flex: 1, fontSize: F(10), fontWeight: 700, color: C.muted, textAlign: "center" }}>دسته‌بندی</Typography>
+      <Typography sx={{ width: 80, fontSize: F(10), fontWeight: 700, color: C.muted }}>{t("ui_b.invoice.code")}</Typography>
+      <Typography sx={{ flex: 3, fontSize: F(10), fontWeight: 700, color: C.muted }}>{t("ui_b.invoice.itemName")}</Typography>
+      <Typography sx={{ flex: 1, fontSize: F(10), fontWeight: 700, color: C.muted, textAlign: "center" }}>{t("ui_b.invoice.unit")}</Typography>
+      <Typography sx={{ flex: 1, fontSize: F(10), fontWeight: 700, color: C.muted, textAlign: "center" }}>{t("ui_b.invoice.category")}</Typography>
       <Box sx={{ minWidth: 100 }} />
     </Box>
   );
@@ -637,7 +640,7 @@ export default function InvoiceSection({ C, isDark, showToast }) {
             cursor: "pointer", color: C.olive, "&:hover": { bgcolor: C.oliveSubtle },
           }}>
           <Edit sx={{ fontSize: 16 }} />
-          <Typography sx={{ fontSize: F(9), fontWeight: 600 }}>ویرایش</Typography>
+          <Typography sx={{ fontSize: F(9), fontWeight: 600 }}>{t("ui_b.common.edit")}</Typography>
         </Box>
         <Box onClick={() => handleDelete(m.id)}
           sx={{
@@ -646,7 +649,7 @@ export default function InvoiceSection({ C, isDark, showToast }) {
             cursor: "pointer", color: C.danger, "&:hover": { bgcolor: C.dangerBg },
           }}>
           <Delete sx={{ fontSize: 16 }} />
-          <Typography sx={{ fontSize: F(9), fontWeight: 600 }}>حذف</Typography>
+          <Typography sx={{ fontSize: F(9), fontWeight: 600 }}>{t("ui_b.common.delete")}</Typography>
         </Box>
       </Box>
     </Box>
@@ -666,24 +669,24 @@ export default function InvoiceSection({ C, isDark, showToast }) {
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5, flexWrap: "wrap", gap: 1.5 }}>
         <Box>
           <Typography sx={{ fontSize: { xs: F(16), sm: F(18) }, fontWeight: 800, color: C.text }}>
-            🥜 اجناس
+            🥜 {t("ui_b.invoice.title")}
           </Typography>
           <Typography sx={{ fontSize: F(11), color: C.muted, mt: 0.3 }}>
-            {materials.length} کالا • {categories.length} دسته‌بندی
+            {t("ui_b.invoice.summary", { items: materials.length, cats: categories.length })}
           </Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>
           <Button onClick={() => setShowCatManager(!showCatManager)} sx={{ ...cancelBtnSx, fontSize: F(11) }}>
-            🏷️ مدیریت دسته‌ها
+            🏷️ {t("ui_b.invoice.manageCats")}
           </Button>
-          <Button onClick={handleOpenAdd} sx={btnSx}>➕ کالای جدید (F2)</Button>
+          <Button onClick={handleOpenAdd} sx={btnSx}>➕ {t("ui_b.invoice.newItemBtn")}</Button>
         </Box>
       </Box>
 
       {/* ── نوار ابزار ── */}
       <Box sx={{ display: "flex", gap: 1.5, mb: 2, flexWrap: "wrap", alignItems: "center" }}>
         <TextField
-          size="small" placeholder="🔍 جستجو..."
+          size="small" placeholder={`🔍 ${t("ui_b.common.search")}`}
           inputRef={searchRef}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -699,8 +702,8 @@ export default function InvoiceSection({ C, isDark, showToast }) {
 
         <Box sx={{ display: "flex", borderRadius: "10px", overflow: "hidden", border: `1px solid ${C.glassBorder}` }}>
           {[
-            { id: "all", label: "📋 همه" },
-            { id: "category", label: "🏷️ دسته‌بندی" },
+            { id: "all", label: `📋 ${t("ui_b.invoice.viewAll")}` },
+            { id: "category", label: `🏷️ ${t("ui_b.invoice.category")}` },
           ].map((v) => (
             <Button key={v.id} onClick={() => setViewMode(v.id)}
               sx={{
@@ -717,7 +720,7 @@ export default function InvoiceSection({ C, isDark, showToast }) {
         </Box>
 
         <Chip size="small"
-          label={viewMode === "all" ? `${filtered.length} آیتم` : `${groupedByCat.length} دسته`}
+          label={viewMode === "all" ? t("ui_b.invoice.itemsCount", { count: filtered.length }) : t("ui_b.invoice.catsCount", { count: groupedByCat.length })}
           sx={{ height: 28, fontSize: F(11), fontWeight: 700, borderRadius: "8px", bgcolor: C.oliveSubtle, color: C.olive }} />
       </Box>
 
@@ -731,11 +734,11 @@ export default function InvoiceSection({ C, isDark, showToast }) {
         }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
             <Typography sx={{ fontSize: F(13), fontWeight: 700, color: C.text }}>
-              🏷️ مدیریت دسته‌بندی‌ها ({categories.length})
+              🏷️ {t("ui_b.invoice.manageCategories")} ({categories.length})
             </Typography>
             <Button onClick={() => setShowCatManager(false)}
               sx={{ ...cancelBtnSx, px: 1.5, py: 0.3, fontSize: F(11) }}>
-              ✖ بستن
+              ✖ {t("ui_b.common.close")}
             </Button>
           </Box>
 
@@ -781,7 +784,7 @@ export default function InvoiceSection({ C, isDark, showToast }) {
 
           {/* ── افزودن سریع ── */}
           <Box sx={{ display: "flex", gap: 0.8, mt: 1.5 }}>
-            <TextField size="small" placeholder="دسته جدید..." fullWidth
+            <TextField size="small" placeholder={t("ui_b.invoice.newCatPlaceholder")} fullWidth
               value={newCatName} onChange={(e) => setNewCatName(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
@@ -791,7 +794,7 @@ export default function InvoiceSection({ C, isDark, showToast }) {
               }}
               sx={inputSx} />
             <Button onClick={handleAddCat} sx={{ ...btnSx, px: 2, py: 0.5, fontSize: F(11) }}>
-              ➕ افزودن
+              ➕ {t("ui_b.common.add")}
             </Button>
           </Box>
         </Box>
@@ -807,28 +810,28 @@ export default function InvoiceSection({ C, isDark, showToast }) {
         }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
             <Typography sx={{ fontSize: F(13), fontWeight: 700, color: C.text }}>
-              {editId ? "✏️ ویرایش کالا" : "➕ افزودن کالای جدید"}
+              {editId ? `✏️ ${t("ui_b.invoice.editItem")}` : `➕ ${t("ui_b.invoice.addNewItem")}`}
             </Typography>
             <Button onClick={handleCloseForm} sx={{ ...cancelBtnSx, px: 1.5, py: 0.3, fontSize: F(11) }}>
-              ✖ بستن
+              ✖ {t("ui_b.common.close")}
             </Button>
           </Box>
 
           <Box sx={{ display: "flex", flexDirection: "row", gap: 1.5, alignItems: "flex-end", flexWrap: "wrap" }}>
             <Box sx={{ width: { xs: "100%", sm: 110 }, flexShrink: 0 }}>
-              <TextField size="small" label="کد" fullWidth inputRef={codeRef}
+              <TextField size="small" label={t("ui_b.invoice.code")} fullWidth inputRef={codeRef}
                 value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })}
                 placeholder="1001" sx={inputSx} />
             </Box>
 
             <Box sx={{ flex: 1, minWidth: 150 }}>
-              <TextField size="small" label="نام کالا *" fullWidth inputRef={nameRef}
+              <TextField size="small" label={t("ui_b.invoice.itemNameReq")} fullWidth inputRef={nameRef}
                 value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} sx={inputSx} />
             </Box>
 
             {/* واحد */}
             <Box sx={{ width: { xs: "100%", sm: 130 }, flexShrink: 0 }}>
-              <Typography sx={{ fontSize: F(11), color: C.sub, mb: 0.5, fontWeight: 600 }}>واحد</Typography>
+              <Typography sx={{ fontSize: F(11), color: C.sub, mb: 0.5, fontWeight: 600 }}>{t("ui_b.invoice.unit")}</Typography>
               <Select size="small" fullWidth inputRef={unitRef}
                 value={form.unit} onChange={(e) => handleUnitChange(e.target.value)}
                 sx={{ ...inputSx, "& .MuiSelect-select": { fontSize: F(13), py: 1 } }}
@@ -854,14 +857,14 @@ export default function InvoiceSection({ C, isDark, showToast }) {
                   <MenuItem key={u.value} value={u.value}>{u.label}</MenuItem>
                 ))}
                 <MenuItem value="__other__" sx={{ borderTop: `1px dashed ${C.olive}30`, mt: 0.5, pt: 1 }}>
-                  <Typography sx={{ fontSize: F(12), fontWeight: 700, color: C.olive }}>✏️ واحد جدید...</Typography>
+                  <Typography sx={{ fontSize: F(12), fontWeight: 700, color: C.olive }}>✏️ {t("ui_b.invoice.newUnitEllipsis")}</Typography>
                 </MenuItem>
               </Select>
             </Box>
 
             {/* دسته‌بندی */}
             <Box sx={{ width: { xs: "100%", sm: 140 }, flexShrink: 0 }}>
-              <Typography sx={{ fontSize: F(11), color: C.sub, mb: 0.5, fontWeight: 600 }}>دسته‌بندی</Typography>
+              <Typography sx={{ fontSize: F(11), color: C.sub, mb: 0.5, fontWeight: 600 }}>{t("ui_b.invoice.category")}</Typography>
               <Select size="small" fullWidth inputRef={catRef}
                 value={form.category || ""} onChange={(e) => handleCatChange(e.target.value)}
                 sx={{ ...inputSx, "& .MuiSelect-select": { fontSize: F(13), py: 1 } }}
@@ -889,7 +892,7 @@ export default function InvoiceSection({ C, isDark, showToast }) {
                   </MenuItem>
                 ))}
                 <MenuItem value="__other__" sx={{ borderTop: `1px dashed ${C.olive}30`, mt: 0.5, pt: 1 }}>
-                  <Typography sx={{ fontSize: F(12), fontWeight: 700, color: C.olive }}>✏️ دسته جدید...</Typography>
+                  <Typography sx={{ fontSize: F(12), fontWeight: 700, color: C.olive }}>✏️ {t("ui_b.invoice.newCatEllipsis")}</Typography>
                 </MenuItem>
               </Select>
             </Box>
@@ -897,7 +900,7 @@ export default function InvoiceSection({ C, isDark, showToast }) {
             {/* واحد جدید */}
             {showUnitInput && (
               <Box sx={{ width: { xs: "100%", sm: 160 }, display: "flex", gap: 0.5, alignItems: "flex-end" }}>
-                <TextField size="small" label="واحد جدید" fullWidth inputRef={newUnitRef}
+                <TextField size="small" label={t("ui_b.invoice.newUnit")} fullWidth inputRef={newUnitRef}
                   value={newUnitName} onChange={(e) => setNewUnitName(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); handleAddUnit(); } }}
                   sx={inputSx} />
@@ -908,7 +911,7 @@ export default function InvoiceSection({ C, isDark, showToast }) {
             {/* دسته جدید */}
             {showCatInput && (
               <Box sx={{ width: { xs: "100%", sm: 160 }, display: "flex", gap: 0.5, alignItems: "flex-end" }}>
-                <TextField size="small" label="دسته جدید" fullWidth inputRef={newCatRef}
+                <TextField size="small" label={t("ui_b.invoice.newCat")} fullWidth inputRef={newCatRef}
                   value={newCatName} onChange={(e) => setNewCatName(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); handleAddCat(); } }}
                   sx={inputSx} />
@@ -920,9 +923,9 @@ export default function InvoiceSection({ C, isDark, showToast }) {
             <Box sx={{ display: "flex", gap: 0.5, pb: 0.1 }}>
               <Button ref={saveBtnRef} onClick={doSave} disabled={saving}
                 sx={{ ...btnSx, opacity: saving ? 0.7 : 1, minWidth: 110 }}>
-                {saving ? "⏳ ذخیره..." : editId ? "💾 بروزرسانی" : "➕ افزودن"}
+                {saving ? `⏳ ${t("ui_b.invoice.saving")}` : editId ? `💾 ${t("ui_b.common.update")}` : `➕ ${t("ui_b.common.add")}`}
               </Button>
-              {editId && <Button onClick={handleCloseForm} sx={cancelBtnSx}>انصراف</Button>}
+              {editId && <Button onClick={handleCloseForm} sx={cancelBtnSx}>{t("ui_b.common.cancel")}</Button>}
             </Box>
           </Box>
         </Box>
@@ -936,22 +939,22 @@ export default function InvoiceSection({ C, isDark, showToast }) {
         bgcolor: isDark ? "rgba(107,155,110,0.07)" : "rgba(46,77,48,0.06)",
         border: `1px solid ${C.olive}20`,
       }}>
-        <Chip size="small" label="راهنما"
+        <Chip size="small" label={t("ui_b.invoice.helpChip")}
           sx={{
             height: 26, fontSize: F(11), fontWeight: 900,
             borderRadius: "6px", bgcolor: "#FFD600", color: "#1A1A00",
             px: 1, mr: 0.5,
           }} />
         {[
-          { key: "Ctrl+D", label: "ذخیره" },
-          { key: "Ctrl+A", label: "بعدی" },
-          { key: "Ctrl+Z", label: "قبلی" },
-          { key: "F2", label: "کالای جدید" },
-          { key: "F3", label: "واحد جدید" },
-          { key: "F4", label: "دسته جدید" },
-          { key: "↑↓", label: "جابجایی لیست" },
-          { key: "Enter", label: "بعدی" },
-          { key: "Esc", label: "بستن" },
+          { key: "Ctrl+D", label: t("ui_b.common.save") },
+          { key: "Ctrl+A", label: t("ui_b.invoice.kbNext") },
+          { key: "Ctrl+Z", label: t("ui_b.invoice.kbPrev") },
+          { key: "F2", label: t("ui_b.invoice.kbNewItem") },
+          { key: "F3", label: t("ui_b.invoice.newUnit") },
+          { key: "F4", label: t("ui_b.invoice.newCat") },
+          { key: "↑↓", label: t("ui_b.invoice.kbMove") },
+          { key: "Enter", label: t("ui_b.invoice.kbNext") },
+          { key: "Esc", label: t("ui_b.common.close") },
         ].map((item) => (
           <Box key={item.key} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
             <Chip size="small" label={item.key}
@@ -971,16 +974,16 @@ export default function InvoiceSection({ C, isDark, showToast }) {
         <Box sx={{ textAlign: "center", py: 6 }}>
           <Typography sx={{ fontSize: 36, mb: 1 }}>🥜</Typography>
           <Typography sx={{ fontSize: F(14), fontWeight: 700, color: C.text }}>
-            هنوز کالایی ثبت نشده
+            {t("ui_b.invoice.empty")}
           </Typography>
           <Typography sx={{ fontSize: F(12), color: C.sub, mt: 0.5 }}>
-            F2 بزنید یا روی «کالای جدید» کلیک کنید
+            {t("ui_b.invoice.emptyHint")}
           </Typography>
         </Box>
       ) : viewMode === "all" ? (
         <Box>
           <Typography sx={{ fontSize: F(10), color: C.muted, mb: 1 }}>
-            💡 با ▲▼ یا Drag ترتیب را تغییر دهید
+            💡 {t("ui_b.invoice.dragHint")}
           </Typography>
           <TableHeader />
           <Box sx={{ display: "flex", flexDirection: "column", gap: 0.8 }}>
@@ -1001,7 +1004,7 @@ export default function InvoiceSection({ C, isDark, showToast }) {
       ) : (
         <Box>
           <Typography sx={{ fontSize: F(10), color: C.muted, mb: 1 }}>
-            🏷️ نمایش گروهی بر اساس دسته‌بندی
+            🏷️ {t("ui_b.invoice.groupedView")}
           </Typography>
           <TableHeader />
           {groupedByCat.map((group) => (
@@ -1013,9 +1016,9 @@ export default function InvoiceSection({ C, isDark, showToast }) {
                 border: `1px solid ${C.olive}25`,
               }}>
                 <Typography sx={{ fontSize: F(13), fontWeight: 800, color: C.olive }}>
-                  🏷️ {group.category}
+                  🏷️ {group.category === NO_CAT ? t("ui_b.invoice.noCategory") : group.category}
                 </Typography>
-                <Chip size="small" label={`${group.items.length} کالا`}
+                <Chip size="small" label={t("ui_b.invoice.itemsOnly", { count: group.items.length })}
                   sx={{ height: 22, fontSize: F(10), fontWeight: 700, borderRadius: "6px", bgcolor: C.olive, color: "#fff" }} />
               </Box>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 0.8, mt: 0.8 }}>

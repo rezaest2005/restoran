@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 
 import SectionHeader from "../components/common/SectionHeader";
 import GlassCard from "../components/common/GlassCard";
+import { buildColors } from "@shared/palette";
 
 export default function InventorySection({ data }) {
   const { mode } = useThemeMode();
@@ -42,14 +43,7 @@ export default function InventorySection({ data }) {
     secWasteDesc: t("inv.secWasteDesc"),
   };
 
-  const C = useMemo(() => ({
-    glass: isDark ? "rgba(16,18,16,0.65)" : "rgba(240,244,252,0.72)",
-    glassBorder: isDark ? "rgba(107,155,110,0.12)" : "rgba(80,100,140,0.15)",
-    olive: isDark ? "#6B9B6E" : "#2E4D30",
-    text: isDark ? "#F0ECE8" : "#1A1A24",
-    sub: isDark ? "#8A8588" : "#555568",
-    muted: isDark ? "#4A4548" : "#8A8A9E",
-  }), [isDark]);
+  const C = useMemo(() => buildColors(isDark), [isDark]);
 
   const fmtN = useCallback((n) => {
     if (n == null) return "—";

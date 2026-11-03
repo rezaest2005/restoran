@@ -333,7 +333,7 @@ def pos_receipt(request: HttpRequest, pk: int):
         "payment_method": getattr(order, "payment_method", None),
         "trace_number": getattr(order, "trace_number", None),
         "restaurant_name": getattr(
-            settings, "RESTAURANT_NAME", "رستوران",
+            settings, "RESTAURANT_NAME", "کسب‌وکار",
         ),
         "restaurant_phone": getattr(settings, "RESTAURANT_PHONE", ""),
         "restaurant_address": getattr(settings, "RESTAURANT_ADDRESS", ""),

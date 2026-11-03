@@ -70,7 +70,11 @@ def raw_material_save(request: HttpRequest):
         price = _safe_int(data.get("price"))
         unit = data.get("unit", "unit")
         quantity = _safe_int(data.get("quantity"))
-        material_type = data.get("material_type", "raw").strip()
+        material_type = (data.get("material_type") or "raw").strip()
+        if material_type not in dict(RawMaterial.MATERIAL_TYPE_CHOICES):
+            return JsonResponse(
+                {"success": False, "error": "نوع ماده نامعتبر است."}, status=400,
+            )
 
         restaurant = _resolve_restaurant(request)
         if not restaurant:

@@ -1,0 +1,58 @@
+{
+  "ui_e": {
+    "nav_production": "خط تولید",
+    "page": {
+      "title": "خط تولید",
+      "subtitle": "فرمولاسیون (فهرست مواد) را تعریف کنید و سفارش‌های تولید کسب‌وکار خود را مدیریت کنید."
+    },
+    "tabs": { "formulas": "فرمولاسیون", "orders": "خط تولید" },
+    "common": {
+      "cancel": "انصراف", "close": "بستن", "save": "ذخیره", "edit": "ویرایش", "delete": "حذف",
+      "remove": "حذف ردیف",
+      "load_failed": "بارگذاری اطلاعات ناموفق بود.", "save_failed": "انجام عملیات ناموفق بود."
+    },
+    "types": {
+      "raw": "ماده‌ی اولیه", "packaging": "بسته‌بندی", "semi_finished": "نیمه‌آماده", "finished": "محصول آماده"
+    },
+    "status": {
+      "planned": "برنامه‌ریزی‌شده", "in_progress": "در حال تولید", "completed": "تکمیل‌شده", "cancelled": "لغو‌شده"
+    },
+    "formulas": {
+      "list_title": "فرمولاسیون‌ها", "new": "فرمولاسیون جدید", "empty": "هنوز فرمولاسیونی تعریف نشده است.",
+      "col_name": "نام", "col_code": "کد", "col_output": "محصول خروجی", "col_batch": "اندازه‌ی بچ",
+      "col_version": "نسخه", "col_active": "فعال", "col_actions": "عملیات",
+      "new_title": "فرمولاسیون جدید", "edit_title": "ویرایش فرمولاسیون",
+      "f_name": "نام فرمولاسیون", "f_code": "کد (اختیاری)", "f_output": "محصول خروجی",
+      "f_batch_qty": "مقدار خروجی هر بچ", "f_notes": "توضیحات",
+      "lines_title": "اجزای فرمول", "l_material": "ماده", "l_quantity": "مقدار", "l_wastage": "ضایعات ٪",
+      "add_line": "افزودن جزء", "est_cost": "هزینه‌ی تخمینی هر بچ", "per_unit": "برای هر واحد",
+      "saved": "فرمولاسیون ذخیره شد.", "deleted": "فرمولاسیون حذف شد.",
+      "delete_title": "حذف فرمولاسیون",
+      "delete_text": "آیا از حذف «{{name}}» مطمئن هستید؟",
+      "delete_hint": "اگر در سفارش‌های تولید استفاده شده، به‌جای حذف آن را غیرفعال کنید."
+    },
+    "orders": {
+      "filter_status": "وضعیت", "all": "همه", "new": "سفارش تولید جدید", "empty": "سفارش تولیدی یافت نشد.",
+      "col_number": "شماره", "col_formula": "فرمولاسیون", "col_product": "محصول", "col_planned": "برنامه‌ریزی‌شده",
+      "col_produced": "تولیدشده", "col_status": "وضعیت", "col_unit_cost": "بهای تمام‌شده‌ی واحد", "col_total_cost": "بهای تمام‌شده‌ی کل",
+      "col_date": "تاریخ ثبت", "col_created": "تاریخ ثبت", "col_actions": "عملیات",
+      "details": "جزئیات", "start": "شروع", "complete": "تکمیل", "cancel": "لغو سفارش", "create": "ثبت سفارش",
+      "new_title": "سفارش تولید جدید", "f_formula": "فرمولاسیون", "f_planned": "مقدار برنامه‌ریزی‌شده",
+      "f_notes": "توضیحات (اختیاری)", "no_active_formulas": "فرمولاسیون فعالی وجود ندارد.",
+      "detail_title": "سفارش تولید",
+      "required_title": "مواد مورد نیاز",
+      "r_material": "ماده", "r_required": "مورد نیاز", "r_available": "موجودی", "r_missing": "کسری",
+      "shortage_warning": "موجودی {{count}} ماده کافی نیست. تا تأمین کسری، شروع تولید ممکن است ناموفق باشد.",
+      "created": "سفارش تولید ثبت شد.",
+      "done_start": "تولید آغاز شد.", "done_complete": "تولید تکمیل شد.", "done_cancel": "سفارش لغو شد.",
+      "confirm_start_title": "شروع تولید",
+      "confirm_start_text": "سفارش {{number}} شروع شود؟ مواد مورد نیاز از انبار کسر می‌شود.",
+      "confirm_complete_title": "تکمیل تولید",
+      "confirm_complete_text": "مقدار واقعی تولیدشده‌ی سفارش {{number}} را وارد کنید.",
+      "confirm_cancel_title": "لغو سفارش",
+      "confirm_cancel_text": "سفارش {{number}} لغو شود؟ این عمل قابل بازگشت نیست.",
+      "produced_qty": "مقدار تولیدشده",
+      "qty_invalid": "مقدار باید بیشتر از صفر باشد."
+    }
+  }
+}

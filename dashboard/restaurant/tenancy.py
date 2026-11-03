@@ -343,7 +343,7 @@ class TenantModel(models.Model):
         "Restaurant",
         on_delete=models.CASCADE,
         related_name="+",
-        verbose_name="رستوران",
+        verbose_name="کسب‌وکار",
         db_index=True,
     )
 

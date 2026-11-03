@@ -52,7 +52,7 @@ DEFAULT_GROUPS = [
 
 
 class Command(BaseCommand):
-    help = 'ساخت گروه‌های پیش‌فرض دیکشنری برای همه رستوران‌ها'
+    help = 'ساخت گروه‌های پیش‌فرض دیکشنری برای همه کسب‌وکارها'
 
     def handle(self, *args, **options):
         restaurants = Restaurant.objects.filter(is_active=True)

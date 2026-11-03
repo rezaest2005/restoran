@@ -17,16 +17,16 @@ export default function UsersPanel({ users, tenants, loadUsers, C, t }) {
   return (
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
-        <Typography variant="h5" sx={{ color: C.text }}>کاربران</Typography>
-        <Button onClick={() => setModal({ open: true, editId: null })} sx={{ bgcolor: C.btnGrad, color: "#fff" }}>کاربر جدید</Button>
+        <Typography variant="h5" sx={{ color: C.text }}>{t("ui_c.super.users.title")}</Typography>
+        <Button onClick={() => setModal({ open: true, editId: null })} sx={{ bgcolor: C.btnGrad, color: "#fff" }}>{t("ui_c.super.users.new")}</Button>
       </Box>
 
       <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
-        <TextField size="small" placeholder="جستجو..." value={search} onChange={e => setSearch(e.target.value)} sx={{ bgcolor: C.inputBg }} />
+        <TextField size="small" placeholder={t("ui_c.super.users.search")} value={search} onChange={e => setSearch(e.target.value)} sx={{ bgcolor: C.inputBg }} />
         <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel>نقش</InputLabel>
-          <Select value={role} onChange={e => setRole(e.target.value)} label="نقش">
-            <MenuItem value="">همه</MenuItem>
+          <InputLabel>{t("ui_c.super.users.role")}</InputLabel>
+          <Select value={role} onChange={e => setRole(e.target.value)} label={t("ui_c.super.users.role")}>
+            <MenuItem value="">{t("ui_c.super.users.all")}</MenuItem>
             {ROLE_OPTIONS.map(r => <MenuItem key={r.value} value={r.value}>{t(r.labelKey)}</MenuItem>)}
           </Select>
         </FormControl>
@@ -35,10 +35,10 @@ export default function UsersPanel({ users, tenants, loadUsers, C, t }) {
       <TableContainer sx={{ bgcolor: C.glass, borderRadius: 2, border: `1px solid ${C.glassBorder}` }}>
         <Table size="small">
           <TableHead><TableRow sx={{ bgcolor: C.tableHeaderBg }}>
-            <TableCell sx={{ color: C.sub }}>نام کاربری</TableCell>
-            <TableCell sx={{ color: C.sub }}>نقش</TableCell>
-            <TableCell sx={{ color: C.sub }}>رستوران</TableCell>
-            <TableCell align="right" sx={{ color: C.sub }}>عملیات</TableCell>
+            <TableCell sx={{ color: C.sub }}>{t("ui_c.super.user.username")}</TableCell>
+            <TableCell sx={{ color: C.sub }}>{t("ui_c.super.users.role")}</TableCell>
+            <TableCell sx={{ color: C.sub }}>{t("ui_c.super.user.tenant")}</TableCell>
+            <TableCell align="right" sx={{ color: C.sub }}>{t("ui_c.super.users.actions")}</TableCell>
           </TableRow></TableHead>
           <TableBody>
             {users.map(u => (
@@ -47,9 +47,9 @@ export default function UsersPanel({ users, tenants, loadUsers, C, t }) {
                 <TableCell><Chip label={u.role} size="small" /></TableCell>
                 <TableCell sx={{ color: C.sub }}>{u.restaurant_name || "—"}</TableCell>
                 <TableCell align="right">
-                  <Button size="small" onClick={() => setPermsModal({ open: true, userId: u.id })} sx={{ color: C.olive }}>دسترسی‌ها</Button>
-                  <Button size="small" onClick={() => setModal({ open: true, editId: u.id })} sx={{ color: C.olive }}>ویرایش</Button>
-                  <Button size="small" onClick={() => setDeleteModal({ open: true, id: u.id, name: u.username })} sx={{ color: C.danger }}>حذف</Button>
+                  <Button size="small" onClick={() => setPermsModal({ open: true, userId: u.id })} sx={{ color: C.olive }}>{t("ui_c.super.users.perms")}</Button>
+                  <Button size="small" onClick={() => setModal({ open: true, editId: u.id })} sx={{ color: C.olive }}>{t("ui_c.super.users.edit")}</Button>
+                  <Button size="small" onClick={() => setDeleteModal({ open: true, id: u.id, name: u.username })} sx={{ color: C.danger }}>{t("ui_c.super.users.delete")}</Button>
                 </TableCell>
               </TableRow>
             ))}

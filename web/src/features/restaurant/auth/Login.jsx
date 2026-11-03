@@ -23,6 +23,7 @@ import {
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import { authApi } from "@restaurant/api/auth";
+import { buildColors } from "@shared/palette";
 
 const animations = `
   @keyframes orb1 {
@@ -86,7 +87,7 @@ export default function Login() {
     if (u) setUsername(u);
   }, [searchParams]);
 
-    const handleSubmit = async (e) => {
+      const handleSubmit = async (e) => {
     e.preventDefault();
     if (!username.trim() || !password) {
       setError(t("login.errorEmpty"));
@@ -98,23 +99,41 @@ export default function Login() {
     try {
       const id = { username: username.trim() };
       const { data } = await authApi.login({ ...id, password });
-      
-      // ★★★ تغییر از localStorage به sessionStorage
+
+      // ★ ذخیره توکن‌ها
       sessionStorage.setItem("access_token", data.access);
       sessionStorage.setItem("refresh_token", data.refresh);
-      sessionStorage.setItem("user", JSON.stringify(data.user));
-      
-      // ★★★ اضافه شدن این خط: ذخیره شمارنده دمو برای استفاده در داشبورد
+
+      // ★ ذخیره user — اگه tabs نبود از API بگیر
+      const userData = { ...data.user };
+      if (!userData.tabs) {
+        try {
+          const tabsRes = await fetch("/api/users/tabs/", {
+            headers: {
+              "Authorization": `Bearer ${data.access}`,
+              "Content-Type": "application/json",
+            },
+          });
+          if (tabsRes.ok) {
+            const tabsData = await tabsRes.json();
+            userData.tabs = tabsData.tabs || {};
+          }
+        } catch (e) {
+          console.warn("Failed to fetch user tabs:", e);
+        }
+      }
+      sessionStorage.setItem("user", JSON.stringify(userData));
+
       sessionStorage.setItem("demo_logins_remaining", data.user.demo_logins_remaining || 0);
-      
       sessionStorage.setItem("session_alive", "1");
+
       await authApi.setSession({
         access_token: data.access,
         user_id: data.user.id,
       });
       setSuccess(t("login.success"));
 
-      // ★ ساخت مسیر بر اساس slug
+      // ★ مسیر بر اساس نقش
       const base = slug ? `/${slug}/dashboard/app` : "/dashboard/app";
       const routes = {
         owner: base,
@@ -122,6 +141,7 @@ export default function Login() {
         cashier: `${base}/pos`,
         kitchen: base,
         warehouse: base,
+        waiter: `${base}/pos`,
         customer: base,
       };
       setTimeout(() => {
@@ -131,9 +151,7 @@ export default function Login() {
     } catch (err) {
       if (err.response?.status === 400 || err.response?.status === 401) {
         setError(
-          isRtl
-            ? "نام کاربری یا رمز عبور اشتباه است."
-            : "Invalid username or password.",
+          t("ui_a.login.invalid_credentials"),
         );
       } else {
         setError(t("login.errorServer"));
@@ -145,74 +163,7 @@ export default function Login() {
 
   const isDark = mode === "dark";
 
-  const C = {
-    bg: isDark ? "#0B0A0B" : "#E4E8F0",
-    bgWarm: isDark
-      ? `radial-gradient(ellipse at 25% 15%, rgba(61,90,62,0.07) 0%, transparent 50%),
-         radial-gradient(ellipse at 75% 85%, rgba(120,30,58,0.06) 0%, transparent 50%),
-         radial-gradient(ellipse at 50% 50%, rgba(196,162,101,0.03) 0%, transparent 60%)`
-      : `radial-gradient(ellipse at 15% 10%, rgba(80,100,160,0.1) 0%, transparent 45%),
-         radial-gradient(ellipse at 85% 85%, rgba(120,40,70,0.08) 0%, transparent 40%),
-         radial-gradient(ellipse at 50% 40%, rgba(61,90,62,0.06) 0%, transparent 50%),
-         radial-gradient(ellipse at 70% 20%, rgba(196,162,101,0.05) 0%, transparent 40%)`,
-    bgGrid: isDark ? "rgba(255,255,255,0.012)" : "rgba(60,80,120,0.03)",
-
-    glass: isDark ? "rgba(16,18,16,0.6)" : "rgba(240,244,252,0.7)",
-    glassBorder: isDark ? "rgba(107,155,110,0.1)" : "rgba(80,100,140,0.15)",
-    glassShimmer: isDark
-      ? `linear-gradient(90deg, transparent 0%, rgba(107,155,110,0.05) 20%, rgba(168,64,96,0.06) 40%, rgba(212,183,106,0.07) 60%, rgba(107,155,110,0.04) 80%, transparent 100%)`
-      : `linear-gradient(90deg, transparent 0%, rgba(80,100,160,0.06) 20%, rgba(120,40,70,0.05) 40%, rgba(196,162,101,0.06) 60%, rgba(61,90,62,0.04) 80%, transparent 100%)`,
-
-    olive: isDark ? "#6B9B6E" : "#2E4D30",
-    oliveLight: isDark ? "#8BB88E" : "#3D5A3E",
-    oliveSubtle: isDark ? "rgba(107,155,110,0.08)" : "rgba(46,77,48,0.08)",
-
-    burgundy: isDark ? "#A84060" : "#7A2845",
-    gold: isDark ? "#D4B76A" : "#A08040",
-
-    text: isDark ? "#F0ECE8" : "#1A1A24",
-    sub: isDark ? "#8A8588" : "#555568",
-    muted: isDark ? "#4A4548" : "#8A8A9E",
-
-    inputBg: isDark ? "rgba(11,10,11,0.5)" : "rgba(240,244,252,0.85)",
-    inputFocusGlow: isDark
-      ? "0 0 0 3px rgba(107,155,110,0.12), 0 0 24px rgba(107,155,110,0.06)"
-      : "0 0 0 3px rgba(46,77,48,0.1), 0 0 24px rgba(74,106,148,0.08)",
-
-    btnGrad: isDark
-      ? "linear-gradient(135deg, #3D6B40 0%, #5A8A5D 35%, #6B9B6E 70%, #4A7A4D 100%)"
-      : "linear-gradient(135deg, #1E3A20 0%, #2E4D30 35%, #3D5A3E 70%, #2E4D30 100%)",
-    btnHover: isDark
-      ? "linear-gradient(135deg, #4A7A4D 0%, #6B9B6E 35%, #7BAB7E 70%, #5A8A5D 100%)"
-      : "linear-gradient(135deg, #2E4D30 0%, #3D5A3E 35%, #4A6B4B 70%, #3D5A3E 100%)",
-    btnShadow: isDark
-      ? "0 4px 28px rgba(107,155,110,0.25), 0 1px 4px rgba(0,0,0,0.3)"
-      : "0 4px 28px rgba(46,77,48,0.3), 0 2px 6px rgba(0,0,0,0.1)",
-    btnShadowHover: isDark
-      ? "0 8px 40px rgba(107,155,110,0.4), 0 2px 8px rgba(0,0,0,0.3)"
-      : "0 8px 40px rgba(46,77,48,0.4), 0 2px 8px rgba(0,0,0,0.12)",
-
-    cardShadow: isDark
-      ? "0 8px 60px rgba(0,0,0,0.5), 0 0 80px rgba(107,155,110,0.04), 0 0 120px rgba(168,64,96,0.03)"
-      : "0 8px 60px rgba(0,0,0,0.1), 0 0 60px rgba(74,106,148,0.08), 0 0 100px rgba(46,77,48,0.04)",
-
-    iconBg: isDark
-      ? "linear-gradient(135deg, rgba(107,155,110,0.08), rgba(168,64,96,0.06))"
-      : "linear-gradient(135deg, rgba(74,106,148,0.1), rgba(46,77,48,0.06))",
-    iconBorder: isDark ? "rgba(107,155,110,0.12)" : "rgba(74,106,148,0.15)",
-    iconGlow: isDark
-      ? "0 0 35px rgba(107,155,110,0.1), 0 0 60px rgba(168,64,96,0.05)"
-      : "0 0 35px rgba(74,106,148,0.12), 0 0 60px rgba(46,77,48,0.06)",
-
-    headerBg: isDark ? "rgba(16,18,16,0.85)" : "rgba(228,232,240,0.9)",
-    headerBorder: isDark ? "rgba(107,155,110,0.08)" : "rgba(80,100,140,0.1)",
-    headerShadow: isDark
-      ? "0 4px 20px rgba(0,0,0,0.4)"
-      : "0 4px 20px rgba(0,0,0,0.05)",
-
-    divider: isDark ? "rgba(107,155,110,0.08)" : "rgba(74,106,148,0.12)",
-    noise: isDark ? 0.025 : 0.025,
-  };
+  const C = buildColors(isDark);
 
   const inputSx = (field) => ({
     "& .MuiOutlinedInput-root": {
@@ -460,7 +411,7 @@ export default function Login() {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {isRtl ? "English" : "فارسی"}
+                  {t("ui_a.login.switch_lang")}
                 </Typography>
               </Box>
             </Box>

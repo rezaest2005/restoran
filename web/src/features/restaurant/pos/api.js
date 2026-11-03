@@ -37,3 +37,13 @@ export const fetchCloseHistory = (limit = 30) =>
 
 export const fetchDailyOrders = (date) =>
   client.get("/api/pos/daily-orders/", { params: date ? { date } : {} }).then(r => r.data);
+/* ─── Incoming (QR / online) orders ──── */
+
+export const fetchIncomingOrders = (status = "pending", signal) =>
+  client.get("/api/pos/online-orders/", { params: { status }, signal }).then(r => r.data);
+
+export const setOrderStatus = (id, status) =>
+  client.post(`/api/orders/${id}/status/`, { status }).then(r => r.data);
+
+export const rejectOnlineOrder = (id) =>
+  client.post(`/api/pos/online-orders/${id}/reject/`).then(r => r.data);

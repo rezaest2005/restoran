@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box,
   Typography,
@@ -69,6 +70,7 @@ function ChartTooltip({
   label = null,
   formatter = null,
 }) {
+  const { t } = useTranslation();
   if (!active || !payload?.length) return null;
   const d = payload[0];
   const fmt = formatter || ((v) => (isRtl ? toPersianDigits(v) : String(v)));
@@ -100,7 +102,7 @@ function ChartTooltip({
           fontFamily: "'Vazirmatn', sans-serif",
         }}
       >
-        {label || (isRtl ? "تعداد:" : "Count:")} {fmt(d.value)}
+        {label || (t("ui_c.daily.count"))} {fmt(d.value)}
       </Typography>
     </Box>
   );
@@ -108,6 +110,8 @@ function ChartTooltip({
 
 /* ── Chart label for bars (قابل تنظیم برای تعداد یا مبلغ) ── */
 const BarLabel = ({ x, y, width, value, C, formatter = null }) => {
+  const { i18n } = useTranslation();
+  const isRtl = i18n.language === "fa";
   if (
     x == null ||
     y == null ||
@@ -178,7 +182,7 @@ const getItemUnitPrice = (item) =>
   0;
 
 /* ── استخراج نام آیتم بر اساس زبان ───── */
-const getItemName = (item, isRtl) => {
+const getItemName = (item, isRtl, t) => {
   if (!isRtl) {
     return (
       item.name_en ||
@@ -191,19 +195,19 @@ const getItemName = (item, isRtl) => {
       "Unknown"
     );
   }
-  return item.name || "نامشخص";
+  return item.name || t("ui_c.daily.unknown");
 };
 
 /* ── استخراج نام مشتری بر اساس زبان ───── */
-const getCustomerName = (c, isRtl) => {
+const getCustomerName = (c, isRtl, t) => {
   if (!isRtl) {
     // اگر نام انگلیسی وجود داشت بیاور، اگر نبود و نام فارسی "مشتری" بود، Guest نشون بده
     const enName = c.customer_name_en || c.english_name || c.name_en;
     if (enName) return enName;
-    if (c.customer_name === "مشتری" || c.name === "مشتری") return "Guest";
-    return c.customer_name || c.name || "Guest";
+    if (c.customer_name === "مشتری" || c.name === "مشتری") return t("ui_c.daily.guest");
+    return c.customer_name || c.name || t("ui_c.daily.guest");
   }
-  return c.customer_name || c.name || "مهمان";
+  return c.customer_name || c.name || t("ui_c.daily.guest");
 };
 
 /* ══════════════════════════════════════════════ */
@@ -221,27 +225,28 @@ export default function DailyReport({
   onGoToday,
   analytics,
 }) {
+  const { t } = useTranslation();
   const statusInfo = (s) =>
     ({
-      delivered: { label: isRtl ? "تحویل" : "Delivered", color: C.olive },
-      confirmed: { label: isRtl ? "تایید" : "Confirmed", color: C.gold },
-      pending: { label: isRtl ? "انتظار" : "Pending", color: C.muted },
-      cancelled: { label: isRtl ? "لغو" : "Cancelled", color: C.danger },
+      delivered: { label: t("ui_c.daily.delivered"), color: C.olive },
+      confirmed: { label: t("ui_c.daily.confirmed"), color: C.gold },
+      pending: { label: t("ui_c.daily.pending"), color: C.muted },
+      cancelled: { label: t("ui_c.daily.cancelled"), color: C.danger },
     })[s] || { label: s, color: C.muted };
 
   const paymentLabel = (m) =>
     ({
-      cash: isRtl ? "نقدی" : "Cash",
-      card: isRtl ? "کارت" : "Card",
-      online: isRtl ? "آنلاین" : "Online",
+      cash: t("ui_c.daily.cash"),
+      card: t("ui_c.daily.card"),
+      online: t("ui_c.daily.online"),
     })[m] ||
     m ||
     "—";
 
   const sourceLabel = (s) =>
     ({
-      pos: isRtl ? "سالن" : "Hall",
-      online: isRtl ? "بیرون" : "Takeout",
+      pos: t("ui_c.daily.hall"),
+      online: t("ui_c.daily.takeout"),
     })[s] ||
     s ||
     "—";
@@ -263,7 +268,7 @@ export default function DailyReport({
     activeOrders.forEach((o) => {
       (o.items || []).forEach((item) => {
         const rev = getItemUnitPrice(item) * (item.quantity || 0);
-        const key = getItemName(item, isRtl);
+        const key = getItemName(item, isRtl, t);
         map.set(key, (map.get(key) || 0) + rev);
       });
     });
@@ -271,7 +276,7 @@ export default function DailyReport({
       .map(([name, revenue]) => ({ name, revenue }))
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 8);
-  }, [activeOrders, isRtl]);
+  }, [activeOrders, isRtl, t]);
 
   /* ── ★ فروش بر اساس دسته‌بندی ── */
   const categoryBreakdown = useMemo(() => {
@@ -279,11 +284,11 @@ export default function DailyReport({
     activeOrders.forEach((o) => {
       (o.items || []).forEach((item) => {
         const cat = isRtl
-          ? item.category || item.category_name || "سایر"
+          ? item.category || item.category_name || t("ui_c.daily.other")
           : item.category_en ||
             item.english_category ||
             item.category ||
-            "Other";
+            t("ui_c.daily.other");
         const rev = getItemUnitPrice(item) * (item.quantity || 0);
         map.set(cat, (map.get(cat) || 0) + rev);
       });
@@ -291,7 +296,7 @@ export default function DailyReport({
     return [...map.entries()]
       .map(([name, revenue]) => ({ name, revenue }))
       .sort((a, b) => b.revenue - a.revenue);
-  }, [activeOrders, isRtl]);
+  }, [activeOrders, isRtl, t]);
 
   /* ── ★ سفارش‌های لغوشده و درآمد ازدست‌رفته ── */
   const cancelledStats = useMemo(() => {
@@ -357,7 +362,7 @@ export default function DailyReport({
           }}
         >
           <BarChartIcon sx={{ fontSize: 22, color: C.olive }} />
-          {isRtl ? "گزارش و تحلیل" : "Report & Analytics"}
+          {t("ui_c.daily.report_analytics")}
         </Typography>
 
         <Box
@@ -406,7 +411,7 @@ export default function DailyReport({
                 whiteSpace: "nowrap",
               }}
             >
-              {isRtl ? "روز قبل" : "Prev Day"}
+              {t("ui_c.daily.prev_day")}
             </Typography>
           </Box>
 
@@ -480,7 +485,7 @@ export default function DailyReport({
                 whiteSpace: "nowrap",
               }}
             >
-              {isRtl ? "روز بعد" : "Next Day"}
+              {t("ui_c.daily.next_day")}
             </Typography>
           </Box>
 
@@ -548,9 +553,7 @@ export default function DailyReport({
         >
           {/* ★ استفاده از fmtDate با پشتیبانی از زبان‌ها */}
           {isToday
-            ? isRtl
-              ? "📅 امروز"
-              : "📅 Today"
+            ? t("ui_c.daily.today")
             : `📅 ${fmtDate(selectedDate, isRtl)}`}
         </Typography>
       </Box>
@@ -566,7 +569,7 @@ export default function DailyReport({
       >
         {[
           {
-            label: isRtl ? "سفارشات" : "Orders",
+            label: t("ui_c.daily.orders"),
             value: isRtl ? toPersianDigits(orders.length) : orders.length,
             icon: "🧾",
             bg: `${C.olive}0A`,
@@ -574,7 +577,7 @@ export default function DailyReport({
             color: C.olive,
           },
           {
-            label: isRtl ? "جمع فروش" : "Sales",
+            label: t("ui_c.daily.sales"),
             value: isRtl ? toPersianDigits(fNum(dayTotal)) : fNum(dayTotal),
             icon: "💰",
             bg: `${C.gold}0A`,
@@ -582,7 +585,7 @@ export default function DailyReport({
             color: C.gold,
           },
           {
-            label: isRtl ? "میانگین سفارش" : "Avg",
+            label: t("ui_c.daily.avg"),
             value: isRtl ? toPersianDigits(fNum(avgOrder)) : fNum(avgOrder),
             icon: "📊",
             bg: `${C.burgundy}0A`,
@@ -590,7 +593,7 @@ export default function DailyReport({
             color: C.burgundy,
           },
           {
-            label: isRtl ? "اقلام فروخته" : "Items",
+            label: t("ui_c.daily.items"),
             value: isRtl
               ? toPersianDigits(
                   activeOrders.reduce(
@@ -666,7 +669,7 @@ export default function DailyReport({
                     fontFamily: "'Vazirmatn', sans-serif",
                   }}
                 >
-                  {isRtl ? "تومان" : "Toman"}
+                  {t("ui_c.daily.toman")}
                 </Typography>
               )}
             </Box>
@@ -686,7 +689,7 @@ export default function DailyReport({
         >
           {[
             {
-              label: isRtl ? "سفارش لغوشده" : "Cancelled",
+              label: t("ui_c.daily.cancelled_2"),
               value: isRtl
                 ? toPersianDigits(cancelledStats.count)
                 : cancelledStats.count,
@@ -694,16 +697,16 @@ export default function DailyReport({
               color: C.danger,
             },
             {
-              label: isRtl ? "درآمد ازدست‌رفته" : "Lost Revenue",
+              label: t("ui_c.daily.lost_revenue"),
               value: isRtl
                 ? toPersianDigits(fNum(cancelledStats.lostRevenue))
                 : fNum(cancelledStats.lostRevenue),
               icon: "📉",
               color: C.danger,
-              unit: isRtl ? "تومان" : "Toman",
+              unit: t("ui_c.daily.toman"),
             },
             {
-              label: isRtl ? "نرخ لغو" : "Cancel Rate",
+              label: t("ui_c.daily.cancel_rate"),
               value: isRtl
                 ? `${toPersianDigits(cancelledStats.rate)}٪`
                 : `${cancelledStats.rate}%`,
@@ -789,7 +792,7 @@ export default function DailyReport({
               fontFamily: "'Vazirmatn', sans-serif",
             }}
           >
-            {isRtl ? "سفارشی ثبت نشده" : "No orders yet"}
+            {t("ui_c.daily.no_orders_yet")}
           </Typography>
         </Box>
       ) : (
@@ -806,13 +809,13 @@ export default function DailyReport({
             <TableHead>
               <TableRow>
                 {[
-                  isRtl ? "شماره" : "Order #",
-                  isRtl ? "مشتری" : "Customer",
-                  isRtl ? "جمع" : "Total",
-                  isRtl ? "اقلام" : "Items",
-                  isRtl ? "وضعیت" : "Status",
-                  isRtl ? "ساعت" : "Time",
-                  isRtl ? "پرداخت" : "Payment",
+                  t("ui_c.daily.order"),
+                  t("ui_c.daily.customer"),
+                  t("ui_c.daily.total"),
+                  t("ui_c.daily.items_2"),
+                  t("ui_c.daily.status"),
+                  t("ui_c.daily.time"),
+                  t("ui_c.daily.payment"),
                 ].map((label) => (
                   <TableCell
                     key={label}
@@ -857,7 +860,7 @@ export default function DailyReport({
                       #{isRtl ? toPersianDigits(o.id) : o.id}
                     </TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>
-                      {getCustomerName(o, isRtl)}
+                      {getCustomerName(o, isRtl, t)}
                     </TableCell>
                     <TableCell sx={{ fontWeight: 800 }}>
                       <Box
@@ -887,7 +890,7 @@ export default function DailyReport({
                             fontFamily: "'Vazirmatn', sans-serif",
                           }}
                         >
-                          {isRtl ? "تومان" : "Toman"}
+                          {t("ui_c.daily.toman")}
                         </Typography>
                       </Box>
                     </TableCell>
@@ -902,7 +905,7 @@ export default function DailyReport({
                             textOverflow: "ellipsis",
                           }}
                         >
-                          {getItemName(item, isRtl)} ×
+                          {getItemName(item, isRtl, t)} ×
                           {isRtl
                             ? toPersianDigits(item.quantity)
                             : item.quantity}
@@ -971,7 +974,7 @@ export default function DailyReport({
                 fontFamily: "'Vazirmatn', sans-serif",
               }}
             >
-              📈 {isRtl ? "تحلیل فروش" : "Sales Analytics"}
+              📈 {t("ui_c.daily.sales_analytics")}
             </Typography>
           </Box>
 
@@ -1001,9 +1004,7 @@ export default function DailyReport({
                 }}
               >
                 🏆{" "}
-                {isRtl
-                  ? "پرفروش‌ترین محصولات (تعداد)"
-                  : "Best Sellers (Quantity)"}
+                {t("ui_c.daily.best_sellers_quantity")}
               </Typography>
               {analytics.topItems.length > 0 ? (
                 <Box dir="ltr" sx={{ width: "100%" }}>
@@ -1018,7 +1019,7 @@ export default function DailyReport({
                         tick={{ fontSize: 10, fill: C.muted }}
                         stroke={C.glassBorder}
                         label={{
-                          value: isRtl ? "تعداد فروخته‌شده" : "Units Sold",
+                          value: t("ui_c.daily.units_sold"),
                           position: "insideBottom",
                           offset: -10,
                           fontSize: 11,
@@ -1096,7 +1097,7 @@ export default function DailyReport({
                   color: C.text,
                 }}
               >
-                💎 {isRtl ? "پردرآمدترین محصولات" : "Top Revenue Items"}
+                💎 {t("ui_c.daily.top_revenue_items")}
               </Typography>
               {revenueByItem.length > 0 ? (
                 <Box dir="ltr" sx={{ width: "100%" }}>
@@ -1111,7 +1112,7 @@ export default function DailyReport({
                         tick={{ fontSize: 10, fill: C.muted }}
                         stroke={C.glassBorder}
                         label={{
-                          value: isRtl ? "درآمد (تومان)" : "Revenue (Toman)",
+                          value: t("ui_c.daily.revenue_toman"),
                           position: "insideBottom",
                           offset: -10,
                           fontSize: 11,
@@ -1143,9 +1144,9 @@ export default function DailyReport({
                           <ChartTooltip
                             isRtl={isRtl}
                             C={C}
-                            label={isRtl ? "درآمد:" : "Revenue:"}
+                            label={t("ui_c.daily.revenue")}
                             formatter={(v) =>
-                              `${isRtl ? toPersianDigits(fNum(v)) : fNum(v)} ${isRtl ? "تومان" : "Toman"}`
+                              `${isRtl ? toPersianDigits(fNum(v)) : fNum(v)} ${t("ui_c.daily.toman")}`
                             }
                           />
                         }
@@ -1199,7 +1200,7 @@ export default function DailyReport({
                   color: C.text,
                 }}
               >
-                💳 {isRtl ? "شیوه پرداخت" : "Payment Methods"}
+                💳 {t("ui_c.daily.payment_methods")}
               </Typography>
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
@@ -1252,7 +1253,7 @@ export default function DailyReport({
                   color: C.text,
                 }}
               >
-                ⏰ {isRtl ? "پیک ساعتی سفارشات" : "Order Time Distribution"}
+                ⏰ {t("ui_c.daily.order_time_distribution")}
               </Typography>
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={analytics.timeDistribution}>
@@ -1297,7 +1298,7 @@ export default function DailyReport({
                   color: C.text,
                 }}
               >
-                🏠 {isRtl ? "سالن یا بیرون‌بر" : "Hall vs Takeout"}
+                🏠 {t("ui_c.daily.hall_vs_takeout")}
               </Typography>
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
@@ -1350,7 +1351,7 @@ export default function DailyReport({
                   color: C.text,
                 }}
               >
-                🗂️ {isRtl ? "فروش بر اساس دسته‌بندی" : "Sales by Category"}
+                🗂️ {t("ui_c.daily.sales_by_category")}
               </Typography>
               {categoryBreakdown.length > 0 ? (
                 <ResponsiveContainer width="100%" height={220}>
@@ -1378,9 +1379,9 @@ export default function DailyReport({
                         <ChartTooltip
                           isRtl={isRtl}
                           C={C}
-                          label={isRtl ? "درآمد:" : "Revenue:"}
+                          label={t("ui_c.daily.revenue")}
                           formatter={(v) =>
-                            `${isRtl ? toPersianDigits(fNum(v)) : fNum(v)} ${isRtl ? "تومان" : "Toman"}`
+                            `${isRtl ? toPersianDigits(fNum(v)) : fNum(v)} ${t("ui_c.daily.toman")}`
                           }
                         />
                       }
@@ -1429,16 +1430,16 @@ export default function DailyReport({
                   color: C.text,
                 }}
               >
-                👥 {isRtl ? "مشتریان پرتکرار" : "Top Customers"}
+                👥 {t("ui_c.daily.top_customers")}
               </Typography>
               <Table size="small">
                 <TableHead>
                   <TableRow>
                     {[
-                      isRtl ? "مشتری" : "Customer",
-                      isRtl ? "تلفن" : "Phone",
-                      isRtl ? "تعداد" : "Orders",
-                      isRtl ? "جمع خرید" : "Revenue",
+                      t("ui_c.daily.customer"),
+                      t("ui_c.daily.phone"),
+                      t("ui_c.daily.orders_2"),
+                      t("ui_c.daily.revenue_2"),
                     ].map((l) => (
                       <TableCell
                         key={l}
@@ -1502,7 +1503,7 @@ export default function DailyReport({
                               whiteSpace: "nowrap",
                             }}
                           >
-                            {getCustomerName(c, isRtl)}
+                            {getCustomerName(c, isRtl, t)}
                           </Typography>
                         </Box>
                       </TableCell>
@@ -1560,7 +1561,7 @@ export default function DailyReport({
                               fontFamily: "'Vazirmatn', sans-serif",
                             }}
                           >
-                            {isRtl ? "تومان" : "Toman"}
+                            {t("ui_c.daily.toman")}
                           </Typography>
                         </Box>
                       </TableCell>

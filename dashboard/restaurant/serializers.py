@@ -1398,23 +1398,24 @@ class UserDetailSerializer(serializers.ModelSerializer):
             "profile_image",
             "is_verified",
             "is_active",
+            "tabs",                          # ★ اضافه شد
             "created_at",
             "updated_at",
-            "demo_logins_remaining",  
+            "demo_logins_remaining",
         ]
         read_only_fields = [
             "id",
             "username",
             "role",
             "is_verified",
+            "tabs",                          # ★ اضافه شد
             "created_at",
             "updated_at",
-            "demo_logins_remaining", 
+            "demo_logins_remaining",
         ]
 
     def get_full_name(self, obj):
         return obj.get_full_name() or obj.username
-
 class UserListSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     role_display = serializers.CharField(source="get_role_display", read_only=True)
@@ -1609,271 +1610,11 @@ class StockItemSerializer(serializers.ModelSerializer):
         except Exception:
             return False
 
+# ══════════════════════════════════════════════════════════════════════════════
+#  UPDATE USER TABS
+# ══════════════════════════════════════════════════════════════════════════════
 
-# [COMMENTED] class StockTransferSerializer(serializers.ModelSerializer):
-# [COMMENTED]     source_warehouse_name = serializers.CharField(
-# [COMMENTED]         source="source_warehouse.name", read_only=True
-# [COMMENTED]     )
-# [COMMENTED]     destination_warehouse_name = serializers.CharField(
-# [COMMENTED]         source="destination_warehouse.name", read_only=True
-# [COMMENTED]     )
-# [COMMENTED]     material_name = serializers.CharField(
-# [COMMENTED]         source="raw_material.name", read_only=True
-# [COMMENTED]     )
-# [COMMENTED]     status_display = serializers.CharField(
-# [COMMENTED]         source="get_status_display", read_only=True
-# [COMMENTED]     )
-# [COMMENTED]     created_by_name = serializers.SerializerMethodField()
-# [COMMENTED] 
-# [COMMENTED]     class Meta:
-# [X] # [COMMENTED]         model = StockTransfer
-# [COMMENTED]         fields = [
-# [COMMENTED]             "id",
-# [COMMENTED]             "source_warehouse",
-# [COMMENTED]             "source_warehouse_name",
-# [COMMENTED]             "destination_warehouse",
-# [COMMENTED]             "destination_warehouse_name",
-# [COMMENTED]             "raw_material",
-# [COMMENTED]             "material_name",
-# [COMMENTED]             "quantity",
-# [COMMENTED]             "unit",
-# [COMMENTED]             "status",
-# [COMMENTED]             "status_display",
-# [COMMENTED]             "reference",
-# [COMMENTED]             "notes",
-# [COMMENTED]             "created_by",
-# [COMMENTED]             "created_by_name",
-# [COMMENTED]             "created_at",
-# [COMMENTED]             "completed_at",
-# [COMMENTED]         ]
-# [COMMENTED]         read_only_fields = ["created_at", "completed_at"]
-# [COMMENTED] 
-# [COMMENTED]     def get_created_by_name(self, obj):
-# [COMMENTED]         try:
-# [COMMENTED]             return obj.created_by.get_full_name() if obj.created_by else ""
-# [COMMENTED]         except Exception:
-# [COMMENTED]             return ""
-# [COMMENTED] 
-# [COMMENTED] 
-# [COMMENTED] class ReceivingItemSerializer(serializers.ModelSerializer):
-# [COMMENTED]     material_name = serializers.CharField(
-# [COMMENTED]         source="raw_material.name", read_only=True
-# [COMMENTED]     )
-# [COMMENTED]     line_total = serializers.SerializerMethodField()
-# [COMMENTED] 
-# [COMMENTED]     class Meta:
-# [X] # [COMMENTED]         model = ReceivingItem
-# [COMMENTED]         fields = [
-# [COMMENTED]             "id",
-# [COMMENTED]             "raw_material",
-# [COMMENTED]             "material_name",
-# [COMMENTED]             "quantity_ordered",
-# [COMMENTED]             "quantity_received",
-# [COMMENTED]             "unit",
-# [COMMENTED]             "unit_price",
-# [COMMENTED]             "line_total",
-# [COMMENTED]         ]
-# [COMMENTED] 
-# [COMMENTED]     def get_line_total(self, obj):
-# [COMMENTED]         try:
-# [COMMENTED]             return int(obj.line_total)
-# [COMMENTED]         except (TypeError, ValueError):
-# [COMMENTED]             return 0
-# [COMMENTED] 
-# [COMMENTED] 
-# [COMMENTED] class ReceivingSerializer(serializers.ModelSerializer):
-# [COMMENTED]     items = ReceivingItemSerializer(many=True, read_only=True)
-# [COMMENTED]     warehouse_name = serializers.CharField(
-# [COMMENTED]         source="warehouse.name", read_only=True
-# [COMMENTED]     )
-# [COMMENTED]     supplier_name = serializers.CharField(
-# [COMMENTED]         source="supplier.name", read_only=True, default=""
-# [COMMENTED]     )
-# [COMMENTED]     purchase_invoice_number = serializers.CharField(
-# [COMMENTED]         source="purchase_invoice.invoice_number", read_only=True, default=""
-# [COMMENTED]     )
-# [COMMENTED]     status_display = serializers.CharField(
-# [COMMENTED]         source="get_status_display", read_only=True
-# [COMMENTED]     )
-# [COMMENTED]     total_amount = serializers.SerializerMethodField()
-# [COMMENTED]     item_count = serializers.SerializerMethodField()
-# [COMMENTED]     received_by_name = serializers.SerializerMethodField()
-# [COMMENTED] 
-# [COMMENTED]     class Meta:
-# [X] # [COMMENTED]         model = Receiving
-# [COMMENTED]         fields = [
-# [COMMENTED]             "id",
-# [COMMENTED]             "purchase_invoice",
-# [COMMENTED]             "purchase_invoice_number",
-# [COMMENTED]             "warehouse",
-# [COMMENTED]             "warehouse_name",
-# [COMMENTED]             "supplier",
-# [COMMENTED]             "supplier_name",
-# [COMMENTED]             "status",
-# [COMMENTED]             "status_display",
-# [COMMENTED]             "items",
-# [COMMENTED]             "total_amount",
-# [COMMENTED]             "item_count",
-# [COMMENTED]             "notes",
-# [COMMENTED]             "received_by",
-# [COMMENTED]             "received_by_name",
-# [COMMENTED]             "received_at",
-# [COMMENTED]         ]
-# [COMMENTED]         read_only_fields = ["received_at"]
-# [COMMENTED] 
-# [COMMENTED]     def get_total_amount(self, obj):
-# [COMMENTED]         try:
-# [COMMENTED]             return int(obj.total_amount)
-# [COMMENTED]         except (TypeError, ValueError):
-# [COMMENTED]             return 0
-# [COMMENTED] 
-# [COMMENTED]     def get_item_count(self, obj):
-# [COMMENTED]         return obj.items.count()
-# [COMMENTED] 
-# [COMMENTED]     def get_received_by_name(self, obj):
-# [COMMENTED]         try:
-# [COMMENTED]             return obj.received_by.get_full_name() if obj.received_by else ""
-# [COMMENTED]         except Exception:
-# [COMMENTED]             return ""
-# [COMMENTED] 
-# [COMMENTED] 
-# [COMMENTED] class StockLayerSerializer(serializers.ModelSerializer):
-# [COMMENTED]     material_name = serializers.CharField(
-# [COMMENTED]         source="raw_material.name", read_only=True
-# [COMMENTED]     )
-# [COMMENTED]     warehouse_name = serializers.CharField(
-# [COMMENTED]         source="warehouse.name", read_only=True
-# [COMMENTED]     )
-# [COMMENTED]     supplier_name = serializers.CharField(
-# [COMMENTED]         source="supplier.name", read_only=True, default=""
-# [COMMENTED]     )
-# [COMMENTED]     total_cost = serializers.SerializerMethodField()
-# [COMMENTED] 
-# [COMMENTED]     class Meta:
-# [X] # [COMMENTED]         model = StockLayer
-# [COMMENTED]         fields = [
-# [COMMENTED]             "id",
-# [COMMENTED]             "raw_material",
-# [COMMENTED]             "material_name",
-# [COMMENTED]             "warehouse",
-# [COMMENTED]             "warehouse_name",
-# [COMMENTED]             "quantity_original",
-# [COMMENTED]             "quantity_remaining",
-# [COMMENTED]             "unit_cost",
-# [COMMENTED]             "total_cost",
-# [COMMENTED]             "supplier",
-# [COMMENTED]             "supplier_name",
-# [COMMENTED]             "reference_type",
-# [COMMENTED]             "reference_id",
-# [COMMENTED]             "received_at",
-# [COMMENTED]         ]
-# [COMMENTED]         read_only_fields = ["received_at"]
-# [COMMENTED] 
-# [COMMENTED]     def get_total_cost(self, obj):
-# [COMMENTED]         try:
-# [COMMENTED]             return int(obj.total_cost)
-# [COMMENTED]         except (TypeError, ValueError):
-# [COMMENTED]             return 0
-# [COMMENTED] 
-# [COMMENTED] 
-# [COMMENTED] class StockAdjustmentSerializer(serializers.ModelSerializer):
-# [COMMENTED]     material_name = serializers.CharField(
-# [COMMENTED]         source="raw_material.name", read_only=True
-# [COMMENTED]     )
-# [COMMENTED]     warehouse_name = serializers.CharField(
-# [COMMENTED]         source="warehouse.name", read_only=True
-# [COMMENTED]     )
-# [COMMENTED]     adjustment_type_display = serializers.CharField(
-# [COMMENTED]         source="get_adjustment_type_display", read_only=True
-# [COMMENTED]     )
-# [COMMENTED]     adjusted_by_name = serializers.SerializerMethodField()
-# [COMMENTED] 
-# [COMMENTED]     class Meta:
-# [X] # [COMMENTED]         model = StockAdjustment
-# [COMMENTED]         fields = [
-# [COMMENTED]             "id",
-# [COMMENTED]             "warehouse",
-# [COMMENTED]             "warehouse_name",
-# [COMMENTED]             "raw_material",
-# [COMMENTED]             "material_name",
-# [COMMENTED]             "previous_quantity",
-# [COMMENTED]             "new_quantity",
-# [COMMENTED]             "difference",
-# [COMMENTED]             "adjustment_type",
-# [COMMENTED]             "adjustment_type_display",
-# [COMMENTED]             "reason",
-# [COMMENTED]             "notes",
-# [COMMENTED]             "adjusted_by",
-# [COMMENTED]             "adjusted_by_name",
-# [COMMENTED]             "adjusted_at",
-# [COMMENTED]         ]
-# [COMMENTED]         read_only_fields = ["adjusted_at"]
-# [COMMENTED] 
-# [COMMENTED]     def get_adjusted_by_name(self, obj):
-# [COMMENTED]         try:
-# [COMMENTED]             return obj.adjusted_by.get_full_name() if obj.adjusted_by else ""
-# [COMMENTED]         except Exception:
-# [COMMENTED]             return ""
-# [COMMENTED] 
-# [COMMENTED] 
-# [COMMENTED] class PurchaseListItemSerializer(serializers.ModelSerializer):
-# [COMMENTED]     material_name = serializers.CharField(
-# [COMMENTED]         source="raw_material.name", read_only=True
-# [COMMENTED]     )
-# [COMMENTED]     material_unit = serializers.CharField(
-# [COMMENTED]         source="raw_material.unit", read_only=True
-# [COMMENTED]     )
-# [COMMENTED]     current_stock = serializers.SerializerMethodField()
-# [COMMENTED]     minimum_stock = serializers.SerializerMethodField()
-# [COMMENTED]     target_stock = serializers.SerializerMethodField()
-# [COMMENTED]     status_display = serializers.CharField(
-# [COMMENTED]         source="get_status_display", read_only=True
-# [COMMENTED]     )
-# [COMMENTED]     supplier_name = serializers.SerializerMethodField()
-# [COMMENTED] 
-# [COMMENTED]     class Meta:
-# [X] # [COMMENTED]         model = PurchaseListItem
-# [COMMENTED]         fields = [
-# [COMMENTED]             "id",
-# [COMMENTED]             "raw_material",
-# [COMMENTED]             "material_name",
-# [COMMENTED]             "material_unit",
-# [COMMENTED]             "current_stock",
-# [COMMENTED]             "minimum_stock",
-# [COMMENTED]             "target_stock",
-# [COMMENTED]             "suggested_quantity",
-# [COMMENTED]             "status",
-# [COMMENTED]             "status_display",
-# [COMMENTED]             "purchase_invoice",
-# [COMMENTED]             "supplier_name",
-# [COMMENTED]             "notes",
-# [COMMENTED]             "created_at",
-# [COMMENTED]             "updated_at",
-# [COMMENTED]         ]
-# [COMMENTED]         read_only_fields = ["created_at", "updated_at"]
-# [COMMENTED] 
-# [COMMENTED]     def get_current_stock(self, obj):
-# [COMMENTED]         try:
-# [COMMENTED]             return float(obj.raw_material.quantity or 0)
-# [COMMENTED]         except Exception:
-# [COMMENTED]             return 0
-# [COMMENTED] 
-# [COMMENTED]     def get_minimum_stock(self, obj):
-# [COMMENTED]         try:
-# [COMMENTED]             return float(obj.raw_material.minimum_stock or 0)
-# [COMMENTED]         except Exception:
-# [COMMENTED]             return 0
-# [COMMENTED] 
-# [COMMENTED]     def get_target_stock(self, obj):
-# [COMMENTED]         try:
-# [COMMENTED]             return float(obj.raw_material.target_stock or 0)
-# [COMMENTED]         except Exception:
-# [COMMENTED]             return 0
-# [COMMENTED] 
-# [COMMENTED]     def get_supplier_name(self, obj):
-# [COMMENTED]         try:
-# [COMMENTED]             if obj.purchase_invoice and obj.purchase_invoice.supplier:
-# [COMMENTED]                 return obj.purchase_invoice.supplier.name
-# [COMMENTED]         except Exception:
-# [COMMENTED]             pass
-# [COMMENTED]         return ""
+
+class UpdateUserTabsSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    tabs = serializers.DictField(child=serializers.BooleanField())

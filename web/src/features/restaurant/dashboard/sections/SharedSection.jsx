@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 
 import SectionHeader from "../components/common/SectionHeader";
 import GlassCard from "../components/common/GlassCard";
+import { buildColors } from "@shared/palette";
 
 export default function SharedSection() {
   const { mode } = useThemeMode();
@@ -19,22 +20,15 @@ export default function SharedSection() {
     latestActivity: t("dash.latestActivity"),
     secOps: t("dash.secOps"),
     secOpsDesc: t("dash.secOpsDesc"),
-    quickAccess: isRtl ? "دسترسی سریع" : "Quick Access",
-    pos: isRtl ? "صندوق فروش" : "POS",
-    inventory: isRtl ? "مدیریت انبار" : "Inventory",
-    menu: isRtl ? "منو غذاها" : "Menu",
-    reports: isRtl ? "گزارش‌ها" : "Reports",
-    noActivity: isRtl ? "هنوز فعالیتی ثبت نشده است." : "No activity yet."
+    quickAccess: t("ui_b.dashShared.quickAccess"),
+    pos: t("ui_b.dashShared.pos"),
+    inventory: t("ui_b.dashShared.inventory"),
+    menu: t("ui_b.dashShared.menu"),
+    reports: t("ui_b.dashShared.reports"),
+    noActivity: t("ui_b.dashShared.noActivity")
   };
 
-  const C = useMemo(() => ({
-    glass: isDark ? "rgba(16,18,16,0.65)" : "rgba(240,244,252,0.72)",
-    glassBorder: isDark ? "rgba(107,155,110,0.12)" : "rgba(80,100,140,0.15)",
-    olive: isDark ? "#6B9B6E" : "#2E4D30",
-    text: isDark ? "#F0ECE8" : "#1A1A24",
-    sub: isDark ? "#8A8588" : "#555568",
-    muted: isDark ? "#4A4548" : "#8A8A9E",
-  }), [isDark]);
+  const C = useMemo(() => buildColors(isDark), [isDark]);
 
   const quickActions = [
     { id: 1, icon: "💰", label: L.pos, path: "pos", color: "#10b981", bg: "rgba(16,185,129,0.1)" },
@@ -80,7 +74,7 @@ export default function SharedSection() {
                     {action.label}
                   </Typography>
                   <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.3 }}>
-                    {isRtl ? "ورود به بخش" : "Go to section"}
+                    {t("ui_b.dashShared.goToSection")}
                   </Typography>
                 </Box>
               </Box>
@@ -109,7 +103,7 @@ export default function SharedSection() {
                   </Typography>
                 </Box>
                 <Chip
-                  label={a.type === "pos" ? (isRtl ? "صندوق" : "POS") : (isRtl ? "انبار" : "Inv")}
+                  label={a.type === "pos" ? t("ui_b.dashShared.chipPos") : t("ui_b.dashShared.chipInv")}
                   size="small"
                   sx={{
                     bgcolor: a.type === "pos" ? "rgba(107,155,110,0.12)" : "rgba(59,130,246,0.12)",

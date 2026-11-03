@@ -141,8 +141,9 @@ DASHBOARD_SECTIONS = [
     ("pos_report", "گزارش روز"),
     ("pos_settings", "تنظیمات صندوق"),
     ("orders", "سفارشات"),
-    ("kitchen", "آشپزخانه"),
-    ("recipes", "رسپی‌ها"),
+    ("kitchen", "خط تولید"),
+    ("recipes", "فرمولاسیون"),
+    ("club", "باشگاه مشتریان"),
     ("invoices", "فاکتور خرید"),
     ("raw_materials", "مواد اولیه"),
     ("semi_finished", "نیمه‌آماده"),
@@ -150,6 +151,7 @@ DASHBOARD_SECTIONS = [
     ("usage_log", "لاگ مصرف"),
     ("dictionary", "دیکشنری"),
     ("users", "مدیریت کاربران"),
+    ("feedback", "ثبت نظرات"),
 ]
 _ALL_SECTIONS = [s[0] for s in DASHBOARD_SECTIONS]
 
@@ -197,17 +199,25 @@ class Restaurant(models.Model):
         blank=True,
         help_text="حرف اول نام کاربری مالک — برای ساخت نام کاربری کارمندان (مثلاً: z)",
     )
+
+    # ★★★ تب‌های مجاز رستوران — از پنل سوپرادمین ★★★
+    dashboard_permissions = models.JSONField(
+        "دسترسی‌های داشبورد",
+        default=list,
+        blank=True,
+        help_text="لیست تب‌های مجاز رستوران — خالی = همه تب‌ها",
+    )
+
     is_active = is_active_field(verbose_name="فعال")
     created_at = created_at_field(verbose_name="تاریخ ایجاد")
 
     class Meta:
-        verbose_name = "رستوران"
-        verbose_name_plural = "رستوران‌ها"
+        verbose_name = "کسب‌وکار"
+        verbose_name_plural = "کسب‌وکارها"
         ordering = ["-created_at"]
 
     def __str__(self):
         return f"{self.name} ({self.slug})"
-
 
 @receiver(post_save, sender=Restaurant)
 @receiver(post_delete, sender=Restaurant)
@@ -219,7 +229,7 @@ class User(AbstractUser):
         OWNER = "owner", "مالک"
         MANAGER = "manager", "مدیر"
         CASHIER = "cashier", "صندوقدار"
-        KITCHEN = "kitchen", "آشپزخانه"
+        KITCHEN = "kitchen", "خط تولید"
         WAREHOUSE = "warehouse", "انباردار"
         CUSTOMER = "customer", "مشتری"
 
@@ -233,7 +243,7 @@ class User(AbstractUser):
         Restaurant,
         on_delete=models.CASCADE,
         related_name="users",
-        verbose_name="رستوران",
+        verbose_name="کسب‌وکار",
         blank=True,
         null=True,
     )
@@ -249,12 +259,19 @@ class User(AbstractUser):
         validators=[validate_dashboard_permissions],
         help_text="لیست بخش‌های قابل دسترسی. خالی = پیش‌فرض نقش",
     )
-    
-    # ★★★ فیلد جدید برای مدیریت نمایش دمو در بار اول لاگین ★★★
-        # ★★★ شمارنده لاگین‌های دمو
+
+    # ★★★ فیلد جدید — دسترسی تب‌های سایدبار ★★★
+    tabs = models.JSONField(
+        "دسترسی تب‌ها",
+        default=dict,
+        blank=True,
+        help_text='دیکشنری مثل {"pos": true, "inventory_invoice": false, ...}',
+    )
+
+    # ★★★ شمارنده لاگین‌های دمو ★★★
     demo_logins_remaining = models.PositiveIntegerField(
-        "لاگین‌های باقی‌مانده دمو", 
-        default=2, 
+        "لاگین‌های باقی‌مانده دمو",
+        default=2,
         help_text="بار اول و دوم دمو نشان داده می‌شود، بار سوم پاک می‌شود."
     )
 
@@ -271,7 +288,6 @@ class User(AbstractUser):
         return f"{name} ({self.get_role_display()})"
 
     def save(self, *args, **kwargs):
-        # رشته‌ی خالی با unique=True تداخل می‌سازد؛ به NULL تبدیل می‌شود
         if not self.phone_number:
             self.phone_number = None
         super().save(*args, **kwargs)
@@ -345,6 +361,7 @@ class User(AbstractUser):
         if self.restaurant and self.restaurant.username_prefix:
             return self.restaurant.username_prefix
         return ""
+    
 # ═══════════════════════════════════════════
 #  TENANT MODELS
 # ═══════════════════════════════════════════
@@ -446,6 +463,7 @@ class Order(TenantModel):
         ("pos", "صندوق"),
         ("online", "آنلاین"),
         ("phone", "تلفنی"),
+        ("qr", "QR میز"),
     ]
 
     PAYMENT_STATUS_CHOICES = [
@@ -464,6 +482,12 @@ class Order(TenantModel):
     customer_name = models.CharField(max_length=200, blank=True, default="")
     customer_name_en = models.CharField(max_length=200, blank=True, default="")
     phone = models.CharField(max_length=20, blank=True, default="")
+    table_number = models.CharField(
+        "شماره میز / محل تحویل", max_length=20, blank=True, default=""
+    )
+    customer_note = models.CharField(
+        "توضیح مشتری", max_length=300, blank=True, default=""
+    )
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True
     )
@@ -645,6 +669,8 @@ class RawMaterial(TenantModel):
     MATERIAL_TYPE_CHOICES = [
         ("raw", "ماده اولیه"),
         ("packaging", "بسته‌بندی و جعبه"),
+        ("semi_finished", "نیمه‌آماده"),
+        ("finished", "محصول آماده"),
     ]
 
     name = name_field(verbose_name="نام ماده اولیه")
@@ -916,7 +942,7 @@ class Warehouse(TenantModel):
 
     TYPE_CHOICES = [
         ("mother", "انبار مرکزی"),
-        ("kitchen", "آشپزخانه"),
+        ("kitchen", "خط تولید"),
         ("cold_storage", "سردخانه"),
         ("freezer", "فریزر"),
         ("vegetables", "انبار سبزیجات"),
@@ -1274,3 +1300,283 @@ class Expense(TenantModel):
 
     def __str__(self):
         return f"{self.title} — {self.amount}"
+
+
+# ═══════════════════════════════════════════
+#  ثبت نظرات / گزارش مشکل مشتریان
+# ═══════════════════════════════════════════
+
+
+class Feedback(TenantModel):
+    CATEGORY_CHOICES = [
+        ("bug", "مشکل / خطا"),
+        ("suggestion", "پیشنهاد"),
+        ("complaint", "شکایت"),
+        ("other", "سایر"),
+    ]
+    STATUS_CHOICES = [
+        ("open", "باز"),
+        ("in_progress", "در حال بررسی"),
+        ("resolved", "حل‌شده"),
+    ]
+
+    category = models.CharField(
+        "دسته‌بندی", max_length=20, choices=CATEGORY_CHOICES, default="complaint"
+    )
+    name = models.CharField("نام", max_length=100, blank=True, default="")
+    phone = models.CharField("تلفن", max_length=20, blank=True, default="")
+    message = models.TextField("متن پیام", max_length=2000)
+    status = models.CharField(
+        "وضعیت", max_length=20, choices=STATUS_CHOICES, default="open"
+    )
+    admin_note = models.TextField("یادداشت مدیر", blank=True, default="")
+    created_at = models.DateTimeField("تاریخ ثبت", auto_now_add=True)
+    updated_at = models.DateTimeField("تاریخ بروزرسانی", auto_now=True)
+    resolved_at = models.DateTimeField("تاریخ حل", null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "نظر / گزارش مشکل"
+        verbose_name_plural = "نظرات و گزارش‌ها"
+
+    def __str__(self):
+        return f"{self.get_category_display()} — {self.message[:30]}"
+
+
+# ═══════════════════════════════════════════════════════════
+#  فرمولاسیون و خط تولید — مستقل از صنعت
+#  ورودی‌ها: مواد اولیه / نیمه‌آماده / آماده (همگی RawMaterial با material_type)
+#  خروجی: یک ماده (معمولاً نیمه‌آماده یا محصول آماده)
+# ═══════════════════════════════════════════════════════════
+
+
+class Formula(TenantModel):
+    """فرمولاسیون (BOM): برای تولید «output_quantity» واحد از خروجی چه چیزهایی لازم است."""
+
+    name = models.CharField("نام فرمول", max_length=200)
+    code = models.CharField("کد", max_length=50, blank=True, default="")
+    output_material = models.ForeignKey(
+        RawMaterial,
+        on_delete=models.PROTECT,
+        related_name="formulas",
+        verbose_name="محصول خروجی",
+    )
+    output_quantity = models.DecimalField(
+        "مقدار تولید هر دسته", max_digits=12, decimal_places=3, default=1
+    )
+    version = models.PositiveIntegerField("نسخه", default=1)
+    is_active = models.BooleanField("فعال", default=True)
+    notes = models.TextField("توضیحات", blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "فرمولاسیون"
+        verbose_name_plural = "فرمولاسیون‌ها"
+        ordering = ["name", "-version"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(output_quantity__gt=0), name="rms_formula_outqty_gt_0"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.name} v{self.version}"
+
+
+class FormulaLine(TenantModel):
+    formula = models.ForeignKey(
+        Formula, on_delete=models.CASCADE, related_name="lines", verbose_name="فرمول"
+    )
+    material = models.ForeignKey(
+        RawMaterial,
+        on_delete=models.PROTECT,
+        related_name="formula_usages",
+        verbose_name="ماده ورودی",
+    )
+    quantity = models.DecimalField(
+        "مقدار برای یک دسته", max_digits=12, decimal_places=3
+    )
+    wastage_percent = models.DecimalField(
+        "درصد ضایعات", max_digits=5, decimal_places=2, default=0
+    )
+    notes = models.CharField("یادداشت", max_length=200, blank=True, default="")
+
+    class Meta:
+        verbose_name = "قلم فرمول"
+        verbose_name_plural = "اقلام فرمول"
+        ordering = ["id"]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(quantity__gt=0), name="rms_formulaline_qty_gt_0"
+            ),
+            models.CheckConstraint(
+                condition=Q(wastage_percent__gte=0, wastage_percent__lt=100),
+                name="rms_formulaline_waste_0_100",
+            ),
+            models.UniqueConstraint(
+                fields=["formula", "material"], name="rms_formulaline_unique_material"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.formula_id}: {self.material_id} × {self.quantity}"
+
+
+class ProductionOrder(TenantModel):
+    """دستور تولید در خط تولید."""
+
+    class Status(models.TextChoices):
+        PLANNED = "planned", "برنامه‌ریزی‌شده"
+        IN_PROGRESS = "in_progress", "در حال تولید"
+        COMPLETED = "completed", "تکمیل‌شده"
+        CANCELLED = "cancelled", "لغو شده"
+
+    formula = models.ForeignKey(
+        Formula, on_delete=models.PROTECT, related_name="orders", verbose_name="فرمول"
+    )
+    warehouse = models.ForeignKey(
+        "Warehouse",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="production_orders",
+        verbose_name="انبار",
+        help_text="خالی = انبار مرکزی",
+    )
+    planned_quantity = models.DecimalField(
+        "مقدار برنامه‌ریزی‌شده", max_digits=12, decimal_places=3
+    )
+    produced_quantity = models.DecimalField(
+        "مقدار تولیدشده", max_digits=12, decimal_places=3, default=0
+    )
+    status = models.CharField(
+        "وضعیت", max_length=20, choices=Status.choices, default=Status.PLANNED,
+        db_index=True,
+    )
+    total_cost = models.DecimalField(
+        "هزینه‌ی مواد", max_digits=16, decimal_places=2, default=0
+    )
+    unit_cost = models.DecimalField(
+        "بهای تمام‌شده‌ی هر واحد", max_digits=16, decimal_places=4, default=0
+    )
+    notes = models.TextField("توضیحات", blank=True, default="")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "دستور تولید"
+        verbose_name_plural = "دستورهای تولید"
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["restaurant", "status", "-created_at"])]
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(planned_quantity__gt=0), name="rms_prodorder_planned_gt_0"
+            ),
+            models.CheckConstraint(
+                condition=Q(produced_quantity__gte=0), name="rms_prodorder_produced_gte_0"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"PO-{self.pk} {self.formula}"
+
+
+# ═══════════════════════════════════════════════════════════
+#  باشگاه مشتریان (امتیاز وفاداری) — مستقل از صنعت
+# ═══════════════════════════════════════════════════════════
+
+
+class LoyaltySettings(TenantModel):
+    """تنظیمات باشگاه؛ برای هر کسب‌وکار یک ردیف."""
+
+    is_active = models.BooleanField("باشگاه فعال", default=False)
+    earn_amount = models.PositiveIntegerField(
+        "مبلغ خرید برای هر ۱ امتیاز", default=10000
+    )
+    redeem_value = models.PositiveIntegerField(
+        "ارزش هر امتیاز هنگام استفاده", default=1000
+    )
+    min_redeem_points = models.PositiveIntegerField("حداقل امتیاز برای استفاده", default=10)
+    welcome_points = models.PositiveIntegerField("امتیاز عضویت", default=0)
+    silver_points = models.PositiveIntegerField("آستانه‌ی سطح نقره‌ای (امتیاز کل)", default=500)
+    gold_points = models.PositiveIntegerField("آستانه‌ی سطح طلایی (امتیاز کل)", default=2000)
+
+    class Meta:
+        verbose_name = "تنظیمات باشگاه مشتریان"
+        verbose_name_plural = "تنظیمات باشگاه مشتریان"
+        constraints = [
+            models.UniqueConstraint(fields=["restaurant"], name="rms_loyalty_settings_one"),
+            models.CheckConstraint(
+                condition=Q(earn_amount__gt=0), name="rms_loyalty_earn_gt_0"
+            ),
+        ]
+
+
+class LoyaltyMember(TenantModel):
+    phone = models.CharField("موبایل", max_length=20)
+    name = models.CharField("نام", max_length=200, blank=True, default="")
+    points_balance = models.IntegerField("امتیاز فعلی", default=0)
+    lifetime_points = models.PositiveIntegerField("امتیاز کل کسب‌شده", default=0)
+    is_active = models.BooleanField("فعال", default=True)
+    joined_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "عضو باشگاه"
+        verbose_name_plural = "اعضای باشگاه"
+        ordering = ["-joined_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["restaurant", "phone"], name="rms_loyalty_member_phone_unique"
+            ),
+            models.CheckConstraint(
+                condition=Q(points_balance__gte=0), name="rms_loyalty_balance_gte_0"
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.name or self.phone}"
+
+
+class LoyaltyTransaction(TenantModel):
+    class Kind(models.TextChoices):
+        EARN = "earn", "کسب امتیاز"
+        REDEEM = "redeem", "استفاده از امتیاز"
+        ADJUST = "adjust", "اصلاح دستی"
+        WELCOME = "welcome", "امتیاز عضویت"
+
+    member = models.ForeignKey(
+        LoyaltyMember, on_delete=models.CASCADE, related_name="transactions"
+    )
+    points = models.IntegerField("امتیاز (مثبت/منفی)")
+    kind = models.CharField(max_length=20, choices=Kind.choices, db_index=True)
+    order = models.ForeignKey(
+        "Order", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+    note = models.CharField(max_length=200, blank=True, default="")
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="+",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "تراکنش امتیاز"
+        verbose_name_plural = "تراکنش‌های امتیاز"
+        ordering = ["-created_at", "-id"]
+        constraints = [
+            # هر سفارش فقط یک بار امتیاز بدهد (جلوگیری از تکرار)
+            models.UniqueConstraint(
+                fields=["order", "kind"],
+                condition=Q(kind="earn", order__isnull=False),
+                name="rms_loyalty_one_earn_per_order",
+            ),
+        ]

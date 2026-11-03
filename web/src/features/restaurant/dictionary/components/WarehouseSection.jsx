@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box, Typography, Button, TextField, Chip, CircularProgress,
 } from "@mui/material";
@@ -9,7 +10,6 @@ const LS_KEY = "local_warehouses";
 
 const MOTHER_WAREHOUSE = {
   id: "mother",
-  name: "انبار مرکزی",
   warehouse_type: "main",
   is_mother: true,
 };
@@ -24,6 +24,7 @@ const writeLocal = (list) => {
 };
 
 export default function WarehouseSection({ C, isDark, showToast }) {
+  const { t } = useTranslation();
   const [subWarehouses, setSubWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -84,7 +85,7 @@ export default function WarehouseSection({ C, isDark, showToast }) {
   const handleSave = useCallback(() => {
     const n = nameRefState.current.trim();
     if (!n) {
-      notify("نام انبار الزامی است", "warning");
+      notify(t("ui_b.warehouse.nameRequired"), "warning");
       focusName();
       return;
     }
@@ -119,24 +120,24 @@ export default function WarehouseSection({ C, isDark, showToast }) {
       return next;
     });
 
-    notify(editIdRef.current ? "انبار بروزرسانی شد ✅" : "زیرمجموعه اضافه شد ✅", "success");
+    notify(editIdRef.current ? `${t("ui_b.warehouse.updated")} ✅` : `${t("ui_b.warehouse.subAdded")} ✅`, "success");
     setEditId(null);
     setName("");
     focusName();
     savingRef.current = false;
     setSaving(false);
-  }, [notify, focusName]);
+  }, [notify, focusName, t]);
 
   // ── حذف (فقط localStorage) ──
   const handleDelete = useCallback((w) => {
-    if (!window.confirm(`«${w.name}» حذف شود؟`)) return;
+    if (!window.confirm(t("ui_b.common.confirmDelete", { name: w.name }))) return;
     setSubWarehouses((prev) => {
       const next = prev.filter((x) => x.id !== w.id);
       writeLocal(next);
       return next;
     });
-    notify(`«${w.name}» حذف شد`, "info");
-  }, [notify]);
+    notify(t("ui_b.common.deleted", { name: w.name }), "info");
+  }, [notify, t]);
 
   // ═══════════ کیبورد ═══════════
   useEffect(() => {
@@ -204,21 +205,21 @@ export default function WarehouseSection({ C, isDark, showToast }) {
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5, flexWrap: "wrap", gap: 1.5 }}>
         <Box>
           <Typography sx={{ fontSize: { xs: F(16), sm: F(18) }, fontWeight: 800, color: C.text }}>
-            📦 انبارها
+            📦 {t("ui_b.warehouse.title")}
           </Typography>
           <Typography sx={{ fontSize: F(11), color: C.muted, mt: 0.3 }}>
-            ۱ انبار مرکزی + {subWarehouses.length} زیرمجموعه
+            {t("ui_b.warehouse.summary", { count: subWarehouses.length })}
           </Typography>
         </Box>
         <Button onClick={openCreate} sx={btnSx}>
-          ➕ انبار جدید (F2)
+          ➕ {t("ui_b.warehouse.newBtn")}
         </Button>
       </Box>
 
       {/* ── جستجو ── */}
       <TextField
         size="small"
-        placeholder="🔍 جستجو انبار..."
+        placeholder={`🔍 ${t("ui_b.warehouse.searchPlaceholder")}`}
         inputRef={searchRef}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
@@ -242,29 +243,29 @@ export default function WarehouseSection({ C, isDark, showToast }) {
         }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
             <Typography sx={{ fontSize: F(13), fontWeight: 700, color: C.text }}>
-              {editId ? "✏️ ویرایش انبار" : "➕ افزودن زیرمجموعه به انبار مرکزی"}
+              {editId ? `✏️ ${t("ui_b.warehouse.editTitle")}` : `➕ ${t("ui_b.warehouse.addSubTitle")}`}
             </Typography>
             <Button onClick={closeForm} sx={{ ...cancelBtnSx, px: 1.5, py: 0.3, fontSize: F(11) }}>
-              ✖ بستن
+              ✖ {t("ui_b.common.close")}
             </Button>
           </Box>
 
           <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-end", flexWrap: "wrap" }}>
             <Box sx={{ flex: 1, minWidth: 200 }}>
               <TextField
-                size="small" label="نام انبار *" fullWidth
+                size="small" label={t("ui_b.warehouse.nameLabel")} fullWidth
                 inputRef={nameRef}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="مثال: انبار سبزیجات"
+                placeholder={t("ui_b.warehouse.namePlaceholder")}
                 sx={inputSx}
               />
             </Box>
             <Box sx={{ display: "flex", gap: 0.5, pb: 0.1 }}>
               <Button onClick={handleSave} disabled={saving} sx={{ ...btnSx, minWidth: 110 }}>
-                {saving ? "⏳ ذخیره..." : editId ? "💾 بروزرسانی" : "➕ افزودن"}
+                {saving ? `⏳ ${t("ui_b.warehouse.saving")}` : editId ? `💾 ${t("ui_b.common.update")}` : `➕ ${t("ui_b.common.add")}`}
               </Button>
-              {editId && <Button onClick={closeForm} sx={cancelBtnSx}>انصراف</Button>}
+              {editId && <Button onClick={closeForm} sx={cancelBtnSx}>{t("ui_b.common.cancel")}</Button>}
             </Box>
           </Box>
         </Box>
@@ -278,17 +279,17 @@ export default function WarehouseSection({ C, isDark, showToast }) {
         bgcolor: isDark ? "rgba(107,155,110,0.07)" : "rgba(46,77,48,0.06)",
         border: `1px solid ${C.olive}20`,
       }}>
-        <Chip size="small" label="راهنما"
+        <Chip size="small" label={t("ui_b.warehouse.helpChip")}
           sx={{
             height: 26, fontSize: F(11), fontWeight: 900,
             borderRadius: "6px", bgcolor: "#FFD600", color: "#1A1A00",
             px: 1, mr: 0.5,
           }} />
         {[
-          { key: "F2", label: "انبار جدید" },
-          { key: "Ctrl+D", label: "افزودن" },
-          { key: "Enter", label: "ذخیره" },
-          { key: "Esc", label: "بستن" },
+          { key: "F2", label: t("ui_b.warehouse.kbNew") },
+          { key: "Ctrl+D", label: t("ui_b.common.add") },
+          { key: "Enter", label: t("ui_b.common.save") },
+          { key: "Esc", label: t("ui_b.common.close") },
         ].map((item) => (
           <Box key={item.key} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
             <Chip size="small" label={item.key}
@@ -313,13 +314,13 @@ export default function WarehouseSection({ C, isDark, showToast }) {
         <Warehouse sx={{ fontSize: 28, color: C.olive, ml: 1 }} />
         <Box sx={{ flex: 1 }}>
           <Typography sx={{ fontSize: F(15), fontWeight: 800, color: C.olive }}>
-            {MOTHER_WAREHOUSE.name}
+            {t("ui_b.warehouse.mainName")}
           </Typography>
           <Typography sx={{ fontSize: F(11), color: C.sub, mt: 0.2 }}>
-            انبار اصلی — همه زیرمجموعه‌ها اینجا جمع میشن
+            {t("ui_b.warehouse.mainDesc")}
           </Typography>
         </Box>
-        <Chip size="small" label="مرکزی"
+        <Chip size="small" label={t("ui_b.warehouse.mainChip")}
           sx={{ height: 24, fontSize: F(11), fontWeight: 800, borderRadius: "8px", bgcolor: C.olive, color: "#fff", px: 1 }} />
       </Box>
 
@@ -328,10 +329,10 @@ export default function WarehouseSection({ C, isDark, showToast }) {
         <Box sx={{ textAlign: "center", py: 5 }}>
           <Typography sx={{ fontSize: 32, mb: 1 }}>📂</Typography>
           <Typography sx={{ fontSize: F(14), fontWeight: 700, color: C.text }}>
-            هنوز زیرمجموعه‌ای اضافه نشده
+            {t("ui_b.warehouse.emptySub")}
           </Typography>
           <Typography sx={{ fontSize: F(12), color: C.sub, mt: 0.5 }}>
-            F2 بزنید تا زیرمجموعه اضافه کنید
+            {t("ui_b.warehouse.emptySubHint")}
           </Typography>
         </Box>
       ) : (
@@ -355,18 +356,18 @@ export default function WarehouseSection({ C, isDark, showToast }) {
               </Box>
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Typography sx={{ fontSize: F(13), fontWeight: 700, color: C.text }}>{w.name}</Typography>
-                <Typography sx={{ fontSize: F(10), color: C.muted, mt: 0.2 }}>زیرمجموعه انبار مرکزی</Typography>
+                <Typography sx={{ fontSize: F(10), color: C.muted, mt: 0.2 }}>{t("ui_b.warehouse.subOfMain")}</Typography>
               </Box>
               <Box sx={{ minWidth: 100, display: "flex", gap: 0.5, justifyContent: "center" }}>
                 <Box onClick={() => openEdit(w)}
                   sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.2, px: 0.8, py: 0.4, borderRadius: "8px", cursor: "pointer", color: C.olive, "&:hover": { bgcolor: C.oliveSubtle } }}>
                   <Edit sx={{ fontSize: 16 }} />
-                  <Typography sx={{ fontSize: F(9), fontWeight: 600 }}>ویرایش</Typography>
+                  <Typography sx={{ fontSize: F(9), fontWeight: 600 }}>{t("ui_b.common.edit")}</Typography>
                 </Box>
                 <Box onClick={() => handleDelete(w)}
                   sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.2, px: 0.8, py: 0.4, borderRadius: "8px", cursor: "pointer", color: C.danger, "&:hover": { bgcolor: C.dangerBg } }}>
                   <Delete sx={{ fontSize: 16 }} />
-                  <Typography sx={{ fontSize: F(9), fontWeight: 600 }}>حذف</Typography>
+                  <Typography sx={{ fontSize: F(9), fontWeight: 600 }}>{t("ui_b.common.delete")}</Typography>
                 </Box>
               </Box>
             </Box>

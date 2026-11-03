@@ -62,8 +62,10 @@ def register_user(data: dict) -> Dict[str, Any]:
             last_name=data.get('last_name', ''),
             email=data.get('email', ''),
             password=password,
-            role=data.get('role', User.Role.CUSTOMER),
-            restaurant=data.get('restaurant'),
+            # ★ امنیت: ثبت‌نام عمومی نمی‌تواند نقش یا رستوران را انتخاب کند.
+            # نقش نهایی را مدیر بعد از تأیید تعیین می‌کند.
+            role=User.Role.CUSTOMER,
+            restaurant=None,
         )
 
         tokens = get_tokens_for_user(user)

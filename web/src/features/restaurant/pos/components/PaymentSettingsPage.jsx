@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box, Typography, Tabs, Tab, TextField, Button, Switch,
   FormControlLabel, Select, MenuItem, IconButton, Chip,
@@ -7,20 +8,11 @@ import {
 import {
   Add, Delete, Wifi, CreditCard, Language, Save,
 } from "@mui/icons-material";
+import { buildColors } from "@shared/palette";
 
 /* ── رنگ‌ها ─────────────────────────── */
-const C = {
-  bg: "#0B0A0B",
-  glass: "rgba(16,18,16,0.6)",
-  glassBorder: "rgba(107,155,110,0.1)",
-  olive: "#6B9B6E",
-  gold: "#D4B76A",
-  burgundy: "#A84060",
-  text: "#F0ECE8",
-  sub: "#8A8588",
-  muted: "#4A4548",
-  danger: "#E84057",
-};
+// این صفحه فعلاً فقط تیره است؛ به isDark وصل شود
+const C = buildColors(true);
 
 const cardSx = {
   bgcolor: C.glass, border: `1px solid ${C.glassBorder}`,
@@ -49,6 +41,7 @@ export default function PaymentSettingsPage({
   gateways, terminals, loading, saving, testing, testResult,
   onSave, onDelete, onTest, isRtl,
 }) {
+  const { t } = useTranslation();
   const [tab, setTab] = useState(0);
 
   /* ── Gateway form ─────────────────── */
@@ -81,7 +74,7 @@ export default function PaymentSettingsPage({
 
   /* ── Terminal form ────────────────── */
   const [tmForm, setTmForm] = useState({
-    id: null, name: "کارت‌خوان", ip_address: "",
+    id: null, name: t("ui_c.pos.pay.default_terminal"), ip_address: "",
     port: 8080, protocol: "http", terminal_id: "",
     merchant_id: "", api_path: "/api/v1/pay", is_active: true,
   });
@@ -89,15 +82,15 @@ export default function PaymentSettingsPage({
 
   const resetTm = () => {
     setTmForm({
-      id: null, name: "کارت‌خوان", ip_address: "",
+      id: null, name: t("ui_c.pos.pay.default_terminal"), ip_address: "",
       port: 8080, protocol: "http", terminal_id: "",
       merchant_id: "", api_path: "/api/v1/pay", is_active: true,
     });
     setTmEdit(false);
   };
 
-  const editTm = (t) => {
-    setTmForm({ ...t });
+  const editTm = (row) => {
+    setTmForm({ ...row });
     setTmEdit(true);
   };
 
@@ -108,10 +101,10 @@ export default function PaymentSettingsPage({
   };
 
   /* ── Gateway labels ───────────────── */
-  const gwLabel = (t) => ({
-    zarinpal: "زرین‌پال", saman: "سامان",
-    parsian: "پارسیان", mellat: "ملت", custom: "سفارشی",
-  }[t] || t);
+  const gwLabel = (type) => ({
+    zarinpal: t("ui_c.pos.pay.gw_zarinpal"), saman: t("ui_c.pos.pay.gw_saman"),
+    parsian: t("ui_c.pos.pay.gw_parsian"), mellat: t("ui_c.pos.pay.gw_mellat"), custom: t("ui_c.pos.pay.gw_custom"),
+  }[type] || type);
 
   if (loading) return (
     <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
@@ -126,7 +119,7 @@ export default function PaymentSettingsPage({
         fontFamily: "'Vazirmatn', sans-serif",
         display: "flex", alignItems: "center", gap: 1,
       }}>
-        ⚙️ {isRtl ? "تنظیمات پرداخت" : "Payment Settings"}
+        ⚙️ {t("ui_c.pos_pay.payment_settings")}
       </Typography>
 
       <Tabs
@@ -142,62 +135,62 @@ export default function PaymentSettingsPage({
         }}
       >
         <Tab icon={<CreditCard sx={{ fontSize: 18 }} />} iconPosition="start"
-          label={isRtl ? "کارت‌خوان" : "Card Reader"} />
+          label={t("ui_c.pos_pay.card_reader")} />
         <Tab icon={<Language sx={{ fontSize: 18 }} />} iconPosition="start"
-          label={isRtl ? "درگاه آنلاین" : "Online Gateway"} />
+          label={t("ui_c.pos_pay.online_gateway")} />
       </Tabs>
 
       {/* ═══ تب کارت‌خوان ═══ */}
       {tab === 0 && (
         <Box>
-          {terminals.map(t => (
-            <Box key={t.id} sx={{
+          {terminals.map(tm => (
+            <Box key={tm.id} sx={{
               ...cardSx,
               display: "flex", alignItems: "center", gap: 2,
               flexWrap: "wrap",
             }}>
               <Box sx={{ flex: 1, minWidth: 200 }}>
                 <Typography sx={{ fontWeight: 800, fontSize: 15, color: C.text }}>
-                  {t.name}
+                  {tm.name}
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: C.sub, direction: "ltr", mt: 0.3 }}>
-                  {t.protocol}://{t.ip_address}:{t.port}{t.api_path}
+                  {tm.protocol}://{tm.ip_address}:{tm.port}{tm.api_path}
                 </Typography>
                 <Box sx={{ display: "flex", gap: 0.5, mt: 0.5 }}>
-                  <Chip size="small" label={t.is_active ? "فعال" : "غیرفعال"}
+                  <Chip size="small" label={tm.is_active ? t("ui_c.pos.pay.active") : t("ui_c.pos.pay.inactive")}
                     sx={{
                       fontSize: 10, height: 20,
-                      bgcolor: t.is_active ? `${C.olive}15` : `${C.danger}15`,
-                      color: t.is_active ? C.olive : C.danger,
+                      bgcolor: tm.is_active ? `${C.olive}15` : `${C.danger}15`,
+                      color: tm.is_active ? C.olive : C.danger,
                     }} />
-                  {t.terminal_id && (
-                    <Chip size="small" label={`TID: ${t.terminal_id}`}
+                  {tm.terminal_id && (
+                    <Chip size="small" label={`TID: ${tm.terminal_id}`}
                       sx={{ fontSize: 10, height: 20, bgcolor: `${C.gold}15`, color: C.gold }} />
                   )}
                 </Box>
               </Box>
 
               <IconButton
-                onClick={() => onTest("terminal", t.id)}
-                disabled={testing === t.id}
+                onClick={() => onTest("terminal", tm.id)}
+                disabled={testing === tm.id}
                 sx={{
-                  color: testing === t.id ? C.muted : C.olive,
+                  color: testing === tm.id ? C.muted : C.olive,
                   border: `1px solid ${C.olive}20`, borderRadius: "10px",
                 }}
               >
-                {testing === t.id
+                {testing === tm.id
                   ? <CircularProgress size={18} sx={{ color: C.olive }} />
                   : <Wifi sx={{ fontSize: 18 }} />}
               </IconButton>
 
-              <Button size="small" onClick={() => editTm(t)} sx={{
+              <Button size="small" onClick={() => editTm(tm)} sx={{
                 ...btnSx, color: C.olive, border: `1px solid ${C.olive}20`,
                 px: 1.5, minWidth: 0,
               }}>
-                {isRtl ? "ویرایش" : "Edit"}
+                {t("ui_c.pos_pay.edit")}
               </Button>
 
-              <IconButton onClick={() => onDelete("terminal", t.id)} sx={{
+              <IconButton onClick={() => onDelete("terminal", tm.id)} sx={{
                 color: C.danger, borderRadius: "10px",
                 border: `1px solid ${C.danger}15`,
               }}>
@@ -221,19 +214,19 @@ export default function PaymentSettingsPage({
               fontWeight: 800, fontSize: 14, mb: 1.5, color: C.text,
               fontFamily: "'Vazirmatn', sans-serif",
             }}>
-              {tmEdit ? (isRtl ? "ویرایش دستگاه" : "Edit Terminal") : (isRtl ? "افزودن دستگاه" : "Add Terminal")}
+              {tmEdit ? (t("ui_c.pos_pay.edit_terminal")) : (t("ui_c.pos_pay.add_terminal"))}
             </Typography>
 
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5 }}>
-              <TextField label={isRtl ? "نام دستگاه" : "Name"} size="small"
+              <TextField label={t("ui_c.pos_pay.name")} size="small"
                 value={tmForm.name}
                 onChange={e => setTmForm(f => ({ ...f, name: e.target.value }))}
                 sx={inputSx} />
-              <TextField label={isRtl ? "آدرس IP" : "IP Address"} size="small"
+              <TextField label={t("ui_c.pos_pay.ip_address")} size="small"
                 value={tmForm.ip_address}
                 onChange={e => setTmForm(f => ({ ...f, ip_address: e.target.value }))}
                 placeholder="192.168.1.100" sx={inputSx} />
-              <TextField label={isRtl ? "پورت" : "Port"} size="small" type="number"
+              <TextField label={t("ui_c.pos_pay.port")} size="small" type="number"
                 value={tmForm.port}
                 onChange={e => setTmForm(f => ({ ...f, port: parseInt(e.target.value) || 8080 }))}
                 sx={inputSx} />
@@ -243,15 +236,15 @@ export default function PaymentSettingsPage({
                 <MenuItem value="http">HTTP</MenuItem>
                 <MenuItem value="https">HTTPS</MenuItem>
               </Select>
-              <TextField label={isRtl ? "شناسه ترمینال" : "Terminal ID"} size="small"
+              <TextField label={t("ui_c.pos_pay.terminal_id")} size="small"
                 value={tmForm.terminal_id}
                 onChange={e => setTmForm(f => ({ ...f, terminal_id: e.target.value }))}
                 sx={inputSx} />
-              <TextField label={isRtl ? "شناسه پذیرنده" : "Merchant ID"} size="small"
+              <TextField label={t("ui_c.pos_pay.merchant_id")} size="small"
                 value={tmForm.merchant_id}
                 onChange={e => setTmForm(f => ({ ...f, merchant_id: e.target.value }))}
                 sx={inputSx} />
-              <TextField label={isRtl ? "مسیر API" : "API Path"} size="small"
+              <TextField label={t("ui_c.pos_pay.api_path")} size="small"
                 value={tmForm.api_path}
                 onChange={e => setTmForm(f => ({ ...f, api_path: e.target.value }))}
                 sx={{ ...inputSx, gridColumn: { sm: "1 / -1" } }} />
@@ -262,7 +255,7 @@ export default function PaymentSettingsPage({
                 onChange={e => setTmForm(f => ({ ...f, is_active: e.target.checked }))}
                 sx={{ "& .MuiSwitch-switchBase.Mui-checked": { color: C.olive } }} />}
               label={<Typography sx={{ fontSize: 13, fontFamily: "'Vazirmatn', sans-serif" }}>
-                {isRtl ? "فعال" : "Active"}
+                {t("ui_c.pos_pay.active")}
               </Typography>}
               sx={{ mt: 1.5 }}
             />
@@ -273,13 +266,13 @@ export default function PaymentSettingsPage({
                 "&:hover": { bgcolor: C.olive, opacity: 0.85 },
               }}>
                 <Save sx={{ fontSize: 16, mr: 0.5 }} />
-                {saving ? "..." : (isRtl ? "ذخیره" : "Save")}
+                {saving ? "..." : (t("ui_c.pos_pay.save"))}
               </Button>
               {tmEdit && (
                 <Button onClick={resetTm} sx={{
                   ...btnSx, color: C.sub, border: `1px solid ${C.glassBorder}`,
                 }}>
-                  {isRtl ? "انصراف" : "Cancel"}
+                  {t("ui_c.pos_pay.cancel")}
                 </Button>
               )}
             </Box>
@@ -301,16 +294,16 @@ export default function PaymentSettingsPage({
                   {g.title || gwLabel(g.gateway_type)}
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.3 }}>
-                  مرچنت: {g.merchant_id}
+                  {t("ui_c.pos.pay.merchant_label", { id: g.merchant_id })}
                 </Typography>
                 <Box sx={{ display: "flex", gap: 0.5, mt: 0.5 }}>
-                  <Chip size="small" label={g.is_active ? "فعال" : "غیرفعال"}
+                  <Chip size="small" label={g.is_active ? t("ui_c.pos.pay.active") : t("ui_c.pos.pay.inactive")}
                     sx={{
                       fontSize: 10, height: 20,
                       bgcolor: g.is_active ? `${C.olive}15` : `${C.danger}15`,
                       color: g.is_active ? C.olive : C.danger,
                     }} />
-                  <Chip size="small" label={g.is_sandbox ? "تست" : "واقعی"}
+                  <Chip size="small" label={g.is_sandbox ? t("ui_c.pos.pay.test_mode") : t("ui_c.pos.pay.live_mode")}
                     sx={{
                       fontSize: 10, height: 20,
                       bgcolor: g.is_sandbox ? `${C.gold}15` : `${C.olive}15`,
@@ -336,7 +329,7 @@ export default function PaymentSettingsPage({
                 ...btnSx, color: C.olive, border: `1px solid ${C.olive}20`,
                 px: 1.5, minWidth: 0,
               }}>
-                {isRtl ? "ویرایش" : "Edit"}
+                {t("ui_c.pos_pay.edit")}
               </Button>
 
               <IconButton onClick={() => onDelete("gateway", g.id)} sx={{
@@ -363,32 +356,32 @@ export default function PaymentSettingsPage({
               fontWeight: 800, fontSize: 14, mb: 1.5, color: C.text,
               fontFamily: "'Vazirmatn', sans-serif",
             }}>
-              {gwEdit ? (isRtl ? "ویرایش درگاه" : "Edit Gateway") : (isRtl ? "افزودن درگاه" : "Add Gateway")}
+              {gwEdit ? (t("ui_c.pos_pay.edit_gateway")) : (t("ui_c.pos_pay.add_gateway"))}
             </Typography>
 
             <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5 }}>
               <Select size="small" value={gwForm.gateway_type}
                 onChange={e => setGwForm(f => ({ ...f, gateway_type: e.target.value }))}
                 sx={{ ...inputSx, "& .MuiSelect-select": { py: "8px" } }}>
-                <MenuItem value="zarinpal">زرین‌پال</MenuItem>
-                <MenuItem value="saman">سامان</MenuItem>
-                <MenuItem value="parsian">پارسیان</MenuItem>
-                <MenuItem value="mellat">ملت</MenuItem>
-                <MenuItem value="custom">سفارشی</MenuItem>
+                <MenuItem value="zarinpal">{t("ui_c.pos.pay.gw_zarinpal")}</MenuItem>
+                <MenuItem value="saman">{t("ui_c.pos.pay.gw_saman")}</MenuItem>
+                <MenuItem value="parsian">{t("ui_c.pos.pay.gw_parsian")}</MenuItem>
+                <MenuItem value="mellat">{t("ui_c.pos.pay.gw_mellat")}</MenuItem>
+                <MenuItem value="custom">{t("ui_c.pos.pay.gw_custom")}</MenuItem>
               </Select>
-              <TextField label={isRtl ? "عنوان" : "Title"} size="small"
+              <TextField label={t("ui_c.pos_pay.title")} size="small"
                 value={gwForm.title}
                 onChange={e => setGwForm(f => ({ ...f, title: e.target.value }))}
                 sx={inputSx} />
-              <TextField label={isRtl ? "مرچنت آیدی" : "Merchant ID"} size="small"
+              <TextField label={t("ui_c.pos_pay.merchant_id_2")} size="small"
                 value={gwForm.merchant_id}
                 onChange={e => setGwForm(f => ({ ...f, merchant_id: e.target.value }))}
                 sx={inputSx} />
-              <TextField label={isRtl ? "کلید API" : "API Key"} size="small"
+              <TextField label={t("ui_c.pos_pay.api_key")} size="small"
                 value={gwForm.api_key}
                 onChange={e => setGwForm(f => ({ ...f, api_key: e.target.value }))}
                 sx={inputSx} />
-              <TextField label={isRtl ? "آدرس بازگشت (callback)" : "Callback URL"} size="small"
+              <TextField label={t("ui_c.pos_pay.callback_url")} size="small"
                 value={gwForm.callback_url}
                 onChange={e => setGwForm(f => ({ ...f, callback_url: e.target.value }))}
                 placeholder="https://yoursite.com/api/payment/online/callback/"
@@ -401,7 +394,7 @@ export default function PaymentSettingsPage({
                   onChange={e => setGwForm(f => ({ ...f, is_active: e.target.checked }))}
                   sx={{ "& .MuiSwitch-switchBase.Mui-checked": { color: C.olive } }} />}
                 label={<Typography sx={{ fontSize: 13, fontFamily: "'Vazirmatn', sans-serif" }}>
-                  {isRtl ? "فعال" : "Active"}
+                  {t("ui_c.pos_pay.active")}
                 </Typography>}
               />
               <FormControlLabel
@@ -409,7 +402,7 @@ export default function PaymentSettingsPage({
                   onChange={e => setGwForm(f => ({ ...f, is_sandbox: e.target.checked }))}
                   sx={{ "& .MuiSwitch-switchBase.Mui-checked": { color: C.gold } }} />}
                 label={<Typography sx={{ fontSize: 13, fontFamily: "'Vazirmatn', sans-serif" }}>
-                  {isRtl ? "حالت تست (Sandbox)" : "Sandbox"}
+                  {t("ui_c.pos_pay.sandbox")}
                 </Typography>}
               />
             </Box>
@@ -420,13 +413,13 @@ export default function PaymentSettingsPage({
                 "&:hover": { bgcolor: C.gold, opacity: 0.85 },
               }}>
                 <Save sx={{ fontSize: 16, mr: 0.5 }} />
-                {saving ? "..." : (isRtl ? "ذخیره" : "Save")}
+                {saving ? "..." : (t("ui_c.pos_pay.save"))}
               </Button>
               {gwEdit && (
                 <Button onClick={resetGw} sx={{
                   ...btnSx, color: C.sub, border: `1px solid ${C.glassBorder}`,
                 }}>
-                  {isRtl ? "انصراف" : "Cancel"}
+                  {t("ui_c.pos_pay.cancel")}
                 </Button>
               )}
             </Box>

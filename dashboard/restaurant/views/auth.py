@@ -1,16 +1,20 @@
 """
-Authentication views — v8 (★ LoginView فعال شد)
+Authentication views — v10 (★ restaurant_tabs)
 
-★ v8 تغییرات:
-  1. LoginView: فعال شد (قبلاً کامنت بود)
-  2. ResetPasswordView: هشدار امنیتی + حداقل بررسی
-  3. UserListView: فیلتر is_approved
-  4. UserDetailView: بررسی دسترسی حذف
+★ v10 تAuthentication views — v10 (★ restaurant_tabs)
+
+★ v10 تغییرات:
+  1. LoginView: restaurant_tabs به response اضافه شد
+  2. SessionCheckView: restaurant_tabs اضافه شد
+  3. CurrentUserView: restaurant_tabs اضافه شد
+  4. SetSessionView: restaurant_tabs اضافه شد
 """
 import logging
-logger = logging.getLogger(__name__)
+import time
+from django.conf import settings
 from django.contrib.auth import login as django_login, get_user_model
 from django.db.models import Q
+from django.core.cache import cache
 
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
@@ -28,6 +32,19 @@ from ..roles import get_user_role, ROLE_OWNER, ROLE_MANAGER
 from ..utils import api_error, api_success
 
 AuthUser = get_user_model()
+logger = logging.getLogger(__name__)
+
+
+# ═══════════════════════════════════════
+#  ★ helper: تب‌های مجاز رستوران
+# ═══════════════════════════════════════
+
+def _get_restaurant_tabs(user):
+    """تب‌های مجاز رستوران کاربر — از Restaurant.dashboard_permissions"""
+    rest = getattr(user, 'restaurant', None)
+    if rest:
+        return list(rest.dashboard_permissions or [])
+    return []
 
 
 # ═══════════════════════════════════════
@@ -39,6 +56,17 @@ class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainSerializer
 
     def post(self, request, *args, **kwargs):
+        # ★ Rate limit: حداکثر 5 تلاش در 5 دقیقه از هر IP
+        ip = self._get_client_ip(request)
+        cache_key = f"login_attempts:{ip}"
+        attempts = cache.get(cache_key, 0)
+        if attempts >= 5:
+            return Response(
+                {"error": "تلاش‌های زیاد. ۵ دقیقه صبر کنید."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+        cache.set(cache_key, attempts + 1, 300)
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.user
@@ -59,15 +87,56 @@ class LoginView(TokenObtainPairView):
 
         # JWT بساز
         refresh = RefreshToken.for_user(user)
+
+        # ★ ریست شمارنده بعد از لاگین موفق
+        cache.delete(cache_key)
+
+        # ★★★ tabs + restaurant_tabs به response ★★★
+        user_data = UserDetailSerializer(user).data
+        user_data['tabs'] = getattr(user, 'tabs', {}) or {}
+        user_data['restaurant_tabs'] = _get_restaurant_tabs(user)   # ★ جدید
+
         return Response({
             "access": str(refresh.access_token),
             "refresh": str(refresh),
-            "user": UserDetailSerializer(user).data,
+            "user": user_data,
         }, status=status.HTTP_200_OK)
+
+    @staticmethod
+    def _get_client_ip(request):
+        x_forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
+        if x_forwarded:
+            return x_forwarded.split(",")[0].strip()
+        return request.META.get("REMOTE_ADDR", "unknown")
 
 
 class RefreshView(TokenRefreshView):
     pass
+
+
+# ═══════════════════════════════════════
+#  Session Check
+# ═══════════════════════════════════════
+
+class SessionCheckView(APIView):
+    """
+    ★ فرانت قبل از render هر صفحه‌ای صدا میزنه
+      اگه session/token نامعتبر باشه → 401 → فرانت بره صفحه لاگین
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            "success": True,
+            "session_alive": True,
+            "user_id": user.id,
+            "username": user.username,
+            "role": getattr(user, "role", ""),
+            "tabs": getattr(user, "tabs", {}) or {},
+            "is_superuser": user.is_superuser,
+            "restaurant_tabs": _get_restaurant_tabs(user),          # ★ جدید
+        })
 
 
 # ═══════════════════════════════════════
@@ -125,10 +194,17 @@ class LogoutView(APIView):
             pass
 
         django_logout(request)
+        request.session.flush()
 
         response = api_success(message="خروج موفقیت‌آمیز بود.")
+
         response.delete_cookie('super_admin_token', path='/')
         response.delete_cookie('sessionid', path='/')
+        response.delete_cookie('csrftoken', path='/')
+
+        response['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+        response['Pragma'] = 'no-cache'
+
         return response
 
 
@@ -140,7 +216,10 @@ class CurrentUserView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        return api_success(data=UserDetailSerializer(request.user).data)
+        data = UserDetailSerializer(request.user).data
+        data['tabs'] = getattr(request.user, 'tabs', {}) or {}
+        data['restaurant_tabs'] = _get_restaurant_tabs(request.user)  # ★ جدید
+        return api_success(data=data)
 
     def patch(self, request):
         ser = ProfileSerializer(request.user, data=request.data, partial=True)
@@ -174,40 +253,53 @@ class ChangePasswordView(APIView):
 
 # ═══════════════════════════════════════
 #  Reset Password
-#  ★ هشدار: این endpoint نیاز به OTP دارد
-#  ★ فعلاً بدون OTP — باید اضافه شود
 # ═══════════════════════════════════════
 
 class ResetPasswordView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        # TODO: ★★★ امنیت بحرانی — این endpoint باید OTP یا تأیید هویت داشته باشد ★★★
+        # ★ امنیت: بازنشانی عمومی با شماره موبایل بدون OTP، حمله‌ی تصاحب حساب است.
+        # تا زمان اتصال پیامک/OTP، فقط با تنظیم PUBLIC_PASSWORD_RESET_ENABLED فعال می‌شود.
+        if not getattr(settings, "PUBLIC_PASSWORD_RESET_ENABLED", False):
+            return Response(
+                {"error": "بازنشانی رمز فعلاً در دسترس نیست. با مدیر سیستم تماس بگیرید."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        ip = request.META.get("REMOTE_ADDR", "unknown")
+        cache_key = f"reset_attempts:{ip}"
+        attempts = cache.get(cache_key, 0)
+        if attempts >= 3:
+            return Response(
+                {"error": "تلاش‌های زیاد. ۱۰ دقیقه صبر کنید."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+        cache.set(cache_key, attempts + 1, 600)
+
         ser = ResetPasswordSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
 
         phone = ser.validated_data["phone_number"]
+        generic_msg = "اگر این شماره ثبت شده باشد، رمز تغییر خواهد کرد."
 
         user_exists = AuthUser.objects.filter(
             phone_number=phone,
             is_active=True,
         ).exists()
+
         if not user_exists:
-            return api_success(
-                message="اگر این شماره ثبت شده باشد، رمز تغییر خواهد کرد.",
-            )
+            return api_success(message=generic_msg)
 
         result = reset_password(
             phone,
             ser.validated_data["new_password"],
         )
-        if result["success"]:
-            return api_success(message=result["message"])
-        return api_error(result["error"])
+        return api_success(message=generic_msg)
 
 
 # ═══════════════════════════════════════
-#  User List (API — for management)
+#  User List
 # ═══════════════════════════════════════
 
 class UserListView(generics.ListAPIView):
@@ -283,12 +375,21 @@ class SetSessionView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+        user = request.user
+        if not user.is_active:
+            return api_error("حساب کاربری غیرفعال است.")
+
+        if hasattr(user, 'is_approved') and not user.is_approved:
+            return api_error("حساب شما هنوز تأیید نشده است.")
+
         django_login(
-            request, request.user,
+            request, user,
             backend='django.contrib.auth.backends.ModelBackend',
         )
         return api_success(data={
-            'user_id': request.user.pk,
-            'username': request.user.username,
-            'role': getattr(request.user, 'role', ''),
+            'user_id': user.pk,
+            'username': user.username,
+            'role': getattr(user, 'role', ''),
+            'tabs': getattr(user, 'tabs', {}) or {},
+            'restaurant_tabs': _get_restaurant_tabs(user),    # ★ جدید
         })

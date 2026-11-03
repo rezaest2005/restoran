@@ -35,3 +35,7 @@ Thumbs.db
 backend/nginx.conf
 
 deploy/.env
+
+# ★ امنیت: فایل‌های محرمانه هرگز commit نشوند
+.env
+**/.env

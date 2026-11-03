@@ -18,6 +18,9 @@ from ..tenancy import (
 )
 from .decorators import make_service_permission
 
+from ..order_services import restore_order_stock
+from ..club_services import earn_for_order
+
 logger = logging.getLogger(__name__)
 
 
@@ -29,6 +32,10 @@ def _resolve_restaurant(request):
     if r:
         return r
     r = get_restaurant_from_request(request)
+    if r:
+        set_current_restaurant(r)
+        return r
+    r = getattr(request.user, "restaurant", None)
     if r:
         set_current_restaurant(r)
         return r
@@ -88,6 +95,15 @@ def order_change_status(request, pk):
                 order.confirmed_at = timezone.now()
 
             order.save(update_fields=['status', 'confirmed_by', 'confirmed_at'])
+
+            if new_status == 'cancelled':
+                restore_order_stock(order)
+
+            if new_status == 'delivered':
+                try:
+                    earn_for_order(order)
+                except Exception:
+                    logger.exception('club earn failed for order %s', order.pk)
 
         return JsonResponse({
             "success": True,

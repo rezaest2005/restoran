@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, Typography, Box, Checkbox, IconButton,
@@ -13,6 +14,7 @@ import {
 } from "@super/shared/superConfig";
 
 export default function PermsModal({ open, onClose, userId, C }) {
+  const { t } = useTranslation();
   const [username, setUsername] = useState("");
   const [perms, setPerms] = useState([]);
   const [role, setRole] = useState("other");
@@ -109,10 +111,10 @@ export default function PermsModal({ open, onClose, userId, C }) {
           <Typography sx={{ fontSize: 18 }}>🔐</Typography>
           <Box>
             <Typography sx={{ fontSize: 15, fontWeight: 800, color: C.text }}>
-              دسترسی‌ها — {username}
+              {t("ui_c.super.perms.title", { username })}
             </Typography>
             <Typography sx={{ fontSize: 11, color: C.muted, fontWeight: 400 }}>
-              {activeCount} از {totalCount} دسترسی فعال
+              {t("ui_c.super.perms.active_of", { active: activeCount, total: totalCount })}
             </Typography>
           </Box>
         </Box>
@@ -147,7 +149,7 @@ export default function PermsModal({ open, onClose, userId, C }) {
               }}
             >
               <Typography sx={{ fontSize: 12, fontWeight: 700, color: C.text, mb: 1 }}>
-                🎭 نقش / شغل
+                {t("ui_c.super.role_job")}
               </Typography>
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mb: 1 }}>
                 {Object.entries(ROLE_PERM_PRESETS).map(([key, preset]) => (
@@ -172,7 +174,7 @@ export default function PermsModal({ open, onClose, userId, C }) {
                         color: role === key ? C.olive : C.sub,
                       }}
                     >
-                      {preset.label}
+                      {t(preset.labelKey)}
                     </Typography>
                   </Box>
                 ))}
@@ -180,7 +182,7 @@ export default function PermsModal({ open, onClose, userId, C }) {
 
               {role !== "other" && ROLE_PERM_PRESETS[role] && (
                 <Typography sx={{ fontSize: 11, color: C.muted }}>
-                  📌 {ROLE_PERM_PRESETS[role].description}
+                  📌 {t(ROLE_PERM_PRESETS[role].descKey)}
                 </Typography>
               )}
 
@@ -188,8 +190,8 @@ export default function PermsModal({ open, onClose, userId, C }) {
                 <TextField
                   size="small"
                   fullWidth
-                  label="نام شغل سفارشی"
-                  placeholder="مثلاً: منشی، حسابدار، نظافتچی..."
+                  label={t("ui_c.super.custom_job")}
+                  placeholder={t("ui_c.super.custom_job_ph")}
                   value={customRole}
                   onChange={(e) => setCustomRole(e.target.value)}
                   sx={{
@@ -245,7 +247,7 @@ export default function PermsModal({ open, onClose, userId, C }) {
                           }}
                         />
                         <Typography sx={{ fontSize: 12, fontWeight: 700, color: groupAll ? C.olive : C.text }}>
-                          {groupName}
+                          {t(group.labelKey)}
                         </Typography>
                       </Box>
                       <Chip
@@ -308,7 +310,7 @@ export default function PermsModal({ open, onClose, userId, C }) {
                                 lineHeight: 1.3,
                               }}
                             >
-                              {PERM_LABELS[code] || code}
+                              {PERM_LABELS[code] ? t(PERM_LABELS[code]) : code}
                             </Typography>
                           </Box>
                         );
@@ -338,14 +340,14 @@ export default function PermsModal({ open, onClose, userId, C }) {
             size="small"
             sx={{ fontSize: 11, color: C.olive, textTransform: "none", fontWeight: 600 }}
           >
-            ☑ همه
+            {t("ui_c.super.perms.all")}
           </Button>
           <Button
             onClick={() => setPerms([])}
             size="small"
             sx={{ fontSize: 11, color: C.danger, textTransform: "none", fontWeight: 600 }}
           >
-            ☐ هیچ
+            {t("ui_c.super.perms.none")}
           </Button>
         </Box>
 
@@ -354,7 +356,7 @@ export default function PermsModal({ open, onClose, userId, C }) {
             onClick={onClose}
             sx={{ color: C.sub, textTransform: "none", borderRadius: "10px", fontSize: 12 }}
           >
-            انصراف
+            {t("ui_c.super.cancel")}
           </Button>
           <Button
             onClick={savePerms}
@@ -373,7 +375,7 @@ export default function PermsModal({ open, onClose, userId, C }) {
             {saving ? (
               <CircularProgress size={18} sx={{ color: "#fff" }} />
             ) : (
-              "ذخیره"
+              t("ui_c.super.save")
             )}
           </Button>
         </Box>

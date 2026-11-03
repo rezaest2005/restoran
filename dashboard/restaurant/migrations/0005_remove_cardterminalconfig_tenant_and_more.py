@@ -194,6 +194,19 @@ class Migration(migrations.Migration):
             model_name='recipe',
             name='restaurant',
         ),
+        # ★ unique_together باید قبل از حذف فیلد 'recipe' برداشته شود (در غیر این صورت FieldDoesNotExist)
+        migrations.AlterUniqueTogether(
+            name='recipeingredient',
+            unique_together=None,
+        ),
+        migrations.AlterUniqueTogether(
+            name='recipepackagingitem',
+            unique_together=None,
+        ),
+        migrations.AlterUniqueTogether(
+            name='recipesemifinished',
+            unique_together=None,
+        ),
         migrations.RemoveField(
             model_name='recipesemifinished',
             name='recipe',
@@ -206,10 +219,6 @@ class Migration(migrations.Migration):
             model_name='recipeingredient',
             name='recipe',
         ),
-        migrations.AlterUniqueTogether(
-            name='recipeingredient',
-            unique_together=None,
-        ),
         migrations.RemoveField(
             model_name='recipeingredient',
             name='raw_material',
@@ -218,10 +227,6 @@ class Migration(migrations.Migration):
             model_name='recipeingredient',
             name='restaurant',
         ),
-        migrations.AlterUniqueTogether(
-            name='recipepackagingitem',
-            unique_together=None,
-        ),
         migrations.RemoveField(
             model_name='recipepackagingitem',
             name='raw_material',
@@ -229,10 +234,6 @@ class Migration(migrations.Migration):
         migrations.RemoveField(
             model_name='recipepackagingitem',
             name='restaurant',
-        ),
-        migrations.AlterUniqueTogether(
-            name='recipesemifinished',
-            unique_together=None,
         ),
         migrations.RemoveField(
             model_name='recipesemifinished',
@@ -273,6 +274,11 @@ class Migration(migrations.Migration):
         migrations.RemoveField(
             model_name='semifinishedingredient',
             name='restaurant',
+        ),
+        # ★ unique_together باید قبل از حذف فیلد 'service' برداشته شود
+        migrations.AlterUniqueTogether(
+            name='tenantservice',
+            unique_together=None,
         ),
         migrations.RemoveField(
             model_name='tenantservice',
@@ -317,10 +323,6 @@ class Migration(migrations.Migration):
         migrations.RemoveField(
             model_name='table',
             name='restaurant',
-        ),
-        migrations.AlterUniqueTogether(
-            name='tenantservice',
-            unique_together=None,
         ),
         migrations.RemoveField(
             model_name='tenantservice',

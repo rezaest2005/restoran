@@ -15,6 +15,7 @@ from .models import (
     Tenant,
     Warehouse,
     StockItem,
+    Feedback,
 )
 
 
@@ -130,3 +131,15 @@ class StockItemAdmin(admin.ModelAdmin):
 class TenantAdmin(admin.ModelAdmin):
     list_display = ["name", "owner", "is_active", "created_at"]
     list_filter = ["is_active"]
+
+
+# ─── Feedback ────────────────────────
+
+@admin.register(Feedback)
+class FeedbackAdmin(admin.ModelAdmin):
+    list_display = ["status", "category", "restaurant", "created_at"]
+    list_filter = ["status", "category"]
+    search_fields = ["name", "phone", "message"]
+
+    def get_queryset(self, request):
+        return Feedback.all_objects.all()

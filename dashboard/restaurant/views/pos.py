@@ -14,13 +14,15 @@ from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 
-from ..models import Order, OrderItem, Food
+from ..models import Order, OrderItem, Food, Restaurant
 from ..tenancy import (
     get_current_restaurant,
     set_current_restaurant,
     get_restaurant_from_request,
 )
 from .decorators import make_service_permission
+from ..order_services import restore_order_stock
+from ..club_services import earn_for_order
 
 logger = logging.getLogger(__name__)
 
@@ -169,6 +171,12 @@ def pos_create_order(request):
                 })
 
             order.recalculate_total()
+
+        if order.payment_status == "paid":
+            try:
+                earn_for_order(order)
+            except Exception:
+                logger.exception("club earn failed for order %s", order.pk)
 
         return JsonResponse({
             "success": True,
@@ -383,7 +391,15 @@ def pos_update_food_price(request):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def public_menu_api(request):
-    restaurant = _resolve_restaurant(request)
+    restaurant = None
+    slug = (request.GET.get("restaurant_slug") or "").strip()
+    if slug:
+        restaurant = Restaurant.objects.filter(slug=slug, is_active=True).first()
+        if not restaurant:
+            return JsonResponse({"count": 0, "total": 0, "results": []}, status=404)
+        set_current_restaurant(restaurant)  # TenantManager برای Food.objects
+    if restaurant is None:
+        restaurant = _resolve_restaurant(request)
 
     qs = Food.objects.select_related("category").filter(is_available=True)
     if restaurant:
@@ -467,7 +483,7 @@ def pos_online_orders(request):
     since_id = request.GET.get("since")
     restaurant = _resolve_restaurant(request)
 
-    qs = Order.objects.filter(source="online").prefetch_related("items__food")
+    qs = Order.objects.filter(source__in=["online", "qr"]).prefetch_related("items__food")
     if restaurant:
         qs = qs.filter(restaurant=restaurant)
     if status_filter != "all":
@@ -496,6 +512,9 @@ def pos_online_orders(request):
             "customer_name": o.customer_name,
             "customer_name_en": o.customer_name_en or "",
             "phone": o.phone,
+            "source": o.source,
+            "table_number": o.table_number,
+            "customer_note": o.customer_note,
             "status": o.status,
             "status_display": o.get_status_display(),
             "payment_status": o.payment_status,
@@ -519,7 +538,7 @@ def pos_reject_online_order(request, order_id):
     restaurant = _resolve_restaurant(request)
 
     try:
-        qs = Order.objects.filter(source="online")
+        qs = Order.objects.filter(source__in=["online", "qr"])
         if restaurant:
             qs = qs.filter(restaurant=restaurant)
         order = qs.get(id=order_id)
@@ -532,10 +551,12 @@ def pos_reject_online_order(request, order_id):
             "error": f"سفارش قبلاً {order.get_status_display()} شده",
         }, status=400)
 
-    order.status = "cancelled"
-    order.confirmed_by = request.user
-    order.confirmed_at = timezone.now()
-    order.save(update_fields=["status", "confirmed_by", "confirmed_at"])
+    with transaction.atomic():
+        order.status = "cancelled"
+        order.confirmed_by = request.user
+        order.confirmed_at = timezone.now()
+        order.save(update_fields=["status", "confirmed_by", "confirmed_at"])
+        restore_order_stock(order)
 
     return JsonResponse({
         "success": True,

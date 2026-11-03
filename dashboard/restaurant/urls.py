@@ -1,5 +1,5 @@
 """
-Restaurant Management System — URLs (★ نسخه v11 — invoicing)
+Restaurant Management System — URLs (★ نسخه v12 — session-check)
 """
 from django.urls import path
 from django.http import JsonResponse
@@ -20,6 +20,9 @@ from .views.invoicing import (
     expense_delete,
     profit_report,
 )
+
+# ─── Session Check (★ جدید) ─────────────
+from .views.auth import SessionCheckView          # ★ اضافه شد
 
 
 # ═══════════════════════════════════════
@@ -52,6 +55,7 @@ urlpatterns = [
     path("api/auth/users/", views.UserListView.as_view(), name="user_list"),
     path("api/auth/users/<int:pk>/", views.UserDetailView.as_view(), name="user_detail"),
     path("api/auth/set-session/", views.SetSessionView.as_view(), name="set_session"),
+    path("api/auth/session-check/", SessionCheckView.as_view(), name="session_check"),  # ★ اضافه شد
 
     # ── User Management ─────────────────────────────────────
     path("users/", views.user_management_page, name="user_management"),
@@ -61,6 +65,7 @@ urlpatterns = [
     path("api/users/reset-password/", views.admin_reset_password, name="admin_reset_password"),
     path("api/users/toggle-active/", views.user_toggle_active, name="user_toggle_active"),
     path("api/users/delete/", views.user_delete, name="user_delete"),
+    path("api/users/tabs/", views.user_tabs_api, name="user_tabs_api"),
 
     # ── Raw Materials & Suppliers ───────────────────────────
     path("api/raw-materials/save/", views.raw_material_save, name="raw_material_save"),
@@ -88,6 +93,27 @@ urlpatterns = [
     path("api/pos/online-orders/", _get_view("pos_online_orders"), name="pos_online_orders"),
     path("api/pos/online-orders/<int:order_id>/reject/", _get_view("pos_reject_online_order"), name="pos_reject_online_order"),
     path("api/menu/public/", _get_view("public_menu_api"), name="public_menu_api"),
+    path("api/menu/order/", _get_view("qr_order_submit"), name="qr_order_submit"),
+
+
+    # ── فرمولاسیون و خط تولید ───────────────────────────────
+    path("api/production/materials/", views.production_materials, name="production_materials"),
+    path("api/formulas/", views.formulas, name="formulas"),
+    path("api/formulas/<int:pk>/", views.formula_detail, name="formula_detail"),
+    path("api/production/orders/", views.production_orders, name="production_orders"),
+    path("api/production/orders/<int:pk>/", views.production_order_detail, name="production_order_detail"),
+    path("api/production/orders/<int:pk>/start/", views.production_order_start, name="production_order_start"),
+    path("api/production/orders/<int:pk>/complete/", views.production_order_complete, name="production_order_complete"),
+    path("api/production/orders/<int:pk>/cancel/", views.production_order_cancel, name="production_order_cancel"),
+
+
+    # ── باشگاه مشتریان ──────────────────────────────────────
+    path("api/club/settings/", views.club_settings, name="club_settings"),
+    path("api/club/members/", views.club_members, name="club_members"),
+    path("api/club/members/<int:pk>/", views.club_member_detail, name="club_member_detail"),
+    path("api/club/members/<int:pk>/adjust/", views.club_member_adjust, name="club_member_adjust"),
+    path("api/club/lookup/", views.club_lookup, name="club_lookup"),
+    path("api/club/redeem/", views.club_redeem, name="club_redeem"),
 
     # ── Orders ──────────────────────────────────────────────
     path("api/orders/list/", _get_view("order_list_api"), name="order_list_api"),
@@ -117,6 +143,12 @@ urlpatterns = [
     path("api/invoicing/expenses/<int:pk>/", expense_delete, name="inv_expense_delete"),
     path("api/invoicing/profit-report/", profit_report, name="inv_profit_report"),
 
+    # ── Feedback (ثبت نظرات) ────────────────────────────────
+    path("api/feedback/submit/", views.feedback_submit, name="feedback_submit"),
+    path("api/feedback/list/", views.feedback_list, name="feedback_list"),
+    path("api/feedback/<int:pk>/update/", views.feedback_update, name="feedback_update"),
+    path("feedback/<slug:slug>/", views.feedback_form, name="feedback_form"),
+
     # ── HTML Pages ──────────────────────────────────────────
     path("dashboard/", views.auth_page, name="auth_page"),
     path("dashboard/auth/", views.redirect_to_dashboard, name="auth_redirect"),
@@ -125,4 +157,5 @@ urlpatterns = [
     path("dashboard/super/auth/", views.super_admin_auth_page, name="super_admin_auth"),
     path("dashboard/super/", views.super_admin_page, name="super_admin"),
     path("dashboard/orders/", views.orders_dashboard, name="orders_dashboard"),
+    path("dashboard/feedback/", views.feedback_page, name="feedback_page"),
 ]

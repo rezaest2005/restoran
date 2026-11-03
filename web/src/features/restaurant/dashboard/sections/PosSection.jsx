@@ -11,6 +11,7 @@ import {
 
 import SectionHeader from "../components/common/SectionHeader";
 import GlassCard from "../components/common/GlassCard";
+import { buildColors } from "@shared/palette";
 
 export default function PosSection({ data }) {
   const { mode } = useThemeMode();
@@ -33,14 +34,7 @@ export default function PosSection({ data }) {
     min: t("dash.min"),
   };
 
-  const C = useMemo(() => ({
-    glass: isDark ? "rgba(16,18,16,0.65)" : "rgba(240,244,252,0.72)",
-    glassBorder: isDark ? "rgba(107,155,110,0.12)" : "rgba(80,100,140,0.15)",
-    olive: isDark ? "#6B9B6E" : "#2E4D30",
-    text: isDark ? "#F0ECE8" : "#1A1A24",
-    sub: isDark ? "#8A8588" : "#555568",
-    muted: isDark ? "#4A4548" : "#8A8A9E",
-  }), [isDark]);
+  const C = useMemo(() => buildColors(isDark), [isDark]);
 
   const fmtN = useCallback((n) => {
     if (n == null) return "—";
@@ -102,7 +96,7 @@ export default function PosSection({ data }) {
       <SectionHeader icon="📈" title={L.secSales} subtitle={L.secSalesDesc} C={C} isRtl={isRtl} delay={0.2} />
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "2fr 1fr" }, gap: 3, mb: 5, width: "100%" }}>
         <GlassCard C={C} sx={{ p: 3, width: "100%", height: 500, overflow: "visible" }}>
-          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>روند فروش هفتگی</Typography>
+          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>{t("ui_b.dashPos.weeklyTrend")}</Typography>
           <Box sx={{ width: "100%", height: 420 }}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
@@ -121,15 +115,15 @@ export default function PosSection({ data }) {
                 <YAxis stroke={C.muted} fontSize={16} tickLine={false} axisLine={false} dx={-10} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: C.glassBorder, strokeWidth: 1 }} />
                 <Legend wrapperStyle={{ fontSize: 16, paddingTop: "20px" }} />
-                <Area type="monotone" dataKey="sales" name="فروش" stroke="#ff6b35" strokeWidth={4} fillOpacity={1} fill="url(#colorSales)" />
-                <Area type="monotone" dataKey="orders" name="سفارشات" stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorOrders)" />
+                <Area type="monotone" dataKey="sales" name={t("ui_b.dashPos.sales")} stroke="#ff6b35" strokeWidth={4} fillOpacity={1} fill="url(#colorSales)" />
+                <Area type="monotone" dataKey="orders" name={t("ui_b.dashPos.orders")} stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorOrders)" />
               </AreaChart>
             </ResponsiveContainer>
           </Box>
         </GlassCard>
 
         <GlassCard C={C} sx={{ p: 3, width: "100%", height: 500, overflow: "visible" }}>
-          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>دسته‌بندی فروش</Typography>
+          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>{t("ui_b.dashPos.salesByCategory")}</Typography>
           <Box sx={{ width: "100%", height: 420 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
@@ -148,7 +142,7 @@ export default function PosSection({ data }) {
       <SectionHeader icon="🔥" title={L.secTime} subtitle={L.secTimeDesc} C={C} isRtl={isRtl} delay={0.4} />
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "2fr 1fr" }, gap: 3, mb: 5, width: "100%" }}>
         <GlassCard C={C} sx={{ p: 3, width: "100%", height: 500, overflow: "visible" }}>
-          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>ساعات اوج تقاضا</Typography>
+          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>{t("ui_b.dashPos.peakHours")}</Typography>
           <Box sx={{ width: "100%", height: 420 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={hourlyData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
@@ -156,24 +150,24 @@ export default function PosSection({ data }) {
                 <XAxis dataKey="displayName" stroke={C.muted} fontSize={16} tickLine={false} axisLine={false} dy={10} />
                 <YAxis stroke={C.muted} fontSize={16} tickLine={false} axisLine={false} dx={-10} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'transparent' }} />
-                <Bar dataKey="orders" name="تعداد سفارشات" fill="#10b981" radius={[8, 8, 0, 0]} barSize={32} />
+                <Bar dataKey="orders" name={t("ui_b.dashPos.orderCount")} fill="#10b981" radius={[8, 8, 0, 0]} barSize={32} />
               </BarChart>
             </ResponsiveContainer>
           </Box>
         </GlassCard>
 
         <GlassCard C={C} sx={{ p: 3, width: "100%", height: 500, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3, flexShrink: 0 }}>مقایسه هفتگی</Typography>
+          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3, flexShrink: 0 }}>{t("ui_b.dashPos.weeklyCompare")}</Typography>
           <Box sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 3, width: "100%" }}>
             <Box sx={{ background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)", p: 3, borderRadius: 3, width: "100%" }}>
-              <Typography sx={{ fontSize: 14, color: C.sub, mb: 1 }}>فروش این هفته</Typography>
+              <Typography sx={{ fontSize: 14, color: C.sub, mb: 1 }}>{t("ui_b.dashPos.thisWeekSales")}</Typography>
               <Typography sx={{ fontSize: 26, fontWeight: 800, color: C.olive }}>{fmtN(data.weeklyCompare?.thisWeek)} <span style={{fontSize: 14, fontWeight: 600}}>{L.tuman}</span></Typography>
             </Box>
             <Box sx={{ background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)", p: 3, borderRadius: 3, width: "100%" }}>
-              <Typography sx={{ fontSize: 14, color: C.sub, mb: 1 }}>فروش هفته قبل</Typography>
+              <Typography sx={{ fontSize: 14, color: C.sub, mb: 1 }}>{t("ui_b.dashPos.lastWeekSales")}</Typography>
               <Typography sx={{ fontSize: 22, fontWeight: 700, color: C.text, opacity: 0.7 }}>{fmtN(data.weeklyCompare?.lastWeek)} <span style={{fontSize: 14, fontWeight: 600}}>{L.tuman}</span></Typography>
             </Box>
-            <Chip label={`تغییر: ${data.weeklyCompare?.change}%`} sx={{ alignSelf: "flex-start", bgcolor: data.weeklyCompare?.change > 0 ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)", color: data.weeklyCompare?.change > 0 ? "#10b981" : "#ef4444", fontWeight: 800, fontSize: 16, py: 2, px: 1 }} />
+            <Chip label={t("ui_b.dashPos.change", { value: data.weeklyCompare?.change })} sx={{ alignSelf: "flex-start", bgcolor: data.weeklyCompare?.change > 0 ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)", color: data.weeklyCompare?.change > 0 ? "#10b981" : "#ef4444", fontWeight: 800, fontSize: 16, py: 2, px: 1 }} />
           </Box>
         </GlassCard>
       </Box>
@@ -182,7 +176,7 @@ export default function PosSection({ data }) {
       <SectionHeader icon="🍽️" title={L.secMenu} subtitle={L.secMenuDesc} C={C} isRtl={isRtl} delay={0.6} />
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 3, mb: 5, width: "100%" }}>
         <GlassCard C={C} sx={{ p: 3, width: "100%", minHeight: 450, overflow: "hidden" }}>
-          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>پرفروش‌ترین غذاها</Typography>
+          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>{t("ui_b.dashPos.topProducts")}</Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2, width: "100%" }}>
             {topItemsData.map((item, i) => (
               <Box key={i} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", p: 2, borderRadius: 2, background: i === 0 ? `${C.olive}15` : (isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)") }}>
@@ -190,19 +184,19 @@ export default function PosSection({ data }) {
                   <Box sx={{ width: 32, height: 32, borderRadius: "50%", background: i < 3 ? C.olive : C.muted, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, flexShrink: 0 }}>{isRtl ? (i+1).toLocaleString("fa-IR") : i+1}</Box>
                   <Typography sx={{ fontSize: 16, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</Typography>
                 </Box>
-                <Typography sx={{ fontSize: 14, fontWeight: 700, color: C.sub, flexShrink: 0, mr: 2, ml: 2 }}>{fmtN(item.sales)} فروش</Typography>
+                <Typography sx={{ fontSize: 14, fontWeight: 700, color: C.sub, flexShrink: 0, mr: 2, ml: 2 }}>{fmtN(item.sales)} {t("ui_b.dashPos.salesUnit")}</Typography>
               </Box>
             ))}
           </Box>
         </GlassCard>
 
         <GlassCard C={C} sx={{ p: 3, width: "100%", minHeight: 450, overflow: "hidden" }}>
-          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>کم‌فروش‌ترین غذاها</Typography>
+          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>{t("ui_b.dashPos.lowProducts")}</Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2, width: "100%" }}>
             {lowItemsData.map((item, i) => (
               <Box key={i} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", p: 2, borderRadius: 2, background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)" }}>
                 <Typography sx={{ fontSize: 16, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}>{item.name}</Typography>
-                <Typography sx={{ fontSize: 14, fontWeight: 700, color: "#ef4444", flexShrink: 0, mr: 2, ml: 2 }}>{fmtN(item.sales)} فروش</Typography>
+                <Typography sx={{ fontSize: 14, fontWeight: 700, color: "#ef4444", flexShrink: 0, mr: 2, ml: 2 }}>{fmtN(item.sales)} {t("ui_b.dashPos.salesUnit")}</Typography>
               </Box>
             ))}
           </Box>

@@ -15,6 +15,7 @@ import {
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import superClient from "@super/api/super_client";
+import { buildColors } from "@shared/palette";
 
 const animations = `
   @keyframes orb1 {
@@ -58,14 +59,14 @@ const animations = `
 /* ═══════════════════════════════════════════
    تابع کمکی: تبدیل هر نوع خطا به متن ساده
    ═══════════════════════════════════════════ */
-function extractError(data) {
-  if (!data) return "خطای ناشناخته";
+function extractError(data, t) {
+  if (!data) return t("ui_c.super.login.unknown_error");
   let msg =
     data.error ||
     data.detail ||
     data.message ||
     data.msg ||
-    "اطلاعات ورود اشتباه است";
+    t("ui_c.super.login.bad_credentials");
 
   if (typeof msg !== "string") {
     try {
@@ -77,7 +78,7 @@ function extractError(data) {
         })
         .join(" - ");
     } catch {
-      msg = "اطلاعات ورود اشتباه است";
+      msg = t("ui_c.super.login.bad_credentials");
     }
   }
   return String(msg);
@@ -105,61 +106,11 @@ export default function SuperLogin() {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem("super_token");
+    const token = sessionStorage.getItem("super_token");
     if (token) navigate("/super/app", { replace: true });
   }, [navigate]);
 
-  const C = useMemo(
-    () => ({
-      bg: isDark ? "#0B0A0B" : "#E4E8F0",
-      bgWarm: isDark
-        ? "radial-gradient(ellipse at 20% 10%, rgba(61,90,62,0.08) 0%, transparent 50%), radial-gradient(ellipse at 80% 90%, rgba(120,30,58,0.06) 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, rgba(196,162,101,0.04) 0%, transparent 60%)"
-        : "radial-gradient(ellipse at 10% 5%, rgba(80,100,160,0.12) 0%, transparent 45%), radial-gradient(ellipse at 90% 90%, rgba(120,40,70,0.08) 0%, transparent 40%), radial-gradient(ellipse at 50% 40%, rgba(61,90,62,0.07) 0%, transparent 50%)",
-      glass: isDark ? "rgba(16,18,16,0.6)" : "rgba(240,244,252,0.7)",
-      glassBorder: isDark ? "rgba(107,155,110,0.1)" : "rgba(80,100,140,0.15)",
-      glassShimmer: isDark
-        ? "linear-gradient(90deg, transparent 0%, rgba(107,155,110,0.05) 20%, rgba(168,64,96,0.06) 40%, rgba(212,183,106,0.07) 60%, rgba(107,155,110,0.04) 80%, transparent 100%)"
-        : "linear-gradient(90deg, transparent 0%, rgba(80,100,160,0.06) 20%, rgba(120,40,70,0.05) 40%, rgba(196,162,101,0.06) 60%, rgba(61,90,62,0.04) 80%, transparent 100%)",
-      olive: isDark ? "#6B9B6E" : "#2E4D30",
-      oliveLight: isDark ? "#8BB88E" : "#3D5A3E",
-      oliveSubtle: isDark ? "rgba(107,155,110,0.08)" : "rgba(46,77,48,0.08)",
-      burgundy: isDark ? "#A84060" : "#7A2845",
-      gold: isDark ? "#D4B76A" : "#A08040",
-      text: isDark ? "#F0ECE8" : "#1A1A24",
-      sub: isDark ? "#8A8588" : "#555568",
-      muted: isDark ? "#4A4548" : "#8A8A9E",
-      inputBg: isDark ? "rgba(11,10,11,0.5)" : "rgba(240,244,252,0.85)",
-      inputFocusGlow: isDark
-        ? "0 0 0 3px rgba(107,155,110,0.12), 0 0 24px rgba(107,155,110,0.06)"
-        : "0 0 0 3px rgba(46,77,48,0.1), 0 0 24px rgba(74,106,148,0.08)",
-      btnGrad: isDark
-        ? "linear-gradient(135deg, #3D6B40 0%, #5A8A5D 35%, #6B9B6E 70%, #4A7A4D 100%)"
-        : "linear-gradient(135deg, #1E3A20 0%, #2E4D30 35%, #3D5A3E 70%, #2E4D30 100%)",
-      btnHover: isDark
-        ? "linear-gradient(135deg, #4A7A4D 0%, #6B9B6E 35%, #7BAB7E 70%, #5A8A5D 100%)"
-        : "linear-gradient(135deg, #2E4D30 0%, #3D5A3E 35%, #4A6B4B 70%, #3D5A3E 100%)",
-      btnShadow: isDark
-        ? "0 4px 28px rgba(107,155,110,0.25), 0 1px 4px rgba(0,0,0,0.3)"
-        : "0 4px 28px rgba(46,77,48,0.3), 0 2px 6px rgba(0,0,0,0.1)",
-      btnShadowHover: isDark
-        ? "0 8px 40px rgba(107,155,110,0.4), 0 2px 8px rgba(0,0,0,0.3)"
-        : "0 8px 40px rgba(46,77,48,0.4), 0 2px 8px rgba(0,0,0,0.12)",
-      cardShadow: isDark
-        ? "0 8px 60px rgba(0,0,0,0.5), 0 0 80px rgba(107,155,110,0.04), 0 0 120px rgba(168,64,96,0.03)"
-        : "0 8px 60px rgba(0,0,0,0.1), 0 0 60px rgba(74,106,148,0.08), 0 0 100px rgba(46,77,48,0.04)",
-      danger: isDark ? "#E84057" : "#C83048",
-      dangerBg: isDark ? "rgba(232,64,87,0.12)" : "rgba(200,48,72,0.1)",
-      headerBg: isDark ? "rgba(16,18,16,0.85)" : "rgba(228,232,240,0.9)",
-      headerBorder: isDark ? "rgba(107,155,110,0.08)" : "rgba(80,100,140,0.1)",
-      orb1: isDark ? "rgba(107,155,110,0.09)" : "rgba(74,106,148,0.12)",
-      orb2: isDark ? "rgba(168,64,96,0.07)" : "rgba(122,40,69,0.1)",
-      orb3: isDark ? "rgba(212,183,106,0.06)" : "rgba(160,128,64,0.09)",
-      iconBg: isDark
-        ? "linear-gradient(135deg, rgba(107,155,110,0.08), rgba(168,64,96,0.06))"
-        : "linear-gradient(135deg, rgba(74,106,148,0.1), rgba(46,77,48,0.06))",
-    }),
-    [isDark],
-  );
+  const C = useMemo(() => buildColors(isDark), [isDark]);
 
   const inputSx = (field) => ({
     "& .MuiOutlinedInput-root": {
@@ -205,7 +156,7 @@ export default function SuperLogin() {
     e.stopPropagation();
 
     if (!username.trim() || !password.trim()) {
-      setError("نام کاربری و رمز عبور را وارد کنید");
+      setError(t("ui_c.super.login.enter_credentials"));
       return;
     }
 
@@ -219,18 +170,18 @@ export default function SuperLogin() {
       });
 
       if (data && data.ok && data.token) {
-        localStorage.setItem("super_token", data.token);
+        sessionStorage.setItem("super_token", data.token);
         if (data.user) {
-          localStorage.setItem("super_user", JSON.stringify(data.user));
+          sessionStorage.setItem("super_user", JSON.stringify(data.user));
         }
         navigate("/super/app", { replace: true });
       } else {
         // ★ تبدیل خطا به متن ساده
-        setError(extractError(data));
+        setError(extractError(data, t));
       }
     } catch (err) {
       // ★ تبدیل خطا به متن ساده — هیچوقت آبجکت رندر نمیشه
-      const errMsg = extractError(err?.response?.data);
+      const errMsg = extractError(err?.response?.data, t);
       setError(errMsg);
     } finally {
       setLoading(false);

@@ -131,7 +131,7 @@ export default function MenuForm({ open, onClose, onSave, editItem, categories =
                   {editItem ? "✏️" : "➕"} {editItem ? t("dict.edit_food") : t("dict.add_food")}
                 </Typography>
                 <Typography sx={{ fontSize: 12, color: textSub, mt: 0.3 }}>
-                  {editItem ? "ویرایش اطلاعات غذا" : "اطلاعات غذای جدید را وارد کنید"}
+                  {editItem ? t("ui_b.menuForm.editSubtitle") : t("ui_b.menuForm.newSubtitle")}
                 </Typography>
               </Box>
               <IconButton onClick={onClose} sx={{ color: textSub, bgcolor: oliveBg, borderRadius: "12px", width: 36, height: 36, "&:hover": { bgcolor: olive + "20", color: olive } }}>
@@ -151,13 +151,13 @@ export default function MenuForm({ open, onClose, onSave, editItem, categories =
               <TextField
                 value={name} onChange={(e) => setName(e.target.value)}
                 onBlur={handleNameBlur}
-                fullWidth autoFocus placeholder="مثلاً: پیتزا مارگاریتا"
+                fullWidth autoFocus placeholder={t("ui_b.menuForm.namePlaceholder")}
                 sx={inputSx}
                 slotProps={{ input: {
                   startAdornment: (
                     <InputAdornment position="start">
                       <Typography sx={{ fontSize: 12, color: textMuted, fontWeight: 600 }}>
-                        {isRtl ? "فا" : "EN"}
+                        {t("ui_b.menuForm.langBadge")}
                       </Typography>
                     </InputAdornment>
                   ),
@@ -177,7 +177,7 @@ export default function MenuForm({ open, onClose, onSave, editItem, categories =
               {/* ★ نشان‌دهنده ترجمه خودکار */}
               {nameEn && (
                 <Typography sx={{ fontSize: 11, color: olive, mt: 0.5, opacity: 0.7 }}>
-                  🌐 ترجمه شد: {nameEn}
+                  🌐 {t("ui_b.menuForm.translated")} {nameEn}
                 </Typography>
               )}
             </Box>
@@ -191,13 +191,13 @@ export default function MenuForm({ open, onClose, onSave, editItem, categories =
                 fullWidth value={categoryName}
                 onChange={(e) => setCategoryName(e.target.value)}
                 onBlur={handleCategoryBlur}
-                placeholder="تایپ یا انتخاب دسته‌بندی..."
+                placeholder={t("ui_b.menuForm.categoryPlaceholder")}
                 sx={inputSx}
                 slotProps={{ input: {
                   startAdornment: (
                     <InputAdornment position="start">
                       <Typography sx={{ fontSize: 12, color: textMuted, fontWeight: 600 }}>
-                        {isRtl ? "فا" : "EN"}
+                        {t("ui_b.menuForm.langBadge")}
                       </Typography>
                     </InputAdornment>
                   ),
@@ -214,7 +214,7 @@ export default function MenuForm({ open, onClose, onSave, editItem, categories =
               />
               {categoryNameEn && (
                 <Typography sx={{ fontSize: 11, color: olive, mt: 0.5, opacity: 0.7 }}>
-                  🌐 ترجمه شد: {categoryNameEn}
+                  🌐 {t("ui_b.menuForm.translated")} {categoryNameEn}
                 </Typography>
               )}
 
@@ -248,7 +248,7 @@ export default function MenuForm({ open, onClose, onSave, editItem, categories =
               {t("dict.cancel")}
             </Button>
             <Button onClick={handleSave} disabled={!name.trim() || saving || translating} fullWidth sx={{ borderRadius: "14px", fontSize: 14, fontWeight: 700, textTransform: "none", py: 1.3, color: "#fff", background: "linear-gradient(135deg, " + olive + ", #556b2f)", boxShadow: "0 6px 24px " + olive + "30", "&:hover": { transform: "translateY(-2px)" }, "&.Mui-disabled": { bgcolor: textMuted, color: textSub } }}>
-              {saving ? <CircularProgress size={20} sx={{ color: "#fff" }} /> : translating ? "🌐 در حال ترجمه..." : t("dict.btn_save")}
+              {saving ? <CircularProgress size={20} sx={{ color: "#fff" }} /> : translating ? `🌐 ${t("ui_b.menuForm.translating")}` : t("dict.btn_save")}
             </Button>
           </Box>
         </Box>

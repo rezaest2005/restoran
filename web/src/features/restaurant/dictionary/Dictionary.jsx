@@ -12,15 +12,16 @@ import ManagersSection from "./components/ManagersSection";
 import SupplierSection from "./components/SupplierSection";
 import CustomerSection from "./components/CustomerSection";
 import WarehouseSection from "./components/WarehouseSection";
+import { buildColors } from "@shared/palette";
 
 const ALL_TABS = [
   { id: "menu", icon: "🍽️", labelKey: "dict.menu_tab", adminOnly: false },
-  { id: "invoice", icon: "🥜", label: "اجناس", adminOnly: false },
+  { id: "invoice", icon: "🥜", labelKey: "ui_b.dictionary.tabItems", adminOnly: false },
   { id: "recipe", icon: "📖", labelKey: "dict.recipe_tab", adminOnly: false },
-  { id: "suppliers", icon: "🏭", label: "تأمین‌کنندگان", adminOnly: false },
-  { id: "customers", icon: "👥", label: "مشتریان", adminOnly: false },
-  { id: "warehouses", icon: "📦", label: "انبارها", adminOnly: false },
-  { id: "managers", icon: "🔧", labelKey: "dict.managers_tab", adminOnly: true },
+  { id: "suppliers", icon: "🏭", labelKey: "ui_b.dictionary.tabSuppliers", adminOnly: false },
+  { id: "customers", icon: "👥", labelKey: "ui_b.dictionary.tabCustomers", adminOnly: false },
+  { id: "warehouses", icon: "📦", labelKey: "ui_b.dictionary.tabWarehouses", adminOnly: false },
+  { id: "managers", icon: "👥", labelKey: "ui_b.dictionary.tabUsers", adminOnly: false },
 ];
 
 export default function Dictionary() {
@@ -96,24 +97,7 @@ export default function Dictionary() {
     dragOverItem.current = null;
   };
 
-  const C = useMemo(() => ({
-    glass: isDark ? "rgba(16,18,16,0.6)" : "rgba(240,244,252,0.7)",
-    glassBorder: isDark ? "rgba(107,155,110,0.1)" : "rgba(80,100,140,0.15)",
-    olive: isDark ? "#6B9B6E" : "#2E4D30",
-    oliveSubtle: isDark ? "rgba(107,155,110,0.08)" : "rgba(46,77,48,0.08)",
-    text: isDark ? "#F0ECE8" : "#1A1A24",
-    sub: isDark ? "#8A8588" : "#555568",
-    muted: isDark ? "#4A4548" : "#8A8A9E",
-    inputBg: isDark ? "rgba(11,10,11,0.5)" : "rgba(240,244,252,0.85)",
-    btnGrad: isDark
-      ? "linear-gradient(135deg, #3D6B40, #5A8A5D, #6B9B6E, #4A7A4D)"
-      : "linear-gradient(135deg, #1E3A20, #2E4D30, #3D5A3E, #2E4D30)",
-    danger: isDark ? "#E84057" : "#C83048",
-    dangerBg: isDark ? "rgba(232,64,87,0.12)" : "rgba(200,48,72,0.1)",
-    cardShadow: isDark
-      ? "0 8px 60px rgba(0,0,0,0.5), 0 0 80px rgba(107,155,110,0.04)"
-      : "0 8px 60px rgba(0,0,0,0.1), 0 0 60px rgba(74,106,148,0.08)",
-  }), [isDark]);
+  const C = useMemo(() => buildColors(isDark), [isDark]);
 
   return (
     <Box dir={isRtl ? "rtl" : "ltr"} sx={{
@@ -160,7 +144,7 @@ export default function Dictionary() {
               "&:hover": { bgcolor: C.oliveSubtle },
               opacity: dragItem.current === idx ? 0.5 : 1,
             }}
-            title="برای جابجایی بکشید و رها کنید"
+            title={t("ui_b.dictionary.dragHint")}
           >
             {tab.icon} {tab.label || t(tab.labelKey)}
           </Button>
@@ -169,7 +153,7 @@ export default function Dictionary() {
 
       {/* راهنمای کوچیک */}
       <Typography sx={{ fontSize: 10, color: C.muted, mb: 2, mt: -2 }}>
-        💡 برای تغییر ترتیب تب‌ها، آن‌ها را بکشید و رها کنید | ⌨️ Alt+1 تا Alt+7 = رفتن به تب
+        💡 {t("ui_b.dictionary.reorderHelp")}
       </Typography>
 
       {/* محتوای تب */}
@@ -187,7 +171,7 @@ export default function Dictionary() {
         {activeTab === "suppliers" && <SupplierSection C={C} isDark={isDark} showToast={showToast} />}
         {activeTab === "customers" && <CustomerSection C={C} isDark={isDark} showToast={showToast} />}
         {activeTab === "warehouses" && <WarehouseSection C={C} isDark={isDark} showToast={showToast} />}
-        {activeTab === "managers" && isOwnerOrManager && <ManagersSection C={C} isRtl={isRtl} isDark={isDark} showToast={showToast} />}
+        {activeTab === "managers" && <ManagersSection C={C} isRtl={isRtl} isDark={isDark} showToast={showToast} />}
       </Box>
 
       {/* Toast */}

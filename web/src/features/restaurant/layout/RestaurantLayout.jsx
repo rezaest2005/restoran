@@ -7,32 +7,47 @@ import {
 } from "@mui/material";
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
+import { buildColors } from "@shared/palette";
 
 /* ═══════════════════════════════════════
-   ۱. کانفیگ منوها
+   ۱. کانفیگ منوها — با کلیدهای دسترسی
 ═══════════════════════════════════════ */
 
 const NAV_SECTIONS = [
   {
     titleKey: "rest.nav_management",
-    serviceCode: null,
     items: [
-      { icon: "💻", labelKey: "rest.nav_pos", basePath: "pos", serviceCode: null, permissionKey: null },
+      {
+        icon: "💻", labelKey: "rest.nav_pos", basePath: "pos",
+        anyTabs: ["pos", "pos_report", "pos_settings", "orders"],
+      },
     ],
   },
   {
     titleKey: "rest.nav_inventory",
-    serviceCode: null,
     items: [
-      // ★★★ تغییر از label به labelKey
-      { icon: "📦", labelKey: "rest.nav_inventory", basePath: "inventory", serviceCode: null, permissionKey: null },
+      {
+        icon: "📦", labelKey: "rest.nav_inventory", basePath: "inventory",
+        anyTabs: ["inventory_invoice", "inventory_sales", "inventory_warehouse", "inventory_receiving", "inventory_purchase_list", "inventory_reports"],
+      },
+    ],
+  },
+  {
+    titleKey: "ui_e.nav_production",
+    items: [
+      {
+        icon: "🏭", labelKey: "ui_e.nav_production", basePath: "production",
+        anyTabs: ["kitchen", "recipes", "dictionary_recipe"],
+      },
     ],
   },
   {
     titleKey: "rest.nav_system",
-    serviceCode: null,
     items: [
-      { icon: "📚", labelKey: "rest.nav_dictionary", basePath: "dictionary", serviceCode: null, permissionKey: null },
+      {
+        icon: "📚", labelKey: "rest.nav_dictionary", basePath: "dictionary",
+        anyTabs: ["dictionary_items", "dictionary_menu", "dictionary_recipe", "dictionary_suppliers", "dictionary_warehouses", "dictionary_customers", "dictionary_users"],
+      },
     ],
   },
 ];
@@ -48,6 +63,71 @@ const animations = `
   @keyframes orb2 { 0%, 100% { transform: translate(0, 0) scale(1); } 33% { transform: translate(-70px, 60px) scale(0.92); } 66% { transform: translate(50px, -70px) scale(1.12); } }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 `;
+
+// ═══════ خواندن دسترسی‌های کاربر ═══════
+function getUserTabs() {
+  try {
+    const raw = sessionStorage.getItem("user") || localStorage.getItem("user");
+    if (!raw) return null;
+    const user = JSON.parse(raw);
+
+    // ★★★ اول: تب‌های مجاز کسب‌وکار (از سوپرادمین) ★★★
+    const restTabs = user?.restaurant_tabs;
+    if (Array.isArray(restTabs) && restTabs.length > 0) {
+      const allowed = {};
+      restTabs.forEach(k => { allowed[k] = true; });
+      return allowed;
+    }
+
+    // بعد: تب‌های خود کاربر
+    if (user?.tabs && Object.keys(user.tabs).length > 0) return user.tabs;
+    if (user?.permissions && Object.keys(user.permissions).length > 0) return user.permissions;
+
+    // آخر: از نقش بساز
+    if (user?.role) return ROLE_TABS_FALLBACK[user.role] || null;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// ═══════ پیش‌فرض تب‌ها بر اساس نقش ═══════
+const ROLE_TABS_FALLBACK = {
+  owner: new Proxy({}, { get: () => true }),
+  manager: new Proxy({}, { get: () => true }),
+  warehouse: {
+    home: true,
+    inventory_invoice: true, inventory_sales: true, inventory_warehouse: true,
+    inventory_receiving: true, inventory_purchase_list: true, inventory_reports: true,
+    dictionary_items: true, dictionary_suppliers: true, dictionary_warehouses: true,
+  },
+  cashier: {
+    home: true,
+    dictionary_menu: true, dictionary_customers: true,
+    pos: true, pos_report: true, pos_settings: true, orders: true,
+  },
+  waiter: {
+    home: true,
+    dictionary_menu: true,
+    pos: true, orders: true,
+  },
+  kitchen: {
+    home: true,
+    inventory_warehouse: true, inventory_reports: true,
+    dictionary_menu: true, dictionary_recipe: true,
+    orders: true,
+  },
+  customer: {
+    home: true,
+    dictionary_menu: true,
+  },
+};
+
+// ═══════ بررسی دسترسی ═══════
+function hasAnyTab(userTabs, requiredTabs) {
+  if (!userTabs) return true;
+  return requiredTabs.some((k) => userTabs[k] === true);
+}
 
 /* ═══════════════════════════════════════
    ۲. کامپوننت اصلی
@@ -67,6 +147,8 @@ export default function RestaurantLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("restaurant");
   const [toast, setToast] = useState({ open: false, message: "", type: "info" });
+
+  const userTabs = useMemo(() => getUserTabs(), []);
 
   const slug = useMemo(() => {
     if (urlSlug) return urlSlug;
@@ -88,32 +170,46 @@ export default function RestaurantLayout() {
     return () => clearTimeout(tmr);
   }, []);
 
-  const filteredSections = useMemo(() => NAV_SECTIONS, []);
+  // ★★★ بررسی امنیت session — تب بسته → صفحه لاگین ★★★
+  useEffect(() => {
+    const token = sessionStorage.getItem("access_token") || localStorage.getItem("access_token");
+    const alive = sessionStorage.getItem("session_alive");
+    if (!token || !alive) {
+      navigate(slug ? `/${slug}/dashboard/login` : "/dashboard/login");
+      return;
+    }
 
-  const C = useMemo(() => ({
-    bg: isDark ? "#0B0A0B" : "#E4E8F0",
-    bgWarm: isDark
-      ? "radial-gradient(ellipse at 25% 15%, rgba(61,90,62,0.07) 0%, transparent 50%), radial-gradient(ellipse at 75% 85%, rgba(120,30,58,0.06) 0%, transparent 50%)"
-      : "radial-gradient(ellipse at 15% 10%, rgba(80,100,160,0.1) 0%, transparent 45%), radial-gradient(ellipse at 85% 85%, rgba(120,40,70,0.08) 0%, transparent 40%)",
-    glass: isDark ? "rgba(16,18,16,0.6)" : "rgba(240,244,252,0.7)",
-    glassBorder: isDark ? "rgba(107,155,110,0.1)" : "rgba(80,100,140,0.15)",
-    olive: isDark ? "#6B9B6E" : "#2E4D30",
-    oliveSubtle: isDark ? "rgba(107,155,110,0.08)" : "rgba(46,77,48,0.08)",
-    text: isDark ? "#F0ECE8" : "#1A1A24",
-    sub: isDark ? "#8A8588" : "#555568",
-    muted: isDark ? "#4A4548" : "#8A8A9E",
-    inputBg: isDark ? "rgba(11,10,11,0.5)" : "rgba(240,244,252,0.85)",
-    btnGrad: isDark ? "linear-gradient(135deg, #3D6B40 0%, #5A8A5D 35%, #6B9B6E 70%, #4A7A4D 100%)" : "linear-gradient(135deg, #1E3A20 0%, #2E4D30 35%, #3D5A3E 70%, #2E4D30 100%)",
-    danger: isDark ? "#E84057" : "#C83048",
-    dangerBg: isDark ? "rgba(232,64,87,0.12)" : "rgba(200,48,72,0.1)",
-    sidebarBg: isDark ? "rgba(11,10,11,0.95)" : "rgba(228,232,240,0.95)",
-    sidebarBorder: isDark ? "rgba(107,155,110,0.06)" : "rgba(80,100,140,0.1)",
-    headerBg: isDark ? "rgba(16,18,16,0.85)" : "rgba(228,232,240,0.9)",
-    headerBorder: isDark ? "rgba(107,155,110,0.08)" : "rgba(80,100,140,0.1)",
-    cardShadow: isDark ? "0 8px 60px rgba(0,0,0,0.5)" : "0 8px 60px rgba(0,0,0,0.1)",
-    orb1: isDark ? "rgba(107,155,110,0.09)" : "rgba(74,106,148,0.12)",
-    orb2: isDark ? "rgba(168,64,96,0.07)" : "rgba(122,40,69,0.1)",
-  }), [isDark]);
+    fetch("/api/auth/session-check/", {
+      headers: { "Authorization": `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (res.status === 401 || res.status === 403) {
+          sessionStorage.clear();
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("refresh_token");
+          localStorage.removeItem("user");
+          navigate(slug ? `/${slug}/dashboard/login` : "/dashboard/login");
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const filteredSections = useMemo(() => {
+    return NAV_SECTIONS
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) => hasAnyTab(userTabs, item.anyTabs)),
+      }))
+      .filter((section) => section.items.length > 0);
+  }, [userTabs]);
+
+  const canSeeHome = useMemo(() => {
+    if (!userTabs) return true;
+    return userTabs.home === true;
+  }, [userTabs]);
+
+  const C = useMemo(() => buildColors(isDark), [isDark]);
 
   const showToast = useCallback((message, type = "info") => setToast({ open: true, message, type }), []);
   const handleLockedClick = (nameKey) => showToast(t("rest.locked_msg", { name: t(nameKey) }), "warning");
@@ -123,6 +219,12 @@ export default function RestaurantLayout() {
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("user");
     localStorage.removeItem("db_auth");
+    sessionStorage.removeItem("access_token");
+    sessionStorage.removeItem("refresh_token");
+    sessionStorage.removeItem("user");
+    sessionStorage.removeItem("db_auth");
+    sessionStorage.removeItem("session_alive");
+    sessionStorage.removeItem("demo_logins_remaining");
     navigate(slug ? `/${slug}/dashboard/login` : "/dashboard/login");
   };
 
@@ -137,12 +239,14 @@ export default function RestaurantLayout() {
       </Box>
       <Divider sx={{ borderColor: C.sidebarBorder, mx: 2 }} />
 
-      <Box sx={{ p: 1.5 }}>
-        <Button component={Link} to={prefix} fullWidth onClick={() => isMobile && setSidebarOpen(false)}
-          sx={{ justifyContent: "flex-start", py: 1, px: 1.5, color: C.olive, fontSize: 13, fontWeight: 700, textTransform: "none", borderRadius: "10px", bgcolor: C.oliveSubtle, "&:hover": { bgcolor: C.oliveSubtle } }}>
-          🏠 {t("rest.main_dashboard")}
-        </Button>
-      </Box>
+      {canSeeHome && (
+        <Box sx={{ p: 1.5 }}>
+          <Button component={Link} to={prefix} fullWidth onClick={() => isMobile && setSidebarOpen(false)}
+            sx={{ justifyContent: "flex-start", py: 1, px: 1.5, color: C.olive, fontSize: 13, fontWeight: 700, textTransform: "none", borderRadius: "10px", bgcolor: C.oliveSubtle, "&:hover": { bgcolor: C.oliveSubtle } }}>
+            🏠 {t("rest.main_dashboard")}
+          </Button>
+        </Box>
+      )}
 
       <Box sx={{ display: "flex", gap: 0.5, px: 1.5, mb: 1 }}>
         {[
@@ -164,22 +268,33 @@ export default function RestaurantLayout() {
 
       <Box sx={{ flex: 1, overflowY: "auto", py: 1, px: 1.5 }}>
         {activeTab === "restaurant" ? (
-          filteredSections.map((section, si) => (
-            <Box key={si} sx={{ mb: 2 }}>
-              <Typography sx={{ fontSize: 9, fontWeight: 700, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase", px: 1.5, mb: 0.5 }}>
-                {section.titleKey ? t(section.titleKey) : section.title || "انبارداری"}
+          filteredSections.length === 0 ? (
+            <Box sx={{ textAlign: "center", py: 4 }}>
+              <Typography sx={{ fontSize: 28, mb: 1 }}>🔒</Typography>
+              <Typography sx={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>
+                {t("ui_a.layout.no_access")}
               </Typography>
-              {section.items.map((item, ii) => (
-                <Box key={ii} component={Link} to={`${prefix}/${item.basePath}`}
-                  onClick={() => isMobile && setSidebarOpen(false)}
-                  sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1, borderRadius: "10px", textDecoration: "none", color: C.sub, transition: "all 0.2s ease", "&:hover": { bgcolor: C.oliveSubtle, color: C.olive } }}>
-                  <Typography sx={{ fontSize: 16, lineHeight: 1 }}>{item.icon}</Typography>
-                  {/* ★★★ استفاده از labelKey به جای label ثابت */}
-                  <Typography sx={{ fontSize: 12.5, fontWeight: 500 }}>{t(item.labelKey)}</Typography>
-                </Box>
-              ))}
+              <Typography sx={{ fontSize: 10, color: C.muted, mt: 0.5 }}>
+                {t("ui_a.layout.contact_admin")}
+              </Typography>
             </Box>
-          ))
+          ) : (
+            filteredSections.map((section, si) => (
+              <Box key={si} sx={{ mb: 2 }}>
+                <Typography sx={{ fontSize: 9, fontWeight: 700, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase", px: 1.5, mb: 0.5 }}>
+                  {section.titleKey ? t(section.titleKey) : section.title}
+                </Typography>
+                {section.items.map((item, ii) => (
+                  <Box key={ii} component={Link} to={`${prefix}/${item.basePath}`}
+                    onClick={() => isMobile && setSidebarOpen(false)}
+                    sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1, borderRadius: "10px", textDecoration: "none", color: C.sub, transition: "all 0.2s ease", "&:hover": { bgcolor: C.oliveSubtle, color: C.olive } }}>
+                    <Typography sx={{ fontSize: 16, lineHeight: 1 }}>{item.icon}</Typography>
+                    <Typography sx={{ fontSize: 12.5, fontWeight: 500 }}>{t(item.labelKey)}</Typography>
+                  </Box>
+                ))}
+              </Box>
+            ))
+          )
         ) : (
           <Box sx={{ mb: 2 }}>
             <Typography sx={{ fontSize: 9, fontWeight: 700, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase", px: 1.5, mb: 0.5 }}>
@@ -273,7 +388,7 @@ export default function RestaurantLayout() {
                   color: lang === lng ? C.olive : C.sub, bgcolor: lang === lng ? C.oliveSubtle : "transparent",
                   boxShadow: "none", textTransform: "none", "&:hover": { bgcolor: C.oliveSubtle },
                 }}>
-                  {lng === "fa" ? "فا" : "EN"}
+                  {lng === "fa" ? t("ui_a.layout.lang_fa_short") : "EN"}
                 </Button>
               ))}
             </Box>

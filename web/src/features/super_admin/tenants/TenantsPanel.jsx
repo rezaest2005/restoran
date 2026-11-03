@@ -44,7 +44,7 @@ export default function TenantsPanel({
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const [search, setSearch] = useState("");
-  const [modal, setModal] = useState({ open: false, editId: null });
+  const [modal, setModal] = useState({ open: false, editData: null });   // ★ editData object
   const [deleteModal, setDeleteModal] = useState({ open: false, id: null, name: "" });
   const [selectedId, setSelectedId] = useState(null);
 
@@ -86,6 +86,29 @@ export default function TenantsPanel({
     window.open(`/${slug}/dashboard/login`, "_blank");
   };
 
+  /* ── ★ باز کردن مودال ویرایش با کل داده ── */
+  const openEdit = (e, tn) => {
+    e.stopPropagation();
+    setModal({ open: true, editData: tn });
+  };
+
+  /* ── ★ حذف کسب‌وکار ── */
+  const handleDelete = async () => {
+    try {
+      const token = localStorage.getItem("super_token") || "";
+      const res = await fetch(`/api/super/tenants/${deleteModal.id}/`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` },
+      });
+      if (res.ok) {
+        loadTenants();
+      }
+    } catch (err) {
+      console.error("Delete tenant error:", err);
+    }
+    setDeleteModal({ open: false, id: null, name: "" });
+  };
+
   return (
     <Box dir={isRtl ? "rtl" : "ltr"}>
 
@@ -107,7 +130,7 @@ export default function TenantsPanel({
           </Typography>
         </Box>
         <Button
-          onClick={() => setModal({ open: true, editId: null })}
+          onClick={() => setModal({ open: true, editData: null })}
           startIcon={<Add />}
           size={isMobile ? "small" : "medium"}
           sx={{
@@ -130,12 +153,14 @@ export default function TenantsPanel({
         value={search}
         onChange={e => setSearch(e.target.value)}
         sx={{ ...inputSx, mb: 2, maxWidth: { xs: "100%", md: 350 }, width: "100%" }}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <Search sx={{ fontSize: 18, color: C.muted }} />
-            </InputAdornment>
-          ),
+        slotProps={{
+          input: {
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search sx={{ fontSize: 18, color: C.muted }} />
+              </InputAdornment>
+            ),
+          },
         }}
       />
 
@@ -151,7 +176,7 @@ export default function TenantsPanel({
               sx={{
                 ...glassCardSx,
                 p: 2, cursor: "pointer",
-                bgcolor: selectedId === tn.id ? C.tableRowSelected : C.glass,
+                bgcolor: selectedId === tn.id ? (C.tableRowSelected || C.oliveSubtle) : C.glass,
                 border: selectedId === tn.id
                   ? `1.5px solid ${C.olive}`
                   : `1px solid ${C.glassBorder}`,
@@ -178,8 +203,8 @@ export default function TenantsPanel({
                   label={tn.is_active ? t("super.badge.active") : t("super.badge.inactive")}
                   size="small"
                   sx={{
-                    bgcolor: tn.is_active ? C.successBg : C.dangerBg,
-                    color: tn.is_active ? C.success : C.danger,
+                    bgcolor: tn.is_active ? (C.successBg || "#4CAF5020") : (C.dangerBg || "#E8405720"),
+                    color: tn.is_active ? (C.success || "#4CAF50") : (C.danger || "#E84057"),
                     fontWeight: 600, borderRadius: "8px", fontSize: 10, height: 22,
                   }}
                 />
@@ -200,16 +225,16 @@ export default function TenantsPanel({
 
               <Box sx={{ display: "flex", gap: 0.5, justifyContent: isRtl ? "flex-start" : "flex-end" }}>
                 <ActionBtn small
-                  icon={<Dashboard sx={{ fontSize: 14, color: C.info }} />}
+                  icon={<Dashboard sx={{ fontSize: 14, color: C.info || "#2196F3" }} />}
                   label={t("super.action.dashboard")}
-                  color={C.info}
+                  color={C.info || "#2196F3"}
                   onClick={(e) => openDashboard(e, tn.slug)}
                 />
                 <ActionBtn small
                   icon={<Edit sx={{ fontSize: 14, color: C.olive }} />}
                   label={t("super.action.edit")}
                   color={C.olive}
-                  onClick={(e) => { e.stopPropagation(); setModal({ open: true, editId: tn.id }); }}
+                  onClick={(e) => openEdit(e, tn)}
                 />
                 <ActionBtn small
                   icon={<Delete sx={{ fontSize: 14, color: C.danger }} />}
@@ -234,7 +259,7 @@ export default function TenantsPanel({
         <TableContainer sx={{ ...glassCardSx, mb: selectedId ? 3 : 0 }}>
           <Table size="small">
             <TableHead>
-              <TableRow sx={{ bgcolor: C.tableHeaderBg }}>
+              <TableRow sx={{ bgcolor: C.tableHeaderBg || C.oliveSubtle }}>
                 <TableCell sx={{ color: C.sub, fontWeight: 700, border: "none" }}>
                   {t("super.tenants.col.name")}
                 </TableCell>
@@ -259,9 +284,13 @@ export default function TenantsPanel({
                   onClick={() => handleSelect(tn.id)}
                   sx={{
                     cursor: "pointer",
-                    bgcolor: selectedId === tn.id ? C.tableRowSelected : "transparent",
+                    bgcolor: selectedId === tn.id ? (C.tableRowSelected || C.oliveSubtle) : "transparent",
                     transition: "background-color 0.2s ease",
-                    "&:hover": { bgcolor: selectedId === tn.id ? C.tableRowSelected : C.tableRowHover },
+                    "&:hover": {
+                      bgcolor: selectedId === tn.id
+                        ? (C.tableRowSelected || C.oliveSubtle)
+                        : (C.tableRowHover || C.olive + "06"),
+                    },
                     "& td": { borderBottom: `1px solid ${C.glassBorder}` },
                     "&:last-child td": { borderBottom: "none" },
                     opacity: 0, animation: `fadeUp 0.4s ease-out ${i * 0.03}s forwards`,
@@ -291,8 +320,8 @@ export default function TenantsPanel({
                       label={tn.is_active ? t("super.badge.active") : t("super.badge.inactive")}
                       size="small"
                       sx={{
-                        bgcolor: tn.is_active ? C.successBg : C.dangerBg,
-                        color: tn.is_active ? C.success : C.danger,
+                        bgcolor: tn.is_active ? (C.successBg || "#4CAF5020") : (C.dangerBg || "#E8405720"),
+                        color: tn.is_active ? (C.success || "#4CAF50") : (C.danger || "#E84057"),
                         fontWeight: 600, borderRadius: "8px", fontSize: 11,
                       }}
                     />
@@ -300,16 +329,16 @@ export default function TenantsPanel({
                   <TableCell align={isRtl ? "left" : "right"} sx={{ py: 1.5 }}>
                     <Box sx={{ display: "flex", gap: 0.5, justifyContent: isRtl ? "flex-start" : "flex-end" }}>
                       <ActionBtn
-                        icon={<Dashboard sx={{ fontSize: 16, color: C.info }} />}
+                        icon={<Dashboard sx={{ fontSize: 16, color: C.info || "#2196F3" }} />}
                         label={t("super.action.dashboard")}
-                        color={C.info}
+                        color={C.info || "#2196F3"}
                         onClick={(e) => openDashboard(e, tn.slug)}
                       />
                       <ActionBtn
                         icon={<Edit sx={{ fontSize: 16, color: C.olive }} />}
                         label={t("super.action.edit")}
                         color={C.olive}
-                        onClick={(e) => { e.stopPropagation(); setModal({ open: true, editId: tn.id }); }}
+                        onClick={(e) => openEdit(e, tn)}
                       />
                       <ActionBtn
                         icon={<Delete sx={{ fontSize: 16, color: C.danger }} />}
@@ -344,19 +373,21 @@ export default function TenantsPanel({
         t={t}
       />
 
-      {/* ── modals ── */}
+      {/* ── ★ modals — با پراپ‌های درست ── */}
       <TenantModal
         open={modal.open}
-        editId={modal.editId}
-        onClose={() => setModal({ open: false, editId: null })}
+        editData={modal.editData}           // ★ کل آبجکت — نه فقط id
+        onClose={() => setModal({ open: false, editData: null })}
+        onSave={() => loadTenants()}        // ★ رفرش بعد ذخیره
         C={C}
+        t={t}
       />
       <DeleteModal
         open={deleteModal.open}
         type="tenant"
         name={deleteModal.name}
         onClose={() => setDeleteModal({ open: false, id: null, name: "" })}
-        onConfirm={() => { /* delete logic */ }}
+        onConfirm={handleDelete}            // ★ حذف واقعی
         C={C}
       />
     </Box>

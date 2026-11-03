@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box, Typography, Button, TextField, Chip, CircularProgress,
   Dialog, DialogTitle, DialogContent, DialogActions,
@@ -13,6 +14,7 @@ const writeJSON = (key, val) => {
 };
 
 export default function SupplierSection({ C, isDark, showToast }) {
+  const { t } = useTranslation();
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -92,7 +94,7 @@ export default function SupplierSection({ C, isDark, showToast }) {
   // ── ذخیره ──
   const handleSave = useCallback(() => {
     if (!form.name.trim()) {
-      notify("نام تأمین‌کننده الزامی است", "warning");
+      notify(t("ui_b.supplier.nameRequired"), "warning");
       return;
     }
     if (saving) return;
@@ -115,7 +117,7 @@ export default function SupplierSection({ C, isDark, showToast }) {
       if (idx >= 0) local[idx] = updated;
       else local.push({ id: editSupplier.id, ...updated });
       writeJSON("local_suppliers", local);
-      notify("تأمین‌کننده بروزرسانی شد ✅", "success");
+      notify(`${t("ui_b.supplier.updated")} ✅`, "success");
     } else {
       const newSupplier = {
         id: Date.now(),
@@ -131,23 +133,23 @@ export default function SupplierSection({ C, isDark, showToast }) {
       };
       local.push(newSupplier);
       writeJSON("local_suppliers", local);
-      notify(`تأمین‌کننده «${newSupplier.name}» ایجاد شد ✅`, "success");
+      notify(`${t("ui_b.supplier.created", { name: newSupplier.name })} ✅`, "success");
     }
 
     setFormOpen(false);
     setEditSupplier(null);
     setSaving(false);
     load();
-  }, [form, editSupplier, saving, notify, load]);
+  }, [form, editSupplier, saving, notify, load, t]);
 
   // ── حذف ──
   const handleDelete = useCallback((s) => {
-    if (!window.confirm(`«${s.name}» حذف شود؟`)) return;
+    if (!window.confirm(t("ui_b.common.confirmDelete", { name: s.name }))) return;
     const local = readJSON("local_suppliers", []).filter((x) => x.id !== s.id);
     writeJSON("local_suppliers", local);
-    notify(`«${s.name}» حذف شد`, "success");
+    notify(t("ui_b.common.deleted", { name: s.name }), "success");
     load();
-  }, [notify, load]);
+  }, [notify, load, t]);
 
   // ── استایل ──
   const inputSx = {
@@ -182,10 +184,10 @@ export default function SupplierSection({ C, isDark, showToast }) {
       }}>
         <Box>
           <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text }}>
-            🏭 تأمین‌کنندگان ({suppliers.length})
+            🏭 {t("ui_b.supplier.title")} ({suppliers.length})
           </Typography>
           <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.3 }}>
-            تأمین‌کنندگان از فاکتورهای خرید + تعریف دستی — دوطرفه
+            {t("ui_b.supplier.subtitle")}
           </Typography>
         </Box>
         <Button onClick={openCreate} sx={{
@@ -194,12 +196,12 @@ export default function SupplierSection({ C, isDark, showToast }) {
           boxShadow: `0 4px 20px ${C.olive}30`,
           "&:hover": { transform: "translateY(-1px)" },
         }}>
-          ➕ تأمین‌کننده جدید
+          ➕ {t("ui_b.supplier.newBtn")}
         </Button>
       </Box>
 
       {/* ── جستجو ── */}
-      <TextField size="small" placeholder="🔍 جستجو (نام، موبایل، شرکت)..."
+      <TextField size="small" placeholder={`🔍 ${t("ui_b.supplier.searchPlaceholder")}`}
         value={search} onChange={(e) => setSearch(e.target.value)}
         sx={{ ...inputSx, width: "100%", maxWidth: 350, mb: 2 }} />
 
@@ -208,10 +210,10 @@ export default function SupplierSection({ C, isDark, showToast }) {
         <Box sx={{ textAlign: "center", py: 6 }}>
           <Typography sx={{ fontSize: 36, mb: 1 }}>🏭</Typography>
           <Typography sx={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-            تأمین‌کننده‌ای ثبت نشده
+            {t("ui_b.supplier.empty")}
           </Typography>
           <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.5 }}>
-            از فرم «ثبت فاکتور خرید» اضافه می‌شود یا دستی بسازید
+            {t("ui_b.supplier.emptyHint")}
           </Typography>
         </Box>
       ) : (
@@ -242,13 +244,13 @@ export default function SupplierSection({ C, isDark, showToast }) {
                       }} />
                     )}
                     {stats.debt > 0 && (
-                      <Chip size="small" label="بدهکار" sx={{
+                      <Chip size="small" label={t("ui_b.common.debtor")} sx={{
                         height: 18, fontSize: 9, fontWeight: 600,
                         borderRadius: "5px", bgcolor: C.dangerBg, color: C.danger,
                       }} />
                     )}
                     {!s.is_active && (
-                      <Chip size="small" label="غیرفعال" sx={{
+                      <Chip size="small" label={t("ui_b.common.inactive")} sx={{
                         height: 18, fontSize: 9, fontWeight: 600,
                         borderRadius: "5px", bgcolor: C.muted + "30", color: C.muted,
                       }} />
@@ -268,20 +270,20 @@ export default function SupplierSection({ C, isDark, showToast }) {
                   </Box>
                   {/* آمار */}
                   <Box sx={{ display: "flex", gap: 1.5, mt: 0.5, flexWrap: "wrap" }}>
-                    <Chip size="small" label={`${stats.count} فاکتور خرید`} sx={{
+                    <Chip size="small" label={t("ui_b.supplier.invoiceCount", { count: stats.count })} sx={{
                       height: 18, fontSize: 9, borderRadius: "5px",
                       bgcolor: C.oliveSubtle, color: C.olive,
                     }} />
-                    <Chip size="small" label={`خرید: ${stats.total.toLocaleString("en-US")}`} sx={{
+                    <Chip size="small" label={t("ui_b.supplier.purchaseLabel", { value: stats.total.toLocaleString("en-US") })} sx={{
                       height: 18, fontSize: 9, borderRadius: "5px",
                       bgcolor: "rgba(21,101,192,0.1)", color: "#1565C0",
                     }} />
-                    <Chip size="small" label={`پرداختی: ${stats.paid.toLocaleString("en-US")}`} sx={{
+                    <Chip size="small" label={t("ui_b.supplier.paidLabel", { value: stats.paid.toLocaleString("en-US") })} sx={{
                       height: 18, fontSize: 9, borderRadius: "5px",
                       bgcolor: "rgba(46,125,50,0.1)", color: "#2E7D32",
                     }} />
                     {stats.debt > 0 && (
-                      <Chip size="small" label={`بدهی: ${stats.debt.toLocaleString("en-US")}`} sx={{
+                      <Chip size="small" label={t("ui_b.common.debtLabel", { value: stats.debt.toLocaleString("en-US") })} sx={{
                         height: 18, fontSize: 9, borderRadius: "5px",
                         bgcolor: "rgba(230,81,0,0.1)", color: "#E65100",
                       }} />
@@ -297,7 +299,7 @@ export default function SupplierSection({ C, isDark, showToast }) {
                     color: C.olive, "&:hover": { bgcolor: C.oliveSubtle },
                   }}>
                     <Typography sx={{ fontSize: 14, lineHeight: 1 }}>✏️</Typography>
-                    <Typography sx={{ fontSize: 8, fontWeight: 600 }}>ویرایش</Typography>
+                    <Typography sx={{ fontSize: 8, fontWeight: 600 }}>{t("ui_b.common.edit")}</Typography>
                   </Box>
                   <Box onClick={() => handleDelete(s)} sx={{
                     display: "flex", flexDirection: "column", alignItems: "center",
@@ -305,7 +307,7 @@ export default function SupplierSection({ C, isDark, showToast }) {
                     color: C.danger, "&:hover": { bgcolor: C.dangerBg },
                   }}>
                     <Typography sx={{ fontSize: 14, lineHeight: 1 }}>🗑️</Typography>
-                    <Typography sx={{ fontSize: 8, fontWeight: 600 }}>حذف</Typography>
+                    <Typography sx={{ fontSize: 8, fontWeight: 600 }}>{t("ui_b.common.delete")}</Typography>
                   </Box>
                 </Box>
               </Box>
@@ -319,32 +321,32 @@ export default function SupplierSection({ C, isDark, showToast }) {
         maxWidth="xs" fullWidth
         slotProps={{ paper: { sx: { borderRadius: "16px", bgcolor: isDark ? "#1A1A2E" : "#fff", border: `1px solid ${C.glassBorder}` } } }}>
         <DialogTitle sx={{ fontSize: 15, fontWeight: 800, color: C.text }}>
-          {editSupplier ? `✏️ ویرایش ${editSupplier.name}` : "➕ تأمین‌کننده جدید"}
+          {editSupplier ? `✏️ ${t("ui_b.common.editName", { name: editSupplier.name })}` : `➕ ${t("ui_b.supplier.newBtn")}`}
         </DialogTitle>
         <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 1.5, pt: "12px !important" }}>
-          <TextField size="small" label="نام تأمین‌کننده *" value={form.name}
+          <TextField size="small" label={t("ui_b.supplier.nameLabel")} value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })} sx={inputSx} />
-          <TextField size="small" label="شرکت" value={form.company}
+          <TextField size="small" label={t("ui_b.supplier.company")} value={form.company}
             onChange={(e) => setForm({ ...form, company: e.target.value })} sx={inputSx} />
-          <TextField size="small" label="تلفن" value={form.phone}
+          <TextField size="small" label={t("ui_b.common.phone")} value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })} sx={inputSx} />
-          <TextField size="small" label="آدرس" value={form.address}
+          <TextField size="small" label={t("ui_b.common.address")} value={form.address}
             onChange={(e) => setForm({ ...form, address: e.target.value })} sx={inputSx} />
-          <TextField size="small" label="یادداشت" value={form.note}
+          <TextField size="small" label={t("ui_b.common.note")} value={form.note}
             onChange={(e) => setForm({ ...form, note: e.target.value })}
             multiline rows={2} sx={inputSx} />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setFormOpen(false)}
             sx={{ borderRadius: "10px", fontSize: 12, textTransform: "none", color: C.sub }}>
-            انصراف
+            {t("ui_b.common.cancel")}
           </Button>
           <Button onClick={handleSave} disabled={saving}
             sx={{
               borderRadius: "10px", fontSize: 12, fontWeight: 700, textTransform: "none",
               px: 2.5, color: "#fff", background: C.btnGrad, opacity: saving ? 0.6 : 1,
             }}>
-            {saving ? "..." : editSupplier ? "بروزرسانی" : "ایجاد"}
+            {saving ? "..." : editSupplier ? t("ui_b.common.update") : t("ui_b.common.create")}
           </Button>
         </DialogActions>
       </Dialog>

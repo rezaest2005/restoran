@@ -1,0 +1,15 @@
+# ★ امنیت: این فایل باید کنار Dockerfile در ریشه باشد (context build = ریشه پروژه)
+.git
+.env
+**/.env
+.venv
+**/.venv
+**/venv
+**/node_modules
+**/__pycache__
+**/*.pyc
+project/
+dashboard/db.sqlite3
+dashboard/media
+.vscode
+.idea

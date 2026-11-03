@@ -4,7 +4,7 @@
 Owner    → مالک — دسترسی کامل
 Manager  → مدیر — همه بخش‌ها منهای تنظیمات مالی
 Cashier  → صندوقدار — POS + فاکتور + سفارشات
-Kitchen  → آشپزخانه — تولید + موجودی + ضایعات
+Kitchen  → خط تولید — تولید + موجودی + ضایعات
 Waiter   → گارسون — ثبت سفارش + مشاهده وضعیت
 Customer → مشتری — فقط مشاهده منو و باشگاه
 """
@@ -22,7 +22,7 @@ ROLE_CHOICES = [
     (ROLE_OWNER,    "مالک"),
     (ROLE_MANAGER,  "مدیر"),
     (ROLE_CASHIER,  "صندوقدار"),
-    (ROLE_KITCHEN,  "آشپزخانه"),
+    (ROLE_KITCHEN,  "خط تولید"),
     (ROLE_WAITER,   "گارسون"),
     (ROLE_CUSTOMER, "مشتری"),
 ]

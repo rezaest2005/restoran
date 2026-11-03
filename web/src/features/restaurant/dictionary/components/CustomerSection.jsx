@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box, Typography, Button, TextField, Chip, CircularProgress,
   Dialog, DialogTitle, DialogContent, DialogActions,
@@ -13,6 +14,7 @@ const writeJSON = (key, val) => {
 };
 
 export default function CustomerSection({ C, isDark, showToast }) {
+  const { t } = useTranslation();
   const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -100,7 +102,7 @@ export default function CustomerSection({ C, isDark, showToast }) {
   // ── ذخیره ──
   const handleSave = useCallback(() => {
     if (!form.name.trim()) {
-      notify("نام مشتری الزامی است", "warning");
+      notify(t("ui_b.customer.nameRequired"), "warning");
       return;
     }
     if (saving) return;
@@ -122,7 +124,7 @@ export default function CustomerSection({ C, isDark, showToast }) {
       if (idx >= 0) local[idx] = updated;
       else local.push({ id: editCustomer.id, ...updated });
       writeJSON("local_customers", local);
-      notify("مشتری بروزرسانی شد ✅", "success");
+      notify(`${t("ui_b.customer.updated")} ✅`, "success");
     } else {
       const newCustomer = {
         id: Date.now(),
@@ -137,23 +139,23 @@ export default function CustomerSection({ C, isDark, showToast }) {
       };
       local.push(newCustomer);
       writeJSON("local_customers", local);
-      notify(`مشتری «${newCustomer.name}» ایجاد شد ✅`, "success");
+      notify(`${t("ui_b.customer.created", { name: newCustomer.name })} ✅`, "success");
     }
 
     setFormOpen(false);
     setEditCustomer(null);
     setSaving(false);
     load();
-  }, [form, editCustomer, saving, notify, load]);
+  }, [form, editCustomer, saving, notify, load, t]);
 
   // ── حذف ──
   const handleDelete = useCallback((c) => {
-    if (!window.confirm(`«${c.name}» حذف شود؟`)) return;
+    if (!window.confirm(t("ui_b.common.confirmDelete", { name: c.name }))) return;
     const local = readJSON("local_customers", []).filter((x) => x.id !== c.id);
     writeJSON("local_customers", local);
-    notify(`«${c.name}» حذف شد`, "success");
+    notify(t("ui_b.common.deleted", { name: c.name }), "success");
     load();
-  }, [notify, load]);
+  }, [notify, load, t]);
 
   // ── استایل ──
   const inputSx = {
@@ -188,10 +190,10 @@ export default function CustomerSection({ C, isDark, showToast }) {
       }}>
         <Box>
           <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text }}>
-            👥 مشتریان ({customers.length})
+            👥 {t("ui_b.customer.title")} ({customers.length})
           </Typography>
           <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.3 }}>
-            مشتریان از فاکتورهای فروش + تعریف دستی — دوطرفه
+            {t("ui_b.customer.subtitle")}
           </Typography>
         </Box>
         <Button onClick={openCreate} sx={{
@@ -200,12 +202,12 @@ export default function CustomerSection({ C, isDark, showToast }) {
           boxShadow: `0 4px 20px ${C.olive}30`,
           "&:hover": { transform: "translateY(-1px)" },
         }}>
-          ➕ مشتری جدید
+          ➕ {t("ui_b.customer.newBtn")}
         </Button>
       </Box>
 
       {/* ── جستجو ── */}
-      <TextField size="small" placeholder="🔍 جستجو (نام، موبایل، آدرس)..."
+      <TextField size="small" placeholder={`🔍 ${t("ui_b.customer.searchPlaceholder")}`}
         value={search} onChange={(e) => setSearch(e.target.value)}
         sx={{ ...inputSx, width: "100%", maxWidth: 350, mb: 2 }} />
 
@@ -214,10 +216,10 @@ export default function CustomerSection({ C, isDark, showToast }) {
         <Box sx={{ textAlign: "center", py: 6 }}>
           <Typography sx={{ fontSize: 36, mb: 1 }}>👥</Typography>
           <Typography sx={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-            مشتری‌ای ثبت نشده
+            {t("ui_b.customer.empty")}
           </Typography>
           <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.5 }}>
-            از فرم «ثبت فاکتور فروش» مشتری اضافه می‌شود یا دستی بسازید
+            {t("ui_b.customer.emptyHint")}
           </Typography>
         </Box>
       ) : (
@@ -243,13 +245,13 @@ export default function CustomerSection({ C, isDark, showToast }) {
                       👤 {c.name}
                     </Typography>
                     {debt > 0 && (
-                      <Chip size="small" label="بدهکار" sx={{
+                      <Chip size="small" label={t("ui_b.common.debtor")} sx={{
                         height: 18, fontSize: 9, fontWeight: 600,
                         borderRadius: "5px", bgcolor: C.dangerBg, color: C.danger,
                       }} />
                     )}
                     {!c.is_active && (
-                      <Chip size="small" label="غیرفعال" sx={{
+                      <Chip size="small" label={t("ui_b.common.inactive")} sx={{
                         height: 18, fontSize: 9, fontWeight: 600,
                         borderRadius: "5px", bgcolor: C.muted + "30", color: C.muted,
                       }} />
@@ -269,16 +271,16 @@ export default function CustomerSection({ C, isDark, showToast }) {
                   </Box>
                   {/* آمار */}
                   <Box sx={{ display: "flex", gap: 1.5, mt: 0.5, flexWrap: "wrap" }}>
-                    <Chip size="small" label={`${stats.count} فاکتور`} sx={{
+                    <Chip size="small" label={t("ui_b.customer.invoiceCount", { count: stats.count })} sx={{
                       height: 18, fontSize: 9, borderRadius: "5px",
                       bgcolor: C.oliveSubtle, color: C.olive,
                     }} />
-                    <Chip size="small" label={`فروش: ${stats.total.toLocaleString("en-US")}`} sx={{
+                    <Chip size="small" label={t("ui_b.customer.salesLabel", { value: stats.total.toLocaleString("en-US") })} sx={{
                       height: 18, fontSize: 9, borderRadius: "5px",
                       bgcolor: "rgba(46,125,50,0.1)", color: "#2E7D32",
                     }} />
                     {debt > 0 && (
-                      <Chip size="small" label={`بدهی: ${debt.toLocaleString("en-US")}`} sx={{
+                      <Chip size="small" label={t("ui_b.common.debtLabel", { value: debt.toLocaleString("en-US") })} sx={{
                         height: 18, fontSize: 9, borderRadius: "5px",
                         bgcolor: "rgba(230,81,0,0.1)", color: "#E65100",
                       }} />
@@ -294,7 +296,7 @@ export default function CustomerSection({ C, isDark, showToast }) {
                     color: C.olive, "&:hover": { bgcolor: C.oliveSubtle },
                   }}>
                     <Typography sx={{ fontSize: 14, lineHeight: 1 }}>✏️</Typography>
-                    <Typography sx={{ fontSize: 8, fontWeight: 600 }}>ویرایش</Typography>
+                    <Typography sx={{ fontSize: 8, fontWeight: 600 }}>{t("ui_b.common.edit")}</Typography>
                   </Box>
                   <Box onClick={() => handleDelete(c)} sx={{
                     display: "flex", flexDirection: "column", alignItems: "center",
@@ -302,7 +304,7 @@ export default function CustomerSection({ C, isDark, showToast }) {
                     color: C.danger, "&:hover": { bgcolor: C.dangerBg },
                   }}>
                     <Typography sx={{ fontSize: 14, lineHeight: 1 }}>🗑️</Typography>
-                    <Typography sx={{ fontSize: 8, fontWeight: 600 }}>حذف</Typography>
+                    <Typography sx={{ fontSize: 8, fontWeight: 600 }}>{t("ui_b.common.delete")}</Typography>
                   </Box>
                 </Box>
               </Box>
@@ -316,33 +318,33 @@ export default function CustomerSection({ C, isDark, showToast }) {
         maxWidth="xs" fullWidth
         slotProps={{ paper: { sx: { borderRadius: "16px", bgcolor: isDark ? "#1A1A2E" : "#fff", border: `1px solid ${C.glassBorder}` } } }}>
         <DialogTitle sx={{ fontSize: 15, fontWeight: 800, color: C.text }}>
-          {editCustomer ? `✏️ ویرایش ${editCustomer.name}` : "➕ مشتری جدید"}
+          {editCustomer ? `✏️ ${t("ui_b.common.editName", { name: editCustomer.name })}` : `➕ ${t("ui_b.customer.newBtn")}`}
         </DialogTitle>
         <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 1.5, pt: "12px !important" }}>
-          <TextField size="small" label="نام مشتری *" value={form.name}
+          <TextField size="small" label={t("ui_b.customer.nameLabel")} value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })} sx={inputSx} />
-          <TextField size="small" label="شماره موبایل" value={form.phone}
+          <TextField size="small" label={t("ui_b.customer.mobileLabel")} value={form.phone}
             onChange={(e) => setForm({ ...form, phone: e.target.value })} sx={inputSx} />
-          <TextField size="small" label="آدرس" value={form.address}
+          <TextField size="small" label={t("ui_b.common.address")} value={form.address}
             onChange={(e) => setForm({ ...form, address: e.target.value })} sx={inputSx} />
-          <TextField size="small" label="بدهی اول دوره" type="number"
+          <TextField size="small" label={t("ui_b.customer.openingBalance")} type="number"
             value={form.opening_balance}
             onChange={(e) => setForm({ ...form, opening_balance: e.target.value })} sx={inputSx} />
-          <TextField size="small" label="یادداشت" value={form.note}
+          <TextField size="small" label={t("ui_b.common.note")} value={form.note}
             onChange={(e) => setForm({ ...form, note: e.target.value })}
             multiline rows={2} sx={inputSx} />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setFormOpen(false)}
             sx={{ borderRadius: "10px", fontSize: 12, textTransform: "none", color: C.sub }}>
-            انصراف
+            {t("ui_b.common.cancel")}
           </Button>
           <Button onClick={handleSave} disabled={saving}
             sx={{
               borderRadius: "10px", fontSize: 12, fontWeight: 700, textTransform: "none",
               px: 2.5, color: "#fff", background: C.btnGrad, opacity: saving ? 0.6 : 1,
             }}>
-            {saving ? "..." : editCustomer ? "بروزرسانی" : "ایجاد"}
+            {saving ? "..." : editCustomer ? t("ui_b.common.update") : t("ui_b.common.create")}
           </Button>
         </DialogActions>
       </Dialog>

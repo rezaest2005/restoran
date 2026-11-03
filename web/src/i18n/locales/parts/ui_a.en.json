@@ -1,0 +1,55 @@
+{
+  "ui_a": {
+    "users": {
+      "role_owner": "Owner",
+      "role_manager": "Manager",
+      "role_cashier": "Cashier",
+      "role_kitchen": "Production Line Operator",
+      "toast_approved": "User approved successfully",
+      "toast_status_changed": "User status updated",
+      "toast_deleted": "User deleted",
+      "toast_role_changed": "User role updated",
+      "err_pass_mismatch": "Passwords do not match",
+      "toast_pass_changed": "Password changed",
+      "err_required": "Username and password are required",
+      "now": "Just now",
+      "toast_added": "New user added"
+    },
+    "layout": {
+      "no_access": "No access has been assigned",
+      "contact_admin": "Please contact your system administrator",
+      "lang_fa_short": "FA"
+    },
+    "login": {
+      "invalid_credentials": "Invalid username or password.",
+      "switch_lang": "فارسی"
+    },
+    "dashboard": {
+      "error_in": "Error in {{name}}",
+      "date_format": "{{day}}, {{date}} {{month}}",
+      "days": {
+        "d0": "Sun",
+        "d1": "Mon",
+        "d2": "Tue",
+        "d3": "Wed",
+        "d4": "Thu",
+        "d5": "Fri",
+        "d6": "Sat"
+      },
+      "months": {
+        "m0": "Jan",
+        "m1": "Feb",
+        "m2": "Mar",
+        "m3": "Apr",
+        "m4": "May",
+        "m5": "Jun",
+        "m6": "Jul",
+        "m7": "Aug",
+        "m8": "Sep",
+        "m9": "Oct",
+        "m10": "Nov",
+        "m11": "Dec"
+      }
+    }
+  }
+}

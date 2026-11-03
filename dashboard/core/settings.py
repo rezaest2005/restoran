@@ -13,7 +13,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 PROJECT_ROOT = BASE_DIR.parent
 load_dotenv(PROJECT_ROOT / '.env')
 
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+# ★ امنیت: پیش‌فرض امن = غیرفعال بودن دیباگ (در production نباید فراموش شود)
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # ---------- امنیت: SECRET_KEY اجباری در حالت production ----------
 _secret = os.getenv('SECRET_KEY')
@@ -180,6 +181,9 @@ SESSION_COOKIE_AGE = 86400 * 7
 
 LOGIN_URL = '/dashboard/'
 LOGIN_REDIRECT_URL = '/dashboard/app/'
+
+# بازنشانی رمز عمومی با موبایل فقط بعد از اتصال OTP فعال شود
+PUBLIC_PASSWORD_RESET_ENABLED = os.getenv('PUBLIC_PASSWORD_RESET_ENABLED', 'False') == 'True'
 
 TENANT_NON_SLUGS = {"accounts", "login", "logout"}
 TENANT_CACHE_TTL = 30

@@ -1,6 +1,9 @@
 import { useEffect, useState, useMemo } from "react";
 import { Box, Snackbar, Alert, Typography, Drawer, Badge } from "@mui/material";
-import { Storefront, Assessment, Public, Settings, ShoppingCart } from "@mui/icons-material";
+import { Storefront, Assessment, Public, Settings, ShoppingCart, Notifications, QrCode2 } from "@mui/icons-material";
+import { useParams } from "react-router-dom";
+import TableQrDialog from "@/features/public/TableQrDialog";
+import { useTranslation } from "react-i18next";
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 
@@ -21,17 +24,23 @@ import CheckoutDialog from "./components/CheckoutDialog";
 import DailyReport from "./components/DailyReport";
 import OrderDetailDialog from "./components/OrderDetailDialog";
 import PaymentSettingsPage from "./components/PaymentSettingsPage";
+import IncomingOrders from "./components/IncomingOrders";
+import useIncomingOrders from "./hooks/useIncomingOrders";
+import { buildColors } from "@shared/palette";
 
 const NAV_ITEMS = [
-  { key: "pos", icon: Storefront, labelFa: "صندوق فروش", labelEn: "POS" },
-  { key: "report", icon: Assessment, labelFa: "گزارش روز", labelEn: "Report" },
-  { key: "online", icon: Public, labelFa: "فروش آنلاین", labelEn: "Online" },
-  { key: "settings", icon: Settings, labelFa: "تنظیمات", labelEn: "Settings" },
+  { key: "pos", icon: Storefront, labelKey: "ui_c.pos.nav_pos" },
+  { key: "report", icon: Assessment, labelKey: "ui_c.pos.nav_report" },
+  { key: "online", icon: Public, labelKey: "ui_c.pos.nav_online" },
+  { key: "incoming", icon: Notifications, labelKey: "ui_f.incoming.nav" },
+  { key: "settings", icon: Settings, labelKey: "ui_c.pos.nav_settings" },
 ];
 
 export default function Pos() {
   const { mode } = useThemeMode();
-  const { isRtl } = useLang();
+  const { isRtl, lang } = useLang();
+  const { t } = useTranslation();
+  const params = useParams();
   const isDark = mode === "dark";
 
   const [mounted, setMounted] = useState(false);
@@ -43,6 +52,28 @@ export default function Pos() {
   const [toast, setToast] = useState({ open: false, message: "", type: "info" });
   const [mainTab, setMainTab] = useState("pos");
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [accepted, setAccepted] = useState([]);
+
+  const incoming = useIncomingOrders({
+    onNewOrder: (o) => setToast({
+      open: true, type: "info",
+      message: o.table_number
+        ? t("ui_f.incoming.new_order_table", { n: o.table_number })
+        : t("ui_f.incoming.new_order"),
+    }),
+  });
+
+  // slug: URL param -> logged-in user object -> slug saved by api client from URL
+  const tenantSlug = useMemo(() => {
+    if (params.slug) return params.slug;
+    try {
+      const u = JSON.parse(sessionStorage.getItem("user") || "{}");
+      const s = u.tenant_slug || u.slug || u.restaurant_slug || u.tenant?.slug || u.restaurant?.slug;
+      if (s) return s;
+    } catch { /* ignore */ }
+    try { return localStorage.getItem("tenant_slug") || ""; } catch { return ""; }
+  }, [params.slug]);
 
   const {
     settings, loading: settingsLoading,
@@ -91,24 +122,7 @@ export default function Pos() {
     setActiveCat("all");
   }, [isRtl]);
 
-  const C = useMemo(() => ({
-    bg: isDark ? "#0B0A0B" : "#E4E8F0",
-    glass: isDark ? "rgba(16,18,16,0.6)" : "rgba(240,244,252,0.7)",
-    glassBorder: isDark ? "rgba(107,155,110,0.1)" : "rgba(80,100,140,0.15)",
-    olive: isDark ? "#6B9B6E" : "#2E4D30",
-    oliveSubtle: isDark ? "rgba(107,155,110,0.08)" : "rgba(46,77,48,0.08)",
-    burgundy: isDark ? "#A84060" : "#7A2845",
-    gold: isDark ? "#D4B76A" : "#A08040",
-    text: isDark ? "#F0ECE8" : "#1A1A24",
-    sub: isDark ? "#8A8588" : "#555568",
-    muted: isDark ? "#4A4548" : "#8A8A9E",
-    inputBg: isDark ? "rgba(11,10,11,0.5)" : "rgba(240,244,252,0.85)",
-    danger: isDark ? "#E84057" : "#C83048",
-    dangerBg: isDark ? "rgba(232,64,87,0.12)" : "rgba(200,48,72,0.1)",
-    cardShadow: isDark
-      ? "0 8px 60px rgba(0,0,0,0.5), 0 0 80px rgba(107,155,110,0.04)"
-      : "0 8px 60px rgba(0,0,0,0.1), 0 0 60px rgba(74,106,148,0.08)",
-  }), [isDark]);
+  const C = useMemo(() => buildColors(isDark), [isDark]);
 
   const glassCardSx = {
     bgcolor: C.glass,
@@ -121,13 +135,13 @@ export default function Pos() {
 
   const handleAddManual = (item) => {
     addToCart(item);
-    setToast({ open: true, message: `${item.name} اضافه شد`, type: "success" });
+    setToast({ open: true, message: t("ui_c.pos.added_to_cart", { name: item.name }), type: "success" });
   };
 
   const handleCheckoutClick = () => {
     if (cart.length === 0) return;
     if (requireCustomer && !custName.trim()) {
-      setToast({ open: true, message: "نام مشتری الزامی است", type: "warning" });
+      setToast({ open: true, message: t("ui_c.pos.customer_required"), type: "warning" });
       return;
     }
     setMobileCartOpen(false);
@@ -149,7 +163,7 @@ export default function Pos() {
       setCustName("");
       setCustPhone("");
       reloadReport();
-      setToast({ open: true, message: `سفارش #${result.order_id} ثبت شد`, type: "success" });
+      setToast({ open: true, message: t("ui_c.pos.order_saved", { id: result.order_id }), type: "success" });
     }
     return result;
   };
@@ -193,7 +207,7 @@ export default function Pos() {
         "&::-webkit-scrollbar": { display: "none" },
         scrollbarWidth: "none",
       }}>
-        {NAV_ITEMS.map(({ key, icon: Icon, labelFa, labelEn }) => {
+        {NAV_ITEMS.map(({ key, icon: Icon, labelKey }) => {
           const active = mainTab === key;
           return (
             <Box key={key} onClick={() => setMainTab(key)} sx={{
@@ -214,8 +228,17 @@ export default function Pos() {
                 fontFamily: "'Vazirmatn', sans-serif",
                 whiteSpace: "nowrap",
               }}>
-                {isRtl ? labelFa : labelEn}
+                {t(labelKey)}
               </Typography>
+              {key === "incoming" && incoming.orders.length > 0 && (
+                <Box sx={{
+                  minWidth: 20, height: 20, px: 0.6, borderRadius: "10px",
+                  bgcolor: C.burgundy, color: "#fff", fontSize: 11, fontWeight: 900,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  {incoming.orders.length}
+                </Box>
+              )}
               <Box sx={{
                 position: "absolute", bottom: -1, left: "20%", right: "20%",
                 height: 3, borderRadius: "3px 3px 0 0", bgcolor: C.olive,
@@ -224,6 +247,23 @@ export default function Pos() {
             </Box>
           );
         })}
+        {tenantSlug && (
+          <Box
+            role="button" tabIndex={0} onClick={() => setQrOpen(true)}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setQrOpen(true)}
+            sx={{
+              ml: isRtl ? 0 : "auto", mr: isRtl ? "auto" : 0,
+              display: "flex", alignItems: "center", gap: 0.6, px: 1.2,
+              minHeight: 40, cursor: "pointer", flexShrink: 0, borderRadius: "10px",
+              color: C.olive, "&:hover": { bgcolor: `${C.olive}10` },
+            }}
+          >
+            <QrCode2 sx={{ fontSize: 18 }} />
+            <Typography sx={{ fontSize: { xs: 11, sm: 13 }, fontWeight: 700, fontFamily: "'Vazirmatn', sans-serif", whiteSpace: "nowrap", color: "inherit" }}>
+              {t("ui_f.incoming.qr_codes")}
+            </Typography>
+          </Box>
+        )}
       </Box>
 
       {/* ═══ محتوای اصلی ═══ */}
@@ -334,7 +374,7 @@ export default function Pos() {
                     fontFamily: "'Vazirmatn', sans-serif",
                     lineHeight: 1.2,
                   }}>
-                    {cartCount} {isRtl ? "آیتم" : "items"}
+                    {cartCount} {t("ui_c.pos.items")}
                   </Typography>
                   <Typography sx={{
                     fontSize: 15, fontWeight: 900, color: C.olive,
@@ -347,7 +387,7 @@ export default function Pos() {
                       fontFamily: "'Vazirmatn', sans-serif",
                       mr: 0.5, ml: 0.3,
                     }}>
-                      {isRtl ? "تومان" : "Toman"}
+                      {t("ui_c.pos.toman")}
                     </Typography>
                   </Typography>
                 </Box>
@@ -363,7 +403,7 @@ export default function Pos() {
                 transition: "all 0.2s ease",
               }}>
                 <ShoppingCart sx={{ fontSize: 17 }} />
-                {isRtl ? "سبد خرید" : "Cart"}
+                {t("ui_c.pos.cart")}
                 {cartCount > 0 && (
                   <Box sx={{
                     minWidth: 18, height: 18, borderRadius: "50%",
@@ -410,7 +450,7 @@ export default function Pos() {
                     fontFamily: "'Vazirmatn', sans-serif",
                     color: C.text,
                   }}>
-                    {isRtl ? "سبد خرید" : "Cart"}
+                    {t("ui_c.pos.cart")}
                   </Typography>
                   <Box onClick={() => setMobileCartOpen(false)} sx={{
                     width: 32, height: 32, borderRadius: "8px",
@@ -468,13 +508,22 @@ export default function Pos() {
                 fontWeight: 800, fontSize: { xs: 17, sm: 20 }, mb: 2,
                 fontFamily: "'Vazirmatn', sans-serif",
               }}>
-                {isRtl ? "فروش آنلاین" : "Online Orders"}
+                {t("ui_c.pos.online_orders")}
               </Typography>
               <Typography sx={{ color: C.sub, fontSize: 14 }}>
-                {isRtl ? "سفارشات آنلاین اینجا نمایش داده می‌شود..." : "Online orders will appear here..."}
+                {t("ui_c.pos.online_orders_will_appear_here")}
               </Typography>
             </Box>
           </Box>
+        )}
+
+        {mainTab === "incoming" && (
+          <IncomingOrders
+            {...incoming}
+            accepted={accepted} setAccepted={setAccepted}
+            onToast={(message, type) => setToast({ open: true, message, type })}
+            C={C} glassCardSx={glassCardSx} isRtl={isRtl} lang={lang}
+          />
         )}
 
         {mainTab === "settings" && (
@@ -496,6 +545,10 @@ export default function Pos() {
           </Box>
         )}
       </Box>
+
+      {tenantSlug && (
+        <TableQrDialog open={qrOpen} onClose={() => setQrOpen(false)} slug={tenantSlug} />
+      )}
 
       <CheckoutDialog
         open={checkoutOpen}

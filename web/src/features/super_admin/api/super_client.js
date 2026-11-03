@@ -6,7 +6,7 @@ const superClient = axios.create({
 });
 
 superClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("super_token");
+  const token = sessionStorage.getItem("super_token");
   if (token) config.headers.Authorization = "Token " + token;
 
   const csrf = document.cookie.match(/csrftoken=([^;]+)/);
@@ -21,12 +21,11 @@ superClient.interceptors.response.use(
     const status = err.response?.status;
     const url = err.config?.url || "";
 
-    // ★ فقط برای درخواست‌های غیر از لاگین → ریدایرکت
     const isLoginRequest = url.includes("/login");
 
     if ((status === 401 || status === 403) && !isLoginRequest) {
-      localStorage.removeItem("super_token");
-      localStorage.removeItem("super_user");
+      sessionStorage.removeItem("super_token");
+      sessionStorage.removeItem("super_user");
       window.location.href = "/super/login";
     }
 

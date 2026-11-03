@@ -1,3 +1,4 @@
+import { buildColors } from "@shared/palette";
 // src/features/super_admin/shared/superConfig.js
 
 // ═══════════════════════════════════════
@@ -55,7 +56,7 @@ export const ROLE_OPTIONS = [
   { value: "kitchen", labelKey: "super.role.kitchen" },
   { value: "warehouse", labelKey: "super.role.warehouse" },
   { value: "customer", labelKey: "super.role.customer" },
-  { value: "other", labelKey: "سایر (سفارشی)" },
+  { value: "other", labelKey: "ui_c.super.role_other" },
 ];
 
 // ═══════════════════════════════════════
@@ -78,27 +79,27 @@ export const ALL_PERM_CODES = [
 
 export const PERM_LABELS = {
   // داشبورد
-  home: "داشبورد اصلی",
+  home: "ui_c.super.perm.home",
   // 📦 انبار
-  inventory_invoice: "ثبت فاکتور خرید",
-  inventory_sales: "ثبت فاکتور فروش",
-  inventory_warehouse: "انبار",
-  inventory_receiving: "تحویل بار",
-  inventory_purchase_list: "لیست خرید",
-  inventory_reports: "گزارشات",
+  inventory_invoice: "ui_c.super.perm.inventory_invoice",
+  inventory_sales: "ui_c.super.perm.inventory_sales",
+  inventory_warehouse: "ui_c.super.perm.inventory_warehouse",
+  inventory_receiving: "ui_c.super.perm.inventory_receiving",
+  inventory_purchase_list: "ui_c.super.perm.inventory_purchase_list",
+  inventory_reports: "ui_c.super.perm.inventory_reports",
   // 📖 تعاریف
-  dictionary: "دیکشنری",
-  dictionary_menu: "منوی غذا",
-  dictionary_suppliers: "تأمین‌کنندگان",
-  dictionary_warehouses: "انبارها",
-  dictionary_customers: "مشتریان",
-  dictionary_managers: "مدیران",
-  dictionary_recipes: "رسپی‌ها",
+  dictionary: "ui_c.super.perm.dictionary",
+  dictionary_menu: "ui_c.super.perm.dictionary_menu",
+  dictionary_suppliers: "ui_c.super.perm.dictionary_suppliers",
+  dictionary_warehouses: "ui_c.super.perm.dictionary_warehouses",
+  dictionary_customers: "ui_c.super.perm.dictionary_customers",
+  dictionary_managers: "ui_c.super.perm.dictionary_managers",
+  dictionary_recipes: "ui_c.super.perm.dictionary_recipes",
   // 💰 صندوق
-  pos: "صندوق فروش",
-  pos_report: "گزارش روز صندوق",
-  pos_settings: "تنظیمات صندوق",
-  orders: "سفارشات",
+  pos: "ui_c.super.perm.pos",
+  pos_report: "ui_c.super.perm.pos_report",
+  pos_settings: "ui_c.super.perm.pos_settings",
+  orders: "ui_c.super.perm.orders",
 };
 
 // ═══════════════════════════════════════
@@ -106,18 +107,21 @@ export const PERM_LABELS = {
 // ═══════════════════════════════════════
 
 export const PERM_GROUPS = {
-  "🏠 داشبورد": {
+  home: {
+    labelKey: "ui_c.super.group.home",
     icon: "🏠",
     codes: ["home"],
   },
-  "📦 انبار": {
+  inventory: {
+    labelKey: "ui_c.super.group.inventory",
     icon: "📦",
     codes: [
       "inventory_invoice", "inventory_sales", "inventory_warehouse",
       "inventory_receiving", "inventory_purchase_list", "inventory_reports",
     ],
   },
-  "📖 تعاریف": {
+  dictionary: {
+    labelKey: "ui_c.super.group.dictionary",
     icon: "📖",
     codes: [
       "dictionary", "dictionary_menu", "dictionary_suppliers",
@@ -125,7 +129,8 @@ export const PERM_GROUPS = {
       "dictionary_managers", "dictionary_recipes",
     ],
   },
-  "💰 صندوق": {
+  pos: {
+    labelKey: "ui_c.super.group.pos",
     icon: "💰",
     codes: ["pos", "pos_report", "pos_settings", "orders"],
   },
@@ -137,18 +142,18 @@ export const PERM_GROUPS = {
 
 export const ROLE_PERM_PRESETS = {
   owner: {
-    label: "👑 مالک",
-    description: "دسترسی کامل",
+    labelKey: "ui_c.super.preset.owner.label",
+    descKey: "ui_c.super.preset.owner.desc",
     perms: [...ALL_PERM_CODES],
   },
   manager: {
-    label: "👤 مدیر",
-    description: "همه به‌جز مدیریت کاربران",
+    labelKey: "ui_c.super.preset.manager.label",
+    descKey: "ui_c.super.preset.manager.desc",
     perms: [...ALL_PERM_CODES],
   },
   cashier: {
-    label: "💰 صندوقدار",
-    description: "فقط بخش صندوق + منو",
+    labelKey: "ui_c.super.preset.cashier.label",
+    descKey: "ui_c.super.preset.cashier.desc",
     perms: [
       "home",
       "pos", "pos_report", "pos_settings", "orders",
@@ -156,8 +161,8 @@ export const ROLE_PERM_PRESETS = {
     ],
   },
   kitchen: {
-    label: "🍳 آشپزخانه",
-    description: "رسپی + منو + سفارشات",
+    labelKey: "ui_c.super.preset.kitchen.label",
+    descKey: "ui_c.super.preset.kitchen.desc",
     perms: [
       "home",
       "dictionary_menu", "dictionary_recipes",
@@ -165,8 +170,8 @@ export const ROLE_PERM_PRESETS = {
     ],
   },
   warehouse: {
-    label: "📦 انباردار",
-    description: "فقط بخش انبار + تعاریف",
+    labelKey: "ui_c.super.preset.warehouse.label",
+    descKey: "ui_c.super.preset.warehouse.desc",
     perms: [
       "home",
       "inventory_invoice", "inventory_sales", "inventory_warehouse",
@@ -175,13 +180,13 @@ export const ROLE_PERM_PRESETS = {
     ],
   },
   customer: {
-    label: "🧑 مشتری",
-    description: "فقط مشاهده منو",
+    labelKey: "ui_c.super.preset.customer.label",
+    descKey: "ui_c.super.preset.customer.desc",
     perms: ["home", "dictionary_menu"],
   },
   other: {
-    label: "📝 سایر (سفارشی)",
-    description: "نام شغل + دسترسی دلخواه",
+    labelKey: "ui_c.super.preset.other.label",
+    descKey: "ui_c.super.preset.other.desc",
     perms: [],
   },
 };
@@ -190,35 +195,4 @@ export const ROLE_PERM_PRESETS = {
 //  رنگ‌ها
 // ═══════════════════════════════════════
 
-export const getSuperColors = (isDark) => ({
-  bg: isDark ? "#0B0A0B" : "#E4E8F0",
-  bgWarm: isDark
-    ? "radial-gradient(ellipse at 25% 15%, rgba(61,90,62,0.07) 0%, transparent 50%), radial-gradient(ellipse at 75% 85%, rgba(120,30,58,0.06) 0%, transparent 50%)"
-    : "radial-gradient(ellipse at 15% 10%, rgba(80,100,160,0.1) 0%, transparent 45%), radial-gradient(ellipse at 85% 85%, rgba(120,40,70,0.08) 0%, transparent 40%)",
-  glass: isDark ? "#101210" : "#F0F4FC",
-  glassBorder: isDark ? "#1F2A1F" : "#D1DAE8",
-  olive: isDark ? "#6B9B6E" : "#2E4D30",
-  oliveLight: isDark ? "#8BB88E" : "#3D5A3E",
-  oliveSubtle: isDark ? "rgba(107,155,110,0.08)" : "rgba(46,77,48,0.08)",
-  text: isDark ? "#F0ECE8" : "#1A1A24",
-  sub: isDark ? "#8A8588" : "#555568",
-  muted: isDark ? "#4A4548" : "#8A8A9E",
-  inputBg: isDark ? "#0F0E0F" : "#F6F8FC",
-  btnGrad: isDark ? "#3D6B40" : "#2E4D30",
-  btnHover: isDark ? "#4A7A4D" : "#3D5A3E",
-  danger: isDark ? "#E84057" : "#C83048",
-  dangerBg: isDark ? "rgba(232,64,87,0.12)" : "rgba(200,48,72,0.1)",
-  success: isDark ? "#6B9B6E" : "#2E4D30",
-  successBg: isDark ? "rgba(107,155,110,0.12)" : "rgba(46,77,48,0.1)",
-  warning: isDark ? "#D4B76A" : "#A08040",
-  warningBg: isDark ? "rgba(212,183,106,0.12)" : "rgba(160,128,64,0.1)",
-  info: isDark ? "#5B8FD4" : "#4070B8",
-  infoBg: isDark ? "rgba(91,143,212,0.12)" : "rgba(64,112,184,0.1)",
-  sidebarBg: isDark ? "#080708" : "#E8ECF4",
-  sidebarBorder: isDark ? "#161A16" : "#D1DAE8",
-  headerBg: isDark ? "#0A090A" : "#E8ECF4",
-  headerBorder: isDark ? "#161A16" : "#D1DAE8",
-  tableHeaderBg: isDark ? "#0F110F" : "#EDF1F8",
-  tableRowHover: isDark ? "rgba(107,155,110,0.04)" : "rgba(46,77,48,0.04)",
-  tableRowSelected: isDark ? "rgba(107,155,110,0.08)" : "rgba(46,77,48,0.08)",
-});
+export const getSuperColors = (isDark) => buildColors(isDark);

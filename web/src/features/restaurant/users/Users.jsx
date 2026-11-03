@@ -12,6 +12,7 @@ import {
 } from "@mui/icons-material";
 import { useThemeMode } from "../contexts/ThemeContext";
 import { useLang } from "../contexts/LangContext";
+import { buildColors } from "@shared/palette";
 
 const animations = `
   @keyframes orb1 { 0%, 100% { transform: translate(0, 0) scale(1); } 25% { transform: translate(60px, -80px) scale(1.1); } 50% { transform: translate(-20px, -40px) scale(0.95); } 75% { transform: translate(-50px, 50px) scale(1.05); } }
@@ -21,10 +22,10 @@ const animations = `
 `;
 
 const ROLES = [
-  { value: "owner", label: "مالک", color: "#D4B76A" },
-  { value: "manager", label: "مدیر", color: "#6B9B6E" },
-  { value: "cashier", label: "صندوق‌دار", color: "#3b82f6" },
-  { value: "kitchen", label: "آشپز", color: "#f59e0b" },
+  { value: "owner", labelKey: "ui_a.users.role_owner", color: "#D4B76A" },
+  { value: "manager", labelKey: "ui_a.users.role_manager", color: "#6B9B6E" },
+  { value: "cashier", labelKey: "ui_a.users.role_cashier", color: "#3b82f6" },
+  { value: "kitchen", labelKey: "ui_a.users.role_kitchen", color: "#f59e0b" },
 ];
 
 export default function Users() {
@@ -59,28 +60,7 @@ export default function Users() {
     return () => clearTimeout(tmr);
   }, []);
 
-  const C = useMemo(() => ({
-    bg: isDark ? "#0B0A0B" : "#E4E8F0",
-    glass: isDark ? "rgba(16,18,16,0.6)" : "rgba(240,244,252,0.7)",
-    glassBorder: isDark ? "rgba(107,155,110,0.1)" : "rgba(80,100,140,0.15)",
-    glassShimmer: isDark ? "linear-gradient(90deg, transparent 0%, rgba(107,155,110,0.05) 20%, rgba(168,64,96,0.06) 40%, rgba(212,183,106,0.07) 60%, rgba(107,155,110,0.04) 80%, transparent 100%)" : "linear-gradient(90deg, transparent 0%, rgba(80,100,160,0.06) 20%, rgba(120,40,70,0.05) 40%, rgba(196,162,101,0.06) 60%, rgba(61,90,62,0.04) 80%, transparent 100%)",
-    olive: isDark ? "#6B9B6E" : "#2E4D30",
-    oliveSubtle: isDark ? "rgba(107,155,110,0.08)" : "rgba(46,77,48,0.08)",
-    burgundy: isDark ? "#A84060" : "#7A2845",
-    gold: isDark ? "#D4B76A" : "#A08040",
-    text: isDark ? "#F0ECE8" : "#1A1A24",
-    sub: isDark ? "#8A8588" : "#555568",
-    muted: isDark ? "#4A4548" : "#8A8A9E",
-    inputBg: isDark ? "rgba(11,10,11,0.5)" : "rgba(240,244,252,0.85)",
-    btnGrad: isDark ? "linear-gradient(135deg, #3D6B40 0%, #5A8A5D 35%, #6B9B6E 70%, #4A7A4D 100%)" : "linear-gradient(135deg, #1E3A20 0%, #2E4D30 35%, #3D5A3E 70%, #2E4D30 100%)",
-    danger: isDark ? "#E84057" : "#C83048",
-    dangerBg: isDark ? "rgba(232,64,87,0.12)" : "rgba(200,48,72,0.1)",
-    warning: isDark ? "#D4B76A" : "#A08040",
-    warningBg: isDark ? "rgba(212,183,106,0.12)" : "rgba(160,128,64,0.1)",
-    success: isDark ? "#6B9B6E" : "#2E4D30",
-    successBg: isDark ? "rgba(107,155,110,0.12)" : "rgba(46,77,48,0.1)",
-    cardShadow: isDark ? "0 8px 60px rgba(0,0,0,0.5), 0 0 80px rgba(107,155,110,0.04)" : "0 8px 60px rgba(0,0,0,0.1), 0 0 60px rgba(74,106,148,0.08)",
-  }), [isDark]);
+  const C = useMemo(() => buildColors(isDark), [isDark]);
 
   const glassCardSx = {
     bgcolor: C.glass, backdropFilter: "blur(28px)", WebkitBackdropFilter: "blur(28px)",
@@ -109,39 +89,39 @@ export default function Users() {
 
   const handleApprove = (id) => {
     setUsers(prev => prev.map(u => u.id === id ? { ...u, is_approved: true } : u));
-    showToast("کاربر با موفقیت تأیید شد");
+    showToast(t("ui_a.users.toast_approved"));
   };
 
   const handleToggleActive = (id) => {
     setUsers(prev => prev.map(u => u.id === id ? { ...u, is_active: !u.is_active } : u));
-    showToast("وضعیت کاربر تغییر کرد");
+    showToast(t("ui_a.users.toast_status_changed"));
   };
 
   const handleDelete = () => {
     setUsers(prev => prev.filter(u => u.id !== selectedUser.id));
     setDeleteModalOpen(false);
-    showToast("کاربر حذف شد", "error");
+    showToast(t("ui_a.users.toast_deleted"), "error");
   };
 
   const handleSaveRole = () => {
     setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, role: newRole } : u));
     setRoleModalOpen(false);
-    showToast("نقش کاربر تغییر کرد");
+    showToast(t("ui_a.users.toast_role_changed"));
   };
 
   const handleSavePassword = () => {
-    if (passForm.pass1 !== passForm.pass2) return showToast("رمزها مطابقت ندارند", "error");
+    if (passForm.pass1 !== passForm.pass2) return showToast(t("ui_a.users.err_pass_mismatch"), "error");
     setPassModalOpen(false);
-    showToast("رمز عبور تغییر کرد");
+    showToast(t("ui_a.users.toast_pass_changed"));
     setPassForm({ pass1: "", pass2: "" });
   };
 
   const handleSaveAdd = () => {
-    if (!addForm.username || !addForm.password) return showToast("نام کاربری و رمز الزامی است", "error");
-    const newUser = { ...addForm, id: Date.now(), is_active: true, is_approved: true, date_joined: "اکنون" };
+    if (!addForm.username || !addForm.password) return showToast(t("ui_a.users.err_required"), "error");
+    const newUser = { ...addForm, id: Date.now(), is_active: true, is_approved: true, date_joined: t("ui_a.users.now") };
     setUsers(prev => [newUser, ...prev]);
     setAddModalOpen(false);
-    showToast("کاربر جدید اضافه شد");
+    showToast(t("ui_a.users.toast_added"));
     setAddForm({ username: "", phone: "", password: "", role: "manager" });
   };
 
@@ -152,7 +132,7 @@ export default function Users() {
 
   const getRoleLabel = (roleVal) => {
     const role = ROLES.find(r => r.value === roleVal);
-    return role ? role.label : roleVal;
+    return role ? t(role.labelKey) : roleVal;
   };
 
   const passwordStrength = useMemo(() => {
@@ -290,7 +270,7 @@ export default function Users() {
             <FormControl size="small" sx={inputSx}>
               <InputLabel>{t("users.label_role")}</InputLabel>
               <Select value={addForm.role} onChange={(e) => setAddForm({...addForm, role: e.target.value})} label={t("users.label_role")}>
-                {ROLES.map(r => <MenuItem key={r.value} value={r.value}>{r.label}</MenuItem>)}
+                {ROLES.map(r => <MenuItem key={r.value} value={r.value}>{t(r.labelKey)}</MenuItem>)}
               </Select>
             </FormControl>
           </Box>
@@ -311,7 +291,7 @@ export default function Users() {
           <FormControl fullWidth size="small" sx={inputSx}>
             <InputLabel>{t("users.label_role")}</InputLabel>
             <Select value={newRole} onChange={(e) => setNewRole(e.target.value)} label={t("users.label_role")}>
-              {ROLES.map(r => <MenuItem key={r.value} value={r.value}>{r.label}</MenuItem>)}
+              {ROLES.map(r => <MenuItem key={r.value} value={r.value}>{t(r.labelKey)}</MenuItem>)}
             </Select>
           </FormControl>
           <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}>
