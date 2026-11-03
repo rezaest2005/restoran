@@ -6,7 +6,8 @@ import {
   FormControl, InputLabel, Select, MenuItem, Typography, Chip,
 } from "@mui/material";
 import superClient from "@super/api/super_client";
-import { ROLE_OPTIONS, ROLE_PERM_PRESETS } from "@super/shared/superConfig";
+import { ROLE_OPTIONS, ROLE_PERM_PRESETS } from "@super/common/superConfig";
+import { useRegisteredShortcuts, dialogBindings, tabBindings, helpBinding, collectShortcuts } from "@shared/common/shortcutKit";
 
 export default function UserModal({ open, editId, onClose, tenants, C }) {
   const { t } = useTranslation();
@@ -93,6 +94,9 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
   };
 
   const activePermsCount = form.dashboard_permissions.length;
+
+  // میان‌برها: Ctrl+D و Enter = ذخیره، Escape = بستن
+  useRegisteredShortcuts(dialogBindings(t, { onConfirm: handleSave, onClose }), { enabled: open });
 
   return (
     <Dialog

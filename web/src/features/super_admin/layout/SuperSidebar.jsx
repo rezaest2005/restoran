@@ -1,7 +1,7 @@
 import { Box, Typography, Button, Divider, Drawer } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 import { useLang } from "@shared/contexts/LangContext";
-import { NAV_SECTIONS } from "@super/shared/superConfig";
+import { NAV_SECTIONS } from "@super/common/superConfig";
 
 export default function SuperSidebar({ isMobile, open, onClose, currentUser, onLogout, C, t }) {
   const location = useLocation();

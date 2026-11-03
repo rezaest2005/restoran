@@ -7,8 +7,9 @@ import {
 } from "@mui/material";
 import { Add, Search, Edit, Delete, Storefront, Dashboard } from "@mui/icons-material";
 import TenantModal from "@super/tenants/TenantModal";
-import DeleteModal from "@super/shared/DeleteModal";
+import DeleteModal from "@super/common/DeleteModal";
 import ServicesPanel from "@super/tenants/ServicesPanel";
+import { useRegisteredShortcuts, dialogBindings, tabBindings, helpBinding, collectShortcuts } from "@shared/common/shortcutKit";
 
 /* ════════════════════════════════════════
    ActionBtn
@@ -75,6 +76,22 @@ export default function TenantsPanel({
   };
 
   /* ── select restaurant ── */
+  // ── میان‌برها ──
+  const selectedTenant = filtered.find((x) => x.id === selectedId) || null;
+  const moveSelection = (dir) => {
+    if (!filtered.length) return;
+    const idx = filtered.findIndex((x) => x.id === selectedId);
+    const next = idx === -1 ? (dir > 0 ? 0 : filtered.length - 1) : (idx + dir + filtered.length) % filtered.length;
+    setSelectedId(filtered[next].id);
+  };
+  useRegisteredShortcuts([
+    { combo: "F2", label: t("shortcuts.new"), handler: () => setModal({ open: true, editData: null }) },
+    { combo: "Ctrl+A", label: t("shortcuts.next"), handler: () => moveSelection(1) },
+    { combo: "Ctrl+Z", label: t("shortcuts.prev"), handler: () => moveSelection(-1) },
+    { combo: "Enter", label: t("ui_h.edit_selected"), when: !!selectedTenant, handler: () => setModal({ open: true, editData: selectedTenant }) },
+    { combo: "Delete", label: t("ui_h.delete_selected"), when: !!selectedTenant, handler: () => setDeleteModal({ open: true, id: selectedTenant.id, name: selectedTenant.name }) },
+  ]);
+
   const handleSelect = (id) => {
     setSelectedId(id);
     loadServices(id);

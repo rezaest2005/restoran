@@ -2,8 +2,10 @@ import { useState, useEffect } from "react";
 import { Box, Typography, Button, TextField, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Chip, Select, MenuItem, FormControl, InputLabel } from "@mui/material";
 import UserModal from "@super/users/UserModal";
 import PermsModal from "@super/users/PermsModal";
-import DeleteModal from "@super/shared/DeleteModal";
-import { ROLE_OPTIONS } from "@super/shared/superConfig";
+import DeleteModal from "@super/common/DeleteModal";
+import { ROLE_OPTIONS } from "@super/common/superConfig";
+import { useRegisteredShortcuts, dialogBindings, tabBindings, helpBinding, collectShortcuts } from "@shared/common/shortcutKit";
+import superClient from "@super/api/super_client";
 
 export default function UsersPanel({ users, tenants, loadUsers, C, t }) {
   const [modal, setModal] = useState({ open: false, editId: null });
@@ -13,6 +15,23 @@ export default function UsersPanel({ users, tenants, loadUsers, C, t }) {
   const [role, setRole] = useState("");
 
   useEffect(() => { loadUsers(1, search, "", role); }, [search, role]);
+
+  const refresh = () => loadUsers(1, search, "", role);
+
+  const handleDeleteUser = async () => {
+    try {
+      await superClient.delete(`/api/super/users/${deleteModal.id}/`);
+    } catch (err) {
+      console.error("Delete user error:", err);
+    }
+    setDeleteModal({ open: false, id: null, name: "" });
+    refresh();
+  };
+
+  // میان‌برها
+  useRegisteredShortcuts([
+    { combo: "F2", label: t("shortcuts.new"), handler: () => setModal({ open: true, editId: null }) },
+  ]);
 
   return (
     <Box>
@@ -57,9 +76,9 @@ export default function UsersPanel({ users, tenants, loadUsers, C, t }) {
         </Table>
       </TableContainer>
 
-      <UserModal open={modal.open} editId={modal.editId} onClose={() => setModal({ open: false, editId: null })} tenants={tenants} C={C} />
-      <PermsModal open={permsModal.open} userId={permsModal.userId} onClose={() => setPermsModal({ open: false, userId: null })} C={C} />
-      <DeleteModal open={deleteModal.open} type="user" name={deleteModal.name} onClose={() => setDeleteModal({ open: false, id: null, name: "" })} C={C} />
+      <UserModal open={modal.open} editId={modal.editId} onClose={() => { setModal({ open: false, editId: null }); refresh(); }} tenants={tenants} C={C} />
+      <PermsModal open={permsModal.open} userId={permsModal.userId} onClose={() => { setPermsModal({ open: false, userId: null }); refresh(); }} C={C} />
+      <DeleteModal open={deleteModal.open} type="user" name={deleteModal.name} onClose={() => setDeleteModal({ open: false, id: null, name: "" })} onConfirm={handleDeleteUser} C={C} />
     </Box>
   );
 }

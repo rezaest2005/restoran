@@ -1,0 +1,25 @@
+{
+  "ui_h": {
+    "confirm_delete_invoice": "فاکتور «{{name}}» حذف شود؟",
+    "delete_selected": "حذف ردیف انتخاب‌شده",
+    "edit_selected": "ویرایش ردیف انتخاب‌شده",
+    "new_category": "دسته‌بندی جدید",
+    "new_line": "ردیف جدید",
+    "new_unit": "واحد جدید",
+    "next_cell": "سلول بعدی",
+    "remove_last_line": "حذف آخرین ردیف",
+    "show_details": "نمایش جزئیات",
+    "purchase": {
+      "advance": "پیشروی وضعیت",
+      "cancel_item": "لغو قلم"
+    },
+    "receiving": {
+      "receive": "ورود کالا",
+      "issue": "خروج کالا",
+      "waste": "ثبت ضایعات"
+    },
+    "warehouse": {
+      "new_transfer": "انتقال جدید"
+    }
+  }
+}

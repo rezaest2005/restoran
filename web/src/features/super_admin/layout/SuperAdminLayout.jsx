@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import { useSuperAdmin } from "@super/hooks/useSuperAdmin";
-import { getSuperColors } from "@super/shared/superConfig";
+import { getSuperColors } from "@super/common/superConfig";
 import SuperSidebar from "@super/layout/SuperSidebar";
 import SuperTopBar from "@super/layout/SuperTopBar";
 import TenantsPanel from "@super/tenants/TenantsPanel";
@@ -11,6 +11,8 @@ import UsersPanel from "@super/users/UsersPanel";
 import { Box, Button, Snackbar, Alert, useMediaQuery, useTheme } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import superClient from "@super/api/super_client";
+import { useRegisteredShortcuts, dialogBindings, tabBindings, helpBinding, collectShortcuts } from "@shared/common/shortcutKit";
+import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 
 export default function SuperAdminLayout() {
   const navigate = useNavigate();
@@ -26,6 +28,7 @@ export default function SuperAdminLayout() {
 
   const [activeTab, setActiveTab] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [help, setHelp] = useState(false);
 
   const {
     stats, tenants, services, servicesLoading,
@@ -57,6 +60,8 @@ export default function SuperAdminLayout() {
       minHeight: "100vh", bgcolor: C.bg,
       display: "flex", fontFamily: "Vazirmatn",
     }}>
+
+      <ShortcutsHelpDialog open={help} onClose={() => setHelp(false)} items={collectShortcuts()} />
 
       {/* ── sidebar ── */}
       <SuperSidebar

@@ -1,8 +1,10 @@
 import { useTranslation } from "react-i18next";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, IconButton } from "@mui/material";
+import { useRegisteredShortcuts, dialogBindings, tabBindings, helpBinding, collectShortcuts } from "@shared/common/shortcutKit";
 
 export default function DeleteModal({ open, onClose, onConfirm, type, name, C }) {
   const { t } = useTranslation();
+  useRegisteredShortcuts(dialogBindings(t, { onConfirm: () => onConfirm?.(), onClose }), { enabled: open });
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth slotProps={{ paper: { sx: { bgcolor: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 3 } } }}>
       <DialogTitle sx={{ color: C.danger, fontWeight: 800 }}>

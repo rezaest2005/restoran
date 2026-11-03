@@ -1,5 +1,5 @@
 import { buildColors } from "@shared/palette";
-// src/features/super_admin/shared/superConfig.js
+// src/features/super_admin/common/superConfig.js
 
 // ═══════════════════════════════════════
 //  نویگیشن

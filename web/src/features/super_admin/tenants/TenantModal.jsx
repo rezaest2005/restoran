@@ -12,7 +12,8 @@ import {
   PERM_LABELS,
   PERM_GROUPS,
   ROLE_PERM_PRESETS,
-} from "@super/shared/superConfig";
+} from "@super/common/superConfig";
+import { useRegisteredShortcuts, dialogBindings, tabBindings, helpBinding, collectShortcuts } from "@shared/common/shortcutKit";
 
 const fieldSx = {
   "& .MuiOutlinedInput-root": { borderRadius: "12px", fontSize: 13 },
@@ -202,6 +203,9 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
       setLoading(false);
     }
   };
+
+  // میان‌برها: Ctrl+D و Enter = ذخیره، Escape = بستن
+  useRegisteredShortcuts(dialogBindings(t, { onConfirm: handleSave, onClose }), { enabled: open });
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth

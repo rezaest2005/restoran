@@ -29,7 +29,9 @@
     "submit": "Sign In",
     "error_empty": "Please enter username and password.",
     "error_invalid": "Invalid username or password.",
-    "error_server": "Server connection error."
+    "error_server": "Server connection error.",
+    "header_title": "Service Management Panel",
+    "secure_connection": "Secure connection"
   },
   "sidebar": {
     "dashboard": "Main Dashboard",

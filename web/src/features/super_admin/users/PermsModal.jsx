@@ -11,7 +11,8 @@ import {
   PERM_LABELS,
   PERM_GROUPS,
   ROLE_PERM_PRESETS,
-} from "@super/shared/superConfig";
+} from "@super/common/superConfig";
+import { useRegisteredShortcuts, dialogBindings, tabBindings, helpBinding, collectShortcuts } from "@shared/common/shortcutKit";
 
 export default function PermsModal({ open, onClose, userId, C }) {
   const { t } = useTranslation();
@@ -78,6 +79,9 @@ export default function PermsModal({ open, onClose, userId, C }) {
 
   const activeCount = perms.length;
   const totalCount = ALL_PERM_CODES.length;
+
+  // میان‌برها: Ctrl+D و Enter = ذخیره، Escape = بستن
+  useRegisteredShortcuts(dialogBindings(t, { onConfirm: savePerms, onClose }), { enabled: open });
 
   return (
     <Dialog

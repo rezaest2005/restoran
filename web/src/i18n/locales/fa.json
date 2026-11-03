@@ -29,7 +29,9 @@
     "submit": "ورود",
     "error_empty": "لطفاً نام کاربری و رمز عبور را وارد کنید.",
     "error_invalid": "نام کاربری یا رمز عبور اشتباه است.",
-    "error_server": "خطا در ارتباط با سرور."
+    "error_server": "خطا در ارتباط با سرور.",
+    "header_title": "پنل مدیریت سرویس‌ها",
+    "secure_connection": "اتصال امن"
   },
   "sidebar": {
     "dashboard": "داشبورد اصلی",

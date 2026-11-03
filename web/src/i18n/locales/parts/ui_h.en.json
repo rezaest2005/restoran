@@ -1,0 +1,25 @@
+{
+  "ui_h": {
+    "confirm_delete_invoice": "Delete invoice \"{{name}}\"?",
+    "delete_selected": "Delete selected row",
+    "edit_selected": "Edit selected row",
+    "new_category": "New category",
+    "new_line": "New line",
+    "new_unit": "New unit",
+    "next_cell": "Next cell",
+    "remove_last_line": "Remove last line",
+    "show_details": "Show details",
+    "purchase": {
+      "advance": "Advance status",
+      "cancel_item": "Cancel item"
+    },
+    "receiving": {
+      "receive": "Receive stock",
+      "issue": "Issue stock",
+      "waste": "Record waste"
+    },
+    "warehouse": {
+      "new_transfer": "New transfer"
+    }
+  }
+}
