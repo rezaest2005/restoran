@@ -13,6 +13,7 @@ from ...models import (
     SalesInvoice,
     SalesReturn,
 )
+from ...accounting_posting import post_expense, post_purchase_return, safe_post, unpost
 
 
 @require_http_methods(["GET", "POST"])
@@ -44,11 +45,14 @@ def purchase_return_list_create(request):
         reason=d.get("reason", ""),
         date=d.get("date", timezone.localdate()),
     )
+    safe_post(post_purchase_return, r, request.user if request.user.is_authenticated else None)
     return JsonResponse({"id": r.pk}, status=201)
 
 
 @require_http_methods(["DELETE"])
 def purchase_return_delete(request, pk):
+    for r in PurchaseReturn.objects.filter(pk=pk):
+        unpost(r.restaurant, "purchase_return", r.pk, user=request.user, reason="حذف مرجوعی")
     PurchaseReturn.objects.filter(pk=pk).delete()
     return JsonResponse({}, status=204)
 
@@ -87,11 +91,14 @@ def expense_list_create(request):
         date=d.get("date", timezone.localdate()),
         note=d.get("note", ""),
     )
+    safe_post(post_expense, e, request.user if request.user.is_authenticated else None)
     return JsonResponse({"id": e.pk}, status=201)
 
 
 @require_http_methods(["DELETE"])
 def expense_delete(request, pk):
+    for e in Expense.objects.filter(pk=pk):
+        unpost(e.restaurant, "expense", e.pk, user=request.user, reason="حذف هزینه")
     Expense.objects.filter(pk=pk).delete()
     return JsonResponse({}, status=204)
 

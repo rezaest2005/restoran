@@ -22,6 +22,7 @@ DASHBOARD_SECTIONS = [
     ("kitchen", "خط تولید"),
     ("recipes", "فرمولاسیون"),
     ("club", "باشگاه مشتریان"),
+    ("accounting", "حسابداری"),
     ("invoices", "فاکتور خرید"),
     ("raw_materials", "مواد اولیه"),
     ("semi_finished", "نیمه‌آماده"),

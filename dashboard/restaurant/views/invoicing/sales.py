@@ -9,6 +9,9 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 from ...models import SalesInvoice, SalesInvoiceItem, SalesReturn
+from ...accounting_posting import (
+    post_sales_invoice, post_sales_return, repost, safe_post, unpost,
+)
 
 
 # ═══════════════════════════════════════
@@ -66,6 +69,7 @@ def sales_invoice_list_create(request):
                 cost_price=i.get("cost_price", 0),
                 discount=i.get("discount", 0),
             )
+        safe_post(post_sales_invoice, inv, request.user if request.user.is_authenticated else None)
     return JsonResponse(_invoice_dict(inv, detail=True), status=201)
 
 
@@ -77,6 +81,7 @@ def sales_invoice_detail(request, pk):
         return JsonResponse({"detail": "یافت نشد"}, status=404)
 
     if request.method == "DELETE":
+        unpost(inv.restaurant, "sales_invoice", inv.pk, user=request.user, reason="حذف فاکتور")
         inv.delete()
         return JsonResponse({}, status=204)
 
@@ -108,6 +113,8 @@ def sales_invoice_detail(request, pk):
             if f in d:
                 setattr(inv, f, d[f])
         inv.save()
+        repost(inv, "sales_invoice", post_sales_invoice,
+               request.user if request.user.is_authenticated else None)
 
     return JsonResponse(_invoice_dict(inv, detail=True))
 
@@ -185,10 +192,13 @@ def sales_return_list_create(request):
         reason=d.get("reason", ""),
         date=d.get("date", timezone.localdate()),
     )
+    safe_post(post_sales_return, r, request.user if request.user.is_authenticated else None)
     return JsonResponse({"id": r.pk}, status=201)
 
 
 @require_http_methods(["DELETE"])
 def sales_return_delete(request, pk):
+    for r in SalesReturn.objects.filter(pk=pk):
+        unpost(r.restaurant, "sales_return", r.pk, user=request.user, reason="حذف مرجوعی")
     SalesReturn.objects.filter(pk=pk).delete()
     return JsonResponse({}, status=204)

@@ -15,6 +15,7 @@ from ..models import Order
 
 from ..order_services import restore_order_stock
 from ..club_services import earn_for_order
+from ..accounting_posting import unpost
 from .common import PosPerm, resolve_restaurant
 from .common import server_error
 
@@ -77,6 +78,8 @@ def order_change_status(request, pk):
 
             if new_status == 'cancelled':
                 restore_order_stock(order)
+                unpost(order.restaurant, 'pos_order', order.pk, user=request.user,
+                       reason='لغو سفارش')
 
             if new_status == 'delivered':
                 try:

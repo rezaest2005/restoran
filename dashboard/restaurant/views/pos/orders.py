@@ -13,6 +13,7 @@ from rest_framework.decorators import api_view, permission_classes
 
 from ...models import Order, OrderItem, Food
 from ...club_services import earn_for_order
+from ...accounting_posting import post_pos_order, safe_post
 from ..common import (
     PosPerm,
     no_restaurant_response,
@@ -154,6 +155,7 @@ def pos_create_order(request):
                 earn_for_order(order)
             except Exception:
                 logger.exception("club earn failed for order %s", order.pk)
+            safe_post(post_pos_order, order, request.user if request.user.is_authenticated else None)
 
         return JsonResponse({
             "success": True,

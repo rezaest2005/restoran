@@ -115,6 +115,19 @@ urlpatterns = [
     path("api/club/lookup/", views.club_lookup, name="club_lookup"),
     path("api/club/redeem/", views.club_redeem, name="club_redeem"),
 
+    # ── حسابداری ────────────────────────────────────────────
+    path("api/accounting/accounts/", views.accounts, name="accounting_accounts"),
+    path("api/accounting/accounts/<int:pk>/", views.account_detail, name="accounting_account_detail"),
+    path("api/accounting/cost-centers/", views.cost_centers, name="accounting_cost_centers"),
+    path("api/accounting/journal/", views.journal, name="accounting_journal"),
+    path("api/accounting/journal/<int:pk>/", views.journal_detail, name="accounting_journal_detail"),
+    path("api/accounting/journal/<int:pk>/reverse/", views.journal_reverse, name="accounting_journal_reverse"),
+    path("api/accounting/reports/trial-balance/", views.report_trial_balance, name="accounting_trial_balance"),
+    path("api/accounting/reports/ledger/", views.report_ledger, name="accounting_ledger"),
+    path("api/accounting/reports/income-statement/", views.report_income_statement, name="accounting_income_statement"),
+    path("api/accounting/reports/balance-sheet/", views.report_balance_sheet, name="accounting_balance_sheet"),
+    path("api/accounting/summary/", views.accounting_summary, name="accounting_summary"),
+
     # ── Orders ──────────────────────────────────────────────
     path("api/orders/list/", _get_view("order_list_api"), name="order_list_api"),
     path("api/orders/<int:pk>/status/", _get_view("order_change_status"), name="order_change_status"),

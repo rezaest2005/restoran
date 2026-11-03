@@ -48,6 +48,7 @@ from .sales import Customer, Expense, SalesInvoice, SalesInvoiceItem, SalesRetur
 from .production import Formula, FormulaLine, ProductionOrder
 from .club import LoyaltyMember, LoyaltySettings, LoyaltyTransaction
 from .feedback import Feedback
+from .accounting import Account, CostCenter, JournalEntry, JournalLine
 
 __all__ = [
     "UNIT_CHOICES", "UNIT_MAX_LENGTH", "DecimalSafeEncoder", "check_constraint",
@@ -63,4 +64,5 @@ __all__ = [
     "Formula", "FormulaLine", "ProductionOrder",
     "LoyaltyMember", "LoyaltySettings", "LoyaltyTransaction",
     "Feedback",
+    "Account", "CostCenter", "JournalEntry", "JournalLine",
 ]
