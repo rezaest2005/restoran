@@ -12,6 +12,7 @@ import Pos from "@restaurant/pos/Pos";
 import Dictionary from "@restaurant/dictionary/Dictionary";
 import InventoryPage from "@restaurant/inventory/InventoryPage";
 import ProductionPage from "@restaurant/production/ProductionPage";
+import AccountingPage from "@restaurant/accounting/AccountingPage";
 import QrMenu from "../features/public/QrMenu";
 
 function App() {
@@ -44,6 +45,7 @@ function App() {
             <Route path="dictionary" element={<Dictionary />} />
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="production" element={<ProductionPage />} />
+            <Route path="accounting" element={<AccountingPage />} />
           </Route>
 
           {/* بدون slug */}
@@ -61,6 +63,7 @@ function App() {
             <Route path="dictionary" element={<Dictionary />} />
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="production" element={<ProductionPage />} />
+            <Route path="accounting" element={<AccountingPage />} />
           </Route>
 
           <Route path="/super/login" element={<SuperLogin />} />

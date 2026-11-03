@@ -13,6 +13,7 @@ from ...inventory_services import (
     issue_stock,
     waste_stock,
     adjust_stock,
+    transfer_stock,
 )
 from ..common import (
     InventoryPerm,
@@ -23,6 +24,24 @@ from ..common import (
 from ..common import server_error
 
 logger = logging.getLogger(__name__)
+
+
+def lookup_targets(restaurant, warehouse_id, material_id):
+    """انبار و کالای همین کسب‌وکار؛ در غیر این صورت (None, None, پاسخ خطا)."""
+    try:
+        warehouse = Warehouse.all_objects.filter(pk=int(warehouse_id), restaurant=restaurant).first()
+        mat = RawMaterial.all_objects.filter(pk=int(material_id), restaurant=restaurant).first()
+    except (TypeError, ValueError):
+        return None, None, JsonResponse({"success": False, "error": "شناسه نامعتبر است."}, status=400)
+    if not warehouse:
+        return None, None, JsonResponse({"success": False, "error": "انبار یافت نشد."}, status=404)
+    if not mat:
+        return None, None, JsonResponse({"success": False, "error": "کالا یافت نشد."}, status=404)
+    return warehouse, mat, None
+
+
+def _str(value, limit=500):
+    return str(value or "").strip()[:limit]
 
 
 # ═══════════════════════════════════════
@@ -40,24 +59,20 @@ def receiving_create(request):
     data = request.data
     warehouse_id = data.get("warehouse_id")
     material_id = data.get("raw_material_id")
-    notes = (data.get("notes") or "").strip()
+    notes = _str(data.get("notes"))
 
     if not warehouse_id or not material_id:
         return JsonResponse({"success": False, "error": "انبار و کالا الزامی است."}, status=400)
 
     try:
         quantity = parse_decimal(data.get("quantity"), "مقدار", allow_zero=False)
-        unit_price = parse_decimal(data.get("unit_price", 0), "قیمت واحد")
+        unit_price = parse_decimal(data.get("unit_price") or 0, "قیمت واحد")
     except ValueError as exc:
         return JsonResponse({"success": False, "error": str(exc)}, status=400)
 
-    warehouse = Warehouse.all_objects.filter(pk=warehouse_id, restaurant=restaurant).first()
-    mat = RawMaterial.all_objects.filter(pk=material_id, restaurant=restaurant).first()
-
-    if not warehouse:
-        return JsonResponse({"success": False, "error": "انبار یافت نشد."}, status=404)
-    if not mat:
-        return JsonResponse({"success": False, "error": "کالا یافت نشد."}, status=404)
+    warehouse, mat, err = lookup_targets(restaurant, warehouse_id, material_id)
+    if err:
+        return err
 
     try:
         result = receive_stock(
@@ -92,9 +107,9 @@ def issue_create(request):
     data = request.data
     warehouse_id = data.get("warehouse_id")
     material_id = data.get("raw_material_id")
-    reason = data.get("reason", "consumption")
-    destination = (data.get("destination") or "").strip()
-    notes = (data.get("notes") or "").strip()
+    reason = _str(data.get("reason"), 30) or "consumption"
+    destination = _str(data.get("destination"), 200)
+    notes = _str(data.get("notes"))
 
     if not warehouse_id or not material_id:
         return JsonResponse({"success": False, "error": "انبار و کالا الزامی است."}, status=400)
@@ -104,13 +119,9 @@ def issue_create(request):
     except ValueError as exc:
         return JsonResponse({"success": False, "error": str(exc)}, status=400)
 
-    warehouse = Warehouse.all_objects.filter(pk=warehouse_id, restaurant=restaurant).first()
-    mat = RawMaterial.all_objects.filter(pk=material_id, restaurant=restaurant).first()
-
-    if not warehouse:
-        return JsonResponse({"success": False, "error": "انبار یافت نشد."}, status=404)
-    if not mat:
-        return JsonResponse({"success": False, "error": "کالا یافت نشد."}, status=404)
+    warehouse, mat, err = lookup_targets(restaurant, warehouse_id, material_id)
+    if err:
+        return err
 
     try:
         result = issue_stock(
@@ -146,8 +157,8 @@ def waste_create(request):
     data = request.data
     warehouse_id = data.get("warehouse_id")
     material_id = data.get("raw_material_id")
-    waste_reason = data.get("waste_reason", "other")
-    notes = (data.get("notes") or "").strip()
+    waste_reason = _str(data.get("waste_reason"), 20) or "other"
+    notes = _str(data.get("notes"))
 
     if not warehouse_id or not material_id:
         return JsonResponse({"success": False, "error": "انبار و کالا الزامی است."}, status=400)
@@ -157,13 +168,9 @@ def waste_create(request):
     except ValueError as exc:
         return JsonResponse({"success": False, "error": str(exc)}, status=400)
 
-    warehouse = Warehouse.all_objects.filter(pk=warehouse_id, restaurant=restaurant).first()
-    mat = RawMaterial.all_objects.filter(pk=material_id, restaurant=restaurant).first()
-
-    if not warehouse:
-        return JsonResponse({"success": False, "error": "انبار یافت نشد."}, status=404)
-    if not mat:
-        return JsonResponse({"success": False, "error": "کالا یافت نشد."}, status=404)
+    warehouse, mat, err = lookup_targets(restaurant, warehouse_id, material_id)
+    if err:
+        return err
 
     try:
         result = waste_stock(
@@ -198,20 +205,16 @@ def adjustment_create(request):
     data = request.data
     warehouse_id = data.get("warehouse_id")
     material_id = data.get("raw_material_id")
-    adjustment_type = data.get("adjustment_type", "count")
-    reason = (data.get("reason") or "").strip()
-    notes = (data.get("notes") or "").strip()
+    adjustment_type = _str(data.get("adjustment_type"), 20) or "count"
+    reason = _str(data.get("reason"), 200)
+    notes = _str(data.get("notes"))
 
     if not warehouse_id or not material_id:
         return JsonResponse({"success": False, "error": "انبار و کالا الزامی است."}, status=400)
 
-    warehouse = Warehouse.all_objects.filter(pk=warehouse_id, restaurant=restaurant).first()
-    mat = RawMaterial.all_objects.filter(pk=material_id, restaurant=restaurant).first()
-
-    if not warehouse:
-        return JsonResponse({"success": False, "error": "انبار یافت نشد."}, status=404)
-    if not mat:
-        return JsonResponse({"success": False, "error": "کالا یافت نشد."}, status=404)
+    warehouse, mat, err = lookup_targets(restaurant, warehouse_id, material_id)
+    if err:
+        return err
 
     new_quantity_raw = data.get("new_quantity")
     quantity_raw = data.get("quantity")
@@ -260,4 +263,56 @@ def adjustment_create(request):
         return JsonResponse({"success": False, "error": str(exc)}, status=400)
     except Exception as exc:
         logger.exception("Error adjusting stock")
+        return server_error(exc)
+
+
+# ═══════════════════════════════════════
+#  ★ TRANSFER — انتقال بین انبارها
+# ═══════════════════════════════════════
+
+@api_view(["POST"])
+@permission_classes([InventoryPerm])
+def transfer_create(request):
+    """انتقال کالا بین دو انبار"""
+    restaurant = resolve_restaurant_active(request)
+    if not restaurant:
+        return no_restaurant_response()
+
+    data = request.data
+    source_id = data.get("source_warehouse_id")
+    dest_id = data.get("destination_warehouse_id")
+    material_id = data.get("raw_material_id")
+    notes = _str(data.get("notes"))
+
+    if not source_id or not dest_id or not material_id:
+        return JsonResponse(
+            {"success": False, "error": "انبار مبدا، انبار مقصد و کالا الزامی است."}, status=400
+        )
+
+    try:
+        quantity = parse_decimal(data.get("quantity"), "مقدار", allow_zero=False)
+    except ValueError as exc:
+        return JsonResponse({"success": False, "error": str(exc)}, status=400)
+
+    source, mat, err = lookup_targets(restaurant, source_id, material_id)
+    if err:
+        return err
+    destination, _mat, err = lookup_targets(restaurant, dest_id, material_id)
+    if err:
+        return err
+
+    try:
+        result = transfer_stock(
+            restaurant=restaurant,
+            source_warehouse=source,
+            destination_warehouse=destination,
+            raw_material=mat,
+            quantity=quantity,
+            user=request.user if request.user.is_authenticated else None,
+            notes=notes,
+        )
+        return JsonResponse(result)
+    except ValueError as exc:
+        return JsonResponse({"success": False, "error": str(exc)}, status=400)
+    except Exception as exc:
         return server_error(exc)

@@ -58,9 +58,10 @@ def _entry_data(e, with_lines=False):
         "id": e.id, "number": e.number, "date": e.date.isoformat(),
         "description": e.description, "source_type": e.source_type, "source_id": e.source_id,
         "reversal_of": e.reversal_of_id,
-        "is_reversed": getattr(e, "reversed_by", None) is not None
-        if hasattr(e, "reversed_by") else False,
     }
+    reversed_by = JournalEntry.all_objects.filter(reversal_of=e).values_list("id", flat=True).first()
+    data["reversed_by"] = reversed_by
+    data["is_reversed"] = reversed_by is not None
     lines = list(JournalLine.all_objects.filter(entry=e).select_related("account", "cost_center"))
     data["total"] = _f(sum((l.debit for l in lines), Decimal("0")))
     if with_lines:

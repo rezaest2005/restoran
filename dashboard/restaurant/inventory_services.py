@@ -379,6 +379,90 @@ def adjust_stock(
 
 
 # ═══════════════════════════════════════
+#  4b. انتقال بین انبارها
+# ═══════════════════════════════════════
+
+@transaction.atomic
+def transfer_stock(
+    restaurant,
+    source_warehouse,
+    destination_warehouse,
+    raw_material,
+    quantity,
+    user=None,
+    notes="",
+):
+    """انتقال اتمیک کالا بین دو انبار یک کسب‌وکار (دو حرکت out/in با مرجع مشترک)"""
+    quantity = _to_decimal(quantity)
+    if quantity <= 0:
+        raise ValueError("مقدار انتقال باید بیشتر از صفر باشد.")
+
+    if source_warehouse.pk == destination_warehouse.pk:
+        raise ValueError("انبار مبدا و مقصد نمی‌تواند یکسان باشد.")
+    if (
+        source_warehouse.restaurant_id != restaurant.pk
+        or destination_warehouse.restaurant_id != restaurant.pk
+    ):
+        raise ValueError("انبار انتخاب‌شده معتبر نیست.")
+    if raw_material.restaurant_id != restaurant.pk:
+        raise ValueError("کالای انتخاب‌شده معتبر نیست.")
+
+    src = _get_or_create_stock_item(restaurant, source_warehouse, raw_material)
+    dst = _get_or_create_stock_item(restaurant, destination_warehouse, raw_material)
+
+    # قفل ردیف‌ها با ترتیب ثابت (pk) برای جلوگیری از deadlock
+    locked = {
+        row.pk: row
+        for row in StockItem.all_objects.select_for_update()
+        .filter(pk__in=[src.pk, dst.pk])
+        .order_by("pk")
+    }
+    src, dst = locked[src.pk], locked[dst.pk]
+
+    if src.quantity < quantity:
+        raise ValueError(
+            f"موجودی کافی نیست. موجودی فعلی: {src.quantity}، مقدار درخواستی: {quantity}"
+        )
+
+    src_prev, dst_prev = src.quantity, dst.quantity
+    src_new, dst_new = src_prev - quantity, dst_prev + quantity
+    now = timezone.now()
+    StockItem.all_objects.filter(pk=src.pk).update(quantity=src_new, updated_at=now)
+    StockItem.all_objects.filter(pk=dst.pk).update(quantity=dst_new, updated_at=now)
+
+    out_mv = _create_movement(
+        restaurant=restaurant, raw_material=raw_material, movement_type="out",
+        quantity=quantity, previous_stock=src_prev, new_stock=src_new,
+        warehouse=source_warehouse, reference_type="transfer",
+        notes=notes or f"انتقال به {destination_warehouse.name}", user=user,
+    )
+    in_mv = _create_movement(
+        restaurant=restaurant, raw_material=raw_material, movement_type="in",
+        quantity=quantity, previous_stock=dst_prev, new_stock=dst_new,
+        warehouse=destination_warehouse, reference_type="transfer",
+        reference_id=out_mv.pk,
+        notes=notes or f"انتقال از {source_warehouse.name}", user=user,
+    )
+    InventoryMovement.all_objects.filter(pk=out_mv.pk).update(reference_id=out_mv.pk)
+
+    sync_raw_material_quantity(restaurant, raw_material)
+    logger.info("transfer_stock: %s %s %s→%s", raw_material.name, quantity,
+                source_warehouse.name, destination_warehouse.name)
+
+    return {
+        "success": True,
+        "raw_material": raw_material.name,
+        "source_warehouse": source_warehouse.name,
+        "destination_warehouse": destination_warehouse.name,
+        "quantity_transferred": float(quantity),
+        "source_new_stock": float(src_new),
+        "destination_new_stock": float(dst_new),
+        "reference_id": out_mv.pk,
+        "movement_ids": [out_mv.pk, in_mv.pk],
+    }
+
+
+# ═══════════════════════════════════════
 #  5. دریافت موجودی
 # ═══════════════════════════════════════
 

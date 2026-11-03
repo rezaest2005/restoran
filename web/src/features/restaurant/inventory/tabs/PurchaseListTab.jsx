@@ -1,120 +1,50 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Box, Typography, Button, TextField, Select, MenuItem, CircularProgress, Chip } from "@mui/material";
-import { fetchPurchaseList, addToPurchaseList, updatePurchaseListStatus, fetchRawMaterials } from "../api";
-import { buildInputSx, useRowCursor, cursorAttrs, cursorSx, cursorBindings, useRegisteredShortcuts, onEnter, KbdHint } from "../common";
+import { Box, Typography, Button, TextField, CircularProgress, Chip } from "@mui/material";
+import { fetchPurchaseSuggestions } from "../api";
+import { buildInputSx, useRowCursor, cursorAttrs, cursorSx, cursorBindings, useRegisteredShortcuts, KbdHint } from "../common";
 
-const STATUS_LABELS = {
-  pending: { label: "در انتظار", icon: "⏳", color: "warning", bg: "warningBg" },
-  ordered: { label: "سفارش داده شده", icon: "🛒", color: "info", bg: "infoBg" },
-  received: { label: "دریافت شده", icon: "✅", color: "olive", bg: "oliveSubtle" },
-  cancelled: { label: "لغو شده", icon: "❌", color: "danger", bg: "dangerBg" },
-};
-
-const UNIT_LABELS = { kilogram: "کیلو", gram: "گرم", liter: "لیتر", ml: "میلی‌لیتر", count: "عدد", box: "بسته", kg: "کیلو", unit: "واحد" };
+/* لیست خرید = پیشنهاد خودکار سرور: کالاهایی که موجودی کل آن‌ها از حداقل کمتر یا مساوی است.
+   فقط‌خواندنی است (گردش‌کار وضعیت/سفارش در سرور وجود ندارد). */
 
 export default function PurchaseListTab({ C, isDark, showToast }) {
   const { t } = useTranslation();
   const [items, setItems] = useState([]);
-  const [materials, setMaterials] = useState([]);
+  const [totalCost, setTotalCost] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [addingOpen, setAddingOpen] = useState(false);
-
-  const [newItem, setNewItem] = useState({ raw_material_id: "", quantity: "" });
+  const [search, setSearch] = useState("");
 
   const notify = useCallback((msg, type = "info") => {
     if (typeof showToast === "function") showToast(msg, type);
   }, [showToast]);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [plData, mats] = await Promise.all([
-        fetchPurchaseList(),
-        fetchRawMaterials(),
-      ]);
-      setItems(plData.items || []);
-      setMaterials(Array.isArray(mats) ? mats : []);
+      const data = await fetchPurchaseSuggestions();
+      setItems(data.results || []);
+      setTotalCost(Number(data.total_estimated_cost) || 0);
     } catch (err) {
-      console.error("Load purchase list error:", err);
+      notify(err.response?.data?.error || err.message || "خطا", "error");
     } finally {
       setLoading(false);
     }
-  };
+  }, [notify]);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
 
-  const handleAdd = async () => {
-    if (!newItem.raw_material_id || !parseFloat(newItem.quantity)) {
-      notify("کالا و مقدار الزامی است", "warning");
-      return;
-    }
-    setSaving(true);
-    try {
-      await addToPurchaseList({
-        raw_material_id: newItem.raw_material_id,
-        quantity: parseFloat(newItem.quantity),
-      });
-      notify("✅ آیتم به لیست خرید اضافه شد", "success");
-      setNewItem({ raw_material_id: "", quantity: "" });
-      setAddingOpen(false);
-      load();
-    } catch (err) {
-      notify(err.response?.data?.error || err.message || "خطا", "error");
-    } finally {
-      setSaving(false);
-    }
-  };
+  const filtered = items.filter(i =>
+    !search.trim() || i.material_name?.toLowerCase().includes(search.trim().toLowerCase()));
 
-  const handleStatusChange = async (item, newStatus) => {
-    try {
-      await updatePurchaseListStatus({ id: item.id, status: newStatus });
-      const st = STATUS_LABELS[newStatus]?.label || newStatus;
-      notify(`✅ وضعیت به «${st}» تغییر کرد`, "success");
-      load();
-    } catch (err) {
-      notify(err.response?.data?.error || err.message || "خطا", "error");
-    }
-  };
-
-  const filtered = items.filter(i => {
-    if (statusFilter !== "all" && i.status !== statusFilter) return false;
-    return true;
-  });
-
-  const pendingCount = items.filter(i => i.status === "pending").length;
-  const orderedCount = items.filter(i => i.status === "ordered").length;
-
-  // ── میان‌برها: F2 افزودن · Ctrl+D/Enter ثبت · Escape بستن فرم · Ctrl+A/Z ردیف · Enter مرحله بعد · Delete لغو ──
+  // ── میان‌برها: F2 بازخوانی · Ctrl+A/Z ردیف ──
   const cursor = useRowCursor(filtered.length);
-  const NEXT_STATUS = { pending: "ordered", ordered: "received" };
   useRegisteredShortcuts([
-    { combo: "F2", label: t("shortcuts.new"), handler: () => setAddingOpen(true) },
-    { combo: "Ctrl+D", label: t("shortcuts.save"), handler: () => { if (!saving) handleAdd(); }, when: addingOpen },
-    { combo: "Escape", label: t("shortcuts.close_dialog"), handler: () => setAddingOpen(false), when: addingOpen },
+    { combo: "F2", label: t("ui_j.purchase.refresh"), handler: () => load() },
     ...cursorBindings(t, cursor),
-    {
-      combo: "Enter", label: addingOpen ? t("shortcuts.confirm") : t("ui_h.purchase.advance"), allowInInput: true,
-      handler: onEnter(() => {
-        if (addingOpen) { if (!saving) handleAdd(); return; }
-        const r = filtered[cursor.index];
-        if (!r || !NEXT_STATUS[r.status]) return false;
-        handleStatusChange(r, NEXT_STATUS[r.status]);
-      }),
-    },
-    {
-      combo: "Delete", label: t("ui_h.purchase.cancel_item"), when: !addingOpen,
-      handler: () => {
-        const r = filtered[cursor.index];
-        if (!r || !NEXT_STATUS[r.status]) return false;
-        handleStatusChange(r, "cancelled");
-      },
-    },
   ]);
 
   const inputSx = buildInputSx(C);
+  const fmt = (n) => Number(n || 0).toLocaleString("fa-IR");
 
   if (loading) {
     return (
@@ -136,218 +66,91 @@ export default function PurchaseListTab({ C, isDark, showToast }) {
             🛒 لیست خرید
           </Typography>
           <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.3 }}>
-            {pendingCount} در انتظار — {orderedCount} سفارش داده شده
+            {t("ui_j.purchase.summary", { count: items.length, cost: fmt(totalCost) })}
           </Typography>
         </Box>
-        <Button
-          onClick={() => setAddingOpen(!addingOpen)}
-          sx={{
-            borderRadius: "12px", fontSize: 12, fontWeight: 700, textTransform: "none",
-            px: 2.5, py: 1, color: "#fff", background: C.btnGrad,
-            boxShadow: `0 4px 20px ${C.olive}30`,
-            "&:hover": { transform: "translateY(-1px)", boxShadow: `0 6px 28px ${C.olive}40` },
-          }}
-        >
-          ➕ افزودن به لیست<KbdHint>F2</KbdHint>
-        </Button>
-      </Box>
-
-      {/* ── فرم افزودن (تاشو) ── */}
-      {addingOpen && (
-        <Box sx={{
-          display: "flex", gap: 1, mb: 2.5, p: 2, borderRadius: "14px",
-          bgcolor: C.oliveSubtle, border: `1px solid ${C.glassBorder}`,
-          flexWrap: "wrap", alignItems: "flex-end",
-          opacity: 0,
-          animation: "fadeUp 0.3s ease-out forwards",
-        }}>
-          <Box sx={{ flex: 2, minWidth: 160 }}>
-            <Typography sx={{ fontSize: 11, color: C.sub, mb: 0.5 }}>کالا</Typography>
-            <Select size="small" fullWidth value={newItem.raw_material_id}
-              onChange={(e) => setNewItem({ ...newItem, raw_material_id: e.target.value })}
-              sx={{ ...inputSx, fontSize: 13 }} displayEmpty>
-              <MenuItem value="" disabled>
-                <Typography sx={{ fontSize: 12, color: C.muted }}>انتخاب کالا...</Typography>
-              </MenuItem>
-              {materials.map(m => (
-                <MenuItem key={m.id} value={m.id}>
-                  {m.name} ({UNIT_LABELS[m.unit] || m.unit})
-                </MenuItem>
-              ))}
-            </Select>
-          </Box>
-
-          <Box sx={{ flex: 1, minWidth: 100 }}>
-            <Typography sx={{ fontSize: 11, color: C.sub, mb: 0.5 }}>مقدار</Typography>
-            <TextField size="small" type="number" placeholder="مقدار" fullWidth
-              value={newItem.quantity}
-              onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
-              sx={inputSx} inputProps={{ min: 0, step: 0.001 }} />
-          </Box>
-
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+          <TextField
+            size="small" placeholder={t("ui_j.purchase.search")}
+            value={search} onChange={(e) => setSearch(e.target.value)}
+            sx={{ ...inputSx, width: 180 }}
+          />
           <Button
-            onClick={handleAdd}
-            disabled={saving}
+            onClick={load}
             sx={{
-              borderRadius: "10px", fontSize: 12, fontWeight: 700, textTransform: "none",
+              borderRadius: "12px", fontSize: 12, fontWeight: 700, textTransform: "none",
               px: 2.5, py: 1, color: "#fff", background: C.btnGrad,
-              opacity: saving ? 0.6 : 1,
+              boxShadow: `0 4px 20px ${C.olive}30`,
+              "&:hover": { transform: "translateY(-1px)", boxShadow: `0 6px 28px ${C.olive}40` },
             }}
           >
-            {saving ? "..." : "✅ افزودن"}
-            {!saving && <KbdHint>Ctrl+D</KbdHint>}
+            🔄 {t("ui_j.purchase.refresh")}<KbdHint>F2</KbdHint>
           </Button>
         </Box>
-      )}
-
-      {/* ── فیلتر وضعیت ── */}
-      <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}>
-        <Chip
-          clickable label={`📋 همه (${items.length})`}
-          onClick={() => setStatusFilter("all")}
-          sx={{
-            height: 26, fontSize: 11, fontWeight: 600, borderRadius: "8px",
-            bgcolor: statusFilter === "all" ? C.oliveSubtle : C.glass,
-            color: statusFilter === "all" ? C.olive : C.sub,
-            border: `1px solid ${statusFilter === "all" ? C.olive + "40" : C.glassBorder}`,
-          }}
-        />
-        {Object.entries(STATUS_LABELS).map(([key, val]) => {
-          const count = items.filter(i => i.status === key).length;
-          return (
-            <Chip
-              key={key} clickable
-              label={`${val.icon} ${val.label} (${count})`}
-              onClick={() => setStatusFilter(key)}
-              sx={{
-                height: 26, fontSize: 11, fontWeight: 600, borderRadius: "8px",
-                bgcolor: statusFilter === key ? C[val.bg] : C.glass,
-                color: statusFilter === key ? C[val.color] : C.sub,
-                border: `1px solid ${statusFilter === key ? C[val.color] + "40" : C.glassBorder}`,
-              }}
-            />
-          );
-        })}
       </Box>
+
+      <Typography sx={{ fontSize: 11, color: C.muted, mb: 1.5 }}>
+        {t("ui_j.purchase.hint")}
+      </Typography>
 
       {/* ── لیست ── */}
       {filtered.length === 0 ? (
         <Box sx={{ textAlign: "center", py: 8 }}>
           <Typography sx={{ fontSize: 40, mb: 1 }}>🛒</Typography>
           <Typography sx={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-            لیست خرید خالی است
+            {t("ui_j.purchase.empty_title")}
           </Typography>
           <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.5 }}>
-            با دکمه «افزودن به لیست» شروع کنید
+            {t("ui_j.purchase.empty_sub")}
           </Typography>
         </Box>
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.8 }}>
-          {filtered.map((item, i) => {
-            const st = STATUS_LABELS[item.status] || STATUS_LABELS.pending;
-            const mat = materials.find(m => m.id == item.raw_material_id);
-            return (
-              <Box
-                key={item.id}
-                {...cursorAttrs(cursor.isActive(i))}
-                sx={{
-                  ...cursorSx(C, cursor.isActive(i)),
-                  display: "flex", alignItems: "center", flexWrap: "wrap", gap: 1,
-                  px: { xs: 1.5, sm: 2 }, py: { xs: 1, sm: 1.5 },
-                  borderRadius: "12px", bgcolor: C.glass, backdropFilter: "blur(12px)",
-                  border: `1px solid ${item.status === "received" ? C.olive + "30" : C.glassBorder}`,
-                  transition: "all 0.2s ease",
-                  opacity: 0,
-                  animation: `fadeUp 0.3s ease-out ${i * 0.04}s forwards`,
-                  "&:hover": {
-                    bgcolor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)",
-                  },
-                }}
-              >
-                {/* اطلاعات */}
-                <Box sx={{ flex: 1, minWidth: 140 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-                    <Typography sx={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                      {item.material_name}
-                    </Typography>
-                    <Chip size="small" label={`${st.icon} ${st.label}`} sx={{
-                      height: 18, fontSize: 9, fontWeight: 700,
-                      borderRadius: "5px", bgcolor: C[st.bg], color: C[st.color],
-                    }} />
-                  </Box>
-                  <Typography sx={{ fontSize: 11, color: C.sub, mt: 0.3 }}>
-                    مقدار: {Number(item.quantity).toLocaleString("fa-IR")} {UNIT_LABELS[item.unit] || item.unit}
-                    {item.notes ? ` — ${item.notes}` : ""}
+          {filtered.map((item, i) => (
+            <Box
+              key={item.id}
+              {...cursorAttrs(cursor.isActive(i))}
+              sx={{
+                ...cursorSx(C, cursor.isActive(i)),
+                display: "flex", alignItems: "center", flexWrap: "wrap", gap: 1,
+                px: { xs: 1.5, sm: 2 }, py: { xs: 1, sm: 1.5 },
+                borderRadius: "12px", bgcolor: C.glass, backdropFilter: "blur(12px)",
+                border: `1px solid ${C.glassBorder}`,
+                transition: "all 0.2s ease",
+                opacity: 0,
+                animation: `fadeUp 0.3s ease-out ${i * 0.04}s forwards`,
+                "&:hover": {
+                  bgcolor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)",
+                },
+              }}
+            >
+              <Box sx={{ flex: 1, minWidth: 140 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                  <Typography sx={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                    {item.material_name}
                   </Typography>
+                  <Chip size="small" label={t("ui_j.purchase.low")} sx={{
+                    height: 18, fontSize: 9, fontWeight: 700,
+                    borderRadius: "5px", bgcolor: C.warningBg, color: C.warning,
+                  }} />
                 </Box>
-
-                {/* اکشن‌ها — تغییر وضعیت */}
-                <Box sx={{ display: "flex", gap: 0.5, flexShrink: 0, flexWrap: "wrap" }}>
-                  {item.status === "pending" && (
-                    <>
-                      <Box
-                        onClick={() => handleStatusChange(item, "ordered")}
-                        sx={{
-                          display: "flex", flexDirection: "column", alignItems: "center",
-                          gap: 0.3, px: 1, py: 0.5, borderRadius: "8px", cursor: "pointer",
-                          color: C.info, transition: "all 0.2s ease",
-                          "&:hover": { bgcolor: C.infoBg },
-                        }}
-                      >
-                        <Typography sx={{ fontSize: 14, lineHeight: 1 }}>🛒</Typography>
-                        <Typography sx={{ fontSize: 8, fontWeight: 600 }}>سفارش</Typography>
-                      </Box>
-                      <Box
-                        onClick={() => handleStatusChange(item, "cancelled")}
-                        sx={{
-                          display: "flex", flexDirection: "column", alignItems: "center",
-                          gap: 0.3, px: 1, py: 0.5, borderRadius: "8px", cursor: "pointer",
-                          color: C.danger, transition: "all 0.2s ease",
-                          "&:hover": { bgcolor: C.dangerBg },
-                        }}
-                      >
-                        <Typography sx={{ fontSize: 14, lineHeight: 1 }}>❌</Typography>
-                        <Typography sx={{ fontSize: 8, fontWeight: 600 }}>لغو</Typography>
-                      </Box>
-                    </>
-                  )}
-                  {item.status === "ordered" && (
-                    <>
-                      <Box
-                        onClick={() => handleStatusChange(item, "received")}
-                        sx={{
-                          display: "flex", flexDirection: "column", alignItems: "center",
-                          gap: 0.3, px: 1, py: 0.5, borderRadius: "8px", cursor: "pointer",
-                          color: C.olive, transition: "all 0.2s ease",
-                          "&:hover": { bgcolor: C.oliveSubtle },
-                        }}
-                      >
-                        <Typography sx={{ fontSize: 14, lineHeight: 1 }}>✅</Typography>
-                        <Typography sx={{ fontSize: 8, fontWeight: 600 }}>دریافت</Typography>
-                      </Box>
-                      <Box
-                        onClick={() => handleStatusChange(item, "cancelled")}
-                        sx={{
-                          display: "flex", flexDirection: "column", alignItems: "center",
-                          gap: 0.3, px: 1, py: 0.5, borderRadius: "8px", cursor: "pointer",
-                          color: C.danger, transition: "all 0.2s ease",
-                          "&:hover": { bgcolor: C.dangerBg },
-                        }}
-                      >
-                        <Typography sx={{ fontSize: 14, lineHeight: 1 }}>❌</Typography>
-                        <Typography sx={{ fontSize: 8, fontWeight: 600 }}>لغو</Typography>
-                      </Box>
-                    </>
-                  )}
-                  {(item.status === "received" || item.status === "cancelled") && (
-                    <Typography sx={{ fontSize: 10, color: C.muted, px: 1 }}>
-                      بسته شده
-                    </Typography>
-                  )}
-                </Box>
+                <Typography sx={{ fontSize: 11, color: C.sub, mt: 0.3 }}>
+                  {t("ui_j.purchase.stock_line", {
+                    qty: fmt(item.quantity), min: fmt(item.minimum_stock),
+                    target: fmt(item.target_stock), unit: item.unit_display || item.unit,
+                  })}
+                </Typography>
               </Box>
-            );
-          })}
+              <Box sx={{ textAlign: "left", flexShrink: 0 }}>
+                <Typography sx={{ fontSize: 13, fontWeight: 800, color: C.olive }}>
+                  {fmt(item.suggested_quantity)} {item.unit_display || item.unit}
+                </Typography>
+                <Typography sx={{ fontSize: 10, color: C.sub }}>
+                  {t("ui_j.purchase.cost", { cost: fmt(item.estimated_cost) })}
+                </Typography>
+              </Box>
+            </Box>
+          ))}
         </Box>
       )}
     </Box>

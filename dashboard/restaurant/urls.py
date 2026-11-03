@@ -22,6 +22,13 @@ from .views.invoicing import (
 )
 
 # ─── Session Check (★ جدید) ─────────────
+from .views.inventory import (
+    warehouse_list, warehouse_save, warehouse_delete,
+    stock_list, stock_minimum_update,
+    receiving_create, issue_create, waste_create, adjustment_create, transfer_create,
+    movement_list, purchase_suggestions, warehouse_movements,
+)
+from .views.warehouse import raw_material_list_api
 from .views.auth import SessionCheckView          # ★ اضافه شد
 
 
@@ -68,6 +75,7 @@ urlpatterns = [
     path("api/users/tabs/", views.user_tabs_api, name="user_tabs_api"),
 
     # ── Raw Materials & Suppliers ───────────────────────────
+    path("api/raw-materials/", raw_material_list_api, name="raw_material_list"),
     path("api/raw-materials/save/", views.raw_material_save, name="raw_material_save"),
     path("api/raw-materials/delete/", views.raw_material_delete, name="raw_material_delete"),
     path("api/raw-materials/suggestions/", views.raw_material_suggestions, name="raw_material_suggestions"),
@@ -80,6 +88,21 @@ urlpatterns = [
     path("api/inventory/reports/item-movement/", views.item_movement_report, name="inv_item_movement_report"),
     path("api/inventory/reports/stock-value/", views.stock_value_report, name="inv_stock_value_report"),
     path("api/inventory/dashboard/", views.inventory_dashboard, name="inv_dashboard"),
+    path("api/inventory/reports/warehouse-movements/", warehouse_movements, name="inv_warehouse_movements"),
+
+    # ── Inventory Operations ────────────────────────────────
+    path("api/inventory/warehouses/", warehouse_list, name="inv_warehouses"),
+    path("api/inventory/warehouses/save/", warehouse_save, name="inv_warehouse_save"),
+    path("api/inventory/warehouses/delete/", warehouse_delete, name="inv_warehouse_delete"),
+    path("api/inventory/stock/", stock_list, name="inv_stock"),
+    path("api/inventory/stock/minimum/", stock_minimum_update, name="inv_stock_minimum"),
+    path("api/inventory/receive/", receiving_create, name="inv_receive"),
+    path("api/inventory/issue/", issue_create, name="inv_issue"),
+    path("api/inventory/waste/", waste_create, name="inv_waste"),
+    path("api/inventory/adjust/", adjustment_create, name="inv_adjust"),
+    path("api/inventory/transfer/", transfer_create, name="inv_transfer"),
+    path("api/inventory/movements/", movement_list, name="inv_movements"),
+    path("api/inventory/purchase-suggestions/", purchase_suggestions, name="inv_purchase_suggestions"),
 
     # ── Dashboard Analytics ─────────────────────────────────
     path("api/dashboard/analytics/", dashboard_analytics, name="dashboard_analytics"),

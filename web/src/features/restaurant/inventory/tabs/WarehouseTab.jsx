@@ -18,7 +18,8 @@ import {
 } from "@mui/material";
 import { Add, Delete, Close, SwapHoriz } from "@mui/icons-material";
 import { getUnitLabel } from "../../../../shared/common/units";
-import { readJSON, writeJSON, getCurrentUser, now, faDate, faTime, faDay, whIcon, calcStock, makeScale, useRegisteredShortcuts, KbdHint } from "../common";
+import { getCurrentUser, now, faDate, faTime, faDay, whIcon, makeScale, useRegisteredShortcuts, KbdHint } from "../common";
+import { fetchWarehouses, fetchStock, fetchRawMaterials, createTransfer } from "../api";
 
 const F = makeScale(1.1);
 
@@ -31,7 +32,10 @@ export default function WarehouseTab({ C, isDark, showToast }) {
   const [selectedWh, setSelectedWh] = useState(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [stockRows, setStockRows] = useState([]);
+  const [materials, setMaterials] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferForm, setTransferForm] = useState({
@@ -44,6 +48,20 @@ export default function WarehouseTab({ C, isDark, showToast }) {
   const transferFormRef = useRef(transferForm);
   transferFormRef.current = transferForm;
   const materialsRef = useRef([]);
+  useEffect(() => { materialsRef.current = materials; }, [materials]);
+
+  // موجودی هر انبار از روی ردیف‌های سرور (فقط مقادیر مثبت)
+  const calcStock = (whId) =>
+    stockRows
+      .filter((r) => String(r.warehouse_id) === String(whId) && Number(r.quantity) > 0)
+      .map((r) => ({
+        name: r.material_name,
+        qty: Number(r.quantity),
+        unit: r.material_unit_display || r.material_unit,
+        code: "",
+        category: "",
+        price: r.material_price || 0,
+      }));
 
   const notify = useCallback(
     (msg, type = "info") => {
@@ -52,21 +70,30 @@ export default function WarehouseTab({ C, isDark, showToast }) {
     [showToast],
   );
 
-  // ── بارگذاری انبارها ──
-  const load = useCallback(() => {
-    const savedWhs = readJSON("local_warehouses", []);
-    const all = savedWhs.length
-      ? savedWhs
-      : [{ id: "default", name: "انبار پیش‌فرض", icon: "📦" }];
-    setWarehouses(all);
-    setSelectedWh((prev) => {
-      if (prev) {
-        const found = all.find((w) => String(w.id) === String(prev.id));
-        return found || all[0];
-      }
-      return all[0];
-    });
-    setLoading(false);
+  // ── بارگذاری انبارها، موجودی و کالاها از سرور ──
+  const load = useCallback(async () => {
+    try {
+      const [whData, stockData, mats] = await Promise.all([
+        fetchWarehouses(),
+        fetchStock({}),
+        fetchRawMaterials(),
+      ]);
+      const all = whData.warehouses || [];
+      setWarehouses(all);
+      setStockRows(stockData.items || []);
+      setMaterials(Array.isArray(mats) ? mats : []);
+      setSelectedWh((prev) => {
+        if (prev) {
+          const found = all.find((w) => String(w.id) === String(prev.id));
+          return found || all[0] || null;
+        }
+        return all[0] || null;
+      });
+    } catch (err) {
+      console.error("Load warehouses error:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -91,13 +118,6 @@ export default function WarehouseTab({ C, isDark, showToast }) {
     (s, i) => s + Math.max(0, i.qty) * (i.price || 0),
     0,
   );
-
-  const materials = useMemo(() => {
-    const m = readJSON("local_materials", []);
-    materialsRef.current = m;
-    return m;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshKey]);
 
   // ── محاسبات حواله ──
   const transferTotal = useMemo(
@@ -165,11 +185,11 @@ export default function WarehouseTab({ C, isDark, showToast }) {
 
   const closeTransfer = useCallback(() => {
     setTransferOpen(false);
-    setRefreshKey((k) => k + 1);
   }, []);
 
-  // ── ثبت حواله ──
-  const handleSaveTransfer = useCallback(() => {
+  // ── ثبت حواله (هر قلم یک انتقال سمت سرور) ──
+  const handleSaveTransfer = useCallback(async () => {
+    if (savingRef.current) return;
     const f = transferFormRef.current;
     const mats = materialsRef.current;
     const valid = f.items.filter(
@@ -180,8 +200,8 @@ export default function WarehouseTab({ C, isDark, showToast }) {
       notify("حداقل یک قلم وارد کنید", "warning");
       return;
     }
-    if (!f.to_warehouse) {
-      notify("انبار مقصد را انتخاب کنید", "warning");
+    if (!f.from_warehouse || !f.to_warehouse) {
+      notify("انبار مبدأ و مقصد را انتخاب کنید", "warning");
       return;
     }
     if (String(f.from_warehouse) === String(f.to_warehouse)) {
@@ -189,45 +209,33 @@ export default function WarehouseTab({ C, isDark, showToast }) {
       return;
     }
 
-    const d = now();
-    const user = getCurrentUser();
-
-    const transfers = readJSON("local_transfers", []);
-    const items = valid.map((it) => {
-      const mat = mats.find((m) => m.name === it.material_name);
-      return {
-        material_name: it.material_name,
-        material_code: mat?.code || "",
-        unit: mat?.unit || "",
-        quantity: parseFloat(it.quantity),
-        price: mat?.price || 0,
-        line_total: (parseFloat(it.quantity) || 0) * (mat?.price || 0),
-      };
-    });
-
-    const transfer = {
-      id: Date.now(),
-      transfer_number: `TR-${String(transfers.length + 1).padStart(3, "0")}`,
-      user,
-      date: faDate(d),
-      time: faTime(d),
-      day: faDay(d),
-      from_warehouse: f.from_warehouse,
-      to_warehouse: f.to_warehouse,
-      items,
-      grand_total: items.reduce((s, it) => s + it.line_total, 0),
-      items_count: items.length,
-      description: f.description.trim(),
-      created_at: d.toISOString(),
-    };
-
-    transfers.push(transfer);
-    writeJSON("local_transfers", transfers);
-
-    notify(`حواله «${transfer.transfer_number}» توسط ${user} ثبت شد ✅`, "success");
-    closeTransfer();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notify, closeTransfer]);
+    savingRef.current = true;
+    setSaving(true);
+    let done = 0;
+    try {
+      for (const it of valid) {
+        const mat = mats.find((m) => m.name === it.material_name);
+        if (!mat) throw new Error("کالا یافت نشد.");
+        await createTransfer({
+          source_warehouse_id: f.from_warehouse,
+          destination_warehouse_id: f.to_warehouse,
+          raw_material_id: mat.id,
+          quantity: parseFloat(it.quantity),
+          notes: f.description.trim(),
+        });
+        done += 1;
+      }
+      notify(t("ui_j.warehouse.transfer_done", { count: done }), "success");
+      setTransferOpen(false);
+    } catch (err) {
+      const msg = err.response?.data?.error || err.message || "خطا در انتقال";
+      notify(done ? `${msg} (${t("ui_j.warehouse.partial_done", { count: done })})` : msg, "error");
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+      if (done) load();
+    }
+  }, [notify, load, t]);
 
   // ── میان‌برها ──
   // صفحه: F2 حواله جدید · Ctrl+A/Z انبار بعدی/قبلی
@@ -786,9 +794,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                 </Typography>
                 <Chip
                   size="small"
-                  label={`شماره حواله: TR-${String(
-                    readJSON("local_transfers", []).length + 1,
-                  ).padStart(3, "0")}`}
+                  label={t("ui_j.warehouse.new_transfer_badge")}
                   sx={{
                     height: 28,
                     fontSize: 14,
@@ -1427,7 +1433,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
           </Button>
           <Button
             onClick={handleSaveTransfer}
-            disabled={validTransferItems.length === 0}
+            disabled={validTransferItems.length === 0 || saving}
             size="large"
             sx={{
               borderRadius: "12px",
@@ -1452,7 +1458,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
               },
             }}
           >
-            💾 ثبت حواله (Ctrl+D)
+            {saving ? "..." : "💾 ثبت حواله (Ctrl+D)"}
           </Button>
         </DialogActions>
       </Dialog>

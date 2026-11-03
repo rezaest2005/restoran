@@ -13,7 +13,7 @@ const toList = (data) => {
   else if (data && typeof data === "object") {
     arr =
       data.results || data.warehouses || data.suppliers ||
-      data.materials || data.suggestions || data.items || data.data || [];
+      data.materials || data.movements || data.suggestions || data.items || data.data || [];
   }
   arr = Array.isArray(arr) ? [...arr] : [];
   arr.results = arr;
@@ -26,51 +26,113 @@ const safe = (promise, fallback) => promise.catch(() => fallback);
 const notReady = (name) =>
   Promise.reject(new Error(`${name} هنوز روی سرور فعال نشده`));
 
+const withQuery = (path, params = {}) => {
+  const clean = {};
+  Object.entries(params || {}).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== "") clean[k] = v;
+  });
+  const qs = new URLSearchParams(clean).toString();
+  return `${path}${qs ? `?${qs}` : ""}`;
+};
+
 /* ═══════════ انبارها (Warehouses) ═══════════ */
 export const fetchWarehouses = () =>
-  safe(client.get("/api/warehouse-json/").then((r) => toList(r.data)), toList([]));
+  safe(client.get("/api/inventory/warehouses/").then((r) => toList(r.data)), toList([]));
 
 export const saveWarehouse = (data) =>
-  safe(client.post("/api/suppliers/save/", data).then((r) => r.data), {});
+  client.post("/api/inventory/warehouses/save/", data).then((r) => r.data);
 export const deleteWarehouse = (data) =>
-  safe(client.post("/api/suppliers/delete/", data).then((r) => r.data), {});
+  client.post("/api/inventory/warehouses/delete/", data).then((r) => r.data);
 
 /* ═══════════ موجودی (Stock) ═══════════ */
+// خروجی: { success, items: [...], count } — هر آیتم: raw_material_id, warehouse_id, quantity, ...
 export const fetchStock = (params = {}) =>
-  Promise.resolve(toList([]));
+  safe(
+    client.get(withQuery("/api/inventory/stock/", params)).then((r) => r.data),
+    { items: [], count: 0 }
+  );
 export const fetchStockItems = fetchStock;
 export const updateMinimumStock = (data) =>
-  notReady("بروزرسانی حداقل موجودی");
+  client.post("/api/inventory/stock/minimum/", data).then((r) => r.data);
+
+/* ═══════════ حرکات انبار (Movements) ═══════════ */
+// type: in | out | waste | adjustment | transfer
+// خروجی خام سرور: { success, results, count, page, pages, page_size }
+export const fetchMovementList = (params = {}) =>
+  safe(
+    client.get(withQuery("/api/inventory/movements/", params)).then((r) => r.data),
+    { results: [], count: 0, page: 1, pages: 1 }
+  );
 
 /* ═══════════ انتقال (Transfer) ═══════════ */
-export const createTransfer = (data) => notReady("انتقال موجودی");
-export const fetchTransfers = (params = {}) => Promise.resolve(toList([]));
-export const fetchTransferDetail = (id) => Promise.resolve({});
+export const createTransfer = (data) =>
+  client.post("/api/inventory/transfer/", data).then((r) => r.data);
+export const fetchTransfers = (params = {}) =>
+  fetchMovementList({ ...params, type: "transfer" }).then((d) => toList(d));
+export const fetchTransferDetail = (id) => Promise.resolve({ id });
 export const fetchStockTransfers = fetchTransfers;
 export const createStockTransfer = createTransfer;
 
 /* ═══════════ تحویل بار / ورود کالا (Receiving) ═══════════ */
-export const createReceiving = (data) => notReady("ثبت تحویل بار");
-export const fetchReceivings = () => Promise.resolve(toList([]));
+// پشتیبانی از payload چندقلمی: { warehouse_id, items:[{raw_material_id, quantity, unit_price}], notes, supplier_id, invoice_number }
+// قلم‌ها پشت‌سرهم ثبت می‌شوند؛ در صورت خطا پیام سرور (به‌همراه تعداد ثبت‌شده‌ها) نمایش داده می‌شود.
+export const createReceiving = async (data = {}) => {
+  const { items, supplier_id, invoice_number, ...base } = data;
+  if (!Array.isArray(items)) {
+    return client.post("/api/inventory/receive/", data).then((r) => r.data);
+  }
+  const noteParts = [];
+  if (invoice_number) noteParts.push(`فاکتور ${invoice_number}`);
+  if (base.notes) noteParts.push(base.notes);
+  const notes = noteParts.join(" — ");
+  const results = [];
+  for (const it of items) {
+    try {
+      const res = await client.post("/api/inventory/receive/", { ...base, ...it, notes });
+      results.push(res.data);
+    } catch (err) {
+      if (results.length && err.response?.data) {
+        err.response.data.error =
+          `${err.response.data.error || "خطا"} (${results.length} قلم قبل از خطا ثبت شد)`;
+      }
+      throw err;
+    }
+  }
+  return { success: true, results };
+};
+export const fetchReceivings = (params = {}) =>
+  fetchMovementList({ ...params, type: "in" }).then((d) => toList(d));
 export const fetchReceiving = () => Promise.resolve({});
 export const updateReceiving = () => notReady("ویرایش تحویل بار");
 export const deleteReceiving = () => notReady("حذف تحویل بار");
 
 /* ═══════════ خروج کالا (Issue) ═══════════ */
-export const createIssue = (data) => notReady("خروج کالا");
+export const createIssue = (data) =>
+  client.post("/api/inventory/issue/", data).then((r) => r.data);
 
 /* ═══════════ ضایعات (Waste) ═══════════ */
-export const createWaste = (data) => notReady("ثبت ضایعات");
-export const fetchWasteLogs = () => Promise.resolve(toList([]));
+export const createWaste = (data) =>
+  client.post("/api/inventory/waste/", data).then((r) => r.data);
+export const fetchWasteLogs = (params = {}) =>
+  fetchMovementList({ ...params, type: "waste" }).then((d) => toList(d));
 export const createWasteLog = createWaste;
 
 /* ═══════════ اصلاح / شمارش (Adjustment) ═══════════ */
-export const createAdjustment = (data) => notReady("اصلاح موجودی");
-export const fetchStockAdjustments = () => Promise.resolve(toList([]));
+export const createAdjustment = (data) =>
+  client.post("/api/inventory/adjust/", data).then((r) => r.data);
+export const fetchStockAdjustments = (params = {}) =>
+  fetchMovementList({ ...params, type: "adjustment" }).then((d) => toList(d));
 export const createStockAdjustment = createAdjustment;
 
-/* ═══════════ لیست خرید (Purchase List) ═══════════ */
-export const fetchPurchaseList = () => Promise.resolve(toList([]));
+/* ═══════════ لیست خرید (Purchase List) — پیشنهاد خودکار، فقط‌خواندنی ═══════════ */
+// خروجی خام سرور: { success, results, count, total_estimated_cost }
+export const fetchPurchaseSuggestions = () =>
+  safe(
+    client.get("/api/inventory/purchase-suggestions/").then((r) => r.data),
+    { results: [], count: 0, total_estimated_cost: 0 }
+  );
+export const fetchPurchaseList = () =>
+  fetchPurchaseSuggestions().then((d) => toList(d));
 export const fetchPurchaseListItems = fetchPurchaseList;
 export const addToPurchaseList = (data) => notReady("افزودن به لیست خرید");
 export const createPurchaseListItem = addToPurchaseList;
@@ -89,7 +151,7 @@ export const fetchItemMovement = (params = {}) => {
 export const fetchItemMovementReport = fetchItemMovement;
 export const fetchMovements = fetchItemMovement;
 
-export const fetchTransferReport = (params = {}) => Promise.resolve(toList([]));
+export const fetchTransferReport = (params = {}) => fetchTransfers(params);
 
 export const fetchStockValueReport = (params = {}) => {
   const qs = new URLSearchParams(params).toString();
@@ -99,13 +161,11 @@ export const fetchStockValueReport = (params = {}) => {
   );
 };
 
-export const fetchWarehouseMovements = (params = {}) => {
-  const qs = new URLSearchParams(params).toString();
-  return safe(
-    client.get(`/api/inventory/reports/item-movement/${qs ? `?${qs}` : ""}`).then((r) => toList(r.data)),
+export const fetchWarehouseMovements = (params = {}) =>
+  safe(
+    client.get(withQuery("/api/inventory/reports/warehouse-movements/", params)).then((r) => toList(r.data)),
     toList([])
   );
-};
 
 /* ═══════════ داشبورد انبار ═══════════ */
 export const fetchInventoryDashboard = () =>
@@ -114,7 +174,7 @@ export const fetchInventoryDashboard = () =>
 /* ═══════════ مواد اولیه (Raw Materials) ═══════════ */
 export const fetchRawMaterials = () =>
   safe(
-    client.get("/api/raw-materials/suggestions/").then((r) => toList(r.data)),
+    client.get("/api/raw-materials/").then((r) => toList(r.data)),
     toList([])
   );
 

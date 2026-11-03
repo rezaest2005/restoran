@@ -1,0 +1,24 @@
+{
+  "ui_j": {
+    "receiving": {
+      "load_more": "Show more",
+      "user": "Recorded by"
+    },
+    "warehouse": {
+      "new_transfer_badge": "New transfer",
+      "transfer_done": "{{count}} item(s) transferred ✅",
+      "partial_done": "{{count}} item(s) transferred before the error"
+    },
+    "purchase": {
+      "refresh": "Refresh",
+      "search": "Search item...",
+      "summary": "{{count}} item(s) to buy — estimated cost: {{cost}}",
+      "hint": "This list is automatic: items whose total stock is at or below the minimum stock.",
+      "empty_title": "Nothing needs purchasing",
+      "empty_sub": "All items with a minimum stock are sufficiently stocked",
+      "low": "Low stock",
+      "stock_line": "Stock: {{qty}} {{unit}} — minimum: {{min}} — target: {{target}}",
+      "cost": "Estimated: {{cost}}"
+    }
+  }
+}

@@ -4,7 +4,7 @@ import {
   Box, Typography, Button, TextField, Select, MenuItem,
   CircularProgress, Chip, Dialog, DialogTitle, DialogContent,
 } from "@mui/material";
-import { fetchWarehouseMovements, fetchWarehouses } from "../api";
+import { fetchMovementList, fetchWarehouses } from "../api";
 import ReceiveModal from "../components/ReceiveModal";
 import IssueModal from "../components/IssueModal";
 import WasteModal from "../components/WasteModal";
@@ -35,6 +35,15 @@ const WASTE_REASONS = {
   other: "سایر",
 };
 
+const PAGE_SIZE = 100;
+
+// جهت حرکت: +1 ورود، -1 خروج/ضایعات، تعدیل بر اساس تغییر موجودی
+const directionOf = (m) => {
+  if (m.movement_type === "in") return 1;
+  if (m.movement_type === "adjustment") return Number(m.new_stock) >= Number(m.previous_stock) ? 1 : -1;
+  return -1;
+};
+
 function formatDate(dateStr) {
   if (!dateStr) return "";
   try {
@@ -57,26 +66,30 @@ export default function ReceivingTab({ C, isDark, showToast }) {
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [issueOpen, setIssueOpen] = useState(false);
   const [wasteOpen, setWasteOpen] = useState(false);
-  const [selectedWarehouse, setSelectedWarehouse] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const notify = useCallback((msg, type = "info") => {
     if (typeof showToast === "function") showToast(msg, type);
   }, [showToast]);
 
+  // انبار هدف Modalها: انبار انتخاب‌شده در فیلتر، وگرنه انبار مرکزی
+  const selectedWarehouse =
+    warehouses.find(w => String(w.id) === String(warehouseFilter)) ||
+    warehouses.find(w => w.is_mother) || warehouses[0] || null;
+
   const load = async () => {
     setLoading(true);
     try {
       const [movData, whData] = await Promise.all([
-        fetchWarehouseMovements({}),
+        fetchMovementList({ page: 1, page_size: PAGE_SIZE }),
         fetchWarehouses(),
       ]);
-      setMovements(movData.movements || []);
-      const whList = whData.warehouses || [];
-      setWarehouses(whList);
-
-      // انبار پیش‌فرض برای Modalها
-      const mother = whList.find(w => w.is_mother) || whList[0];
-      if (mother) setSelectedWarehouse(mother);
+      setMovements(movData.results || []);
+      setPage(1);
+      setPages(movData.pages || 1);
+      setWarehouses(whData.warehouses || []);
     } catch (err) {
       console.error("Load movements error:", err);
     } finally {
@@ -86,8 +99,23 @@ export default function ReceivingTab({ C, isDark, showToast }) {
 
   useEffect(() => { load(); }, []);
 
+  const loadMore = async () => {
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const data = await fetchMovementList({ page: next, page_size: PAGE_SIZE });
+      setMovements(prev => [...prev, ...(data.results || [])]);
+      setPage(next);
+      setPages(data.pages || next);
+    } catch (err) {
+      console.error("Load more movements error:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
   const filtered = movements.filter(m => {
-    if (typeFilter !== "all" && m.movement_type !== typeFilter) return false;
+    if (typeFilter !== "all" && m.kind !== typeFilter) return false;
     if (warehouseFilter && m.warehouse_id != warehouseFilter) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -261,7 +289,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
           </Box>
 
           {filtered.map((m, i) => {
-            const tc = TYPE_COLORS[m.movement_type] || TYPE_COLORS.adjustment;
+            const tc = TYPE_COLORS[m.kind] || TYPE_COLORS.adjustment;
             return (
               <Box
                 key={m.id || i}
@@ -312,11 +340,11 @@ export default function ReceivingTab({ C, isDark, showToast }) {
                 <Box sx={{ flex: 1, textAlign: "center" }}>
                   <Typography sx={{
                     fontSize: 13, fontWeight: 700,
-                    color: m.movement_type === "receive" ? C.olive :
-                           m.movement_type === "waste" ? C.danger :
-                           m.movement_type === "issue" ? C.warning : C.text,
+                    color: m.kind === "receive" ? C.olive :
+                           m.kind === "waste" ? C.danger :
+                           m.kind === "issue" ? C.warning : C.text,
                   }}>
-                    {m.movement_type === "receive" ? "+" : "-"}
+                    {directionOf(m) > 0 ? "+" : "-"}
                     {Math.abs(Number(m.quantity)).toLocaleString("fa-IR")}
                   </Typography>
                 </Box>
@@ -347,6 +375,14 @@ export default function ReceivingTab({ C, isDark, showToast }) {
               </Box>
             );
           })}
+          {page < pages && (
+            <Button onClick={loadMore} disabled={loadingMore} sx={{
+              alignSelf: "center", mt: 1, borderRadius: "10px", fontSize: 12,
+              fontWeight: 600, textTransform: "none", color: C.olive,
+            }}>
+              {loadingMore ? "..." : t("ui_j.receiving.load_more")}
+            </Button>
+          )}
         </Box>
       )}
 
@@ -359,13 +395,13 @@ export default function ReceivingTab({ C, isDark, showToast }) {
         slotProps={{ paper: { sx: dialogPaperSx } }}
       >
         <DialogTitle sx={{ fontSize: 15, fontWeight: 800, color: C.text }}>
-          {TYPE_COLORS[detailOpen?.movement_type]?.icon || "📋"} جزئیات حرکت
+          {TYPE_COLORS[detailOpen?.kind]?.icon || "📋"} جزئیات حرکت
         </DialogTitle>
         <DialogContent sx={{ pt: "12px !important" }}>
           {detailOpen && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
               {[
-                { label: "نوع", value: TYPE_COLORS[detailOpen.movement_type]?.label },
+                { label: "نوع", value: TYPE_COLORS[detailOpen.kind]?.label },
                 { label: "تاریخ", value: formatDate(detailOpen.created_at) },
                 { label: "کالا", value: detailOpen.material_name },
                 { label: "مقدار", value: `${Math.abs(Number(detailOpen.quantity))}` },
@@ -376,6 +412,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
                 detailOpen.supplier_name ? { label: "تأمین‌کننده", value: detailOpen.supplier_name } : null,
                 detailOpen.waste_reason ? { label: "دلیل ضایعات", value: WASTE_REASONS[detailOpen.waste_reason] || detailOpen.waste_reason } : null,
                 detailOpen.notes ? { label: "توضیحات", value: detailOpen.notes } : null,
+                detailOpen.user ? { label: t("ui_j.receiving.user"), value: detailOpen.user } : null,
               ].filter(Boolean).map((row, idx) => (
                 <Box key={idx} sx={{
                   display: "flex", justifyContent: "space-between",

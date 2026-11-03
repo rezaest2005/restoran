@@ -44,6 +44,15 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    titleKey: "ui_i.nav_accounting",
+    items: [
+      {
+        icon: "📒", labelKey: "ui_i.nav_accounting", basePath: "accounting",
+        anyTabs: ["accounting"],
+      },
+    ],
+  },
+  {
     titleKey: "rest.nav_system",
     items: [
       {
