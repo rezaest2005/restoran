@@ -161,7 +161,7 @@ def send_to_card_reader(request):
     except Exception as e:
         logger.exception('Error communicating with card reader')
         return Response(
-            {'success': False, 'error': str(e)},
+            {'success': False, 'error': 'ارتباط با کارتخوان ناموفق بود'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
@@ -204,6 +204,6 @@ def cancel_card_payment(request):
     except Exception as e:
         logger.warning('Error cancelling card payment: %s', e)
         return Response(
-            {'success': False, 'error': str(e)},
+            {'success': False, 'error': 'لغو پرداخت ناموفق بود'},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )

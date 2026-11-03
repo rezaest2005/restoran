@@ -39,6 +39,17 @@ class RegisterView(generics.CreateAPIView):
     permission_classes = [permissions.AllowAny]
 
     def create(self, request, *args, **kwargs):
+        # محدودیت ثبت‌نام عمومی برای هر IP (جلوگیری از انبوه‌سازی حساب)
+        ip = request.META.get("REMOTE_ADDR", "unknown")
+        cache_key = f"register_attempts:{ip}"
+        attempts = cache.get(cache_key, 0)
+        if attempts >= 5:
+            return Response(
+                {"error": "تعداد ثبت‌نام‌ها زیاد است. بعداً تلاش کنید."},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+        cache.set(cache_key, attempts + 1, 3600)
+
         ser = self.get_serializer(data=request.data)
         ser.is_valid(raise_exception=True)
         result = register_user(ser.validated_data)

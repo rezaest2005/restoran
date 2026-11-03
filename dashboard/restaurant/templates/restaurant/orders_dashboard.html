@@ -1,4 +1,5 @@
 {% extends "admin/restaurant_base.html" %}
+{% load safe_urls %}
 {% load i18n static %}
 
 {% block title %}مدیریت سفارشات{% endblock %}
@@ -803,10 +804,10 @@
        API URLS — مطابق urls.py پروژه
        ═══════════════════════════════════════════════════════════ */
        const API = {
-    listOrders:    "{% url 'kitchen_orders_api' %}",
+    listOrders:    "{% safe_url 'kitchen_orders_api' %}",
     changeStatus:  "{% url 'order_change_status' 0 %}".replace('/0/', '/'),
-    sendToKitchen: "{% url 'order_send_to_kitchen' 0 %}".replace('/0/', '/'),
-    ordersCRUD:    "{% url 'order-list' %}",
+    sendToKitchen: "{% safe_url 'order_send_to_kitchen' 0 %}".replace('/0/', '/'),
+    ordersCRUD:    "{% safe_url 'order-list' %}",
     createOrder:   "{% url 'pos_create_order' %}",
 };
 

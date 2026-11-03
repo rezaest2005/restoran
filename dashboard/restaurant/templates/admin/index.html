@@ -1,4 +1,5 @@
 ﻿{% extends "admin/restaurant_base.html" %}
+{% load safe_urls %}
 {% load i18n static %}
 
 {% block title %}داشبورد — مدیریت رستوران{% endblock %}
@@ -309,7 +310,7 @@
 
   <!-- ═══ دسترسی سریع ═══ -->
   <div class="quick-grid">
-    <a href="{% url 'pos_page' %}" class="quick-btn">
+    <a href="{% safe_url 'pos_page' %}" class="quick-btn">
       <div class="quick-btn-icon" style="background:rgba(255,107,53,0.1);color:#ff6b35"><i class="bi bi-credit-card"></i></div>
       <div class="quick-btn-label">صندوق فروش</div>
     </a>
@@ -317,11 +318,11 @@
       <div class="quick-btn-icon" style="background:rgba(59,130,246,0.1);color:#3b82f6"><i class="bi bi-plus-square"></i></div>
       <div class="quick-btn-label">سفارش جدید</div>
     </a>
-    <a href="{% url 'create_invoice' %}" class="quick-btn">
+    <a href="{% safe_url 'create_invoice' %}" class="quick-btn">
       <div class="quick-btn-icon" style="background:rgba(16,185,129,0.1);color:#10b981"><i class="bi bi-file-earmark-plus"></i></div>
       <div class="quick-btn-label">ثبت فاکتور</div>
     </a>
-    <a href="{% url 'kitchen_page' %}" class="quick-btn">
+    <a href="{% safe_url 'kitchen_page' %}" class="quick-btn">
       <div class="quick-btn-icon" style="background:rgba(139,92,246,0.1);color:#8b5cf6"><i class="bi bi-fire"></i></div>
       <div class="quick-btn-label">آشپزخانه</div>
     </a>
@@ -417,7 +418,7 @@
   ════════════════════════════════════════════════ */
   var URL_REPORT  = "{% url 'pos_daily_report' %}";
   var URL_LOYALTY = "/api/loyalty/dashboard/";
-  var URL_CLOSE   = "{% url 'pos_close_summary' %}";
+  var URL_CLOSE   = "{% safe_url 'pos_close_summary' %}";
   var URL_ORDERS  = "/api/orders/";
 
   /* ═══════════════════════════════════════════════

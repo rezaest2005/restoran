@@ -201,3 +201,15 @@ def parse_int(value, default=100, minimum=1, maximum=1000):
 
 def client_ip(request):
     return request.META.get("REMOTE_ADDR", "unknown")
+
+
+def server_error(exc, status=500):
+    """
+    پاسخ خطای سرور بدون نشت جزئیات داخلی (نام جدول، مسیر فایل، SQL ...).
+    جزئیات کامل فقط در لاگ سرور ثبت می‌شود.
+    """
+    logger.exception("خطای داخلی در ویو: %s", exc)
+    return JsonResponse(
+        {"success": False, "error": "خطای داخلی سرور. دوباره تلاش کنید."},
+        status=status,
+    )

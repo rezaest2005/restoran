@@ -19,6 +19,7 @@ from .base import (
     _get_restaurant_users_qs,
 )
 from .tabs import _get_normalized_tabs
+from ..common import server_error
 
 logger = logging.getLogger(__name__)
 
@@ -193,7 +194,7 @@ def create_user_api(request):
 
     except Exception as e:
         logger.exception("Error creating user")
-        return Response({"success": False, "error": str(e)}, status=500)
+        return server_error(e)
 
 
 # ═══════════════════════════════════════

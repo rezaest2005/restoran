@@ -14,6 +14,7 @@ from ..common import (
     no_restaurant_response,
     resolve_restaurant,
 )
+from ..common import server_error
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +104,7 @@ def supplier_save(request: HttpRequest):
         })
     except Exception as exc:
         logger.exception("Error saving supplier")
-        return JsonResponse({"success": False, "error": str(exc)}, status=500)
+        return server_error(exc)
 
 
 @api_view(["POST"])
@@ -129,4 +130,4 @@ def supplier_delete(request: HttpRequest):
         return JsonResponse({"success": True, "msg": f"«{name}» حذف شد."})
     except Exception as exc:
         logger.exception("Error deleting supplier")
-        return JsonResponse({"success": False, "error": str(exc)}, status=500)
+        return server_error(exc)

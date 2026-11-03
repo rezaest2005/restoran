@@ -161,10 +161,12 @@ def club_member_adjust(request, pk):
     m = get_object_or_404(LoyaltyMember.objects.filter(restaurant=restaurant), pk=pk)
     try:
         delta = int(request.data.get("points"))
+    except (TypeError, ValueError):
+        return api_error("مقدار امتیاز نامعتبر است.")
+    try:
         m = adjust_points(m, delta, note=str(request.data.get("note") or ""), user=request.user)
-    except (TypeError, ValueError) as exc:
-        return api_error(str(exc) if str(exc) and not str(exc).startswith("invalid literal")
-                         else "مقدار امتیاز نامعتبر است.")
+    except ValueError as exc:
+        return api_error(str(exc))
     return api_success(data=_member_data(m, get_settings(restaurant)), message="اصلاح شد.")
 
 

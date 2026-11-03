@@ -206,7 +206,7 @@ def create_purchase_invoice(request: HttpRequest):
 
     except Exception as exc:
         logger.exception('Error creating invoice')
-        messages.error(request, f'خطا: {exc}')
+        messages.error(request, 'ثبت فاکتور ناموفق بود. دوباره تلاش کنید.')
         return redirect('create_invoice')
 
 

@@ -12,6 +12,7 @@ from rest_framework import status
 
 from ...models import Restaurant, Tenant, User
 from .auth import IsSuperAdmin
+from ..common import server_error
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +178,7 @@ def super_tenants_api(request):
 
     except Exception as e:
         logger.exception('Error creating tenant')
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return server_error(e)
 
 
 @api_view(["GET", "PUT", "DELETE"])

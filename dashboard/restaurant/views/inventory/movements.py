@@ -20,6 +20,7 @@ from ..common import (
     parse_decimal,
     resolve_restaurant_active,
 )
+from ..common import server_error
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,7 @@ def receiving_create(request):
         return JsonResponse({"success": False, "error": str(exc)}, status=400)
     except Exception as exc:
         logger.exception("Error receiving stock")
-        return JsonResponse({"success": False, "error": str(exc)}, status=500)
+        return server_error(exc)
 
 
 # ═══════════════════════════════════════
@@ -127,7 +128,7 @@ def issue_create(request):
         return JsonResponse({"success": False, "error": str(exc)}, status=400)
     except Exception as exc:
         logger.exception("Error issuing stock")
-        return JsonResponse({"success": False, "error": str(exc)}, status=500)
+        return server_error(exc)
 
 
 # ═══════════════════════════════════════
@@ -179,7 +180,7 @@ def waste_create(request):
         return JsonResponse({"success": False, "error": str(exc)}, status=400)
     except Exception as exc:
         logger.exception("Error recording waste")
-        return JsonResponse({"success": False, "error": str(exc)}, status=500)
+        return server_error(exc)
 
 
 # ═══════════════════════════════════════
@@ -259,4 +260,4 @@ def adjustment_create(request):
         return JsonResponse({"success": False, "error": str(exc)}, status=400)
     except Exception as exc:
         logger.exception("Error adjusting stock")
-        return JsonResponse({"success": False, "error": str(exc)}, status=500)
+        return server_error(exc)

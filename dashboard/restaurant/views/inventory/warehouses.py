@@ -15,6 +15,7 @@ from ..common import (
     no_restaurant_response,
     resolve_restaurant_active,
 )
+from ..common import server_error
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +111,7 @@ def warehouse_save(request):
         })
     except Exception as exc:
         logger.exception("Error saving warehouse")
-        return JsonResponse({"success": False, "error": str(exc)}, status=500)
+        return server_error(exc)
 
 
 @api_view(["POST"])

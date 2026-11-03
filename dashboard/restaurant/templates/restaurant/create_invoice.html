@@ -1,4 +1,5 @@
 {% extends "admin/restaurant_base.html" %}
+{% load safe_urls %}
 {% load i18n static %}
 
 {% block title %}ثبت فاکتور خرید{% endblock %}
@@ -631,7 +632,7 @@
     <p>فاکتور خرید مواد اولیه رستوران را به‌راحتی وارد کنید</p>
 </header>
 
-<form method="post" enctype="multipart/form-data" id="invoice-form" action="{% url 'create_invoice' %}">
+<form method="post" enctype="multipart/form-data" id="invoice-form" action="{% safe_url 'create_invoice' %}">
     {% csrf_token %}
 
     <div class="card" style="animation-delay:.1s">

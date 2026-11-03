@@ -171,8 +171,16 @@ JAZZMIN_UI_TWEAKS = {
     "sidebar_fixed": True,
 }
 
+# توکن CSRF باید برای JS خوانا بماند (صفحه‌های HTML از هدر X-CSRFToken استفاده می‌کنند)،
+# اما کوکی نشست نباید برای اسکریپت‌ها خوانا باشد.
 CSRF_COOKIE_HTTPONLY = False
-SESSION_COOKIE_HTTPONLY = False
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+# پشت HTTPS (production) حتماً COOKIE_SECURE=True بگذارید؛ روی HTTP محلی False بماند.
+COOKIE_SECURE = os.getenv('COOKIE_SECURE', 'False') == 'True'
+SESSION_COOKIE_SECURE = COOKIE_SECURE
+CSRF_COOKIE_SECURE = COOKIE_SECURE
 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 # هر درخواست = یک نوشتن در دیتابیس؛ فقط در صورت نیاز واقعی True کنید
@@ -191,4 +199,4 @@ TENANT_CACHE_TTL = 30
 # Proxy / Cloudflare SSL
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
-SECURE_SSL_REDIRECT = False
+SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False') == 'True'

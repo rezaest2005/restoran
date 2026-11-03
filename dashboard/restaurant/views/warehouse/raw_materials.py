@@ -16,6 +16,7 @@ from ..common import (
     resolve_restaurant,
     safe_int,
 )
+from ..common import server_error
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +95,7 @@ def raw_material_save(request: HttpRequest):
         })
     except Exception as exc:
         logger.exception("Error saving raw material")
-        return JsonResponse({"success": False, "error": str(exc)}, status=500)
+        return server_error(exc)
 
 
 @api_view(["POST"])
@@ -120,7 +121,7 @@ def raw_material_delete(request: HttpRequest):
         return JsonResponse({"success": True, "msg": f"«{name}» حذف شد."})
     except Exception as exc:
         logger.exception("Error deleting raw material")
-        return JsonResponse({"success": False, "error": str(exc)}, status=500)
+        return server_error(exc)
 
 
 @api_view(["GET"])

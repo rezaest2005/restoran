@@ -12,6 +12,7 @@ from ..helpers import (
     _read_file_rows, _extract_items_from_rows,
 )
 from ..common import InventoryPerm, resolve_restaurant
+from ..common import server_error
 
 logger = logging.getLogger(__name__)
 
@@ -79,4 +80,4 @@ def parse_excel_file(request: HttpRequest):
         })
     except Exception as exc:
         logger.exception("Error parsing excel file")
-        return JsonResponse({"success": False, "error": f"خطا: {exc}"}, status=500)
+        return server_error(exc)

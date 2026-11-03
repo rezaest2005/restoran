@@ -16,6 +16,7 @@ from ..models import Order
 from ..order_services import restore_order_stock
 from ..club_services import earn_for_order
 from .common import PosPerm, resolve_restaurant
+from .common import server_error
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +94,7 @@ def order_change_status(request, pk):
 
     except Exception as e:
         logger.exception('Error changing order #%d status', pk)
-        return JsonResponse({"success": False, "error": f"خطای سرور: {str(e)}"}, status=500)
+        return server_error(e)
 
 
 @api_view(["GET"])

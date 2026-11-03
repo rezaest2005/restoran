@@ -18,6 +18,7 @@ from ..common import (
     no_restaurant_response,
     resolve_restaurant,
 )
+from ..common import server_error
 
 logger = logging.getLogger(__name__)
 
@@ -167,7 +168,7 @@ def pos_create_order(request):
 
     except Exception as exc:
         logger.exception("Error creating POS order")
-        return JsonResponse({"success": False, "error": str(exc)})
+        return server_error(exc, status=200)
 
 
 # ═══════════════════════════════════════
@@ -235,4 +236,4 @@ def pos_update_food_price(request):
         })
     except Exception as exc:
         logger.exception("Error updating food price")
-        return JsonResponse({"success": False, "error": str(exc)})
+        return server_error(exc, status=200)

@@ -12,6 +12,7 @@ from rest_framework.decorators import api_view, permission_classes
 
 from ...models import Order, OrderItem
 from ..common import PosPerm, resolve_restaurant
+from ..common import server_error
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +78,7 @@ def pos_daily_report(request):
         })
     except Exception as exc:
         logger.exception("Error in daily report")
-        return JsonResponse({"success": False, "error": str(exc)})
+        return server_error(exc, status=200)
 
 
 # ═══════════════════════════════════════
