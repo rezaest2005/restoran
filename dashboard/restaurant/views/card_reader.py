@@ -17,10 +17,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from ..models import Order
-from ..tenancy import (
-    get_current_restaurant, set_current_restaurant,
-    get_restaurant_from_request,
-)
+from .common import resolve_restaurant
 
 logger = logging.getLogger(__name__)
 
@@ -38,17 +35,6 @@ CARD_READER_TIMEOUT = getattr(settings, 'CARD_READER_TIMEOUT', 120)
 # ═══════════════════════════════════════
 #  resolve restaurant
 # ═══════════════════════════════════════
-
-def _resolve_restaurant(request):
-    r = get_current_restaurant()
-    if r:
-        return r
-    r = get_restaurant_from_request(request)
-    if r:
-        set_current_restaurant(r)
-        return r
-    return None
-
 
 # ═══════════════════════════════════════
 #  پرداخت
@@ -87,7 +73,7 @@ def send_to_card_reader(request):
         )
 
     # ★ FIXED: فیلتر restaurant روی Order
-    restaurant = _resolve_restaurant(request)
+    restaurant = resolve_restaurant(request)
     order = None
     if order_id:
         qs = Order.objects.all()

@@ -33,10 +33,11 @@ import {
   Cell,
   Legend,
 } from "recharts";
+import useShortcuts from "@shared/common/useShortcuts";
+import { toPersianDigits, groupDigits } from "../common/format";
 
 /* ── Helpers ─────────────────────────────────── */
-const fNum = (n) => String(n || 0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-const toPersianDigits = (s) => String(s).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[d]);
+const fNum = groupDigits;
 
 /* ── رنگ‌های نمودار: سبز + طلایی ───────────── */
 const CHART_COLORS = [
@@ -226,6 +227,11 @@ export default function DailyReport({
   analytics,
 }) {
   const { t } = useTranslation();
+  // Ctrl+Z روز قبل · Ctrl+A روز بعد
+  useShortcuts([
+    { combo: "Ctrl+Z", label: t("shortcuts.prev"), handler: () => onPrevDay?.() },
+    { combo: "Ctrl+A", label: t("shortcuts.next"), handler: () => (isToday ? false : onNextDay?.()) },
+  ]);
   const statusInfo = (s) =>
     ({
       delivered: { label: t("ui_c.daily.delivered"), color: C.olive },

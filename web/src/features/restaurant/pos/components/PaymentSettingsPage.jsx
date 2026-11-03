@@ -1,4 +1,6 @@
 import { useState } from "react";
+import useShortcuts from "@shared/common/useShortcuts";
+import KbdHint from "../common/KbdHint";
 import { useTranslation } from "react-i18next";
 import {
   Box, Typography, Tabs, Tab, TextField, Button, Switch,
@@ -105,6 +107,14 @@ export default function PaymentSettingsPage({
     zarinpal: t("ui_c.pos.pay.gw_zarinpal"), saman: t("ui_c.pos.pay.gw_saman"),
     parsian: t("ui_c.pos.pay.gw_parsian"), mellat: t("ui_c.pos.pay.gw_mellat"), custom: t("ui_c.pos.pay.gw_custom"),
   }[type] || type);
+
+  /* ── میان‌برها: F2 فرم جدید · Ctrl+D ذخیره · Ctrl+A/Ctrl+Z تب بعدی/قبلی ── */
+  useShortcuts([
+    { combo: "F2", label: t("shortcuts.new"), handler: () => (tab === 0 ? resetTm() : resetGw()) },
+    { combo: "Ctrl+D", label: t("shortcuts.save"), handler: () => (tab === 0 ? saveTm() : saveGw()) },
+    { combo: "Ctrl+A", label: t("shortcuts.next"), handler: () => setTab(1) },
+    { combo: "Ctrl+Z", label: t("shortcuts.prev"), handler: () => setTab(0) },
+  ], { enabled: !loading });
 
   if (loading) return (
     <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
@@ -267,6 +277,7 @@ export default function PaymentSettingsPage({
               }}>
                 <Save sx={{ fontSize: 16, mr: 0.5 }} />
                 {saving ? "..." : (t("ui_c.pos_pay.save"))}
+                {!saving && <KbdHint>Ctrl+D</KbdHint>}
               </Button>
               {tmEdit && (
                 <Button onClick={resetTm} sx={{
@@ -414,6 +425,7 @@ export default function PaymentSettingsPage({
               }}>
                 <Save sx={{ fontSize: 16, mr: 0.5 }} />
                 {saving ? "..." : (t("ui_c.pos_pay.save"))}
+                {!saving && <KbdHint>Ctrl+D</KbdHint>}
               </Button>
               {gwEdit && (
                 <Button onClick={resetGw} sx={{

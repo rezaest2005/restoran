@@ -29,11 +29,7 @@ from ..serializers import (
     OrderSerializer,
 )
 
-from ..tenancy import (
-    get_current_restaurant,
-    set_current_restaurant,
-    get_restaurant_from_request,
-)
+from .common import resolve_restaurant
 
 logger = logging.getLogger(__name__)
 
@@ -41,17 +37,6 @@ logger = logging.getLogger(__name__)
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 #  resolve restaurant â€” fallback
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-
-
-def _resolve_restaurant(request):
-    r = get_current_restaurant()
-    if r:
-        return r
-    r = get_restaurant_from_request(request)
-    if r:
-        set_current_restaurant(r)
-        return r
-    return None
 
 
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
@@ -66,7 +51,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = Category.objects.all()
 
-        restaurant = _resolve_restaurant(self.request)
+        restaurant = resolve_restaurant(self.request)
         if restaurant:
             qs = qs.filter(restaurant=restaurant)
 
@@ -85,7 +70,7 @@ class FoodViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Food.objects.select_related("category").all()
-        restaurant = _resolve_restaurant(self.request)
+        restaurant = resolve_restaurant(self.request)
         if restaurant:
             qs = qs.filter(restaurant=restaurant)
         category = self.request.query_params.get("category")
@@ -111,7 +96,7 @@ class FoodViewSet(viewsets.ModelViewSet):
 # [COMMENTED] 
 # [COMMENTED]     def get_queryset(self):
 # [X] # [COMMENTED]         qs = Table.objects.all()
-# [COMMENTED]         restaurant = _resolve_restaurant(self.request)
+# [COMMENTED]         restaurant = resolve_restaurant(self.request)
 # [COMMENTED]         if restaurant:
 # [COMMENTED]             qs = qs.filter(restaurant=restaurant)
 # [COMMENTED]         return qs
@@ -123,7 +108,7 @@ class FoodViewSet(viewsets.ModelViewSet):
 # [COMMENTED] 
 # [COMMENTED]     def get_queryset(self):
 # [X] # [COMMENTED]         qs = Reservation.objects.all()
-# [COMMENTED]         restaurant = _resolve_restaurant(self.request)
+# [COMMENTED]         restaurant = resolve_restaurant(self.request)
 # [COMMENTED]         if restaurant:
 # [COMMENTED]             qs = qs.filter(restaurant=restaurant)
 # [COMMENTED]         return qs.order_by("-date", "-time")
@@ -140,7 +125,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = Order.objects.prefetch_related("items__food").all()
-        restaurant = _resolve_restaurant(self.request)
+        restaurant = resolve_restaurant(self.request)
         if restaurant:
             qs = qs.filter(restaurant=restaurant)
 
@@ -155,7 +140,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         return qs.order_by("-created_at")
 
     def create(self, request):
-        restaurant = _resolve_restaurant(request)
+        restaurant = resolve_restaurant(request)
         if not restaurant:
             return Response(
                 {"error": "Ø±Ø³ØªÙˆØ±Ø§Ù† Ù…Ø´Ø®Øµ Ù†Ø´Ø¯Ù‡."},
@@ -272,7 +257,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 # [COMMENTED] 
 # [COMMENTED]     def get_queryset(self):
 # [X] # [COMMENTED]         qs = SemiFinished.objects.all()
-# [COMMENTED]         restaurant = _resolve_restaurant(self.request)
+# [COMMENTED]         restaurant = resolve_restaurant(self.request)
 # [COMMENTED]         if restaurant:
 # [COMMENTED]             qs = qs.filter(restaurant=restaurant)
 # [COMMENTED]         return qs
@@ -285,7 +270,7 @@ class OrderViewSet(viewsets.ModelViewSet):
 # [COMMENTED]     def get_queryset(self):
 # [X] # [COMMENTED]         qs = ReadyMaterial.objects.select_related("supplier").all()
 # [COMMENTED] 
-# [COMMENTED]         restaurant = _resolve_restaurant(self.request)
+# [COMMENTED]         restaurant = resolve_restaurant(self.request)
 # [COMMENTED]         if restaurant:
 # [COMMENTED]             qs = qs.filter(restaurant=restaurant)
 # [COMMENTED] 

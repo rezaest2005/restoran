@@ -2,18 +2,7 @@ import { useState, useRef, useEffect, memo } from "react";
 import { Box, Chip } from "@mui/material";
 import { DragIndicator } from "@mui/icons-material";
 import CategoryDiscountButton from "./CategoryDiscountButton";
-
-// ★ استخراج توابع بیرون کامپوننت برای جلوگیری از ساخته شدن مجدد در هر رندر
-const isDiscountActive = (d) => {
-  if (!d || !d.amount || d.amount <= 0) return false;
-  if (!d.expiresAt) return true;
-  return Date.now() < d.expiresAt;
-};
-
-const formatDiscountLabel = (d) => {
-  if (!isDiscountActive(d)) return "";
-  return d.type === "percent" ? `%${d.amount}` : d.amount.toLocaleString();
-};
+import { isDiscountActive, formatDiscountLabel } from "../common/discount";
 
 // ★ تابع ساخت لیبل برای تمیزتر شدن JSX
 const getChipLabel = (cat, discount, isRtl) => {

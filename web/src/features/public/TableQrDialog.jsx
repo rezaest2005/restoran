@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Typography, Box, GlobalStyles } from "@mui/material";
 import { QRCodeSVG } from "qrcode.react";
 import { useTranslation } from "react-i18next";
+import useShortcuts from "@shared/common/useShortcuts";
+import KbdHint from "@restaurant/pos/common/KbdHint";
 
 /** Props: { open: boolean, onClose: () => void, slug: string } */
 export default function TableQrDialog({ open, onClose, slug }) {
@@ -9,6 +11,9 @@ export default function TableQrDialog({ open, onClose, slug }) {
   const [raw, setRaw] = useState("10");
   const n = Math.min(100, Math.max(1, parseInt(raw, 10) || 1));
   const tables = useMemo(() => Array.from({ length: n }, (_, i) => i + 1), [n]);
+  useShortcuts([
+    { combo: "Ctrl+D", label: t("ui_d.table_qr.print"), scope: "dialog", handler: () => window.print() },
+  ], { enabled: open });
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
   return (
@@ -46,7 +51,7 @@ export default function TableQrDialog({ open, onClose, slug }) {
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>{t("ui_d.table_qr.close")}</Button>
-        <Button variant="contained" onClick={() => window.print()}>{t("ui_d.table_qr.print")}</Button>
+        <Button variant="contained" onClick={() => window.print()}>{t("ui_d.table_qr.print")}<KbdHint>Ctrl+D</KbdHint></Button>
       </DialogActions>
     </Dialog>
   );

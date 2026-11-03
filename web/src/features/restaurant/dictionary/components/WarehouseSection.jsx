@@ -4,8 +4,9 @@ import {
   Box, Typography, Button, TextField, Chip, CircularProgress,
 } from "@mui/material";
 import { Delete, Edit, Warehouse } from "@mui/icons-material";
+import { makeScale, useRowCursor, cursorAttrs, cursorSx, cursorBindings, useRegisteredShortcuts, onEnter, KbdHint } from "../common";
 
-const F = (size) => Math.round(size * 1.15);
+const F = makeScale(1.15);
 const LS_KEY = "local_warehouses";
 
 const MOTHER_WAREHOUSE = {
@@ -139,24 +140,33 @@ export default function WarehouseSection({ C, isDark, showToast }) {
     notify(t("ui_b.common.deleted", { name: w.name }), "info");
   }, [notify, t]);
 
-  // ═══════════ کیبورد ═══════════
-  useEffect(() => {
-    const handler = (e) => {
-      const sf = showFormRef.current;
-      if (e.key === "F2") { e.preventDefault(); openCreate(); return; }
-      if (e.ctrlKey && !e.altKey && e.code === "KeyD" && sf) { e.preventDefault(); handleSave(); return; }
-      if (e.key === "Enter" && !e.ctrlKey && !e.altKey && sf) { e.preventDefault(); handleSave(); return; }
-      if (e.key === "Escape" && sf) { e.preventDefault(); closeForm(); return; }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [openCreate, handleSave, closeForm]);
-
   const filtered = useMemo(() => {
     if (!search.trim()) return subWarehouses;
     const q = search.toLowerCase();
     return subWarehouses.filter((w) => w.name?.toLowerCase().includes(q));
   }, [subWarehouses, search]);
+
+  // ═══════════ کیبورد: F2 جدید · Ctrl+D ذخیره · Enter ذخیره/ویرایش · Escape بستن · Ctrl+A/Z ردیف ═══════════
+  const cursor = useRowCursor(filtered.length);
+  useRegisteredShortcuts([
+    { combo: "F2", label: t("shortcuts.new"), handler: openCreate },
+    { combo: "Ctrl+D", label: t("shortcuts.save"), handler: handleSave, when: showForm },
+    {
+      combo: "Enter", label: showForm ? t("shortcuts.confirm") : t("ui_h.edit_selected"), allowInInput: true,
+      handler: onEnter(() => {
+        if (showForm) { handleSave(); return; }
+        const r = filtered[cursor.index];
+        if (!r) return false;
+        openEdit(r);
+      }),
+    },
+    { combo: "Escape", label: t("shortcuts.close_dialog"), handler: closeForm, when: showForm },
+    ...cursorBindings(t, cursor, { when: !showForm }),
+    {
+      combo: "Delete", label: t("ui_h.delete_selected"),
+      handler: () => { const r = filtered[cursor.index]; if (!r) return false; handleDelete(r); },
+    },
+  ]);
 
   // ── استایل‌ها ──
   const inputSx = {
@@ -212,7 +222,7 @@ export default function WarehouseSection({ C, isDark, showToast }) {
           </Typography>
         </Box>
         <Button onClick={openCreate} sx={btnSx}>
-          ➕ {t("ui_b.warehouse.newBtn")}
+          ➕ {t("ui_b.warehouse.newBtn")}<KbdHint>F2</KbdHint>
         </Button>
       </Box>
 
@@ -264,6 +274,7 @@ export default function WarehouseSection({ C, isDark, showToast }) {
             <Box sx={{ display: "flex", gap: 0.5, pb: 0.1 }}>
               <Button onClick={handleSave} disabled={saving} sx={{ ...btnSx, minWidth: 110 }}>
                 {saving ? `⏳ ${t("ui_b.warehouse.saving")}` : editId ? `💾 ${t("ui_b.common.update")}` : `➕ ${t("ui_b.common.add")}`}
+                {!saving && <KbdHint>Ctrl+D</KbdHint>}
               </Button>
               {editId && <Button onClick={closeForm} sx={cancelBtnSx}>{t("ui_b.common.cancel")}</Button>}
             </Box>
@@ -338,7 +349,8 @@ export default function WarehouseSection({ C, isDark, showToast }) {
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.8, pr: { sm: 3 } }}>
           {filtered.map((w, i) => (
-            <Box key={w.id} sx={{
+            <Box key={w.id} {...cursorAttrs(cursor.isActive(i))} sx={{
+              ...cursorSx(C, cursor.isActive(i)),
               display: "flex", alignItems: "center",
               px: { xs: 1.5, sm: 2 }, py: { xs: 1, sm: 1.2 }, borderRadius: "12px",
               bgcolor: C.glass, backdropFilter: "blur(12px)",

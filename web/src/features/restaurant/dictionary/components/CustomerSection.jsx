@@ -4,14 +4,7 @@ import {
   Box, Typography, Button, TextField, Chip, CircularProgress,
   Dialog, DialogTitle, DialogContent, DialogActions,
 } from "@mui/material";
-
-const readJSON = (key, def = []) => {
-  try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(def)); }
-  catch { return def; }
-};
-const writeJSON = (key, val) => {
-  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
-};
+import { readJSON, writeJSON, buildPlainInputSx, useRowCursor, cursorAttrs, cursorSx, cursorBindings, useRegisteredShortcuts, dialogBindings, onEnter, KbdHint } from "../common";
 
 export default function CustomerSection({ C, isDark, showToast }) {
   const { t } = useTranslation();
@@ -157,21 +150,27 @@ export default function CustomerSection({ C, isDark, showToast }) {
     load();
   }, [notify, load, t]);
 
-  // ── استایل ──
-  const inputSx = {
-    "& .MuiOutlinedInput-root": {
-      borderRadius: "12px", bgcolor: C.inputBg,
-      fontSize: 13, fontFamily: "'Vazirmatn', sans-serif", color: C.text,
-      transition: "all 0.25s ease",
-      "& fieldset": { borderColor: C.glassBorder },
-      "&:hover fieldset": { borderColor: C.olive + "60" },
-      "&.Mui-focused fieldset": { borderColor: C.olive, borderWidth: 1.5 },
-      "&.Mui-focused": { boxShadow: `0 0 0 3px ${C.olive}18` },
+  // ── میان‌برها: F2 جدید · Ctrl+A/Z ردیف بعدی/قبلی · Enter ویرایش · Delete حذف ──
+  const cursor = useRowCursor(filtered.length);
+  useRegisteredShortcuts([
+    { combo: "F2", label: t("shortcuts.new"), handler: openCreate },
+    ...cursorBindings(t, cursor),
+    {
+      combo: "Enter", label: t("ui_h.edit_selected"),
+      handler: onEnter(() => { const r = filtered[cursor.index]; if (!r) return false; openEdit(r); }),
     },
-    "& .MuiInputLabel-root": { fontSize: 12, color: C.sub },
-    "& .MuiInputBase-input": { color: C.text },
-    "& .MuiInputBase-input::placeholder": { color: C.muted, opacity: 1 },
-  };
+    {
+      combo: "Delete", label: t("ui_h.delete_selected"),
+      handler: () => { const r = filtered[cursor.index]; if (!r) return false; handleDelete(r); },
+    },
+  ]);
+  useRegisteredShortcuts(
+    dialogBindings(t, { onConfirm: () => !saving && handleSave(), onClose: () => setFormOpen(false) }),
+    { enabled: formOpen },
+  );
+
+  // ── استایل ──
+  const inputSx = buildPlainInputSx(C);
 
   if (loading) {
     return (
@@ -202,7 +201,7 @@ export default function CustomerSection({ C, isDark, showToast }) {
           boxShadow: `0 4px 20px ${C.olive}30`,
           "&:hover": { transform: "translateY(-1px)" },
         }}>
-          ➕ {t("ui_b.customer.newBtn")}
+          ➕ {t("ui_b.customer.newBtn")}<KbdHint>F2</KbdHint>
         </Button>
       </Box>
 
@@ -228,7 +227,8 @@ export default function CustomerSection({ C, isDark, showToast }) {
             const stats = getCustomerStats(c.phone, c.name);
             const debt = stats.debt || c.total_debt || 0;
             return (
-              <Box key={c.id} sx={{
+              <Box key={c.id} {...cursorAttrs(cursor.isActive(i))} sx={{
+                ...cursorSx(C, cursor.isActive(i)),
                 display: "flex", alignItems: "center", flexWrap: "wrap", gap: 1,
                 px: 2, py: 1.5, borderRadius: "12px",
                 bgcolor: C.glass, backdropFilter: "blur(12px)",
@@ -345,6 +345,7 @@ export default function CustomerSection({ C, isDark, showToast }) {
               px: 2.5, color: "#fff", background: C.btnGrad, opacity: saving ? 0.6 : 1,
             }}>
             {saving ? "..." : editCustomer ? t("ui_b.common.update") : t("ui_b.common.create")}
+            {!saving && <KbdHint>Ctrl+D</KbdHint>}
           </Button>
         </DialogActions>
       </Dialog>

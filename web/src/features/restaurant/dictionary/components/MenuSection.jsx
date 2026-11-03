@@ -7,6 +7,7 @@ import {
 } from "@mui/material";
 import { fetchFoods, createFood, updateFood, deleteFood } from "../api";
 import MenuForm from "./MenuForm";
+import { buildInputSx, useRowCursor, cursorAttrs, cursorSx, cursorBindings, useRegisteredShortcuts, onEnter, KbdHint } from "../common";
 
 export default function MenuSection({ C, isRtl, isDark, showToast }) {
   const { t } = useTranslation();
@@ -87,24 +88,28 @@ export default function MenuSection({ C, isRtl, isDark, showToast }) {
     }
   };
 
-  const inputSx = {
-    "& .MuiOutlinedInput-root": {
-      borderRadius: "12px",
-      bgcolor: C.inputBg,
-      backdropFilter: "blur(8px)",
-      fontSize: 13,
-      fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
-      color: C.text,
-      transition: "all 0.25s ease",
-      "& fieldset": { borderColor: C.glassBorder },
-      "&:hover fieldset": { borderColor: C.olive + "60" },
-      "&.Mui-focused fieldset": { borderColor: C.olive, borderWidth: 1.5 },
-      "&.Mui-focused": { boxShadow: `0 0 0 3px ${C.olive}18` },
+  const inputSx = buildInputSx(C);
+
+  // ── میان‌برها: F2 جدید · Ctrl+A/Z ردیف بعدی/قبلی · Enter ویرایش · Delete حذف ──
+  // (فرم منو Dialog استاندارد MUI نیست؛ پس با when از فعال‌بودن همزمان جلوگیری می‌شود)
+  const openNew = () => { setEditItem(null); setFormOpen(true); };
+  const cursor = useRowCursor(filtered.length);
+  useRegisteredShortcuts([
+    { combo: "F2", label: t("shortcuts.new"), handler: openNew, when: !formOpen },
+    ...cursorBindings(t, cursor, { when: !formOpen }),
+    {
+      combo: "Enter", label: t("ui_h.edit_selected"), when: !formOpen,
+      handler: onEnter(() => {
+        const r = filtered[cursor.index];
+        if (!r) return false;
+        setEditItem(r); setFormOpen(true);
+      }),
     },
-    "& .MuiInputLabel-root": { fontSize: 12, color: C.sub },
-    "& .MuiInputBase-input": { color: C.text },
-    "& .MuiInputBase-input::placeholder": { color: C.muted, opacity: 1 },
-  };
+    {
+      combo: "Delete", label: t("ui_h.delete_selected"), when: !formOpen,
+      handler: () => { const r = filtered[cursor.index]; if (!r) return false; handleDelete(r); },
+    },
+  ]);
 
   if (loading) {
     return (
@@ -129,7 +134,7 @@ export default function MenuSection({ C, isRtl, isDark, showToast }) {
           </Typography>
         </Box>
         <Button
-          onClick={() => { setEditItem(null); setFormOpen(true); }}
+          onClick={openNew}
           sx={{
             borderRadius: "12px", fontSize: 12, fontWeight: 700,
             textTransform: "none", px: 2.5, py: 1, color: "#fff",
@@ -140,7 +145,7 @@ export default function MenuSection({ C, isRtl, isDark, showToast }) {
             "&:active": { transform: "scale(0.985)" },
           }}
         >
-          ➕ {t("dict.add_food")}
+          ➕ {t("dict.add_food")}<KbdHint>F2</KbdHint>
         </Button>
       </Box>
 
@@ -232,7 +237,8 @@ export default function MenuSection({ C, isRtl, isDark, showToast }) {
           </Box>
 
           {filtered.map((food, i) => (
-            <Box key={food.id} sx={{
+            <Box key={food.id} {...cursorAttrs(cursor.isActive(i))} sx={{
+              ...cursorSx(C, cursor.isActive(i)),
               display: "flex", alignItems: "center",
               px: { xs: 1.5, sm: 2 }, py: { xs: 1, sm: 1.5 },
               borderRadius: "12px",

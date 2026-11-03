@@ -11,7 +11,6 @@
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 
 from ..club_services import (
@@ -22,23 +21,16 @@ from ..club_services import (
     redeem_points,
     tier_for,
 )
-from ..middleware import TenantJWTAuthentication
 from ..models import LoyaltyMember
-from ..tenancy import set_current_restaurant
 from ..utils import api_error, api_success
-from .decorators import make_service_permission
+from .common import (
+    CashierPerm,
+    ClubPerm,
+    StaffAuth,
+    staff_restaurant,
+)
 
-StaffAuth = [SessionAuthentication, TenantJWTAuthentication]
-ClubPerm = make_service_permission("club")
-CashierPerm = make_service_permission("club", "pos")
 LIMIT = 200
-
-
-def _restaurant(request):
-    r = getattr(request.user, "restaurant", None)
-    if r is not None:
-        set_current_restaurant(r)
-    return r
 
 
 def _settings_data(cfg):
@@ -77,7 +69,7 @@ def _int_field(data, key, minimum=0, maximum=10**9):
 @authentication_classes(StaffAuth)
 @permission_classes([ClubPerm])
 def club_settings(request):
-    restaurant = _restaurant(request)
+    restaurant = staff_restaurant(request)
     if restaurant is None:
         return api_error("کسب‌وکاری برای این کاربر تعریف نشده است.")
     cfg = get_settings(restaurant)
@@ -112,7 +104,7 @@ def club_settings(request):
 @authentication_classes(StaffAuth)
 @permission_classes([ClubPerm])
 def club_members(request):
-    restaurant = _restaurant(request)
+    restaurant = staff_restaurant(request)
     if restaurant is None:
         return api_error("کسب‌وکاری برای این کاربر تعریف نشده است.")
     cfg = get_settings(restaurant)
@@ -142,7 +134,7 @@ def club_members(request):
 @authentication_classes(StaffAuth)
 @permission_classes([ClubPerm])
 def club_member_detail(request, pk):
-    restaurant = _restaurant(request)
+    restaurant = staff_restaurant(request)
     if restaurant is None:
         return api_error("کسب‌وکاری برای این کاربر تعریف نشده است.")
     m = get_object_or_404(LoyaltyMember.objects.filter(restaurant=restaurant), pk=pk)
@@ -163,7 +155,7 @@ def club_member_detail(request, pk):
 @authentication_classes(StaffAuth)
 @permission_classes([ClubPerm])
 def club_member_adjust(request, pk):
-    restaurant = _restaurant(request)
+    restaurant = staff_restaurant(request)
     if restaurant is None:
         return api_error("کسب‌وکاری برای این کاربر تعریف نشده است.")
     m = get_object_or_404(LoyaltyMember.objects.filter(restaurant=restaurant), pk=pk)
@@ -180,7 +172,7 @@ def club_member_adjust(request, pk):
 @authentication_classes(StaffAuth)
 @permission_classes([CashierPerm])
 def club_lookup(request):
-    restaurant = _restaurant(request)
+    restaurant = staff_restaurant(request)
     if restaurant is None:
         return api_error("کسب‌وکاری برای این کاربر تعریف نشده است.")
     cfg = get_settings(restaurant)
@@ -200,7 +192,7 @@ def club_lookup(request):
 @authentication_classes(StaffAuth)
 @permission_classes([CashierPerm])
 def club_redeem(request):
-    restaurant = _restaurant(request)
+    restaurant = staff_restaurant(request)
     if restaurant is None:
         return api_error("کسب‌وکاری برای این کاربر تعریف نشده است.")
     try:

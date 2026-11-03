@@ -23,6 +23,8 @@ import {
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import { authApi } from "@restaurant/api/auth";
+import useShortcuts from "@shared/common/useShortcuts";
+import KbdHint from "@restaurant/pos/common/KbdHint";
 import { buildColors } from "@shared/palette";
 
 const animations = `
@@ -86,6 +88,11 @@ export default function Login() {
     const u = searchParams.get("username");
     if (u) setUsername(u);
   }, [searchParams]);
+
+  // Enter داخل فرم ارسال می‌کند؛ Ctrl+D هم از هر فیلدی ورود را اجرا می‌کند
+  useShortcuts([
+    { combo: "Ctrl+D", label: t("ui_g.auth.submit"), handler: () => { if (!loading) handleSubmit({ preventDefault() {} }); } },
+  ]);
 
       const handleSubmit = async (e) => {
     e.preventDefault();
@@ -862,7 +869,10 @@ export default function Login() {
                       sx={{ color: "rgba(255,255,255,0.85)" }}
                     />
                   ) : (
-                    t("login.submit")
+                    <>
+                      {t("login.submit")}
+                      <KbdHint>Ctrl+D</KbdHint>
+                    </>
                   )}
                 </Button>
               </Box>

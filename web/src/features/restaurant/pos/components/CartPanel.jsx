@@ -3,6 +3,7 @@ import { ShoppingBag, ShoppingBagOutlined, CreditCard, Storefront, DeliveryDinin
 import CartItem from "./CartItem";
 import CustomerInfo from "./CustomerInfo";
 import OrderTypeSelector from "./OrderTypeSelector";
+import { KbdHint, formatMoney } from "../common";
 
 export default function CartPanel({
   cart, cartCount, cartTotal,
@@ -109,7 +110,7 @@ export default function CartPanel({
               fontWeight: 800, color: C.olive, fontSize: 18,
               fontFamily: "'Vazirmatn', sans-serif",
             }}>
-              {cartTotal.toLocaleString()}
+              {formatMoney(cartTotal)}
             </Typography>
             <Typography sx={{
               fontWeight: 600, color: C.muted, fontSize: 11,
@@ -147,6 +148,7 @@ export default function CartPanel({
             ? (isRtl ? "در حال پرداخت..." : "Processing...")
             : (isRtl ? "پرداخت" : "Checkout")
           }
+          {!submitting && <KbdHint>Ctrl+D</KbdHint>}
         </Button>
       </Box>
     </Box>

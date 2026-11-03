@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box, Typography, Button, TextField, Chip, CircularProgress,
   Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions,
@@ -6,59 +7,9 @@ import {
 } from "@mui/material";
 import { Add, Delete, Close, Receipt, Visibility } from "@mui/icons-material";
 import { getUnitLabel } from "../../../../shared/common/units";
+import { readJSON, writeJSON, getCurrentUser, now, faDate, faTime, faDay, whIcon, calcStock, makeScale, useRowCursor, cursorAttrs, cursorSx, cursorBindings, useRegisteredShortcuts, onEnter, KbdHint } from "../common";
 
-const F = (size) => Math.round(size * 1.1);
-
-const readJSON = (key, def = []) => {
-  try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(def)); }
-  catch { return def; }
-};
-const writeJSON = (key, val) => {
-  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
-};
-
-const getCurrentUser = () => {
-  try {
-    const u = JSON.parse(localStorage.getItem("user") || "{}");
-    return u.username || u.full_name || "نامشخص";
-  } catch { return "نامشخص"; }
-};
-
-const now = () => new Date();
-const faDate = (d) => { try { return d.toLocaleDateString("fa-IR"); } catch { return d.toISOString().slice(0, 10); } };
-const faTime = (d) => { try { return d.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" }); } catch { return d.toTimeString().slice(0, 5); } };
-const faDay = (d) => { try { return d.toLocaleDateString("fa-IR", { weekday: "long" }); } catch { return ""; } };
-
-const whIcon = (w) => { if (!w) return "📦"; return w.icon || "📦"; };
-
-const calcStock = (warehouseId) => {
-  const invoices = readJSON("local_purchase_invoices", []);
-  const salesInvoices = readJSON("local_sales_invoices", []);
-  const transfers = readJSON("local_transfers", []);
-  const stock = {};
-  const getKey = (it) => it.material_code || it.material_name;
-  const addStock = (key, data, qty) => {
-    if (!stock[key]) stock[key] = { qty: 0, unit: data.unit, code: data.code, category: data.category, price: data.price || 0, name: data.name };
-    stock[key].qty += qty;
-    if (data.price) stock[key].price = data.price;
-  };
-  for (const inv of invoices) {
-    if (String(inv.warehouse_id) !== String(warehouseId)) continue;
-    for (const it of inv.items) addStock(getKey(it), { unit: it.unit, code: it.material_code, category: it.category, price: it.unit_price, name: it.material_name }, it.quantity);
-  }
-  for (const inv of salesInvoices) {
-    if (String(inv.warehouse_id) !== String(warehouseId)) continue;
-    for (const it of inv.items) addStock(getKey(it), { unit: it.unit, code: it.material_code, category: it.category, price: it.unit_price, name: it.material_name }, -it.quantity);
-  }
-  for (const tr of transfers) {
-    for (const it of tr.items) {
-      const base = { unit: it.unit, code: it.material_code, category: it.category || "", price: it.price, name: it.material_name };
-      if (String(tr.from_warehouse) === String(warehouseId)) addStock(getKey(it), base, -it.quantity);
-      if (String(tr.to_warehouse) === String(warehouseId)) addStock(getKey(it), base, it.quantity);
-    }
-  }
-  return Object.values(stock).filter((s) => s.qty !== 0);
-};
+const F = makeScale(1.1);
 
 const PAYMENTS = {
   cash: { label: "نقد", color: "#2E7D32", icon: "💵" },
@@ -68,6 +19,7 @@ const PAYMENTS = {
 
 // ═══════════ کامپوننت ═══════════
 export default function SalesInvoiceTab({ C, isDark, showToast }) {
+  const { t } = useTranslation();
   const [invoices, setInvoices] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [materials, setMaterials] = useState([]);
@@ -87,7 +39,6 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
   };
   const [form, setForm] = useState(emptyForm);
   const formRef = useRef(form); formRef.current = form;
-  const dialogOpenRef = useRef(dialogOpen); dialogOpenRef.current = dialogOpen;
   const materialsRef = useRef([]);
 
   const notify = useCallback((msg, type = "info") => {
@@ -253,26 +204,6 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notify, closeDialog]);
 
-  // ── کیبورد ──
-  useEffect(() => {
-    const handler = (e) => {
-      const to = dialogOpenRef.current;
-      const isCtrl = e.ctrlKey && !e.altKey;
-      if (e.key === "F3" && !to) { e.preventDefault(); openNew(); return; }
-      if (!to) return;
-      if (e.key === "Escape") { e.preventDefault(); closeDialog(); return; }
-      if (isCtrl && e.code === "KeyD") { e.preventDefault(); handleSave(); return; }
-      if (isCtrl && e.code === "KeyN") { e.preventDefault(); addItem(); return; }
-      if (isCtrl && e.code === "KeyZ") { e.preventDefault(); removeLastItem(); return; }
-      if (e.key === "Enter" && !isCtrl && !e.altKey) {
-        const tag = e.target.tagName;
-        if (tag === "INPUT" || tag === "TEXTAREA") { e.preventDefault(); addItem(); }
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [openNew, closeDialog, handleSave, addItem, removeLastItem]);
-
   // ── فیلتر ──
   const filteredInvoices = useMemo(() => {
     if (!search.trim()) return invoices;
@@ -284,6 +215,43 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
       inv.customer?.mobile?.includes(q)
     );
   }, [invoices, search]);
+
+  // ── میان‌برها ──
+  // صفحه: F2 فاکتور جدید · Ctrl+A/Z ردیف بعدی/قبلی · Enter جزئیات
+  // دیالوگ فاکتور: Ctrl+D ثبت · Escape بستن · F3 قلم جدید · Enter (در فیلد) قلم جدید · Ctrl+Backspace حذف آخرین قلم
+  const cursor = useRowCursor(filteredInvoices.length);
+  useRegisteredShortcuts([
+    { combo: "F2", label: t("shortcuts.new"), handler: openNew },
+    ...cursorBindings(t, cursor),
+    {
+      combo: "Enter", label: t("ui_h.show_details"),
+      handler: onEnter(() => { const r = filteredInvoices[cursor.index]; if (!r) return false; openDetail(r); }),
+    },
+  ]);
+  useRegisteredShortcuts(
+    [
+      { combo: "Ctrl+D", label: t("shortcuts.save"), handler: handleSave, scope: "dialog" },
+      { combo: "Escape", label: t("shortcuts.close_dialog"), handler: closeDialog, scope: "dialog" },
+      { combo: "F3", label: t("ui_h.new_line"), handler: addItem, scope: "dialog" },
+      { combo: "Ctrl+Backspace", label: t("ui_h.remove_last_line"), handler: removeLastItem, scope: "dialog" },
+      {
+        combo: "Enter", label: t("ui_h.new_line"), scope: "dialog", allowInInput: true,
+        handler: (e) => {
+          const tag = e.target.tagName;
+          if (tag !== "INPUT" && tag !== "TEXTAREA") return false;
+          addItem();
+        },
+      },
+    ],
+    { enabled: dialogOpen },
+  );
+  useRegisteredShortcuts(
+    [
+      { combo: "Enter", label: t("shortcuts.close_dialog"), handler: onEnter(() => setDetailOpen(false)), scope: "dialog", allowInInput: true },
+      { combo: "Escape", label: t("shortcuts.close_dialog"), handler: () => setDetailOpen(false), scope: "dialog" },
+    ],
+    { enabled: detailOpen && !dialogOpen },
+  );
 
   // ── استایل‌ها ──
   const inputSx = {
@@ -331,7 +299,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
         <Box>
           <Typography sx={{ fontSize: F(15), fontWeight: 800, color: C.text }}>🧾 فاکتورهای فروش</Typography>
           <Typography sx={{ fontSize: F(10), color: C.sub, mt: 0.2 }}>
-            ثبت فروش + اطلاعات مشتری + پرداخت | F3 = فاکتور جدید
+            ثبت فروش + اطلاعات مشتری + پرداخت | F2 = فاکتور جدید
           </Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>
@@ -344,7 +312,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
             boxShadow: `0 2px 12px ${C.olive}25`,
             "&:hover": { transform: "translateY(-1px)" },
           }}>
-            + فاکتور جدید (F3)
+            + فاکتور جدید<KbdHint>F2</KbdHint>
           </Button>
         </Box>
       </Box>
@@ -368,7 +336,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
         <Box sx={{ textAlign: "center", py: 5 }}>
           <Typography sx={{ fontSize: 32, mb: 0.5 }}>🧾</Typography>
           <Typography sx={{ fontSize: F(13), fontWeight: 700, color: C.text }}>فاکتوری ثبت نشده</Typography>
-          <Typography sx={{ fontSize: F(10), color: C.sub, mt: 0.3 }}>F3 بزنید یا دکمه «فاکتور جدید»</Typography>
+          <Typography sx={{ fontSize: F(10), color: C.sub, mt: 0.3 }}>F2 بزنید یا دکمه «فاکتور جدید»</Typography>
         </Box>
       ) : (
         <Box>
@@ -386,7 +354,8 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
           {filteredInvoices.map((inv, i) => {
             const pay = PAYMENTS[inv.payment_method] || PAYMENTS.cash;
             return (
-              <Box key={inv.id} sx={{
+              <Box key={inv.id} {...cursorAttrs(cursor.isActive(i))} sx={{
+                ...cursorSx(C, cursor.isActive(i)),
                 display: "grid", gridTemplateColumns: "80px 1.2fr 100px 80px 100px 110px 90px 80px 60px",
                 gap: 1, px: 1.5, py: 1, borderRadius: "10px", mt: 0.5,
                 bgcolor: C.glass, border: `1px solid ${C.glassBorder}`,
@@ -631,7 +600,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
             fontWeight: 800, fontSize: 14, textTransform: "none", py: 1,
             "&:hover": { bgcolor: C.oliveSubtle, border: `2px solid ${C.olive}` },
           }}>
-            افزودن قلم (Enter / Ctrl+N)
+            افزودن قلم (Enter / F3)
           </Button>
 
           <Divider sx={{ mb: 2, borderColor: C.olive + "25" }} />
@@ -716,7 +685,8 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
             {[
               { key: "Ctrl+D", label: "ثبت", color: "#2E7D32" },
               { key: "Enter", label: "قلم جدید", color: "#1565C0" },
-              { key: "Ctrl+Z", label: "حذف قلم", color: "#C62828" },
+              { key: "F3", label: "قلم جدید", color: "#1565C0" },
+              { key: "Ctrl+⌫", label: "حذف قلم", color: "#C62828" },
               { key: "Esc", label: "بستن", color: "#E65100" },
             ].map((item) => (
               <Box key={item.key} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>

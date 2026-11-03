@@ -7,8 +7,11 @@ import { VolumeUp, VolumeOff, Print, TableRestaurant, Public } from "@mui/icons-
 import { useTranslation } from "react-i18next";
 import { setOrderStatus, rejectOnlineOrder } from "../api";
 import { printTicket } from "../services/printService";
+import useShortcuts from "@shared/common/useShortcuts";
+import { FONT } from "../common/constants";
+import KbdHint from "../common/KbdHint";
+import { formatMoney } from "../common/format";
 
-const FONT = "'Vazirmatn', sans-serif";
 const MAX_ACCEPTED = 20;
 
 function relTime(order, t) {
@@ -29,6 +32,17 @@ export default function IncomingOrders({
   const [busy, setBusy] = useState({});
   const [errors, setErrors] = useState({});
   const [confirmId, setConfirmId] = useState(null);
+  const [focusId, setFocusId] = useState(null);
+
+  // سفارش هدفِ میان‌برها: سفارش فوکوس‌شده، وگرنه اولین سفارش در انتظار
+  const targetOrder = orders.find((o) => o.id === focusId) || orders[0] || null;
+  const moveFocus = (dir) => {
+    if (orders.length === 0) return;
+    const i = orders.findIndex((o) => o.id === targetOrder?.id);
+    const next = focusId == null ? (dir > 0 ? 0 : orders.length - 1)
+      : Math.min(Math.max(i + dir, 0), orders.length - 1);
+    setFocusId(orders[next].id);
+  };
 
   const printOpts = {
     lang, isRtl, t,
@@ -65,13 +79,34 @@ export default function IncomingOrders({
 
   const reject = (order) => run(order, () => rejectOnlineOrder(order.id), "ui_f.incoming.rejected_ok");
 
+  const confirmReject = () => {
+    const o = orders.find((x) => x.id === confirmId);
+    setConfirmId(null);
+    if (o) reject(o);
+  };
+
+  useShortcuts([
+    { combo: "Ctrl+D", label: t("ui_g.pos.accept_first"), when: !!targetOrder && !busy[targetOrder.id],
+      handler: () => accept(targetOrder) },
+    { combo: "Ctrl+A", label: t("ui_g.pos.next_order"), handler: () => moveFocus(1) },
+    { combo: "Ctrl+Z", label: t("ui_g.pos.prev_order"), handler: () => moveFocus(-1) },
+    { combo: "Delete", label: t("ui_g.pos.reject_focused"), when: !!targetOrder && !busy[targetOrder.id],
+      handler: () => setConfirmId(targetOrder.id) },
+  ]);
+
+  useShortcuts([
+    { combo: "Enter", label: t("ui_g.pos.confirm_reject"), scope: "dialog", handler: confirmReject },
+    { combo: "Ctrl+D", label: t("ui_g.pos.confirm_reject"), scope: "dialog", handler: confirmReject },
+  ], { enabled: confirmId !== null });
+
   const btnBase = { minHeight: 44, fontFamily: FONT, fontWeight: 800, borderRadius: "12px", flex: 1 };
 
   const renderCard = (o, isAccepted) => {
     const isQr = o.source === "qr";
     const pending = !!busy[o.id];
     return (
-      <Box key={o.id} sx={{ ...glassCardSx, p: 2, display: "flex", flexDirection: "column", gap: 1.2 }}>
+      <Box key={o.id} sx={{ ...glassCardSx, p: 2, display: "flex", flexDirection: "column", gap: 1.2,
+        ...(!isAccepted && focusId === o.id ? { outline: `2px solid ${C.olive}`, outlineOffset: 2 } : null) }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
           <Chip
             size="small" icon={isQr ? <TableRestaurant /> : <Public />}
@@ -109,13 +144,13 @@ export default function IncomingOrders({
                 {it.quantity} × {isRtl ? it.food_name : (it.name_en || it.food_name)}
               </span>
               <span style={{ whiteSpace: "nowrap", color: C.sub }}>
-                {Number(it.price || 0).toLocaleString()} → {(Number(it.price || 0) * Number(it.quantity || 0)).toLocaleString()}
+                {formatMoney(it.price)} → {formatMoney(Number(it.price || 0) * Number(it.quantity || 0))}
               </span>
             </Box>
           ))}
           <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.8, fontWeight: 900, fontFamily: FONT, color: C.olive }}>
             <span>{t("ui_f.incoming.total")}</span>
-            <span>{Number(o.total_price || 0).toLocaleString()} {t("ui_f.incoming.currency")}</span>
+            <span>{formatMoney(o.total_price)} {t("ui_f.incoming.currency")}</span>
           </Box>
         </Box>
 
@@ -132,6 +167,7 @@ export default function IncomingOrders({
               <Button variant="contained" disabled={pending} onClick={() => accept(o)}
                 sx={{ ...btnBase, bgcolor: C.olive, color: "#fff", "&:hover": { bgcolor: C.olive } }}>
                 {t("ui_f.incoming.accept")}
+                {targetOrder?.id === o.id && !pending && <KbdHint>Ctrl+D</KbdHint>}
               </Button>
               <Button variant="outlined" disabled={pending} onClick={() => setConfirmId(o.id)}
                 sx={{ ...btnBase, color: C.burgundy, borderColor: C.burgundy }}>
@@ -145,7 +181,6 @@ export default function IncomingOrders({
   };
 
   const grid = { display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(auto-fill, minmax(320px, 1fr))" }, gap: 1.5 };
-  const confirmOrder = orders.find((o) => o.id === confirmId);
 
   return (
     <Box sx={{ p: { xs: 1, sm: 2 }, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 1.5 }}>
@@ -194,8 +229,9 @@ export default function IncomingOrders({
             {t("ui_f.incoming.cancel")}
           </Button>
           <Button color="error" variant="contained" sx={{ minHeight: 40, fontFamily: FONT }}
-            onClick={() => { const o = confirmOrder; setConfirmId(null); if (o) reject(o); }}>
+            onClick={confirmReject}>
             {t("ui_f.incoming.confirm_reject")}
+            <KbdHint>Enter</KbdHint>
           </Button>
         </DialogActions>
       </Dialog>

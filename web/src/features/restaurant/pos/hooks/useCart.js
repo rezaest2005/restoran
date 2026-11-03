@@ -1,20 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 
-// ★ بررسی فعال بودن تخفیف (منقضی نشده باشه)
-const isDiscountActive = (discount) => {
-  if (!discount || !discount.amount || discount.amount <= 0) return false;
-  if (!discount.expiresAt) return true;
-  return Date.now() < discount.expiresAt;
-};
-
-// ★ محاسبه‌ی مقدار تخفیف بر اساس نوعش (مبلغ ثابت یا درصد)
-const computeDiscountAmount = (basePrice, discount) => {
-  if (!isDiscountActive(discount)) return 0;
-  if (discount.type === "percent") {
-    return (basePrice * discount.amount) / 100;
-  }
-  return discount.amount;
-};
+import { isDiscountActive, computeDiscountAmount } from "../common/discount";
 
 // ★ بارگذاری تخفیف‌ها از localStorage + حذف منقضی‌شده‌ها
 const loadDiscounts = () => {

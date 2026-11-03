@@ -4,13 +4,22 @@ import {
   TableContainer, TableHead, TableRow, Chip, Button, IconButton,
 } from "@mui/material";
 import { Print, Edit, Delete, Close } from "@mui/icons-material";
+import { useTranslation } from "react-i18next";
+import useShortcuts from "@shared/common/useShortcuts";
+import { groupDigits } from "../common/format";
 
 export default function OrderDetailDialog({
   open, onClose, order, C, isRtl,
 }) {
+  const { t } = useTranslation();
+  useShortcuts([
+    { combo: "Ctrl+D", label: t("ui_g.pos.print_receipt"), scope: "dialog", handler: () => window.print() },
+    { combo: "Enter", label: t("shortcuts.close_dialog"), scope: "dialog", handler: (e) => (e?.target?.tagName === "BUTTON" ? false : onClose()) },
+  ], { enabled: open && !!order });
+
   if (!order) return null;
 
-  const formatNum = (n) => String(n || 0).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const formatNum = groupDigits;
 
   const handlePrint = () => { window.print(); };
   const handleEdit = () => { /* TODO */ };

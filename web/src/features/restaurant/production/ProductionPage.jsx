@@ -9,64 +9,17 @@ import {
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import { buildColors } from "@shared/palette";
+import useShortcuts from "@shared/common/useShortcuts";
+import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
+import KbdHint from "@restaurant/pos/common/KbdHint";
+import {
+  num, fmt, fmtDate, STATUSES, newKey, useStyles, TableWrap, ConfirmDialog, enterIsNative,
+} from "./common";
 import {
   fetchMaterials, fetchFormulas, fetchFormula, createFormula, updateFormula, deleteFormula,
   fetchOrders, fetchOrder, createOrder, startOrder, completeOrder, cancelOrder,
   errMsg,
 } from "./api";
-
-/* ───────── helpers ───────── */
-const num = (v) => {
-  const n = parseFloat(String(v ?? "").replace(/,/g, ""));
-  return Number.isFinite(n) ? n : NaN;
-};
-const fmt = (v) =>
-  Number.isFinite(Number(v))
-    ? Number(v).toLocaleString("en-US", { maximumFractionDigits: 3 })
-    : "—";
-const fmtDate = (v, lang) => {
-  if (!v) return "—";
-  try {
-    return new Date(v).toLocaleString(lang === "fa" ? "fa-IR" : "en-GB", {
-      dateStyle: "short", timeStyle: "short",
-    });
-  } catch { return "—"; }
-};
-const STATUSES = ["planned", "in_progress", "completed", "cancelled"];
-let keySeq = 0;
-const newKey = () => `l${++keySeq}`;
-
-/* ───────── shared styles ───────── */
-function useStyles(C) {
-  return useMemo(() => ({
-    card: {
-      bgcolor: C.glass, backdropFilter: "blur(16px)",
-      border: `1px solid ${C.glassBorder}`, borderRadius: 3,
-      boxShadow: C.cardShadow, p: { xs: 1.5, sm: 2.5 },
-    },
-    btn: {
-      background: C.btnGrad, color: C.onPrimary, fontWeight: 700,
-      borderRadius: 2, textTransform: "none", px: 2.5,
-      "&:hover": { background: C.btnGrad, opacity: 0.92 },
-      "&.Mui-disabled": { opacity: 0.5, color: C.onPrimary },
-    },
-    ghost: {
-      color: C.sub, borderColor: C.glassBorder, borderRadius: 2,
-      textTransform: "none",
-    },
-    th: { color: C.sub, fontWeight: 700, fontSize: 12, whiteSpace: "nowrap", borderColor: C.divider, textAlign: "start" },
-    td: { color: C.text, fontSize: 13, borderColor: C.divider, textAlign: "start" },
-    field: {
-      "& .MuiInputBase-root": { bgcolor: C.inputBg, color: C.text, borderRadius: 2 },
-      "& .MuiInputLabel-root": { color: C.sub },
-      "& .MuiOutlinedInput-notchedOutline": { borderColor: C.glassBorder },
-    },
-    dialogPaper: {
-      bgcolor: C.surface, color: C.text, backgroundImage: "none",
-      border: `1px solid ${C.glassBorder}`, borderRadius: { xs: 0, sm: 3 },
-    },
-  }), [C]);
-}
 
 /* ───────── page ───────── */
 export default function ProductionPage() {
@@ -94,6 +47,23 @@ export default function ProductionPage() {
 
   const ctx = { t, C, S, isRtl, lang, fullScreen, materials, notify };
 
+  // ── میان‌برها: F1 راهنما · Alt+1/2 تب‌ها (F2 در هر تب ثبت می‌شود) ──
+  const [helpOpen, setHelpOpen] = useState(false);
+  const pageShortcuts = [
+    { combo: "F1", label: t("shortcuts.help"), handler: () => setHelpOpen(true) },
+    { combo: "Alt+1", label: `${t("shortcuts.tab_n", { n: 1 })} — ${t("ui_e.tabs.formulas")}`, handler: () => setTab(0) },
+    { combo: "Alt+2", label: `${t("shortcuts.tab_n", { n: 2 })} — ${t("ui_e.tabs.orders")}`, handler: () => setTab(1) },
+  ];
+  useShortcuts(pageShortcuts);
+  const helpItems = [
+    ...pageShortcuts,
+    { combo: "F2", label: tab === 0 ? t("ui_g.prod.new_formula") : t("ui_g.prod.new_order") },
+    { combo: "Ctrl+D", label: t("shortcuts.save") },
+    { combo: "F3", label: t("ui_g.prod.new_line") },
+    { combo: "Enter", label: t("shortcuts.confirm") },
+    { combo: "Escape", label: t("shortcuts.close_dialog") },
+  ];
+
   return (
     <Box dir={isRtl ? "rtl" : "ltr"} sx={{ p: { xs: 1, sm: 2 }, maxWidth: 1200, mx: "auto" }}>
       <Typography sx={{ color: C.text, fontWeight: 800, fontSize: { xs: 18, sm: 22 }, mb: 0.5 }}>
@@ -116,6 +86,8 @@ export default function ProductionPage() {
 
       {tab === 0 ? <FormulasTab {...ctx} /> : <OrdersTab {...ctx} />}
 
+      <ShortcutsHelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} items={helpItems} />
+
       <Snackbar
         open={toast.open} autoHideDuration={4500}
         onClose={() => setToast((s) => ({ ...s, open: false }))}
@@ -125,37 +97,6 @@ export default function ProductionPage() {
           {toast.msg}
         </Alert>
       </Snackbar>
-    </Box>
-  );
-}
-
-/* ───────── confirm dialog ───────── */
-function ConfirmDialog({ ctx, open, title, text, confirmLabel, danger, busy, error, onClose, onConfirm }) {
-  const { t, C, S, fullScreen } = ctx;
-  return (
-    <Dialog open={open} onClose={busy ? undefined : onClose} fullScreen={fullScreen} maxWidth="xs" fullWidth PaperProps={{ sx: S.dialogPaper }}>
-      <DialogTitle sx={{ fontWeight: 700 }}>{title}</DialogTitle>
-      <DialogContent>
-        <Typography sx={{ color: C.sub, fontSize: 14 }}>{text}</Typography>
-        {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
-      </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button variant="outlined" sx={S.ghost} onClick={onClose} disabled={busy}>{t("ui_e.common.cancel")}</Button>
-        <Button
-          variant="contained" disabled={busy} onClick={onConfirm}
-          sx={danger ? { bgcolor: C.danger, color: C.onPrimary, textTransform: "none", fontWeight: 700, "&:hover": { bgcolor: C.danger, opacity: 0.9 } } : S.btn}
-        >
-          {busy ? <CircularProgress size={18} color="inherit" /> : confirmLabel}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-}
-
-function TableWrap({ C, children }) {
-  return (
-    <Box sx={{ overflowX: "auto", width: "100%", border: `1px solid ${C.divider}`, borderRadius: 2 }}>
-      {children}
     </Box>
   );
 }
@@ -172,6 +113,8 @@ function FormulasTab(ctx) {
   const [del, setDel] = useState(null);
   const [delBusy, setDelBusy] = useState(false);
   const [delErr, setDelErr] = useState("");
+
+  useShortcuts([{ combo: "F2", label: t("ui_g.prod.new_formula"), handler: () => setEditing({}) }]);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -204,7 +147,7 @@ function FormulasTab(ctx) {
     <Box sx={S.card}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, gap: 1, flexWrap: "wrap" }}>
         <Typography sx={{ color: C.text, fontWeight: 700 }}>{t("ui_e.formulas.list_title")}</Typography>
-        <Button sx={S.btn} onClick={() => setEditing({})}>{t("ui_e.formulas.new")}</Button>
+        <Button sx={S.btn} onClick={() => setEditing({})}>{t("ui_e.formulas.new")}<KbdHint>F2</KbdHint></Button>
       </Box>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {loading ? (
@@ -356,6 +299,15 @@ function FormulaDialog({ ctx, formula, onClose, onSaved }) {
     } finally { setSaving(false); }
   };
 
+  const addLine = () => setLines((ls) => [...ls, { key: newKey(), material_id: "", quantity: "", wastage: "0" }]);
+
+  useShortcuts([
+    { combo: "Ctrl+D", label: t("ui_g.prod.save"), scope: "dialog", handler: () => { if (!saving && !loading) submit(); } },
+    { combo: "Enter", label: t("shortcuts.confirm"), scope: "dialog", allowInInput: true,
+      handler: (e) => (enterIsNative(e) || saving || loading ? false : submit()) },
+    { combo: "F3", label: t("ui_g.prod.new_line"), scope: "dialog", handler: addLine },
+  ]);
+
   const typeLabel = (m) => (m?.material_type ? ` · ${t(`ui_e.types.${m.material_type}`, { defaultValue: m.material_type })}` : "");
 
   return (
@@ -430,9 +382,8 @@ function FormulaDialog({ ctx, formula, onClose, onSaved }) {
               </Table>
             </TableWrap>
             <Box>
-              <Button variant="outlined" sx={S.ghost}
-                onClick={() => setLines((ls) => [...ls, { key: newKey(), material_id: "", quantity: "", wastage: "0" }])}>
-                + {t("ui_e.formulas.add_line")}
+              <Button variant="outlined" sx={S.ghost} onClick={addLine}>
+                + {t("ui_e.formulas.add_line")}<KbdHint>F3</KbdHint>
               </Button>
             </Box>
 
@@ -456,7 +407,7 @@ function FormulaDialog({ ctx, formula, onClose, onSaved }) {
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button variant="outlined" sx={S.ghost} onClick={onClose} disabled={saving}>{t("ui_e.common.cancel")}</Button>
         <Button sx={S.btn} onClick={submit} disabled={saving || loading}>
-          {saving ? <CircularProgress size={18} color="inherit" /> : t("ui_e.common.save")}
+          {saving ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_e.common.save")}<KbdHint>Ctrl+D</KbdHint></>}
         </Button>
       </DialogActions>
     </Dialog>
@@ -478,6 +429,8 @@ function OrdersTab(ctx) {
   const [actBusy, setActBusy] = useState(false);
   const [actErr, setActErr] = useState("");
   const [prodQty, setProdQty] = useState("");
+
+  useShortcuts([{ combo: "F2", label: t("ui_g.prod.new_order"), handler: () => setCreating(true) }]);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -520,6 +473,14 @@ function OrdersTab(ctx) {
     } finally { setActBusy(false); }
   };
 
+  const completeOpen = !!action && action.type === "complete";
+  useShortcuts([
+    { combo: "Ctrl+D", label: t("shortcuts.confirm"), scope: "dialog",
+      handler: () => { if (!actBusy && num(prodQty) > 0) runAction(); } },
+    { combo: "Enter", label: t("shortcuts.confirm"), scope: "dialog", allowInInput: true,
+      handler: (e) => (enterIsNative(e) || actBusy || !(num(prodQty) > 0) ? false : runAction()) },
+  ], { enabled: completeOpen });
+
   const rowActions = (o) => (
     <Box sx={{ whiteSpace: "nowrap" }}>
       <Button size="small" sx={{ color: C.primary, textTransform: "none" }} onClick={() => setDetail({ id: o.id })}>{t("ui_e.orders.details")}</Button>
@@ -537,7 +498,7 @@ function OrdersTab(ctx) {
           <MenuItem value="">{t("ui_e.orders.all")}</MenuItem>
           {STATUSES.map((s) => <MenuItem key={s} value={s}>{t(`ui_e.status.${s}`)}</MenuItem>)}
         </TextField>
-        <Button sx={S.btn} onClick={() => setCreating(true)}>{t("ui_e.orders.new")}</Button>
+        <Button sx={S.btn} onClick={() => setCreating(true)}>{t("ui_e.orders.new")}<KbdHint>F2</KbdHint></Button>
       </Box>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {loading ? (
@@ -581,7 +542,7 @@ function OrdersTab(ctx) {
 
       {detail && (
         <OrderDetailDialog ctx={ctx} detail={detail} StatusChip={StatusChip}
-          onClose={() => setDetail(null)} openAction={openAction} />
+          onClose={() => setDetail(null)} openAction={openAction} actionOpen={!!action} />
       )}
 
       {/* start / cancel confirm */}
@@ -609,7 +570,7 @@ function OrdersTab(ctx) {
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button variant="outlined" sx={S.ghost} onClick={() => setAction(null)} disabled={actBusy}>{t("ui_e.common.cancel")}</Button>
           <Button sx={S.btn} onClick={runAction} disabled={actBusy || !(num(prodQty) > 0)}>
-            {actBusy ? <CircularProgress size={18} color="inherit" /> : t("ui_e.orders.complete")}
+            {actBusy ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_e.orders.complete")}<KbdHint>Ctrl+D</KbdHint></>}
           </Button>
         </DialogActions>
       </Dialog>
@@ -648,6 +609,12 @@ function OrderCreateDialog({ ctx, onClose, onCreated }) {
     } finally { setSaving(false); }
   };
 
+  useShortcuts([
+    { combo: "Ctrl+D", label: t("ui_g.prod.create"), scope: "dialog", handler: () => { if (!saving) submit(); } },
+    { combo: "Enter", label: t("shortcuts.confirm"), scope: "dialog", allowInInput: true,
+      handler: (e) => (enterIsNative(e) || saving ? false : submit()) },
+  ]);
+
   return (
     <Dialog open onClose={saving ? undefined : onClose} fullScreen={fullScreen} maxWidth="sm" fullWidth PaperProps={{ sx: S.dialogPaper }}>
       <DialogTitle sx={{ fontWeight: 700 }}>{t("ui_e.orders.new_title")}</DialogTitle>
@@ -670,14 +637,14 @@ function OrderCreateDialog({ ctx, onClose, onCreated }) {
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button variant="outlined" sx={S.ghost} onClick={onClose} disabled={saving}>{t("ui_e.common.cancel")}</Button>
         <Button sx={S.btn} onClick={submit} disabled={saving}>
-          {saving ? <CircularProgress size={18} color="inherit" /> : t("ui_e.orders.create")}
+          {saving ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_e.orders.create")}<KbdHint>Ctrl+D</KbdHint></>}
         </Button>
       </DialogActions>
     </Dialog>
   );
 }
 
-function OrderDetailDialog({ ctx, detail, StatusChip, onClose, openAction }) {
+function OrderDetailDialog({ ctx, detail, StatusChip, onClose, openAction, actionOpen }) {
   const { t, C, S, fullScreen, lang } = ctx;
   const [order, setOrder] = useState(detail.data || null);
   const [error, setError] = useState("");
@@ -694,6 +661,17 @@ function OrderDetailDialog({ ctx, detail, StatusChip, onClose, openAction }) {
   const shortById = {};
   shortages.forEach((s) => { shortById[s.material_id] = s; });
   const active = order && (order.status === "planned" || order.status === "in_progress");
+
+  // Ctrl+D = عمل اصلی (شروع / تکمیل)، وقتی دیالوگ تأیید روی آن باز نیست
+  useShortcuts([
+    { combo: "Ctrl+D", label: t("ui_g.prod.confirm"), scope: "dialog",
+      handler: () => {
+        if (order?.status === "planned") openAction("start", order);
+        else if (order?.status === "in_progress") openAction("complete", order);
+        else return false;
+        return true;
+      } },
+  ], { enabled: !actionOpen });
 
   return (
     <Dialog open onClose={onClose} fullScreen={fullScreen} maxWidth="md" fullWidth PaperProps={{ sx: S.dialogPaper }}>
@@ -759,8 +737,8 @@ function OrderDetailDialog({ ctx, detail, StatusChip, onClose, openAction }) {
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2, flexWrap: "wrap", gap: 1 }}>
         <Button variant="outlined" sx={S.ghost} onClick={onClose}>{t("ui_e.common.close")}</Button>
-        {order?.status === "planned" && <Button sx={S.btn} onClick={() => openAction("start", order)}>{t("ui_e.orders.start")}</Button>}
-        {order?.status === "in_progress" && <Button sx={S.btn} onClick={() => openAction("complete", order)}>{t("ui_e.orders.complete")}</Button>}
+        {order?.status === "planned" && <Button sx={S.btn} onClick={() => openAction("start", order)}>{t("ui_e.orders.start")}<KbdHint>Ctrl+D</KbdHint></Button>}
+        {order?.status === "in_progress" && <Button sx={S.btn} onClick={() => openAction("complete", order)}>{t("ui_e.orders.complete")}<KbdHint>Ctrl+D</KbdHint></Button>}
         {active && <Button variant="outlined" sx={{ ...S.ghost, color: C.danger, borderColor: C.danger }} onClick={() => openAction("cancel", order)}>{t("ui_e.orders.cancel")}</Button>}
       </DialogActions>
     </Dialog>

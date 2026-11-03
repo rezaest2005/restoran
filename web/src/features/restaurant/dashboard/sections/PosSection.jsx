@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo } from "react";
 import { Box, Typography, Chip } from "@mui/material";
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
@@ -12,6 +12,7 @@ import {
 import SectionHeader from "../components/common/SectionHeader";
 import GlassCard from "../components/common/GlassCard";
 import { buildColors } from "@shared/palette";
+import { useNumberFormat, useChartStyle } from "../common";
 
 export default function PosSection({ data }) {
   const { mode } = useThemeMode();
@@ -36,21 +37,8 @@ export default function PosSection({ data }) {
 
   const C = useMemo(() => buildColors(isDark), [isDark]);
 
-  const fmtN = useCallback((n) => {
-    if (n == null) return "—";
-    return isRtl ? Number(n).toLocaleString("fa-IR") : Number(n).toLocaleString("en-US");
-  }, [isRtl]);
-
-  const tooltipStyle = {
-    background: isDark ? "rgba(16,18,16,0.94)" : "rgba(240,244,252,0.96)",
-    border: `1px solid ${C.glassBorder}`, borderRadius: "12px",
-    fontFamily: "Vazirmatn", fontSize: 14, color: C.text,
-    boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.5)" : "0 8px 32px rgba(0,0,0,0.1)",
-    padding: "12px 16px",
-    direction: isRtl ? "rtl" : "ltr",
-  };
-
-  const chartGridStroke = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
+  const fmtN = useNumberFormat(isRtl);
+  const { tooltipStyle, chartGridStroke } = useChartStyle(C, isDark, isRtl);
 
   // ★ استفاده از داده‌های واقعی یا آرایه خالی
   const chartData = (data.salesTrend || []).map((d) => ({ ...d, displayName: isRtl ? d.name : d.nameEn }));

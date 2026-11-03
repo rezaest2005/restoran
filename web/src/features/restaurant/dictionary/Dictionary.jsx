@@ -1,8 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Box, Typography, Button, Snackbar, Alert,
-} from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import MenuSection from "./components/MenuSection";
@@ -13,6 +11,8 @@ import SupplierSection from "./components/SupplierSection";
 import CustomerSection from "./components/CustomerSection";
 import WarehouseSection from "./components/WarehouseSection";
 import { buildColors } from "@shared/palette";
+import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
+import { useToast, ToastSnackbar, TabBar, useRegisteredShortcuts, tabBindings, helpBinding, collectShortcuts } from "./common";
 
 const ALL_TABS = [
   { id: "menu", icon: "🍽️", labelKey: "dict.menu_tab", adminOnly: false },
@@ -31,7 +31,8 @@ export default function Dictionary() {
   const isDark = mode === "dark";
 
   const [activeTab, setActiveTab] = useState("");
-  const [toast, setToast] = useState({ open: false, message: "", type: "info" });
+  const { toast, showToast, closeToast } = useToast();
+  const [help, setHelp] = useState(null);
 
   // ── ترتیب تب‌ها (قابل جابجایی با Drag & Drop) ──
   const [tabOrder, setTabOrder] = useState(() => {
@@ -72,8 +73,6 @@ export default function Dictionary() {
     }
   }, [TABS, activeTab]);
 
-  const showToast = (message, type = "info") => setToast({ open: true, message, type });
-
   // ── Drag & Drop ──
   const handleDragStart = (idx) => {
     dragItem.current = idx;
@@ -99,6 +98,12 @@ export default function Dictionary() {
 
   const C = useMemo(() => buildColors(isDark), [isDark]);
 
+  // ── میان‌برها: Alt+1…9 تب‌ها · F1 راهنما ──
+  useRegisteredShortcuts([
+    ...tabBindings(t, TABS.map((tb) => ({ id: tb.id, label: tb.label || t(tb.labelKey) })), setActiveTab),
+    helpBinding(t, () => setHelp(collectShortcuts())),
+  ]);
+
   return (
     <Box dir={isRtl ? "rtl" : "ltr"} sx={{
       fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
@@ -115,41 +120,25 @@ export default function Dictionary() {
       </Box>
 
       {/* تب‌ها — قابل Drag & Drop */}
-      <Box sx={{
-        display: "flex", gap: 0.5, mb: 3,
-        bgcolor: C.glass, backdropFilter: "blur(16px)",
-        border: `1px solid ${C.glassBorder}`,
-        borderRadius: "14px", p: 0.5,
-        width: "fit-content",
-        flexWrap: "wrap",
-      }}>
-        {TABS.map((tab, idx) => (
-          <Button
-            key={tab.id}
-            draggable
-            onDragStart={() => handleDragStart(idx)}
-            onDragEnter={() => handleDragEnter(idx)}
-            onDragEnd={handleDragEnd}
-            onDragOver={(e) => e.preventDefault()}
-            onClick={() => setActiveTab(tab.id)}
-            sx={{
-              borderRadius: "10px", px: { xs: 1.5, md: 2.5 }, py: 1,
-              fontSize: 12, fontWeight: activeTab === tab.id ? 700 : 500,
-              textTransform: "none", transition: "all 0.2s ease",
-              color: activeTab === tab.id ? C.olive : C.sub,
-              bgcolor: activeTab === tab.id ? C.oliveSubtle : "transparent",
-              border: activeTab === tab.id ? `1px solid ${C.olive}30` : "1px solid transparent",
-              cursor: "grab",
-              "&:active": { cursor: "grabbing" },
-              "&:hover": { bgcolor: C.oliveSubtle },
-              opacity: dragItem.current === idx ? 0.5 : 1,
-            }}
-            title={t("ui_b.dictionary.dragHint")}
-          >
-            {tab.icon} {tab.label || t(tab.labelKey)}
-          </Button>
-        ))}
-      </Box>
+      <TabBar
+        tabs={TABS.map((tb) => ({ ...tb, label: tb.label || t(tb.labelKey) }))}
+        active={activeTab}
+        onSelect={setActiveTab}
+        C={C}
+        getButtonProps={(tab, idx) => ({
+          draggable: true,
+          onDragStart: () => handleDragStart(idx),
+          onDragEnter: () => handleDragEnter(idx),
+          onDragEnd: handleDragEnd,
+          onDragOver: (e) => e.preventDefault(),
+          title: t("ui_b.dictionary.dragHint"),
+          sx: {
+            cursor: "grab",
+            "&:active": { cursor: "grabbing" },
+            opacity: dragItem.current === idx ? 0.5 : 1,
+          },
+        })}
+      />
 
       {/* راهنمای کوچیک */}
       <Typography sx={{ fontSize: 10, color: C.muted, mb: 2, mt: -2 }}>
@@ -175,25 +164,9 @@ export default function Dictionary() {
       </Box>
 
       {/* Toast */}
-      <Snackbar
-        open={toast.open}
-        autoHideDuration={3000}
-        onClose={() => setToast((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setToast((s) => ({ ...s, open: false }))}
-          severity={toast.type}
-          sx={{
-            bgcolor: C.glass, backdropFilter: "blur(16px)",
-            color: C.text, border: `1px solid ${C.olive}`,
-            borderRadius: "12px", fontSize: 13, fontWeight: 600,
-            boxShadow: C.cardShadow,
-          }}
-        >
-          {toast.message}
-        </Alert>
-      </Snackbar>
+      <ToastSnackbar toast={toast} onClose={closeToast} C={C} />
+
+      <ShortcutsHelpDialog open={!!help} onClose={() => setHelp(null)} items={help || []} />
     </Box>
   );
 }

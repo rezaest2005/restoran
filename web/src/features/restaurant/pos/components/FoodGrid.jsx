@@ -1,23 +1,10 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Box, Grid, Typography, CircularProgress } from "@mui/material";
+import { useTranslation } from "react-i18next";
+import useShortcuts from "@shared/common/useShortcuts";
 import FoodCard from "./FoodCard";
 
-// ★ توابع محاسبه تخفیف
-const isDiscountActive = (d) => {
-  if (!d || !d.amount || d.amount <= 0) return false;
-  if (!d.expiresAt) return true;
-  return Date.now() < d.expiresAt;
-};
-
-const computeDiscountAmount = (basePrice, discount) => {
-  if (!isDiscountActive(discount)) return 0;
-  if (discount.type === "percent")
-    return Math.round((basePrice * discount.amount) / 100);
-  return Math.min(discount.amount, basePrice);
-};
-
-const getItemCategoryKeys = (item) =>
-  [item.category, item.category_name, item.category_name_en].filter(Boolean);
+import { isDiscountActive, getItemCategoryKeys } from "../common/discount";
 
 export default function FoodGrid({
   foods = [],
@@ -33,7 +20,9 @@ export default function FoodGrid({
   onExitEdit,
   cartItems = [],
 }) {
+  const { t } = useTranslation();
   const [pinned, setPinned] = useState(new Set());
+  const [focusedId, setFocusedId] = useState(null);
   const [order, setOrder] = useState(null);
   const [dragIdx, setDragIdx] = useState(null);
   const [overIdx, setOverIdx] = useState(null);
@@ -114,6 +103,49 @@ export default function FoodGrid({
     return map;
   }, [cartItems]);
 
+  // ── کیبورد: Ctrl+A / Ctrl+Z حرکت بین محصولات، Enter افزودن به سبد ──
+  const focusedIdx = sortedFoods.findIndex((f) => f.id === focusedId);
+
+  const moveFocus = (dir) => {
+    if (sortedFoods.length === 0) return;
+    const next = focusedIdx < 0
+      ? (dir > 0 ? 0 : sortedFoods.length - 1)
+      : Math.min(Math.max(focusedIdx + dir, 0), sortedFoods.length - 1);
+    setFocusedId(sortedFoods[next].id);
+  };
+
+  useEffect(() => {
+    if (focusedId == null) return;
+    document
+      .querySelector(`[data-food-id="${String(focusedId).replace(/"/g, "")}"]`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [focusedId]);
+
+  const addFocused = (e) => {
+    const el = e?.target;
+    const tag = el?.tagName;
+    const inSearch = el?.dataset?.posSearch === "1";
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+      if (!inSearch) return false;
+    } else if (tag === "BUTTON" || tag === "A" || el?.getAttribute?.("role") === "button") {
+      return false;
+    }
+    const food = focusedIdx >= 0
+      ? sortedFoods[focusedIdx]
+      : (inSearch && el.value ? sortedFoods[0] : null);
+    if (!food) return false;
+    document
+      .querySelector(`[data-food-id="${String(food.id).replace(/"/g, "")}"] > *`)
+      ?.click();
+    return true;
+  };
+
+  useShortcuts([
+    { combo: "Ctrl+A", label: t("ui_g.pos.next_product"), handler: () => moveFocus(1) },
+    { combo: "Ctrl+Z", label: t("ui_g.pos.prev_product"), handler: () => moveFocus(-1) },
+    { combo: "Enter", label: t("ui_g.pos.add_product"), handler: addFocused, allowInInput: true },
+  ], { enabled: !editMode && !loading && sortedFoods.length > 0 });
+
   // ★ تابع جدید: برگرداندن نوع و مبلغ تخفیف
   const getFoodDiscount = useCallback(
     (food) => {
@@ -172,6 +204,7 @@ export default function FoodGrid({
           <Grid
             size={{ xs: 12, sm: 6 }}
             key={food.id}
+            data-food-id={food.id}
             draggable
             onDragStart={(e) => handleDragStart(e, i)}
             onDragOver={(e) => handleDragOver(e, i)}
@@ -186,7 +219,9 @@ export default function FoodGrid({
               outline:
                 overIdx === i && dragIdx !== i
                   ? `2px dashed ${C.olive}55`
-                  : "none",
+                  : focusedIdx === i
+                    ? `2px solid ${C.olive}`
+                    : "none",
               outlineOffset: 2,
             }}
           >

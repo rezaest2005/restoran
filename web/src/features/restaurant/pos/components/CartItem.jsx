@@ -1,21 +1,7 @@
 import { memo } from "react";
 import { Box, Typography, IconButton, Chip } from "@mui/material";
 
-// ★ محاسبه تخفیف دسته (دقیقاً مثل useCart)
-const isDiscountActive = (d) => {
-  if (!d || !d.amount || d.amount <= 0) return false;
-  if (!d.expiresAt) return true;
-  return Date.now() < d.expiresAt;
-};
-
-const computeDiscountAmount = (basePrice, discount) => {
-  if (!isDiscountActive(discount)) return 0;
-  if (discount.type === "percent") return (basePrice * discount.amount) / 100;
-  return discount.amount;
-};
-
-const getItemCategoryKeys = (item) =>
-  [item.category, item.category_name, item.category_name_en].filter(Boolean);
+import { isDiscountActive, computeDiscountAmount, getItemCategoryKeys } from "../common/discount";
 
 function CartItem({ item, onAdd, onRemove, categoryDiscounts, C, isRtl }) {
   // ★ تخفیف دسته — بررسی همه فیلدهای دسته

@@ -11,30 +11,26 @@ from django.core.cache import cache
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from rest_framework import permissions
-from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import (
     api_view, authentication_classes, permission_classes,
 )
 
-from ..middleware import TenantJWTAuthentication
 from ..models import Feedback, Restaurant
-from ..tenancy import get_current_restaurant, set_current_restaurant
 from ..utils import api_error, api_success
-from .decorators import make_service_permission, require_service
+from .decorators import require_service
+from .common import (
+    FeedbackPerm,
+    StaffAuth,
+    client_ip,
+    staff_restaurant,
+)
 
 logger = logging.getLogger(__name__)
-
-FeedbackPerm = make_service_permission("feedback")
-StaffAuth = [SessionAuthentication, TenantJWTAuthentication]
 
 MAX_MESSAGE = 2000
 RATE_LIMIT = 5
 RATE_WINDOW = 600  # ۱۰ دقیقه
 LIST_LIMIT = 200
-
-
-def _client_ip(request):
-    return request.META.get("REMOTE_ADDR", "unknown")
 
 
 # ═══════════════════════════════════════════
@@ -51,7 +47,7 @@ def feedback_submit(request):
     if str(data.get("website", "")).strip():
         return api_success(message="نظر شما ثبت شد. سپاس از شما.")
 
-    ip = _client_ip(request)
+    ip = client_ip(request)
     cache_key = f"feedback_submit:{ip}"
     attempts = cache.get(cache_key, 0)
     if attempts >= RATE_LIMIT:
@@ -95,13 +91,6 @@ def feedback_submit(request):
 #  API کارکنان
 # ═══════════════════════════════════════════
 
-def _staff_restaurant(request):
-    r = getattr(request.user, "restaurant", None) or get_current_restaurant()
-    if r is not None:
-        set_current_restaurant(r)
-    return r
-
-
 def _serialize(f):
     return {
         "id": f.id,
@@ -122,7 +111,7 @@ def _serialize(f):
 @authentication_classes(StaffAuth)
 @permission_classes([FeedbackPerm])
 def feedback_list(request):
-    restaurant = _staff_restaurant(request)
+    restaurant = staff_restaurant(request)
     if restaurant is None:
         return api_error("کسب‌وکاری برای این کاربر تعریف نشده است.", status_code=400)
 
@@ -142,7 +131,7 @@ def feedback_list(request):
 @authentication_classes(StaffAuth)
 @permission_classes([FeedbackPerm])
 def feedback_update(request, pk):
-    restaurant = _staff_restaurant(request)
+    restaurant = staff_restaurant(request)
     if restaurant is None:
         return api_error("کسب‌وکاری برای این کاربر تعریف نشده است.", status_code=400)
 

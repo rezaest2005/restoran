@@ -1,0 +1,43 @@
+{
+  "ui_g": {
+    "pos": {
+      "new_order": "New order (clear cart)",
+      "checkout": "Checkout / pay",
+      "next_product": "Next product",
+      "prev_product": "Previous product",
+      "add_product": "Add focused product to cart",
+      "pay_selected": "Pay with selected method",
+      "next_method": "Next payment method",
+      "prev_method": "Previous payment method",
+      "print_receipt": "Print receipt",
+      "accept_first": "Accept the focused / first pending order",
+      "next_order": "Next incoming order",
+      "prev_order": "Previous incoming order",
+      "reject_focused": "Reject focused order (asks to confirm)",
+      "confirm_reject": "Confirm rejection",
+      "focus_search": "Focus search box"
+    },
+    "layout": {
+      "nav_n": "Go to: {{name}}"
+    },
+    "dash": {
+      "next_section": "Next section",
+      "prev_section": "Previous section",
+      "section_n": "Section {{n}}",
+      "sec_pos": "Sales",
+      "sec_inventory": "Inventory",
+      "sec_shared": "Overview"
+    },
+    "prod": {
+      "new_formula": "New formulation",
+      "new_order": "New production order",
+      "new_line": "Add ingredient line",
+      "save": "Save",
+      "create": "Create order",
+      "confirm": "Confirm"
+    },
+    "auth": {
+      "submit": "Sign in"
+    }
+  }
+}

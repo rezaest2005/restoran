@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState, useEffect, useCallback } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
@@ -5,6 +6,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { createWaste, fetchRawMaterials, fetchStock } from "../api";
+import { buildInputSx, buildDialogPaperSx, UNIT_LABELS, useRegisteredShortcuts, dialogBindings, KbdHint } from "../common";
 
 const WASTE_REASONS = [
   { value: "spoiled", label: "خراب شده" },
@@ -15,9 +17,8 @@ const WASTE_REASONS = [
   { value: "other", label: "سایر" },
 ];
 
-const UNIT_LABELS = { kilogram: "کیلوگرم", gram: "گرم", liter: "لیتر", ml: "میلی‌لیتر", count: "عدد", box: "بسته", kg: "کیلوگرم", unit: "واحد" };
-
 export default function WasteModal({ open, onClose, warehouse, C, isDark, onSuccess, showToast }) {
+  const { t } = useTranslation();
   const [materials, setMaterials] = useState([]);
   const [stockItems, setStockItems] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -94,25 +95,17 @@ export default function WasteModal({ open, onClose, warehouse, C, isDark, onSucc
 
   const selectedMaterial = materials.find(m => m.id == form.raw_material_id);
 
-  const inputSx = {
-    "& .MuiOutlinedInput-root": {
-      borderRadius: "12px", bgcolor: C.inputBg, backdropFilter: "blur(8px)",
-      fontSize: 13, fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif", color: C.text,
-      transition: "all 0.25s ease",
-      "& fieldset": { borderColor: C.glassBorder },
-      "&:hover fieldset": { borderColor: C.olive + "60" },
-      "&.Mui-focused fieldset": { borderColor: C.olive, borderWidth: 1.5 },
-      "&.Mui-focused": { boxShadow: `0 0 0 3px ${C.olive}18` },
-    },
-    "& .MuiInputLabel-root": { fontSize: 12, color: C.sub },
-    "& .MuiInputBase-input": { color: C.text },
-    "& .MuiInputBase-input::placeholder": { color: C.muted, opacity: 1 },
-  };
+  // ── میان‌برها: Ctrl+D / Enter ثبت · Escape بستن ──
+  useRegisteredShortcuts(
+    [
+      ...dialogBindings(t, { onConfirm: () => { if (!saving && !loading) handleSubmit(); }, onClose }),
+    ],
+    { enabled: open },
+  );
 
-  const dialogPaperSx = {
-    borderRadius: "16px", bgcolor: isDark ? "#1A1A2E" : "#fff",
-    border: `1px solid ${C.glassBorder}`,
-  };
+  const inputSx = buildInputSx(C);
+
+  const dialogPaperSx = buildDialogPaperSx(C, isDark);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth slotProps={{ paper: { sx: dialogPaperSx } }}>
@@ -187,6 +180,7 @@ export default function WasteModal({ open, onClose, warehouse, C, isDark, onSucc
           border: `1px solid ${C.danger}40`,
         }}>
           {saving ? "..." : "🗑 ثبت ضایعات"}
+          {!saving && <KbdHint>Ctrl+D</KbdHint>}
         </Button>
       </DialogActions>
     </Dialog>

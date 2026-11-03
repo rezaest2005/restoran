@@ -10,8 +10,13 @@ import {
   PersonAdd, Delete, Edit, Key, Shield, CheckCircle, Cancel, HourglassEmpty,
   DarkMode, LightMode, Language, People, AdminPanelSettings
 } from "@mui/icons-material";
-import { useThemeMode } from "../contexts/ThemeContext";
-import { useLang } from "../contexts/LangContext";
+import { useThemeMode } from "@shared/contexts/ThemeContext";
+import { useLang } from "@shared/contexts/LangContext";
+import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
+import {
+  useRowCursor, cursorAttrs, cursorSx, cursorBindings, useRegisteredShortcuts,
+  dialogBindings, helpBinding, collectShortcuts, onEnter, KbdHint,
+} from "@restaurant/inventory/common";
 import { buildColors } from "@shared/palette";
 
 const animations = `
@@ -20,6 +25,8 @@ const animations = `
   @keyframes shimmer { 0% { background-position: -200% center; } 100% { background-position: 200% center; } }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(20px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 `;
+
+const newUserId = () => Date.now();
 
 const ROLES = [
   { value: "owner", labelKey: "ui_a.users.role_owner", color: "#D4B76A" },
@@ -47,6 +54,7 @@ export default function Users() {
   const [addForm, setAddForm] = useState({ username: "", phone: "", password: "", role: "manager" });
   const [passForm, setPassForm] = useState({ pass1: "", pass2: "" });
   const [newRole, setNewRole] = useState("");
+  const [help, setHelp] = useState(null);
 
   useEffect(() => {
     const tmr = setTimeout(() => setMounted(true), 80);
@@ -118,7 +126,7 @@ export default function Users() {
 
   const handleSaveAdd = () => {
     if (!addForm.username || !addForm.password) return showToast(t("ui_a.users.err_required"), "error");
-    const newUser = { ...addForm, id: Date.now(), is_active: true, is_approved: true, date_joined: t("ui_a.users.now") };
+    const newUser = { ...addForm, id: newUserId(), is_active: true, is_approved: true, date_joined: t("ui_a.users.now") };
     setUsers(prev => [newUser, ...prev]);
     setAddModalOpen(false);
     showToast(t("ui_a.users.toast_added"));
@@ -134,6 +142,39 @@ export default function Users() {
     const role = ROLES.find(r => r.value === roleVal);
     return role ? t(role.labelKey) : roleVal;
   };
+
+  // ── میان‌برها: F2 کاربر جدید · Ctrl+A/Z ردیف · Enter نقش · Delete حذف · F1 راهنما ──
+  const cursor = useRowCursor(users.length);
+  const openRole = (u) => { setSelectedUser(u); setNewRole(u.role); setRoleModalOpen(true); };
+  useRegisteredShortcuts([
+    { combo: "F2", label: t("shortcuts.new"), handler: () => setAddModalOpen(true) },
+    ...cursorBindings(t, cursor),
+    {
+      combo: "Enter", label: t("ui_h.edit_selected"),
+      handler: onEnter(() => { const u = users[cursor.index]; if (!u) return false; openRole(u); }),
+    },
+    {
+      combo: "Delete", label: t("ui_h.delete_selected"),
+      handler: () => { const u = users[cursor.index]; if (!u) return false; setSelectedUser(u); setDeleteModalOpen(true); },
+    },
+    helpBinding(t, () => setHelp(collectShortcuts())),
+  ]);
+  useRegisteredShortcuts(
+    dialogBindings(t, { onConfirm: () => handleSaveAdd(), onClose: () => setAddModalOpen(false) }),
+    { enabled: addModalOpen },
+  );
+  useRegisteredShortcuts(
+    dialogBindings(t, { onConfirm: handleSaveRole, onClose: () => setRoleModalOpen(false) }),
+    { enabled: roleModalOpen },
+  );
+  useRegisteredShortcuts(
+    dialogBindings(t, { onConfirm: handleSavePassword, onClose: () => setPassModalOpen(false) }),
+    { enabled: passModalOpen },
+  );
+  useRegisteredShortcuts(
+    dialogBindings(t, { onConfirm: handleDelete, onClose: () => setDeleteModalOpen(false), confirmLabel: t("users.btn_confirm_delete") }),
+    { enabled: deleteModalOpen },
+  );
 
   const passwordStrength = useMemo(() => {
     const pass = passModalOpen ? passForm.pass1 : addForm.password;
@@ -166,7 +207,7 @@ export default function Users() {
             <Language fontSize="small" />
           </IconButton>
           <Button onClick={() => setAddModalOpen(true)} sx={{ bgcolor: C.btnGrad, color: "#fff", boxShadow: `0 4px 14px ${C.olive}55`, "&:hover": { transform: "translateY(-2px)" } }}>
-            <PersonAdd /> {t("users.btn_add")}
+            <PersonAdd /> {t("users.btn_add")}<KbdHint>F2</KbdHint>
           </Button>
         </Box>
       </Box>
@@ -205,7 +246,7 @@ export default function Users() {
               const roleColor = getRoleColor(user.role);
               const isPending = !user.is_approved;
               return (
-                <Box key={user.id} sx={{ display: "flex", alignItems: "center", gap: 2, p: 2, borderRadius: "16px", border: `1px solid ${isPending ? C.warning + "44" : C.glassBorder}`, bgcolor: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.01)", animation: `fadeUp 0.4s ease-out ${i * 0.05}s backwards`, transition: "all 0.2s ease", "&:hover": { borderColor: isPending ? C.warning : C.olive } }}>
+                <Box key={user.id} {...cursorAttrs(cursor.isActive(i))} sx={{ ...cursorSx(C, cursor.isActive(i)), display: "flex", alignItems: "center", gap: 2, p: 2, borderRadius: "16px", border: `1px solid ${isPending ? C.warning + "44" : C.glassBorder}`, bgcolor: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.01)", animation: `fadeUp 0.4s ease-out ${i * 0.05}s backwards`, transition: "all 0.2s ease", "&:hover": { borderColor: isPending ? C.warning : C.olive } }}>
                   <Box sx={{ width: 48, height: 48, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 18, bgcolor: isPending ? C.warningBg : C.oliveSubtle, color: isPending ? C.warning : C.olive, border: `2px solid ${isPending ? C.warning + "44" : C.olive + "33"}`, flexShrink: 0 }}>
                     {user.username.charAt(0).toUpperCase()}
                   </Box>
@@ -276,7 +317,7 @@ export default function Users() {
           </Box>
           <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}>
             <Button onClick={() => setAddModalOpen(false)} sx={{ color: C.sub }}>{t("users.btn_cancel")}</Button>
-            <Button onClick={handleSaveAdd} sx={{ bgcolor: C.btnGrad, color: "#fff" }}>{t("users.btn_save")}</Button>
+            <Button onClick={handleSaveAdd} sx={{ bgcolor: C.btnGrad, color: "#fff" }}>{t("users.btn_save")}<KbdHint>Ctrl+D</KbdHint></Button>
           </Box>
         </Box>
       </Dialog>
@@ -296,7 +337,7 @@ export default function Users() {
           </FormControl>
           <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}>
             <Button onClick={() => setRoleModalOpen(false)} sx={{ color: C.sub }}>{t("users.btn_cancel")}</Button>
-            <Button onClick={handleSaveRole} sx={{ bgcolor: C.btnGrad, color: "#fff" }}>{t("users.btn_save")}</Button>
+            <Button onClick={handleSaveRole} sx={{ bgcolor: C.btnGrad, color: "#fff" }}>{t("users.btn_save")}<KbdHint>Ctrl+D</KbdHint></Button>
           </Box>
         </Box>
       </Dialog>
@@ -322,7 +363,7 @@ export default function Users() {
           </Box>
           <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}>
             <Button onClick={() => setPassModalOpen(false)} sx={{ color: C.sub }}>{t("users.btn_cancel")}</Button>
-            <Button onClick={handleSavePassword} sx={{ bgcolor: C.btnGrad, color: "#fff" }}>{t("users.btn_save")}</Button>
+            <Button onClick={handleSavePassword} sx={{ bgcolor: C.btnGrad, color: "#fff" }}>{t("users.btn_save")}<KbdHint>Ctrl+D</KbdHint></Button>
           </Box>
         </Box>
       </Dialog>
@@ -337,10 +378,12 @@ export default function Users() {
           <Typography sx={{ color: C.sub, fontSize: 13, mb: 3 }}>{t("users.modal_delete_sub")}</Typography>
           <Box sx={{ display: "flex", gap: 2 }}>
             <Button onClick={() => setDeleteModalOpen(false)} sx={{ flex: 1, bgcolor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)", color: C.text }}>{t("users.btn_cancel")}</Button>
-            <Button onClick={handleDelete} sx={{ flex: 1, bgcolor: C.danger, color: "#fff" }}>{t("users.btn_confirm_delete")}</Button>
+            <Button onClick={handleDelete} sx={{ flex: 1, bgcolor: C.danger, color: "#fff" }}>{t("users.btn_confirm_delete")}<KbdHint>Enter</KbdHint></Button>
           </Box>
         </Box>
       </Dialog>
+
+      <ShortcutsHelpDialog open={!!help} onClose={() => setHelp(null)} items={help || []} />
 
       <Snackbar open={toast.open} autoHideDuration={3000} onClose={() => setToast({ ...toast, open: false })} anchorOrigin={{ vertical: "top", horizontal: "center" }}>
         <Alert severity={toast.type} sx={{ bgcolor: C.glass, backdropFilter: "blur(16px)", color: C.text, border: `1px solid ${C.olive}`, borderRadius: "12px", fontFamily: "'Vazirmatn', sans-serif" }}>{toast.message}</Alert>

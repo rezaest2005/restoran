@@ -17,6 +17,9 @@ import {
   CreditCard,
   Language,
 } from "@mui/icons-material";
+import { useTranslation } from "react-i18next";
+import useShortcuts from "@shared/common/useShortcuts";
+import { KbdHint, formatMoney } from "../common";
 
 export default function CheckoutDialog({
   open,
@@ -24,6 +27,7 @@ export default function CheckoutDialog({
   C,
   isRtl,
   lastOrder,
+  defaultMethod,
   cart,
   cartTotal,
   onSubmit,
@@ -38,6 +42,14 @@ export default function CheckoutDialog({
 
   const error = externalError || localError;
   const busy = submitting || localSubmitting;
+  const { t } = useTranslation();
+  const [sel, setSel] = useState(null); // روش انتخاب‌شده با کیبورد؛ null = پیش‌فرض
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (prevOpen !== open) {
+    setPrevOpen(open);
+    if (!open) setSel(null);
+  }
+  const selKey = sel ?? (defaultMethod || "cash");
 
   const paymentMethods = [
     { key: "cash", icon: Payments, labelFa: "پرداخت نقدی", labelEn: "Cash" },
@@ -61,6 +73,35 @@ export default function CheckoutDialog({
       setLocalSubmitting(false);
     }
   };
+
+  const moveMethod = (dir) => {
+    const i = paymentMethods.findIndex((m) => m.key === selKey);
+    const n = (Math.max(i, 0) + dir + paymentMethods.length) % paymentMethods.length;
+    setSel(paymentMethods[n].key);
+  };
+
+  const confirmDialog = (e) => {
+    if (e?.target?.tagName === "BUTTON") return false; // Enter روی دکمه‌ی فوکوس‌شده کار خودش را بکند
+    if (isPaid) handlePrint();
+    else if (!busy) handlePayment(selKey);
+    return true;
+  };
+
+  useShortcuts(
+    isPaid
+      ? [
+        { combo: "Ctrl+D", label: t("ui_g.pos.print_receipt"), scope: "dialog", handler: () => handlePrint() },
+        { combo: "Enter", label: t("shortcuts.confirm"), scope: "dialog", handler: confirmDialog },
+        { combo: "Escape", label: t("shortcuts.close_dialog"), scope: "dialog", handler: () => onClose() },
+      ]
+      : [
+        { combo: "Ctrl+D", label: t("ui_g.pos.pay_selected"), scope: "dialog", handler: () => { if (!busy) handlePayment(selKey); } },
+        { combo: "Enter", label: t("shortcuts.confirm"), scope: "dialog", handler: confirmDialog },
+        { combo: "Ctrl+A", label: t("ui_g.pos.next_method"), scope: "dialog", handler: () => moveMethod(1) },
+        { combo: "Ctrl+Z", label: t("ui_g.pos.prev_method"), scope: "dialog", handler: () => moveMethod(-1) },
+      ],
+    { enabled: open },
+  );
 
   const renderItems = (items, accentColor) => (
     <Box sx={{ px: 2, pt: 1.5, pb: 1 }}>
@@ -468,7 +509,7 @@ export default function CheckoutDialog({
                         lineHeight: 1,
                       }}
                     >
-                      {(cartTotal || 0).toLocaleString()}
+                      {formatMoney(cartTotal)}
                     </Typography>
                     <Typography
                       sx={{
@@ -527,14 +568,14 @@ export default function CheckoutDialog({
                     onClick={() => handlePayment(key)}
                     disabled={busy}
                     sx={{
-                      bgcolor: `${C.olive}08`,
+                      bgcolor: selKey === key ? `${C.olive}15` : `${C.olive}08`,
                       color: C.text,
                       borderRadius: "12px",
                       py: 1.5,
                       px: 2,
                       fontSize: 14,
                       fontWeight: 700,
-                      border: `1.5px solid ${C.olive}30`,
+                      border: `1.5px solid ${selKey === key ? C.olive : `${C.olive}30`}`,
                       fontFamily: "'Vazirmatn', sans-serif",
                       display: "flex",
                       alignItems: "center",
@@ -553,6 +594,7 @@ export default function CheckoutDialog({
                       <Icon sx={{ fontSize: 20, color: C.olive }} />
                     )}
                     {isRtl ? labelFa : labelEn}
+                    {selKey === key && !busy && <KbdHint>Enter</KbdHint>}
                   </Button>
                 ))}
               </Box>
@@ -763,6 +805,7 @@ export default function CheckoutDialog({
               >
                 <Print sx={{ fontSize: 20, mr: 1 }} />
                 {isRtl ? "چاپ رسید" : "Print Receipt"}
+                <KbdHint>Ctrl+D</KbdHint>
               </Button>
             </>
           )}

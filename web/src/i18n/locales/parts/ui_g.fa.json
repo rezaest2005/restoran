@@ -1,0 +1,43 @@
+{
+  "ui_g": {
+    "pos": {
+      "new_order": "سفارش جدید (خالی کردن سبد)",
+      "checkout": "پرداخت / تسویه",
+      "next_product": "محصول بعدی",
+      "prev_product": "محصول قبلی",
+      "add_product": "افزودن محصول انتخاب‌شده به سبد",
+      "pay_selected": "پرداخت با روش انتخاب‌شده",
+      "next_method": "روش پرداخت بعدی",
+      "prev_method": "روش پرداخت قبلی",
+      "print_receipt": "چاپ رسید",
+      "accept_first": "پذیرش سفارش انتخاب‌شده / اولین سفارش در انتظار",
+      "next_order": "سفارش ورودی بعدی",
+      "prev_order": "سفارش ورودی قبلی",
+      "reject_focused": "رد سفارش انتخاب‌شده (با تأیید)",
+      "confirm_reject": "تأیید رد سفارش",
+      "focus_search": "رفتن به کادر جستجو"
+    },
+    "layout": {
+      "nav_n": "رفتن به: {{name}}"
+    },
+    "dash": {
+      "next_section": "بخش بعدی",
+      "prev_section": "بخش قبلی",
+      "section_n": "بخش {{n}}",
+      "sec_pos": "فروش",
+      "sec_inventory": "انبار",
+      "sec_shared": "نمای کلی"
+    },
+    "prod": {
+      "new_formula": "فرمولاسیون جدید",
+      "new_order": "سفارش تولید جدید",
+      "new_line": "افزودن ردیف ماده",
+      "save": "ذخیره",
+      "create": "ثبت سفارش",
+      "confirm": "تأیید"
+    },
+    "auth": {
+      "submit": "ورود"
+    }
+  }
+}

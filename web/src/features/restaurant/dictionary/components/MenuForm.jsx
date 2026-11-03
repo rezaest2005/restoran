@@ -5,6 +5,7 @@ import {
   InputAdornment, CircularProgress, Fade, Backdrop, Chip,
 } from "@mui/material";
 import { autoTranslate } from "../api";
+import { useRegisteredShortcuts, dialogBindings, KbdHint } from "../common";
 
 export default function MenuForm({ open, onClose, onSave, editItem, categories = [], C, isRtl, isDark }) {
   const { t } = useTranslation();
@@ -78,6 +79,15 @@ export default function MenuForm({ open, onClose, onSave, editItem, categories =
     });
     setSaving(false);
   };
+
+  // ── میان‌برها: Ctrl+D / Enter ذخیره · Escape بستن ──
+  useRegisteredShortcuts(
+    dialogBindings(t, {
+      onConfirm: () => { if (name.trim() && !saving && !translating) handleSave(); },
+      onClose,
+    }),
+    { enabled: open },
+  );
 
   const bg = isDark ? "#1a1a1a" : "#ffffff";
   const textPrimary = isDark ? "#f0ece4" : "#1a1a1a";
@@ -249,6 +259,7 @@ export default function MenuForm({ open, onClose, onSave, editItem, categories =
             </Button>
             <Button onClick={handleSave} disabled={!name.trim() || saving || translating} fullWidth sx={{ borderRadius: "14px", fontSize: 14, fontWeight: 700, textTransform: "none", py: 1.3, color: "#fff", background: "linear-gradient(135deg, " + olive + ", #556b2f)", boxShadow: "0 6px 24px " + olive + "30", "&:hover": { transform: "translateY(-2px)" }, "&.Mui-disabled": { bgcolor: textMuted, color: textSub } }}>
               {saving ? <CircularProgress size={20} sx={{ color: "#fff" }} /> : translating ? `🌐 ${t("ui_b.menuForm.translating")}` : t("dict.btn_save")}
+              {!saving && !translating && <KbdHint>Ctrl+D</KbdHint>}
             </Button>
           </Box>
         </Box>

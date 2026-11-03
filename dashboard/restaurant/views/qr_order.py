@@ -21,6 +21,7 @@ from rest_framework.permissions import AllowAny
 
 from ..models import Food, Order, OrderItem, Restaurant
 from ..utils import api_error, api_success
+from .common import client_ip
 
 logger = logging.getLogger(__name__)
 
@@ -29,10 +30,6 @@ MAX_QTY = 50
 RATE_LIMIT = 10          # حداکثر سفارش
 RATE_WINDOW = 600        # در هر ۱۰ دقیقه برای هر IP
 _TABLE_RE = re.compile(r"^[\w\-؀-ۿ ]{1,20}$")
-
-
-def _client_ip(request):
-    return request.META.get("REMOTE_ADDR", "unknown")
 
 
 def _unit_price(food):
@@ -57,7 +54,7 @@ def qr_order_submit(request):
     if (data.get("website") or "").strip():
         return api_success(message="سفارش ثبت شد.")
 
-    ip = _client_ip(request)
+    ip = client_ip(request)
     cache_key = f"qr_order:{ip}"
     count = cache.get(cache_key, 0)
     if count >= RATE_LIMIT:

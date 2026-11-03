@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { useState, useEffect, useCallback } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
@@ -8,8 +9,10 @@ import {
   fetchRawMaterials,
   fetchStock,
 } from "../api";
+import { buildInputSx, buildDialogPaperSx, useRegisteredShortcuts, dialogBindings, KbdHint } from "../common";
 
 export default function TransferModal({ open, onClose, warehouses, C, isDark, onSuccess, showToast }) {
+  const { t } = useTranslation();
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -118,30 +121,17 @@ export default function TransferModal({ open, onClose, warehouses, C, isDark, on
   const destWarehouse = warehouses.find(w => w.id == form.destination_warehouse_id);
   const selectedMaterial = materials.find(m => m.id == form.raw_material_id);
 
-  const inputSx = {
-    "& .MuiOutlinedInput-root": {
-      borderRadius: "12px",
-      bgcolor: C.inputBg,
-      backdropFilter: "blur(8px)",
-      fontSize: 13,
-      fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
-      color: C.text,
-      transition: "all 0.25s ease",
-      "& fieldset": { borderColor: C.glassBorder },
-      "&:hover fieldset": { borderColor: C.olive + "60" },
-      "&.Mui-focused fieldset": { borderColor: C.olive, borderWidth: 1.5 },
-      "&.Mui-focused": { boxShadow: `0 0 0 3px ${C.olive}18` },
-    },
-    "& .MuiInputLabel-root": { fontSize: 12, color: C.sub },
-    "& .MuiInputBase-input": { color: C.text },
-    "& .MuiInputBase-input::placeholder": { color: C.muted, opacity: 1 },
-  };
+  // ── میان‌برها: Ctrl+D / Enter ثبت · Escape بستن ──
+  useRegisteredShortcuts(
+    [
+      ...dialogBindings(t, { onConfirm: () => { if (!saving && !loading) handleSubmit(); }, onClose }),
+    ],
+    { enabled: open },
+  );
 
-  const dialogPaperSx = {
-    borderRadius: "16px",
-    bgcolor: isDark ? "#1A1A2E" : "#fff",
-    border: `1px solid ${C.glassBorder}`,
-  };
+  const inputSx = buildInputSx(C);
+
+  const dialogPaperSx = buildDialogPaperSx(C, isDark);
 
   return (
     <Dialog
@@ -308,6 +298,7 @@ export default function TransferModal({ open, onClose, warehouses, C, isDark, on
           }}
         >
           {saving ? "..." : "✅ تأیید انتقال"}
+          {!saving && <KbdHint>Ctrl+D</KbdHint>}
         </Button>
       </DialogActions>
     </Dialog>

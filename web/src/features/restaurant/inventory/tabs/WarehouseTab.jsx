@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box,
   Typography,
@@ -17,124 +18,15 @@ import {
 } from "@mui/material";
 import { Add, Delete, Close, SwapHoriz } from "@mui/icons-material";
 import { getUnitLabel } from "../../../../shared/common/units";
+import { readJSON, writeJSON, getCurrentUser, now, faDate, faTime, faDay, whIcon, calcStock, makeScale, useRegisteredShortcuts, KbdHint } from "../common";
 
-const F = (size) => Math.round(size * 1.1);
-
-const readJSON = (key, def = []) => {
-  try {
-    return JSON.parse(localStorage.getItem(key) || JSON.stringify(def));
-  } catch {
-    return def;
-  }
-};
-const writeJSON = (key, val) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(val));
-  } catch {}
-};
-
-const getCurrentUser = () => {
-  try {
-    const u = JSON.parse(localStorage.getItem("user") || "{}");
-    return u.username || u.full_name || "نامشخص";
-  } catch {
-    return "نامشخص";
-  }
-};
-
-const now = () => new Date();
-const faDate = (d) => {
-  try {
-    return d.toLocaleDateString("fa-IR");
-  } catch {
-    return d.toISOString().slice(0, 10);
-  }
-};
-const faTime = (d) => {
-  try {
-    return d.toLocaleTimeString("fa-IR", { hour: "2-digit", minute: "2-digit" });
-  } catch {
-    return d.toTimeString().slice(0, 5);
-  }
-};
-const faDay = (d) => {
-  try {
-    return d.toLocaleDateString("fa-IR", { weekday: "long" });
-  } catch {
-    return "";
-  }
-};
-
-const whIcon = (w) => {
-  if (!w) return "📦";
-  return w.icon || "📦";
-};
+const F = makeScale(1.1);
 
 // ═══════════ محاسبه موجودی (با material_code) ═══════════
-const calcStock = (warehouseId) => {
-  const invoices = readJSON("local_purchase_invoices", []);
-  const salesInvoices = readJSON("local_sales_invoices", []);
-  const transfers = readJSON("local_transfers", []);
-  const stock = {};
-
-  // ✅ کلید = material_code (همیشه یکتا)
-  const getKey = (it) => it.material_code || it.material_name;
-
-  const addStock = (key, data, qty) => {
-    if (!stock[key])
-      stock[key] = {
-        qty: 0,
-        unit: data.unit,
-        code: data.code,
-        category: data.category,
-        price: data.price || 0,
-        name: data.name,
-      };
-    stock[key].qty += qty;
-    if (data.price) stock[key].price = data.price;
-  };
-
-  for (const inv of invoices) {
-    if (String(inv.warehouse_id) !== String(warehouseId)) continue;
-    for (const it of inv.items) {
-      addStock(getKey(it), {
-        unit: it.unit, code: it.material_code,
-        category: it.category, price: it.unit_price,
-        name: it.material_name,
-      }, it.quantity);
-    }
-  }
-
-  for (const inv of salesInvoices) {
-    if (String(inv.warehouse_id) !== String(warehouseId)) continue;
-    for (const it of inv.items) {
-      addStock(getKey(it), {
-        unit: it.unit, code: it.material_code,
-        category: it.category, price: it.unit_price,
-        name: it.material_name,
-      }, -it.quantity);
-    }
-  }
-
-  for (const tr of transfers) {
-    for (const it of tr.items) {
-      const base = {
-        unit: it.unit, code: it.material_code,
-        category: it.category || "", price: it.price,
-        name: it.material_name,
-      };
-      if (String(tr.from_warehouse) === String(warehouseId))
-        addStock(getKey(it), base, -it.quantity);
-      if (String(tr.to_warehouse) === String(warehouseId))
-        addStock(getKey(it), base, it.quantity);
-    }
-  }
-
-  return Object.values(stock).filter((s) => s.qty !== 0);
-};
 
 // ═══════════ کامپوننت ═══════════
 export default function WarehouseTab({ C, isDark, showToast }) {
+  const { t } = useTranslation();
   const [warehouses, setWarehouses] = useState([]);
   const [selectedWh, setSelectedWh] = useState(null);
   const [search, setSearch] = useState("");
@@ -151,8 +43,6 @@ export default function WarehouseTab({ C, isDark, showToast }) {
 
   const transferFormRef = useRef(transferForm);
   transferFormRef.current = transferForm;
-  const transferOpenRef = useRef(transferOpen);
-  transferOpenRef.current = transferOpen;
   const materialsRef = useRef([]);
 
   const notify = useCallback(
@@ -339,57 +229,37 @@ export default function WarehouseTab({ C, isDark, showToast }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notify, closeTransfer]);
 
-  // ── کیبورد ──
-  useEffect(() => {
-    const handler = (e) => {
-      const to = transferOpenRef.current;
-      const isCtrl = e.ctrlKey && !e.altKey;
-
-      if (e.key === "F2" && !to) {
-        e.preventDefault();
-        openTransfer();
-        return;
-      }
-      if (!to) return;
-
-      if (e.key === "Escape") {
-        e.preventDefault();
-        closeTransfer();
-        return;
-      }
-      if (isCtrl && e.code === "KeyD") {
-        e.preventDefault();
-        handleSaveTransfer();
-        return;
-      }
-      if (isCtrl && e.code === "KeyN") {
-        e.preventDefault();
-        addTransferItem();
-        return;
-      }
-      if (isCtrl && e.code === "KeyZ") {
-        e.preventDefault();
-        removeLastTransferItem();
-        return;
-      }
-      if (e.key === "Enter" && !isCtrl && !e.altKey) {
-        const tag = e.target.tagName;
-        if (tag === "INPUT" || tag === "TEXTAREA") {
-          e.preventDefault();
-          addTransferItem();
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [
-    openTransfer,
-    closeTransfer,
-    handleSaveTransfer,
-    addTransferItem,
-    removeLastTransferItem,
+  // ── میان‌برها ──
+  // صفحه: F2 حواله جدید · Ctrl+A/Z انبار بعدی/قبلی
+  // دیالوگ حواله: Ctrl+D ثبت · Escape بستن · F3 قلم جدید · Enter (در فیلد) قلم جدید · Ctrl+Backspace حذف آخرین قلم
+  const stepWarehouse = (delta) => {
+    if (!warehouses.length) return false;
+    const idx = warehouses.findIndex((w) => String(w.id) === String(selectedWh?.id));
+    const next = Math.min(Math.max((idx < 0 ? 0 : idx + delta), 0), warehouses.length - 1);
+    setSelectedWh(warehouses[next]);
+  };
+  useRegisteredShortcuts([
+    { combo: "F2", label: t("ui_h.warehouse.new_transfer"), handler: openTransfer },
+    { combo: "Ctrl+A", label: t("shortcuts.next"), handler: () => stepWarehouse(1) },
+    { combo: "Ctrl+Z", label: t("shortcuts.prev"), handler: () => stepWarehouse(-1) },
   ]);
+  useRegisteredShortcuts(
+    [
+      { combo: "Ctrl+D", label: t("shortcuts.save"), handler: handleSaveTransfer, scope: "dialog" },
+      { combo: "Escape", label: t("shortcuts.close_dialog"), handler: closeTransfer, scope: "dialog" },
+      { combo: "F3", label: t("ui_h.new_line"), handler: addTransferItem, scope: "dialog" },
+      { combo: "Ctrl+Backspace", label: t("ui_h.remove_last_line"), handler: removeLastTransferItem, scope: "dialog" },
+      {
+        combo: "Enter", label: t("ui_h.new_line"), scope: "dialog", allowInInput: true,
+        handler: (e) => {
+          const tag = e.target.tagName;
+          if (tag !== "INPUT" && tag !== "TEXTAREA") return false;
+          addTransferItem();
+        },
+      },
+    ],
+    { enabled: transferOpen },
+  );
 
   // ── استایل‌ها ──
   const inputSx = {
@@ -477,11 +347,11 @@ export default function WarehouseTab({ C, isDark, showToast }) {
             📦 انبارها
           </Typography>
           <Typography sx={{ fontSize: F(10), color: C.sub, mt: 0.2 }}>
-            موجودی + حواله انتقال | F2 = حواله
+            موجودی + حواله انتقال | F2 = حواله | Ctrl+A / Ctrl+Z = انبار بعدی / قبلی
           </Typography>
         </Box>
         <Button onClick={openTransfer} sx={transferBtnSx}>
-          🔄 حواله انتقال (F2)
+          🔄 حواله انتقال<KbdHint>F2</KbdHint>
         </Button>
       </Box>
 
@@ -1371,7 +1241,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
               },
             }}
           >
-            افزودن قلم جدید (Enter / Ctrl+N)
+            افزودن قلم جدید (Enter / F3)
           </Button>
 
           {/* جمع + توضیح */}
@@ -1491,8 +1361,8 @@ export default function WarehouseTab({ C, isDark, showToast }) {
             {[
               { key: "Ctrl+D", label: "ثبت", color: "#2E7D32" },
               { key: "Enter", label: "قلم جدید", color: "#1565C0" },
-              { key: "Ctrl+N", label: "قلم جدید", color: "#1565C0" },
-              { key: "Ctrl+Z", label: "حذف قلم", color: "#C62828" },
+              { key: "F3", label: "قلم جدید", color: "#1565C0" },
+              { key: "Ctrl+⌫", label: "حذف قلم", color: "#C62828" },
               { key: "Esc", label: "بستن", color: "#E65100" },
             ].map((item) => (
               <Box

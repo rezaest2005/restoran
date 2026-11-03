@@ -1,25 +1,19 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box, Typography, Button, TextField, Select, MenuItem,
   CircularProgress, IconButton, Chip,
 } from "@mui/material";
 import { Add, Delete, Refresh, ReceiptLong } from "@mui/icons-material";
 import { getUnitLabel } from "../../../../shared/common/units";
+import { readJSON, writeJSON, toFa, toLatin, pad2, gregorianToJalali, jalaliToGregorian, makeScale, useRowCursor, cursorAttrs, cursorSx, useRegisteredShortcuts, KbdHint } from "../common";
 
-const F = (size) => Math.round(size * 1.1);
+const F = makeScale(1.1);
 
 const LS_MATERIALS = "local_materials";
 const LS_WAREHOUSES = "local_warehouses";
 const LS_SUPPLIERS = "local_suppliers";
 const LS_INVOICES = "local_purchase_invoices";
-
-const readJSON = (key, def = []) => {
-  try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(def)); }
-  catch { return def; }
-};
-const writeJSON = (key, val) => {
-  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
-};
 
 const MOTHER = { id: "mother", name: "انبار مرکزی", is_mother: true };
 const emptyItem = () => ({ code: "", raw_material_id: "", quantity: "", unit_price: "" });
@@ -42,49 +36,6 @@ const supFullName = (first, last) => [first, last].map((x) => (x || "").trim()).
 const digitsOnly = (s) => toLatin(s || "").replace(/\D/g, "");
 
 // ═══════════ تاریخ شمسی (جلالی) ═══════════
-const FA_DIGITS = "۰۱۲۳۴۵۶۷۸۹";
-const toFa = (s) => String(s).replace(/\d/g, (d) => FA_DIGITS[d]);
-const toLatin = (s) =>
-  String(s)
-    .replace(/[۰-۹]/g, (d) => FA_DIGITS.indexOf(d))
-    .replace(/[٠-٩]/g, (d) => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
-const pad2 = (n) => String(n).padStart(2, "0");
-const div = (a, b) => Math.trunc(a / b);
-const G_DM = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-
-function gregorianToJalali(gy, gm, gd) {
-  const gy2 = gm > 2 ? gy + 1 : gy;
-  let days = 355666 + 365 * gy + div(gy2 + 3, 4) - div(gy2 + 99, 100) + div(gy2 + 399, 400) + gd + G_DM[gm - 1];
-  let jy = -1595 + 33 * div(days, 12053);
-  days %= 12053;
-  jy += 4 * div(days, 1461);
-  days %= 1461;
-  if (days > 365) { jy += div(days - 1, 365); days = (days - 1) % 365; }
-  const jm = days < 186 ? 1 + div(days, 31) : 7 + div(days - 186, 30);
-  const jd = 1 + (days < 186 ? days % 31 : (days - 186) % 30);
-  return [jy, jm, jd];
-}
-
-function jalaliToGregorian(jy, jm, jd) {
-  jy += 1595;
-  let days = -355668 + 365 * jy + div(jy, 33) * 8 + div((jy % 33) + 3, 4) + jd + (jm < 7 ? (jm - 1) * 31 : (jm - 7) * 30 + 186);
-  let gy = 400 * div(days, 146097);
-  days %= 146097;
-  if (days > 36524) {
-    gy += 100 * div(--days, 36524);
-    days %= 36524;
-    if (days >= 365) days++;
-  }
-  gy += 4 * div(days, 1461);
-  days %= 1461;
-  if (days > 365) { gy += div(days - 1, 365); days = (days - 1) % 365; }
-  let gd = days + 1;
-  const leap = (gy % 4 === 0 && gy % 100 !== 0) || gy % 400 === 0;
-  const sal = [0, 31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-  let gm = 0;
-  while (gm < 13 && gd > sal[gm]) { gd -= sal[gm]; gm++; }
-  return [gy, gm, gd];
-}
 
 // "2026-10-25" → "1405/08/03" (ارقام لاتین)
 const isoToJalaliText = (iso) => {
@@ -182,6 +133,7 @@ function FieldBox({ C, label, children }) {
 }
 
 export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
+  const { t } = useTranslation();
   // همه متن‌ها سفید/واضح: رنگ‌های کم‌رنگ (sub/muted) با رنگ اصلی متن جایگزین می‌شوند
   const C = useMemo(() => ({ ...CBase, sub: CBase.text, muted: CBase.text }), [CBase]);
 
@@ -218,7 +170,6 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
   const savingRef = useRef(false);
   const formRef = useRef(form); formRef.current = form;
   const itemsRef = useRef(items); itemsRef.current = items;
-  const showFormRef = useRef(showForm); showFormRef.current = showForm;
 
   const notify = useCallback((msg, type = "info") => {
     if (typeof showToast === "function") showToast(msg, type);
@@ -554,35 +505,31 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
     setShowForm(false);
   }, []);
 
-  // ═══════════ کیبورد کامل ═══════════
-  const handleFormKeyDown = useCallback((e) => {
-    const sf = showFormRef.current;
-    const isCtrl = e.ctrlKey && !e.altKey;
-
-    // ── F2 = قلم جدید (اگر فرم بسته است، فاکتور جدید باز می‌شود) ──
-    if (e.key === "F2") {
-      e.preventDefault();
-      if (!sf) { openForm(); return; }
-      const n = itemsRef.current.length;
-      addItem();
-      setTimeout(() => focusCell(`code-${n}`), 50);
-      return;
-    }
-
-    if (e.key === "Escape") {
-      e.preventDefault();
-      if (sf) closeForm();
-      return;
-    }
-
-    // Ctrl+D (ذخیره) در شنونده‌ی جدا و زودتر (capture) مدیریت می‌شود
-
-    // ── Enter = رفتن به خانه بعدی؛ در آخرین خانه ردیف، قلم جدید ──
-    if (e.key === "Enter" && !isCtrl && !e.altKey && sf) {
-      const tag = e.target.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") {
-        if (!formBoxRef.current?.contains(e.target)) return;
-        e.preventDefault();
+  // ═══════════ کیبورد (useShortcuts) ═══════════
+  // فرم بسته: F2 فاکتور جدید · Ctrl+A/Z فاکتور بعدی/قبلی · Delete حذف فاکتور انتخاب‌شده
+  // فرم باز: F2 قلم جدید · Ctrl+D ذخیره · Ctrl+A/Z خانهٔ بعدی/قبلی · Enter خانهٔ بعدی (در آخرین خانه: قلم جدید) · Escape بستن فرم
+  const cursor = useRowCursor(invoices.length);
+  useRegisteredShortcuts([
+    { combo: "F2", label: t("shortcuts.new"), handler: openForm, when: !showForm },
+    {
+      combo: "F2", label: t("ui_h.new_line"), when: showForm,
+      handler: () => {
+        const n = items.length;
+        addItem();
+        setTimeout(() => focusCell(`code-${n}`), 50);
+      },
+    },
+    { combo: "Escape", label: t("shortcuts.close_dialog"), handler: closeForm, when: showForm },
+    {
+      combo: "Ctrl+D", label: t("shortcuts.save"), when: showForm,
+      handler: (e) => { if (e.repeat) return; handleSave(); },
+    },
+    {
+      combo: "Enter", label: t("ui_h.next_cell"), when: showForm, allowInInput: true,
+      handler: (e) => {
+        const tag = e.target.tagName;
+        if (tag !== "INPUT" && tag !== "TEXTAREA") return false;
+        if (!formBoxRef.current?.contains(e.target)) return false;
         const cell = e.target.dataset?.cell;
         if (!cell) { moveFocus(1); return; }
         const [kind, i] = cell.split("-");
@@ -590,50 +537,40 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
         if (kind === "code") focusCell(`qty-${idx}`);
         else if (kind === "qty") focusCell(`price-${idx}`);
         else if (kind === "price") {
-          if (idx < itemsRef.current.length - 1) focusCell(`code-${idx + 1}`);
+          if (idx < items.length - 1) focusCell(`code-${idx + 1}`);
           else {
             addItem();
             setTimeout(() => focusCell(`code-${idx + 1}`), 50);
           }
         }
-      }
-      return;
-    }
-
-    // ── Ctrl+A = ردیف بعدی ، Ctrl+Z = ردیف قبلی (همان ستونی که روی آن هستید) ──
-    if (isCtrl && sf && (e.code === "KeyA" || e.code === "KeyZ")) {
-      // وقتی منوی بازِ یک لیست انتخاب است، دخالت نکن
-      if (document.activeElement?.closest?.('[role="listbox"], [role="menu"]')) return;
-      e.preventDefault();
-      moveFocus(e.code === "KeyA" ? 1 : -1);
-      return;
-    }
-  }, [openForm, closeForm, addItem, focusCell, moveFocus]);
-  // (Enter روی خانه‌های بالای فرم هم به خانه‌ی بعدی می‌رود)
-
-  useEffect(() => {
-    const handler = (e) => handleFormKeyDown(e);
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [handleFormKeyDown]);
-
-  // ── ذخیره با Ctrl+D ──
-  // در فاز capture ثبت می‌شود تا قبل از هر چیز دیگر (حتی «افزودن نشانک» مرورگر) اجرا شود
-  const handleSaveRef = useRef(handleSave); handleSaveRef.current = handleSave;
-  useEffect(() => {
-    const onSaveKey = (e) => {
-      if (!showFormRef.current) return;
-      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
-      const k = String(e.key || "").toLowerCase();
-      const isD = e.code === "KeyD" || k === "d" || k === "ی"; // ی = حرف D در کیبورد فارسی
-      if (!isD) return;
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      if (!e.repeat) handleSaveRef.current();
-    };
-    window.addEventListener("keydown", onSaveKey, true);
-    return () => window.removeEventListener("keydown", onSaveKey, true);
-  }, []);
+      },
+    },
+    {
+      combo: "Ctrl+A", label: t("shortcuts.next"), when: showForm,
+      handler: () => {
+        // وقتی منوی بازِ یک لیست انتخاب است، دخالت نکن
+        if (document.activeElement?.closest?.('[role="listbox"], [role="menu"]')) return false;
+        moveFocus(1);
+      },
+    },
+    {
+      combo: "Ctrl+Z", label: t("shortcuts.prev"), when: showForm,
+      handler: () => {
+        if (document.activeElement?.closest?.('[role="listbox"], [role="menu"]')) return false;
+        moveFocus(-1);
+      },
+    },
+    { combo: "Ctrl+A", label: t("shortcuts.next"), handler: cursor.next, when: !showForm },
+    { combo: "Ctrl+Z", label: t("shortcuts.prev"), handler: cursor.prev, when: !showForm },
+    {
+      combo: "Delete", label: t("ui_h.delete_selected"), when: !showForm,
+      handler: () => {
+        const inv = invoices[cursor.index];
+        if (!inv) return false;
+        if (window.confirm(t("ui_h.confirm_delete_invoice", { name: inv.invoice_number }))) handleDeleteInvoice(inv.id);
+      },
+    },
+  ]);
 
   // ── استایل‌ها ──
   const inputSx = {
@@ -717,7 +654,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
             <Refresh sx={{ fontSize: 16 }} />
           </IconButton>
           <Button onClick={() => (showForm ? closeForm() : openForm())} sx={btnSx}>
-            {showForm ? "✖ بستن فرم (Esc)" : "➕ فاکتور جدید (F2)"}
+            {showForm ? "✖ بستن فرم" : "➕ فاکتور جدید"}<KbdHint>{showForm ? "Esc" : "F2"}</KbdHint>
           </Button>
         </Box>
       </Box>
@@ -1070,7 +1007,8 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
           <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 1.5 }}>
             <Button onClick={closeForm} sx={cancelBtnSx}>انصراف (Esc)</Button>
             <Button onClick={handleSave} disabled={saving || validItems.length === 0} sx={btnSx}>
-              {saving ? <CircularProgress size={14} sx={{ color: "#fff" }} /> : "💾 ذخیره (Ctrl+D)"}
+              {saving ? <CircularProgress size={14} sx={{ color: "#fff" }} /> : "💾 ذخیره"}
+              {!saving && <KbdHint>Ctrl+D</KbdHint>}
             </Button>
           </Box>
         </Box>
@@ -1136,7 +1074,8 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
                 || suppliers.find((x) => String(x.id) === String(inv.supplier_id))?.name
                 || "";
               return (
-                <Box key={inv.id} sx={{
+                <Box key={inv.id} {...cursorAttrs(cursor.isActive(i))} sx={{
+                  ...cursorSx(C, cursor.isActive(i)),
                   bgcolor: C.glass, border: `1px solid ${C.glassBorder}`,
                   borderRadius: "10px", p: 1.5,
                   opacity: 0,

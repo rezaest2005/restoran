@@ -5,6 +5,7 @@ import {
 import { useTranslation } from "react-i18next";
 import i18n from "../../../../i18n";
 import { getUnitLabel } from "../../../../shared/common/units";
+import { readJSON, gregorianToJalali, pad2 } from "../common";
 
 // ═══════════ ثابت‌ها ═══════════
 const PAYMENTS = {
@@ -25,23 +26,7 @@ const PERIODS = [
 const FA = "۰۱۲۳۴۵۶۷۸۹";
 const toFa = (s) => (i18n.language === "fa" ? String(s).replace(/\d/g, (d) => FA[d]) : String(s));
 const pctSign = () => (i18n.language === "fa" ? "٪" : "%");
-const div = (a, b) => Math.trunc(a / b);
-const G_DM = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
 
-function gregorianToJalali(gy, gm, gd) {
-  const gy2 = gm > 2 ? gy + 1 : gy;
-  let days = 355666 + 365 * gy + div(gy2 + 3, 4) - div(gy2 + 99, 100) + div(gy2 + 399, 400) + gd + G_DM[gm - 1];
-  let jy = -1595 + 33 * div(days, 12053);
-  days %= 12053;
-  jy += 4 * div(days, 1461);
-  days %= 1461;
-  if (days > 365) { jy += div(days - 1, 365); days = (days - 1) % 365; }
-  const jm = days < 186 ? 1 + div(days, 31) : 7 + div(days - 186, 30);
-  const jd = 1 + (days < 186 ? days % 31 : (days - 186) % 30);
-  return [jy, jm, jd];
-}
-
-const pad2 = (n) => String(n).padStart(2, "0");
 const fmtJalali = (iso) => {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ""));
   if (!m) return "—";
@@ -50,10 +35,6 @@ const fmtJalali = (iso) => {
 };
 
 const fmtMoney = (n) => (n || 0).toLocaleString("en-US");
-const readJSON = (key, def = []) => {
-  try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(def)); }
-  catch { return def; }
-};
 
 // ═══════════════════════════════════════════════════
 //   کامپوننت: کارت آمار بزرگ

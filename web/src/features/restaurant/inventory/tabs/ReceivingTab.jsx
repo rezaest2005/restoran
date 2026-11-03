@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box, Typography, Button, TextField, Select, MenuItem,
   CircularProgress, Chip, Dialog, DialogTitle, DialogContent,
@@ -7,6 +8,7 @@ import { fetchWarehouseMovements, fetchWarehouses } from "../api";
 import ReceiveModal from "../components/ReceiveModal";
 import IssueModal from "../components/IssueModal";
 import WasteModal from "../components/WasteModal";
+import { buildInputSx, buildDialogPaperSx, useRowCursor, cursorAttrs, cursorSx, cursorBindings, useRegisteredShortcuts, onEnter, KbdHint } from "../common";
 
 const TYPE_FILTERS = [
   { value: "all", label: "همه", icon: "📋" },
@@ -42,6 +44,7 @@ function formatDate(dateStr) {
 }
 
 export default function ReceivingTab({ C, isDark, showToast }) {
+  const { t } = useTranslation();
   const [movements, setMovements] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -99,25 +102,29 @@ export default function ReceivingTab({ C, isDark, showToast }) {
 
   const handleSuccess = () => load();
 
-  const inputSx = {
-    "& .MuiOutlinedInput-root": {
-      borderRadius: "12px", bgcolor: C.inputBg, backdropFilter: "blur(8px)",
-      fontSize: 13, fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif", color: C.text,
-      transition: "all 0.25s ease",
-      "& fieldset": { borderColor: C.glassBorder },
-      "&:hover fieldset": { borderColor: C.olive + "60" },
-      "&.Mui-focused fieldset": { borderColor: C.olive, borderWidth: 1.5 },
-      "&.Mui-focused": { boxShadow: `0 0 0 3px ${C.olive}18` },
+  // ── میان‌برها: F2 ورود کالا · F3 خروج · F4 ضایعات · Ctrl+A/Z ردیف · Enter جزئیات ──
+  const cursor = useRowCursor(filtered.length);
+  useRegisteredShortcuts([
+    { combo: "F2", label: t("ui_h.receiving.receive"), handler: () => setReceiveOpen(true) },
+    { combo: "F3", label: t("ui_h.receiving.issue"), handler: () => setIssueOpen(true) },
+    { combo: "F4", label: t("ui_h.receiving.waste"), handler: () => setWasteOpen(true) },
+    ...cursorBindings(t, cursor),
+    {
+      combo: "Enter", label: t("ui_h.show_details"),
+      handler: onEnter(() => { const r = filtered[cursor.index]; if (!r) return false; setDetailOpen(r); }),
     },
-    "& .MuiInputLabel-root": { fontSize: 12, color: C.sub },
-    "& .MuiInputBase-input": { color: C.text },
-    "& .MuiInputBase-input::placeholder": { color: C.muted, opacity: 1 },
-  };
+  ]);
+  useRegisteredShortcuts(
+    [
+      { combo: "Enter", label: t("shortcuts.close_dialog"), handler: onEnter(() => setDetailOpen(null)), scope: "dialog", allowInInput: true },
+      { combo: "Escape", label: t("shortcuts.close_dialog"), handler: () => setDetailOpen(null), scope: "dialog" },
+    ],
+    { enabled: !!detailOpen },
+  );
 
-  const dialogPaperSx = {
-    borderRadius: "16px", bgcolor: isDark ? "#1A1A2E" : "#fff",
-    border: `1px solid ${C.glassBorder}`,
-  };
+  const inputSx = buildInputSx(C);
+
+  const dialogPaperSx = buildDialogPaperSx(C, isDark);
 
   if (loading) {
     return (
@@ -153,7 +160,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
               "&:hover": { transform: "translateY(-1px)" },
             }}
           >
-            ➕ ورود کالا
+            ➕ ورود کالا<KbdHint>F2</KbdHint>
           </Button>
           <Button
             onClick={() => setIssueOpen(true)}
@@ -164,7 +171,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
               border: `1px solid ${C.warning}30`,
             }}
           >
-            ➖ خروج
+            ➖ خروج<KbdHint>F3</KbdHint>
           </Button>
           <Button
             onClick={() => setWasteOpen(true)}
@@ -175,7 +182,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
               border: `1px solid ${C.danger}30`,
             }}
           >
-            🗑 ضایعات
+            🗑 ضایعات<KbdHint>F4</KbdHint>
           </Button>
         </Box>
       </Box>
@@ -259,7 +266,9 @@ export default function ReceivingTab({ C, isDark, showToast }) {
               <Box
                 key={m.id || i}
                 onClick={() => setDetailOpen(m)}
+                {...cursorAttrs(cursor.isActive(i))}
                 sx={{
+                  ...cursorSx(C, cursor.isActive(i)),
                   display: "flex", alignItems: "center",
                   px: 2, py: 1.2, borderRadius: "10px",
                   bgcolor: C.glass, backdropFilter: "blur(12px)",

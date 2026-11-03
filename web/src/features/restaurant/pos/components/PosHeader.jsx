@@ -33,6 +33,7 @@ export default function PosHeader({
           },
         }}
         slotProps={{
+          htmlInput: { id: "pos-search-input", "data-pos-search": "1" },
           input: {
             startAdornment: (
               <InputAdornment position="start">

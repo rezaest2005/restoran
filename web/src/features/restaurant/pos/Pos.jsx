@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { Box, Snackbar, Alert, Typography, Drawer, Badge } from "@mui/material";
+import { Box, Typography, Drawer, Badge } from "@mui/material";
 import { Storefront, Assessment, Public, Settings, ShoppingCart, Notifications, QrCode2 } from "@mui/icons-material";
 import { useParams } from "react-router-dom";
 import TableQrDialog from "@/features/public/TableQrDialog";
@@ -27,6 +27,9 @@ import PaymentSettingsPage from "./components/PaymentSettingsPage";
 import IncomingOrders from "./components/IncomingOrders";
 import useIncomingOrders from "./hooks/useIncomingOrders";
 import { buildColors } from "@shared/palette";
+import useShortcuts from "@shared/common/useShortcuts";
+import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
+import { buildGlassCardSx, useToast, ToastSnackbar, formatMoney } from "./common";
 
 const NAV_ITEMS = [
   { key: "pos", icon: Storefront, labelKey: "ui_c.pos.nav_pos" },
@@ -49,19 +52,20 @@ export default function Pos() {
   const [custName, setCustName] = useState("");
   const [custPhone, setCustPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [toast, setToast] = useState({ open: false, message: "", type: "info" });
+  const { toast, showToast, closeToast } = useToast();
   const [mainTab, setMainTab] = useState("pos");
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const [accepted, setAccepted] = useState([]);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const incoming = useIncomingOrders({
-    onNewOrder: (o) => setToast({
-      open: true, type: "info",
-      message: o.table_number
+    onNewOrder: (o) => showToast(
+      o.table_number
         ? t("ui_f.incoming.new_order_table", { n: o.table_number })
         : t("ui_f.incoming.new_order"),
-    }),
+      "info",
+    ),
   });
 
   // slug: URL param -> logged-in user object -> slug saved by api client from URL
@@ -124,24 +128,17 @@ export default function Pos() {
 
   const C = useMemo(() => buildColors(isDark), [isDark]);
 
-  const glassCardSx = {
-    bgcolor: C.glass,
-    backdropFilter: "blur(28px)",
-    WebkitBackdropFilter: "blur(28px)",
-    border: `1px solid ${C.glassBorder}`,
-    borderRadius: "16px",
-    boxShadow: C.cardShadow,
-  };
+  const glassCardSx = useMemo(() => buildGlassCardSx(C), [C]);
 
   const handleAddManual = (item) => {
     addToCart(item);
-    setToast({ open: true, message: t("ui_c.pos.added_to_cart", { name: item.name }), type: "success" });
+    showToast(t("ui_c.pos.added_to_cart", { name: item.name }), "success");
   };
 
   const handleCheckoutClick = () => {
     if (cart.length === 0) return;
     if (requireCustomer && !custName.trim()) {
-      setToast({ open: true, message: t("ui_c.pos.customer_required"), type: "warning" });
+      showToast(t("ui_c.pos.customer_required"), "warning");
       return;
     }
     setMobileCartOpen(false);
@@ -163,10 +160,51 @@ export default function Pos() {
       setCustName("");
       setCustPhone("");
       reloadReport();
-      setToast({ open: true, message: t("ui_c.pos.order_saved", { id: result.order_id }), type: "success" });
+      showToast(t("ui_c.pos.order_saved", { id: result.order_id }), "success");
     }
     return result;
   };
+
+  // ── میان‌برهای کیبورد صفحه‌ی صندوق ──
+  const newOrder = () => {
+    clearCart();
+    setCustName("");
+    setCustPhone("");
+    setMobileCartOpen(false);
+    setMainTab("pos");
+    setTimeout(() => document.getElementById("pos-search-input")?.focus(), 0);
+  };
+
+  const shortcuts = [
+    { combo: "F1", label: t("shortcuts.help"), handler: () => setHelpOpen(true) },
+    { combo: "F2", label: t("ui_g.pos.new_order"), handler: newOrder },
+    { combo: "Ctrl+D", label: t("ui_g.pos.checkout"), handler: handleCheckoutClick, when: mainTab === "pos" },
+    { combo: "/", label: t("ui_g.pos.focus_search"), when: mainTab === "pos" && !!useDictionary,
+      handler: () => document.getElementById("pos-search-input")?.focus() },
+    ...NAV_ITEMS.map(({ labelKey }, i) => ({
+      combo: `Alt+${i + 1}`,
+      label: `${t("shortcuts.tab_n", { n: i + 1 })} — ${t(labelKey)}`,
+      handler: () => setMainTab(NAV_ITEMS[i].key),
+    })),
+  ];
+  useShortcuts(shortcuts);
+
+  // ردیف‌هایی که در کامپوننت‌های فرزند ثبت می‌شوند (فقط برای راهنما)
+  const helpItems = [
+    ...shortcuts.filter((b) => b.when !== false),
+    ...(mainTab === "pos" ? [
+      { combo: "Ctrl+A", label: t("ui_g.pos.next_product") },
+      { combo: "Ctrl+Z", label: t("ui_g.pos.prev_product") },
+      { combo: "Enter", label: t("ui_g.pos.add_product") },
+    ] : []),
+    ...(mainTab === "incoming" ? [
+      { combo: "Ctrl+D", label: t("ui_g.pos.accept_first") },
+      { combo: "Ctrl+A", label: t("ui_g.pos.next_order") },
+      { combo: "Ctrl+Z", label: t("ui_g.pos.prev_order") },
+      { combo: "Delete", label: t("ui_g.pos.reject_focused") },
+    ] : []),
+    { combo: "Escape", label: t("shortcuts.close_dialog") },
+  ];
 
   // ★ استخراج پراپ‌های CartPanel برای جلوگیری از تکرار کد (DRY)
   const cartPanelProps = {
@@ -210,7 +248,7 @@ export default function Pos() {
         {NAV_ITEMS.map(({ key, icon: Icon, labelKey }) => {
           const active = mainTab === key;
           return (
-            <Box key={key} onClick={() => setMainTab(key)} sx={{
+            <Box key={key} onClick={() => setMainTab(key)} title={`Alt+${NAV_ITEMS.findIndex((n) => n.key === key) + 1}`} sx={{
               display: "flex", alignItems: "center",
               gap: { xs: 0.4, sm: 0.8 },
               px: { xs: 1.2, sm: 2 },
@@ -381,7 +419,7 @@ export default function Pos() {
                     fontFamily: "'Vazirmatn', sans-serif",
                     lineHeight: 1.3,
                   }}>
-                    {cartTotal.toLocaleString()}
+                    {formatMoney(cartTotal)}
                     <Typography component="span" sx={{
                       fontSize: 10, fontWeight: 600, color: C.muted,
                       fontFamily: "'Vazirmatn', sans-serif",
@@ -521,7 +559,7 @@ export default function Pos() {
           <IncomingOrders
             {...incoming}
             accepted={accepted} setAccepted={setAccepted}
-            onToast={(message, type) => setToast({ open: true, message, type })}
+            onToast={showToast}
             C={C} glassCardSx={glassCardSx} isRtl={isRtl} lang={lang}
           />
         )}
@@ -556,6 +594,7 @@ export default function Pos() {
         C={C}
         isRtl={isRtl}
         lastOrder={lastOrder}
+        defaultMethod={paymentMethod}
         cart={cart}
         cartTotal={cartTotal}
         onSubmit={handlePayment}
@@ -563,22 +602,8 @@ export default function Pos() {
         error={error}
       />
 
-      <Snackbar
-        open={toast.open} autoHideDuration={3000}
-        onClose={() => setToast({ ...toast, open: false })}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert severity={toast.type} sx={{
-          bgcolor: C.glass,
-          backdropFilter: "blur(16px)",
-          color: C.text,
-          border: `1px solid ${C.olive}`,
-          borderRadius: "12px",
-          fontFamily: "'Vazirmatn', sans-serif",
-        }}>
-          {toast.message}
-        </Alert>
-      </Snackbar>
+      <ToastSnackbar toast={toast} onClose={closeToast} C={C} />
+      <ShortcutsHelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} items={helpItems} />
     </Box>
   );
 }

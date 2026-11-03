@@ -1,5 +1,6 @@
-import { useState, useMemo, useCallback } from "react";
-import { Box, Typography, Button, Snackbar, Alert } from "@mui/material";
+import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import { Box, Typography } from "@mui/material";
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 
@@ -10,6 +11,8 @@ import ReportsTab from "./tabs/ReportsTab";
 import PurchaseInvoiceTab from "./tabs/PurchaseInvoiceTab";
 import SalesInvoiceTab from "./tabs/SalesInvoiceTab";
 import { buildColors } from "@shared/palette";
+import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
+import { useToast, ToastSnackbar, TabBar, useRegisteredShortcuts, tabBindings, helpBinding, collectShortcuts } from "./common";
 
 const TABS = [
   { id: "invoice", icon: "🧾", label: "ثبت فاکتور خرید" },
@@ -26,16 +29,14 @@ export default function InventoryPage() {
   const isDark = mode === "dark";
 
   const [activeTab, setActiveTab] = useState(TABS[0].id);
-  const [toast, setToast] = useState({
-    open: false,
-    message: "",
-    type: "info",
-  });
+  const { toast, showToast, closeToast } = useToast();
+  const { t } = useTranslation();
+  const [help, setHelp] = useState(null);
 
-  const showToast = useCallback(
-    (message, type = "info") => setToast({ open: true, message, type }),
-    [],
-  );
+  useRegisteredShortcuts([
+    ...tabBindings(t, TABS, setActiveTab),
+    helpBinding(t, () => setHelp(collectShortcuts())),
+  ]);
 
   const C = useMemo(() => buildColors(isDark), [isDark]);
 
@@ -65,45 +66,7 @@ export default function InventoryPage() {
       </Box>
 
       {/* تب‌ها */}
-      <Box
-        sx={{
-          display: "flex",
-          gap: 0.5,
-          mb: 3,
-          bgcolor: C.glass,
-          backdropFilter: "blur(16px)",
-          border: `1px solid ${C.glassBorder}`,
-          borderRadius: "14px",
-          p: 0.5,
-          width: "fit-content",
-          flexWrap: "wrap",
-        }}
-      >
-        {TABS.map((tab) => (
-          <Button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            sx={{
-              borderRadius: "10px",
-              px: { xs: 1.5, md: 2.5 },
-              py: 1,
-              fontSize: 12,
-              fontWeight: activeTab === tab.id ? 700 : 500,
-              textTransform: "none",
-              transition: "all 0.2s ease",
-              color: activeTab === tab.id ? C.olive : C.sub,
-              bgcolor: activeTab === tab.id ? C.oliveSubtle : "transparent",
-              border:
-                activeTab === tab.id
-                  ? `1px solid ${C.olive}30`
-                  : "1px solid transparent",
-              "&:hover": { bgcolor: C.oliveSubtle },
-            }}
-          >
-            {tab.icon} {tab.label}
-          </Button>
-        ))}
-      </Box>
+      <TabBar tabs={TABS} active={activeTab} onSelect={setActiveTab} C={C} />
 
       {/* محتوای تب */}
       <Box
@@ -138,29 +101,9 @@ export default function InventoryPage() {
       </Box>
 
       {/* Toast */}
-      <Snackbar
-        open={toast.open}
-        autoHideDuration={3000}
-        onClose={() => setToast((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setToast((s) => ({ ...s, open: false }))}
-          severity={toast.type}
-          sx={{
-            bgcolor: C.glass,
-            backdropFilter: "blur(16px)",
-            color: C.text,
-            border: `1px solid ${C.olive}`,
-            borderRadius: "12px",
-            fontSize: 13,
-            fontWeight: 600,
-            boxShadow: C.cardShadow,
-          }}
-        >
-          {toast.message}
-        </Alert>
-      </Snackbar>
+      <ToastSnackbar toast={toast} onClose={closeToast} C={C} />
+
+      <ShortcutsHelpDialog open={!!help} onClose={() => setHelp(null)} items={help || []} />
     </Box>
   );
 }

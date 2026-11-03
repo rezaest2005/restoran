@@ -5,6 +5,8 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import { useTranslation } from "react-i18next";
 import { formatPrice } from "./ProductCard";
+import useShortcuts from "@shared/common/useShortcuts";
+import KbdHint from "@restaurant/pos/common/KbdHint";
 
 export default function CartSheet({
   open, onClose, C, lines, total, getName,
@@ -14,6 +16,12 @@ export default function CartSheet({
   submitting, error, onSubmit,
 }) {
   const { t } = useTranslation();
+
+  // Ctrl+D = ثبت سفارش (وقتی برگه باز است)
+  useShortcuts([
+    { combo: "Ctrl+D", label: t("ui_d.qr.submit"), scope: "dialog",
+      handler: () => { if (!submitting && lines.length > 0) onSubmit(); } },
+  ], { enabled: open });
 
   const fieldSx = {
     "& .MuiOutlinedInput-root": { background: C.inputBg, borderRadius: 2, color: C.text },
@@ -111,7 +119,7 @@ export default function CartSheet({
             "&.Mui-disabled": { opacity: 0.5, color: C.onPrimary },
           }}
         >
-          {submitting ? (<><CircularProgress size={18} sx={{ color: C.onPrimary, mx: 1 }} />{t("ui_d.qr.submitting")}</>) : t("ui_d.qr.submit")}
+          {submitting ? (<><CircularProgress size={18} sx={{ color: C.onPrimary, mx: 1 }} />{t("ui_d.qr.submitting")}</>) : <>{t("ui_d.qr.submit")}<KbdHint>Ctrl+D</KbdHint></>}
         </Button>
       </Box>
     </Drawer>

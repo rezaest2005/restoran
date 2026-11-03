@@ -11,6 +11,8 @@ import PosSection from "./sections/PosSection";
 import InventorySection from "./sections/InventorySection";
 import SharedSection from "./sections/SharedSection";
 import { buildColors } from "@shared/palette";
+import useShortcuts from "@shared/common/useShortcuts";
+import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 
 class SectionErrorBoundary extends React.Component {
   constructor(props) {
@@ -63,6 +65,39 @@ export default function Dashboard() {
   }, []);
 
   const C = useMemo(() => buildColors(isDark), [isDark]);
+
+  // ── میان‌برها: Alt+N پرش به بخش · Ctrl+A/Ctrl+Z بخش بعدی/قبلی · F1 راهنما ──
+  const [helpOpen, setHelpOpen] = useState(false);
+  const sections = useMemo(() => [
+    posData && { id: "dash-sec-pos", label: t("ui_g.dash.sec_pos") },
+    inventoryData && { id: "dash-sec-inventory", label: t("ui_g.dash.sec_inventory") },
+    { id: "dash-sec-shared", label: t("ui_g.dash.sec_shared") },
+  ].filter(Boolean), [posData, inventoryData, t]);
+
+  const currentSection = () => {
+    let idx = 0;
+    sections.forEach((s, i) => {
+      const el = document.getElementById(s.id);
+      if (el && el.getBoundingClientRect().top <= 120) idx = i;
+    });
+    return idx;
+  };
+  const jumpTo = (i) => {
+    const s = sections[Math.min(Math.max(i, 0), sections.length - 1)];
+    document.getElementById(s?.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const shortcuts = [
+    { combo: "F1", label: t("shortcuts.help"), handler: () => setHelpOpen(true) },
+    { combo: "Ctrl+A", label: t("ui_g.dash.next_section"), handler: () => jumpTo(currentSection() + 1) },
+    { combo: "Ctrl+Z", label: t("ui_g.dash.prev_section"), handler: () => jumpTo(currentSection() - 1) },
+    ...sections.map((s, i) => ({
+      combo: `Alt+${i + 1}`,
+      label: `${t("ui_g.dash.section_n", { n: i + 1 })} — ${s.label}`,
+      handler: () => jumpTo(i),
+    })),
+  ];
+  useShortcuts(shortcuts, { enabled: !loading });
 
   const dateText = useMemo(() => {
     const now = new Date();
@@ -129,22 +164,30 @@ export default function Dashboard() {
 
       {/* ✅ بخش ۱: صندوق / فروش */}
       {posData && (
-        <SectionErrorBoundary name="PosSection">
-          <PosSection data={posData} />
-        </SectionErrorBoundary>
+        <Box id="dash-sec-pos" sx={{ scrollMarginTop: 72 }}>
+          <SectionErrorBoundary name="PosSection">
+            <PosSection data={posData} />
+          </SectionErrorBoundary>
+        </Box>
       )}
 
       {/* ✅ بخش ۲: انبار / موجودی */}
       {inventoryData && (
-        <SectionErrorBoundary name="InventorySection">
-          <InventorySection data={inventoryData} />
-        </SectionErrorBoundary>
+        <Box id="dash-sec-inventory" sx={{ scrollMarginTop: 72 }}>
+          <SectionErrorBoundary name="InventorySection">
+            <InventorySection data={inventoryData} />
+          </SectionErrorBoundary>
+        </Box>
       )}
 
       {/* ✅ بخش ۳: گزارش کلی */}
-      <SectionErrorBoundary name="SharedSection">
-        <SharedSection />
-      </SectionErrorBoundary>
+      <Box id="dash-sec-shared" sx={{ scrollMarginTop: 72 }}>
+        <SectionErrorBoundary name="SharedSection">
+          <SharedSection />
+        </SectionErrorBoundary>
+      </Box>
+
+      <ShortcutsHelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} items={shortcuts} />
     </Box>
   );
 }

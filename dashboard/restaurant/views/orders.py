@@ -12,34 +12,12 @@ from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 
 from ..models import Order
-from ..tenancy import (
-    get_current_restaurant, set_current_restaurant,
-    get_restaurant_from_request,
-)
-from .decorators import make_service_permission
 
 from ..order_services import restore_order_stock
 from ..club_services import earn_for_order
+from .common import PosPerm, resolve_restaurant
 
 logger = logging.getLogger(__name__)
-
-
-PosPerm = make_service_permission('pos')
-
-
-def _resolve_restaurant(request):
-    r = get_current_restaurant()
-    if r:
-        return r
-    r = get_restaurant_from_request(request)
-    if r:
-        set_current_restaurant(r)
-        return r
-    r = getattr(request.user, "restaurant", None)
-    if r:
-        set_current_restaurant(r)
-        return r
-    return None
 
 
 VALID_TRANSITIONS = {
@@ -59,7 +37,7 @@ def order_change_status(request, pk):
     تغییر وضعیت سفارش.
     POST /api/orders/<pk>/status/
     """
-    restaurant = _resolve_restaurant(request)
+    restaurant = resolve_restaurant(request)
 
     try:
         qs = Order.objects.all()
@@ -122,7 +100,7 @@ def order_change_status(request, pk):
 @permission_classes([PosPerm])
 def order_list_api(request):
     """لیست کلی سفارشات"""
-    restaurant = _resolve_restaurant(request)
+    restaurant = resolve_restaurant(request)
     qs = Order.objects.prefetch_related('items__product__category').all()
 
     if restaurant:

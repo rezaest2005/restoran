@@ -8,6 +8,8 @@ import {
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import { buildColors } from "@shared/palette";
+import useShortcuts from "@shared/common/useShortcuts";
+import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 
 /* ═══════════════════════════════════════
    ۱. کانفیگ منوها — با کلیدهای دسترسی
@@ -211,6 +213,28 @@ export default function RestaurantLayout() {
 
   const C = useMemo(() => buildColors(isDark), [isDark]);
 
+  // ── میان‌برها: Alt+Shift+N رفتن به بخش‌های سایدبار · F1 راهنما ──
+  const [helpOpen, setHelpOpen] = useState(false);
+  const navTargets = useMemo(() => {
+    const list = [];
+    if (canSeeHome) list.push({ labelKey: "rest.main_dashboard", to: prefix });
+    filteredSections.forEach((section) => section.items.forEach((item) => {
+      list.push({ labelKey: item.labelKey, to: `${prefix}/${item.basePath}` });
+    }));
+    return list.slice(0, 9).map((x, i) => ({ ...x, combo: `Alt+Shift+${i + 1}` }));
+  }, [canSeeHome, filteredSections, prefix]);
+
+  const layoutShortcuts = [
+    { combo: "F1", label: t("shortcuts.help"), handler: () => setHelpOpen(true) },
+    ...navTargets.map((n) => ({
+      combo: n.combo,
+      label: t("ui_g.layout.nav_n", { name: t(n.labelKey) }),
+      handler: () => { navigate(n.to); setSidebarOpen(false); },
+    })),
+  ];
+  useShortcuts(layoutShortcuts);
+  const comboFor = (to) => navTargets.find((n) => n.to === to)?.combo;
+
   const showToast = useCallback((message, type = "info") => setToast({ open: true, message, type }), []);
   const handleLockedClick = (nameKey) => showToast(t("rest.locked_msg", { name: t(nameKey) }), "warning");
 
@@ -241,7 +265,7 @@ export default function RestaurantLayout() {
 
       {canSeeHome && (
         <Box sx={{ p: 1.5 }}>
-          <Button component={Link} to={prefix} fullWidth onClick={() => isMobile && setSidebarOpen(false)}
+          <Button component={Link} to={prefix} fullWidth title={comboFor(prefix)} onClick={() => isMobile && setSidebarOpen(false)}
             sx={{ justifyContent: "flex-start", py: 1, px: 1.5, color: C.olive, fontSize: 13, fontWeight: 700, textTransform: "none", borderRadius: "10px", bgcolor: C.oliveSubtle, "&:hover": { bgcolor: C.oliveSubtle } }}>
             🏠 {t("rest.main_dashboard")}
           </Button>
@@ -286,6 +310,7 @@ export default function RestaurantLayout() {
                 </Typography>
                 {section.items.map((item, ii) => (
                   <Box key={ii} component={Link} to={`${prefix}/${item.basePath}`}
+                    title={comboFor(`${prefix}/${item.basePath}`)}
                     onClick={() => isMobile && setSidebarOpen(false)}
                     sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1, borderRadius: "10px", textDecoration: "none", color: C.sub, transition: "all 0.2s ease", "&:hover": { bgcolor: C.oliveSubtle, color: C.olive } }}>
                     <Typography sx={{ fontSize: 16, lineHeight: 1 }}>{item.icon}</Typography>
@@ -405,6 +430,8 @@ export default function RestaurantLayout() {
           <Outlet />
         </Box>
       </Box>
+
+      <ShortcutsHelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} items={layoutShortcuts} />
 
       <Snackbar open={toast.open} autoHideDuration={3000} onClose={() => setToast(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: "top", horizontal: "center" }}>
         <Alert onClose={() => setToast(s => ({ ...s, open: false }))} severity={toast.type} sx={{ bgcolor: C.glass, backdropFilter: "blur(16px)", color: C.text, border: `1px solid ${C.olive}`, borderRadius: "12px", fontSize: 13, fontWeight: 600, boxShadow: C.cardShadow }}>

@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Box, Typography, Button, TextField, Select, MenuItem,
   CircularProgress, Chip, IconButton,
 } from "@mui/material";
 import { fetchPurchaseList, addToPurchaseList, updatePurchaseListStatus, fetchRawMaterials } from "../api";
+import { buildInputSx, useRowCursor, cursorAttrs, cursorSx, cursorBindings, useRegisteredShortcuts, onEnter, KbdHint } from "../common";
 
 const STATUS_LABELS = {
   pending: { label: "در انتظار", icon: "⏳", color: "warning", bg: "warningBg" },
@@ -15,6 +17,7 @@ const STATUS_LABELS = {
 const UNIT_LABELS = { kilogram: "کیلو", gram: "گرم", liter: "لیتر", ml: "میلی‌لیتر", count: "عدد", box: "بسته", kg: "کیلو", unit: "واحد" };
 
 export default function PurchaseListTab({ C, isDark, showToast }) {
+  const { t } = useTranslation();
   const [items, setItems] = useState([]);
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -87,20 +90,34 @@ export default function PurchaseListTab({ C, isDark, showToast }) {
   const pendingCount = items.filter(i => i.status === "pending").length;
   const orderedCount = items.filter(i => i.status === "ordered").length;
 
-  const inputSx = {
-    "& .MuiOutlinedInput-root": {
-      borderRadius: "12px", bgcolor: C.inputBg, backdropFilter: "blur(8px)",
-      fontSize: 13, fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif", color: C.text,
-      transition: "all 0.25s ease",
-      "& fieldset": { borderColor: C.glassBorder },
-      "&:hover fieldset": { borderColor: C.olive + "60" },
-      "&.Mui-focused fieldset": { borderColor: C.olive, borderWidth: 1.5 },
-      "&.Mui-focused": { boxShadow: `0 0 0 3px ${C.olive}18` },
+  // ── میان‌برها: F2 افزودن · Ctrl+D/Enter ثبت · Escape بستن فرم · Ctrl+A/Z ردیف · Enter مرحله بعد · Delete لغو ──
+  const cursor = useRowCursor(filtered.length);
+  const NEXT_STATUS = { pending: "ordered", ordered: "received" };
+  useRegisteredShortcuts([
+    { combo: "F2", label: t("shortcuts.new"), handler: () => setAddingOpen(true) },
+    { combo: "Ctrl+D", label: t("shortcuts.save"), handler: () => { if (!saving) handleAdd(); }, when: addingOpen },
+    { combo: "Escape", label: t("shortcuts.close_dialog"), handler: () => setAddingOpen(false), when: addingOpen },
+    ...cursorBindings(t, cursor),
+    {
+      combo: "Enter", label: addingOpen ? t("shortcuts.confirm") : t("ui_h.purchase.advance"), allowInInput: true,
+      handler: onEnter(() => {
+        if (addingOpen) { if (!saving) handleAdd(); return; }
+        const r = filtered[cursor.index];
+        if (!r || !NEXT_STATUS[r.status]) return false;
+        handleStatusChange(r, NEXT_STATUS[r.status]);
+      }),
     },
-    "& .MuiInputLabel-root": { fontSize: 12, color: C.sub },
-    "& .MuiInputBase-input": { color: C.text },
-    "& .MuiInputBase-input::placeholder": { color: C.muted, opacity: 1 },
-  };
+    {
+      combo: "Delete", label: t("ui_h.purchase.cancel_item"), when: !addingOpen,
+      handler: () => {
+        const r = filtered[cursor.index];
+        if (!r || !NEXT_STATUS[r.status]) return false;
+        handleStatusChange(r, "cancelled");
+      },
+    },
+  ]);
+
+  const inputSx = buildInputSx(C);
 
   if (loading) {
     return (
@@ -134,7 +151,7 @@ export default function PurchaseListTab({ C, isDark, showToast }) {
             "&:hover": { transform: "translateY(-1px)", boxShadow: `0 6px 28px ${C.olive}40` },
           }}
         >
-          ➕ افزودن به لیست
+          ➕ افزودن به لیست<KbdHint>F2</KbdHint>
         </Button>
       </Box>
 
@@ -181,6 +198,7 @@ export default function PurchaseListTab({ C, isDark, showToast }) {
             }}
           >
             {saving ? "..." : "✅ افزودن"}
+            {!saving && <KbdHint>Ctrl+D</KbdHint>}
           </Button>
         </Box>
       )}
@@ -234,7 +252,9 @@ export default function PurchaseListTab({ C, isDark, showToast }) {
             return (
               <Box
                 key={item.id}
+                {...cursorAttrs(cursor.isActive(i))}
                 sx={{
+                  ...cursorSx(C, cursor.isActive(i)),
                   display: "flex", alignItems: "center", flexWrap: "wrap", gap: 1,
                   px: { xs: 1.5, sm: 2 }, py: { xs: 1, sm: 1.5 },
                   borderRadius: "12px", bgcolor: C.glass, backdropFilter: "blur(12px)",

@@ -9,20 +9,13 @@ import client from "../../api/client";
 import {
   getAllUnits, saveCustomUnit, getUnitLabel,
 } from "../../../../shared/common/units";
+import { readJSON, writeJSON, makeScale, useRowCursor, cursorAttrs, cursorSx, useRegisteredShortcuts, KbdHint } from "../common";
 
-const F = (size) => Math.round(size * 1.15);
+const F = makeScale(1.15);
 const LS_ITEMS = "local_materials";
 const LS_CATS = "local_categories";
 const LS_ORDER = "local_materials_order";
 const NO_CAT = "__no_category__";
-
-const readJSON = (key, def = []) => {
-  try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(def)); }
-  catch { return def; }
-};
-const writeJSON = (key, val) => {
-  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
-};
 
 const DEFAULT_CATS = ["خشکبار", "مایعات", "پروتئینی", "ادویه‌جات", "سبزیجات", "سایر"];
 
@@ -383,95 +376,6 @@ export default function InvoiceSection({ C, isDark, showToast }) {
     else focusCode();
   }, [focusCode, focusName, focusUnit, focusCat, focusNewUnit, focusNewCat]);
 
-  // ═══════════ کیبورد ═══════════
-  useEffect(() => {
-    const isCtrl = (e, code) => e.ctrlKey && !e.altKey && e.code === code;
-
-    const handler = (e) => {
-      const sf = showFormRef.current;
-      const su = showUnitInputRef.current;
-      const sc = showCatInputRef.current;
-
-      // ── F2: کالای جدید ──
-      if (e.key === "F2") { e.preventDefault(); handleOpenAdd(); return; }
-
-      // ── F3: واحد جدید ──
-      if (e.key === "F3") {
-        e.preventDefault();
-        const open = () => { setShowUnitInput(true); focusNewUnit(); };
-        if (!sf) { handleOpenAdd(); setTimeout(open, 300); } else open();
-        return;
-      }
-
-      // ── F4: دسته جدید ──
-      if (e.key === "F4") {
-        e.preventDefault();
-        const open = () => { setShowCatInput(true); focusNewCat(); };
-        if (!sf) { handleOpenAdd(); setTimeout(open, 300); } else open();
-        return;
-      }
-
-      // ── Ctrl+D: ذخیره ──
-      if (isCtrl(e, "KeyD") && sf) {
-        e.preventDefault();
-        if (su) { handleAddUnit(); return; }
-        if (sc) { handleAddCat(); return; }
-        doSave();
-        return;
-      }
-
-      // ── Ctrl+A: بعدی (حتی وقتی واحد/دسته جدید بازه!) ──
-      if (isCtrl(e, "KeyA") && sf) { e.preventDefault(); gotoNext(); return; }
-
-      // ── Ctrl+Z: قبلی (حتی وقتی واحد/دسته جدید بازه!) ──
-      if (isCtrl(e, "KeyZ") && sf) { e.preventDefault(); gotoPrev(); return; }
-
-      // ── Enter ──
-      if (e.key === "Enter" && !e.ctrlKey && !e.altKey && sf) {
-        if (su) { e.preventDefault(); handleAddUnit(); return; }
-        if (sc) { e.preventDefault(); handleAddCat(); return; }
-
-        const target = e.target;
-        const codeEl = codeRef.current?.querySelector?.("input") || codeRef.current;
-        const nameEl = nameRef.current?.querySelector?.("input") || nameRef.current;
-        const unitBtn = unitRef.current?.querySelector?.("[role='combobox']") || unitRef.current;
-        const catBtn = catRef.current?.querySelector?.("[role='combobox']") || catRef.current;
-
-        if (
-          target === codeEl || target === nameEl ||
-          target === unitBtn || target === catBtn ||
-          saveBtnRef.current?.contains?.(target)
-        ) {
-          e.preventDefault();
-          gotoNext();
-        }
-        return;
-      }
-
-      // ── Escape ──
-      if (e.key === "Escape" && sf) {
-        e.preventDefault();
-        if (su) { setShowUnitInput(false); focusUnit(); return; }
-        if (sc) { setShowCatInput(false); focusCat(); return; }
-        handleCloseForm();
-        return;
-      }
-
-      // ── ↑↓ در لیست اصلی: جابجایی آیتم انتخاب‌شده ──
-      if ((e.key === "ArrowUp" || e.key === "ArrowDown") && !sf && document.activeElement === searchRef.current) {
-        // اجازه بده جستجو کار کنه
-        return;
-      }
-    };
-
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [
-    handleOpenAdd, doSave, handleAddUnit, handleAddCat,
-    gotoNext, gotoPrev, handleCloseForm,
-    focusUnit, focusCat, focusNewUnit, focusNewCat,
-  ]);
-
   // ── فیلتر + گروه‌بندی ──
   const filtered = useMemo(() => {
     if (!search.trim()) return materials;
@@ -493,6 +397,80 @@ export default function InvoiceSection({ C, isDark, showToast }) {
       .filter((c) => groups[c]?.length)
       .map((c) => ({ category: c, items: groups[c] }));
   }, [filtered, categories]);
+
+  // ═══════════ کیبورد (useShortcuts) ═══════════
+  // F2 کالای جدید · F3 واحد جدید · F4 دسته جدید · Ctrl+D ذخیره · Ctrl+A/Z فیلد بعدی/قبلی (فرم) یا ردیف (لیست)
+  // Enter تأیید/فیلد بعدی · Escape بستن (در حالت واحد/دسته جدید فقط همان ورودی بسته می‌شود)
+  const navList = viewMode === "all" ? filtered : groupedByCat.flatMap((g) => g.items);
+  const cursor = useRowCursor(navList.length);
+  const cursorItem = cursor.index >= 0 ? navList[cursor.index] : null;
+
+  useRegisteredShortcuts([
+    { combo: "F2", label: t("shortcuts.new"), handler: handleOpenAdd },
+    {
+      combo: "F3", label: t("ui_h.new_unit"),
+      handler: () => {
+        const open = () => { setShowUnitInput(true); focusNewUnit(); };
+        if (!showForm) { handleOpenAdd(); setTimeout(open, 300); } else open();
+      },
+    },
+    {
+      combo: "F4", label: t("ui_h.new_category"),
+      handler: () => {
+        const open = () => { setShowCatInput(true); focusNewCat(); };
+        if (!showForm) { handleOpenAdd(); setTimeout(open, 300); } else open();
+      },
+    },
+    {
+      combo: "Ctrl+D", label: t("shortcuts.save"), when: showForm,
+      handler: () => {
+        if (showUnitInput) { handleAddUnit(); return; }
+        if (showCatInput) { handleAddCat(); return; }
+        doSave();
+      },
+    },
+    { combo: "Ctrl+A", label: t("shortcuts.next"), handler: showForm ? gotoNext : cursor.next },
+    { combo: "Ctrl+Z", label: t("shortcuts.prev"), handler: showForm ? gotoPrev : cursor.prev },
+    {
+      combo: "Enter", label: t("shortcuts.confirm"), allowInInput: true,
+      handler: (e) => {
+        if (!showForm) {
+          if (!cursorItem) return false;
+          if (e.target?.tagName === "BUTTON" || e.target?.closest?.('[role="combobox"]')) return false;
+          handleOpenEdit(cursorItem);
+          return;
+        }
+        if (showUnitInput) { handleAddUnit(); return; }
+        if (showCatInput) { handleAddCat(); return; }
+        const target = e.target;
+        const codeEl = codeRef.current?.querySelector?.("input") || codeRef.current;
+        const nameEl = nameRef.current?.querySelector?.("input") || nameRef.current;
+        const unitBtn = unitRef.current?.querySelector?.("[role='combobox']") || unitRef.current;
+        const catBtn = catRef.current?.querySelector?.("[role='combobox']") || catRef.current;
+        if (
+          target === codeEl || target === nameEl ||
+          target === unitBtn || target === catBtn ||
+          saveBtnRef.current?.contains?.(target)
+        ) {
+          gotoNext();
+          return;
+        }
+        return false;
+      },
+    },
+    {
+      combo: "Escape", label: t("shortcuts.close_dialog"), when: showForm,
+      handler: () => {
+        if (showUnitInput) { setShowUnitInput(false); focusUnit(); return; }
+        if (showCatInput) { setShowCatInput(false); focusCat(); return; }
+        handleCloseForm();
+      },
+    },
+    {
+      combo: "Delete", label: t("ui_h.delete_selected"), when: !showForm,
+      handler: () => { if (!cursorItem) return false; handleDelete(cursorItem.id); },
+    },
+  ]);
 
   const isRtl = typeof document !== "undefined"
     ? document.documentElement.dir === "rtl" || document.documentElement.lang === "fa"
@@ -558,12 +536,14 @@ export default function InvoiceSection({ C, isDark, showToast }) {
   // ── آیتم لیست ──
   const ItemRow = ({ m, idx, draggable = true, canMoveUp = true, canMoveDown = true }) => (
     <Box
+      {...cursorAttrs(cursorItem === m)}
       draggable={draggable}
       onDragStart={() => draggable && handleDragStart(idx)}
       onDragEnter={() => draggable && handleDragEnter(idx)}
       onDragOver={handleDragOver}
       onDragEnd={draggable ? handleDragEnd : undefined}
       sx={{
+        ...cursorSx(C, cursorItem === m),
         display: "flex", alignItems: "center",
         px: { xs: 1.5, sm: 2 }, py: { xs: 1, sm: 1.2 },
         borderRadius: "12px",
@@ -679,7 +659,7 @@ export default function InvoiceSection({ C, isDark, showToast }) {
           <Button onClick={() => setShowCatManager(!showCatManager)} sx={{ ...cancelBtnSx, fontSize: F(11) }}>
             🏷️ {t("ui_b.invoice.manageCats")}
           </Button>
-          <Button onClick={handleOpenAdd} sx={btnSx}>➕ {t("ui_b.invoice.newItemBtn")}</Button>
+          <Button onClick={handleOpenAdd} sx={btnSx}>➕ {t("ui_b.invoice.newItemBtn")}<KbdHint>F2</KbdHint></Button>
         </Box>
       </Box>
 
@@ -924,6 +904,7 @@ export default function InvoiceSection({ C, isDark, showToast }) {
               <Button ref={saveBtnRef} onClick={doSave} disabled={saving}
                 sx={{ ...btnSx, opacity: saving ? 0.7 : 1, minWidth: 110 }}>
                 {saving ? `⏳ ${t("ui_b.invoice.saving")}` : editId ? `💾 ${t("ui_b.common.update")}` : `➕ ${t("ui_b.common.add")}`}
+                {!saving && <KbdHint>Ctrl+D</KbdHint>}
               </Button>
               {editId && <Button onClick={handleCloseForm} sx={cancelBtnSx}>{t("ui_b.common.cancel")}</Button>}
             </Box>

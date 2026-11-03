@@ -9,6 +9,7 @@ import {
   getUsers, createUser, updateUserRole, toggleUserActive,
   resetUserPassword, deleteUser, updateUserTabs,
 } from "../../api/client";
+import { useRowCursor, cursorAttrs, cursorSx, cursorBindings, useRegisteredShortcuts, dialogBindings, onEnter, KbdHint } from "../common";
 
 // ═══════ دسترسی‌ها — دقیقاً عین داشبورد ═══════
 const ALL_TABS = {
@@ -307,6 +308,34 @@ export default function ManagersSection({ C, isRtl, isDark, showToast }) {
   const activeCount = Object.values(form.tabs).filter(Boolean).length;
   const totalTabs = Object.keys(ALL_TABS).length;
 
+  // ── میان‌برها: F2 کاربر جدید · Ctrl+A/Z ردیف · Enter ویرایش · Delete حذف ──
+  const cursor = useRowCursor(filtered.length);
+  useRegisteredShortcuts([
+    { combo: "F2", label: t("shortcuts.new"), handler: openCreate },
+    ...cursorBindings(t, cursor),
+    {
+      combo: "Enter", label: t("ui_h.edit_selected"),
+      handler: onEnter(() => { const r = filtered[cursor.index]; if (!r) return false; openEdit(r); }),
+    },
+    {
+      combo: "Delete", label: t("ui_h.delete_selected"),
+      handler: () => { const r = filtered[cursor.index]; if (!r) return false; handleDelete(r); },
+    },
+  ]);
+  useRegisteredShortcuts(
+    dialogBindings(t, {
+      onConfirm: () => {
+        if (!saving && !(form.role === "custom" && !form.customRole.trim())) handleSave();
+      },
+      onClose: () => setFormOpen(false),
+    }),
+    { enabled: formOpen },
+  );
+  useRegisteredShortcuts(
+    dialogBindings(t, { onConfirm: handleResetPassword, onClose: () => setResetOpen(null) }),
+    { enabled: !!resetOpen },
+  );
+
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
@@ -336,7 +365,7 @@ export default function ManagersSection({ C, isRtl, isDark, showToast }) {
             "&:hover": { transform: "translateY(-1px)", boxShadow: `0 6px 28px ${C.olive}40` },
           }}
         >
-          ➕ {t("ui_b.managers.newBtn")}
+          ➕ {t("ui_b.managers.newBtn")}<KbdHint>F2</KbdHint>
         </Button>
       </Box>
 
@@ -367,7 +396,8 @@ export default function ManagersSection({ C, isRtl, isDark, showToast }) {
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.8 }}>
           {filtered.map((u, i) => (
-            <Box key={u.id} sx={{
+            <Box key={u.id} {...cursorAttrs(cursor.isActive(i))} sx={{
+              ...cursorSx(C, cursor.isActive(i)),
               display: "flex", alignItems: "center", flexWrap: "wrap", gap: 1,
               px: 2, py: 1.5,
               borderRadius: "10px", bgcolor: C.glass, backdropFilter: "blur(12px)",
@@ -716,6 +746,7 @@ export default function ManagersSection({ C, isRtl, isDark, showToast }) {
               "&:hover": { transform: "translateY(-1px)", boxShadow: `0 6px 24px ${C.olive}40` },
             }}>
             {saving ? "..." : editUser ? t("ui_b.common.update") : t("ui_b.managers.createUser")}
+            {!saving && <KbdHint>Ctrl+D</KbdHint>}
           </Button>
         </Box>
       </Dialog>
@@ -745,7 +776,6 @@ export default function ManagersSection({ C, isRtl, isDark, showToast }) {
           <TextField size="small" fullWidth type="password"
             label={t("ui_b.managers.newPasswordLabel")}
             value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") handleResetPassword(); }}
             sx={{
               "& .MuiOutlinedInput-root": {
                 borderRadius: "10px", bgcolor: isDark ? "rgba(255,255,255,0.05)" : "#F5F5F5",
@@ -765,7 +795,7 @@ export default function ManagersSection({ C, isRtl, isDark, showToast }) {
           </Button>
           <Button onClick={handleResetPassword}
             sx={{ borderRadius: "10px", fontSize: 12, fontWeight: 700, textTransform: "none", px: 3, py: 1, color: "#fff", background: C.btnGrad }}>
-            {t("ui_b.managers.changePassword")}
+            {t("ui_b.managers.changePassword")}<KbdHint>Ctrl+D</KbdHint>
           </Button>
         </Box>
       </Dialog>

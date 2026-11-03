@@ -12,6 +12,8 @@ import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import ProductCard, { formatPrice } from "./ProductCard";
 import CartSheet from "./CartSheet";
+import useShortcuts from "@shared/common/useShortcuts";
+import KbdHint from "@restaurant/pos/common/KbdHint";
 
 const TABLE_RE = /^[\p{L}\p{N} -]{1,20}$/u;
 
@@ -154,6 +156,14 @@ export default function QrMenu() {
     }
   };
 
+  // Ctrl+D = مشاهده/ثبت سفارش · F2 = سفارش جدید پس از ثبت · / = جستجو
+  useShortcuts([
+    { combo: "F2", label: t("ui_d.qr.new_order"), when: !!done, handler: () => { setDone(null); setNote(""); } },
+    { combo: "Ctrl+D", label: t("ui_d.qr.view_order"), when: !done && count > 0, handler: () => setCartOpen(true) },
+    { combo: "/", label: t("ui_d.qr.search_label"), when: !done,
+      handler: () => document.getElementById("qr-search-input")?.focus() },
+  ]);
+
   const pageSx = {
     minHeight: "100vh", background: C.bg, backgroundImage: C.bgWarm, color: C.text,
     px: 2, pt: 0, pb: 12,
@@ -185,6 +195,7 @@ export default function QrMenu() {
             sx={{ mt: 3, minHeight: 48, width: "100%", borderRadius: 2.5, fontWeight: 800, background: C.btnGrad, color: C.onPrimary, "&:hover": { background: C.btnHover } }}
           >
             {t("ui_d.qr.new_order")}
+            <KbdHint>F2</KbdHint>
           </Button>
         </Box>
       </Box>
@@ -229,7 +240,7 @@ export default function QrMenu() {
         <TextField
           fullWidth size="small" value={search} onChange={(e) => setSearch(e.target.value)}
           placeholder={t("ui_d.qr.search_placeholder")}
-          inputProps={{ "aria-label": t("ui_d.qr.search_label") }}
+          inputProps={{ id: "qr-search-input", "aria-label": t("ui_d.qr.search_label") }}
           sx={{
             mt: 2,
             "& .MuiOutlinedInput-root": { background: C.inputBg, borderRadius: 3, color: C.text, minHeight: 44 },
@@ -285,6 +296,7 @@ export default function QrMenu() {
             <Button onClick={() => setCartOpen(true)}
               sx={{ minHeight: 48, px: 3, borderRadius: 2.5, fontWeight: 800, background: C.btnGrad, color: C.onPrimary, "&:hover": { background: C.btnHover } }}>
               {t("ui_d.qr.view_order")}
+              <KbdHint>Ctrl+D</KbdHint>
             </Button>
           </Box>
         </Box>

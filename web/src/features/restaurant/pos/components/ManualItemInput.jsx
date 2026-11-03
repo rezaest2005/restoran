@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Box, Typography, TextField, Button } from "@mui/material";
 import { Add } from "@mui/icons-material";
+import useShortcuts from "@shared/common/useShortcuts";
+import KbdHint from "../common/KbdHint";
 
 export default function ManualItemInput({ onAdd, C, isRtl }) {
   const [name, setName] = useState("");
@@ -24,6 +26,14 @@ export default function ManualItemInput({ onAdd, C, isRtl }) {
     setCategory("");
     setPrice("");
   };
+
+  useShortcuts([
+    {
+      combo: "Ctrl+D", label: "Add",
+      // فرم ناقص: اجازه بده Ctrl+D صفحه (پرداخت) کار کند
+      handler: () => (!name.trim() || !price || Number(price) <= 0 ? false : handleAdd()),
+    },
+  ]);
 
   const handleKeyDown = (e) => {
     if (e.key === "Enter") handleAdd();
@@ -112,6 +122,7 @@ export default function ManualItemInput({ onAdd, C, isRtl }) {
         >
           <Add sx={{ fontSize: 18, mr: 0.5 }} />
           {isRtl ? "افزودن" : "Add"}
+          <KbdHint>Ctrl+D</KbdHint>
         </Button>
       </Box>
     </Box>
