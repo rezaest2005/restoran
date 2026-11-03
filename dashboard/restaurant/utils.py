@@ -8,7 +8,7 @@ Restaurant — Utility Functions
   ۴. اضافه شدن __all__
 """
 
-from typing import Any, Optional, Dict, List
+from typing import Any, Optional, Dict
 
 from rest_framework.views import exception_handler
 from rest_framework.response import Response

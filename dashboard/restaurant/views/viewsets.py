@@ -10,10 +10,8 @@ All DRF ModelViewSets (â˜… Ù†Ø³Ø®Ù‡ v4 â€” Ø§ØµÙ„Ø§�
 import logging
 
 from django.db import transaction
-from django.db.models import Q
 
-from rest_framework import viewsets, status, permissions
-from rest_framework.decorators import action
+from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -90,35 +88,6 @@ class FoodViewSet(viewsets.ModelViewSet):
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
-# [COMMENTED] class TableViewSet(viewsets.ModelViewSet):
-# [COMMENTED]     serializer_class = TableSerializer
-# [COMMENTED]     permission_classes = [IsAuthenticated]
-# [COMMENTED] 
-# [COMMENTED]     def get_queryset(self):
-# [X] # [COMMENTED]         qs = Table.objects.all()
-# [COMMENTED]         restaurant = resolve_restaurant(self.request)
-# [COMMENTED]         if restaurant:
-# [COMMENTED]             qs = qs.filter(restaurant=restaurant)
-# [COMMENTED]         return qs
-# [COMMENTED] 
-# [COMMENTED] 
-# [COMMENTED] class ReservationViewSet(viewsets.ModelViewSet):
-# [COMMENTED]     serializer_class = ReservationSerializer
-# [COMMENTED]     permission_classes = [IsAuthenticated]
-# [COMMENTED] 
-# [COMMENTED]     def get_queryset(self):
-# [X] # [COMMENTED]         qs = Reservation.objects.all()
-# [COMMENTED]         restaurant = resolve_restaurant(self.request)
-# [COMMENTED]         if restaurant:
-# [COMMENTED]             qs = qs.filter(restaurant=restaurant)
-# [COMMENTED]         return qs.order_by("-date", "-time")
-# [COMMENTED] 
-# [COMMENTED] 
-# [COMMENTED] # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-# [COMMENTED] #  3. ORDERS
-# [COMMENTED] # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-# [COMMENTED] 
-# [COMMENTED] 
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
@@ -251,38 +220,3 @@ class OrderViewSet(viewsets.ModelViewSet):
 # â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 
-# [COMMENTED] class SemiFinishedViewSet(viewsets.ModelViewSet):
-# [COMMENTED]     serializer_class = SemiFinishedSerializer
-# [COMMENTED]     permission_classes = [IsAuthenticated]
-# [COMMENTED] 
-# [COMMENTED]     def get_queryset(self):
-# [X] # [COMMENTED]         qs = SemiFinished.objects.all()
-# [COMMENTED]         restaurant = resolve_restaurant(self.request)
-# [COMMENTED]         if restaurant:
-# [COMMENTED]             qs = qs.filter(restaurant=restaurant)
-# [COMMENTED]         return qs
-# [COMMENTED] 
-# [COMMENTED] 
-# [COMMENTED] class ReadyMaterialViewSet(viewsets.ModelViewSet):
-# [COMMENTED]     serializer_class = ReadyMaterialSerializer
-# [COMMENTED]     permission_classes = [IsAuthenticated]
-# [COMMENTED] 
-# [COMMENTED]     def get_queryset(self):
-# [X] # [COMMENTED]         qs = ReadyMaterial.objects.select_related("supplier").all()
-# [COMMENTED] 
-# [COMMENTED]         restaurant = resolve_restaurant(self.request)
-# [COMMENTED]         if restaurant:
-# [COMMENTED]             qs = qs.filter(restaurant=restaurant)
-# [COMMENTED] 
-# [COMMENTED]         search = self.request.query_params.get("search")
-# [COMMENTED]         if search:
-# [COMMENTED]             qs = qs.filter(
-# [COMMENTED]                 Q(name__icontains=search) | Q(barcode__icontains=search),
-# [COMMENTED]             )
-# [COMMENTED] 
-# [COMMENTED]         category = self.request.query_params.get("category")
-# [COMMENTED]         if category:
-# [COMMENTED]             qs = qs.filter(category_id=category)
-# [COMMENTED] 
-# [COMMENTED]         return qs.order_by("name")
-# [COMMENTED] 

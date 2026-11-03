@@ -7,9 +7,7 @@ import {
   FormControlLabel, Select, MenuItem, IconButton, Chip,
   CircularProgress, Alert,
 } from "@mui/material";
-import {
-  Add, Delete, Wifi, CreditCard, Language, Save,
-} from "@mui/icons-material";
+import { Delete, Wifi, CreditCard, Language, Save } from "@mui/icons-material";
 import { buildColors } from "@shared/palette";
 
 /* ── رنگ‌ها ─────────────────────────── */

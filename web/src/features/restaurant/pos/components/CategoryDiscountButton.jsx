@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Box, IconButton, TextField, Typography,
   Dialog, DialogContent, Badge, Switch,

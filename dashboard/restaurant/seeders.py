@@ -1,7 +1,6 @@
 # restaurant/seeders.py
-from django.utils import timezone
 from .models import (
-    Restaurant, Category, Food, RawMaterial, 
+    Category, Food, RawMaterial,
     Warehouse, StockItem
 )
 from .tenancy import set_current_restaurant

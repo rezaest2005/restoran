@@ -11,7 +11,7 @@ import UsersPanel from "@super/users/UsersPanel";
 import { Box, Button, Snackbar, Alert, useMediaQuery, useTheme } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import superClient from "@super/api/super_client";
-import { useRegisteredShortcuts, dialogBindings, tabBindings, helpBinding, collectShortcuts } from "@shared/common/shortcutKit";
+import { collectShortcuts } from "@shared/common/shortcutKit";
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 
 export default function SuperAdminLayout() {

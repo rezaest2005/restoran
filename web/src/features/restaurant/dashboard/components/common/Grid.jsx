@@ -1,5 +1,4 @@
 // components/common/Grid.jsx
-import React from "react";
 import { Box } from "@mui/material";
 
 export default function Grid2({ ratio = "1fr 1fr", children }) {

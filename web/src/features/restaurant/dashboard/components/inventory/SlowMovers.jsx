@@ -1,4 +1,3 @@
-import React from 'react';
 import GlassCard from '../common/GlassCard';
 
 const SlowMovers = ({ data }) => (

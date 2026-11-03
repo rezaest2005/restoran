@@ -1,5 +1,3 @@
-from .tenancy import get_tenant_slug_from_request
-from .models import Restaurant
 
 
 def user_permissions_context(request):

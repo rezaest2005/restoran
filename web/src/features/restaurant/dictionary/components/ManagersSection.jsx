@@ -1,10 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Box, Typography, Button, TextField, Chip, CircularProgress,
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  Switch, Select, MenuItem, Divider,
-} from "@mui/material";
+import { Box, Typography, Button, TextField, Chip, CircularProgress, Dialog, DialogContent, Switch, Divider } from "@mui/material";
 import {
   getUsers, createUser, updateUserRole, toggleUserActive,
   resetUserPassword, deleteUser, updateUserTabs,

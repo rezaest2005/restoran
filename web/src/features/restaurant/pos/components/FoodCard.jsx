@@ -1,15 +1,6 @@
 import { useState, useRef, useEffect, memo } from "react";
 import { Box, Typography, IconButton } from "@mui/material";
-import {
-  CameraAlt,
-  Add,
-  Remove,
-  PushPin,
-  PushPinOutlined,
-  Percent,
-  AttachMoney,
-  Save,
-} from "@mui/icons-material";
+import { CameraAlt, Add, Remove, PushPin, PushPinOutlined, Percent, AttachMoney } from "@mui/icons-material";
 
 // 1. ایمپورت استاتیک کلاینت (جایگزین ایمپورت داینامیک)
 import client from "../../api/client";

@@ -4,7 +4,7 @@ import UserModal from "@super/users/UserModal";
 import PermsModal from "@super/users/PermsModal";
 import DeleteModal from "@super/common/DeleteModal";
 import { ROLE_OPTIONS } from "@super/common/superConfig";
-import { useRegisteredShortcuts, dialogBindings, tabBindings, helpBinding, collectShortcuts } from "@shared/common/shortcutKit";
+import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
 import superClient from "@super/api/super_client";
 
 export default function UsersPanel({ users, tenants, loadUsers, C, t }) {

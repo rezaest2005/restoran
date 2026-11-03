@@ -13,7 +13,7 @@ import {
   PERM_GROUPS,
   ROLE_PERM_PRESETS,
 } from "@super/common/superConfig";
-import { useRegisteredShortcuts, dialogBindings, tabBindings, helpBinding, collectShortcuts } from "@shared/common/shortcutKit";
+import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
 
 const fieldSx = {
   "& .MuiOutlinedInput-root": { borderRadius: "12px", fontSize: 13 },

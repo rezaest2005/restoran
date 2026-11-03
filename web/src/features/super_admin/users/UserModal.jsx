@@ -7,7 +7,7 @@ import {
 } from "@mui/material";
 import superClient from "@super/api/super_client";
 import { ROLE_OPTIONS, ROLE_PERM_PRESETS } from "@super/common/superConfig";
-import { useRegisteredShortcuts, dialogBindings, tabBindings, helpBinding, collectShortcuts } from "@shared/common/shortcutKit";
+import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
 
 export default function UserModal({ open, editId, onClose, tenants, C }) {
   const { t } = useTranslation();

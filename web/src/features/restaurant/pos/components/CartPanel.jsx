@@ -1,5 +1,5 @@
 import { Box, Typography, Button, Chip } from "@mui/material";
-import { ShoppingBag, ShoppingBagOutlined, CreditCard, Storefront, DeliveryDining } from "@mui/icons-material";
+import { ShoppingBag, ShoppingBagOutlined, CreditCard } from "@mui/icons-material";
 import CartItem from "./CartItem";
 import CustomerInfo from "./CustomerInfo";
 import OrderTypeSelector from "./OrderTypeSelector";

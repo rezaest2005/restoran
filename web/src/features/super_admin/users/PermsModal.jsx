@@ -1,10 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, Typography, Box, Checkbox, IconButton,
-  Chip, TextField, CircularProgress,
-} from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, Checkbox, Chip, TextField, CircularProgress } from "@mui/material";
 import superClient from "@super/api/super_client";
 import {
   ALL_PERM_CODES,
@@ -12,7 +8,7 @@ import {
   PERM_GROUPS,
   ROLE_PERM_PRESETS,
 } from "@super/common/superConfig";
-import { useRegisteredShortcuts, dialogBindings, tabBindings, helpBinding, collectShortcuts } from "@shared/common/shortcutKit";
+import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
 
 export default function PermsModal({ open, onClose, userId, C }) {
   const { t } = useTranslation();

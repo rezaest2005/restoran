@@ -1,15 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Box, Typography, Button, IconButton, TextField, Select, MenuItem,
-  FormControl, InputLabel, Grid, Chip, CircularProgress, Divider,
-  Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Alert,
-  InputAdornment, LinearProgress, Tooltip
-} from "@mui/material";
-import {
-  PersonAdd, Delete, Edit, Key, Shield, CheckCircle, Cancel, HourglassEmpty,
-  DarkMode, LightMode, Language, People, AdminPanelSettings
-} from "@mui/icons-material";
+import { Box, Typography, Button, IconButton, TextField, Select, MenuItem, FormControl, InputLabel, Grid, Chip, Dialog, Snackbar, Alert, LinearProgress, Tooltip } from "@mui/material";
+import { PersonAdd, Delete, Key, Shield, CheckCircle, Cancel, HourglassEmpty, DarkMode, LightMode, Language, People } from "@mui/icons-material";
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";

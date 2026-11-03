@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useMemo, useEffect } from "react";
 import { ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
-import createCache from "@emotion/cache";
 import { CacheProvider } from "@emotion/react";
 import CssBaseline from "@mui/material/CssBaseline";
 import {

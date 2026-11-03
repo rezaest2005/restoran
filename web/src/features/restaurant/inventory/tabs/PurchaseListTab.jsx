@@ -1,9 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Box, Typography, Button, TextField, Select, MenuItem,
-  CircularProgress, Chip, IconButton,
-} from "@mui/material";
+import { Box, Typography, Button, TextField, Select, MenuItem, CircularProgress, Chip } from "@mui/material";
 import { fetchPurchaseList, addToPurchaseList, updatePurchaseListStatus, fetchRawMaterials } from "../api";
 import { buildInputSx, useRowCursor, cursorAttrs, cursorSx, cursorBindings, useRegisteredShortcuts, onEnter, KbdHint } from "../common";
 

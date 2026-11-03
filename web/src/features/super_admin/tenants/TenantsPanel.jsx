@@ -9,7 +9,7 @@ import { Add, Search, Edit, Delete, Storefront, Dashboard } from "@mui/icons-mat
 import TenantModal from "@super/tenants/TenantModal";
 import DeleteModal from "@super/common/DeleteModal";
 import ServicesPanel from "@super/tenants/ServicesPanel";
-import { useRegisteredShortcuts, dialogBindings, tabBindings, helpBinding, collectShortcuts } from "@shared/common/shortcutKit";
+import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
 
 /* ════════════════════════════════════════
    ActionBtn

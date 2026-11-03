@@ -16,7 +16,7 @@ from .inventory_services import (
     issue_stock,
     receive_stock,
 )
-from .models import Formula, ProductionOrder, RawMaterial, StockItem
+from .models import ProductionOrder, RawMaterial
 
 ZERO = Decimal("0")
 Q3 = Decimal("0.001")

@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 import { Box, Typography, Chip } from "@mui/material";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
