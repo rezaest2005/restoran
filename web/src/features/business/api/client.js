@@ -9,7 +9,7 @@ function saveTenantSlug() {
   const slug = parts[0] || "";
   if (
     slug &&
-    !["dashboard", "api", "super", "static", "media"].includes(slug)
+    !["dashboard", "api", "super", "static", "media", "driver", "t"].includes(slug)
   ) {
     localStorage.setItem("tenant_slug", slug);
     return slug;

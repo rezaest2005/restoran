@@ -13,6 +13,9 @@ import Dictionary from "@business/dictionary/Dictionary";
 import InventoryPage from "@business/inventory/InventoryPage";
 import ProductionPage from "@business/production/ProductionPage";
 import AccountingPage from "@business/accounting/AccountingPage";
+import DispatchPage from "@business/delivery/DispatchPage";
+import DriverPage from "@business/delivery/DriverPage";
+import TrackingPage from "@business/delivery/TrackingPage";
 import QrMenu from "../features/public/QrMenu";
 import StorefrontPage from "../features/public/storefront/StorefrontPage";
 import StorefrontEditor from "@business/storefront/StorefrontEditor";
@@ -49,6 +52,7 @@ function App() {
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="production" element={<ProductionPage />} />
             <Route path="accounting" element={<AccountingPage />} />
+            <Route path="delivery" element={<DispatchPage />} />
             <Route path="storefront" element={<StorefrontEditor />} />
           </Route>
 
@@ -68,6 +72,7 @@ function App() {
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="production" element={<ProductionPage />} />
             <Route path="accounting" element={<AccountingPage />} />
+            <Route path="delivery" element={<DispatchPage />} />
             <Route path="storefront" element={<StorefrontEditor />} />
           </Route>
 
@@ -90,6 +95,9 @@ function App() {
           />
 
           <Route path="/m/:slug" element={<QrMenu />} />
+          <Route path="/t/:token" element={<TrackingPage />} />
+          <Route path="/driver" element={<ProtectedRoute><DriverPage /></ProtectedRoute>} />
+          <Route path="/:slug/driver" element={<ProtectedRoute><DriverPage /></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

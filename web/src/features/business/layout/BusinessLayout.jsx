@@ -54,6 +54,15 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    titleKey: "ui_del.nav",
+    items: [
+      {
+        icon: "🚴", labelKey: "ui_del.nav", basePath: "delivery",
+        anyTabs: ["delivery"], module: "delivery",
+      },
+    ],
+  },
+  {
     titleKey: "ui_k.nav",
     items: [
       {
@@ -74,7 +83,6 @@ const NAV_SECTIONS = [
 ];
 
 const DASHBOARDS = [
-  { icon: "🚴", labelKey: "rest.dash_delivery", locked: true },
   { icon: "🧮", labelKey: "rest.dash_accounting", locked: true },
   { icon: "💎", labelKey: "rest.dash_loyalty", locked: true },
 ];

@@ -151,6 +151,7 @@ export default function Login() {
         warehouse: base,
         waiter: `${base}/pos`,
         customer: base,
+        driver: slug ? `/${slug}/driver` : "/driver",
       };
       setTimeout(() => {
         if (data.user.is_superuser) navigate("/super/app");

@@ -7,6 +7,7 @@ from . import views
 from .views import system as system_views
 from .views.dashboard import dashboard_analytics
 from .views import storefront as sf_views
+from .views import delivery as dl_views
 from .views.super_admin import modules as mod_views
 
 # ─── Invoicing ──────────────────────────
@@ -142,6 +143,29 @@ urlpatterns = [
     path("api/club/members/<int:pk>/adjust/", views.club_member_adjust, name="club_member_adjust"),
     path("api/club/lookup/", views.club_lookup, name="club_lookup"),
     path("api/club/redeem/", views.club_redeem, name="club_redeem"),
+
+    # ── حمل و تحویل ─────────────────────────────────────────
+    path("api/delivery/vehicles/", dl_views.vehicles, name="delivery_vehicles"),
+    path("api/delivery/vehicles/<int:pk>/", dl_views.vehicle_detail, name="delivery_vehicle_detail"),
+    path("api/delivery/carriers/", dl_views.carriers, name="delivery_carriers"),
+    path("api/delivery/carriers/<int:pk>/", dl_views.carrier_detail, name="delivery_carrier_detail"),
+    path("api/delivery/drivers/", dl_views.drivers, name="delivery_drivers"),
+    path("api/delivery/drivers/<int:pk>/", dl_views.driver_detail, name="delivery_driver_detail"),
+    path("api/delivery/drivers/<int:pk>/shift/", dl_views.driver_shift, name="delivery_driver_shift"),
+    path("api/delivery/trips/", dl_views.trips, name="delivery_trips"),
+    path("api/delivery/trips/<int:pk>/", dl_views.trip_detail, name="delivery_trip_detail"),
+    path("api/delivery/trips/<int:pk>/assign/", dl_views.trip_assign, name="delivery_trip_assign"),
+    path("api/delivery/trips/<int:pk>/status/", dl_views.trip_status, name="delivery_trip_status"),
+    path("api/delivery/stops/<int:pk>/status/", dl_views.stop_status, name="delivery_stop_status"),
+    path("api/delivery/driver/me/", dl_views.driver_me, name="delivery_driver_me"),
+    path("api/delivery/driver/shift/", dl_views.driver_shift_me, name="delivery_driver_shift_me"),
+    path("api/delivery/driver/location/", dl_views.driver_location, name="delivery_driver_location"),
+    path("api/delivery/driver/stops/<int:pk>/status/", dl_views.driver_stop_status, name="delivery_driver_stop_status"),
+    path("api/delivery/ping/", dl_views.device_ping, name="delivery_device_ping"),
+    path("api/delivery/map/", dl_views.live_map, name="delivery_map"),
+    path("api/delivery/settlements/", dl_views.settlements, name="delivery_settlements"),
+    path("api/delivery/cash/", dl_views.cash_overview, name="delivery_cash"),
+    path("api/delivery/track/<str:token>/", dl_views.public_track, name="delivery_track"),
 
     # ── حسابداری ────────────────────────────────────────────
     path("api/accounting/accounts/", views.accounts, name="accounting_accounts"),
