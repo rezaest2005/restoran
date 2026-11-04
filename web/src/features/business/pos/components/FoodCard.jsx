@@ -387,6 +387,10 @@ function FoodCard({
       {/* تصویر */}
       <Box
         onClick={handleImageClick}
+        {...(editMode ? {
+          role: "button", tabIndex: 0,
+          onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleImageClick(e); } },
+        } : {})}
         sx={{
           width: { xs: 100, sm: 140 },
           minWidth: { xs: 100, sm: 140 },
@@ -651,6 +655,13 @@ function FoodCard({
                   style={{ ...inputSx, flex: 1 }}
                 />
                 <Box
+                  role="button" tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setStock((s) => (s === "" ? 10 : Number(s) + 10));
+                    }
+                  }}
                   onClick={() =>
                     setStock((s) => (s === "" ? 10 : Number(s) + 10))
                   }
@@ -707,6 +718,10 @@ function FoodCard({
 
             {/* دکمه ذخیره */}
             <Box
+              role="button" tabIndex={0}
+              onKeyDown={(e) => {
+                if ((e.key === "Enter" || e.key === " ") && !saving) { e.preventDefault(); handleSave(e); }
+              }}
               onClick={saving ? undefined : handleSave}
               sx={{
                 height: 38,

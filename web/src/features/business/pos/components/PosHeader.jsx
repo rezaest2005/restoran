@@ -1,5 +1,6 @@
 import { Box, TextField, InputAdornment, Button } from "@mui/material";
 import { Search, Edit, Close } from "@mui/icons-material";
+import { KbdHint } from "../common";
 
 export default function PosHeader({
   search, setSearch, C, useDictionary, isRtl,
@@ -58,6 +59,7 @@ export default function PosHeader({
         startIcon={editMode ? <Close sx={{ fontSize: 14 }} /> : <Edit sx={{ fontSize: 14 }} />}
       >
         {editMode ? (isRtl ? "لغو" : "Cancel") : (isRtl ? "ویرایش" : "Edit")}
+        <KbdHint sx={{ mx: 0.5 }}>F4</KbdHint>
       </Button>
     </Box>
   );

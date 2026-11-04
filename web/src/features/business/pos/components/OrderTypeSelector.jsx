@@ -1,4 +1,5 @@
 import { Box, Button } from "@mui/material";
+import { KbdHint } from "../common";
 import { Storefront, ShoppingBag, DeliveryDining } from "@mui/icons-material";
 
 const TYPES = [
@@ -16,7 +17,7 @@ const LABELS = {
 export default function OrderTypeSelector({ orderType, setOrderType, C, isRtl }) {
   return (
     <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
-      {TYPES.map(t => {
+      {TYPES.map((t, i) => {
         const Icon = t.icon;
         const active = orderType === t.key;
         const label = isRtl ? LABELS[t.key].fa : LABELS[t.key].en;
@@ -24,6 +25,7 @@ export default function OrderTypeSelector({ orderType, setOrderType, C, isRtl })
           <Button
             key={t.key}
             onClick={() => setOrderType(t.key)}
+            aria-pressed={active}
             sx={{
               flex: 1,
               py: 1,
@@ -41,6 +43,7 @@ export default function OrderTypeSelector({ orderType, setOrderType, C, isRtl })
           >
             <Icon sx={{ fontSize: 14, mr: 0.5 }} />
             {label}
+            <KbdHint sx={{ mx: 0.5 }}>Ctrl+Shift+{i + 1}</KbdHint>
           </Button>
         );
       })}

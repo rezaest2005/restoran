@@ -3,7 +3,37 @@ import { Box, Typography, IconButton, Chip } from "@mui/material";
 
 import { isDiscountActive, computeDiscountAmount, getItemCategoryKeys } from "../common/discount";
 
-function CartItem({ item, onAdd, onRemove, categoryDiscounts, C, isRtl }) {
+function CartItem({ item, onAdd, onRemove, onDelete, categoryDiscounts, C, isRtl }) {
+  // کیبورد (روی ردیف فوکوس‌شده): + / = افزایش · - کاهش · Delete حذف · Ctrl+A بعدی · Ctrl+Z قبلی
+  const onRowKeyDown = (e) => {
+    if (e.target !== e.currentTarget) return;
+    const el = e.currentTarget;
+    const ctrl = (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey;
+    if (ctrl && (e.code === "KeyA" || e.code === "KeyZ")) {
+      e.preventDefault();
+      const sib = e.code === "KeyA" ? el.nextElementSibling : el.previousElementSibling;
+      if (sib && sib.hasAttribute("data-cart-row")) sib.focus();
+      return;
+    }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === "+" || e.key === "=" || e.code === "Equal" || e.code === "NumpadAdd") {
+      e.preventDefault();
+      onAdd(item);
+    } else if (e.key === "-" || e.code === "Minus" || e.code === "NumpadSubtract") {
+      e.preventDefault();
+      if (item.qty <= 1) {
+        const sib = el.nextElementSibling || el.previousElementSibling;
+        if (sib && sib.hasAttribute("data-cart-row")) sib.focus();
+      }
+      onRemove(item.cartId);
+    } else if (e.key === "Delete") {
+      e.preventDefault();
+      const sib = el.nextElementSibling || el.previousElementSibling;
+      if (sib && sib.hasAttribute("data-cart-row")) sib.focus();
+      (onDelete || onRemove)(item.cartId);
+    }
+  };
+
   // ★ تخفیف دسته — بررسی همه فیلدهای دسته
   const catKeys = getItemCategoryKeys(item);
   let catDiscountAmt = 0;
@@ -27,11 +57,16 @@ function CartItem({ item, onAdd, onRemove, categoryDiscounts, C, isRtl }) {
 
   return (
     <Box
+      data-cart-row
+      tabIndex={0}
+      onKeyDown={onRowKeyDown}
       sx={{
         display: "flex",
         alignItems: "center",
         gap: 1.2,
         p: 1.2,
+        outline: "none",
+        "&:focus-visible": { boxShadow: `0 0 0 2px ${C.olive}` },
         borderRadius: "10px",
         border: `1px solid ${C.glassBorder}`,
         bgcolor: C.glass,

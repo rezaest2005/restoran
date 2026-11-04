@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { Box, Typography, Drawer, Badge } from "@mui/material";
 import { Storefront, Assessment, Public, Settings, ShoppingCart, Notifications, QrCode2 } from "@mui/icons-material";
 import { useParams } from "react-router-dom";
@@ -37,6 +37,12 @@ const NAV_ITEMS = [
   { key: "online", icon: Public, labelKey: "ui_c.pos.nav_online" },
   { key: "incoming", icon: Notifications, labelKey: "ui_f.incoming.nav" },
   { key: "settings", icon: Settings, labelKey: "ui_c.pos.nav_settings" },
+];
+
+const ORDER_TYPES = [
+  { key: "hall", labelKey: "ui_l.pos.type_hall" },
+  { key: "takeout", labelKey: "ui_l.pos.type_takeout" },
+  { key: "delivery", labelKey: "ui_l.pos.type_delivery" },
 ];
 
 export default function Pos() {
@@ -91,7 +97,7 @@ export default function Pos() {
   } = useFoods(useDictionary, isRtl);
 
   const {
-    cart, addToCart, removeFromCart, removeOneFromCart, clearCart,
+    cart, addToCart, removeFromCart, removeOneFromCart, updateQty, clearCart,
     cartTotal, cartCount, toOrderItems,
     categoryDiscounts, setCategoryDiscount,
   } = useCart();
@@ -110,6 +116,7 @@ export default function Pos() {
   } = useDailyReport();
 
   const analytics = useAnalytics(dailyOrders);
+  const deleteCartLine = useCallback((cartId) => updateQty(cartId, 0), [updateQty]);
 
   const {
     gateways, terminals, loading: configLoading,
@@ -175,12 +182,30 @@ export default function Pos() {
     setTimeout(() => document.getElementById("pos-search-input")?.focus(), 0);
   };
 
+  const focusCart = () => {
+    const rows = Array.from(document.querySelectorAll("[data-cart-row]")).filter((el) => el.offsetParent !== null);
+    if (!rows.length) return false;
+    rows[0].focus();
+    return true;
+  };
+
   const shortcuts = [
     { combo: "F1", label: t("shortcuts.help"), handler: () => setHelpOpen(true) },
     { combo: "F2", label: t("ui_g.pos.new_order"), handler: newOrder },
     { combo: "Ctrl+D", label: t("ui_g.pos.checkout"), handler: handleCheckoutClick, when: mainTab === "pos" },
     { combo: "/", label: t("ui_g.pos.focus_search"), when: mainTab === "pos" && !!useDictionary,
       handler: () => document.getElementById("pos-search-input")?.focus() },
+    { combo: "F4", label: t("ui_l.pos.toggle_edit"), when: mainTab === "pos" && !!useDictionary,
+      handler: () => setEditMode((v) => !v) },
+    { combo: "Escape", label: t("ui_l.pos.exit_edit"), when: mainTab === "pos" && editMode,
+      handler: () => (editMode ? setEditMode(false) : false) },
+    { combo: "Alt+C", label: t("ui_l.pos.focus_cart"), when: mainTab === "pos", handler: focusCart },
+    ...ORDER_TYPES.map(({ key, labelKey }, i) => ({
+      combo: `Ctrl+Shift+${i + 1}`,
+      label: t("ui_l.pos.order_type_n", { name: t(labelKey) }),
+      when: mainTab === "pos",
+      handler: () => setOrderType(key),
+    })),
     ...NAV_ITEMS.map(({ labelKey }, i) => ({
       combo: `Alt+${i + 1}`,
       label: `${t("shortcuts.tab_n", { n: i + 1 })} — ${t(labelKey)}`,
@@ -196,6 +221,12 @@ export default function Pos() {
       { combo: "Ctrl+A", label: t("ui_g.pos.next_product") },
       { combo: "Ctrl+Z", label: t("ui_g.pos.prev_product") },
       { combo: "Enter", label: t("ui_g.pos.add_product") },
+      { combo: "Alt+PageDown", label: t("ui_l.pos.next_category") },
+      { combo: "Alt+PageUp", label: t("ui_l.pos.prev_category") },
+      { combo: "Ctrl+A / Ctrl+Z", label: t("ui_l.pos.cart_next_row") + " / " + t("ui_l.pos.cart_prev_row") },
+      { combo: "Delete", label: t("ui_l.pos.cart_row_remove") },
+      { combo: "+", label: t("ui_l.pos.cart_row_inc") },
+      { combo: "-", label: t("ui_l.pos.cart_row_dec") },
     ] : []),
     ...(mainTab === "incoming" ? [
       { combo: "Ctrl+D", label: t("ui_g.pos.accept_first") },
@@ -209,7 +240,7 @@ export default function Pos() {
   // ★ استخراج پراپ‌های CartPanel برای جلوگیری از تکرار کد (DRY)
   const cartPanelProps = {
     cart, cartCount, cartTotal, categoryDiscounts,
-    onAdd: addToCart, onRemove: removeFromCart, onClear: clearCart,
+    onAdd: addToCart, onRemove: removeFromCart, onDelete: deleteCartLine, onClear: clearCart,
     orderType, setOrderType,
     custName, setCustName, custPhone, setCustPhone,
     requireCustomer,

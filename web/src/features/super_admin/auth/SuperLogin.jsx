@@ -17,6 +17,8 @@ import { useLang } from "@shared/contexts/LangContext";
 import superClient from "@super/api/super_client";
 import { buildColors } from "@shared/palette";
 import { appName } from "@shared/branding";
+import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
+import KbdHint from "@business/pos/common/KbdHint";
 
 const animations = `
   @keyframes orb1 {
@@ -188,6 +190,14 @@ export default function SuperLogin() {
       setLoading(false);
     }
   };
+
+  // Enter submits natively (the fields live in a <form>); Ctrl+D submits too.
+  useRegisteredShortcuts([
+    {
+      combo: "Ctrl+D", label: t("ui_l.super.login_submit"),
+      handler: () => { if (!loading) handleLogin({ preventDefault() {}, stopPropagation() {} }); },
+    },
+  ]);
 
   return (
     <>
@@ -685,7 +695,10 @@ export default function SuperLogin() {
                     {loading ? (
                       <CircularProgress size={22} sx={{ color: "#fff" }} />
                     ) : (
-                      t("superLogin.submit")
+                      <>
+                        {t("superLogin.submit")}
+                        <KbdHint sx={{ mx: 1 }}>Ctrl+D</KbdHint>
+                      </>
                     )}
                   </Button>
                 </Box>

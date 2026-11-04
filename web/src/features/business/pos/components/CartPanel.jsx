@@ -8,7 +8,7 @@ import { KbdHint, formatMoney } from "../common";
 export default function CartPanel({
   cart, cartCount, cartTotal,
   categoryDiscounts,
-  onAdd, onRemove, onClear,
+  onAdd, onRemove, onDelete, onClear,
   orderType, setOrderType,
   custName, setCustName,
   custPhone, setCustPhone,
@@ -63,6 +63,7 @@ export default function CartPanel({
               item={item}
               onAdd={onAdd}
               onRemove={onRemove}
+              onDelete={onDelete}
               C={C}
               isRtl={isRtl}
             />

@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, memo } from "react";
 import { Box, Chip } from "@mui/material";
 import { DragIndicator } from "@mui/icons-material";
+import { useTranslation } from "react-i18next";
+import useShortcuts from "@shared/common/useShortcuts";
 import CategoryDiscountButton from "./CategoryDiscountButton";
 import { isDiscountActive, formatDiscountLabel } from "../common/discount";
 
@@ -24,6 +26,7 @@ function CategoryBar({
 }) {
   const [ordered, setOrdered] = useState([]);
   const [dragIdx, setDragIdx] = useState(null);
+  const { t } = useTranslation();
   const scrollRef = useRef(null);
 
   const STORAGE_KEY = "pos_cat_order";
@@ -48,6 +51,19 @@ function CategoryBar({
       localStorage.setItem(STORAGE_KEY, JSON.stringify(ordered));
     }
   }, [ordered]);
+
+  // ── کیبورد: Alt+PageDown دسته‌ی بعدی · Alt+PageUp دسته‌ی قبلی ──
+  const stepCategory = (dir) => {
+    const list = ["all", ...ordered.filter((c) => c !== "all")];
+    if (list.length <= 1) return false;
+    const i = Math.max(0, list.indexOf(activeCat));
+    setActiveCat(list[Math.min(list.length - 1, Math.max(0, i + dir))]);
+    return true;
+  };
+  useShortcuts([
+    { combo: "Alt+PageDown", label: t("ui_l.pos.next_category"), handler: () => stepCategory(1) },
+    { combo: "Alt+PageUp", label: t("ui_l.pos.prev_category"), handler: () => stepCategory(-1) },
+  ], { enabled: !!categoryNames && categoryNames.length > 1 });
 
   if (!categoryNames || categoryNames.length <= 1) return null;
 
@@ -82,6 +98,24 @@ function CategoryBar({
   };
 
   const handleDragEnd = () => setDragIdx(null);
+
+  // جایگزین کیبوردیِ drag: Shift+Arrow روی دسته‌ی فوکوس‌شده آن را جابه‌جا می‌کند
+  const handleChipKey = (e, idx) => {
+    if (!e.shiftKey || idx === 0) return;
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    const dir = (e.key === "ArrowRight" ? 1 : -1) * (isRtl ? -1 : 1);
+    const from = idx - 1;
+    const to = from + dir;
+    if (to < 0 || to >= others.length) return;
+    const next = [...others];
+    [next[from], next[to]] = [next[to], next[from]];
+    setOrdered(["all", ...next]);
+    const name = others[from];
+    setTimeout(() => {
+      scrollRef.current?.querySelector(`[data-cat="${String(name).replace(/"/g, "")}"]`)?.focus();
+    }, 0);
+  };
 
   return (
     <Box
@@ -148,6 +182,8 @@ function CategoryBar({
             <Chip
               label={getChipLabel(cat, discount, isRtl)}
               onClick={() => setActiveCat(cat)}
+              onKeyDown={(e) => handleChipKey(e, idx)}
+              data-cat={cat}
               variant={isActive ? "filled" : "outlined"}
               sx={{
                 bgcolor: isActive ? C.olive : hasDiscount ? C.dangerBg : "transparent",

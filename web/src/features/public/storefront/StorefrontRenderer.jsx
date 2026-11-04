@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import i18n from "i18next";
+import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
 
 /**
  * Renders a storefront strictly from JSON (theme + sections).
@@ -298,6 +299,15 @@ export default function StorefrontRenderer({ data, preview = false }) {
   const footer = sections.find((s) => s.type === "footer");
   const body = sections.filter((s) => s.type !== "footer" && s.visible !== false);
   const vars = useMemo(() => themeVars(data.theme), [data.theme]);
+
+  // Alt+B -> dashboard, only for a signed-in visitor (staff) and never inside the editor preview
+  const loggedIn = (() => {
+    try { return !!(sessionStorage.getItem("access_token") || localStorage.getItem("access_token")); } catch { return false; }
+  })();
+  const dashHref = safeHref(data.dashboard_url);
+  useRegisteredShortcuts([
+    { combo: "Alt+B", label: tr("ui_l.public.go_dashboard"), handler: () => window.location.assign(dashHref) },
+  ], { enabled: !preview && loggedIn && !!dashHref });
 
   return (
     <div className="sf-root" dir={lang === "en" ? "ltr" : "rtl"} lang={lang} style={vars}>

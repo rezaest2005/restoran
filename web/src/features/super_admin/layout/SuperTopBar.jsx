@@ -1,6 +1,7 @@
 import { Box, Typography, IconButton, Button, Tooltip } from "@mui/material";
 import { LightMode, DarkMode, Language, Refresh, Menu } from "@mui/icons-material";
 import { useLang } from "@shared/contexts/LangContext";
+import KbdHint from "@business/pos/common/KbdHint";
 
 export default function SuperTopBar({ isMobile, onMenuClick, toggleTheme, toggleLang, onRefresh, C, t }) {
   const { isRtl } = useLang();
@@ -54,13 +55,13 @@ export default function SuperTopBar({ isMobile, onMenuClick, toggleTheme, toggle
         display: "flex", gap: { xs: 0.5, md: 1 },
         alignItems: "center", flexShrink: 0,
       }}>
-        <Tooltip title={isDark ? t("super.lightMode") : t("super.darkMode")} arrow>
+        <Tooltip title={`${isDark ? t("super.lightMode") : t("super.darkMode")} (Alt+T)`} arrow>
           <IconButton onClick={toggleTheme} sx={iconBtnSx}>
             {isDark ? <LightMode fontSize="small" /> : <DarkMode fontSize="small" />}
           </IconButton>
         </Tooltip>
 
-        <Tooltip title={t("super.switchLang")} arrow>
+        <Tooltip title={`${t("super.switchLang")} (Alt+G)`} arrow>
           <IconButton onClick={toggleLang} sx={iconBtnSx}>
             <Language fontSize="small" />
           </IconButton>
@@ -68,7 +69,7 @@ export default function SuperTopBar({ isMobile, onMenuClick, toggleTheme, toggle
 
         {/* ★ موبایل: فقط آیکون — دسکتاپ: آیکون + متن */}
         {isMobile ? (
-          <Tooltip title={t("super.refresh")} arrow>
+          <Tooltip title={`${t("super.refresh")} (Alt+R)`} arrow>
             <IconButton onClick={onRefresh} sx={iconBtnSx}>
               <Refresh fontSize="small" />
             </IconButton>
@@ -88,7 +89,7 @@ export default function SuperTopBar({ isMobile, onMenuClick, toggleTheme, toggle
               whiteSpace: "nowrap",
             }}
           >
-            {t("super.refresh")}
+            {t("super.refresh")} <KbdHint sx={{ mx: 0.8 }}>Alt+R</KbdHint>
           </Button>
         )}
       </Box>

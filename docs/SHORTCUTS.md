@@ -58,6 +58,8 @@ Conventions: F2 new, F3 secondary new, Ctrl+D save/confirm, Ctrl+A next, Ctrl+Z 
 
 ## features/business/pos
 
+- `components/CategoryBar.jsx`: `Alt+PageDown`, `Alt+PageUp`
+- `components/CategoryDiscountButton.jsx`: `Ctrl+D`, `Enter`, `Escape`
 - `components/CheckoutDialog.jsx`: `Ctrl+D`, `Enter`, `Escape`, `Ctrl+A`, `Ctrl+Z`
 - `components/DailyReport.jsx`: `Ctrl+Z`, `Ctrl+A`
 - `components/FoodGrid.jsx`: `Ctrl+A`, `Ctrl+Z`, `Enter`
@@ -65,7 +67,7 @@ Conventions: F2 new, F3 secondary new, Ctrl+D save/confirm, Ctrl+A next, Ctrl+Z 
 - `components/ManualItemInput.jsx`: `Ctrl+D`
 - `components/OrderDetailDialog.jsx`: `Ctrl+D`, `Enter`
 - `components/PaymentSettingsPage.jsx`: `F2`, `Ctrl+D`, `Ctrl+A`, `Ctrl+Z`
-- `Pos.jsx`: `F1`, `F2`, `Ctrl+D`, `/`, `Alt+${i + 1}`, `Ctrl+A`, `Ctrl+Z`, `Enter`, `Delete`, `Escape`
+- `Pos.jsx`: `F1`, `F2`, `Ctrl+D`, `/`, `F4`, `Escape`, `Alt+C`, `Ctrl+Shift+${i + 1}`, `Alt+${i + 1}`, `Ctrl+A`, `Ctrl+Z`, `Enter`, `Alt+PageDown`, `Alt+PageUp`, `Ctrl+A / Ctrl+Z`, `Delete`, `+`, `-`
 
 ## features/business/production
 
@@ -74,6 +76,8 @@ Conventions: F2 new, F3 secondary new, Ctrl+D save/confirm, Ctrl+A next, Ctrl+Z 
 
 ## features/business/storefront
 
+- `FieldEditor.jsx`: `F3`
+- `RevisionsTab.jsx`: `Ctrl+D`, `Enter`, `Escape`
 - `StorefrontEditor.jsx`: `ArrowDown`, `ArrowUp`, `Enter`, `Ctrl+D`, `Escape`, `F2`, `Alt+ArrowUp`, `Alt+ArrowDown`, `Alt+H`, `Delete`, `Ctrl+A`, `Ctrl+Z`, `Ctrl+Shift+P`, `Alt+M`, `Alt+1..9`
 
 ## features/business/users
@@ -88,9 +92,17 @@ Conventions: F2 new, F3 secondary new, Ctrl+D save/confirm, Ctrl+A next, Ctrl+Z 
 
 - `features/public/QrMenu.jsx`: `F2`, `Ctrl+D`, `/`
 
+## features/public/storefront
+
+- `StorefrontRenderer.jsx`: `Alt+B`
+
 ## features/public/TableQrDialog.jsx
 
 - `features/public/TableQrDialog.jsx`: `Ctrl+D`
+
+## features/super_admin/auth
+
+- `SuperLogin.jsx`: `Ctrl+D`
 
 ## features/super_admin/common
 
@@ -98,7 +110,7 @@ Conventions: F2 new, F3 secondary new, Ctrl+D save/confirm, Ctrl+A next, Ctrl+Z 
 
 ## features/super_admin/layout
 
-- `SuperAdminLayout.jsx`: `Alt+1..9`, `F1`
+- `SuperAdminLayout.jsx`: `Alt+L`, `Alt+T`, `Alt+G`, `Alt+R`, `Ctrl+D`, `Enter`, `Escape`, `Alt+1..9`, `F1`
 
 ## features/super_admin/modules
 
@@ -131,17 +143,11 @@ These components have click handlers but register no shortcuts themselves (they 
 - `features/business/inventory/common/TabBar.jsx`
 - `features/business/pos/components/CartItem.jsx`
 - `features/business/pos/components/CartPanel.jsx`
-- `features/business/pos/components/CategoryBar.jsx`
-- `features/business/pos/components/CategoryDiscountButton.jsx`
 - `features/business/pos/components/FoodCard.jsx`
 - `features/business/pos/components/OrderTypeSelector.jsx`
 - `features/business/pos/components/PosHeader.jsx`
 - `features/business/storefront/AddressesTab.jsx`
-- `features/business/storefront/FieldEditor.jsx`
-- `features/business/storefront/RevisionsTab.jsx`
 - `features/business/storefront/ThemeTab.jsx`
 - `features/public/ProductCard.jsx`
-- `features/public/storefront/StorefrontRenderer.jsx`
-- `features/super_admin/auth/SuperLogin.jsx`
 - `features/super_admin/layout/SuperSidebar.jsx`
 - `features/super_admin/layout/SuperTopBar.jsx`

@@ -3,6 +3,8 @@ import { useTranslation } from "react-i18next";
 import { Box, Button, FormControlLabel, IconButton, Stack, Switch, TextField, Typography } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/DeleteOutlined";
 import AddIcon from "@mui/icons-material/Add";
+import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
+import KbdHint from "@business/pos/common/KbdHint";
 import { uploadImage, errMsg } from "./api";
 
 /**
@@ -82,7 +84,7 @@ function Scalar({ name, spec, value, onChange, label }) {
   }
 }
 
-function ListField({ name, spec, value, onChange }) {
+function ListField({ name, spec, value, onChange, primary }) {
   const { t } = useTranslation();
   const items = value || [];
   const setItem = (i, patch) => onChange(items.map((it, k) => (k === i ? { ...it, ...patch } : it)));
@@ -96,6 +98,11 @@ function ListField({ name, spec, value, onChange }) {
     if (name === "days") o.day = items.length;
     return o;
   };
+  const canAdd = items.length < spec.max;
+  // F3 = add an item to the first list field of the section
+  useRegisteredShortcuts([
+    { combo: "F3", label: t("ui_l.store.add_list_item"), handler: () => onChange([...items, blank()]) },
+  ], { enabled: !!primary && canAdd });
   return (
     <Box>
       <Typography variant="subtitle2" sx={{ mb: 1 }}>{t(`ui_k.field.${name}`, name)}</Typography>
@@ -116,7 +123,7 @@ function ListField({ name, spec, value, onChange }) {
           </Box>
         ))}
         {items.length < spec.max && (
-          <Button size="small" startIcon={<AddIcon />} onClick={() => onChange([...items, blank()])}>{t("ui_k.add_item")}</Button>
+          <Button size="small" startIcon={<AddIcon />} onClick={() => onChange([...items, blank()])}>{t("ui_k.add_item")}{primary && <> <KbdHint>F3</KbdHint></>}</Button>
         )}
       </Stack>
     </Box>
@@ -129,11 +136,13 @@ export default function FieldEditor({ fields, data, onChange }) {
     if (v === undefined) delete next[k]; else next[k] = v;
     onChange(next);
   };
+  const firstList = Object.keys(fields).find((k) => fields[k].t === "list");
   return (
     <Stack spacing={2}>
       {Object.entries(fields).map(([name, spec]) =>
         spec.t === "list" ? (
-          <ListField key={name} name={name} spec={spec} value={data[name]} onChange={(v) => set(name, v)} />
+          <ListField key={name} name={name} spec={spec} value={data[name]} primary={name === firstList}
+            onChange={(v) => set(name, v)} />
         ) : (
           <Scalar key={name} name={name} spec={spec} value={data[name]} onChange={(v) => set(name, v)} />
         ),

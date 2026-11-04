@@ -1,0 +1,44 @@
+{
+  "ui_l": {
+    "pos": {
+      "focus_cart": "Focus cart rows",
+      "cart_next_row": "Next cart row (inside the cart)",
+      "cart_prev_row": "Previous cart row (inside the cart)",
+      "cart_row_remove": "Remove focused cart row",
+      "cart_row_inc": "Increase focused row quantity",
+      "cart_row_dec": "Decrease focused row quantity",
+      "order_type_n": "Order type: {{name}}",
+      "type_hall": "Dine-in",
+      "type_takeout": "Takeout",
+      "type_delivery": "Delivery",
+      "toggle_edit": "Toggle product edit mode",
+      "exit_edit": "Leave product edit mode",
+      "next_category": "Next category",
+      "prev_category": "Previous category",
+      "discount_apply": "Apply category discount",
+      "discount_close": "Close category discount"
+    },
+    "store": {
+      "restore_title": "Restore this revision?",
+      "restore_text": "The current draft will be replaced by the selected revision.",
+      "restore_publish_text": "The selected revision will replace the draft and be published immediately.",
+      "restore_focused": "Restore focused revision",
+      "next_revision": "Next revision",
+      "prev_revision": "Previous revision",
+      "save_domain": "Save custom domain",
+      "add_list_item": "Add list item"
+    },
+    "super": {
+      "logout": "Log out",
+      "logout_title": "Log out?",
+      "logout_text": "You will be signed out of the admin panel.",
+      "toggle_theme": "Toggle light / dark theme",
+      "toggle_lang": "Toggle language",
+      "refresh": "Refresh data",
+      "login_submit": "Sign in"
+    },
+    "public": {
+      "go_dashboard": "Go to dashboard (signed-in users)"
+    }
+  }
+}

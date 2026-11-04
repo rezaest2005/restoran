@@ -4,6 +4,15 @@ import {
   Dialog, DialogContent, Badge, Switch,
 } from "@mui/material";
 import { Sell, Close, Percent, Payments } from "@mui/icons-material";
+import { useTranslation } from "react-i18next";
+import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
+import KbdHint from "../common/KbdHint";
+
+// div-based buttons: make them reachable and activatable from the keyboard
+const kbdBtn = (fn) => ({
+  role: "button", tabIndex: 0, onClick: fn,
+  onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fn(e); } },
+});
 
 const EXPIRY_PRESETS = [
   { id: "1h", labelFa: "۱ ساعت", labelEn: "1 hour", ms: 60 * 60 * 1000 },
@@ -38,6 +47,7 @@ export default function CategoryDiscountButton({
   onApply,
   C, isRtl,
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [discountType, setDiscountType] = useState("fixed"); // "fixed" | "percent"
   const [amount, setAmount] = useState(0);
@@ -87,6 +97,17 @@ export default function CategoryDiscountButton({
     onApply(categoryName, null);
     setOpen(false);
   };
+
+  // Ctrl+D اعمال · Escape بستن (Enter در فیلد مبلغ جداگانه مدیریت می‌شود)
+  useRegisteredShortcuts(
+    dialogBindings(t, {
+      onConfirm: handleApply,
+      onClose: () => setOpen(false),
+      confirmLabel: t("ui_l.pos.discount_apply"),
+      enter: false,
+    }),
+    { enabled: open },
+  );
 
   const displayTitle = isAll
     ? (isRtl ? "تخفیف روی همه‌ی محصولات" : "Discount on all products")
@@ -234,7 +255,7 @@ export default function CategoryDiscountButton({
                 return (
                   <Box
                     key={id}
-                    onClick={() => setDiscountType(id)}
+                    {...kbdBtn(() => setDiscountType(id))}
                     sx={{
                       flex: 1, display: "flex", alignItems: "center", justifyContent: "center",
                       gap: 0.6, py: 1.1, borderRadius: "12px", cursor: "pointer",
@@ -337,7 +358,7 @@ export default function CategoryDiscountButton({
                   {[1000, 5000, 10000].map(step => (
                     <Box
                       key={step}
-                      onClick={() => setAmount(a => a + step)}
+                      {...kbdBtn(() => setAmount(a => a + step))}
                       sx={{
                         flex: 1, textAlign: "center", py: 0.7, borderRadius: "10px",
                         bgcolor: C.oliveSubtle, color: C.olive, cursor: "pointer",
@@ -350,7 +371,7 @@ export default function CategoryDiscountButton({
                     </Box>
                   ))}
                   <Box
-                    onClick={() => setAmount(0)}
+                    {...kbdBtn(() => setAmount(0))}
                     sx={{
                       flex: 1, textAlign: "center", py: 0.7, borderRadius: "10px",
                       bgcolor: C.dangerBg, color: C.burgundy, cursor: "pointer",
@@ -395,7 +416,7 @@ export default function CategoryDiscountButton({
                       return (
                         <Box
                           key={preset.id}
-                          onClick={() => { setExpiryPreset(preset.id); setCustomExpiry(""); }}
+                          {...kbdBtn(() => { setExpiryPreset(preset.id); setCustomExpiry(""); })}
                           sx={{
                             px: 1.4, py: 0.6, borderRadius: "10px", cursor: "pointer",
                             bgcolor: selected ? C.gold : "transparent",
@@ -443,7 +464,9 @@ export default function CategoryDiscountButton({
             {/* دکمه‌ها */}
             <Box sx={{ display: "flex", gap: 1.2 }}>
               <Box
+                role="button" tabIndex={0}
                 onClick={handleApply}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleApply(); } }}
                 sx={{
                   flex: 2, textAlign: "center", py: 1.6, borderRadius: "14px",
                   background: `linear-gradient(135deg, ${C.gold}, ${C.burgundy})`,
@@ -457,9 +480,12 @@ export default function CategoryDiscountButton({
                 }}
               >
                 {isRtl ? "اعمال تخفیف" : "Apply discount"}
+                <KbdHint sx={{ ml: 1 }}>Ctrl+D</KbdHint>
               </Box>
               <Box
+                role="button" tabIndex={0}
                 onClick={handleRemove}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleRemove(); } }}
                 sx={{
                   flex: 1, textAlign: "center", py: 1.6, borderRadius: "14px",
                   bgcolor: C.dangerBg,

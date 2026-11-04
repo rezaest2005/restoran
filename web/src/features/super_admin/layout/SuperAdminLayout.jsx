@@ -9,10 +9,14 @@ import SuperTopBar from "@super/layout/SuperTopBar";
 import TenantsPanel from "@super/tenants/TenantsPanel";
 import UsersPanel from "@super/users/UsersPanel";
 import ModulesPanel from "@super/modules/ModulesPanel";
-import { Box, Button, Snackbar, Alert, useMediaQuery, useTheme } from "@mui/material";
+import {
+  Box, Button, Snackbar, Alert, useMediaQuery, useTheme,
+  Dialog, DialogTitle, DialogContent, DialogActions, Typography,
+} from "@mui/material";
 import { useTranslation } from "react-i18next";
 import superClient from "@super/api/super_client";
-import { collectShortcuts, useRegisteredShortcuts, tabBindings, helpBinding } from "@shared/common/shortcutKit";
+import { collectShortcuts, useRegisteredShortcuts, tabBindings, helpBinding, dialogBindings } from "@shared/common/shortcutKit";
+import KbdHint from "@business/pos/common/KbdHint";
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 
 export default function SuperAdminLayout() {
@@ -30,6 +34,7 @@ export default function SuperAdminLayout() {
   const [activeTab, setActiveTab] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [help, setHelp] = useState(false);
+  const [logoutOpen, setLogoutOpen] = useState(false);
 
   const {
     stats, tenants, services, servicesLoading,
@@ -47,6 +52,7 @@ export default function SuperAdminLayout() {
     try { await superClient.post("/api/super/logout/"); } catch {}
     localStorage.removeItem("super_token");
     localStorage.removeItem("super_user");
+    try { sessionStorage.removeItem("super_token"); sessionStorage.removeItem("super_user"); } catch { /* ignore */ }
     navigate("/super/login");
   }, [navigate]);
 
@@ -60,7 +66,21 @@ export default function SuperAdminLayout() {
   useRegisteredShortcuts([
     helpBinding(t, () => setHelp(true)),
     ...tabBindings(t, tabs.map((x, i) => ({ id: i, label: x.label })), setActiveTab),
+    { combo: "Alt+L", label: t("ui_l.super.logout"), handler: () => setLogoutOpen(true) },
+    { combo: "Alt+T", label: t("ui_l.super.toggle_theme"), handler: () => toggleTheme() },
+    { combo: "Alt+G", label: t("ui_l.super.toggle_lang"), handler: () => toggleLang() },
+    { combo: "Alt+R", label: t("ui_l.super.refresh"), handler: () => { loadTenants(); loadUsers(1); } },
   ]);
+
+  // logout confirmation: Enter / Ctrl+D confirm, Escape cancel
+  useRegisteredShortcuts(
+    dialogBindings(t, {
+      onConfirm: () => { setLogoutOpen(false); handleLogout(); },
+      onClose: () => setLogoutOpen(false),
+      confirmLabel: t("ui_l.super.logout"),
+    }),
+    { enabled: logoutOpen },
+  );
 
   return (
     <Box dir={isRtl ? "rtl" : "ltr"} sx={{
@@ -76,7 +96,7 @@ export default function SuperAdminLayout() {
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         currentUser={{ username: "Admin" }}
-        onLogout={handleLogout}
+        onLogout={() => setLogoutOpen(true)}
         C={C}
         t={t}
       />
@@ -158,6 +178,17 @@ export default function SuperAdminLayout() {
           {activeTab === 2 && <ModulesPanel tenants={tenants} C={C} />}
         </Box>
       </Box>
+
+      <Dialog open={logoutOpen} onClose={() => setLogoutOpen(false)} maxWidth="xs" fullWidth dir={isRtl ? "rtl" : "ltr"}>
+        <DialogTitle>{t("ui_l.super.logout_title")}</DialogTitle>
+        <DialogContent><Typography>{t("ui_l.super.logout_text")}</Typography></DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLogoutOpen(false)}>{t("shortcuts.close_dialog")} <KbdHint>Esc</KbdHint></Button>
+          <Button variant="contained" onClick={() => { setLogoutOpen(false); handleLogout(); }}>
+            {t("ui_l.super.logout")} <KbdHint>Enter</KbdHint>
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* toast */}
       <Snackbar

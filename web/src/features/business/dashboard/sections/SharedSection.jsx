@@ -50,7 +50,9 @@ export default function SharedSection() {
           <Grid item xs={12} sm={6} md={3} key={action.id}>
             <GlassCard C={C} delay={0.75}>
               <Box 
-                onClick={() => navigate(action.path)} 
+                role="link" tabIndex={0}
+                onClick={() => navigate(action.path)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(action.path); } }}
                 sx={{ 
                   p: 2.5, 
                   display: "flex", 

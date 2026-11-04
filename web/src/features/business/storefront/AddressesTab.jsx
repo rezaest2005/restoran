@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, Box, Button, Stack, TextField, Typography } from "@mui/material";
+import KbdHint from "@business/pos/common/KbdHint";
 import { saveMine, errMsg } from "./api";
 
 function AddrRow({ label, value }) {
@@ -58,10 +59,13 @@ export default function AddressesTab({ addresses, onReload, onToast }) {
       <Box>
         <TextField size="small" fullWidth label={t("ui_k.addr.custom_domain")} value={domain} disabled={!isOwner}
           inputProps={{ dir: "ltr" }} placeholder="shop.example.com" onChange={(e) => setDomain(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && isOwner) { e.preventDefault(); saveDomain(); } }}
           helperText={isOwner ? t("ui_k.addr.custom_domain_hint") : t("ui_k.addr.owner_only")} />
         {err && <Alert severity="error" sx={{ mt: 1 }}>{err}</Alert>}
         {isOwner && (
-          <Button sx={{ mt: 1 }} variant="contained" onClick={saveDomain}>{t("ui_k.addr.save_domain")}</Button>
+          <Button sx={{ mt: 1 }} variant="contained" onClick={saveDomain}>
+            {t("ui_k.addr.save_domain")} <KbdHint>Enter</KbdHint>
+          </Button>
         )}
       </Box>
       {addresses.custom_domain_url && <AddrRow label={t("ui_k.addr.custom_domain")} value={addresses.custom_domain_url} />}
