@@ -3,6 +3,7 @@ import {
 } from "@mui/material";
 import useShortcuts from "@shared/common/useShortcuts";
 import KbdHint from "@business/pos/common/KbdHint";
+import { blurFocused } from "@business/pos/common/focus";
 
 /** Confirm dialog: Enter / Ctrl+D confirm, Escape cancels (MUI). */
 export default function ConfirmDialog({ ctx, open, title, text, confirmLabel, danger, busy, error, onClose, onConfirm }) {
@@ -15,7 +16,7 @@ export default function ConfirmDialog({ ctx, open, title, text, confirmLabel, da
   ], { enabled: open });
 
   return (
-    <Dialog open={open} onClose={busy ? undefined : onClose} fullScreen={fullScreen} maxWidth="xs" fullWidth PaperProps={{ sx: S.dialogPaper }}>
+    <Dialog open={open} onClose={busy ? undefined : onClose} fullScreen={fullScreen} maxWidth="xs" fullWidth slotProps={{ paper: { sx: S.dialogPaper }, transition: { onExit: blurFocused } }}>
       <DialogTitle sx={{ fontWeight: 700 }}>{title}</DialogTitle>
       <DialogContent>
         <Typography sx={{ color: C.sub, fontSize: 14 }}>{text}</Typography>

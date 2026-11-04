@@ -12,6 +12,7 @@ import { buildColors } from "@shared/palette";
 import useShortcuts from "@shared/common/useShortcuts";
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 import KbdHint from "@business/pos/common/KbdHint";
+import { blurFocused } from "@business/pos/common/focus";
 import {
   num, fmt, fmtDate, STATUSES, newKey, useStyles, TableWrap, ConfirmDialog, enterIsNative,
   TypeBadge, StatusCell, SubFormulaButton, ReadyBanner, RequirementsTable, lineStatus,
@@ -179,7 +180,7 @@ function FormulasTab(ctx) {
                   <TableCell sx={S.td}>{f.version}</TableCell>
                   <TableCell sx={S.td}>
                     <Switch size="small" checked={!!f.is_active} onChange={() => toggleActive(f)}
-                      inputProps={{ "aria-label": t("ui_e.formulas.col_active") }} />
+                      slotProps={{ input: { "aria-label": t("ui_e.formulas.col_active") } }} />
                   </TableCell>
                   <TableCell sx={{ ...S.td, whiteSpace: "nowrap" }}>
                     <Button size="small" sx={{ color: C.primary, textTransform: "none" }} onClick={() => setEditing(f)}>{t("ui_e.common.edit")}</Button>
@@ -352,7 +353,7 @@ function FormulaDialog({ ctx, formula, openFormula, onClose, onSaved }) {
   const typeLabel = (m) => (m?.material_type ? ` · ${t(`ui_e.types.${m.material_type}`, { defaultValue: m.material_type })}` : "");
 
   return (
-    <Dialog open onClose={saving ? undefined : onClose} fullScreen={fullScreen} maxWidth="md" fullWidth PaperProps={{ sx: S.dialogPaper }}>
+    <Dialog open onClose={saving ? undefined : onClose} fullScreen={fullScreen} maxWidth="md" fullWidth slotProps={{ paper: { sx: S.dialogPaper }, transition: { onExit: blurFocused } }}>
       <DialogTitle sx={{ fontWeight: 700 }}>{isEdit ? t("ui_e.formulas.edit_title") : t("ui_e.formulas.new_title")}</DialogTitle>
       <DialogContent dividers sx={{ borderColor: C.divider }}>
         {loading ? <Box sx={{ textAlign: "center", py: 4 }}><CircularProgress size={28} /></Box> : (
@@ -371,9 +372,9 @@ function FormulaDialog({ ctx, formula, openFormula, onClose, onSaved }) {
                 ))}
               </TextField>
               <TextField label={t("ui_e.formulas.f_batch_qty")} value={outQty} onChange={(e) => setOutQty(e.target.value)}
-                size="small" sx={S.field} type="number" inputProps={{ min: 0, step: "any", inputMode: "decimal" }}
+                size="small" sx={S.field} type="number" slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" }, input: { endAdornment: <Typography sx={{ color: C.muted, fontSize: 12 }}>{unitOf(outId)}</Typography> } }}
                 error={touched && !(num(outQty) > 0)}
-                InputProps={{ endAdornment: <Typography sx={{ color: C.muted, fontSize: 12 }}>{unitOf(outId)}</Typography> }} />
+                 />
             </Box>
 
             <Typography sx={{ color: C.text, fontWeight: 700, mt: 1 }}>{t("ui_e.formulas.lines_title")}</Typography>
@@ -414,14 +415,14 @@ function FormulaDialog({ ctx, formula, openFormula, onClose, onSaved }) {
                         <TableCell sx={{ ...S.td, minWidth: 140 }}>
                           <TextField size="small" type="number" value={l.quantity} sx={S.field} error={!!e.qty}
                             onChange={(ev) => setLine(l.key, { quantity: ev.target.value })}
-                            inputProps={{ min: 0, step: "any", inputMode: "decimal" }}
-                            InputProps={{ endAdornment: <Typography sx={{ color: C.muted, fontSize: 12, ms: 0.5 }}>{unitOf(l.material_id)}</Typography> }} />
+                            slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" }, input: { endAdornment: <Typography sx={{ color: C.muted, fontSize: 12, ms: 0.5 }}>{unitOf(l.material_id)}</Typography> } }}
+                             />
                         </TableCell>
                         <TableCell sx={{ ...S.td, minWidth: 100 }}>
                           <TextField size="small" type="number" value={l.wastage} sx={S.field} error={!!e.waste}
                             onChange={(ev) => setLine(l.key, { wastage: ev.target.value })}
-                            inputProps={{ min: 0, max: 99.99, step: "any", inputMode: "decimal" }}
-                            InputProps={{ endAdornment: <Typography sx={{ color: C.muted, fontSize: 12 }}>%</Typography> }} />
+                            slotProps={{ htmlInput: { min: 0, max: 99.99, step: "any", inputMode: "decimal" }, input: { endAdornment: <Typography sx={{ color: C.muted, fontSize: 12 }}>%</Typography> } }}
+                             />
                         </TableCell>
                         <TableCell sx={{ ...S.td, whiteSpace: "nowrap" }}>
                           {l.material_id ? `${fmt(stockOf(l))} ${unitOf(l.material_id)}` : "—"}
@@ -644,7 +645,7 @@ function OrdersTab(ctx) {
 
       {/* complete dialog */}
       <Dialog open={!!action && action.type === "complete"} onClose={actBusy ? undefined : () => setAction(null)}
-        fullScreen={ctx.fullScreen} maxWidth="md" fullWidth PaperProps={{ sx: S.dialogPaper }}>
+        fullScreen={ctx.fullScreen} maxWidth="md" fullWidth slotProps={{ paper: { sx: S.dialogPaper }, transition: { onExit: blurFocused } }}>
         <DialogTitle sx={{ fontWeight: 700 }}>{t("ui_e.orders.confirm_complete_title")}</DialogTitle>
         <DialogContent>
           <Typography sx={{ color: C.sub, fontSize: 14, mb: 2 }}>
@@ -660,8 +661,8 @@ function OrdersTab(ctx) {
           )}
           <TextField fullWidth size="small" type="number" label={t("ui_e.orders.produced_qty")} value={prodQty}
             onChange={(e) => setProdQty(e.target.value)} sx={S.field}
-            inputProps={{ min: 0, step: "any", inputMode: "decimal" }} error={!(num(prodQty) > 0)}
-            InputProps={{ endAdornment: <Typography sx={{ color: C.muted, fontSize: 12 }}>{action?.order.output_unit}</Typography> }} />
+            slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" }, input: { endAdornment: <Typography sx={{ color: C.muted, fontSize: 12 }}>{action?.order.output_unit}</Typography> } }} error={!(num(prodQty) > 0)}
+             />
           {actErr && <Alert severity="error" sx={{ mt: 2 }}>{actErr}</Alert>}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, flexWrap: "wrap", gap: 1 }}>
@@ -744,7 +745,7 @@ function OrderCreateDialog({ ctx, onClose, onCreated }) {
   ]);
 
   return (
-    <Dialog open onClose={saving ? undefined : onClose} fullScreen={fullScreen} maxWidth="md" fullWidth PaperProps={{ sx: S.dialogPaper }}>
+    <Dialog open onClose={saving ? undefined : onClose} fullScreen={fullScreen} maxWidth="md" fullWidth slotProps={{ paper: { sx: S.dialogPaper }, transition: { onExit: blurFocused } }}>
       <DialogTitle sx={{ fontWeight: 700 }}>{t("ui_e.orders.new_title")}</DialogTitle>
       <DialogContent>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
@@ -755,9 +756,9 @@ function OrderCreateDialog({ ctx, onClose, onCreated }) {
             {formulas.map((f) => <MenuItem key={f.id} value={String(f.id)}>{f.name} — {f.output_material}</MenuItem>)}
           </TextField>
           <TextField size="small" type="number" label={t("ui_e.orders.f_planned")} value={qty} sx={S.field}
-            onChange={(e) => setQty(e.target.value)} inputProps={{ min: 0, step: "any", inputMode: "decimal" }}
+            onChange={(e) => setQty(e.target.value)} slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" }, input: { endAdornment: <Typography sx={{ color: C.muted, fontSize: 12 }}>{sel?.output_unit}</Typography> } }}
             error={touched && !(num(qty) > 0)}
-            InputProps={{ endAdornment: <Typography sx={{ color: C.muted, fontSize: 12 }}>{sel?.output_unit}</Typography> }} />
+             />
           {fid && num(qty) > 0 && (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
               <Typography sx={{ color: C.text, fontWeight: 700 }}>{t("ui_prod.preview_title")}</Typography>
@@ -816,7 +817,7 @@ function OrderDetailDialog({ ctx, detail, StatusChip, onClose, openAction, actio
   ], { enabled: !actionOpen });
 
   return (
-    <Dialog open onClose={onClose} fullScreen={fullScreen} maxWidth="md" fullWidth PaperProps={{ sx: S.dialogPaper }}>
+    <Dialog open onClose={onClose} fullScreen={fullScreen} maxWidth="md" fullWidth slotProps={{ paper: { sx: S.dialogPaper }, transition: { onExit: blurFocused } }}>
       <DialogTitle sx={{ fontWeight: 700, display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
         {t("ui_e.orders.detail_title")} {order?.number}
         {order && <StatusChip s={order.status} />}
