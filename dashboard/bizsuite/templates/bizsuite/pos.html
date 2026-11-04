@@ -146,7 +146,7 @@
     .pos-search:focus { border-color: var(--pos-blue); box-shadow: 0 0 0 4px var(--pos-blue-light); }
     .pos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
 
-    /* ── کارت غذا ── */
+    /* ── کارت محصول ── */
     .pos-food-card {
         background: var(--pos-surface);
         border-radius: var(--pos-radius); overflow: hidden; cursor: pointer;
@@ -1052,7 +1052,7 @@
 <div class="pos-panel active" id="panel-pos">
     <div class="pos-wrap">
         <div class="pos-menu">
-            <input type="text" class="pos-search" id="posSearch" placeholder="جستجوی غذا..." oninput="posFilter()">
+            <input type="text" class="pos-search" id="posSearch" placeholder="جستجوی محصول..." oninput="posFilter()">
             <div class="pos-cats" id="posCats"></div>
             <div class="pos-grid" id="posGrid"></div>
         </div>
@@ -1062,7 +1062,7 @@
                 <span class="pos-cart-count" id="posCartCount">۰</span>
             </div>
             <div class="pos-cart-items" id="posCartItems">
-                <div class="pos-cart-empty"><i class="bi bi-cart-x"></i><p>غذایی انتخاب نشده</p></div>
+                <div class="pos-cart-empty"><i class="bi bi-cart-x"></i><p>محصولی انتخاب نشده</p></div>
             </div>
             <div class="pos-cart-footer">
                 <!-- نوع سفارش -->
@@ -1233,10 +1233,10 @@
         </div>
         <div class="close-card">
             <h3><i class="bi bi-trash3"></i> ثبت ضایعات</h3>
-            <p style="font-size:.82rem;color:var(--pos-text-sec);margin:0 0 12px">غذاهای مونده که قابل فروش نیستن رو ثبت کن</p>
+            <p style="font-size:.82rem;color:var(--pos-text-sec);margin:0 0 12px">محصولات مونده که قابل فروش نیستن رو ثبت کن</p>
             <div id="closeWasteItems">
                 <div class="close-waste-item">
-                    <select class="close-select close-waste-food"><option value="">— انتخاب غذا —</option></select>
+                    <select class="close-select close-waste-food"><option value="">— انتخاب محصول —</option></select>
                     <input type="number" class="close-input close-waste-qty" placeholder="تعداد" min="1" value="1">
                     <input type="text" class="close-input close-waste-note" placeholder="دلیل">
                     <button class="close-btn-remove" onclick="removeWasteRow(this)"><i class="bi bi-x"></i></button>
@@ -1400,7 +1400,7 @@ const Utils = {
     todayDateStr() { return new Date().toLocaleDateString('fa-IR'); },
     todayISO() { return new Date().toISOString().split('T')[0]; },
     generateId() { return 'ORD-' + (++State.orderCounter); },
-    getCategoryEmoji(cat) { const m = {'کباب':'🍢','پلو':'🍚','خورشت':'🥘','پیش‌غذا':'🥗','نوشیدنی':'🥤','dessert':'🍰','پیتزا':'🍕','برگر':'🍔','سالاد':'🥙'}; return m[cat] || '🍽️'; },
+    getCategoryEmoji(cat) { const m = {'کباب':'🍢','پلو':'🍚','خورشت':'🥘','پیش‌محصول':'🥗','نوشیدنی':'🥤','dessert':'🍰','پیتزا':'🍕','برگر':'🍔','سالاد':'🥙'}; return m[cat] || '🍽️'; },
     getCSRFToken() { const n='csrftoken'; for(let c of document.cookie.split(';')){c=c.trim();if(c.startsWith(n+'='))return c.substring(n.length+1);} return ''; },
     paymentMethodLabel(m) { return {cash:'نقدی',card:'دستگاه پز',transfer:'کارت به کارت',credit:'اعتباری (نسیه)'}[m] || m; },
     orderTypeLabel(t) { return {hall:'سالن',takeout:'بیرون‌بر',delivery:'پیک'}[t] || t; },
@@ -1570,7 +1570,7 @@ function posFilter() {
         return ap - bp;
     });
 
-    if (!filtered.length) { grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--pos-text-sec)"><i class="bi bi-search" style="font-size:32px;display:block;margin-bottom:8px;color:var(--pos-border)"></i><p>غذایی پیدا نشد</p></div>'; return; }
+    if (!filtered.length) { grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--pos-text-sec)"><i class="bi bi-search" style="font-size:32px;display:block;margin-bottom:8px;color:var(--pos-border)"></i><p>محصولی پیدا نشد</p></div>'; return; }
     grid.innerHTML = filtered.map(food => {
         const inCart = State.cart.find(c => c.id === food.id); const qty = inCart?inCart.qty:0;
         const disc = State.discounts[food.id]; const oos = food.stock<=0; const max = food.maxPerOrder && qty>=food.maxPerOrder;
@@ -1668,7 +1668,7 @@ function renderCart() {
     if ($('fabCartPrice')) $('fabCartPrice').textContent = Utils.formatPriceShort(total)+' ت';
 
     if (!State.cart.length) {
-        c.innerHTML = '<div class="pos-cart-empty"><i class="bi bi-cart-x"></i><p>غذایی انتخاب نشده</p></div>';
+        c.innerHTML = '<div class="pos-cart-empty"><i class="bi bi-cart-x"></i><p>محصولی انتخاب نشده</p></div>';
         $('posTotal').textContent = '۰ تومان'; $('posCheckout').disabled = true;
         $('originalTotalRow')?.classList.remove('show'); $('savingsRow')?.classList.remove('show');
         return;
@@ -2055,8 +2055,8 @@ function loadCloseSummary() {
     populateWasteSelects();
 }
 
-function populateWasteSelects() { document.querySelectorAll('.close-waste-food').forEach(sel => { const cur = sel.value; sel.innerHTML = '<option value="">— انتخاب غذا —</option>' + State.foods.map(f=>`<option value="${f.id}">${f.name}</option>`).join(''); sel.value = cur; }); }
-function addWasteRow() { const c=$('closeWasteItems'); if(!c)return; const r=document.createElement('div'); r.className='close-waste-item'; r.innerHTML=`<select class="close-select close-waste-food"><option value="">— انتخاب غذا —</option>${State.foods.map(f=>`<option value="${f.id}">${f.name}</option>`).join('')}</select><input type="number" class="close-input close-waste-qty" placeholder="تعداد" min="1" value="1"><input type="text" class="close-input close-waste-note" placeholder="دلیل"><button class="close-btn-remove" onclick="removeWasteRow(this)"><i class="bi bi-x"></i></button>`; c.appendChild(r); }
+function populateWasteSelects() { document.querySelectorAll('.close-waste-food').forEach(sel => { const cur = sel.value; sel.innerHTML = '<option value="">— انتخاب محصول —</option>' + State.foods.map(f=>`<option value="${f.id}">${f.name}</option>`).join(''); sel.value = cur; }); }
+function addWasteRow() { const c=$('closeWasteItems'); if(!c)return; const r=document.createElement('div'); r.className='close-waste-item'; r.innerHTML=`<select class="close-select close-waste-food"><option value="">— انتخاب محصول —</option>${State.foods.map(f=>`<option value="${f.id}">${f.name}</option>`).join('')}</select><input type="number" class="close-input close-waste-qty" placeholder="تعداد" min="1" value="1"><input type="text" class="close-input close-waste-note" placeholder="دلیل"><button class="close-btn-remove" onclick="removeWasteRow(this)"><i class="bi bi-x"></i></button>`; c.appendChild(r); }
 function removeWasteRow(btn) { if (btn.closest('.close-waste-item').parentNode.children.length > 1) btn.closest('.close-waste-item').remove(); }
 function submitWaste() { let cnt=0; document.querySelectorAll('.close-waste-item').forEach(r=>{const fid=r.querySelector('.close-waste-food')?.value;if(fid&&r.querySelector('.close-waste-qty')?.value>0)cnt++;}); if(!cnt)return showToast('آیتم ضایعات وارد نشده','error'); showToast(`${Utils.toPersianNum(cnt)} آیتم ضایعات ثبت شد`,'success'); }
 function closeAllPending() { State.todayOrders.forEach(o=>{if(o.status!=='delivered'&&o.status!=='cancelled')o.status='delivered';}); loadCloseSummary(); showToast('تمام سفارشات باز تحویل‌شده شدند','success'); }

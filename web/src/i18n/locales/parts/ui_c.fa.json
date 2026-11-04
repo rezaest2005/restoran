@@ -213,7 +213,7 @@
         "dictionary": "دیکشنری",
         "dictionary_customers": "مشتریان",
         "dictionary_managers": "مدیران",
-        "dictionary_menu": "منوی محصولات",
+        "dictionary_menu": "کاتالوگ محصولات",
         "dictionary_recipes": "فرمولاسیون‌ها",
         "dictionary_suppliers": "تأمین‌کنندگان",
         "dictionary_warehouses": "انبارها",
@@ -237,15 +237,15 @@
       },
       "preset": {
         "cashier": {
-          "desc": "فقط بخش صندوق + منو",
+          "desc": "فقط بخش صندوق + کاتالوگ",
           "label": "💰 صندوقدار"
         },
         "customer": {
-          "desc": "فقط مشاهده منو",
+          "desc": "فقط مشاهده کاتالوگ",
           "label": "🧑 مشتری"
         },
         "kitchen": {
-          "desc": "فرمولاسیون + منو + سفارشات",
+          "desc": "فرمولاسیون + کاتالوگ + سفارشات",
           "label": "🏭 خط تولید"
         },
         "manager": {

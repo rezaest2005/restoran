@@ -42,7 +42,7 @@ def pos_create_order(request):
 
         if not items:
             return JsonResponse(
-                {"success": False, "error": "هیچ غذایی انتخاب نشده"}, status=400,
+                {"success": False, "error": "هیچ محصولی انتخاب نشده"}, status=400,
             )
 
         business = resolve_business(request)
@@ -63,7 +63,7 @@ def pos_create_order(request):
 
             if not food:
                 return JsonResponse(
-                    {"success": False, "error": f"غذا با شناسه {food_id} پیدا نشد"},
+                    {"success": False, "error": f"محصول با شناسه {food_id} پیدا نشد"},
                     status=400,
                 )
 
@@ -217,7 +217,7 @@ def pos_update_food_price(request):
         food = food_qs.filter(id=food_id).first()
 
         if not food:
-            return JsonResponse({"success": False, "error": "غذا پیدا نشد"}, status=404)
+            return JsonResponse({"success": False, "error": "محصول پیدا نشد"}, status=404)
 
         if price is not None:
             food.price = max(0, int(price))

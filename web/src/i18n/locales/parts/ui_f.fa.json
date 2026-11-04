@@ -8,7 +8,7 @@
       "new_order_table": "سفارش جدید — میز {{n}}",
       "new_order": "سفارش جدید",
       "table": "میز {{n}}",
-      "source_qr": "QR میز",
+      "source_qr": "QR",
       "source_online": "آنلاین",
       "no_name": "مهمان",
       "note": "توضیحات مشتری",
@@ -32,14 +32,14 @@
       "min_ago": "{{n}} دقیقه پیش",
       "hour_ago": "{{n}} ساعت پیش",
       "order_no": "سفارش شماره {{id}}",
-      "qr_codes": "کدهای QR میزها"
+      "qr_codes": "کدهای QR میز / محل"
     },
     "print": {
       "failed": "چاپ ناموفق بود",
       "production_title": "خط تولید",
       "receipt_title": "رسید",
-      "table": "میز",
-      "no_table": "بدون میز",
+      "table": "میز / محل",
+      "no_table": "بدون محل",
       "time": "زمان",
       "order_no": "شماره سفارش",
       "customer": "مشتری",

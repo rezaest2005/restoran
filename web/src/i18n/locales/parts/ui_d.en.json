@@ -2,7 +2,7 @@
   "ui_d": {
     "qr": {
       "currency": "Toman",
-      "title_fallback": "Menu",
+      "title_fallback": "Catalogue",
       "toggle_theme": "Toggle theme",
       "toggle_lang": "Switch language",
       "search_placeholder": "Search products...",
@@ -10,8 +10,8 @@
       "all": "All",
       "uncategorized": "Other",
       "loading": "Loading...",
-      "not_found": "This menu was not found or is inactive.",
-      "load_error": "Failed to load the menu.",
+      "not_found": "This catalogue was not found or is inactive.",
+      "load_error": "Failed to load the catalogue.",
       "retry": "Retry",
       "empty": "No products found.",
       "unavailable": "Unavailable",
@@ -39,14 +39,14 @@
       "generic_error": "Could not place the order. Please try again.",
       "success_title": "Your order has been placed",
       "order_number": "Order number",
-      "table": "Table",
+      "table": "Table / location",
       "total": "Total",
       "new_order": "New order"
     },
     "table_qr": {
-      "title": "Table QR codes",
-      "count_label": "Number of tables",
-      "hint": "One QR code is generated per table. Customers scan it to open the menu.",
+      "title": "Table / location QR codes",
+      "count_label": "Number of tables / locations",
+      "hint": "One QR code is generated per table or location. Customers scan it to open the catalogue and order.",
       "print": "Print",
       "close": "Close",
       "table_n": "Table {{n}}",

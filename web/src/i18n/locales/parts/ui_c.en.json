@@ -213,7 +213,7 @@
         "dictionary": "Dictionary",
         "dictionary_customers": "Customers",
         "dictionary_managers": "Managers",
-        "dictionary_menu": "Products Menu",
+        "dictionary_menu": "Product catalogue",
         "dictionary_recipes": "Formulations",
         "dictionary_suppliers": "Suppliers",
         "dictionary_warehouses": "Warehouses",
@@ -237,15 +237,15 @@
       },
       "preset": {
         "cashier": {
-          "desc": "Cashier section + menu only",
+          "desc": "Cashier section + catalogue only",
           "label": "💰 Cashier"
         },
         "customer": {
-          "desc": "View menu only",
+          "desc": "View catalogue only",
           "label": "🧑 Customer"
         },
         "kitchen": {
-          "desc": "Formulation + menu + orders",
+          "desc": "Formulation + catalogue + orders",
           "label": "🏭 Production Line"
         },
         "manager": {

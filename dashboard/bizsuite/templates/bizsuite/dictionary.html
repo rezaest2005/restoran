@@ -495,7 +495,7 @@
 <div class="dict-page-header">
   <div>
     <h2><i class="bi bi-book"></i>دیکشنری اسامی</h2>
-    <div class="dict-page-sub">مدیریت نام‌های پرتکرار، غذاها و دسته‌بندی‌ها</div>
+    <div class="dict-page-sub">مدیریت نام‌های پرتکرار، محصولها و دسته‌بندی‌ها</div>
   </div>
 </div>
 
@@ -584,7 +584,7 @@
     </div>
   </div>
 
-  <!-- فرم آیتم: واحد فقط برای تب‌های غیرغذا -->
+  <!-- فرم آیتم: واحد فقط برای تب‌های غیرمحصول -->
   <div class="dict-page-form">
     <div class="dict-form-group">
       <label>نام آیتم</label>
@@ -679,7 +679,7 @@ var PageDict = (function() {
   var PRESETS = [
     { slug: '__raw_material__',   name: 'مواد اولیه',  icon: 'bi-box2',      color: '#10b981', cat: 'raw_material' },
     { slug: '__ready_material__', name: 'مواد آماده',  icon: 'bi-box-seam',  color: '#f59e0b', cat: 'ready_material' },
-    { slug: '__food_menu__',      name: 'غذا و منو',   icon: 'bi-egg-fried', color: '#3b82f6', cat: 'food' },
+    { slug: '__food_menu__',      name: 'محصولات و کاتالوگ',   icon: 'bi-egg-fried', color: '#3b82f6', cat: 'food' },
   ];
 
   /* ═══ State ═══ */
@@ -731,7 +731,7 @@ var PageDict = (function() {
   }
   function isPreset() { return !!getPreset(currentSlug); }
   function isFood()  { return currentSlug === '__food_menu__'; }
-  function hasUnit() { return !isFood(); } /* غذا واحد نداره، بقیه دارن */
+  function hasUnit() { return !isFood(); } /* محصول واحد نداره، بقیه دارن */
 
   /* دسته‌بندی واقعی برای ذخیره در دیتابیس */
   function getDbCategory() {
@@ -1138,7 +1138,7 @@ var PageDict = (function() {
       updateStats(); render();
     }).catch(function(){});
 
-    /* ★ آیتم‌های غذا */
+    /* ★ آیتم‌های محصول */
     apiGet(URL_FOOD_LIST).then(function(res) {
       var items = res.items || res.results || (Array.isArray(res) ? res : []);
       allItems['__food_menu__'] = items;
@@ -1187,7 +1187,7 @@ var PageDict = (function() {
       var ed = editingId === item.id ? ' editing-row' : '';
       var id = item.id;
 
-      /* ستون واحد — فقط غیرغذا */
+      /* ستون واحد — فقط غیرمحصول */
       var unitCol = '';
       if (hasUnit()) {
         var uLabel = item.unit_display || unitLabel(item.unit);
@@ -1205,7 +1205,7 @@ var PageDict = (function() {
         if (catIdx >= 0) catColor = catColors[catIdx % catColors.length];
       }
 
-      /* ستون توضیحات — فقط غیرغذا */
+      /* ستون توضیحات — فقط غیرمحصول */
       var descCol = '';
       if (!isFood()) {
         descCol = '<td class="col-desc">' + esc(item.description || '—') + '</td>';
@@ -1243,7 +1243,7 @@ var PageDict = (function() {
     }
   }
 
-  /* ★ ساخت/ویرایش غذا — Food API */
+  /* ★ ساخت/ویرایش محصول — Food API */
   function saveFoodItem(name, desc) {
     /* ★ زیردسته انتخاب‌شده کاربر */
     var catName = '';
@@ -1272,8 +1272,8 @@ var PageDict = (function() {
         allItems['__food_menu__'].push(res);
         updateStats(); renderDictCatBar(); render();
         nameEl.value = ''; descEl.value = ''; nameEl.focus();
-        toast('غذا اضافه شد', 'success');
-      }).catch(function() { toast('خطا در ساخت غذا', 'error'); });
+        toast('محصول اضافه شد', 'success');
+      }).catch(function() { toast('خطا در ساخت محصول', 'error'); });
     }
 }
 
@@ -1350,7 +1350,7 @@ var PageDict = (function() {
     if (!confirm('آیا از حذف این آیتم مطمئنید؟')) return;
 
     if (isFood()) {
-      /* ★ غذا → cascade delete (Food → Recipe → KitchenProduct) */
+      /* ★ محصول → cascade delete (Food → Recipe → KitchenProduct) */
       api('/api/dictionary/food/' + id + '/delete/', 'POST').then(function(res) {
         if (res.error) { toast(res.error, 'error'); return; }
         handleDeleteSuccess(id, res.message);
