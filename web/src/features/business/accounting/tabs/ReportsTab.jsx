@@ -6,6 +6,7 @@ import {
 import {
   TableWrap, Money, accName, fmtDate, monthStartISO, todayISO, downloadCsv,
 } from "../common";
+import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
 import {
   fetchTrialBalance, fetchIncomeStatement, fetchBalanceSheet, errMsg,
 } from "../api";
@@ -85,6 +86,10 @@ export default function ReportsTab(ctx) {
   };
 
   const doPrint = () => { try { window.print(); } catch { notify(t("ui_i.reports.print_failed"), "error"); } };
+  useRegisteredShortcuts([
+    { combo: "Alt+P", label: t("ui_i.reports.print"), handler: () => (data ? doPrint() : false) },
+    { combo: "Alt+E", label: t("ui_i.reports.export_csv"), handler: () => (data ? exportCsv() : false) },
+  ]);
 
   const dateField = (label, value, set, w = 160) => (
     <TextField type="date" size="small" label={label} value={value} sx={{ ...S.field, width: { xs: "calc(50% - 6px)", sm: w } }}

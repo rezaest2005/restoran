@@ -5,6 +5,7 @@ import {
 } from "@mui/material";
 import { Close, Save } from "@mui/icons-material";
 import superClient from "@super/api/super_client";
+import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
 
 const formatPrice = (val) => {
   const num = typeof val === "string" ? parseInt(val.replace(/,/g, ""), 10) : val;
@@ -60,6 +61,11 @@ export default function ServicesPanel({ tenantId, tenantName, services, loading,
       setSaving(false);
     }
   };
+
+  useRegisteredShortcuts([
+    { combo: "Ctrl+D", label: t("shortcuts.save"), handler: () => handleSave() },
+    { combo: "Escape", label: t("shortcuts.close_dialog"), handler: () => setVisible(false) },
+  ], { enabled: !!tenantId && visible });
 
   if (!tenantId || !visible) return null;
 

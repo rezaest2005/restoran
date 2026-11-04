@@ -6,6 +6,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "../../../../i18n";
 import { getUnitLabel } from "../../../../shared/common/units";
 import { readJSON, gregorianToJalali, pad2 } from "../common";
+import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
 
 // ═══════════ ثابت‌ها ═══════════
 const PAYMENTS = {
@@ -484,6 +485,16 @@ export default function ReportsTab({ C, isDark, showToast }) {
     { value: "payments", label: t("ui_c.reports.tab_payments"), count: 4 },
     { value: "transfers", label: t("ui_c.reports.tab_transfers"), count: fTransfers.length },
   ];
+  const cycleTab = (d) => {
+    const i = tabs.findIndex((x) => x.value === tab);
+    setTab(tabs[(i + d + tabs.length) % tabs.length].value);
+  };
+  const FILTERS = ["all", "profit", "loss"];
+  useRegisteredShortcuts([
+    { combo: "Ctrl+A", label: t("shortcuts.next"), handler: () => cycleTab(1) },
+    { combo: "Ctrl+Z", label: t("shortcuts.prev"), handler: () => cycleTab(-1) },
+    { combo: "Alt+F", label: t("ui_c.reports.per_invoice_pl"), handler: () => setInvoiceFilter(FILTERS[(FILTERS.indexOf(invoiceFilter) + 1) % FILTERS.length]) },
+  ]);
 
   // ═══════════════════════════════════════════
   //   رندر

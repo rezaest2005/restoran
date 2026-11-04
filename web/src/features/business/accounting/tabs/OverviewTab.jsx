@@ -3,7 +3,8 @@ import {
   Box, Typography, Button, Alert, CircularProgress, Table, TableHead, TableBody, TableRow, TableCell,
 } from "@mui/material";
 import KbdHint from "@business/pos/common/KbdHint";
-import { TableWrap, Money, fmtDate, fmtInt } from "../common";
+import { TableWrap, Money, fmtDate, fmtInt, useRowCursor, cursorBindings, cursorProps } from "../common";
+import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
 import { fetchSummary, fetchJournal, errMsg } from "../api";
 import { SourceBadge } from "./EntryDetailDialog";
 
@@ -15,6 +16,11 @@ export default function OverviewTab(ctx) {
   const [recent, setRecent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const cursor = useRowCursor(recent.length);
+  useRegisteredShortcuts([
+    ...cursorBindings(t, cursor),
+    { combo: "Enter", label: t("shortcuts.confirm"), handler: () => (recent[cursor.index] ? openDetail(recent[cursor.index].id) : false) },
+  ]);
 
   useEffect(() => {
     let alive = true;
@@ -98,8 +104,8 @@ export default function OverviewTab(ctx) {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {recent.map((e) => (
-                  <TableRow key={e.id} hover onClick={() => openDetail(e.id)} sx={{ cursor: "pointer" }}>
+                {recent.map((e, i) => (
+                  <TableRow key={e.id} hover onClick={() => openDetail(e.id)} {...cursorProps(C, i === cursor.index)} sx={{ cursor: "pointer", ...(cursorProps(C, i === cursor.index).sx || {}) }}>
                     <TableCell sx={{ ...S.td, fontWeight: 600 }}>{fmtInt(e.number, lang)}</TableCell>
                     <TableCell sx={S.td}>{fmtDate(e.date, lang)}</TableCell>
                     <TableCell sx={S.td}>{e.description || "—"}</TableCell>
