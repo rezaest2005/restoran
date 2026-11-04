@@ -49,6 +49,9 @@ from .production import Formula, FormulaLine, ProductionOrder
 from .club import LoyaltyMember, LoyaltySettings, LoyaltyTransaction
 from .feedback import Feedback
 from .accounting import Account, CostCenter, JournalEntry, JournalLine
+from .delivery import (
+    Carrier, CashSettlement, Driver, LocationPing, Trip, TripStop, Vehicle,
+)
 
 __all__ = [
     "UNIT_CHOICES", "UNIT_MAX_LENGTH", "DecimalSafeEncoder", "check_constraint",
@@ -65,4 +68,5 @@ __all__ = [
     "LoyaltyMember", "LoyaltySettings", "LoyaltyTransaction",
     "Feedback",
     "Account", "CostCenter", "JournalEntry", "JournalLine",
+    "Carrier", "CashSettlement", "Driver", "LocationPing", "Trip", "TripStop", "Vehicle",
 ]

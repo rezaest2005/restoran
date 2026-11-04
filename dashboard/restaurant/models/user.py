@@ -23,6 +23,7 @@ DASHBOARD_SECTIONS = [
     ("recipes", "فرمولاسیون"),
     ("club", "باشگاه مشتریان"),
     ("accounting", "حسابداری"),
+    ("delivery", "حمل و تحویل"),
     ("invoices", "فاکتور خرید"),
     ("raw_materials", "مواد اولیه"),
     ("semi_finished", "نیمه‌آماده"),
@@ -54,6 +55,7 @@ class User(AbstractUser):
         CASHIER = "cashier", "صندوقدار"
         KITCHEN = "kitchen", "خط تولید"
         WAREHOUSE = "warehouse", "انباردار"
+        DRIVER = "driver", "راننده"
         CUSTOMER = "customer", "مشتری"
 
     phone_number = models.CharField(
