@@ -12,6 +12,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 
 from ...models import Order, Food, Business
+from ...modules import module_enabled
 from ...tenancy import set_current_business
 from ...order_services import restore_order_stock
 from ..common import PosPerm, resolve_business
@@ -31,6 +32,8 @@ def public_menu_api(request):
     if slug:
         business = Business.objects.filter(slug=slug, is_active=True).first()
         if not business:
+            return JsonResponse({"count": 0, "total": 0, "results": []}, status=404)
+        if not module_enabled(business, "pos"):
             return JsonResponse({"count": 0, "total": 0, "results": []}, status=404)
         set_current_business(business)  # TenantManager برای Food.objects
     if business is None:

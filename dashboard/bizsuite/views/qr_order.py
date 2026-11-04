@@ -20,6 +20,7 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from rest_framework.permissions import AllowAny
 
 from ..models import Food, Order, OrderItem, Business
+from ..modules import module_enabled
 from ..utils import api_error, api_success
 from .common import client_ip
 
@@ -67,6 +68,10 @@ def qr_order_submit(request):
     business = Business.objects.filter(slug=slug, is_active=True).first() if slug else None
     if not business:
         return api_error("کسب‌وکار پیدا نشد.", status_code=http.HTTP_404_NOT_FOUND)
+    if not module_enabled(business, "pos"):
+        # ordering needs the point-of-sale module (the cashier receives the order)
+        return api_error("سفارش آنلاین برای این کسب‌وکار فعال نیست.",
+                         status_code=http.HTTP_404_NOT_FOUND)
 
     table = str(data.get("table") or "").strip()
     if table and not _TABLE_RE.match(table):
