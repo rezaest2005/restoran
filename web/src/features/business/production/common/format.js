@@ -17,3 +17,9 @@ export const fmtDate = (v, lang) => {
     });
   } catch { return "—"; }
 };
+
+/** Status of one input: enough / low (some stock, not enough) / missing (none). */
+export const lineStatus = (stock, required) => {
+  if (stock >= required) return "enough";
+  return stock > 0 ? "low" : "missing";
+};

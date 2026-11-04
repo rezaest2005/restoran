@@ -13,10 +13,11 @@ from django.utils import timezone
 from .inventory_services import (
     get_or_create_mother_warehouse,
     get_stock_level,
+    get_total_stock,
     issue_stock,
     receive_stock,
 )
-from .models import ProductionOrder, RawMaterial
+from .models import Formula, ProductionOrder, RawMaterial
 
 ZERO = Decimal("0")
 Q3 = Decimal("0.001")
@@ -44,20 +45,60 @@ def required_materials(formula, output_quantity):
     return result
 
 
+def sub_formula_map(business, material_ids, exclude_formula_id=None):
+    """{material_id: formula_id} برای موادی که خروجی یک فرمول فعال‌اند (چندسطحی)."""
+    qs = Formula.all_objects.filter(
+        business=business, is_active=True, output_material_id__in=list(material_ids)
+    ).order_by("-id")
+    if exclude_formula_id:
+        qs = qs.exclude(pk=exclude_formula_id)
+    result = {}
+    for fid, mid in qs.values_list("id", "output_material_id"):
+        result.setdefault(mid, fid)
+    return result
+
+
+def stock_report(business, warehouse, formula, output_quantity):
+    """
+    وضعیت هر ماده‌ی ورودی برای تولید `output_quantity`:
+    required / available / missing / ready (+ نوع ماده و فرمول زیرمجموعه).
+    `warehouse=None` یعنی مجموع موجودی همه‌ی انبارها.
+    """
+    needs = required_materials(formula, output_quantity)
+    subs = sub_formula_map(business, [n["material"].id for n in needs], formula.id)
+    lines = []
+    for need in needs:
+        m = need["material"]
+        if warehouse is None:
+            have = _d(get_total_stock(business, m))
+        else:
+            have = _d(get_stock_level(business, warehouse, m)["quantity"])
+        missing = max(need["quantity"] - have, ZERO)
+        lines.append({
+            "material_id": m.id, "material": m.name, "material_type": m.material_type,
+            "unit": m.unit, "required": need["quantity"], "available": have,
+            "missing": missing, "ready": missing == 0,
+            "is_semi_finished_with_formula": m.id in subs,
+            "sub_formula_id": subs.get(m.id),
+        })
+    return lines
+
+
 def check_availability(business, warehouse, formula, output_quantity):
     """کسری موجودی را برمی‌گرداند؛ لیست خالی یعنی همه چیز موجود است."""
-    shortages = []
-    for need in required_materials(formula, output_quantity):
-        have = _d(get_stock_level(business, warehouse, need["material"])["quantity"])
-        if have < need["quantity"]:
-            shortages.append({
-                "material_id": need["material"].id,
-                "material": need["material"].name,
-                "required": need["quantity"],
-                "available": have,
-                "missing": need["quantity"] - have,
-            })
-    return shortages
+    return [
+        {k: l[k] for k in ("material_id", "material", "required", "available", "missing")}
+        for l in stock_report(business, warehouse, formula, output_quantity)
+        if not l["ready"]
+    ]
+
+
+def shortage_message(shortages):
+    parts = [
+        f"{s['material']} (نیاز {s['required'].normalize():f}، موجود {s['available'].normalize():f}، کسری {s['missing'].normalize():f})"
+        for s in shortages
+    ]
+    return "موجودی کافی نیست: " + "؛ ".join(parts)
 
 
 def validate_formula(formula):
@@ -110,6 +151,10 @@ def complete_production(order, produced_quantity=None, user=None):
     business = order.business
     warehouse = order.warehouse or get_or_create_mother_warehouse(business)
     note = f"دستور تولید PO-{order.pk}"
+
+    shortages = check_availability(business, warehouse, formula, order.planned_quantity)
+    if shortages:
+        raise ValueError(shortage_message(shortages))
 
     total_cost = ZERO
     for need in required_materials(formula, order.planned_quantity):

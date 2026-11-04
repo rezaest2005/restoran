@@ -9,7 +9,9 @@ from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 
+from ...inventory_services import get_stock_totals
 from ...models import Formula, FormulaLine, RawMaterial
+from ...production_services import sub_formula_map
 from ...utils import api_error, api_success
 from ..common import FormulaPerm, MaterialsPerm, StaffAuth, staff_business
 
@@ -50,8 +52,15 @@ def _formula_data(f, with_lines=True):
         "output_quantity": _num(f.output_quantity),
     }
     if with_lines:
-        data["lines"] = [
-            {
+        lines = list(f.lines.select_related("material"))
+        totals = get_stock_totals(f.business_id)
+        subs = sub_formula_map(f.business_id, [l.material_id for l in lines], f.id)
+        out = []
+        for l in lines:
+            waste = Decimal("1") + l.wastage_percent / Decimal("100")
+            need = (l.quantity * waste).quantize(Decimal("0.001"))
+            stock = totals.get(l.material_id, Decimal("0"))
+            out.append({
                 "id": l.id,
                 "material_id": l.material_id,
                 "material": l.material.name,
@@ -61,12 +70,16 @@ def _formula_data(f, with_lines=True):
                 "wastage_percent": _num(l.wastage_percent),
                 "notes": l.notes,
                 "unit_price": _num(l.material.price),
-            }
-            for l in f.lines.select_related("material")
-        ]
+                "stock_quantity": _num(stock),
+                "required_for_batch": _num(need),
+                "available_for_one_batch": stock >= need,
+                "is_semi_finished_with_formula": l.material_id in subs,
+                "sub_formula_id": subs.get(l.material_id),
+            })
+        data["lines"] = out
         data["batch_cost"] = sum(
-            (_num(l["quantity"]) * (1 + l["wastage_percent"] / 100) * l["unit_price"])
-            for l in data["lines"]
+            (l["quantity"] * (1 + l["wastage_percent"] / 100) * l["unit_price"])
+            for l in out
         )
     return data
 

@@ -9,10 +9,10 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 from ...models import Formula, ProductionOrder, Warehouse
 from ...production_services import (
     cancel_production,
-    check_availability,
     complete_production,
     required_materials,
     start_production,
+    stock_report,
     validate_formula,
 )
 from ...inventory_services import get_or_create_mother_warehouse
@@ -54,10 +54,18 @@ def _order_data(o, business=None, with_needs=False):
              "unit": n["material"].unit, "quantity": _num(n["quantity"])}
             for n in required_materials(o.formula, o.planned_quantity)
         ]
+        report = stock_report(business, wh, o.formula, o.planned_quantity)
+        data["lines"] = [
+            {**l, "required": _num(l["required"]), "available": _num(l["available"]),
+             "missing": _num(l["missing"])}
+            for l in report
+        ]
+        data["ready"] = all(l["ready"] for l in report)
         data["shortages"] = [
-            {**s, "required": _num(s["required"]), "available": _num(s["available"]),
-             "missing": _num(s["missing"])}
-            for s in check_availability(business, wh, o.formula, o.planned_quantity)
+            {"material_id": l["material_id"], "material": l["material"],
+             "required": _num(l["required"]), "available": _num(l["available"]),
+             "missing": _num(l["missing"])}
+            for l in report if not l["ready"]
         ]
     return data
 
