@@ -18,7 +18,7 @@ export default defineConfig({
       "@":           path.resolve(__dirname, "src"),
       "@app":        path.resolve(__dirname, "src/app"),
       "@shared":     path.resolve(__dirname, "src/shared"),
-      "@restaurant": path.resolve(__dirname, "src/features/restaurant"),
+      "@business": path.resolve(__dirname, "src/features/business"),
       "@super":      path.resolve(__dirname, "src/features/super_admin"),
     },
   },

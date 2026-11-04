@@ -3,10 +3,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 django.setup()
 
-from restaurant.models import Food, Category, Restaurant
+from bizsuite.models import Food, Category, Business
 
-rest = Restaurant.objects.first()
-print(f"رستوران: {rest.name}")
+rest = Business.objects.first()
+print(f"کسب‌وکار: {rest.name}")
 
 # ★ دسته‌بندی‌های واقعی خودت رو اینجا بذار
 cat_data = [
@@ -18,7 +18,7 @@ cat_data = [
 cats = {}
 for cd in cat_data:
     cat, created = Category.objects.get_or_create(
-        restaurant=rest, name=cd['name'],
+        business=rest, name=cd['name'],
         defaults={'is_active': True, 'order': cd['order']}
     )
     cats[cd['name']] = cat
@@ -33,7 +33,7 @@ foods_data = [
 
 for fd in foods_data:
     food, created = Food.objects.get_or_create(
-        restaurant=rest, name=fd['name'],
+        business=rest, name=fd['name'],
         defaults={
             'category': cats[fd['cat']],
             'price': fd['price'],
@@ -43,5 +43,5 @@ for fd in foods_data:
     )
     print(f"  {'ساخته شد' if created else 'وجود داشت'}: {food.name} - {food.price:,} تومان")
 
-print(f"\n✅ دسته‌بندی: {Category.objects.filter(restaurant=rest).count()}")
-print(f"✅ غذاها:     {Food.objects.filter(restaurant=rest).count()}")
+print(f"\n✅ دسته‌بندی: {Category.objects.filter(business=rest).count()}")
+print(f"✅ غذاها:     {Food.objects.filter(business=rest).count()}")

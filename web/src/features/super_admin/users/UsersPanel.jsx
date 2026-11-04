@@ -64,7 +64,7 @@ export default function UsersPanel({ users, tenants, loadUsers, C, t }) {
               <TableRow key={u.id} hover>
                 <TableCell sx={{ color: C.text, fontWeight: 600 }}>{u.username}</TableCell>
                 <TableCell><Chip label={u.role} size="small" /></TableCell>
-                <TableCell sx={{ color: C.sub }}>{u.restaurant_name || "—"}</TableCell>
+                <TableCell sx={{ color: C.sub }}>{u.business_name || "—"}</TableCell>
                 <TableCell align="right">
                   <Button size="small" onClick={() => setPermsModal({ open: true, userId: u.id })} sx={{ color: C.olive }}>{t("ui_c.super.users.perms")}</Button>
                   <Button size="small" onClick={() => setModal({ open: true, editId: u.id })} sx={{ color: C.olive }}>{t("ui_c.super.users.edit")}</Button>

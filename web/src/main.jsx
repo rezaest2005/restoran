@@ -4,8 +4,13 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "@app/App";
-import "./i18n";
+import i18n from "./i18n";
+import { appName } from "@shared/branding";
 import "./index.css";
+
+const syncTitle = () => { document.title = appName(i18n.language); };
+syncTitle();
+i18n.on("languageChanged", syncTitle);
 
 const queryClient = new QueryClient({
   defaultOptions: {

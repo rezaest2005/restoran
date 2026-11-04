@@ -1,15 +1,29 @@
-# ★ امنیت: این فایل باید کنار Dockerfile در ریشه باشد (context build = ریشه پروژه)
+# Build context is the repository root (docker build -f deploy/Dockerfile .)
 .git
+.gitignore
+.vscode
+.idea
+
+# secrets / environment
 .env
+.env.*
 **/.env
+**/.env.*
+
+# virtualenvs, dependencies, caches
 .venv
-**/.venv
+venv
 **/venv
+dashboard/venv
 **/node_modules
 **/__pycache__
 **/*.pyc
+**/*.sqlite3
+**/*.log
+
+# not part of the runtime image
 project/
-dashboard/db.sqlite3
+menu/
+**/dist
 dashboard/media
-.vscode
-.idea
+dashboard/staticfiles

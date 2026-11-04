@@ -1,6 +1,5 @@
 {
   "login": {
-    "brandName": "zfc",
     "welcomeTitle": "خوش آمدید",
     "welcomeSub": "برای شروع وارد حساب کاربری خود شوید",
     "username": "نام کاربری یا شماره موبایل",
@@ -35,7 +34,7 @@
   },
   "sidebar": {
     "dashboard": "داشبورد اصلی",
-    "restaurant": "کسب‌وکار",
+    "business": "کسب‌وکار",
     "dashboards": "داشبوردها",
     "management": "مدیریت",
     "warehouse": "انبار و مواد",
@@ -90,7 +89,7 @@
     "admin_role": "مدیر سیستم",
     "logout": "خروج",
     "refresh": "بروزرسانی",
-    "restaurant_panel": "پنل کسب‌وکار",
+    "business_panel": "پنل کسب‌وکار",
     "breadcrumb": {
       "management": "مدیریت",
       "dashboard": "داشبورد"
@@ -98,7 +97,7 @@
     "nav": {
       "management": "مدیریت",
       "dashboard": "داشبورد",
-      "restaurant": "کسب‌وکار",
+      "business": "کسب‌وکار",
       "main_dashboard": "داشبورد اصلی",
       "dictionary": "دیکشنری",
       "food_menu": "منوی محصولات",
@@ -123,7 +122,7 @@
       "django_admin": "مدیریت جنگو"
     },
     "stats": {
-      "restaurants": "کسب‌وکارها",
+      "businesses": "کسب‌وکارها",
       "active": "فعال",
       "users": "کاربران",
       "expiring": "در حال انقضا"
@@ -188,7 +187,7 @@
       "new": "کاربر جدید",
       "edit": "ویرایش کاربر",
       "empty": "کاربری یافت نشد",
-      "all_restaurants": "همه کسب‌وکارها",
+      "all_businesses": "همه کسب‌وکارها",
       "all_roles": "همه نقش‌ها",
       "permissions": "دسترسی‌ها",
       "password": "رمز عبور",
@@ -198,7 +197,7 @@
         "name": "نام",
         "mobile": "موبایل",
         "role": "نقش",
-        "restaurant": "کسب‌وکار",
+        "business": "کسب‌وکار",
         "status": "وضعیت",
         "permissions": "دسترسی‌ها",
         "actions": "عملیات"
@@ -210,7 +209,7 @@
         "last_name": "نام خانوادگی",
         "phone": "موبایل",
         "role": "نقش",
-        "restaurant": "کسب‌وکار",
+        "business": "کسب‌وکار",
         "is_active": "فعال",
         "is_approved": "تایید شده"
       },
@@ -292,7 +291,7 @@
       "username_required": "نام کاربری الزامی است",
       "password_required": "رمز عبور الزامی است",
       "role_required": "نقش الزامی است",
-      "restaurant_required": "کسب‌وکار الزامی است",
+      "business_required": "کسب‌وکار الزامی است",
       "load_user": "خطا در بارگذاری کاربر"
     },
     "success": {
@@ -308,7 +307,7 @@
     "panel_title": "کسب‌وکار",
     "panel_sub": "داشبورد کسب‌وکار",
     "main_dashboard": "داشبورد اصلی",
-    "tab_restaurant": "کسب‌وکار",
+    "tab_business": "کسب‌وکار",
     "tab_dashboards": "داشبوردها",
     "nav_management": "مدیریت",
     "nav_kitchen": "خط تولید",

@@ -3,23 +3,23 @@ from decimal import Decimal
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from restaurant.inventory_services import get_or_create_mother_warehouse, receive_stock
-from restaurant.models import (
-    Formula, FormulaLine, ProductionOrder, RawMaterial, Restaurant, StockItem, User,
+from bizsuite.inventory_services import get_or_create_mother_warehouse, receive_stock
+from bizsuite.models import (
+    Formula, FormulaLine, ProductionOrder, RawMaterial, Business, StockItem, User,
 )
-from restaurant.tenancy import clear_current_restaurant
+from bizsuite.tenancy import clear_current_business
 
 
 def mk(r, name, kind, price, unit="kg"):
     return RawMaterial.all_objects.create(
-        restaurant=r, name=name, material_type=kind, price=price, unit=unit)
+        business=r, name=name, material_type=kind, price=price, unit=unit)
 
 
 class ProductionTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.r1 = Restaurant.objects.create(name="کارخانه", slug="fac-one")
-        cls.r2 = Restaurant.objects.create(name="دیگر", slug="fac-two")
+        cls.r1 = Business.objects.create(name="کارخانه", slug="fac-one")
+        cls.r2 = Business.objects.create(name="دیگر", slug="fac-two")
         cls.wh = get_or_create_mother_warehouse(cls.r1)
         cls.iron = mk(cls.r1, "آهن", "raw", 1000)
         cls.coke = mk(cls.r1, "کک", "raw", 500)
@@ -28,18 +28,18 @@ class ProductionTests(TestCase):
         receive_stock(cls.r1, cls.wh, cls.iron, 100)
         receive_stock(cls.r1, cls.wh, cls.coke, 50)
         cls.user = User.objects.create_user(
-            username="mgr", password="Pass12345!", role="manager", restaurant=cls.r1)
+            username="mgr", password="Pass12345!", role="manager", business=cls.r1)
         cls.f = Formula.all_objects.create(
-            restaurant=cls.r1, name="فولاد ساده", output_material=cls.steel,
+            business=cls.r1, name="فولاد ساده", output_material=cls.steel,
             output_quantity=Decimal("10"))
         FormulaLine.all_objects.create(
-            restaurant=cls.r1, formula=cls.f, material=cls.iron, quantity=Decimal("12"))
+            business=cls.r1, formula=cls.f, material=cls.iron, quantity=Decimal("12"))
         FormulaLine.all_objects.create(
-            restaurant=cls.r1, formula=cls.f, material=cls.coke, quantity=Decimal("2"),
+            business=cls.r1, formula=cls.f, material=cls.coke, quantity=Decimal("2"),
             wastage_percent=Decimal("10"))
 
     def setUp(self):
-        clear_current_restaurant()
+        clear_current_business()
         self.api = APIClient()
         self.api.force_authenticate(self.user)
 
@@ -70,7 +70,7 @@ class ProductionTests(TestCase):
         self.assertEqual(out["total_cost"], 26200.0)
         self.assertAlmostEqual(out["unit_cost"], 1310.0)
         level = lambda m: StockItem.all_objects.get(
-            restaurant=self.r1, warehouse=self.wh, raw_material=m).quantity
+            business=self.r1, warehouse=self.wh, raw_material=m).quantity
         self.assertEqual(level(self.iron), Decimal("76"))
         self.assertEqual(level(self.steel), Decimal("20"))
         self.steel.refresh_from_db()
@@ -82,7 +82,7 @@ class ProductionTests(TestCase):
         self.assertEqual(res.status_code, 400)
         self.assertEqual(ProductionOrder.all_objects.get(pk=d["id"]).status, "planned")
         self.assertEqual(
-            StockItem.all_objects.get(restaurant=self.r1, warehouse=self.wh,
+            StockItem.all_objects.get(business=self.r1, warehouse=self.wh,
                                       raw_material=self.iron).quantity, Decimal("100"))
 
     def test_cannot_complete_twice(self):
@@ -105,7 +105,7 @@ class ProductionTests(TestCase):
 
     def test_tenant_isolation(self):
         u2 = User.objects.create_user(username="m2", password="Pass12345!",
-                                      role="manager", restaurant=self.r2)
+                                      role="manager", business=self.r2)
         other = APIClient()
         other.force_authenticate(u2)
         self.assertEqual(other.get(f"/api/formulas/{self.f.id}/").status_code, 404)

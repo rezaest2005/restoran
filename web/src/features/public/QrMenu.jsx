@@ -13,7 +13,7 @@ import { useLang } from "@shared/contexts/LangContext";
 import ProductCard, { formatPrice } from "./ProductCard";
 import CartSheet from "./CartSheet";
 import useShortcuts from "@shared/common/useShortcuts";
-import KbdHint from "@restaurant/pos/common/KbdHint";
+import KbdHint from "@business/pos/common/KbdHint";
 
 const TABLE_RE = /^[\p{L}\p{N} -]{1,20}$/u;
 
@@ -62,7 +62,7 @@ export default function QrMenu() {
     setStatus("loading");
     axios
       .get("/api/menu/public/", {
-        params: { restaurant_slug: slug, page_size: 200 },
+        params: { business_slug: slug, page_size: 200 },
         signal: ctrl.signal,
       })
       .then((res) => {
@@ -138,7 +138,7 @@ export default function QrMenu() {
     setSubmitting(true);
     try {
       const res = await axios.post("/api/menu/order/", {
-        restaurant_slug: slug,
+        business_slug: slug,
         table,
         customer_name: name.trim(),
         phone: phone.trim(),

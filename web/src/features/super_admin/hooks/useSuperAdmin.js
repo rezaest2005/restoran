@@ -42,7 +42,7 @@ export const useSuperAdmin = () => {
     try {
       let params = `?page=${page}`;
       if (search) params += `&search=${encodeURIComponent(search)}`;
-      if (restId) params += `&restaurant_id=${restId}`;
+      if (restId) params += `&business_id=${restId}`;
       if (role) params += `&role=${role}`;
       const { data } = await superClient.get(`/api/super/users/${params}`);
       setUsers(data.users || []); setUsersPages(data.pages || 1);

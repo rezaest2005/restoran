@@ -1,18 +1,18 @@
 ﻿import { Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@shared/contexts/ThemeContext";
 import { LangProvider } from "@shared/contexts/LangContext";
-import Login from "@restaurant/auth/Login";
+import Login from "@business/auth/Login";
 import SuperLogin from "@super/auth/SuperLogin";
 import SuperAdmin from "@super/layout/SuperAdminLayout";
 import SuperProtectedRoute from "@super/auth/SuperProtectedRoute";
-import ProtectedRoute from "@restaurant/auth/ProtectedRoute";
-import RestaurantLayout from "@restaurant/layout/RestaurantLayout";
-import Dashboard from "@restaurant/dashboard/dashboard";
-import Pos from "@restaurant/pos/Pos";
-import Dictionary from "@restaurant/dictionary/Dictionary";
-import InventoryPage from "@restaurant/inventory/InventoryPage";
-import ProductionPage from "@restaurant/production/ProductionPage";
-import AccountingPage from "@restaurant/accounting/AccountingPage";
+import ProtectedRoute from "@business/auth/ProtectedRoute";
+import BusinessLayout from "@business/layout/BusinessLayout";
+import Dashboard from "@business/dashboard/dashboard";
+import Pos from "@business/pos/Pos";
+import Dictionary from "@business/dictionary/Dictionary";
+import InventoryPage from "@business/inventory/InventoryPage";
+import ProductionPage from "@business/production/ProductionPage";
+import AccountingPage from "@business/accounting/AccountingPage";
 import QrMenu from "../features/public/QrMenu";
 
 function App() {
@@ -35,7 +35,7 @@ function App() {
             path="/:slug/dashboard/app"
             element={
               <ProtectedRoute>
-                <RestaurantLayout />
+                <BusinessLayout />
               </ProtectedRoute>
             }
           >
@@ -53,7 +53,7 @@ function App() {
             path="/dashboard/app"
             element={
               <ProtectedRoute>
-                <RestaurantLayout />
+                <BusinessLayout />
               </ProtectedRoute>
             }
           >

@@ -3,19 +3,19 @@ from decimal import Decimal
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from restaurant.accounting_posting import (
+from bizsuite.accounting_posting import (
     post_expense, post_pos_order, post_purchase_invoice, post_sales_invoice, post_sales_return,
     repost, safe_post, unpost,
 )
-from restaurant.accounting_services import (
+from bizsuite.accounting_services import (
     balance_sheet, income_statement, ledger, post_entry, reverse_entry, seed_default_chart,
     trial_balance,
 )
-from restaurant.models import (
-    Account, Expense, JournalEntry, Order, PurchaseInvoice, PurchaseInvoiceItem, Restaurant,
+from bizsuite.models import (
+    Account, Expense, JournalEntry, Order, PurchaseInvoice, PurchaseInvoiceItem, Business,
     SalesInvoice, SalesInvoiceItem, SalesReturn, User,
 )
-from restaurant.tenancy import clear_current_restaurant
+from bizsuite.tenancy import clear_current_business
 
 D = Decimal
 
@@ -23,18 +23,18 @@ D = Decimal
 class CoreTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.r1 = Restaurant.objects.create(name="یک", slug="ac-one")
-        cls.r2 = Restaurant.objects.create(name="دو", slug="ac-two")
+        cls.r1 = Business.objects.create(name="یک", slug="ac-one")
+        cls.r2 = Business.objects.create(name="دو", slug="ac-two")
 
     def setUp(self):
-        clear_current_restaurant()
+        clear_current_business()
 
     def test_seed_is_idempotent(self):
         n = seed_default_chart(self.r1)
         self.assertGreater(n, 30)
         self.assertEqual(seed_default_chart(self.r1), 0)
-        self.assertTrue(Account.all_objects.filter(restaurant=self.r1, code="1110").exists())
-        self.assertFalse(Account.all_objects.filter(restaurant=self.r2).exists())
+        self.assertTrue(Account.all_objects.filter(business=self.r1, code="1110").exists())
+        self.assertFalse(Account.all_objects.filter(business=self.r2).exists())
 
     def test_unbalanced_entry_rejected(self):
         with self.assertRaises(ValueError):
@@ -56,7 +56,7 @@ class CoreTests(TestCase):
 
     def test_other_business_account_rejected(self):
         seed_default_chart(self.r2)
-        foreign = Account.all_objects.get(restaurant=self.r2, code="1110")
+        foreign = Account.all_objects.get(business=self.r2, code="1110")
         with self.assertRaises(ValueError):
             post_entry(self.r1, [{"account": foreign, "debit": 10}, {"account": "4110", "credit": 10}])
 
@@ -105,20 +105,20 @@ class CoreTests(TestCase):
 class PostingTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.r = Restaurant.objects.create(name="فروشگاه", slug="ac-post")
+        cls.r = Business.objects.create(name="فروشگاه", slug="ac-post")
 
     def setUp(self):
-        clear_current_restaurant()
+        clear_current_business()
 
     def _bal(self, code):
         return {r["code"]: r for r in trial_balance(self.r)["rows"]}.get(code)
 
     def test_sales_invoice_cash_credit_and_cogs(self):
         inv = SalesInvoice.all_objects.create(
-            restaurant=self.r, customer_name="علی", total=1000, paid_amount=600,
+            business=self.r, customer_name="علی", total=1000, paid_amount=600,
             payment_method="card", invoice_number="F1")
         SalesInvoiceItem.all_objects.create(
-            restaurant=self.r, invoice=inv, item_name="کالا", quantity=2, unit_price=500, cost_price=300)
+            business=self.r, invoice=inv, item_name="کالا", quantity=2, unit_price=500, cost_price=300)
         e = post_sales_invoice(inv)
         self.assertIsNotNone(e)
         self.assertEqual(self._bal("1120")["balance_debit"], D("600"))   # بانک (کارت)
@@ -130,17 +130,17 @@ class PostingTests(TestCase):
 
     def test_credit_sale_goes_fully_to_receivable_and_overpay_is_capped(self):
         credit = SalesInvoice.all_objects.create(
-            restaurant=self.r, total=500, paid_amount=500, payment_method="credit")
+            business=self.r, total=500, paid_amount=500, payment_method="credit")
         post_sales_invoice(credit)
         self.assertEqual(self._bal("1130")["balance_debit"], D("500"))
         over = SalesInvoice.all_objects.create(
-            restaurant=self.r, total=100, paid_amount=999, payment_method="cash")
+            business=self.r, total=100, paid_amount=999, payment_method="cash")
         post_sales_invoice(over)
         self.assertEqual(self._bal("1110")["balance_debit"], D("100"))
         self.assertTrue(trial_balance(self.r)["balanced"])
 
     def test_edit_reposts_with_reversal_chain(self):
-        inv = SalesInvoice.all_objects.create(restaurant=self.r, total=100, paid_amount=100, payment_method="cash")
+        inv = SalesInvoice.all_objects.create(business=self.r, total=100, paid_amount=100, payment_method="cash")
         post_sales_invoice(inv)
         inv.total = 250
         inv.paid_amount = 250
@@ -156,41 +156,41 @@ class PostingTests(TestCase):
         self.assertTrue(trial_balance(self.r)["balanced"])
 
     def test_unpost_on_delete(self):
-        inv = SalesInvoice.all_objects.create(restaurant=self.r, total=100, paid_amount=100, payment_method="cash")
+        inv = SalesInvoice.all_objects.create(business=self.r, total=100, paid_amount=100, payment_method="cash")
         post_sales_invoice(inv)
         unpost(self.r, "sales_invoice", inv.pk)
         self.assertEqual(income_statement(self.r)["total_income"], D("0"))
         self.assertIsNone(unpost(self.r, "sales_invoice", inv.pk))   # دوباره: بی‌اثر
 
     def test_expense_purchase_return_pos(self):
-        exp = Expense.all_objects.create(restaurant=self.r, title="برق", amount=70, category="قبوض")
+        exp = Expense.all_objects.create(business=self.r, title="برق", amount=70, category="قبوض")
         post_expense(exp)
         self.assertEqual(self._bal("5390")["balance_debit"], D("70"))
 
-        pi = PurchaseInvoice.all_objects.create(restaurant=self.r, supplier_name="تامین", date="2026-01-01")
+        pi = PurchaseInvoice.all_objects.create(business=self.r, supplier_name="تامین", date="2026-01-01")
         PurchaseInvoiceItem.all_objects.create(
-            restaurant=self.r, invoice=pi, item_name="الف", quantity=4, unit_price=25)
+            business=self.r, invoice=pi, item_name="الف", quantity=4, unit_price=25)
         post_purchase_invoice(pi)
         self.assertEqual(self._bal("2110")["balance_credit"], D("100"))
         self.assertEqual(self._bal("1140")["balance_debit"], D("100"))
 
-        sale = SalesInvoice.all_objects.create(restaurant=self.r, total=100, paid_amount=100, payment_method="cash")
-        ret = SalesReturn.all_objects.create(restaurant=self.r, invoice=sale, item_name="x", amount=30)
+        sale = SalesInvoice.all_objects.create(business=self.r, total=100, paid_amount=100, payment_method="cash")
+        ret = SalesReturn.all_objects.create(business=self.r, invoice=sale, item_name="x", amount=30)
         post_sales_return(ret)
         self.assertEqual(self._bal("4130")["balance_debit"], D("30"))
 
         order = Order.all_objects.create(
-            restaurant=self.r, total_price=80, payment_status="paid", payment_method="cash")
+            business=self.r, total_price=80, payment_status="paid", payment_method="cash")
         post_pos_order(order)
         self.assertEqual(self._bal("4110")["balance_credit"], D("80"))
-        unpaid = Order.all_objects.create(restaurant=self.r, total_price=80, payment_status="pending")
+        unpaid = Order.all_objects.create(business=self.r, total_price=80, payment_status="pending")
         self.assertIsNone(post_pos_order(unpaid))
         self.assertTrue(trial_balance(self.r)["balanced"])
 
     def test_safe_post_never_raises(self):
         class Bad:
             pk = 1
-            restaurant = self.r
+            business = self.r
             total = "not-a-number"
 
         def boom(obj, user=None):
@@ -202,15 +202,15 @@ class PostingTests(TestCase):
 class ApiTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.r1 = Restaurant.objects.create(name="یک", slug="ac-api1")
-        cls.r2 = Restaurant.objects.create(name="دو", slug="ac-api2")
-        cls.u1 = User.objects.create_user(username="a1", password="Pass12345!", role="owner", restaurant=cls.r1)
-        cls.u2 = User.objects.create_user(username="a2", password="Pass12345!", role="owner", restaurant=cls.r2)
+        cls.r1 = Business.objects.create(name="یک", slug="ac-api1")
+        cls.r2 = Business.objects.create(name="دو", slug="ac-api2")
+        cls.u1 = User.objects.create_user(username="a1", password="Pass12345!", role="owner", business=cls.r1)
+        cls.u2 = User.objects.create_user(username="a2", password="Pass12345!", role="owner", business=cls.r2)
         cls.cashier = User.objects.create_user(
-            username="c1", password="Pass12345!", role="cashier", restaurant=cls.r1)
+            username="c1", password="Pass12345!", role="cashier", business=cls.r1)
 
     def setUp(self):
-        clear_current_restaurant()
+        clear_current_business()
         self.api = APIClient()
         self.api.force_authenticate(self.u1)
 
@@ -226,7 +226,7 @@ class ApiTests(TestCase):
                            {"code": "1111", "name": "صندوق ۲", "type": "asset", "parent_id": acc["1110"]}, format="json")
         # والد 1110 سند ندارد، پس گروه می‌شود
         self.assertEqual(ok.status_code, 201, ok.content)
-        self.assertFalse(Account.all_objects.get(restaurant=self.r1, code="1110").is_postable)
+        self.assertFalse(Account.all_objects.get(business=self.r1, code="1110").is_postable)
 
     def test_manual_journal_and_reverse_flow(self):
         acc = self._accounts()
@@ -268,11 +268,11 @@ class ApiTests(TestCase):
         other = APIClient()
         other.force_authenticate(self.u2)
         self.assertEqual(other.get("/api/accounting/journal/").json()["data"]["total"], 0)
-        eid = JournalEntry.all_objects.get(restaurant=self.r1).pk
+        eid = JournalEntry.all_objects.get(business=self.r1).pk
         self.assertEqual(other.get(f"/api/accounting/journal/{eid}/").status_code, 404)
         self.assertEqual(other.post(f"/api/accounting/journal/{eid}/reverse/", {}, format="json").status_code, 404)
         # حساب کسب‌وکار دیگر در سند قابل استفاده نیست
-        foreign_acc = Account.all_objects.filter(restaurant=self.r1, code="1110").first().pk
+        foreign_acc = Account.all_objects.filter(business=self.r1, code="1110").first().pk
         other.get("/api/accounting/accounts/")
         r = other.post("/api/accounting/journal/", {"lines": [
             {"account_id": foreign_acc, "debit": 1}, {"account_id": foreign_acc, "credit": 1}]}, format="json")

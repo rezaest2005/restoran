@@ -6,7 +6,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import { useTranslation } from "react-i18next";
 import { formatPrice } from "./ProductCard";
 import useShortcuts from "@shared/common/useShortcuts";
-import KbdHint from "@restaurant/pos/common/KbdHint";
+import KbdHint from "@business/pos/common/KbdHint";
 
 export default function CartSheet({
   open, onClose, C, lines, total, getName,

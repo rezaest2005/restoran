@@ -16,6 +16,7 @@ import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import superClient from "@super/api/super_client";
 import { buildColors } from "@shared/palette";
+import { appName } from "@shared/branding";
 
 const animations = `
   @keyframes orb1 {
@@ -87,7 +88,7 @@ function extractError(data, t) {
 export default function SuperLogin() {
   const { mode } = useThemeMode();
   const { isRtl, toggleLang, lang } = useLang();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
 
   const isDark = mode === "dark";
@@ -323,7 +324,7 @@ export default function SuperLogin() {
                   letterSpacing: "-0.01em",
                 }}
               >
-                {t("superLogin.header_title")}
+                {appName(i18n.language)}
               </Typography>
               <Typography
                 sx={{

@@ -1,25 +1,25 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from restaurant.club_services import earn_for_order, get_settings, redeem_points
-from restaurant.models import (
-    LoyaltyMember, LoyaltyTransaction, Order, RawMaterial, Restaurant, User,
+from bizsuite.club_services import earn_for_order, get_settings, redeem_points
+from bizsuite.models import (
+    LoyaltyMember, LoyaltyTransaction, Order, RawMaterial, Business, User,
 )
-from restaurant.tenancy import clear_current_restaurant
+from bizsuite.tenancy import clear_current_business
 
 
 class ClubTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.r1 = Restaurant.objects.create(name="یک", slug="club-one")
-        cls.r2 = Restaurant.objects.create(name="دو", slug="club-two")
+        cls.r1 = Business.objects.create(name="یک", slug="club-one")
+        cls.r2 = Business.objects.create(name="دو", slug="club-two")
         cls.owner = User.objects.create_user(
-            username="o1", password="Pass12345!", role="owner", restaurant=cls.r1)
+            username="o1", password="Pass12345!", role="owner", business=cls.r1)
         cls.owner2 = User.objects.create_user(
-            username="o2", password="Pass12345!", role="owner", restaurant=cls.r2)
+            username="o2", password="Pass12345!", role="owner", business=cls.r2)
 
     def setUp(self):
-        clear_current_restaurant()
+        clear_current_business()
         self.api = APIClient()
         self.api.force_authenticate(self.owner)
         self.api.put("/api/club/settings/", {
@@ -28,14 +28,14 @@ class ClubTests(TestCase):
 
     def _order(self, total, phone="09121234567", r=None):
         return Order.all_objects.create(
-            restaurant=r or self.r1, customer_name="علی", phone=phone,
+            business=r or self.r1, customer_name="علی", phone=phone,
             total_price=total, payment_status="paid")
 
     def test_earn_is_idempotent_and_floors(self):
         o = self._order(125000)
         self.assertEqual(earn_for_order(o), 12)
         self.assertEqual(earn_for_order(o), 0)  # تکراری
-        m = LoyaltyMember.all_objects.get(restaurant=self.r1, phone="09121234567")
+        m = LoyaltyMember.all_objects.get(business=self.r1, phone="09121234567")
         self.assertEqual(m.points_balance, 15)  # 3 عضویت + 12
         self.assertEqual(
             LoyaltyTransaction.all_objects.filter(order=o, kind="earn").count(), 1)
@@ -79,7 +79,7 @@ class ClubTests(TestCase):
         self.assertEqual(other.get("/api/club/members/").json()["data"], [])
         look = other.post("/api/club/lookup/", {"phone": "09121234567"}, format="json")
         self.assertIsNone(look.json()["data"]["member"])
-        member = LoyaltyMember.all_objects.get(restaurant=self.r1)
+        member = LoyaltyMember.all_objects.get(business=self.r1)
         self.assertEqual(other.get(f"/api/club/members/{member.id}/").status_code, 404)
 
     def test_adjust_cannot_go_negative(self):
@@ -101,16 +101,16 @@ class ClubTests(TestCase):
 class MaterialsEndpointTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.r1 = Restaurant.objects.create(name="یک", slug="mat-one")
-        cls.r2 = Restaurant.objects.create(name="دو", slug="mat-two")
-        RawMaterial.all_objects.create(restaurant=cls.r1, name="الف", material_type="raw", price=1)
-        RawMaterial.all_objects.create(restaurant=cls.r1, name="ب", material_type="semi_finished", price=2)
-        RawMaterial.all_objects.create(restaurant=cls.r2, name="ج", material_type="raw", price=3)
+        cls.r1 = Business.objects.create(name="یک", slug="mat-one")
+        cls.r2 = Business.objects.create(name="دو", slug="mat-two")
+        RawMaterial.all_objects.create(business=cls.r1, name="الف", material_type="raw", price=1)
+        RawMaterial.all_objects.create(business=cls.r1, name="ب", material_type="semi_finished", price=2)
+        RawMaterial.all_objects.create(business=cls.r2, name="ج", material_type="raw", price=3)
         cls.u = User.objects.create_user(
-            username="m1", password="Pass12345!", role="manager", restaurant=cls.r1)
+            username="m1", password="Pass12345!", role="manager", business=cls.r1)
 
     def setUp(self):
-        clear_current_restaurant()
+        clear_current_business()
         self.api = APIClient()
         self.api.force_authenticate(self.u)
 

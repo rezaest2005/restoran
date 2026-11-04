@@ -3,7 +3,7 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, T
 import { QRCodeSVG } from "qrcode.react";
 import { useTranslation } from "react-i18next";
 import useShortcuts from "@shared/common/useShortcuts";
-import KbdHint from "@restaurant/pos/common/KbdHint";
+import KbdHint from "@business/pos/common/KbdHint";
 
 /** Props: { open: boolean, onClose: () => void, slug: string } */
 export default function TableQrDialog({ open, onClose, slug }) {

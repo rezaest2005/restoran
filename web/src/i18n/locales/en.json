@@ -1,6 +1,5 @@
 {
   "login": {
-    "brandName": "zfc",
     "welcomeTitle": "Welcome back",
     "welcomeSub": "Sign in to your account to get started",
     "username": "Username or Phone",
@@ -35,7 +34,7 @@
   },
   "sidebar": {
     "dashboard": "Main Dashboard",
-    "restaurant": "Business",
+    "business": "Business",
     "dashboards": "Dashboards",
     "management": "Management",
     "warehouse": "Inventory & Materials",
@@ -93,7 +92,7 @@
     "lightMode": "Light Mode",
     "darkMode": "Dark Mode",
     "switchLang": "فارسی",
-    "restaurant_panel": "Business Panel",
+    "business_panel": "Business Panel",
     "breadcrumb": {
       "management": "Management",
       "dashboard": "Dashboard"
@@ -101,7 +100,7 @@
     "nav": {
       "management": "Management",
       "dashboard": "Dashboard",
-      "restaurant": "Business",
+      "business": "Business",
       "main_dashboard": "Main Dashboard",
       "dictionary": "Dictionary",
       "food_menu": "Product Menu",
@@ -126,7 +125,7 @@
       "django_admin": "Django Admin"
     },
     "stats": {
-      "restaurants": "Businesses",
+      "businesses": "Businesses",
       "active": "Active",
       "users": "Users",
       "expiring": "Expiring Soon"
@@ -191,7 +190,7 @@
       "new": "New User",
       "edit": "Edit User",
       "empty": "No users found",
-      "all_restaurants": "All Businesses",
+      "all_businesses": "All Businesses",
       "all_roles": "All Roles",
       "permissions": "Permissions",
       "password": "Password",
@@ -201,7 +200,7 @@
         "name": "Name",
         "mobile": "Mobile",
         "role": "Role",
-        "restaurant": "Business",
+        "business": "Business",
         "status": "Status",
         "permissions": "Permissions",
         "actions": "Actions"
@@ -213,7 +212,7 @@
         "last_name": "Last Name",
         "phone": "Mobile",
         "role": "Role",
-        "restaurant": "Business",
+        "business": "Business",
         "is_active": "Active",
         "is_approved": "Approved"
       },
@@ -295,7 +294,7 @@
       "username_required": "Username is required",
       "password_required": "Password is required",
       "role_required": "Role is required",
-      "restaurant_required": "Business is required",
+      "business_required": "Business is required",
       "load_user": "Error loading user"
     },
     "success": {
@@ -308,7 +307,7 @@
     "panel_title": "Business",
     "panel_sub": "BUSINESS DASHBOARD",
     "main_dashboard": "Main Dashboard",
-    "tab_restaurant": "Business",
+    "tab_business": "Business",
     "tab_dashboards": "Dashboards",
     "nav_management": "Management",
     "nav_kitchen": "Production Line",

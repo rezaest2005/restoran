@@ -3,13 +3,13 @@ from decimal import Decimal
 from django.test import TestCase
 from django.utils import timezone
 
-from restaurant.accounting_services import income_statement, trial_balance
-from restaurant.delivery_services import (
+from bizsuite.accounting_services import income_statement, trial_balance
+from bizsuite.delivery_services import (
     assign_trip, change_trip_status, create_trip, haversine_km, public_tracking, record_ping,
     settle_driver_cash, uncollected_cash, update_stop, validate_coords,
 )
-from restaurant.models import Carrier, Driver, Restaurant, Trip, TripStop, Vehicle
-from restaurant.tenancy import clear_current_restaurant
+from bizsuite.models import Carrier, Driver, Business, Trip, TripStop, Vehicle
+from bizsuite.tenancy import clear_current_business
 
 D = Decimal
 
@@ -23,18 +23,18 @@ def stop(**kw):
 class TripFlowTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.r = Restaurant.objects.create(name="کارخانه", slug="dl-one")
-        cls.r2 = Restaurant.objects.create(name="دیگر", slug="dl-two")
-        cls.truck = Vehicle.all_objects.create(restaurant=cls.r, name="کامیون ۱", kind="truck",
+        cls.r = Business.objects.create(name="کارخانه", slug="dl-one")
+        cls.r2 = Business.objects.create(name="دیگر", slug="dl-two")
+        cls.truck = Vehicle.all_objects.create(business=cls.r, name="کامیون ۱", kind="truck",
                                                capacity_kg=D("1000"))
-        cls.bike = Vehicle.all_objects.create(restaurant=cls.r, name="موتور ۱", kind="motorbike")
-        cls.drv = Driver.all_objects.create(restaurant=cls.r, name="رضا احمدی", phone="0935",
+        cls.bike = Vehicle.all_objects.create(business=cls.r, name="موتور ۱", kind="motorbike")
+        cls.drv = Driver.all_objects.create(business=cls.r, name="رضا احمدی", phone="0935",
                                             pay_per_trip=D("50000"), default_vehicle=cls.bike)
-        cls.other_drv = Driver.all_objects.create(restaurant=cls.r, name="دیگری")
-        cls.foreign_drv = Driver.all_objects.create(restaurant=cls.r2, name="غریبه")
+        cls.other_drv = Driver.all_objects.create(business=cls.r, name="دیگری")
+        cls.foreign_drv = Driver.all_objects.create(business=cls.r2, name="غریبه")
 
     def setUp(self):
-        clear_current_restaurant()
+        clear_current_business()
 
     def test_numbers_status_and_default_vehicle(self):
         t1 = create_trip(self.r, [stop()], driver=self.drv)
@@ -143,7 +143,7 @@ class TripFlowTests(TestCase):
             settle_driver_cash(self.drv, 0)                                # چیزی برای تسویه نیست
 
     def test_non_cash_goes_to_bank_and_external_carrier(self):
-        carrier = Carrier.all_objects.create(restaurant=self.r, name="باربری سریع", is_external=True)
+        carrier = Carrier.all_objects.create(business=self.r, name="باربری سریع", is_external=True)
         t = create_trip(self.r, [stop(amount_due=50000)], carrier=carrier, carrier_cost=D("30000"))
         assign_trip(t, self.drv)
         s = TripStop.all_objects.get(trip=t)
@@ -159,21 +159,21 @@ class TripFlowTests(TestCase):
         t = create_trip(self.r, [stop()], driver=self.drv)
         update_stop(TripStop.all_objects.get(trip=t), "delivered", driver=self.drv)
         change_trip_status(t, "completed")
-        from restaurant.delivery_services import post_trip_accounting
+        from bizsuite.delivery_services import post_trip_accounting
         self.assertIsNone(post_trip_accounting(t))
-        from restaurant.models import JournalEntry
+        from bizsuite.models import JournalEntry
         self.assertEqual(JournalEntry.all_objects.filter(source_type="trip").count(), 1)
 
 
 class LocationAndTrackingTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.r = Restaurant.objects.create(name="پیک", slug="dl-loc")
-        cls.drv = Driver.all_objects.create(restaurant=cls.r, name="سارا رضایی", phone="0912")
-        cls.veh = Vehicle.all_objects.create(restaurant=cls.r, name="V1", device_key="K" * 20)
+        cls.r = Business.objects.create(name="پیک", slug="dl-loc")
+        cls.drv = Driver.all_objects.create(business=cls.r, name="سارا رضایی", phone="0912")
+        cls.veh = Vehicle.all_objects.create(business=cls.r, name="V1", device_key="K" * 20)
 
     def setUp(self):
-        clear_current_restaurant()
+        clear_current_business()
 
     def test_coords_validation_and_distance(self):
         self.assertEqual(validate_coords("35.7", "51.4"), (D("35.700000"), D("51.400000")))
@@ -206,7 +206,7 @@ class LocationAndTrackingTests(TestCase):
         self.assertIsNotNone(data["position"])
         self.assertIsNotNone(data["eta"])
         self.assertEqual(data["driver"]["name"], "سارا")          # فقط نام کوچک
-        for forbidden in ("id", "restaurant", "pay", "driver_pay", "token", "notes"):
+        for forbidden in ("id", "business_id", "pay", "driver_pay", "token", "notes"):
             self.assertNotIn(forbidden, data)
         update_stop(s, "delivered", driver=self.drv)
         self.assertIsNone(public_tracking(s.public_token)["position"])   # بعد از تحویل موقعیت پنهان

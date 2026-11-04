@@ -13,7 +13,7 @@ export const NAV_SECTIONS = [
     ],
   },
   {
-    titleKey: "super.nav.restaurant",
+    titleKey: "super.nav.business",
     items: [
       { icon: "🏠", labelKey: "super.nav.main_dashboard", path: "/dashboard" },
       { icon: "📖", labelKey: "super.nav.dictionary", path: "/dashboard/dictionary" },

@@ -1,0 +1,685 @@
+﻿{% extends "admin/business_base.html" %}
+{% load safe_urls %}
+{% load i18n static %}
+
+{% block title %}داشبورد — مدیریت کسب‌وکار{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ═══ DASHBOARD ═══ */
+  .dash { padding: 26px 30px; }
+
+  .dash-greeting {
+    margin-bottom: 26px; display: flex;
+    justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 12px;
+  }
+  .dash-greeting h1 { font-size: 24px; font-weight: 900; color: var(--text); letter-spacing: -0.5px; }
+  .dash-greeting h1 span { color: var(--brand); }
+  .dash-greeting p { font-size: 14px; color: var(--text-2); margin-top: 4px; font-weight: 600; }
+  .dash-date-badge {
+    background: var(--surface); border: 2px solid var(--border);
+    border-radius: 11px; padding: 9px 18px; font-size: 14px;
+    font-weight: 700; color: var(--text-2);
+    display: flex; align-items: center; gap: 7px;
+    white-space: nowrap;
+  }
+
+  /* ── Stats ── */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 26px; }
+  .stat-card {
+    background: var(--surface); border: 2px solid var(--border);
+    border-radius: var(--radius); padding: 24px;
+    position: relative; overflow: hidden; transition: all 0.3s;
+    box-shadow: var(--card-shadow);
+  }
+  .stat-card:hover { box-shadow: var(--card-shadow-hover); transform: translateY(-4px); }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; right: 0; left: 0;
+    height: 4px; opacity: 0; transition: opacity 0.3s;
+  }
+  .stat-card:hover::before { opacity: 1; }
+  .stat-card.c-orange::before { background: linear-gradient(90deg, #ff6b35, #ff9a3c); }
+  .stat-card.c-blue::before   { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+  .stat-card.c-green::before  { background: linear-gradient(90deg, #10b981, #34d399); }
+  .stat-card.c-purple::before { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+
+  .stat-icon {
+    width: 50px; height: 50px; border-radius: 13px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 21px; margin-bottom: 16px;
+  }
+  .stat-icon.i-orange { background: linear-gradient(135deg, rgba(255,107,53,0.15), rgba(255,107,53,0.06)); color: #ff6b35; }
+  .stat-icon.i-blue   { background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.06)); color: #3b82f6; }
+  .stat-icon.i-green  { background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.06)); color: #10b981; }
+  .stat-icon.i-purple { background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(139,92,246,0.06)); color: #8b5cf6; }
+
+  .stat-val { font-size: 30px; font-weight: 900; line-height: 1; margin-bottom: 5px; color: var(--text); letter-spacing: -0.5px; }
+  .stat-label { font-size: 13px; color: var(--text-2); font-weight: 700; }
+
+  /* ── Quick Access ── */
+  .quick-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 26px; }
+  .quick-btn {
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    padding: 20px 14px; background: var(--surface); border: 2px solid var(--border);
+    border-radius: var(--radius); text-decoration: none; color: var(--text);
+    transition: all 0.25s; box-shadow: var(--card-shadow);
+  }
+  .quick-btn:hover { box-shadow: var(--card-shadow-hover); transform: translateY(-4px); border-color: var(--brand); }
+  .quick-btn-icon {
+    width: 46px; height: 46px; border-radius: 13px;
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+  }
+  .quick-btn-label { font-size: 14px; font-weight: 800; color: var(--text); }
+
+  /* ── Charts ── */
+  .chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 26px; }
+  .chart-card {
+    background: var(--surface); border: 2px solid var(--border);
+    border-radius: var(--radius); padding: 24px; box-shadow: var(--card-shadow);
+    overflow: hidden;
+  }
+  .chart-card-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 18px; flex-wrap: wrap; gap: 8px;
+  }
+  .chart-card-title {
+    font-size: 16px; font-weight: 800;
+    display: flex; align-items: center; gap: 9px; color: var(--text);
+  }
+  .chart-card-title i { color: var(--brand); font-size: 18px; }
+  .chart-tabs { display: flex; gap: 4px; }
+  .chart-tab {
+    padding: 7px 18px; border: 2px solid var(--border); border-radius: 9px;
+    background: transparent; color: var(--text-2);
+    font-family: 'Vazirmatn', sans-serif; font-size: 13px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .chart-tab:hover { border-color: var(--brand); color: var(--brand); }
+  .chart-tab.active {
+    background: var(--brand); color: #fff; border-color: var(--brand);
+    box-shadow: 0 3px 10px rgba(255,107,53,0.25);
+  }
+  .chart-wrap    { position: relative; height: 280px; }
+  .chart-wrap-sm { position: relative; height: 280px; }
+
+  /* ── Tables ── */
+  .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 26px; }
+  .table-card {
+    background: var(--surface); border: 2px solid var(--border);
+    border-radius: var(--radius); overflow: hidden; box-shadow: var(--card-shadow);
+  }
+  .table-card-header {
+    padding: 18px 22px; border-bottom: 2px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    background: rgba(255,107,53,0.015);
+  }
+  .table-card-title {
+    font-size: 16px; font-weight: 800;
+    display: flex; align-items: center; gap: 9px; color: var(--text);
+  }
+  .table-card-title i { color: var(--brand); font-size: 18px; }
+  .table-card-badge {
+    background: var(--brand-light); color: var(--brand);
+    padding: 4px 14px; border-radius: 9px; font-size: 12.5px; font-weight: 800;
+  }
+  .mini-table { width: 100%; border-collapse: collapse; }
+  .mini-table th {
+    text-align: right; padding: 12px 18px; font-size: 12.5px;
+    color: var(--text-2); font-weight: 700;
+    border-bottom: 2px solid var(--border); background: var(--bg);
+  }
+  .mini-table td {
+    padding: 12px 18px; font-size: 14px; color: var(--text);
+    border-bottom: 1px solid rgba(207,210,217,0.6); font-weight: 500;
+  }
+  .mini-table tr:last-child td { border-bottom: none; }
+  .mini-table tr:hover td { background: rgba(255,107,53,0.04); }
+
+  .rank-badge {
+    width: 26px; height: 26px; border-radius: 7px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 900;
+  }
+  .rank-1 { background: rgba(255,107,53,0.16); color: #ff6b35; }
+  .rank-2 { background: rgba(59,130,246,0.14); color: #3b82f6; }
+  .rank-3 { background: rgba(16,185,129,0.14); color: #10b981; }
+  .rank-n { background: rgba(107,114,128,0.12); color: var(--text-2); }
+
+  .activity-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 14px 22px; border-bottom: 1px solid rgba(207,210,217,0.6);
+  }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-dot {
+    width: 9px; height: 9px; border-radius: 50%; margin-top: 7px; flex-shrink: 0;
+  }
+  .activity-dot.green  { background: #10b981; box-shadow: 0 0 6px rgba(16,185,129,0.3); }
+  .activity-dot.orange { background: #ff6b35; box-shadow: 0 0 6px rgba(255,107,53,0.3); }
+  .activity-dot.blue   { background: #3b82f6; box-shadow: 0 0 6px rgba(59,130,246,0.3); }
+  .activity-text { font-size: 14px; flex: 1; color: var(--text); font-weight: 600; }
+  .activity-time { font-size: 12px; color: var(--muted); white-space: nowrap; font-weight: 700; }
+
+  /* ── Loading Shimmer ── */
+  @keyframes shimmer {
+    0% { background-position: -200px 0; }
+    100% { background-position: 200px 0; }
+  }
+  .shimmer {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200px 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 6px;
+    color: transparent !important;
+  }
+
+  /* ═══════════════════════════════════════════════
+     ریسپانسیو
+  ════════════════════════════════════════════════ */
+
+  /* ── تبلت (≤ 1200px) ── */
+  @media (max-width: 1200px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .chart-grid { grid-template-columns: 1fr; gap: 12px; }
+    .bottom-grid { grid-template-columns: 1fr; gap: 12px; }
+    .quick-grid { gap: 10px; }
+  }
+
+  /* ── موبایل (≤ 768px) ── */
+  @media (max-width: 768px) {
+    .dash { padding: 16px; }
+    .dash-greeting { margin-bottom: 16px; }
+    .dash-greeting h1 { font-size: 18px; }
+    .dash-greeting p { font-size: 12px; }
+    .dash-date-badge { font-size: 12px; padding: 7px 12px; }
+
+    .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
+    .stat-card { padding: 14px; }
+    .stat-icon { width: 38px; height: 38px; border-radius: 10px; font-size: 17px; margin-bottom: 10px; }
+    .stat-val { font-size: 22px; }
+    .stat-label { font-size: 11px; }
+
+    .quick-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
+    .quick-btn { padding: 14px 8px; gap: 6px; }
+    .quick-btn-icon { width: 36px; height: 36px; border-radius: 10px; font-size: 16px; }
+    .quick-btn-label { font-size: 12px; }
+
+    .chart-grid { gap: 10px; margin-bottom: 16px; }
+    .chart-card { padding: 14px; }
+    .chart-card-header { margin-bottom: 12px; }
+    .chart-card-title { font-size: 13px; gap: 6px; }
+    .chart-card-title i { font-size: 15px; }
+    .chart-tab { padding: 5px 12px; font-size: 11px; }
+    .chart-wrap    { height: 200px; }
+    .chart-wrap-sm { height: 200px; }
+
+    .bottom-grid { gap: 10px; margin-bottom: 16px; }
+    .table-card-header { padding: 12px 14px; }
+    .table-card-title { font-size: 13px; gap: 6px; }
+    .table-card-title i { font-size: 15px; }
+    .table-card-badge { font-size: 11px; padding: 3px 10px; }
+    .mini-table th { padding: 8px 10px; font-size: 11px; }
+    .mini-table td { padding: 8px 10px; font-size: 12px; }
+    .activity-item { padding: 10px 14px; gap: 8px; }
+    .activity-text { font-size: 12px; }
+    .activity-time { font-size: 10px; }
+  }
+
+  /* ── موبایل کوچک (≤ 480px) ── */
+  @media (max-width: 480px) {
+    .dash { padding: 10px; }
+    .dash-greeting h1 { font-size: 16px; }
+    .dash-greeting p { font-size: 11px; }
+    .dash-date-badge {
+      font-size: 11px; padding: 5px 10px;
+      width: 100%; justify-content: center;
+    }
+
+    .stat-grid { grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+    .stat-card { padding: 10px; }
+    .stat-icon { width: 32px; height: 32px; border-radius: 8px; font-size: 14px; margin-bottom: 6px; }
+    .stat-val { font-size: 18px; }
+    .stat-label { font-size: 10px; }
+
+    .quick-grid { gap: 6px; margin-bottom: 12px; }
+    .quick-btn { padding: 10px 6px; gap: 4px; }
+    .quick-btn-icon { width: 30px; height: 30px; border-radius: 8px; font-size: 14px; }
+    .quick-btn-label { font-size: 11px; }
+
+    .chart-grid { gap: 8px; margin-bottom: 12px; }
+    .chart-card { padding: 10px; border-radius: 10px; }
+    .chart-card-header { margin-bottom: 8px; }
+    .chart-card-title { font-size: 12px; }
+    .chart-tab { padding: 4px 10px; font-size: 10px; }
+    .chart-wrap    { height: 180px; }
+    .chart-wrap-sm { height: 180px; }
+
+    .bottom-grid { gap: 8px; margin-bottom: 12px; }
+    .table-card { border-radius: 10px; }
+    .table-card-header { padding: 10px 12px; }
+    .table-card-title { font-size: 12px; }
+    .mini-table th { padding: 6px 8px; font-size: 10px; }
+    .mini-table td { padding: 6px 8px; font-size: 11px; }
+    .rank-badge { width: 22px; height: 22px; border-radius: 6px; font-size: 10px; }
+    .activity-item { padding: 8px 10px; gap: 6px; }
+    .activity-text { font-size: 11px; }
+    .activity-time { font-size: 9px; }
+  }
+</style>
+{% endblock %}
+
+{% block page_title %}داشبورد{% endblock %}
+{% block breadcrumb %}خانه / داشبورد{% endblock %}
+
+{% block content %}
+<div class="dash">
+  <!-- ═══ خوش‌آمدگویی ═══ -->
+  <div class="dash-greeting">
+    <div>
+      <h1>خوش آمدید <span>مدیر گرامی</span></h1>
+      <p>خلاصه عملکرد امروز کسب‌وکار شما</p>
+    </div>
+    <div class="dash-date-badge" id="dashDate">
+      <i class="bi bi-calendar3"></i><span id="dashDateText">—</span>
+    </div>
+  </div>
+
+  <!-- ═══ آمار ═══ -->
+  <div class="stat-grid">
+    <div class="stat-card c-orange">
+      <div class="stat-icon i-orange"><i class="bi bi-cash-stack"></i></div>
+      <div class="stat-val" id="dStatSales">—</div>
+      <div class="stat-label">فروش امروز</div>
+    </div>
+    <div class="stat-card c-blue">
+      <div class="stat-icon i-blue"><i class="bi bi-receipt"></i></div>
+      <div class="stat-val" id="dStatOrders">—</div>
+      <div class="stat-label">سفارشات امروز</div>
+    </div>
+    <div class="stat-card c-green">
+      <div class="stat-icon i-green"><i class="bi bi-people-fill"></i></div>
+      <div class="stat-val" id="dStatCustomers">—</div>
+      <div class="stat-label">مشتریان باشگاه</div>
+    </div>
+    <div class="stat-card c-purple">
+      <div class="stat-icon i-purple"><i class="bi bi-archive-fill"></i></div>
+      <div class="stat-val" id="dStatStock">—</div>
+      <div class="stat-label">اقلام موجود</div>
+    </div>
+  </div>
+
+  <!-- ═══ دسترسی سریع ═══ -->
+  <div class="quick-grid">
+    <a href="{% safe_url 'pos_page' %}" class="quick-btn">
+      <div class="quick-btn-icon" style="background:rgba(255,107,53,0.1);color:#ff6b35"><i class="bi bi-credit-card"></i></div>
+      <div class="quick-btn-label">صندوق فروش</div>
+    </a>
+    <a href="{% url 'orders_dashboard' %}" class="quick-btn">
+      <div class="quick-btn-icon" style="background:rgba(59,130,246,0.1);color:#3b82f6"><i class="bi bi-plus-square"></i></div>
+      <div class="quick-btn-label">سفارش جدید</div>
+    </a>
+    <a href="{% safe_url 'create_invoice' %}" class="quick-btn">
+      <div class="quick-btn-icon" style="background:rgba(16,185,129,0.1);color:#10b981"><i class="bi bi-file-earmark-plus"></i></div>
+      <div class="quick-btn-label">ثبت فاکتور</div>
+    </a>
+    <a href="{% safe_url 'kitchen_page' %}" class="quick-btn">
+      <div class="quick-btn-icon" style="background:rgba(139,92,246,0.1);color:#8b5cf6"><i class="bi bi-fire"></i></div>
+      <div class="quick-btn-label">آشپزخانه</div>
+    </a>
+  </div>
+
+  <!-- ═══ نمودارها ═══ -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title"><i class="bi bi-bar-chart-line"></i> فروش ۷ روز اخیر</div>
+        <div class="chart-tabs">
+          <button class="chart-tab active" onclick="switchChartView('week', this)">هفته</button>
+          <button class="chart-tab" onclick="switchChartView('month', this)">ماه</button>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="salesChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <div class="chart-card-title"><i class="bi bi-pie-chart"></i> دسته‌بندی فروش</div>
+      </div>
+      <div class="chart-wrap-sm"><canvas id="catChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ═══ جداول ═══ -->
+  <div class="bottom-grid">
+    <div class="table-card">
+      <div class="table-card-header">
+        <div class="table-card-title"><i class="bi bi-trophy"></i> پرفروش‌ترین آیتم‌ها</div>
+        <span class="table-card-badge" id="topItemsBadge">—</span>
+      </div>
+      <div class="table-card-body">
+        <table class="mini-table">
+          <thead><tr><th>#</th><th>نام</th><th>تعداد</th><th>فروش</th></tr></thead>
+          <tbody id="topItemsBody">
+            <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:28px">
+              <i class="bi bi-hourglass-split" style="font-size:20px;display:block;margin-bottom:6px"></i>
+              در حال بارگذاری...
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="table-card">
+      <div class="table-card-header">
+        <div class="table-card-title"><i class="bi bi-activity"></i> آخرین فعالیت‌ها</div>
+      </div>
+      <div class="table-card-body" id="activityList">
+        <div style="text-align:center;color:var(--muted);padding:28px">
+          <i class="bi bi-hourglass-split" style="font-size:20px;display:block;margin-bottom:6px"></i>
+          در حال بارگذاری...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+  'use strict';
+
+  /* ═══ helpers ═══ */
+  function esc(s) {
+    var d = document.createElement('div');
+    d.textContent = s || '';
+    return d.innerHTML;
+  }
+
+  function toP(n) {
+    return (n != null) ? Number(n).toLocaleString('fa-IR') : '\u2014';
+  }
+
+  function fmtN(n) {
+    return (n != null) ? Number(n).toLocaleString('fa-IR') : '\u2014';
+  }
+
+  /* ═══════════════════════════════════════════════
+     تاریخ امروز
+  ════════════════════════════════════════════════ */
+  (function setDate() {
+    var now = new Date();
+    var days = ['\u06CC\u06A9\u0634\u0646\u0628\u0647','\u062F\u0648\u0634\u0646\u0628\u0647','\u0633\u0647\u200C\u0634\u0646\u0628\u0647','\u0686\u0647\u0627\u0631\u0634\u0646\u0628\u0647','\u067E\u0646\u062C\u0634\u0646\u0628\u0647','\u062C\u0645\u0639\u0647','\u0634\u0646\u0628\u0647'];
+    var months = ['\u0641\u0631\u0648\u0631\u062F\u06CC\u0646','\u0627\u0631\u062F\u06CC\u0628\u0647\u0634\u062A','\u062E\u0631\u062F\u0627\u062F','\u062A\u06CC\u0631','\u0645\u0631\u062F\u0627\u062F','\u0634\u0647\u0631\u06CC\u0648\u0631','\u0645\u0647\u0631','\u0622\u0628\u0627\u0646','\u0622\u0630\u0631','\u062F\u06CC','\u0628\u0647\u0645\u0646','\u0627\u0633\u0641\u0646\u062F'];
+    var el = document.getElementById('dashDateText');
+    if (el) el.textContent = days[now.getDay()] + '\u060C ' + now.getDate() + ' ' + months[now.getMonth()];
+  })();
+
+  /* ═══════════════════════════════════════════════
+     API URLs
+  ════════════════════════════════════════════════ */
+  var URL_REPORT  = "{% url 'pos_daily_report' %}";
+  var URL_LOYALTY = "/api/loyalty/dashboard/";
+  var URL_CLOSE   = "{% safe_url 'pos_close_summary' %}";
+  var URL_ORDERS  = "/api/orders/";
+
+  /* ═══════════════════════════════════════════════
+     نمودار فروش
+  ════════════════════════════════════════════════ */
+  var salesChartInstance = null;
+  var _chartData = {
+    week: {
+      labels: ['\u0634\u0646\u0628\u0647','\u06CC\u06A9\u0634\u0646\u0628\u0647','\u062F\u0648\u0634\u0646\u0628\u0647','\u0633\u0647\u200C\u0634\u0646\u0628\u0647','\u0686\u0647\u0627\u0631\u0634\u0646\u0628\u0647','\u067E\u0646\u062C\u0634\u0646\u0628\u0647','\u062C\u0645\u0639\u0647'],
+      sales: [0,0,0,0,0,0,0],
+      orders: [0,0,0,0,0,0,0]
+    },
+    month: { labels: [], sales: [], orders: [] }
+  };
+
+  function initSalesChart(data) {
+    var ctx = document.getElementById('salesChart');
+    if (!ctx || typeof Chart === 'undefined') return;
+    if (salesChartInstance) salesChartInstance.destroy();
+
+    var isMobile = window.innerWidth <= 768;
+    var fontSizeSm = isMobile ? 8 : 10;
+    var pointR = isMobile ? 2 : 4;
+    var bw = isMobile ? 1 : 2;
+
+    salesChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: data.labels,
+        datasets: [
+          {
+            label: '\u0641\u0631\u0648\u0634 (\u062A\u0648\u0645\u0627\u0646)',
+            data: data.sales,
+            backgroundColor: 'rgba(255,107,53,0.15)',
+            borderColor: '#ff6b35',
+            borderWidth: bw, borderRadius: isMobile ? 4 : 8, borderSkipped: false,
+            yAxisID: 'y'
+          },
+          {
+            label: '\u0633\u0641\u0627\u0631\u0634\u0627\u062A',
+            data: data.orders,
+            type: 'line',
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59,130,246,0.08)',
+            borderWidth: bw, pointRadius: pointR, pointBackgroundColor: '#3b82f6',
+            fill: true, tension: 0.4,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            display: true, position: 'top', rtl: true,
+            labels: {
+              font: { family: 'Vazirmatn', size: fontSizeSm },
+              padding: isMobile ? 8 : 14,
+              usePointStyle: true,
+              boxWidth: isMobile ? 8 : 12
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { family: 'Vazirmatn', size: fontSizeSm }, maxRotation: isMobile ? 45 : 0 }
+          },
+          y: {
+            position: 'left',
+            grid: { color: 'rgba(0,0,0,0.04)' },
+            ticks: {
+              font: { family: 'Vazirmatn', size: fontSizeSm },
+              callback: function(v) { return v >= 1000 ? (v / 1000) + 'k' : v; }
+            }
+          },
+          y1: {
+            position: 'right',
+            grid: { display: false },
+            ticks: { font: { family: 'Vazirmatn', size: fontSizeSm } }
+          }
+        }
+      }
+    });
+  }
+
+  window.switchChartView = function(view, btn) {
+    document.querySelectorAll('.chart-tab').forEach(function(t) { t.classList.remove('active'); });
+    btn.classList.add('active');
+    initSalesChart(_chartData[view] || _chartData.week);
+  };
+
+  /* ═══════════════════════════════════════════════
+     نمودار دسته‌بندی
+  ════════════════════════════════════════════════ */
+  var catChartInstance = null;
+
+  function initCatChart(labels, values) {
+    var ctx = document.getElementById('catChart');
+    if (!ctx || typeof Chart === 'undefined') return;
+    if (catChartInstance) catChartInstance.destroy();
+
+    var isMobile = window.innerWidth <= 768;
+
+    catChartInstance = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: labels,
+        datasets: [{
+          data: values,
+          backgroundColor: ['#ff6b35','#3b82f6','#10b981','#8b5cf6','#f59e0b','#ef4444','#06b6d4','#ec4899'],
+          borderWidth: 0,
+          hoverOffset: isMobile ? 4 : 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: isMobile ? '55%' : '65%',
+        plugins: {
+          legend: {
+            position: 'bottom', rtl: true,
+            labels: {
+              font: { family: 'Vazirmatn', size: isMobile ? 8 : 10 },
+              padding: isMobile ? 6 : 10,
+              usePointStyle: true,
+              boxWidth: isMobile ? 6 : 10
+            }
+          }
+        }
+      }
+    });
+  }
+
+  /* ═══════════════════════════════════════════════
+     بارگذاری داده‌ها
+  ════════════════════════════════════════════════ */
+  async function loadDashboard() {
+
+    /* ── 1. گزارش روزانه ── */
+    try {
+      var r = await fetch(URL_REPORT + '?date=');
+      var d = await r.json();
+      if (d.success) {
+        document.getElementById('dStatSales').textContent  = fmtN(d.total_sales) + ' \u062A';
+        document.getElementById('dStatOrders').textContent = toP(d.order_count);
+
+        if (d.weekly_sales && d.weekly_sales.length) {
+          _chartData.week.sales  = d.weekly_sales;
+          _chartData.week.orders = d.weekly_orders || _chartData.week.orders;
+        }
+
+        var tbody = document.getElementById('topItemsBody');
+        if (d.top_items && d.top_items.length) {
+          document.getElementById('topItemsBadge').textContent = toP(d.top_items.length) + ' \u0622\u06CC\u062A\u0645';
+          var h = '';
+          d.top_items.forEach(function(it, i) {
+            var rc = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-n';
+            h += '<tr>';
+            h += '<td><span class="rank-badge ' + rc + '">' + toP(i + 1) + '</span></td>';
+            h += '<td style="font-weight:600">' + esc(it.name) + '</td>';
+            h += '<td>' + toP(it.qty) + '</td>';
+            h += '<td>' + fmtN(it.total) + ' \u062A</td>';
+            h += '</tr>';
+          });
+          tbody.innerHTML = h;
+        } else {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:28px">' +
+            '<i class="bi bi-inbox" style="font-size:20px;display:block;margin-bottom:6px"></i>' +
+            '\u0647\u0646\u0648\u0632 \u0633\u0641\u0627\u0631\u0634\u06CC \u062B\u0628\u062A \u0646\u0634\u062F\u0647</td></tr>';
+        }
+      }
+    } catch(e) {
+      console.warn('Error loading report:', e);
+    }
+
+    /* ── 2. نمودار فروش ── */
+    initSalesChart(_chartData.week);
+
+    /* ── 3. نمودار دسته‌بندی ── */
+    try {
+      var rc = await fetch(URL_REPORT + '?date=&categories=1');
+      var cd = await rc.json();
+      if (cd.success && cd.category_sales && cd.category_sales.length) {
+        var cLabels = [], cValues = [];
+        cd.category_sales.forEach(function(c) { cLabels.push(c.name); cValues.push(c.total); });
+        initCatChart(cLabels, cValues);
+      } else {
+        initCatChart(['\u063A\u0630\u0627\u06CC \u0627\u0635\u0644\u06CC','\u067E\u06CC\u0634\u200C\u063A\u0630\u0627','\u0646\u0648\u0634\u06CC\u062F\u0646\u06CC','\u062F\u0633\u0631','\u0633\u0627\u0644\u0627\u062F'], [35, 20, 18, 15, 12]);
+      }
+    } catch(e) {
+      initCatChart(['\u063A\u0630\u0627\u06CC \u0627\u0635\u0644\u06CC','\u067E\u06CC\u0634\u200C\u063A\u0630\u0627','\u0646\u0648\u0634\u06CC\u062F\u0646\u06CC','\u062F\u0633\u0631','\u0633\u0627\u0644\u0627\u062F'], [35, 20, 18, 15, 12]);
+    }
+
+    /* ── 4. مشتریان باشگاه ── */
+    try {
+      var r2 = await fetch(URL_LOYALTY);
+      var d2 = await r2.json();
+      document.getElementById('dStatCustomers').textContent =
+        d2.total_customers != null ? toP(d2.total_customers) : '\u2014';
+    } catch(e) {
+      document.getElementById('dStatCustomers').textContent = '\u2014';
+    }
+
+    /* ── 5. اقلام موجود ── */
+    try {
+      var r3 = await fetch(URL_CLOSE);
+      var d3 = await r3.json();
+      if (d3.kitchen_items) document.getElementById('dStatStock').textContent = toP(d3.kitchen_items.length);
+    } catch(e) {}
+
+    /* ── 6. آخرین فعالیت‌ها ── */
+    var activities = [];
+    try {
+      var r4 = await fetch(URL_ORDERS + '?limit=5&t=' + Date.now());
+      var d4 = await r4.json();
+      var orders = d4.results || d4 || [];
+      if (Array.isArray(orders) && orders.length) {
+        orders.slice(0, 5).forEach(function(o) {
+          var statusMap = {
+            pending:   { text: '\u0633\u0641\u0627\u0631\u0634 \u062C\u062F\u06CC\u062F \u062F\u0631 \u0627\u0646\u062A\u0638\u0627\u0631', dot: 'orange' },
+            preparing: { text: '\u062F\u0631 \u062D\u0627\u0644 \u0622\u0645\u0627\u062F\u0647\u200C\u0633\u0627\u0632\u06CC',     dot: 'blue' },
+            ready:     { text: '\u0622\u0645\u0627\u062F\u0647 \u062A\u062D\u0648\u06CC\u0644',            dot: 'green' },
+            delivered: { text: '\u062A\u062D\u0648\u06CC\u0644 \u0634\u062F\u0647',              dot: 'green' },
+            cancelled: { text: '\u0644\u063A\u0648 \u0634\u062F\u0647',                dot: 'orange' }
+          };
+          var s = statusMap[o.status] || { text: o.status, dot: 'blue' };
+          activities.push({ dot: s.dot, text: '\u0633\u0641\u0627\u0631\u0634 #' + toP(o.id) + ' \u2014 ' + s.text, time: o.time || o.created_at || '' });
+        });
+      }
+    } catch(e) {}
+
+    activities.push({ dot: 'green', text: '\u0633\u06CC\u0633\u062A\u0645 \u0622\u0645\u0627\u062F\u0647 \u0628\u0647 \u06A9\u0627\u0631 \u0627\u0633\u062A', time: '\u0627\u06A9\u0646\u0648\u0646' });
+
+    var actBox = document.getElementById('activityList');
+    if (activities.length) {
+      var ah = '';
+      activities.forEach(function(a) {
+        ah += '<div class="activity-item">';
+        ah += '<div class="activity-dot ' + a.dot + '"></div>';
+        ah += '<div class="activity-text">' + esc(a.text) + '</div>';
+        ah += '<div class="activity-time">' + esc(a.time) + '</div>';
+        ah += '</div>';
+      });
+      actBox.innerHTML = ah;
+    } else {
+      actBox.innerHTML = '<div style="text-align:center;color:var(--muted);padding:28px">' +
+        '<i class="bi bi-inbox" style="font-size:20px;display:block;margin-bottom:6px"></i>' +
+        '\u0641\u0639\u0627\u0644\u06CC\u062A\u06CC \u062B\u0628\u062A \u0646\u0634\u062F\u0647</div>';
+    }
+  }
+
+  /* ═══ اجرا ═══ */
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadDashboard);
+  } else {
+    loadDashboard();
+  }
+
+})();
+</script>
+{% endblock %}

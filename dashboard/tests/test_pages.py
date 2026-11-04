@@ -2,8 +2,8 @@
 
 from django.test import Client, TestCase
 
-from restaurant.models import Restaurant, User
-from restaurant.tenancy import clear_current_restaurant
+from bizsuite.models import Business, User
+from bizsuite.tenancy import clear_current_business
 
 HTML_ROUTES = [
     "/",
@@ -22,14 +22,14 @@ HTML_ROUTES = [
 class PageRenderTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.r = Restaurant.objects.create(name="صفحه", slug="page-one")
+        cls.r = Business.objects.create(name="صفحه", slug="page-one")
         cls.owner = User.objects.create_user(
-            username="pg_owner", password="Pass12345!", role="owner", restaurant=cls.r)
+            username="pg_owner", password="Pass12345!", role="owner", business=cls.r)
         cls.root = User.objects.create_user(
             username="pg_root", password="Pass12345!", is_superuser=True, is_staff=True)
 
     def setUp(self):
-        clear_current_restaurant()
+        clear_current_business()
 
     def _assert_no_server_error(self, client, path):
         res = client.get(path, follow=False)

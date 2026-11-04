@@ -19,7 +19,7 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
     phone_number: "",
     role: "",
     customRole: "",
-    restaurant_id: "",
+    business_id: "",
     dashboard_permissions: [],
   });
 
@@ -33,7 +33,7 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
         phone_number: "",
         role: "",
         customRole: "",
-        restaurant_id: "",
+        business_id: "",
         dashboard_permissions: [],
       });
     }
@@ -49,7 +49,7 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
           phone_number: d.phone_number || "",
           role: isPreset ? d.role : "other",
           customRole: isPreset ? "" : (d.role_display || d.role || ""),
-          restaurant_id: d.restaurant_id || "",
+          business_id: d.business_id || "",
           dashboard_permissions: d.effective_permissions || d.dashboard_permissions || [],
         });
       });
@@ -80,7 +80,7 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
         last_name: form.last_name,
         phone_number: form.phone_number,
         role: finalRole,
-        restaurant_id: form.restaurant_id,
+        business_id: form.business_id,
         dashboard_permissions: form.dashboard_permissions,
       };
 
@@ -265,8 +265,8 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
           <FormControl fullWidth size="small">
             <InputLabel sx={{ fontSize: 12 }}>{t("ui_c.super.user.tenant")}</InputLabel>
             <Select
-              value={form.restaurant_id}
-              onChange={(e) => setForm({ ...form, restaurant_id: e.target.value })}
+              value={form.business_id}
+              onChange={(e) => setForm({ ...form, business_id: e.target.value })}
               label={t("ui_c.super.user.tenant")}
               sx={{ bgcolor: C.inputBg, borderRadius: "10px", fontSize: 13 }}
             >

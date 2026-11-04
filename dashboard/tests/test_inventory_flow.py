@@ -3,11 +3,11 @@ from decimal import Decimal
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from restaurant.inventory_services import get_or_create_mother_warehouse, receive_stock, transfer_stock
-from restaurant.models import (
-    InventoryMovement, RawMaterial, Restaurant, StockItem, User, Warehouse,
+from bizsuite.inventory_services import get_or_create_mother_warehouse, receive_stock, transfer_stock
+from bizsuite.models import (
+    InventoryMovement, RawMaterial, Business, StockItem, User, Warehouse,
 )
-from restaurant.tenancy import clear_current_restaurant
+from bizsuite.tenancy import clear_current_business
 
 D = Decimal
 
@@ -20,36 +20,36 @@ def qty(wh, mat):
 class InventoryFlowTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.r1 = Restaurant.objects.create(name="الف", slug="inv-one")
-        cls.r2 = Restaurant.objects.create(name="ب", slug="inv-two")
+        cls.r1 = Business.objects.create(name="الف", slug="inv-one")
+        cls.r2 = Business.objects.create(name="ب", slug="inv-two")
         cls.w1 = get_or_create_mother_warehouse(cls.r1)
-        cls.w2 = Warehouse.all_objects.create(restaurant=cls.r1, name="سردخانه")
-        cls.foreign_wh = Warehouse.all_objects.create(restaurant=cls.r2, name="خارجی")
+        cls.w2 = Warehouse.all_objects.create(business=cls.r1, name="سردخانه")
+        cls.foreign_wh = Warehouse.all_objects.create(business=cls.r2, name="خارجی")
         cls.rice = RawMaterial.all_objects.create(
-            restaurant=cls.r1, name="برنج", unit="kg", price=100)
+            business=cls.r1, name="برنج", unit="kg", price=100)
         cls.oil = RawMaterial.all_objects.create(
-            restaurant=cls.r1, name="روغن", unit="kg", price=50,
+            business=cls.r1, name="روغن", unit="kg", price=50,
             minimum_stock=D("10"), target_stock=D("30"))
         cls.flour = RawMaterial.all_objects.create(
-            restaurant=cls.r1, name="آرد", unit="kg", price=20,
+            business=cls.r1, name="آرد", unit="kg", price=20,
             minimum_stock=D("5"), target_stock=D("0"))
         cls.fine = RawMaterial.all_objects.create(
-            restaurant=cls.r1, name="نمک", unit="kg", price=5,
+            business=cls.r1, name="نمک", unit="kg", price=5,
             minimum_stock=D("2"), target_stock=D("10"))
         cls.nomin = RawMaterial.all_objects.create(
-            restaurant=cls.r1, name="بدون حداقل", unit="kg", price=1)
+            business=cls.r1, name="بدون حداقل", unit="kg", price=1)
         cls.foreign_mat = RawMaterial.all_objects.create(
-            restaurant=cls.r2, name="دیگر", unit="kg", price=1)
+            business=cls.r2, name="دیگر", unit="kg", price=1)
         cls.user = User.objects.create_user(
-            username="mgr", password="Pass12345!", role="manager", restaurant=cls.r1)
+            username="mgr", password="Pass12345!", role="manager", business=cls.r1)
         cls.other_user = User.objects.create_user(
-            username="mgr2", password="Pass12345!", role="manager", restaurant=cls.r2)
+            username="mgr2", password="Pass12345!", role="manager", business=cls.r2)
         cls.limited = User.objects.create_user(
-            username="lim", password="Pass12345!", role="manager", restaurant=cls.r1,
+            username="lim", password="Pass12345!", role="manager", business=cls.r1,
             dashboard_permissions=["pos"])
 
     def setUp(self):
-        clear_current_restaurant()
+        clear_current_business()
         self.api = APIClient()
         self.api.force_authenticate(self.user)
 
@@ -173,7 +173,7 @@ class InventoryFlowTests(TestCase):
         self.post("issue", {"warehouse_id": self.w1.id, "raw_material_id": self.rice.id, "quantity": 1})
         self.post("transfer", {"source_warehouse_id": self.w1.id, "destination_warehouse_id": self.w2.id,
                                "raw_material_id": self.rice.id, "quantity": 2})
-        other = Warehouse.all_objects.create(restaurant=self.r2, name="W")
+        other = Warehouse.all_objects.create(business=self.r2, name="W")
         receive_stock(self.r2, other, self.foreign_mat, 7)
 
         def get(**params):

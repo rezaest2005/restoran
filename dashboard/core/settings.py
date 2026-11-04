@@ -29,17 +29,17 @@ SECRET_KEY = _secret
 
 CSRF_TRUSTED_ORIGINS = os.getenv(
     'CSRF_TRUSTED_ORIGINS',
-    'http://localhost:8000,http://127.0.0.1:8000,https://est.rysh.ir'
+    'http://localhost:8000,http://127.0.0.1:8000'
 ).split(',')
 
 if DEBUG:
     ALLOWED_HOSTS = ['*']
 else:
     ALLOWED_HOSTS = os.getenv(
-        'ALLOWED_HOSTS', 'localhost,127.0.0.1,est.rysh.ir'
+        'ALLOWED_HOSTS', 'localhost,127.0.0.1'
     ).split(',')
 
-AUTH_USER_MODEL = 'restaurant.User'
+AUTH_USER_MODEL = 'bizsuite.User'
 
 CARD_READER_IP = os.getenv('CARD_READER_IP', '192.168.1.100')
 CARD_READER_PORT = int(os.getenv('CARD_READER_PORT', '8080'))
@@ -57,13 +57,13 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',  # لازم برای BLACKLIST_AFTER_ROTATION
-    'restaurant',
+    'bizsuite',
     'django.contrib.humanize',
 ]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'restaurant.middleware.TenantJWTAuthentication',
+        'bizsuite.middleware.TenantJWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -73,7 +73,7 @@ REST_FRAMEWORK = {
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
-    'EXCEPTION_HANDLER': 'restaurant.utils.custom_exception_handler',
+    'EXCEPTION_HANDLER': 'bizsuite.utils.custom_exception_handler',
 }
 
 SIMPLE_JWT = {
@@ -87,13 +87,13 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
     'USER_ID_FIELD': 'id',
     'USER_ID_CLAIM': 'user_id',
-    'TOKEN_OBTAIN_SERIALIZER': 'restaurant.serializers.CustomTokenObtainSerializer',
+    'TOKEN_OBTAIN_SERIALIZER': 'bizsuite.serializers.CustomTokenObtainSerializer',
 }
 
 # ---------- CORS: فقط origin های مشخص (نه همه) ----------
 CORS_ALLOWED_ORIGINS = os.getenv(
     'CORS_ALLOWED_ORIGINS',
-    'http://localhost:8000,http://127.0.0.1:8000,https://est.rysh.ir'
+    'http://localhost:8000,http://127.0.0.1:8000'
 ).split(',')
 CORS_ALLOW_CREDENTIALS = True
 
@@ -104,8 +104,8 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'restaurant.middleware.JWTFromCookieMiddleware',
-    'restaurant.middleware.TenantMiddleware',
+    'bizsuite.middleware.JWTFromCookieMiddleware',
+    'bizsuite.middleware.TenantMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -115,14 +115,14 @@ ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'restaurant' / 'templates'],
+        'DIRS': [BASE_DIR / 'bizsuite' / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'restaurant.context_processors.user_permissions_context',
+                'bizsuite.context_processors.user_permissions_context',
             ],
         },
     },
@@ -133,8 +133,8 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME", "restaurant"),
-        "USER": os.getenv("DB_USER", "restaurant"),
+        "NAME": os.getenv("DB_NAME", "bizsuite"),
+        "USER": os.getenv("DB_USER", "bizsuite"),
         "PASSWORD": os.getenv("DB_PASSWORD", ""),
         "HOST": os.getenv("DB_HOST", "localhost"),
         "PORT": os.getenv("DB_PORT", "5433"),
@@ -156,7 +156,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
-    BASE_DIR / 'restaurant' / 'static',
+    BASE_DIR / 'bizsuite' / 'static',
 ]
 
 MEDIA_URL = '/media/'

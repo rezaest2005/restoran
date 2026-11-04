@@ -2,8 +2,8 @@ from django.core.cache import cache
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from restaurant.models import Feedback, Restaurant, User
-from restaurant.tenancy import clear_current_restaurant
+from bizsuite.models import Feedback, Business, User
+from bizsuite.tenancy import clear_current_business
 
 SUBMIT = "/api/feedback/submit/"
 
@@ -11,23 +11,23 @@ SUBMIT = "/api/feedback/submit/"
 class FeedbackTests(TestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.r1 = Restaurant.objects.create(name="رستوران یک", slug="r-one")
-        cls.r2 = Restaurant.objects.create(name="رستوران دو", slug="r-two")
-        cls.off = Restaurant.objects.create(name="غیرفعال", slug="r-off", is_active=False)
+        cls.r1 = Business.objects.create(name="کسب‌وکار یک", slug="r-one")
+        cls.r2 = Business.objects.create(name="کسب‌وکار دو", slug="r-two")
+        cls.off = Business.objects.create(name="غیرفعال", slug="r-off", is_active=False)
         cls.u1 = User.objects.create_user(
             username="own1", password="Pass12345!", role="owner",
-            restaurant=cls.r1, dashboard_permissions=["feedback"],
+            business=cls.r1, dashboard_permissions=["feedback"],
         )
-        Feedback.all_objects.create(restaurant=cls.r1, message="مال یک")
-        Feedback.all_objects.create(restaurant=cls.r2, message="مال دو")
+        Feedback.all_objects.create(business=cls.r1, message="مال یک")
+        Feedback.all_objects.create(business=cls.r2, message="مال دو")
 
     def setUp(self):
         cache.clear()
-        clear_current_restaurant()
+        clear_current_business()
         self.anon = APIClient()
 
     def _post(self, **over):
-        body = {"restaurant_slug": "r-one", "category": "bug",
+        body = {"business_slug": "r-one", "category": "bug",
                 "name": "علی", "phone": "0912", "message": "مشکل دارم"}
         body.update(over)
         return self.anon.post(SUBMIT, body, format="json")
@@ -36,7 +36,7 @@ class FeedbackTests(TestCase):
         res = self._post()
         self.assertEqual(res.status_code, 200)
         fb = Feedback.all_objects.get(message="مشکل دارم")
-        self.assertEqual(fb.restaurant, self.r1)
+        self.assertEqual(fb.business, self.r1)
         self.assertEqual(fb.status, "open")
 
     def test_honeypot_silent_success(self):
@@ -46,8 +46,8 @@ class FeedbackTests(TestCase):
         self.assertEqual(Feedback.all_objects.count(), before)
 
     def test_unknown_and_inactive_slug_rejected(self):
-        self.assertEqual(self._post(restaurant_slug="nope").status_code, 404)
-        self.assertEqual(self._post(restaurant_slug="r-off").status_code, 404)
+        self.assertEqual(self._post(business_slug="nope").status_code, 404)
+        self.assertEqual(self._post(business_slug="r-off").status_code, 404)
 
     def test_message_too_long_or_empty(self):
         self.assertEqual(self._post(message="x" * 2001).status_code, 400)
@@ -72,7 +72,7 @@ class FeedbackTests(TestCase):
     def test_update_sets_and_clears_resolved_at(self):
         c = APIClient()
         c.force_authenticate(self.u1)
-        fb = Feedback.all_objects.get(restaurant=self.r1)
+        fb = Feedback.all_objects.get(business=self.r1)
         res = c.post(f"/api/feedback/{fb.id}/update/",
                      {"status": "resolved", "admin_note": "انجام شد"}, format="json")
         self.assertEqual(res.status_code, 200)
@@ -83,9 +83,9 @@ class FeedbackTests(TestCase):
         fb.refresh_from_db()
         self.assertIsNone(fb.resolved_at)
 
-    def test_update_other_restaurant_404(self):
+    def test_update_other_business_404(self):
         c = APIClient()
         c.force_authenticate(self.u1)
-        other = Feedback.all_objects.get(restaurant=self.r2)
+        other = Feedback.all_objects.get(business=self.r2)
         res = c.post(f"/api/feedback/{other.id}/update/", {"status": "resolved"}, format="json")
         self.assertEqual(res.status_code, 404)

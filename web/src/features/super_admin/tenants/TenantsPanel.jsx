@@ -75,7 +75,7 @@ export default function TenantsPanel({
     },
   };
 
-  /* ── select restaurant ── */
+  /* ── select business ── */
   // ── میان‌برها ──
   const selectedTenant = filtered.find((x) => x.id === selectedId) || null;
   const moveSelection = (dir) => {

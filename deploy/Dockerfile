@@ -1,36 +1,37 @@
-﻿# ═══════════════════════════════════════════════════════
-#  Stage 1: Build فرانت‌اند (web)
-# ═══════════════════════════════════════════════════════
-FROM node:20-alpine AS frontend-build
+# Build from the repository root:
+#   docker build -f deploy/Dockerfile --target api .
+#   docker build -f deploy/Dockerfile --target web .
+
+# ── Stage 1: React SPA ───────────────────────────────
+FROM node:20-alpine AS web-build
 WORKDIR /app
-COPY web/package*.json ./
+COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ .
 RUN npm run build
 
-# ═══════════════════════════════════════════════════════
-#  Stage 2: بک‌اند Django (dashboard)
-# ═══════════════════════════════════════════════════════
-FROM python:3.12-slim AS backend
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# ── Stage 2: Django API image (used by api, worker and migrate) ──
+FROM python:3.12-slim AS api
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 WORKDIR /app
-RUN apt-get update && apt-get install -y dos2unix && rm -rf /var/lib/apt/lists/*
 COPY dashboard/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt gunicorn psycopg2-binary
+RUN pip install --no-cache-dir -r requirements.txt gunicorn "psycopg[binary]"
 COPY dashboard/ .
-RUN python manage.py collectstatic --noinput 2>/dev/null || true
-COPY deploy/entrypoint.sh /app/entrypoint.sh
-RUN dos2unix /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+COPY deploy/entrypoint.sh deploy/migrate.sh /app/
+RUN sed -i 's/\r$//' /app/entrypoint.sh /app/migrate.sh \
+    && chmod +x /app/entrypoint.sh /app/migrate.sh \
+    && SECRET_KEY=build-only-not-a-secret DEBUG=True python manage.py collectstatic --noinput \
+    && useradd --system --uid 1001 app \
+    && mkdir -p /app/media \
+    && chown -R app:app /app/media /app/staticfiles
+USER app
 EXPOSE 8000
 CMD ["/app/entrypoint.sh"]
 
-# ═══════════════════════════════════════════════════════
-#  Stage 3: Nginx + فرانت‌اند
-# ═══════════════════════════════════════════════════════
-FROM nginx:alpine AS nginx
-COPY --from=frontend-build /app/dist /usr/share/nginx/html
-COPY --from=backend /app/staticfiles /usr/share/nginx/staticfiles
+# ── Stage 3: nginx serving the SPA + static, proxying /api/ ──
+FROM nginx:alpine AS web
+COPY --from=web-build /app/dist /usr/share/nginx/html
+COPY --from=api /app/staticfiles /usr/share/nginx/static
 COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
