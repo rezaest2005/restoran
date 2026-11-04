@@ -84,7 +84,15 @@
     "upload": "Upload image",
     "uploading": "Uploading...",
     "clear": "Clear",
-    "weekday": ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+    "weekday": [
+      "Saturday",
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday"
+    ],
     "theme": {
       "primary": "Primary colour",
       "accent": "Accent colour",
@@ -156,6 +164,39 @@
       "join_done": "Your membership request was received.",
       "join_error": "Could not register. Check the number and try again.",
       "currency": "Toman"
+    },
+    "mod": {
+      "title": "Modules & subscriptions",
+      "catalogue": "Module catalogue",
+      "business": "Business",
+      "matrix": "Business modules",
+      "code": "Code",
+      "name": "Name",
+      "price": "Monthly price",
+      "requires": "Requires",
+      "enabled": "Enabled",
+      "starts": "Starts",
+      "expires": "Expires",
+      "override": "Price override",
+      "effective": "Effective price",
+      "total": "Monthly total",
+      "plan": "Plan",
+      "apply_plan": "Apply plan",
+      "none": "-",
+      "auto_requires": "Auto-enable prerequisites",
+      "save": "Save",
+      "saved": "Saved",
+      "unmanaged": "This business is not managed yet; every module is enabled.",
+      "live": "Live",
+      "expired": "Expired / off",
+      "err_missing": "Prerequisites are not enabled: {{list}}",
+      "err_dependents": "Dependent modules are still enabled: {{list}}",
+      "price_saved": "Price saved",
+      "pick_business": "Select a business",
+      "sc_next": "Next business",
+      "sc_prev": "Previous business",
+      "sc_save": "Save modules",
+      "sc_plan": "Focus plan picker"
     }
   }
 }

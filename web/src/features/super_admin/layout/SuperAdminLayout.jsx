@@ -8,10 +8,11 @@ import SuperSidebar from "@super/layout/SuperSidebar";
 import SuperTopBar from "@super/layout/SuperTopBar";
 import TenantsPanel from "@super/tenants/TenantsPanel";
 import UsersPanel from "@super/users/UsersPanel";
+import ModulesPanel from "@super/modules/ModulesPanel";
 import { Box, Button, Snackbar, Alert, useMediaQuery, useTheme } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import superClient from "@super/api/super_client";
-import { collectShortcuts } from "@shared/common/shortcutKit";
+import { collectShortcuts, useRegisteredShortcuts, tabBindings, helpBinding } from "@shared/common/shortcutKit";
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 
 export default function SuperAdminLayout() {
@@ -53,7 +54,13 @@ export default function SuperAdminLayout() {
   const tabs = [
     { label: t("super.tab.tenants"), icon: "🏪" },
     { label: t("super.tab.users"),   icon: "👥" },
+    { label: t("ui_k.mod.title"),    icon: "🧩" },
   ];
+
+  useRegisteredShortcuts([
+    helpBinding(t, () => setHelp(true)),
+    ...tabBindings(t, tabs.map((x, i) => ({ id: i, label: x.label })), setActiveTab),
+  ]);
 
   return (
     <Box dir={isRtl ? "rtl" : "ltr"} sx={{
@@ -148,6 +155,7 @@ export default function SuperAdminLayout() {
               t={t}
             />
           )}
+          {activeTab === 2 && <ModulesPanel tenants={tenants} C={C} />}
         </Box>
       </Box>
 

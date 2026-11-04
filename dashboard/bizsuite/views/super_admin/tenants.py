@@ -49,6 +49,7 @@ def _tenant_to_dict(tenant, business=None):
         'id': tenant.id,
         'name': tenant.name,
         'slug': business.slug if business else '',
+        'business_id': business.id if business else None,
         'dashboard_url': f'/{business.slug}/dashboard/app/' if business else '',
         'owner_id': tenant.owner_id,
         'owner_name': (
