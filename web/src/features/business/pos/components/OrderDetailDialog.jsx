@@ -1,3 +1,4 @@
+import { blurFocused } from "../common/focus";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Box, Typography, Table, TableBody, TableCell,
@@ -40,7 +41,7 @@ export default function OrderDetailDialog({
     <Dialog
       open={open} onClose={onClose} maxWidth="sm" fullWidth
       slotProps={{
-        paper: {
+        transition: { onExit: blurFocused }, paper: {
           sx: {
             borderRadius: "20px", bgcolor: C.glass,
             backdropFilter: "blur(28px)", border: `1px solid ${C.glassBorder}`,

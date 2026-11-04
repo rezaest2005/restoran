@@ -240,7 +240,7 @@ export default function StorefrontEditor() {
 
   return (
     <Box sx={{ p: { xs: 1, md: 2 } }}>
-      <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap sx={{ mb: 1.5 }}>
+      <Stack direction="row" spacing={1.5} useFlexGap sx={{ mb: 1.5, alignItems: "center", flexWrap: "wrap" }}>
         <Typography variant="h6" sx={{ fontWeight: 800 }}>{t("ui_k.title")}</Typography>
         <Chip size="small" color={srv.is_published ? "success" : "default"}
           label={srv.is_published ? t("ui_k.status_published") : t("ui_k.status_draft")} />
@@ -273,7 +273,7 @@ export default function StorefrontEditor() {
       {tab === "content" && (
         <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", lg: "250px minmax(280px,1fr) minmax(320px,1fr)" } }}>
           <Box ref={listRef}>
-            <Stack direction="row" alignItems="center" sx={{ mb: 1 }}>
+            <Stack direction="row" sx={{ mb: 1, alignItems: "center" }}>
               <Typography variant="subtitle2" sx={{ flex: 1 }}>{t("ui_k.sections")}</Typography>
               <Button size="small" startIcon={<AddIcon />} onClick={() => setAdding(true)}>
                 {t("ui_k.add_section")} <KbdHint>F2</KbdHint>
@@ -285,8 +285,7 @@ export default function StorefrontEditor() {
                 <ListItemButton key={s.id} selected={i === sel} onClick={() => setSel(i)}
                   sx={{ borderRadius: 1, opacity: s.visible ? 1 : 0.55, pr: 0.5, pl: 1 }}>
                   <ListItemText primary={t(`ui_k.section_type.${s.type}`)}
-                    secondary={s.visible ? (s.data.title || s.data.copyright || "") : t("ui_k.hidden")}
-                    secondaryTypographyProps={{ noWrap: true }} />
+                    secondary={s.visible ? (s.data.title || s.data.copyright || "") : t("ui_k.hidden")} slotProps={{ secondary: { noWrap: true } }} />
                   <Tooltip title={t("ui_k.move_up")}><span>
                     <IconButton size="small" disabled={i === 0} aria-label={t("ui_k.move_up")}
                       onClick={(e) => { e.stopPropagation(); move(i, -1); }}><ArrowUp fontSize="small" /></IconButton>
@@ -322,7 +321,7 @@ export default function StorefrontEditor() {
           </Box>
 
           <Box>
-            <Stack direction="row" alignItems="center" sx={{ mb: 1 }}>
+            <Stack direction="row" sx={{ mb: 1, alignItems: "center" }}>
               <Typography variant="subtitle2" sx={{ flex: 1 }}>{t("ui_k.preview")}</Typography>
               <ToggleButtonGroup size="small" exclusive value={device} onChange={(_, v) => v && setDevice(v)}>
                 <ToggleButton value="mobile">{t("ui_k.preview_mobile")}</ToggleButton>

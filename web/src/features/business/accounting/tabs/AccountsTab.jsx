@@ -200,7 +200,7 @@ function AccountDialog({ ctx, account, onClose, onSaved }) {
   }));
 
   return (
-    <Dialog open onClose={saving ? undefined : onClose} fullScreen={fullScreen} maxWidth="sm" fullWidth PaperProps={{ sx: S.dialogPaper }}>
+    <Dialog open onClose={saving ? undefined : onClose} fullScreen={fullScreen} maxWidth="sm" fullWidth slotProps={{ paper: { sx: S.dialogPaper } }}>
       <DialogTitle sx={{ fontWeight: 700 }}>{isEdit ? t("ui_i.accounts.edit_title") : t("ui_i.accounts.new_title")}</DialogTitle>
       <DialogContent>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
@@ -208,13 +208,12 @@ function AccountDialog({ ctx, account, onClose, onSaved }) {
           {isEdit && account.is_system && <Alert severity="info">{t("ui_i.accounts.system_hint")}</Alert>}
           <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 2fr" } }}>
             <TextField size="small" label={t("ui_i.common.code")} value={code} sx={S.field} disabled={isEdit}
-              onChange={(e) => setCode(e.target.value)} error={touched && !isEdit && !code.trim()} required
-              inputProps={{ dir: "ltr" }} />
+              onChange={(e) => setCode(e.target.value)} error={touched && !isEdit && !code.trim()} required slotProps={{ htmlInput: { dir: "ltr" } }} />
             <TextField size="small" label={t("ui_i.common.name")} value={name} sx={S.field} autoFocus
               onChange={(e) => setName(e.target.value)} error={touched && !name.trim()} required />
           </Box>
           <TextField size="small" label={t("ui_i.accounts.name_en")} value={nameEn} sx={S.field}
-            onChange={(e) => setNameEn(e.target.value)} inputProps={{ dir: "ltr" }} />
+            onChange={(e) => setNameEn(e.target.value)} slotProps={{ htmlInput: { dir: "ltr" } }} />
           {!isEdit && (
             <>
               <TextField select size="small" label={t("ui_i.common.type")} value={type} sx={S.field}
@@ -222,8 +221,8 @@ function AccountDialog({ ctx, account, onClose, onSaved }) {
                 {ACCOUNT_TYPES.map((x) => <MenuItem key={x} value={x}>{t(`ui_i.types.${x}`)}</MenuItem>)}
               </TextField>
               <TextField select size="small" label={t("ui_i.accounts.parent")} value={parentId} sx={S.field}
-                onChange={(e) => setParentId(e.target.value)} SelectProps={{ displayEmpty: true }}
-                helperText={t("ui_i.accounts.parent_hint")}>
+                onChange={(e) => setParentId(e.target.value)}
+                helperText={t("ui_i.accounts.parent_hint")} slotProps={{ select: { displayEmpty: true } }}>
                 <MenuItem value="">{t("ui_i.common.none")}</MenuItem>
                 {parents.map((p) => (
                   <MenuItem key={p.id} value={String(p.id)}>{p.code} — {accName(p, lang)}</MenuItem>

@@ -1,13 +1,5 @@
 import client from "../api/client";
 
-/* ─── POS Settings ──────────────────── */
-
-export const fetchPosSettings = () =>
-  client.get("/api/pos/settings/").then(r => r.data);
-
-export const updatePosSettings = (data) =>
-  client.post("/api/pos/settings/", data).then(r => r.data);
-
 /* ─── Foods & Categories (for dictionary mode) ─── */
 
 export const fetchFoods = () =>

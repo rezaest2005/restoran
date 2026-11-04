@@ -126,8 +126,8 @@ export default function ModulesPanel({ tenants, C }) {
                 <TableCell sx={cell}><code>{m.code}</code></TableCell>
                 <TableCell sx={cell}>{nameOf(m)}</TableCell>
                 <TableCell sx={cell}>
-                  <TextField size="small" type="number" defaultValue={m.price_monthly} inputProps={{ min: 0, dir: "ltr" }}
-                    sx={{ width: 140 }} onBlur={(e) => Number(e.target.value) !== m.price_monthly && savePrice(m.code, e.target.value)} />
+                  <TextField size="small" type="number" defaultValue={m.price_monthly}
+                    sx={{ width: 140 }} onBlur={(e) => Number(e.target.value) !== m.price_monthly && savePrice(m.code, e.target.value)} slotProps={{ htmlInput: { min: 0, dir: "ltr" } }} />
                 </TableCell>
                 <TableCell sx={cell}>{m.requires.length ? m.requires.map((c) => <Chip key={c} size="small" label={byCode[c] ? nameOf(byCode[c]) : c} sx={{ mx: 0.25 }} />) : t("ui_k.mod.none")}</TableCell>
               </TableRow>
@@ -165,20 +165,19 @@ export default function ModulesPanel({ tenants, C }) {
                         <Chip size="small" color={m.is_live ? "success" : "default"} label={m.is_live ? t("ui_k.mod.live") : t("ui_k.mod.expired")} />
                       </TableCell>
                       <TableCell sx={cell}>
-                        <Switch checked={!!r.is_enabled} onChange={(e) => setRow(m.code, { is_enabled: e.target.checked })}
-                          inputProps={{ "aria-label": m.code }} />
+                        <Switch checked={!!r.is_enabled} onChange={(e) => setRow(m.code, { is_enabled: e.target.checked })} slotProps={{ input: { "aria-label": m.code } }} />
                       </TableCell>
                       <TableCell sx={cell}>
-                        <TextField size="small" type="datetime-local" value={toLocalInput(r.starts_at)} inputProps={{ dir: "ltr" }}
-                          onChange={(e) => setRow(m.code, { starts_at: fromLocalInput(e.target.value) })} />
+                        <TextField size="small" type="datetime-local" value={toLocalInput(r.starts_at)}
+                          onChange={(e) => setRow(m.code, { starts_at: fromLocalInput(e.target.value) })} slotProps={{ htmlInput: { dir: "ltr" } }} />
                       </TableCell>
                       <TableCell sx={cell}>
-                        <TextField size="small" type="datetime-local" value={toLocalInput(r.expires_at)} inputProps={{ dir: "ltr" }}
-                          onChange={(e) => setRow(m.code, { expires_at: fromLocalInput(e.target.value) })} />
+                        <TextField size="small" type="datetime-local" value={toLocalInput(r.expires_at)}
+                          onChange={(e) => setRow(m.code, { expires_at: fromLocalInput(e.target.value) })} slotProps={{ htmlInput: { dir: "ltr" } }} />
                       </TableCell>
                       <TableCell sx={cell}>
-                        <TextField size="small" type="number" value={r.price_override ?? ""} inputProps={{ min: 0, dir: "ltr" }} sx={{ width: 130 }}
-                          onChange={(e) => setRow(m.code, { price_override: e.target.value === "" ? null : Number(e.target.value) })} />
+                        <TextField size="small" type="number" value={r.price_override ?? ""} sx={{ width: 130 }}
+                          onChange={(e) => setRow(m.code, { price_override: e.target.value === "" ? null : Number(e.target.value) })} slotProps={{ htmlInput: { min: 0, dir: "ltr" } }} />
                       </TableCell>
                       <TableCell sx={cell}>{m.price.toLocaleString()}</TableCell>
                     </TableRow>

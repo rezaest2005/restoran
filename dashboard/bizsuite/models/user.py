@@ -172,7 +172,9 @@ class User(AbstractUser):
 
     def get_permissions(self):
         """لیست دسترسی‌های واقعی کاربر"""
-        if self.is_superuser:
+        if self.is_superuser or self.role == self.Role.OWNER:
+            # owners always see every section of their own business (module
+            # switches still hide tabs of disabled modules, see decorators)
             return list(_ALL_SECTIONS)
         if self.dashboard_permissions:
             return list(self.dashboard_permissions)

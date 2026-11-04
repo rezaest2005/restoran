@@ -18,8 +18,12 @@ export default function useFoods(useDictionary, isRtl) {
     try {
       setLoading(true);
       // فراخوانی لیست غذاها از API بک‌اند
-      const res = await client.get("/api/dictionary/foods/");
-      const data = res.data?.items || [];
+      // /api/dictionary/foods/ no longer exists; the menu endpoint serves the business's foods
+      const res = await client.get("/api/menu/public/", { params: { page_size: 200 } });
+      const data = (res.data?.results || []).map((f) => ({
+        ...f,
+        category_name_en: f.category_name_en || f.category_name || "",
+      }));
       setFoods(data);
     } catch (err) {
       console.error("Failed to load foods:", err);

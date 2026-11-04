@@ -24,12 +24,12 @@ function ColorRow({ name, value, onChange }) {
   const { t } = useTranslation();
   const valid = HEX.test(value || "");
   return (
-    <Stack direction="row" spacing={1.5} alignItems="center">
+    <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
       <input type="color" aria-label={t(`ui_k.theme.${name}`)} value={valid && value.length === 7 ? value : "#000000"}
         onChange={(e) => onChange(e.target.value)} style={{ width: 44, height: 36, border: 0, padding: 0, background: "none" }} />
       <TextField size="small" label={t(`ui_k.theme.${name}`)} value={value || ""} error={!valid}
-        helperText={valid ? "" : t("ui_k.theme.hex_invalid")} inputProps={{ dir: "ltr", maxLength: 7 }}
-        onChange={(e) => onChange(e.target.value)} sx={{ flex: 1 }} />
+        helperText={valid ? "" : t("ui_k.theme.hex_invalid")}
+        onChange={(e) => onChange(e.target.value)} sx={{ flex: 1 }} slotProps={{ htmlInput: { dir: "ltr", maxLength: 7 } }} />
     </Stack>
   );
 }

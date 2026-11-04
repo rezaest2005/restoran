@@ -99,8 +99,9 @@ function JalaliDateField({ C, value, onChange, sx }) {
       onChange={handle}
       error={invalid}
       placeholder="۱۴۰۵/۰۱/۰۱"
-      inputProps={{ dir: "ltr", inputMode: "numeric", style: { textAlign: "center", fontWeight: 700, letterSpacing: 0.5 } }}
-      InputProps={{
+
+
+      sx={sx} slotProps={{ htmlInput: { dir: "ltr", inputMode: "numeric", style: { textAlign: "center", fontWeight: 700, letterSpacing: 0.5 } }, input: {
         endAdornment: (
           <Box
             component="span" onClick={setToday} title="امروز"
@@ -114,9 +115,7 @@ function JalaliDateField({ C, value, onChange, sx }) {
             امروز
           </Box>
         ),
-      }}
-      sx={sx}
-    />
+      } }} />
   );
 }
 
@@ -759,8 +758,8 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
                   value={form.sup_mobile}
                   onChange={(e) => onSupField("sup_mobile", toLatin(e.target.value))}
                   onKeyDown={onSupKeyDown}
-                  inputProps={{ inputMode: "tel", dir: "ltr", style: { textAlign: "center" } }}
-                  sx={inputSx} />
+
+                  sx={inputSx} slotProps={{ htmlInput: { inputMode: "tel", dir: "ltr", style: { textAlign: "center" } } }} />
               </FieldBox>
 
               <FieldBox C={C} label="آدرس">
@@ -872,8 +871,8 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
                   value={it.code}
                   error={codeNotFound}
                   onChange={(e) => handleCodeChange(idx, e.target.value)}
-                  inputProps={{ "data-cell": `code-${idx}`, style: { fontFamily: "monospace", fontWeight: 700, textAlign: "center" } }}
-                  sx={centerInputSx} />
+
+                  sx={centerInputSx} slotProps={{ htmlInput: { "data-cell": `code-${idx}`, style: { fontFamily: "monospace", fontWeight: 700, textAlign: "center" } } }} />
 
                 {/* نام کالا */}
                 <Select
@@ -897,7 +896,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
                       </span>
                     );
                   }}
-                  MenuProps={{ PaperProps: { sx: { maxHeight: 320 } } }}
+                  MenuProps={{ slotProps: { paper: { sx: { maxHeight: 320 } } } }}
                   sx={selectSx}
                 >
                   <MenuItem value="" sx={{ fontSize: F(11) }}>انتخاب کنید</MenuItem>
@@ -943,15 +942,15 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
                 <TextField size="small" type="number" placeholder="تعداد" fullWidth
                   value={it.quantity}
                   onChange={(e) => updateItem(idx, "quantity", e.target.value)}
-                  inputProps={{ "data-cell": `qty-${idx}`, min: 0 }}
-                  sx={centerInputSx} />
+
+                  sx={centerInputSx} slotProps={{ htmlInput: { "data-cell": `qty-${idx}`, min: 0 } }} />
 
                 {/* قیمت واحد */}
                 <TextField size="small" type="number" placeholder="قیمت" fullWidth
                   value={it.unit_price}
                   onChange={(e) => updateItem(idx, "unit_price", e.target.value)}
-                  inputProps={{ "data-cell": `price-${idx}`, min: 0 }}
-                  sx={centerInputSx} />
+
+                  sx={centerInputSx} slotProps={{ htmlInput: { "data-cell": `price-${idx}`, min: 0 } }} />
 
                 {/* جمع ردیف */}
                 <Typography sx={{ fontSize: F(11), fontWeight: 700, color: C.text, textAlign: "center" }}>

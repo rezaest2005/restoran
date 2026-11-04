@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { blurFocused } from "../common/focus";
 import {
   Box, IconButton, TextField, Typography,
   Dialog, DialogContent, Badge, Switch,
@@ -174,8 +175,7 @@ export default function CategoryDiscountButton({
         onClose={() => setOpen(false)}
         fullWidth
         maxWidth="xs"
-        dir={isRtl ? "rtl" : "ltr"}
-        PaperProps={{
+        dir={isRtl ? "rtl" : "ltr"} slotProps={{ transition: { onExit: blurFocused }, paper: {
           sx: {
             borderRadius: "28px",
             overflow: "hidden",
@@ -186,8 +186,7 @@ export default function CategoryDiscountButton({
             border: `1px solid ${C.glassBorder}`,
             boxShadow: `0 24px 70px rgba(0,0,0,0.35), 0 0 0 1px ${C.gold}10`,
           },
-        }}
-      >
+        } }}>
         <Box sx={{
           height: 5,
           background: `linear-gradient(90deg, ${C.gold}, ${C.burgundy})`,

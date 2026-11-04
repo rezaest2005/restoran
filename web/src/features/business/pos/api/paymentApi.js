@@ -1,15 +1,5 @@
 import client from "../../api/client";
 
-/* ── Config ─────────────────────────── */
-export const fetchPaymentConfig = () =>
-  client.get("/api/payment/config/").then(r => r.data);
-
-export const savePaymentConfig = (data) =>
-  client.post("/api/payment/config/", data).then(r => r.data);
-
-export const deletePaymentConfig = (type, id) =>
-  client.post("/api/payment/config/delete/", { type, id }).then(r => r.data);
-
 export const testConnection = (type, id) =>
   client.post("/api/payment/test-connection/", { type, id }).then(r => r.data);
 

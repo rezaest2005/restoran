@@ -34,15 +34,13 @@ export default function CartSheet({
     <Drawer
       anchor="bottom"
       open={open}
-      onClose={onClose}
-      PaperProps={{
+      onClose={onClose} slotProps={{ paper: {
         sx: {
           background: C.bg, backgroundImage: "none", color: C.text,
           borderTopLeftRadius: 20, borderTopRightRadius: 20,
           maxHeight: "92vh", maxWidth: 640, mx: "auto", width: "100%",
         },
-      }}
-    >
+      } }}>
       <Box sx={{ px: 2, py: 2, display: "flex", flexDirection: "column", gap: 2, overflowY: "auto" }}>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <Typography sx={{ fontWeight: 800, fontSize: 18 }}>{t("ui_d.qr.cart_title")}</Typography>
@@ -85,17 +83,16 @@ export default function CartSheet({
           <TextField
             label={t("ui_d.qr.table_label")} value={tableValue} required size="small" sx={fieldSx}
             onChange={(e) => onTableChange(e.target.value)}
-            inputProps={{ maxLength: 20 }}
-            error={!!tableError} helperText={tableError ? t("ui_d.qr.table_invalid") : " "}
-          />
+
+            error={!!tableError} helperText={tableError ? t("ui_d.qr.table_invalid") : " "} slotProps={{ htmlInput: { maxLength: 20 } }} />
         )}
         <TextField label={t("ui_d.qr.name_label")} value={name} size="small" sx={fieldSx}
-          onChange={(e) => onName(e.target.value)} inputProps={{ maxLength: 100 }} />
+          onChange={(e) => onName(e.target.value)} slotProps={{ htmlInput: { maxLength: 100 } }} />
         <TextField label={t("ui_d.qr.phone_label")} value={phone} size="small" sx={fieldSx}
-          onChange={(e) => onPhone(e.target.value)} inputProps={{ maxLength: 20, inputMode: "tel" }} />
+          onChange={(e) => onPhone(e.target.value)} slotProps={{ htmlInput: { maxLength: 20, inputMode: "tel" } }} />
         <TextField label={t("ui_d.qr.note_label")} value={note} size="small" sx={fieldSx} multiline minRows={2}
-          onChange={(e) => onNote(e.target.value)} inputProps={{ maxLength: 300 }}
-          helperText={`${note.length}/300`} />
+          onChange={(e) => onNote(e.target.value)}
+          helperText={`${note.length}/300`} slotProps={{ htmlInput: { maxLength: 300 } }} />
 
         {error && <Alert severity="error">{error}</Alert>}
 

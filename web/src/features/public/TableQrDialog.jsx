@@ -1,3 +1,4 @@
+import { blurFocused } from "@/features/business/pos/common/focus";
 import { useMemo, useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Typography, Box, GlobalStyles } from "@mui/material";
 import { QRCodeSVG } from "qrcode.react";
@@ -17,7 +18,7 @@ export default function TableQrDialog({ open, onClose, slug }) {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" slotProps={{ transition: { onExit: blurFocused } }}>
       <GlobalStyles styles={{
         "@media print": {
           "body *": { visibility: "hidden" },
@@ -33,8 +34,7 @@ export default function TableQrDialog({ open, onClose, slug }) {
           type="number" size="small" label={t("ui_d.table_qr.count_label")} value={raw}
           onChange={(e) => setRaw(e.target.value)}
           onBlur={() => setRaw(String(n))}
-          inputProps={{ min: 1, max: 100 }} sx={{ mb: 2, width: 200 }}
-        />
+           sx={{ mb: 2, width: 200 }} slotProps={{ htmlInput: { min: 1, max: 100 } }} />
         <Box id="table-qr-print" sx={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 2 }}>
           {tables.map((i) => (
             <Box key={i} sx={{ textAlign: "center", p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: 2, breakInside: "avoid", bgcolor: "#fff", color: "#000" }}>

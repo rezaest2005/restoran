@@ -47,7 +47,7 @@ export default function SharedSection() {
       {/* بخش دسترسی‌های سریع */}
       <Grid container spacing={2} sx={{ mb: 4 }}>
         {quickActions.map((action) => (
-          <Grid item xs={12} sm={6} md={3} key={action.id}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }} key={action.id}>
             <GlassCard C={C} delay={0.75}>
               <Box 
                 role="link" tabIndex={0}

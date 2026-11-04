@@ -16,8 +16,8 @@ function AddrRow({ label, value }) {
     } catch { /* clipboard unavailable */ }
   };
   return (
-    <Stack direction="row" spacing={1} alignItems="center">
-      <TextField size="small" fullWidth label={label} value={full} InputProps={{ readOnly: true }} inputProps={{ dir: "ltr" }} />
+    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+      <TextField size="small" fullWidth label={label} value={full} slotProps={{ input: { readOnly: true }, htmlInput: { dir: "ltr" } }} />
       <Button onClick={copy} variant="outlined" sx={{ whiteSpace: "nowrap" }}>
         {copied ? t("ui_k.addr.copied") : t("ui_k.addr.copy")}
       </Button>
@@ -58,9 +58,9 @@ export default function AddressesTab({ addresses, onReload, onToast }) {
       <AddrRow label={t("ui_k.addr.qr_order_url")} value={addresses.qr_order_url} />
       <Box>
         <TextField size="small" fullWidth label={t("ui_k.addr.custom_domain")} value={domain} disabled={!isOwner}
-          inputProps={{ dir: "ltr" }} placeholder="shop.example.com" onChange={(e) => setDomain(e.target.value)}
+           placeholder="shop.example.com" onChange={(e) => setDomain(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && isOwner) { e.preventDefault(); saveDomain(); } }}
-          helperText={isOwner ? t("ui_k.addr.custom_domain_hint") : t("ui_k.addr.owner_only")} />
+          helperText={isOwner ? t("ui_k.addr.custom_domain_hint") : t("ui_k.addr.owner_only")} slotProps={{ htmlInput: { dir: "ltr" } }} />
         {err && <Alert severity="error" sx={{ mt: 1 }}>{err}</Alert>}
         {isOwner && (
           <Button sx={{ mt: 1 }} variant="contained" onClick={saveDomain}>

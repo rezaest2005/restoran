@@ -211,7 +211,7 @@ export default function Users() {
           { label: t("users.stat_active"), value: stats.active, color: C.success, icon: <CheckCircle /> },
           { label: t("users.stat_pending"), value: stats.pending, color: C.warning, icon: <HourglassEmpty /> },
         ].map((stat, i) => (
-          <Grid item xs={12} sm={6} md={4} key={i}>
+          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={i}>
             <Box sx={{ ...glassCardSx, p: 2.5, display: "flex", alignItems: "center", gap: 2 }}>
               <Box sx={{ width: 48, height: 48, borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", background: `${stat.color}22`, border: `1px solid ${stat.color}33`, animation: "float 5s ease-in-out infinite", flexShrink: 0, color: stat.color }}>
                 {stat.icon}

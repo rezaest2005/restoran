@@ -47,9 +47,9 @@ export default function LedgerTab(ctx) {
             onChange={(a) => { setAccount(a); cursor.reset(); }} />
         </Box>
         <TextField type="date" size="small" label={t("ui_i.common.from")} value={from} sx={{ ...S.field, width: { xs: "calc(50% - 6px)", sm: 160 } }}
-          onChange={(e) => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
+          onChange={(e) => setFrom(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
         <TextField type="date" size="small" label={t("ui_i.common.to")} value={to} sx={{ ...S.field, width: { xs: "calc(50% - 6px)", sm: 160 } }}
-          onChange={(e) => setTo(e.target.value)} InputLabelProps={{ shrink: true }} />
+          onChange={(e) => setTo(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}

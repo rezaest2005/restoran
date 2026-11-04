@@ -245,9 +245,7 @@ export default function TransferModal({ open, onClose, warehouses, C, isDark, on
               type="number"
               value={form.quantity}
               onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-              sx={inputSx}
-              inputProps={{ min: 0, step: 0.001 }}
-            />
+              sx={inputSx} slotProps={{ htmlInput: { min: 0, step: 0.001 } }} />
 
             {/* توضیحات */}
             <TextField

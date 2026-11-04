@@ -240,14 +240,12 @@ export default function QrMenu() {
         <TextField
           fullWidth size="small" value={search} onChange={(e) => setSearch(e.target.value)}
           placeholder={t("ui_d.qr.search_placeholder")}
-          inputProps={{ id: "qr-search-input", "aria-label": t("ui_d.qr.search_label") }}
+
           sx={{
             mt: 2,
             "& .MuiOutlinedInput-root": { background: C.inputBg, borderRadius: 3, color: C.text, minHeight: 44 },
             "& .MuiOutlinedInput-notchedOutline": { borderColor: C.glassBorder },
-          }}
-          InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: C.muted }} /></InputAdornment> }}
-        />
+          }} slotProps={{ htmlInput: { id: "qr-search-input", "aria-label": t("ui_d.qr.search_label") }, input: { startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: C.muted }} /></InputAdornment> } }} />
 
         {categories.length > 1 && (
           <Box sx={{ display: "flex", gap: 1, mt: 1.5, pb: 0.5, overflowX: "auto" }}>

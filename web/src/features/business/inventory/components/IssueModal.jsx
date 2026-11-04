@@ -141,7 +141,7 @@ export default function IssueModal({ open, onClose, warehouse, C, isDark, onSucc
             {/* مقدار خروج */}
             <TextField size="small" label="مقدار خروج" type="number" value={form.quantity}
               onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-              sx={inputSx} inputProps={{ min: 0, step: 0.001 }} />
+              sx={inputSx} slotProps={{ htmlInput: { min: 0, step: 0.001 } }} />
 
             {/* توضیحات */}
             <TextField size="small" label="توضیحات" value={form.notes}

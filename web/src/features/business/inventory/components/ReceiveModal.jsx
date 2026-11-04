@@ -184,14 +184,12 @@ export default function ReceiveModal({ open, onClose, warehouse, C, isDark, onSu
                     <TextField size="small" type="number" placeholder="مقدار"
                       value={item.quantity}
                       onChange={(e) => updateItem(idx, "quantity", e.target.value)}
-                      sx={{ ...inputSx, flex: 1 }}
-                      inputProps={{ min: 0, step: 0.001 }} />
+                      sx={{ ...inputSx, flex: 1 }} slotProps={{ htmlInput: { min: 0, step: 0.001 } }} />
                     {/* قیمت واحد */}
                     <TextField size="small" type="number" placeholder="قیمت واحد (تومان)"
                       value={item.unit_price}
                       onChange={(e) => updateItem(idx, "unit_price", e.target.value)}
-                      sx={{ ...inputSx, flex: 1 }}
-                      inputProps={{ min: 0 }} />
+                      sx={{ ...inputSx, flex: 1 }} slotProps={{ htmlInput: { min: 0 } }} />
                   </Box>
                 </Box>
               </Box>

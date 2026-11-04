@@ -20,7 +20,7 @@ export default function ConfirmDialog({
   );
 
   return (
-    <Dialog open={open} onClose={busy ? undefined : onClose} fullScreen={fullScreen} maxWidth="xs" fullWidth PaperProps={{ sx: S.dialogPaper }}>
+    <Dialog open={open} onClose={busy ? undefined : onClose} fullScreen={fullScreen} maxWidth="xs" fullWidth slotProps={{ paper: { sx: S.dialogPaper } }}>
       <DialogTitle sx={{ fontWeight: 700 }}>{title}</DialogTitle>
       <DialogContent>
         <Typography sx={{ color: C.sub, fontSize: 14, mb: children ? 2 : 0 }}>{text}</Typography>

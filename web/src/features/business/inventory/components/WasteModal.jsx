@@ -149,7 +149,7 @@ export default function WasteModal({ open, onClose, warehouse, C, isDark, onSucc
             {/* مقدار ضایعات */}
             <TextField size="small" label="مقدار ضایعات" type="number" value={form.quantity}
               onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-              sx={inputSx} inputProps={{ min: 0, step: 0.001 }} />
+              sx={inputSx} slotProps={{ htmlInput: { min: 0, step: 0.001 } }} />
 
             {/* دلیل ضایعات */}
             <Box>

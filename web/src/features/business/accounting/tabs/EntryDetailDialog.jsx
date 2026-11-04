@@ -67,7 +67,7 @@ export default function EntryDetailDialog({ ctx, id, onClose, onChanged }) {
   ], { enabled: !confirm });
 
   return (
-    <Dialog open onClose={onClose} fullScreen={fullScreen} maxWidth="md" fullWidth PaperProps={{ sx: S.dialogPaper }}>
+    <Dialog open onClose={onClose} fullScreen={fullScreen} maxWidth="md" fullWidth slotProps={{ paper: { sx: S.dialogPaper } }}>
       <DialogTitle sx={{ fontWeight: 700, display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
         {t("ui_i.entry.detail_title")} {entry ? fi(entry.number) : ""}
         {entry && <SourceBadge entry={entry} ctx={ctx} />}

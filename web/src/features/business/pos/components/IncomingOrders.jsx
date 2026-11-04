@@ -1,3 +1,4 @@
+import { blurFocused } from "../common/focus";
 import { useState } from "react";
 import {
   Box, Typography, Button, Chip, Switch, FormControlLabel, IconButton, Tooltip,
@@ -219,7 +220,7 @@ export default function IncomingOrders({
         </>
       )}
 
-      <Dialog open={confirmId !== null} onClose={() => setConfirmId(null)} dir={isRtl ? "rtl" : "ltr"}>
+      <Dialog open={confirmId !== null} onClose={() => setConfirmId(null)} dir={isRtl ? "rtl" : "ltr"} slotProps={{ transition: { onExit: blurFocused } }}>
         <DialogTitle sx={{ fontFamily: FONT }}>{t("ui_f.incoming.reject_title")}</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ fontFamily: FONT }}>{t("ui_f.incoming.reject_text")}</DialogContentText>

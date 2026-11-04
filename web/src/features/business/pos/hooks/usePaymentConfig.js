@@ -1,8 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import {
-  fetchPaymentConfig, savePaymentConfig,
-  deletePaymentConfig, testConnection,
-} from "../api/paymentApi";
+import { testConnection } from "../api/paymentApi";
 
 export default function usePaymentConfig(enabled = false) {
   const [gateways, setGateways] = useState([]);
@@ -13,23 +10,10 @@ export default function usePaymentConfig(enabled = false) {
   const [testResult, setTestResult] = useState(null);
 
   const load = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await fetchPaymentConfig();
-      setGateways(res.gateways || []);
-      setTerminals(res.terminals || []);
-    } catch (e) {
-      const status = e?.response?.status;
-      if (status === 401 || status === 403) {
-        console.warn("Payment config: unauthorized");
-      } else {
-        console.error("Failed to load payment config:", e);
-      }
-      setGateways([]);
-      setTerminals([]);
-    } finally {
-      setLoading(false);
-    }
+    // /api/payment/config/ was removed from the backend: nothing to load, no request.
+    setGateways([]);
+    setTerminals([]);
+    setLoading(false);
   }, []);
 
   // ★ فقط وقتی enabled=true صدا بزن
@@ -38,29 +22,14 @@ export default function usePaymentConfig(enabled = false) {
   }, [enabled, load]);
 
   const save = useCallback(async (data) => {
-    setSaving(true);
-    try {
-      await savePaymentConfig(data);
-      await load();
-      return true;
-    } catch (e) {
-      console.error("Save failed:", e);
-      return false;
-    } finally {
-      setSaving(false);
-    }
-  }, [load]);
+    // No backend endpoint for payment config any more.
+    setSaving(false);
+    return false;
+  }, []);
 
   const remove = useCallback(async (type, id) => {
-    try {
-      await deletePaymentConfig(type, id);
-      await load();
-      return true;
-    } catch (e) {
-      console.error("Delete failed:", e);
-      return false;
-    }
-  }, [load]);
+    return false;
+  }, []);
 
   const test = useCallback(async (type, id) => {
     setTesting(id);

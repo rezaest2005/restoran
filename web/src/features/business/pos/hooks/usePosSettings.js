@@ -1,35 +1,23 @@
 import { useState, useEffect, useCallback } from "react";
-import { fetchPosSettings, updatePosSettings } from "../api";
 
 export default function usePosSettings() {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await fetchPosSettings();
-      if (res.success) setSettings(res.settings);
-    } catch (err) {
-      console.error("Failed to load POS settings:", err);
-    } finally {
-      setLoading(false);
-    }
+    // The backend has no POS settings endpoint (removed with the old design):
+    // use the built-in defaults silently instead of requesting a missing URL.
+    setLoading(false);
   }, []);
 
   useEffect(() => { load(); }, [load]);
 
   const update = useCallback(async (changes) => {
-    try {
-      const res = await updatePosSettings(changes);
-      if (res.success) {
-        setSettings(res.settings);
-        return res;
-      }
-    } catch (err) {
-      console.error("Failed to update POS settings:", err);
-    }
-  }, []);
+    // Kept in memory only (no backend endpoint).
+    const next = { ...(settings || {}), ...changes };
+    setSettings(next);
+    return { success: true, settings: next };
+  }, [settings]);
 
   return {
     settings,

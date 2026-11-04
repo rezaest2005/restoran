@@ -35,8 +35,8 @@ function ImageField({ label, value, onChange }) {
   return (
     <Box>
       <TextField size="small" fullWidth label={label} value={value || ""} onChange={(e) => onChange(e.target.value)}
-        inputProps={{ dir: "ltr" }} error={!!err} helperText={err} />
-      <Stack direction="row" spacing={1} sx={{ mt: 0.5 }} alignItems="center">
+         error={!!err} helperText={err} slotProps={{ htmlInput: { dir: "ltr" } }} />
+      <Stack direction="row" spacing={1} sx={{ mt: 0.5, alignItems: "center" }}>
         <input ref={ref} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={pick} />
         <Button size="small" disabled={busy} onClick={() => ref.current?.click()}>
           {busy ? t("ui_k.uploading") : t("ui_k.upload")}
@@ -60,26 +60,26 @@ function Scalar({ name, spec, value, onChange, label }) {
     case "num":
       return (
         <TextField size="small" type="number" fullWidth label={lbl} value={value ?? ""}
-          inputProps={{ min: spec.min, max: spec.max, step: spec.t === "int" ? 1 : "any", dir: "ltr" }}
-          onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))} />
+
+          onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))} slotProps={{ htmlInput: { min: spec.min, max: spec.max, step: spec.t === "int" ? 1 : "any", dir: "ltr" } }} />
       );
     case "long":
       return (
         <TextField size="small" fullWidth multiline minRows={3} label={lbl} value={value || ""}
-          inputProps={{ maxLength: spec.max }} onChange={(e) => onChange(e.target.value)}
-          helperText={`${(value || "").length}/${spec.max}`} />
+           onChange={(e) => onChange(e.target.value)}
+          helperText={`${(value || "").length}/${spec.max}`} slotProps={{ htmlInput: { maxLength: spec.max } }} />
       );
     case "url":
     case "phone":
     case "time":
       return (
-        <TextField size="small" fullWidth label={lbl} value={value || ""} inputProps={{ dir: "ltr" }}
-          placeholder={spec.t === "time" ? "09:00" : undefined} onChange={(e) => onChange(e.target.value)} />
+        <TextField size="small" fullWidth label={lbl} value={value || ""}
+          placeholder={spec.t === "time" ? "09:00" : undefined} onChange={(e) => onChange(e.target.value)} slotProps={{ htmlInput: { dir: "ltr" } }} />
       );
     default:
       return (
-        <TextField size="small" fullWidth label={lbl} value={value || ""} inputProps={{ maxLength: spec.max }}
-          required={!!spec.req} onChange={(e) => onChange(e.target.value)} />
+        <TextField size="small" fullWidth label={lbl} value={value || ""}
+          required={!!spec.req} onChange={(e) => onChange(e.target.value)} slotProps={{ htmlInput: { maxLength: spec.max } }} />
       );
   }
 }

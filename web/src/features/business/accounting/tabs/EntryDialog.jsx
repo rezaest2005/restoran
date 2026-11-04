@@ -80,7 +80,7 @@ export default function EntryDialog({ ctx, onClose, onSaved }) {
   const diffColor = info.diff === 0 ? C.success : C.danger;
 
   return (
-    <Dialog open onClose={saving ? undefined : onClose} fullScreen={fullScreen} maxWidth="lg" fullWidth PaperProps={{ sx: S.dialogPaper }}>
+    <Dialog open onClose={saving ? undefined : onClose} fullScreen={fullScreen} maxWidth="lg" fullWidth slotProps={{ paper: { sx: S.dialogPaper } }}>
       <DialogTitle sx={{ fontWeight: 700 }}>{t("ui_i.entry.new_title")}</DialogTitle>
       <DialogContent dividers sx={{ borderColor: C.divider }}>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 0.5 }}>
@@ -88,9 +88,8 @@ export default function EntryDialog({ ctx, onClose, onSaved }) {
           <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 3fr" } }}>
             <TextField
               type="date" size="small" label={t("ui_i.common.date")} value={date} sx={S.field}
-              onChange={(e) => setDate(e.target.value)} InputLabelProps={{ shrink: true }}
-              error={touched && !date} required
-            />
+              onChange={(e) => setDate(e.target.value)}
+              error={touched && !date} required slotProps={{ inputLabel: { shrink: true } }} />
             <TextField
               size="small" label={t("ui_i.common.description")} value={description} sx={S.field}
               onChange={(e) => setDescription(e.target.value)}
@@ -120,8 +119,7 @@ export default function EntryDialog({ ctx, onClose, onSaved }) {
                       </TableCell>
                       <TableCell sx={{ ...S.td, minWidth: 140 }}>
                         <TextField select size="small" fullWidth value={l.cc} sx={S.field}
-                          onChange={(ev) => setLine(l.key, { cc: ev.target.value })}
-                          SelectProps={{ displayEmpty: true }}>
+                          onChange={(ev) => setLine(l.key, { cc: ev.target.value })} slotProps={{ select: { displayEmpty: true } }}>
                           <MenuItem value="">{t("ui_i.common.none")}</MenuItem>
                           {costCenters.map((c) => <MenuItem key={c.id} value={String(c.id)}>{c.name}</MenuItem>)}
                         </TextField>
@@ -133,14 +131,14 @@ export default function EntryDialog({ ctx, onClose, onSaved }) {
                       <TableCell sx={{ ...S.td, minWidth: 130 }}>
                         <TextField size="small" value={l.debit} sx={S.field} error={touched && e.amt}
                           aria-label={t("ui_i.common.debit")}
-                          inputProps={{ inputMode: "decimal", dir: "ltr", style: { textAlign: "end" } }}
-                          onChange={(ev) => setLine(l.key, num(ev.target.value) > 0 ? { debit: ev.target.value, credit: "" } : { debit: ev.target.value })} />
+
+                          onChange={(ev) => setLine(l.key, num(ev.target.value) > 0 ? { debit: ev.target.value, credit: "" } : { debit: ev.target.value })} slotProps={{ htmlInput: { inputMode: "decimal", dir: "ltr", style: { textAlign: "end" } } }} />
                       </TableCell>
                       <TableCell sx={{ ...S.td, minWidth: 130 }}>
                         <TextField size="small" value={l.credit} sx={S.field} error={touched && e.amt}
                           aria-label={t("ui_i.common.credit")}
-                          inputProps={{ inputMode: "decimal", dir: "ltr", style: { textAlign: "end" } }}
-                          onChange={(ev) => setLine(l.key, num(ev.target.value) > 0 ? { credit: ev.target.value, debit: "" } : { credit: ev.target.value })} />
+
+                          onChange={(ev) => setLine(l.key, num(ev.target.value) > 0 ? { credit: ev.target.value, debit: "" } : { credit: ev.target.value })} slotProps={{ htmlInput: { inputMode: "decimal", dir: "ltr", style: { textAlign: "end" } } }} />
                       </TableCell>
                       <TableCell sx={S.td}>
                         <IconButton aria-label={t("ui_i.common.remove")} disabled={lines.length <= 2}

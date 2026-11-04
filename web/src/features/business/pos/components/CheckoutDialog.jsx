@@ -1,3 +1,4 @@
+import { blurFocused } from "../common/focus";
 import { useRef, useState } from "react";
 import {
   Dialog,
@@ -335,7 +336,7 @@ export default function CheckoutDialog({
       maxWidth="xs"
       fullWidth
       slotProps={{
-        paper: {
+        transition: { onExit: blurFocused }, paper: {
           sx: {
             bgcolor: "transparent",
             boxShadow: "none",
