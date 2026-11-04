@@ -37,7 +37,7 @@ def warehouse_list(request):
     warehouses = (
         Warehouse.objects.filter(business=business, is_active=True)
         .annotate(
-            stock_count=Count(
+            active_stock_count=Count(
                 "stock_items",
                 filter=Q(stock_items__quantity__gt=0),
             ),
@@ -53,7 +53,7 @@ def warehouse_list(request):
             "warehouse_type_display": w.get_warehouse_type_display(),
             "is_mother": w.is_mother,
             "description": w.description or "",
-            "stock_count": w.stock_count,
+            "stock_count": w.active_stock_count,
         }
         for w in warehouses
     ]

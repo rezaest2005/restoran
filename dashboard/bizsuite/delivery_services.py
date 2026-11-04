@@ -21,6 +21,7 @@ from .accounting_services import (
     BANK, CARRIER_PAYABLE, CASH, CASH_DIFF, DELIVERY_COST, DELIVERY_REVENUE, DRIVER_CASH,
     DRIVER_PAYABLE, SALES, post_entry, q2,
 )
+from .accounting_posting import _accounting_on
 from .models import (
     CashSettlement, Driver, LocationPing, Business, Trip, TripStop, Vehicle,
 )
@@ -335,7 +336,7 @@ def settle_driver_cash(driver, received_amount, user=None, deposit_account=CASH,
         lines.append({"account": DRIVER_CASH, "credit": expected, "memo": driver.name})
     if diff > 0:       # اضافی
         lines.append({"account": CASH_DIFF, "credit": diff, "memo": "اضافی تسویه"})
-    if len(lines) >= 2:
+    if len(lines) >= 2 and _accounting_on(business=driver.business):
         post_entry(driver.business, lines, source_type="driver_settlement", source_id=st.pk,
                    description=f"تسویه‌ی نقدی راننده {driver.name}", user=user)
     return st
@@ -354,6 +355,8 @@ def post_trip_accounting(trip, user=None):
       - کارمزد راننده → هزینه‌ی حمل / بدهی به راننده
       - هزینه‌ی حمل‌کننده‌ی بیرونی → هزینه / بدهی به حمل‌کننده
     """
+    if not _accounting_on(business=trip.business):
+        return None  # accounting module off: delivery works without posting
     trip = Trip.all_objects.select_for_update().get(pk=trip.pk)
     if trip.accounted:
         return None
