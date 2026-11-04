@@ -6,6 +6,8 @@ from django.http import JsonResponse
 from . import views
 from .views import system as system_views
 from .views.dashboard import dashboard_analytics
+from .views import storefront as sf_views
+from .views.super_admin import modules as mod_views
 
 # ─── Invoicing ──────────────────────────
 from .views.invoicing import (
@@ -168,6 +170,31 @@ urlpatterns = [
     path("api/super/users/create/", views.super_user_create_api, name="super_user_create"),
     path("api/super/users/<int:pk>/", views.super_user_detail_api, name="super_user_detail"),
     path("api/super/users/<int:pk>/permissions/", views.super_user_permissions_api, name="super_user_permissions"),
+
+    path("api/super/modules/", mod_views.super_modules_api, name="super_modules"),
+    path("api/super/plans/", mod_views.super_plans_api, name="super_plans"),
+    path("api/super/businesses/<int:business_id>/modules/", mod_views.super_business_modules_api, name="super_business_modules"),
+    path("api/super/businesses/<int:business_id>/plan/", mod_views.super_business_plan_api, name="super_business_plan"),
+    path("api/super/storefront/templates/", sf_views.super_storefront_templates, name="super_sf_templates"),
+    path("api/super/storefront/templates/<int:pk>/", sf_views.super_storefront_template_detail, name="super_sf_template_detail"),
+    path("api/super/storefront/business/<int:business_id>/template/", sf_views.super_storefront_set_template, name="super_sf_set_template"),
+
+    path("api/super/storefront/business/<int:business_id>/domain/", sf_views.super_storefront_domain, name="super_sf_domain"),
+
+    # ── Storefront (no-code website) ──
+    path("api/storefront/mine/", sf_views.storefront_mine, name="storefront_mine"),
+    path("api/storefront/mine/publish/", sf_views.storefront_publish, name="storefront_publish"),
+    path("api/storefront/mine/unpublish/", sf_views.storefront_unpublish, name="storefront_unpublish"),
+    path("api/storefront/mine/apply-template/", sf_views.storefront_apply_template, name="storefront_apply_template"),
+    path("api/storefront/mine/preview-token/", sf_views.storefront_preview_token, name="storefront_preview_token"),
+    path("api/storefront/mine/revisions/", sf_views.storefront_revisions, name="storefront_revisions"),
+    path("api/storefront/mine/revisions/<int:pk>/restore/", sf_views.storefront_restore, name="storefront_restore"),
+    path("api/storefront/mine/assets/", sf_views.storefront_assets, name="storefront_assets"),
+    path("api/storefront/templates/", sf_views.storefront_templates, name="storefront_templates"),
+    path("api/storefront/by-host/", sf_views.storefront_by_host, name="storefront_by_host"),
+    path("api/storefront/<slug:slug>/club/join/", sf_views.storefront_club_join, name="storefront_club_join"),
+    path("api/storefront/<slug:slug>/preview/", sf_views.storefront_preview, name="storefront_preview"),
+    path("api/storefront/<slug:slug>/", sf_views.storefront_public, name="storefront_public"),
 
     # ── Invoicing API ───────────────────────────────────────
     path("api/invoicing/customers/", customer_list_create, name="inv_customers"),

@@ -16,6 +16,37 @@ def _business_of(user):
     return None
 
 
+class StorefrontDomainMiddleware:
+    """
+    Maps an exact Host match of a published storefront's custom domain to that
+    storefront: ``/`` is served as the storefront payload. Any other host is
+    untouched. Must be first so an unknown (custom) host is not rejected by
+    ALLOWED_HOSTS; the Host header is then rewritten to our own host.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        from .storefront_services import normalize_host, own_hosts, primary_host
+        raw = request.META.get("HTTP_X_FORWARDED_HOST") or request.META.get("HTTP_HOST", "")
+        host = normalize_host(raw)
+        if host and host not in own_hosts():
+            from .models import Storefront
+            sf = (Storefront.all_objects.select_related("business")
+                  .filter(custom_domain=host, is_published=True,
+                          business__is_active=True).first())
+            if sf is not None:
+                request.storefront_domain = sf
+                request.META["HTTP_X_ORIGINAL_HOST"] = host
+                request.META.pop("HTTP_X_FORWARDED_HOST", None)
+                request.META["HTTP_HOST"] = primary_host()
+                if request.path_info == "/":
+                    request.path_info = request.path = "/api/storefront/by-host/"
+                    request.META["HTTP_X_STOREFRONT_HOST"] = host
+        return self.get_response(request)
+
+
 class TenantMiddleware:
     """
     کسب‌وکار فعلی را از روی کاربر لاگین‌کرده ست می‌کند (نه از روی URL).

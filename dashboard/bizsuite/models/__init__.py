@@ -50,11 +50,17 @@ from .club import LoyaltyMember, LoyaltySettings, LoyaltyTransaction
 from .feedback import Feedback
 from .accounting import Account, CostCenter, JournalEntry, JournalLine
 from .jobs import BackgroundJob
+from .modules import BusinessModule, Module, Plan
+from .storefront import (
+    Storefront, StorefrontAsset, StorefrontRevision, StorefrontTemplate,
+)
 from .delivery import (
     Carrier, CashSettlement, Driver, LocationPing, Trip, TripStop, Vehicle,
 )
 
 __all__ = [
+    "BusinessModule", "Module", "Plan",
+    "Storefront", "StorefrontAsset", "StorefrontRevision", "StorefrontTemplate",
     "BackgroundJob",
     "UNIT_CHOICES", "UNIT_MAX_LENGTH", "DecimalSafeEncoder", "check_constraint",
     "created_at_field", "description_field", "is_active_field", "name_field",

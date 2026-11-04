@@ -32,6 +32,7 @@ DASHBOARD_SECTIONS = [
     ("dictionary", "دیکشنری"),
     ("users", "مدیریت کاربران"),
     ("feedback", "ثبت نظرات"),
+    ("storefront", "وب‌سایت"),
 ]
 
 

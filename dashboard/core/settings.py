@@ -98,6 +98,7 @@ CORS_ALLOWED_ORIGINS = os.getenv(
 CORS_ALLOW_CREDENTIALS = True
 
 MIDDLEWARE = [
+    'bizsuite.middleware.StorefrontDomainMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -192,6 +193,9 @@ LOGIN_REDIRECT_URL = '/dashboard/app/'
 
 # بازنشانی رمز عمومی با موبایل فقط بعد از اتصال OTP فعال شود
 PUBLIC_PASSWORD_RESET_ENABLED = os.getenv('PUBLIC_PASSWORD_RESET_ENABLED', 'False') == 'True'
+
+# Public base URL of the platform (no trailing slash), e.g. https://app.example.com
+PLATFORM_PUBLIC_URL = os.getenv("PLATFORM_PUBLIC_URL", "").rstrip("/")
 
 TENANT_NON_SLUGS = {"accounts", "login", "logout"}
 TENANT_CACHE_TTL = 30

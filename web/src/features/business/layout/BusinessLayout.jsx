@@ -22,7 +22,7 @@ const NAV_SECTIONS = [
     items: [
       {
         icon: "💻", labelKey: "rest.nav_pos", basePath: "pos",
-        anyTabs: ["pos", "pos_report", "pos_settings", "orders"],
+        anyTabs: ["pos", "pos_report", "pos_settings", "orders"], module: "pos",
       },
     ],
   },
@@ -31,7 +31,7 @@ const NAV_SECTIONS = [
     items: [
       {
         icon: "📦", labelKey: "rest.nav_inventory", basePath: "inventory",
-        anyTabs: ["inventory_invoice", "inventory_sales", "inventory_warehouse", "inventory_receiving", "inventory_purchase_list", "inventory_reports"],
+        anyTabs: ["inventory_invoice", "inventory_sales", "inventory_warehouse", "inventory_receiving", "inventory_purchase_list", "inventory_reports"], module: "inventory",
       },
     ],
   },
@@ -40,7 +40,7 @@ const NAV_SECTIONS = [
     items: [
       {
         icon: "🏭", labelKey: "ui_e.nav_production", basePath: "production",
-        anyTabs: ["kitchen", "recipes", "dictionary_recipe"],
+        anyTabs: ["kitchen", "recipes", "dictionary_recipe"], module: "production",
       },
     ],
   },
@@ -49,7 +49,16 @@ const NAV_SECTIONS = [
     items: [
       {
         icon: "📒", labelKey: "ui_i.nav_accounting", basePath: "accounting",
-        anyTabs: ["accounting"],
+        anyTabs: ["accounting"], module: "accounting",
+      },
+    ],
+  },
+  {
+    titleKey: "ui_k.nav",
+    items: [
+      {
+        icon: "🌐", labelKey: "ui_k.nav", basePath: "storefront",
+        anyTabs: ["storefront"], module: "storefront",
       },
     ],
   },
@@ -135,6 +144,17 @@ const ROLE_TABS_FALLBACK = {
   },
 };
 
+// ═══════ ماژول‌های فعال کسب‌وکار (null = همه) ═══════
+function getUserModules() {
+  try {
+    const raw = sessionStorage.getItem("user") || localStorage.getItem("user");
+    const mods = raw ? JSON.parse(raw)?.business_modules : null;
+    return Array.isArray(mods) ? mods : null;
+  } catch {
+    return null;
+  }
+}
+
 // ═══════ بررسی دسترسی ═══════
 function hasAnyTab(userTabs, requiredTabs) {
   if (!userTabs) return true;
@@ -161,6 +181,7 @@ export default function BusinessLayout() {
   const [toast, setToast] = useState({ open: false, message: "", type: "info" });
 
   const userTabs = useMemo(() => getUserTabs(), []);
+  const userModules = useMemo(() => getUserModules(), []);
 
   const slug = useMemo(() => {
     if (urlSlug) return urlSlug;
@@ -211,10 +232,11 @@ export default function BusinessLayout() {
     return NAV_SECTIONS
       .map((section) => ({
         ...section,
-        items: section.items.filter((item) => hasAnyTab(userTabs, item.anyTabs)),
+        items: section.items.filter((item) =>
+          hasAnyTab(userTabs, item.anyTabs) && (!item.module || !userModules || userModules.includes(item.module))),
       }))
       .filter((section) => section.items.length > 0);
-  }, [userTabs]);
+  }, [userTabs, userModules]);
 
   const canSeeHome = useMemo(() => {
     if (!userTabs) return true;

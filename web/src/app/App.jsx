@@ -1,4 +1,4 @@
-﻿import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@shared/contexts/ThemeContext";
 import { LangProvider } from "@shared/contexts/LangContext";
 import Login from "@business/auth/Login";
@@ -14,13 +14,16 @@ import InventoryPage from "@business/inventory/InventoryPage";
 import ProductionPage from "@business/production/ProductionPage";
 import AccountingPage from "@business/accounting/AccountingPage";
 import QrMenu from "../features/public/QrMenu";
+import StorefrontPage from "../features/public/storefront/StorefrontPage";
+import StorefrontEditor from "@business/storefront/StorefrontEditor";
 
 function App() {
   return (
     <ThemeProvider>
       <LangProvider>
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<StorefrontPage byHost />} />
+          <Route path="/s/:slug" element={<StorefrontPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/:slug/dashboard/login" element={<Login />} />
           <Route path="/dashboard/login" element={<Login />} />
@@ -46,6 +49,7 @@ function App() {
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="production" element={<ProductionPage />} />
             <Route path="accounting" element={<AccountingPage />} />
+            <Route path="storefront" element={<StorefrontEditor />} />
           </Route>
 
           {/* بدون slug */}
@@ -64,6 +68,7 @@ function App() {
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="production" element={<ProductionPage />} />
             <Route path="accounting" element={<AccountingPage />} />
+            <Route path="storefront" element={<StorefrontEditor />} />
           </Route>
 
           <Route path="/super/login" element={<SuperLogin />} />

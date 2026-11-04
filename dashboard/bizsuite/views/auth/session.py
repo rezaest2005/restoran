@@ -22,11 +22,24 @@ logger = logging.getLogger(__name__)
 # ═══════════════════════════════════════
 
 def _get_business_tabs(user):
-    """تب‌های مجاز کسب‌وکار کاربر — از Business.dashboard_permissions"""
+    """Business tabs from Business.dashboard_permissions, filtered by live
+    modules (a tab is visible only if the module is on)."""
+    from ...modules import TAB_MODULE, enabled_modules
     rest = getattr(user, 'business', None)
-    if rest:
-        return list(rest.dashboard_permissions or [])
-    return []
+    if not rest:
+        return []
+    tabs = list(rest.dashboard_permissions or [])
+    live = enabled_modules(rest)
+    if live is not None and tabs:
+        tabs = [t for t in tabs if TAB_MODULE.get(t) is None or TAB_MODULE[t] in live]
+    return tabs
+
+
+def _get_business_modules(user):
+    """Live module codes; None means everything (unmanaged business)."""
+    from ...modules import enabled_modules
+    live = enabled_modules(getattr(user, 'business', None))
+    return None if live is None else sorted(live)
 
 
 # ═══════════════════════════════════════
@@ -76,7 +89,8 @@ class LoginView(TokenObtainPairView):
         # ★★★ tabs + business_tabs به response ★★★
         user_data = UserDetailSerializer(user).data
         user_data['tabs'] = getattr(user, 'tabs', {}) or {}
-        user_data['business_tabs'] = _get_business_tabs(user)   # ★ جدید
+        user_data['business_tabs'] = _get_business_tabs(user)
+        user_data['business_modules'] = _get_business_modules(user)
 
         return Response({
             "access": str(refresh.access_token),
@@ -117,7 +131,8 @@ class SessionCheckView(APIView):
             "role": getattr(user, "role", ""),
             "tabs": getattr(user, "tabs", {}) or {},
             "is_superuser": user.is_superuser,
-            "business_tabs": _get_business_tabs(user),          # ★ جدید
+            "business_tabs": _get_business_tabs(user),
+            "business_modules": _get_business_modules(user),
         })
 
 
@@ -180,5 +195,6 @@ class SetSessionView(APIView):
             'username': user.username,
             'role': getattr(user, 'role', ''),
             'tabs': getattr(user, 'tabs', {}) or {},
-            'business_tabs': _get_business_tabs(user),    # ★ جدید
+            'business_tabs': _get_business_tabs(user),
+            'business_modules': _get_business_modules(user),
         })

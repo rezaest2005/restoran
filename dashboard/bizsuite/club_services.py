@@ -70,6 +70,9 @@ def earn_for_order(order):
     فقط اگر باشگاه فعال باشد و سفارش شماره موبایل داشته باشد.
     خروجی: تعداد امتیاز داده‌شده (۰ اگر چیزی داده نشد).
     """
+    from .modules import module_enabled
+    if not module_enabled(order.business, "club"):
+        return 0
     cfg = LoyaltySettings.all_objects.filter(business_id=order.business_id).first()
     if not cfg or not cfg.is_active or not order.phone:
         return 0

@@ -73,6 +73,12 @@ def _user_has_any_service(user, service_codes):
     user_perms = user.get_permissions() if hasattr(user, 'get_permissions') else []
     # ★ اول کدهای گروهی رو باز کن
     expanded = _expand_codes(service_codes)
+    # ماژول‌های غیرفعال کسب‌وکار: تب فقط وقتی دیده می‌شود که ماژولش فعال باشد
+    from ..modules import enabled_modules, SERVICE_MODULE
+    live = enabled_modules(getattr(user, 'business', None))
+    if live is not None:
+        expanded = [c for c in expanded
+                    if SERVICE_MODULE.get(c) is None or SERVICE_MODULE[c] in live]
     return any(code in user_perms for code in expanded)
 
 

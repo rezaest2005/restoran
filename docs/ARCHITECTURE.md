@@ -45,3 +45,25 @@ The Django application package and app label are `bizsuite` (`dashboard/bizsuite
 Rename note (one-time): the package, app label and tenant model were previously named after a single
 industry. They were renamed to neutral names and, because all data at that time was test data, the
 migration history was replaced by a single fresh `0001_initial`. The old history remains in git history only.
+
+## Storefront (no-code public page)
+
+`StorefrontTemplate` (global presets), `Storefront` (one per business: draft `theme`/`sections`, published
+snapshot in `published_data`), `StorefrontRevision`, `StorefrontAsset`. All content is validated JSON
+(`bizsuite/storefront_services.py`); nothing from a business is executed or rendered as HTML.
+
+- Public page: `{PLATFORM_PUBLIC_URL}/s/<slug>`; API `GET /api/storefront/<slug>/` returns published data only.
+- Custom domain: `Storefront.custom_domain` (unique hostname). `StorefrontDomainMiddleware` (first in the chain)
+  maps an exact Host match of a *published* storefront to it and serves the storefront payload at `/`
+  (`/api/storefront/by-host/`). Other hosts are untouched; platform hosts cannot be claimed.
+- The preset converted from the former sample page lives in `storefront-template/` (reference only) and as the
+  `restaurant_classic` template data (display name "Classic").
+- Club sign-up from the page: `POST /api/storefront/<slug>/club/join/` (needs published page + club module).
+
+## Modules and subscriptions
+
+`Module` catalogue (pos, club, inventory, production, accounting, delivery, feedback, storefront) with hard
+`requires` edges, `BusinessModule` per business (enabled, starts_at, expires_at, price_override) and optional
+`Plan`. A business with no `BusinessModule` rows is unmanaged: every module is on (legacy behaviour).
+`bizsuite.modules.module_enabled(business, code)` is used by the service permission check
+(`views/decorators.py`), by accounting auto-posting and by the club points hook.

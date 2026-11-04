@@ -22,9 +22,17 @@ def _money_account(method: str) -> str:
     return CASH if method in ("cash", "", None) else BANK
 
 
+def _accounting_on(obj=None, business=None):
+    """ثبت خودکار فقط وقتی ماژول حسابداری کسب‌وکار فعال است؛ وگرنه بدون خطا نادیده گرفته می‌شود."""
+    from .modules import module_enabled
+    return module_enabled(business or getattr(obj, "business", None), "accounting")
+
+
 def safe_post(fn, obj, *args, **kwargs):
     """اجرای امن یک ثبت خودکار؛ هرگز استثنا بالا نمی‌دهد. در صورت خطا، کار به صف تلاش مجدد می‌رود."""
     user = args[0] if args else kwargs.get("user")
+    if not _accounting_on(obj):
+        return None
     try:
         return fn(obj, *args, **kwargs)
     except Exception:
@@ -155,6 +163,8 @@ def repost(obj, source_type, post_fn, user=None):
     ویرایش منبع: سند قبلی را برگشت می‌زند، کلید منبعش را به نسخه‌ی قدیمی منتقل می‌کند
     و سند جدید را ثبت می‌کند. اگر منبع سند نداشته باشد فقط سند جدید ثبت می‌شود.
     """
+    if not _accounting_on(obj):
+        return None
     try:
         old = JournalEntry.all_objects.filter(
             business=obj.business, source_type=source_type, source_id=obj.pk
@@ -174,6 +184,8 @@ def repost(obj, source_type, post_fn, user=None):
 
 def unpost(business, source_type, source_id, user=None, reason=""):
     """ابطال سند یک منبع (هنگام حذف/لغو منبع)."""
+    if not _accounting_on(business=business):
+        return None
     try:
         return reverse_by_source(business, source_type, source_id, user=user, reason=reason)
     except Exception:
