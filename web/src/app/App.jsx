@@ -16,6 +16,7 @@ import DispatchPage from "@business/delivery/DispatchPage";
 import DriverPage from "@business/delivery/DriverPage";
 import TrackingPage from "@business/delivery/TrackingPage";
 import QrMenu from "../features/public/QrMenu";
+import FeedbackPublicPage from "../features/public/feedback/FeedbackPublicPage";
 import StorefrontPage from "../features/public/storefront/StorefrontPage";
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
         <Routes>
           <Route path="/" element={<StorefrontPage byHost />} />
           <Route path="/s/:slug" element={<StorefrontPage />} />
+          <Route path="/f/:slug" element={<FeedbackPublicPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/:slug/dashboard/login" element={<Login />} />
           <Route path="/dashboard/login" element={<Login />} />

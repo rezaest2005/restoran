@@ -3,12 +3,11 @@ Feedback — ثبت نظرات / گزارش مشکل مشتریان
 
 - submit: عمومی (بدون لاگین) با honeypot و rate-limit
 - list / update: برای کارکنان (تب "feedback")
-- feedback_page: صفحه مدیریت  |  feedback_form: فرم عمومی مشتری
 """
 import logging
 
 from django.core.cache import cache
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import permissions
 from rest_framework.decorators import (
@@ -17,7 +16,6 @@ from rest_framework.decorators import (
 
 from ..models import Feedback, Business
 from ..utils import api_error, api_success
-from .decorators import require_service
 from .common import (
     FeedbackPerm,
     StaffAuth,
@@ -150,23 +148,3 @@ def feedback_update(request, pk):
 
     fb.save()
     return api_success(data=_serialize(fb), message="ذخیره شد.")
-
-
-# ═══════════════════════════════════════════
-#  صفحات HTML
-# ═══════════════════════════════════════════
-
-@require_service("feedback")
-def feedback_page(request):
-    return render(request, "bizsuite/feedback.html")
-
-
-def feedback_form(request, slug):
-    """فرم عمومی مشتری — بدون لاگین"""
-    business = Business.objects.filter(slug=slug, is_active=True).first()
-    if business is None:
-        return render(request, "bizsuite/feedback_form.html", {"business": None}, status=404)
-    return render(request, "bizsuite/feedback_form.html", {
-        "business": business,
-        "categories": Feedback.CATEGORY_CHOICES,
-    })

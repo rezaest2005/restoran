@@ -255,7 +255,6 @@ urlpatterns = [
     path("api/feedback/submit/", views.feedback_submit, name="feedback_submit"),
     path("api/feedback/list/", views.feedback_list, name="feedback_list"),
     path("api/feedback/<int:pk>/update/", views.feedback_update, name="feedback_update"),
-    path("feedback/<slug:slug>/", views.feedback_form, name="feedback_form"),
 
     # ── HTML Pages ──────────────────────────────────────────
     path("dashboard/", views.auth_page, name="auth_page"),
@@ -265,5 +264,4 @@ urlpatterns = [
     path("dashboard/super/auth/", views.super_admin_auth_page, name="super_admin_auth"),
     path("dashboard/super/", views.super_admin_page, name="super_admin"),
     path("dashboard/orders/", views.orders_dashboard, name="orders_dashboard"),
-    path("dashboard/feedback/", views.feedback_page, name="feedback_page"),
 ]

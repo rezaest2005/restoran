@@ -177,13 +177,16 @@ function Contact({ d, tr }) {
   );
 }
 
-function Footer({ d, data, tr }) {
+function Footer({ d, data, tr, preview }) {
   return (
     <footer className="sf-foot"><div className="sf-wrap">
       <p>
         {(d.links || []).map((l, i) => <Link key={i} href={l.url} className="">{l.label}</Link>)}
       </p>
       {d.copyright && <p className="sf-muted">{d.copyright}</p>}
+      {data.slug && !preview && (
+        <p><a href={`/f/${encodeURIComponent(data.slug)}`} className="">{tr("ui_fb.pub.link")}</a></p>
+      )}
       {data.dashboard_url && (
         <Link href={data.dashboard_url} className="sf-btn alt">{tr("ui_k.public.dashboard")}</Link>
       )}
@@ -318,7 +321,7 @@ export default function StorefrontRenderer({ data, preview = false }) {
       })}
       {data.club_join && !preview && <ClubJoin data={data} tr={tr} />}
       {(footer || data.dashboard_url) && (
-        <Footer d={footer?.data || {}} data={data} tr={tr} />
+        <Footer d={footer?.data || {}} data={data} tr={tr} preview={preview} />
       )}
     </div>
   );

@@ -129,8 +129,6 @@ from .feedback import (
     feedback_submit,
     feedback_list,
     feedback_update,
-    feedback_page,
-    feedback_form,
 )
 
 
@@ -219,8 +217,6 @@ __all__ = [
     "feedback_submit",
     "feedback_list",
     "feedback_update",
-    "feedback_page",
-    "feedback_form",
     # Accounting
     "accounts",
     "account_detail",

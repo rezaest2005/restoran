@@ -15,7 +15,6 @@ HTML_ROUTES = [
     "/dashboard/super/auth/",
     "/dashboard/super/",
     "/dashboard/orders/",
-    "/dashboard/feedback/",
 ]
 
 
@@ -37,14 +36,14 @@ class PageRenderTests(TestCase):
 
     def test_anonymous_never_500(self):
         c = Client()
-        for path in HTML_ROUTES + ["/feedback/page-one/", "/feedback/unknown-slug/"]:
+        for path in HTML_ROUTES:
             with self.subTest(path=path):
                 self._assert_no_server_error(c, path)
 
     def test_owner_never_500(self):
         c = Client()
         c.force_login(self.owner)
-        for path in HTML_ROUTES + ["/feedback/page-one/"]:
+        for path in HTML_ROUTES:
             with self.subTest(path=path):
                 self._assert_no_server_error(c, path)
 
@@ -54,11 +53,6 @@ class PageRenderTests(TestCase):
         for path in HTML_ROUTES:
             with self.subTest(path=path):
                 self._assert_no_server_error(c, path)
-
-    def test_feedback_form_renders_for_active_business(self):
-        res = Client().get("/feedback/page-one/")
-        self.assertEqual(res.status_code, 200)
-        self.assertContains(res, "csrf", status_code=200) if False else None  # فرم از fetch+JSON استفاده می‌کند
 
     def test_django_admin_login_renders(self):
         self.assertLess(Client().get("/admin/login/").status_code, 500)
