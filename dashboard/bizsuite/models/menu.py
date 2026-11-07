@@ -69,6 +69,16 @@ class Food(TenantModel):
     final_price = price_field(max_digits=10, verbose_name="قیمت نهایی", default=0)
     is_available = is_active_field(verbose_name="موجود")
     stock = models.IntegerField(default=0, verbose_name="موجودی")
+    description = models.TextField(blank=True, default="", verbose_name="توضیحات")
+    order = models.IntegerField(default=0, verbose_name="ترتیب")
+    barcode = models.CharField(
+        max_length=64, null=True, blank=True, db_index=True, verbose_name="بارکد"
+    )
+    # موجودی این محصول = موجودی این کالا در انبار فروش (در صورت اتصال)
+    item = models.ForeignKey(
+        "RawMaterial", null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="products", verbose_name="کالای انبار",
+    )
     created_at = created_at_field()
 
     class Meta:
@@ -78,6 +88,11 @@ class Food(TenantModel):
         constraints = [
             check_constraint(Q(price__gte=0), "rms_food_price_gte_0"),
             check_constraint(Q(final_price__gte=0), "rms_food_final_price_gte_0"),
+            models.UniqueConstraint(
+                fields=["business", "barcode"],
+                condition=Q(barcode__isnull=False) & ~Q(barcode=""),
+                name="rms_food_barcode_uniq",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -94,3 +109,16 @@ def set_food_final_price(sender, instance, raw=False, **kwargs):
         return
     if not instance.final_price:
         instance.final_price = instance.price
+
+
+class BarcodeSequence(TenantModel):
+    """شمارندهٔ یکنواخت بارکد داخلی هر کسب‌وکار (هرگز کاهش نمی‌یابد)."""
+
+    business = models.OneToOneField(
+        "Business", on_delete=models.CASCADE, related_name="+", verbose_name="کسب‌وکار"
+    )
+    next_value = models.PositiveBigIntegerField(default=1)
+
+    class Meta:
+        verbose_name = "شمارندهٔ بارکد"
+        verbose_name_plural = "شمارندهٔ بارکد"

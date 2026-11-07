@@ -5,13 +5,14 @@ import logging
 from decimal import InvalidOperation
 
 from django.db import transaction
-from django.db.models import F
 from django.http import JsonResponse
 from django.utils import timezone
 
 from rest_framework.decorators import api_view, permission_classes
 
 from ...models import Order, OrderItem, Food
+from ...catalog_services import product_available_stock
+from ...order_services import StockError, reserve_product_stock
 from ...club_services import earn_for_order
 from ...accounting_posting import post_pos_order, safe_post
 from ..common import (
@@ -82,8 +83,9 @@ def pos_create_order(request):
                 db_price = int(item.get("price", 0))
 
             # بررسی موجودی
-            if food.stock is not None and qty > food.stock:
-                stock_errors.append(f"{food.name}: سفارش {qty} ولی موجودی {food.stock}")
+            available = product_available_stock(food)
+            if qty > available:
+                stock_errors.append(f"{food.name}: سفارش {qty} ولی موجودی {available.normalize():f}")
                 continue
 
             validated_items.append({
@@ -126,11 +128,6 @@ def pos_create_order(request):
                 total += line_total
                 food = vi["obj"]
 
-                # کاهش اتمیک موجودی
-                Food.objects.filter(
-                    id=food.id, stock__gte=qty,
-                ).update(stock=F("stock") - qty)
-
                 OrderItem.objects.create(
                     business=business,
                     order=order,
@@ -148,6 +145,12 @@ def pos_create_order(request):
                     "line_total": line_total,
                 })
 
+            # کسر موجودی (قفل ردیف‌ها؛ در صورت کمبود کل سفارش برمی‌گردد)
+            reserve_product_stock(
+                [(vi["obj"], vi["qty"]) for vi in validated_items],
+                order=order,
+                user=request.user if request.user.is_authenticated else None,
+            )
             order.recalculate_total()
 
         if order.payment_status == "paid":
@@ -168,6 +171,8 @@ def pos_create_order(request):
             "msg": f"سفارش #{order.id} ثبت شد",
         })
 
+    except StockError as exc:
+        return JsonResponse({"success": False, "error": f"موجودی کافی نیست: {exc}"})
     except Exception as exc:
         logger.exception("Error creating POS order")
         return server_error(exc, status=200)

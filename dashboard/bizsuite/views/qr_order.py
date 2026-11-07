@@ -14,12 +14,13 @@ from decimal import InvalidOperation
 
 from django.core.cache import cache
 from django.db import transaction
-from django.db.models import F
 from rest_framework import status as http
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import AllowAny
 
+from ..catalog_services import product_available_stock
 from ..models import Food, Order, OrderItem, Business
+from ..order_services import reserve_product_stock
 from ..modules import module_enabled
 from ..utils import api_error, api_success
 from .common import client_ip
@@ -115,7 +116,7 @@ def qr_order_submit(request):
         price = _unit_price(food)
         if price <= 0:
             return api_error(f"قیمت «{food.name}» تعریف نشده است.")
-        if food.stock is not None and qty > food.stock:
+        if qty > product_available_stock(food):
             return api_error(f"موجودی «{food.name}» کافی نیست.")
         lines.append((food, qty, price))
 
@@ -134,12 +135,6 @@ def qr_order_submit(request):
                 total_price=0,
             )
             for food, qty, price in lines:
-                if food.stock is not None:
-                    updated = Food.all_objects.filter(
-                        id=food.id, stock__gte=qty
-                    ).update(stock=F("stock") - qty)
-                    if not updated:
-                        raise ValueError(f"موجودی «{food.name}» کافی نیست.")
                 OrderItem.objects.create(
                     business=business,
                     order=order,
@@ -149,6 +144,7 @@ def qr_order_submit(request):
                     quantity=qty,
                     price=price,
                 )
+            reserve_product_stock([(f, q) for f, q, _p in lines], order=order)
             order.recalculate_total()
     except ValueError as exc:
         return api_error(str(exc))

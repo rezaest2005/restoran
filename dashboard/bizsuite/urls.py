@@ -8,6 +8,7 @@ from .views import system as system_views
 from .views.dashboard import dashboard_analytics
 from .views import storefront as sf_views
 from .views import delivery as dl_views
+from .views import catalog as cat_views
 from .views.super_admin import modules as mod_views
 
 # ─── Invoicing ──────────────────────────
@@ -129,6 +130,18 @@ urlpatterns = [
     path("api/production/materials/", views.production_materials, name="production_materials"),
     path("api/formulas/", views.formulas, name="formulas"),
     path("api/formulas/<int:pk>/", views.formula_detail, name="formula_detail"),
+    # ── Catalog (Definitions) ──
+    path("api/catalog/categories/", cat_views.categories, name="catalog_categories"),
+    path("api/catalog/categories/<int:pk>/", cat_views.category_detail, name="catalog_category_detail"),
+    path("api/catalog/products/", cat_views.products, name="catalog_products"),
+    path("api/catalog/products/<int:pk>/", cat_views.product_detail, name="catalog_product_detail"),
+    path("api/catalog/products/<int:pk>/link-item/", cat_views.product_link_item, name="catalog_product_link"),
+    path("api/catalog/items/", cat_views.items, name="catalog_items"),
+    path("api/catalog/items/<int:pk>/", cat_views.item_detail, name="catalog_item_detail"),
+    path("api/catalog/barcodes/generate/", cat_views.barcodes_generate, name="catalog_barcodes_generate"),
+    path("api/catalog/barcodes/labels/", cat_views.barcodes_labels, name="catalog_barcodes_labels"),
+    path("api/catalog/warehouses/<int:pk>/sales-default/", cat_views.warehouse_sales_default, name="catalog_wh_sales_default"),
+    path("api/pos/barcode/<str:code>/", cat_views.pos_barcode_lookup, name="pos_barcode_lookup"),
     path("api/production/orders/", views.production_orders, name="production_orders"),
     path("api/production/orders/<int:pk>/", views.production_order_detail, name="production_order_detail"),
     path("api/production/orders/<int:pk>/start/", views.production_order_start, name="production_order_start"),

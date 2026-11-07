@@ -28,6 +28,11 @@ class RawMaterial(TenantModel):
 
     name = name_field(verbose_name="نام ماده اولیه")
     label = models.CharField(max_length=200, blank=True, verbose_name="برچسب")
+    name_en = models.CharField(max_length=200, blank=True, default="", verbose_name="نام انگلیسی")
+    description = models.TextField(blank=True, default="", verbose_name="توضیحات")
+    barcode = models.CharField(
+        max_length=64, null=True, blank=True, db_index=True, verbose_name="بارکد"
+    )
     price = price_field(default=0)
     unit = unit_field()
     # ★ FIXED: قبلاً decimal_places=0 بود و ۰٫۵ کیلو گرد می‌شد
@@ -61,6 +66,11 @@ class RawMaterial(TenantModel):
         constraints = [
             check_constraint(Q(quantity__gte=0), "rms_rawmaterial_qty_gte_0"),
             check_constraint(Q(price__gte=0), "rms_rawmaterial_price_gte_0"),
+            models.UniqueConstraint(
+                fields=["business", "barcode"],
+                condition=Q(barcode__isnull=False) & ~Q(barcode=""),
+                name="rms_rawmaterial_barcode_uniq",
+            ),
         ]
 
     def __str__(self) -> str:
@@ -166,6 +176,10 @@ class Warehouse(TenantModel):
         verbose_name="انبار مرکزی",
         help_text="هر کسب‌وکار فقط یک انبار مرکزی می‌تواند داشته باشد",
     )
+    is_sales_default = models.BooleanField(
+        default=False, verbose_name="انبار پیش‌فرض فروش",
+        help_text="موجودی محصولات متصل به کالا از این انبار کم می‌شود",
+    )
     description = description_field()
     is_active = is_active_field()
     created_at = created_at_field()
@@ -192,6 +206,14 @@ class Warehouse(TenantModel):
                 raise ValidationError({
                     "is_mother": "هر کسب‌وکار فقط یک انبار مرکزی می‌تواند داشته باشد."
                 })
+
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            if self.is_sales_default:
+                Warehouse.all_objects.filter(
+                    business_id=self.business_id, is_sales_default=True
+                ).exclude(pk=self.pk).update(is_sales_default=False)
 
     @property
     def stock_count(self):

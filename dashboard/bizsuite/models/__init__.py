@@ -28,7 +28,7 @@ from .user import (
     _ALL_SECTIONS,
     validate_dashboard_permissions,
 )
-from .menu import Category, Food, set_food_final_price
+from .menu import BarcodeSequence, Category, Food, set_food_final_price
 from .orders import (
     Order,
     OrderItem,
@@ -67,7 +67,7 @@ __all__ = [
     "phone_field", "price_field", "qty_field", "unit_field", "updated_at_field",
     "Business", "Tenant", "DASHBOARD_SECTIONS", "User",
     "validate_dashboard_permissions",
-    "Category", "Food", "set_food_final_price",
+    "BarcodeSequence", "Category", "Food", "set_food_final_price",
     "Order", "OrderItem", "set_order_item_price",
     "InventoryMovement", "RawMaterial", "StockItem", "Warehouse",
     "PurchaseInvoice", "PurchaseInvoiceItem", "PurchaseReturn", "Supplier",
