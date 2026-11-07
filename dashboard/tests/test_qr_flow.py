@@ -89,16 +89,24 @@ class QrFlowTests(TestCase):
         self.assertEqual(self.place().status_code, 201)
         self.assertEqual(self.anon.get("/api/menu/public/?business_slug=qrf-one").status_code, 200)
 
+
+    def _super(self):
+        from bizsuite.views.super_admin.auth import _make_super_token
+        admin = User.objects.create_superuser(username="qrsuper", password="Pass12345!")
+        c = APIClient()
+        c.credentials(HTTP_AUTHORIZATION="Token " + _make_super_token(admin))
+        return c
+
     def test_storefront_preset_links_to_qr_page_and_menu(self):
-        owner = APIClient()
-        owner.force_authenticate(self.owner)
-        owner.post("/api/storefront/mine/publish/")
-        slug = owner.get("/api/storefront/mine/").json()["data"]["slug"]
+        owner = self._super()
+        base = f"/api/super/storefront/{self.biz.id}/"
+        owner.post(base + "publish/")
+        slug = owner.get(base).json()["data"]["slug"]
         pub = self.anon.get(f"/api/storefront/{slug}/").json()
         self.assertEqual(pub["menu_slug"], "qrf-one")  # SPA links to /m/qrf-one
         menu = [s for s in pub["sections"] if s["type"] == "menu"][0]
         self.assertTrue(menu["data"]["order_enabled"])
-        addr = owner.get("/api/storefront/mine/").json()["data"]["addresses"]
+        addr = owner.get(base).json()["data"]["addresses"]
         self.assertEqual(addr["qr_order_url"], "https://app.example.com/m/qrf-one")
         # the public menu the page calls works for the same slug
         res = self.anon.get("/api/menu/public/?business_slug=qrf-one").json()
@@ -107,10 +115,10 @@ class QrFlowTests(TestCase):
         self.assertNotIn("cost", res["results"][0])
 
     def test_storefront_without_pos_hides_menu_section(self):
-        owner = APIClient()
-        owner.force_authenticate(self.owner)
-        owner.post("/api/storefront/mine/publish/")
-        slug = owner.get("/api/storefront/mine/").json()["data"]["slug"]
+        owner = self._super()
+        base = f"/api/super/storefront/{self.biz.id}/"
+        owner.post(base + "publish/")
+        slug = owner.get(base).json()["data"]["slug"]
         apply_modules(self.biz, {c: {"is_enabled": c == "storefront"} for c in ALL})
         pub = self.anon.get(f"/api/storefront/{slug}/").json()
         self.assertNotIn("menu", [s["type"] for s in pub["sections"]])

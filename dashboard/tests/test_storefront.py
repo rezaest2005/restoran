@@ -52,15 +52,23 @@ class StorefrontBase(TestCase):
     def setUp(self):
         cache.clear()
         clear_current_business()
+        from bizsuite.views.super_admin.auth import _make_super_token
         self.api = APIClient()
-        self.api.force_authenticate(self.o1)
+        self.api.credentials(HTTP_AUTHORIZATION="Token " + _make_super_token(self.admin))
+        self.base = f"/api/super/storefront/{self.b1.id}/"
+        self.base2 = f"/api/super/storefront/{self.b2.id}/"
         self.anon = APIClient()
 
+    def owner_client(self, user):
+        c = APIClient()
+        c.force_authenticate(user)
+        return c
+
     def mine(self):
-        return self.api.get("/api/storefront/mine/").json()["data"]
+        return self.api.get(f"{self.base}").json()["data"]
 
     def put(self, **body):
-        return self.api.put("/api/storefront/mine/", body, format="json")
+        return self.api.put(f"{self.base}", body, format="json")
 
 
 class ValidationTests(StorefrontBase):
@@ -177,28 +185,87 @@ class ValidationTests(StorefrontBase):
 class TenantAndPermissionTests(StorefrontBase):
     def test_isolation(self):
         self.put(sections=[{"id": "a", "type": "text", "data": {"title": "ZZMARK"}}])
-        other = APIClient()
-        other.force_authenticate(self.o2)
-        d = other.get("/api/storefront/mine/").json()["data"]
+        d = self.api.get(self.base2).json()["data"]
         self.assertNotEqual(d["slug"], self.mine()["slug"])
         self.assertNotIn("ZZMARK", str(d["sections"]))
         self.assertEqual(Storefront.all_objects.count(), 2)
 
     def test_cannot_restore_other_business_revision(self):
-        self.api.post("/api/storefront/mine/publish/")
-        rev_id = self.api.get("/api/storefront/mine/revisions/").json()["data"][0]["id"]
-        other = APIClient()
-        other.force_authenticate(self.o2)
-        self.assertEqual(other.post(f"/api/storefront/mine/revisions/{rev_id}/restore/").status_code, 404)
+        self.api.post(f"{self.base}publish/")
+        rev_id = self.api.get(f"{self.base}revisions/").json()["data"][0]["id"]
+        # the revision belongs to business 1: restoring it through business 2 is a 404
+        self.assertEqual(self.api.post(f"{self.base2}revisions/{rev_id}/restore/").status_code, 404)
 
-    def test_tab_required(self):
-        c = APIClient()
-        c.force_authenticate(self.cashier)
-        self.assertEqual(c.get("/api/storefront/mine/").status_code, 403)
-        self.assertEqual(self.anon.get("/api/storefront/mine/").status_code in (401, 403), True)
+    def test_non_super_forbidden_on_every_endpoint(self):
+        calls = [
+            ("get", ""), ("put", ""), ("post", "publish/"), ("post", "unpublish/"),
+            ("post", "apply-template/"), ("post", "preview-token/"), ("get", "revisions/"),
+            ("post", "revisions/1/restore/"), ("get", "assets/"), ("post", "assets/"),
+            ("put", "domain/"),
+        ]
+        for user in (self.o1, self.mgr, self.cashier, None):
+            c = APIClient()
+            if user:
+                c.force_authenticate(user)
+            for method, suffix in calls:
+                r = getattr(c, method)(self.base + suffix, {}, format="json")
+                self.assertIn(r.status_code, (401, 403), (user, method, suffix))
+        self.assertEqual(Storefront.all_objects.count(), 0)
+
+    def test_owner_write_endpoints_removed(self):
+        c = self.owner_client(self.o1)
+        for method, suffix in (("put", ""), ("post", "publish/"), ("post", "unpublish/"),
+                               ("post", "apply-template/"), ("post", "assets/"),
+                               ("get", "revisions/")):
+            r = getattr(c, method)("/api/storefront/mine/" + suffix, {}, format="json")
+            self.assertIn(r.status_code, (404, 405), (method, suffix))
+
+    def test_unknown_business_404(self):
+        for method, suffix in (("get", ""), ("put", ""), ("post", "publish/"), ("get", "revisions/"),
+                               ("post", "preview-token/"), ("get", "assets/")):
+            r = getattr(self.api, method)("/api/super/storefront/999999/" + suffix, {}, format="json")
+            self.assertIn(r.status_code, (404, 405), (method, suffix))
+
+    def test_edit_a_never_touches_b(self):
+        self.api.get(self.base2)
+        before = Storefront.all_objects.get(business=self.b2)
+        sections_b, theme_b, pub_b = before.sections, before.theme, before.is_published
+        self.put(sections=[{"id": "a", "type": "text", "data": {"title": "ONLYA"}}])
+        self.api.post(self.base + "publish/")
+        self.api.post(self.base + "apply-template/", {"template": "minimal"}, format="json")
+        self.api.post(self.base + "assets/", {"file": SimpleUploadedFile("a.png", png_bytes())}, format="multipart")
+        self.api.put(self.base + "domain/", {"custom_domain": "a-only.example.ir"}, format="json")
+        after = Storefront.all_objects.get(business=self.b2)
+        self.assertEqual((after.sections, after.theme, after.is_published), (sections_b, theme_b, pub_b))
+        self.assertIsNone(after.custom_domain)
+        self.assertEqual(StorefrontAsset.all_objects.filter(business=self.b2).count(), 0)
+        self.assertEqual(StorefrontAsset.all_objects.filter(business=self.b1).count(), 1)
+        self.assertEqual(self.api.get(self.base2 + "revisions/").json()["data"], [])
+
+    def test_mine_summary_read_only(self):
+        c = self.owner_client(self.o1)
+        apply_modules(self.b1, {"storefront": {"is_enabled": False}})
+        self.assertEqual(c.get("/api/storefront/mine/summary/").status_code, 403)
+        apply_modules(self.b1, {"storefront": {"is_enabled": True}, "pos": {"is_enabled": True}})
+        apply_modules(self.b2, {"storefront": {"is_enabled": True}})
+        d = c.get("/api/storefront/mine/summary/").json()["data"]
+        self.assertFalse(d["is_published"])
+        self.assertEqual(d["public_url"], "")
+        self.assertEqual(c.post("/api/storefront/mine/summary/", {}).status_code, 405)
+        self.api.post(self.base + "publish/")
+        self.api.put(self.base + "domain/", {"custom_domain": "shop.example.ir"}, format="json")
+        d = c.get("/api/storefront/mine/summary/").json()["data"]
+        self.assertTrue(d["is_published"])
+        self.assertEqual(d["public_url"], "https://shop.example.ir/")
+        self.assertEqual(d["qr_menu_url"], "https://app.example.com/m/shop-one")
+        self.assertEqual(d["custom_domain"], "shop.example.ir")
+        # business 2 sees nothing of business 1
+        d2 = self.owner_client(self.o2).get("/api/storefront/mine/summary/").json()["data"]
+        self.assertFalse(d2["is_published"])
+        self.assertEqual(d2["public_url"], "")
 
     def test_super_admin_only_template_write(self):
-        r = self.api.post("/api/super/storefront/templates/", {}, format="json")
+        r = self.owner_client(self.o1).post("/api/super/storefront/templates/", {}, format="json")
         self.assertIn(r.status_code, (401, 403))
 
     def test_super_admin_template_crud(self):
@@ -229,7 +296,7 @@ class PublicTests(StorefrontBase):
         slug = self.mine()["slug"]
         self.assertEqual(self.anon.get(f"/api/storefront/{slug}/").status_code, 404)
         self.put(sections=[{"id": "a", "type": "text", "data": {"title": "DRAFTONLY"}}])
-        self.api.post("/api/storefront/mine/publish/")
+        self.api.post(f"{self.base}publish/")
         self.put(sections=[{"id": "a", "type": "text", "data": {"title": "NEWDRAFT"}}])
         r = self.anon.get(f"/api/storefront/{slug}/")
         self.assertEqual(r.status_code, 200)
@@ -238,7 +305,7 @@ class PublicTests(StorefrontBase):
         self.assertIn("max-age", r["Cache-Control"])
 
     def test_public_has_no_internal_fields(self):
-        self.api.post("/api/storefront/mine/publish/")
+        self.api.post(f"{self.base}publish/")
         slug = self.mine()["slug"]
         data = self.anon.get(f"/api/storefront/{slug}/").json()
 
@@ -262,12 +329,12 @@ class PublicTests(StorefrontBase):
         secs[1]["visible"] = False
         hidden_id = secs[1]["id"]
         self.put(sections=secs)
-        self.api.post("/api/storefront/mine/publish/")
+        self.api.post(f"{self.base}publish/")
         data = self.anon.get(f"/api/storefront/{d['slug']}/").json()
         self.assertNotIn(hidden_id, [s["id"] for s in data["sections"]])
 
     def test_preset_rendering_data(self):
-        self.api.post("/api/storefront/mine/publish/")
+        self.api.post(f"{self.base}publish/")
         data = self.anon.get(f"/api/storefront/{self.mine()['slug']}/").json()
         self.assertEqual(data["theme"]["font_family"], "Vazirmatn")
         self.assertEqual([s["type"] for s in data["sections"]][0], "hero")
@@ -276,15 +343,15 @@ class PublicTests(StorefrontBase):
 
     def test_unpublish(self):
         slug = self.mine()["slug"]
-        self.api.post("/api/storefront/mine/publish/")
-        self.api.post("/api/storefront/mine/unpublish/")
+        self.api.post(f"{self.base}publish/")
+        self.api.post(f"{self.base}unpublish/")
         self.assertEqual(self.anon.get(f"/api/storefront/{slug}/").status_code, 404)
 
     def test_preview_token(self):
         slug = self.mine()["slug"]
         self.put(sections=[{"id": "a", "type": "text", "data": {"title": "SECRETDRAFT"}}])
         self.assertEqual(self.anon.get(f"/api/storefront/{slug}/preview/?token=bad").status_code, 404)
-        tok = self.api.post("/api/storefront/mine/preview-token/").json()["data"]["token"]
+        tok = self.api.post(f"{self.base}preview-token/").json()["data"]["token"]
         r = self.anon.get(f"/api/storefront/{slug}/preview/?token={tok}")
         self.assertEqual(r.status_code, 200)
         self.assertIn("SECRETDRAFT", r.content.decode())
@@ -292,7 +359,7 @@ class PublicTests(StorefrontBase):
 
     def test_menu_section_hidden_without_pos_module(self):
         slug = self.mine()["slug"]
-        self.api.post("/api/storefront/mine/publish/")
+        self.api.post(f"{self.base}publish/")
         apply_modules(self.b1, {"storefront": {"is_enabled": True}, "pos": {"is_enabled": False},
                                 "club": {"is_enabled": False}})
         data = self.anon.get(f"/api/storefront/{slug}/").json()
@@ -301,12 +368,12 @@ class PublicTests(StorefrontBase):
 
     def test_storefront_module_off_hides_page(self):
         slug = self.mine()["slug"]
-        self.api.post("/api/storefront/mine/publish/")
+        self.api.post(f"{self.base}publish/")
         apply_modules(self.b1, {"pos": {"is_enabled": True}, "storefront": {"is_enabled": False}})
         self.assertEqual(self.anon.get(f"/api/storefront/{slug}/").status_code, 404)
 
     def test_dashboard_link(self):
-        self.api.post("/api/storefront/mine/publish/")
+        self.api.post(f"{self.base}publish/")
         data = self.anon.get(f"/api/storefront/{self.mine()['slug']}/").json()
         self.assertEqual(data["dashboard_url"], "https://app.example.com/shop-one/dashboard/")
         with override_settings(PLATFORM_PUBLIC_URL=""):
@@ -317,36 +384,34 @@ class PublicTests(StorefrontBase):
 class PublishRestoreTests(StorefrontBase):
     def test_publish_revisions_restore(self):
         self.put(sections=[{"id": "a", "type": "text", "data": {"title": "V1"}}])
-        self.api.post("/api/storefront/mine/publish/")
+        self.api.post(f"{self.base}publish/")
         self.put(sections=[{"id": "a", "type": "text", "data": {"title": "V2"}}])
-        self.api.post("/api/storefront/mine/publish/")
-        revs = self.api.get("/api/storefront/mine/revisions/").json()["data"]
+        self.api.post(f"{self.base}publish/")
+        revs = self.api.get(f"{self.base}revisions/").json()["data"]
         self.assertEqual(len(revs), 2)
         oldest = revs[-1]["id"]
-        r = self.api.post(f"/api/storefront/mine/revisions/{oldest}/restore/")
+        r = self.api.post(f"{self.base}revisions/{oldest}/restore/")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(self.mine()["sections"][0]["data"]["title"], "V1")
         # restore does not publish by itself
         pub = self.anon.get(f"/api/storefront/{self.mine()['slug']}/").json()
         self.assertEqual(pub["sections"][0]["data"]["title"], "V2")
-        self.api.post(f"/api/storefront/mine/revisions/{oldest}/restore/", {"publish": True}, format="json")
+        self.api.post(f"{self.base}revisions/{oldest}/restore/", {"publish": True}, format="json")
         pub = self.anon.get(f"/api/storefront/{self.mine()['slug']}/").json()
         self.assertEqual(pub["sections"][0]["data"]["title"], "V1")
 
     def test_apply_template_resets_content(self):
-        r = self.api.post("/api/storefront/mine/apply-template/", {"template": "minimal"}, format="json")
+        r = self.api.post(f"{self.base}apply-template/", {"template": "minimal"}, format="json")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.json()["data"]["template"], "minimal")
-        self.assertEqual(self.api.post("/api/storefront/mine/apply-template/",
+        self.assertEqual(self.api.post(f"{self.base}apply-template/",
                                        {"template": "nope"}, format="json").status_code, 404)
 
     def test_slug_rules(self):
         self.assertEqual(self.put(slug="mine").status_code, 400)
         self.assertEqual(self.put(slug="Bad Slug").status_code, 400)
         self.mine()
-        other = APIClient()
-        other.force_authenticate(self.o2)
-        other.get("/api/storefront/mine/")
+        self.api.get(self.base2)
         taken = Storefront.all_objects.get(business=self.b2).slug
         self.assertEqual(self.put(slug=taken).status_code, 400)
         self.assertEqual(self.put(slug="my-new-shop").status_code, 200)
@@ -354,7 +419,7 @@ class PublishRestoreTests(StorefrontBase):
 
 class UploadTests(StorefrontBase):
     def up(self, content, name="a.png", ctype="image/png"):
-        return self.api.post("/api/storefront/mine/assets/",
+        return self.api.post(f"{self.base}assets/",
                              {"file": SimpleUploadedFile(name, content, content_type=ctype)},
                              format="multipart")
 
@@ -363,7 +428,7 @@ class UploadTests(StorefrontBase):
         self.assertEqual(r.status_code, 201, r.content)
         url = r.json()["data"]["url"]
         self.assertTrue(url.startswith("/media/storefront/"))
-        self.assertNotIn("a.png", url)
+        self.assertNotIn("/a.png", url)
         self.assertTrue(url.endswith(".png"))
         # url is accepted by section validation
         ok = self.put(sections=[{"id": "a", "type": "about", "data": {"image": url}}])
@@ -392,13 +457,16 @@ class UploadTests(StorefrontBase):
     def test_rejects_over_5mb(self):
         self.assertEqual(self.up(b"0" * (5 * 1024 * 1024 + 1)).status_code, 400)
 
-    def test_requires_file_and_tab(self):
-        self.assertEqual(self.api.post("/api/storefront/mine/assets/", {}, format="multipart").status_code, 400)
-        c = APIClient()
-        c.force_authenticate(self.cashier)
-        r = c.post("/api/storefront/mine/assets/", {"file": SimpleUploadedFile("a.png", png_bytes())},
-                   format="multipart")
+    def test_requires_file_and_super_admin(self):
+        self.assertEqual(self.api.post(f"{self.base}assets/", {}, format="multipart").status_code, 400)
+        r = self.owner_client(self.o1).post(
+            f"{self.base}assets/", {"file": SimpleUploadedFile("a.png", png_bytes())}, format="multipart")
         self.assertEqual(r.status_code, 403)
+
+    def test_list_assets_only_own_business(self):
+        self.up(png_bytes())
+        self.assertEqual(len(self.api.get(f"{self.base}assets/").json()["data"]), 1)
+        self.assertEqual(self.api.get(f"{self.base2}assets/").json()["data"], [])
 
 
 class DomainTests(StorefrontBase):
@@ -408,7 +476,7 @@ class DomainTests(StorefrontBase):
         self.sf = Storefront.all_objects.get(business=self.b1)
 
     def set_domain(self, value, client=None):
-        return (client or self.api).put("/api/storefront/mine/", {"custom_domain": value}, format="json")
+        return (client or self.api).put(f"{self.base}domain/", {"custom_domain": value}, format="json")
 
     def test_addresses_in_editor(self):
         a = self.mine()["addresses"]
@@ -427,17 +495,18 @@ class DomainTests(StorefrontBase):
 
     def test_unique_and_clear(self):
         self.set_domain("shop.example.ir")
-        other = APIClient()
-        other.force_authenticate(self.o2)
-        self.assertEqual(self.set_domain("shop.example.ir", other).status_code, 400)
+        other = lambda v: self.api.put(f"{self.base2}domain/", {"custom_domain": v}, format="json")
+        self.assertEqual(other("shop.example.ir").status_code, 400)
         self.assertEqual(self.set_domain("").status_code, 200)
         self.sf.refresh_from_db()
         self.assertIsNone(self.sf.custom_domain)
 
-    def test_only_owner_sets_domain(self):
-        m = APIClient()
-        m.force_authenticate(self.mgr)
-        self.assertEqual(self.set_domain("x.example.ir", m).status_code, 403)
+    def test_owner_and_manager_cannot_set_domain(self):
+        for u in (self.o1, self.mgr):
+            r = self.owner_client(u).put(f"{self.base}domain/", {"custom_domain": "x.example.ir"}, format="json")
+            self.assertEqual(r.status_code, 403)
+            r = self.owner_client(u).put("/api/storefront/mine/", {"custom_domain": "x.example.ir"}, format="json")
+            self.assertIn(r.status_code, (403, 404, 405))
 
     def test_super_admin_sets_domain(self):
         from bizsuite.views.super_admin.auth import _make_super_token
@@ -452,7 +521,7 @@ class DomainTests(StorefrontBase):
 
     def test_exact_host_match_serves_storefront_at_root(self):
         self.set_domain("shop.example.ir")
-        self.api.post("/api/storefront/mine/publish/")
+        self.api.post(f"{self.base}publish/")
         r = self.anon.get("/", HTTP_HOST="shop.example.ir")
         self.assertEqual(r.status_code, 200, r.content)
         self.assertEqual(r.json()["slug"], self.sf.slug)
@@ -461,7 +530,7 @@ class DomainTests(StorefrontBase):
 
     def test_unknown_host_ignored(self):
         self.set_domain("shop.example.ir")
-        self.api.post("/api/storefront/mine/publish/")
+        self.api.post(f"{self.base}publish/")
         for host in ("other.example.ir", "sub.shop.example.ir", "example.ir"):
             r = self.anon.get("/api/health/", HTTP_HOST=host)
             self.assertEqual(r.status_code, 400, host)  # DisallowedHost, not mapped
@@ -472,9 +541,9 @@ class DomainTests(StorefrontBase):
         self.set_domain("shop.example.ir")
         r = self.anon.get("/", HTTP_HOST="shop.example.ir")
         self.assertNotEqual(r.status_code, 200)
-        self.api.post("/api/storefront/mine/publish/")
+        self.api.post(f"{self.base}publish/")
         self.assertEqual(self.anon.get("/", HTTP_HOST="shop.example.ir").status_code, 200)
-        self.api.post("/api/storefront/mine/unpublish/")
+        self.api.post(f"{self.base}unpublish/")
         self.assertNotEqual(self.anon.get("/", HTTP_HOST="shop.example.ir").status_code, 200)
 
     def test_own_host_cannot_be_claimed_or_hijacked(self):
@@ -490,8 +559,8 @@ class ClubJoinTests(StorefrontBase):
     def setUp(self):
         super().setUp()
         self.slug = self.mine()["slug"]
-        self.api.post("/api/storefront/mine/publish/")
-        self.api.put("/api/club/settings/", {"is_active": True, "earn_amount": 10000,
+        self.api.post(f"{self.base}publish/")
+        self.owner_client(self.o1).put("/api/club/settings/", {"is_active": True, "earn_amount": 10000,
                                               "welcome_points": 5}, format="json")
         self.url = f"/api/storefront/{self.slug}/club/join/"
 
@@ -529,7 +598,7 @@ class ClubJoinTests(StorefrontBase):
         self.assertEqual(codes[5], 429)
 
     def test_requires_published_storefront(self):
-        self.api.post("/api/storefront/mine/unpublish/")
+        self.api.post(f"{self.base}unpublish/")
         self.assertEqual(self.join().status_code, 404)
         self.assertEqual(LoyaltyMember.all_objects.count(), 0)
 
@@ -541,7 +610,7 @@ class ClubJoinTests(StorefrontBase):
         self.assertEqual(self.join().status_code, 200)
 
     def test_requires_club_active_in_settings(self):
-        self.api.put("/api/club/settings/", {"is_active": False}, format="json")
+        self.owner_client(self.o1).put("/api/club/settings/", {"is_active": False}, format="json")
         self.assertEqual(self.join().status_code, 404)
 
     def test_other_business_unaffected(self):

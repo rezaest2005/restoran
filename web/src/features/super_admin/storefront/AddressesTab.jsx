@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, Box, Button, Stack, TextField, Typography } from "@mui/material";
 import KbdHint from "@business/pos/common/KbdHint";
-import { saveMine, errMsg } from "./api";
+import { saveDomain as saveDomainApi, errMsg } from "./api";
+import { useBusinessId } from "./BusinessContext";
 
 function AddrRow({ label, value }) {
   const { t } = useTranslation();
@@ -25,25 +26,16 @@ function AddrRow({ label, value }) {
   );
 }
 
-function currentRole() {
-  try {
-    const raw = sessionStorage.getItem("user") || localStorage.getItem("user");
-    return JSON.parse(raw || "{}")?.role || "";
-  } catch {
-    return "";
-  }
-}
-
 export default function AddressesTab({ addresses, onReload, onToast }) {
   const { t } = useTranslation();
-  const isOwner = currentRole() === "owner";
+  const bid = useBusinessId();
   const [domain, setDomain] = useState(addresses.custom_domain || "");
   const [err, setErr] = useState("");
 
   const saveDomain = async () => {
     setErr("");
     try {
-      await saveMine({ custom_domain: domain.trim() });
+      await saveDomainApi(bid, domain.trim());
       onToast(t("ui_k.addr.domain_saved"), "success");
       onReload();
     } catch (e) {
@@ -54,19 +46,16 @@ export default function AddressesTab({ addresses, onReload, onToast }) {
   return (
     <Stack spacing={2.5} sx={{ maxWidth: 640 }}>
       <AddrRow label={t("ui_k.addr.public_url")} value={addresses.public_url} />
-      <AddrRow label={t("ui_k.addr.dashboard_url")} value={addresses.dashboard_url} />
       <AddrRow label={t("ui_k.addr.qr_order_url")} value={addresses.qr_order_url} />
       <Box>
-        <TextField size="small" fullWidth label={t("ui_k.addr.custom_domain")} value={domain} disabled={!isOwner}
+        <TextField size="small" fullWidth label={t("ui_k.addr.custom_domain")} value={domain}
            placeholder="shop.example.com" onChange={(e) => setDomain(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && isOwner) { e.preventDefault(); saveDomain(); } }}
-          helperText={isOwner ? t("ui_k.addr.custom_domain_hint") : t("ui_k.addr.owner_only")} slotProps={{ htmlInput: { dir: "ltr" } }} />
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveDomain(); } }}
+          helperText={t("ui_k.addr.custom_domain_hint")} slotProps={{ htmlInput: { dir: "ltr" } }} />
         {err && <Alert severity="error" sx={{ mt: 1 }}>{err}</Alert>}
-        {isOwner && (
-          <Button sx={{ mt: 1 }} variant="contained" onClick={saveDomain}>
-            {t("ui_k.addr.save_domain")} <KbdHint>Enter</KbdHint>
-          </Button>
-        )}
+        <Button sx={{ mt: 1 }} variant="contained" onClick={saveDomain}>
+          {t("ui_k.addr.save_domain")} <KbdHint>Enter</KbdHint>
+        </Button>
       </Box>
       {addresses.custom_domain_url && <AddrRow label={t("ui_k.addr.custom_domain")} value={addresses.custom_domain_url} />}
       <Typography variant="caption" color="text.secondary">{t("ui_k.addr.slug")}: {addresses.public_url.split("/s/")[1]}</Typography>

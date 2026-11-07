@@ -7,7 +7,7 @@ from bizsuite.models import Business, User
 from bizsuite.modules import apply_modules
 from bizsuite.tenancy import clear_current_business
 
-URLS = ("/api/accounting/accounts/", "/api/accounting/journal/", "/api/storefront/mine/")
+URLS = ("/api/accounting/accounts/", "/api/accounting/journal/", "/api/storefront/mine/summary/")
 
 
 class ConsoleFixTests(TestCase):
@@ -33,23 +33,21 @@ class ConsoleFixTests(TestCase):
         c.force_authenticate(user)
         return c
 
-    def test_owner_can_apply_template_despite_stale_permission_list(self):
+    def test_owner_reads_summary_despite_stale_permission_list(self):
         apply_modules(self.biz, {"pos": {"is_enabled": True}, "storefront": {"is_enabled": True}})
-        r = self.client_for(self.owner).post(
-            "/api/storefront/mine/apply-template/", {"template": "minimal"}, format="json")
+        r = self.client_for(self.owner).get("/api/storefront/mine/summary/")
         self.assertEqual(r.status_code, 200, r.content)
 
     def test_owner_blocked_when_storefront_module_disabled(self):
         apply_modules(self.biz, {"pos": {"is_enabled": True}, "storefront": {"is_enabled": False}})
-        r = self.client_for(self.owner).post(
-            "/api/storefront/mine/apply-template/", {"template": "minimal"}, format="json")
+        r = self.client_for(self.owner).get("/api/storefront/mine/summary/")
         self.assertEqual(r.status_code, 403)
 
-    def test_restricted_manager_still_forbidden(self):
+    def test_owner_has_no_storefront_write_endpoint(self):
         apply_modules(self.biz, {"pos": {"is_enabled": True}, "storefront": {"is_enabled": True}})
-        r = self.client_for(self.manager).post(
+        r = self.client_for(self.owner).post(
             "/api/storefront/mine/apply-template/", {"template": "minimal"}, format="json")
-        self.assertEqual(r.status_code, 403)
+        self.assertIn(r.status_code, (403, 404, 405))
 
     def test_no_server_errors_for_owner_nobiz_and_superuser(self):
         for user in (self.owner, self.nobiz, self.root):

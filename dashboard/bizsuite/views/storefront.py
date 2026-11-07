@@ -5,13 +5,14 @@ Public
   GET  /api/storefront/<slug>/                  published data only
   GET  /api/storefront/<slug>/preview/?token=   draft, signed short-lived token
 
-Staff (dashboard tab ``storefront``)
-  GET/PUT /api/storefront/mine/
-  POST    /api/storefront/mine/publish/ | unpublish/ | apply-template/ | preview-token/
-  GET     /api/storefront/mine/revisions/
-  POST    /api/storefront/mine/revisions/<id>/restore/
-  GET/POST /api/storefront/mine/assets/
-  GET     /api/storefront/templates/
+Staff (read-only)
+  GET     /api/storefront/mine/summary/
+
+Super admin editor (per business id)
+  GET/PUT /api/super/storefront/<business_id>/
+  POST    .../publish/ | unpublish/ | apply-template/ | preview-token/
+  GET     .../revisions/      POST .../revisions/<id>/restore/
+  GET/POST .../assets/        PUT .../domain/
 
 Super admin
   GET/POST /api/super/storefront/templates/
@@ -29,10 +30,7 @@ from ..models import Business, Storefront, StorefrontAsset, StorefrontRevision, 
 from ..modules import module_enabled
 from ..utils import api_error, api_success
 from .common import StaffAuth, no_business_response, staff_business
-from .decorators import make_service_permission
 from .super_admin.auth import IsSuperAdmin
-
-StorefrontPerm = make_service_permission("storefront")
 
 
 def _msg(exc):
@@ -167,153 +165,30 @@ def storefront_club_join(request, slug):
     return api_success(None, JOIN_MESSAGE)
 
 
-# --- staff -------------------------------------------------------------
-
-def _mine(request):
-    business = staff_business(request)
-    if business is None:
-        return None
-    return svc.get_or_create_storefront(business)
-
-
-@api_view(["GET", "PUT"])
-@authentication_classes(StaffAuth)
-@permission_classes([StorefrontPerm])
-def storefront_mine(request):
-    sf = _mine(request)
-    if sf is None:
-        return no_business_response()
-    if request.method == "GET":
-        return api_success(_draft_data(sf))
-    body = request.data
-    try:
-        if "custom_domain" in body:
-            if request.user.role != "owner" and not request.user.is_superuser:
-                return api_error("only the owner can change the custom domain", 403)
-            sf.custom_domain = svc.validate_domain(body.get("custom_domain"), sf.pk)
-        svc.save_draft(
-            sf, theme=body.get("theme"), sections=body.get("sections"),
-            content_language=body.get("content_language"), slug=body.get("slug"),
-        )
-    except ValidationError as exc:
-        return api_error(_msg(exc), 400)
-    return api_success(_draft_data(sf), "saved")
-
-
-@api_view(["POST"])
-@authentication_classes(StaffAuth)
-@permission_classes([StorefrontPerm])
-def storefront_publish(request):
-    sf = _mine(request)
-    if sf is None:
-        return no_business_response()
-    try:
-        svc.publish(sf, request.user)
-    except ValidationError as exc:
-        return api_error(_msg(exc), 400)
-    return api_success(_draft_data(sf), "published")
-
-
-@api_view(["POST"])
-@authentication_classes(StaffAuth)
-@permission_classes([StorefrontPerm])
-def storefront_unpublish(request):
-    sf = _mine(request)
-    if sf is None:
-        return no_business_response()
-    svc.unpublish(sf)
-    return api_success(_draft_data(sf), "unpublished")
-
-
-@api_view(["POST"])
-@authentication_classes(StaffAuth)
-@permission_classes([StorefrontPerm])
-def storefront_apply_template(request):
-    sf = _mine(request)
-    if sf is None:
-        return no_business_response()
-    svc.ensure_presets()
-    tpl = StorefrontTemplate.objects.filter(
-        key=request.data.get("template"), is_active=True).first()
-    if tpl is None:
-        return api_error("template not found", 404)
-    svc.apply_template(sf, tpl)
-    return api_success(_draft_data(sf), "template applied")
-
-
-@api_view(["POST"])
-@authentication_classes(StaffAuth)
-@permission_classes([StorefrontPerm])
-def storefront_preview_token(request):
-    sf = _mine(request)
-    if sf is None:
-        return no_business_response()
-    return api_success({"token": svc.make_preview_token(sf), "slug": sf.slug})
-
+# --- staff (read-only summary) ------------------------------------------
 
 @api_view(["GET"])
 @authentication_classes(StaffAuth)
-@permission_classes([StorefrontPerm])
-def storefront_revisions(request):
-    sf = _mine(request)
-    if sf is None:
-        return no_business_response()
-    rows = StorefrontRevision.all_objects.filter(storefront=sf).select_related("created_by")
-    return api_success([{
-        "id": r.id, "created_at": r.created_at.isoformat(),
-        "by": r.created_by.username if r.created_by else "",
-        "sections": len(r.data.get("sections", [])),
-    } for r in rows])
-
-
-@api_view(["POST"])
-@authentication_classes(StaffAuth)
-@permission_classes([StorefrontPerm])
-def storefront_restore(request, pk):
-    sf = _mine(request)
-    if sf is None:
-        return no_business_response()
-    rev = StorefrontRevision.all_objects.filter(storefront=sf, pk=pk).first()
-    if rev is None:
-        return api_error("not found", 404)
-    try:
-        svc.restore_revision(sf, rev)
-        if request.data.get("publish"):
-            svc.publish(sf, request.user)
-    except ValidationError as exc:
-        return api_error(_msg(exc), 400)
-    return api_success(_draft_data(sf), "restored")
-
-
-@api_view(["GET", "POST"])
-@authentication_classes(StaffAuth)
-@permission_classes([StorefrontPerm])
-def storefront_assets(request):
+def storefront_mine_summary(request):
+    """Read-only addresses for the business dashboard card. The storefront is
+    designed by the platform owner from the super admin panel."""
     business = staff_business(request)
     if business is None:
         return no_business_response()
-    if request.method == "GET":
-        rows = StorefrontAsset.all_objects.filter(business=business)[:100]
-        return api_success([{"id": a.id, "url": a.file.url, "width": a.width,
-                             "height": a.height} for a in rows])
-    upload = request.FILES.get("file")
-    if upload is None:
-        return api_error("file is required", 400)
-    try:
-        asset = svc.store_image(business, upload)
-    except ValidationError as exc:
-        return api_error(_msg(exc), 400)
-    return api_success({"id": asset.id, "url": asset.file.url, "width": asset.width,
-                        "height": asset.height}, "uploaded", 201)
-
-
-@api_view(["GET"])
-@authentication_classes(StaffAuth)
-@permission_classes([StorefrontPerm])
-def storefront_templates(request):
-    svc.ensure_presets()
-    rows = StorefrontTemplate.objects.filter(is_active=True)
-    return api_success([_template_data(t) for t in rows])
+    empty = {"public_url": "", "qr_menu_url": "", "is_published": False, "custom_domain": ""}
+    if not module_enabled(business, "storefront"):
+        return api_error("module disabled", 403)
+    sf = Storefront.all_objects.filter(business=business).first()
+    if sf is None:
+        return api_success(empty)
+    addr = svc.storefront_addresses(sf)
+    published = bool(sf.is_published)
+    return api_success({
+        "public_url": (addr["custom_domain_url"] or addr["public_url"]) if published else "",
+        "qr_menu_url": addr["qr_order_url"] if published and module_enabled(business, "pos") else "",
+        "is_published": published,
+        "custom_domain": addr["custom_domain"],
+    })
 
 
 # --- super admin -------------------------------------------------------
@@ -405,3 +280,133 @@ def super_storefront_domain(request, business_id):
         return api_error(_msg(exc), 400)
     sf.save()
     return api_success(svc.storefront_addresses(sf), "saved")
+
+
+# --- super admin: storefront editor keyed by business id ------------------
+
+def _sf_for(business_id):
+    business = Business.objects.filter(pk=business_id).first()
+    if business is None:
+        return None
+    return svc.get_or_create_storefront(business)
+
+
+@api_view(["GET", "PUT"])
+@permission_classes([IsSuperAdmin])
+def super_storefront_draft(request, business_id):
+    sf = _sf_for(business_id)
+    if sf is None:
+        return api_error("not found", 404)
+    if request.method == "GET":
+        return api_success(_draft_data(sf))
+    body = request.data
+    try:
+        if "custom_domain" in body:
+            sf.custom_domain = svc.validate_domain(body.get("custom_domain"), sf.pk)
+        svc.save_draft(
+            sf, theme=body.get("theme"), sections=body.get("sections"),
+            content_language=body.get("content_language"), slug=body.get("slug"),
+        )
+    except ValidationError as exc:
+        return api_error(_msg(exc), 400)
+    return api_success(_draft_data(sf), "saved")
+
+
+@api_view(["POST"])
+@permission_classes([IsSuperAdmin])
+def super_storefront_publish(request, business_id):
+    sf = _sf_for(business_id)
+    if sf is None:
+        return api_error("not found", 404)
+    try:
+        svc.publish(sf, request.user)
+    except ValidationError as exc:
+        return api_error(_msg(exc), 400)
+    return api_success(_draft_data(sf), "published")
+
+
+@api_view(["POST"])
+@permission_classes([IsSuperAdmin])
+def super_storefront_unpublish(request, business_id):
+    sf = _sf_for(business_id)
+    if sf is None:
+        return api_error("not found", 404)
+    svc.unpublish(sf)
+    return api_success(_draft_data(sf), "unpublished")
+
+
+@api_view(["POST"])
+@permission_classes([IsSuperAdmin])
+def super_storefront_apply_template(request, business_id):
+    sf = _sf_for(business_id)
+    if sf is None:
+        return api_error("not found", 404)
+    svc.ensure_presets()
+    tpl = StorefrontTemplate.objects.filter(
+        key=request.data.get("template"), is_active=True).first()
+    if tpl is None:
+        return api_error("template not found", 404)
+    svc.apply_template(sf, tpl)
+    return api_success(_draft_data(sf), "template applied")
+
+
+@api_view(["POST"])
+@permission_classes([IsSuperAdmin])
+def super_storefront_preview_token(request, business_id):
+    sf = _sf_for(business_id)
+    if sf is None:
+        return api_error("not found", 404)
+    return api_success({"token": svc.make_preview_token(sf), "slug": sf.slug})
+
+
+@api_view(["GET"])
+@permission_classes([IsSuperAdmin])
+def super_storefront_revisions(request, business_id):
+    sf = _sf_for(business_id)
+    if sf is None:
+        return api_error("not found", 404)
+    rows = StorefrontRevision.all_objects.filter(storefront=sf).select_related("created_by")
+    return api_success([{
+        "id": r.id, "created_at": r.created_at.isoformat(),
+        "by": r.created_by.username if r.created_by else "",
+        "sections": len(r.data.get("sections", [])),
+    } for r in rows])
+
+
+@api_view(["POST"])
+@permission_classes([IsSuperAdmin])
+def super_storefront_restore(request, business_id, pk):
+    sf = _sf_for(business_id)
+    if sf is None:
+        return api_error("not found", 404)
+    rev = StorefrontRevision.all_objects.filter(storefront=sf, pk=pk).first()
+    if rev is None:
+        return api_error("not found", 404)
+    try:
+        svc.restore_revision(sf, rev)
+        if request.data.get("publish"):
+            svc.publish(sf, request.user)
+    except ValidationError as exc:
+        return api_error(_msg(exc), 400)
+    return api_success(_draft_data(sf), "restored")
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsSuperAdmin])
+def super_storefront_assets(request, business_id):
+    business = Business.objects.filter(pk=business_id).first()
+    if business is None:
+        return api_error("not found", 404)
+    if request.method == "GET":
+        rows = StorefrontAsset.all_objects.filter(business=business)[:100]
+        return api_success([{"id": a.id, "url": a.file.url, "width": a.width,
+                             "height": a.height} for a in rows])
+    upload = request.FILES.get("file")
+    if upload is None:
+        return api_error("file is required", 400)
+    try:
+        asset = svc.store_image(business, upload)
+    except ValidationError as exc:
+        return api_error(_msg(exc), 400)
+    return api_success({"id": asset.id, "url": asset.file.url, "width": asset.width,
+                        "height": asset.height}, "uploaded", 201)

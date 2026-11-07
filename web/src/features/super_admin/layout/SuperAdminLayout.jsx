@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import { useSuperAdmin } from "@super/hooks/useSuperAdmin";
@@ -9,6 +9,7 @@ import SuperTopBar from "@super/layout/SuperTopBar";
 import TenantsPanel from "@super/tenants/TenantsPanel";
 import UsersPanel from "@super/users/UsersPanel";
 import ModulesPanel from "@super/modules/ModulesPanel";
+import StorefrontPanel from "@super/storefront/StorefrontPanel";
 import {
   Box, Button, Snackbar, Alert, useMediaQuery, useTheme,
   Dialog, DialogTitle, DialogContent, DialogActions, Typography,
@@ -21,6 +22,7 @@ import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 
 export default function SuperAdminLayout() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { mode, toggleTheme } = useThemeMode();
   const { isRtl, toggleLang } = useLang();
   const { t } = useTranslation();
@@ -31,7 +33,6 @@ export default function SuperAdminLayout() {
   const isDark = mode === "dark";
   const C = useMemo(() => getSuperColors(isDark), [isDark]);
 
-  const [activeTab, setActiveTab] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [help, setHelp] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
@@ -58,10 +59,15 @@ export default function SuperAdminLayout() {
 
   /* ── تب‌ها ── */
   const tabs = [
-    { label: t("super.tab.tenants"), icon: "🏪" },
-    { label: t("super.tab.users"),   icon: "👥" },
-    { label: t("ui_k.mod.title"),    icon: "🧩" },
+    { id: "tenants", label: t("super.tab.tenants"), icon: "🏪" },
+    { id: "users", label: t("super.tab.users"), icon: "👥" },
+    { id: "modules", label: t("ui_k.mod.title"), icon: "🧩" },
+    { id: "storefront", label: t("ui_sfa.tab"), icon: "🌐" },
   ];
+  const tabParam = searchParams.get("tab");
+  const found = tabs.findIndex((x) => x.id === tabParam);
+  const activeTab = found >= 0 ? found : 0;
+  const setActiveTab = (i) => setSearchParams({ tab: tabs[i].id }, { replace: true });
 
   useRegisteredShortcuts([
     helpBinding(t, () => setHelp(true)),
@@ -176,6 +182,7 @@ export default function SuperAdminLayout() {
             />
           )}
           {activeTab === 2 && <ModulesPanel tenants={tenants} C={C} />}
+          {activeTab === 3 && <StorefrontPanel tenants={tenants} />}
         </Box>
       </Box>
 

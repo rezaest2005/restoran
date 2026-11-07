@@ -1,0 +1,11 @@
+{
+  "ui_sfa": {
+    "tab": "Storefronts",
+    "nav": "Storefronts",
+    "pick_business": "Business",
+    "pick_hint": "Pick a business to design its storefront (website and QR ordering page).",
+    "no_business": "No business found.",
+    "designing_for": "Designing the storefront of \"{{name}}\"",
+    "give_address": "After publishing, hand the website address from the Addresses tab to the customer."
+  }
+}

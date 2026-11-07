@@ -28,7 +28,7 @@ ALL_TAB_KEYS = [
     "dictionary_items", "dictionary_menu", "dictionary_recipe",
     "dictionary_suppliers", "dictionary_warehouses", "dictionary_customers",
     "dictionary_users",
-    "feedback", "club", "accounting", "delivery", "storefront",
+    "feedback", "club", "accounting", "delivery",
 ]
 
 

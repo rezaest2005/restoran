@@ -27,7 +27,7 @@ ENDPOINTS = {
     "accounting": ["/api/accounting/summary/", "/api/accounting/accounts/"],
     "production": ["/api/formulas/", "/api/production/orders/"],
     "feedback": ["/api/feedback/list/"],
-    "storefront": ["/api/storefront/mine/"],
+    "storefront": ["/api/storefront/mine/summary/"],
 }
 
 COMBOS = {

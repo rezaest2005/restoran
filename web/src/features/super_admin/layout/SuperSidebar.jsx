@@ -43,7 +43,7 @@ export default function SuperSidebar({ isMobile, open, onClose, currentUser, onL
               {t(sec.titleKey)}
             </Typography>
             {sec.items.map(item => {
-              const isActive = location.pathname === item.path;
+              const isActive = location.pathname + location.search === item.path;
               return (
                 <Box
                   key={item.path}

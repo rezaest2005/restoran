@@ -6,24 +6,26 @@ import {
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
 import KbdHint from "@business/pos/common/KbdHint";
 import { fetchRevisions, restoreRevision, errMsg } from "./api";
+import { useBusinessId } from "./BusinessContext";
 
 export default function RevisionsTab({ reloadKey, onRestored, onToast }) {
   const { t } = useTranslation();
+  const bid = useBusinessId();
   const [rows, setRows] = useState(null);
   const [err, setErr] = useState("");
   const [pending, setPending] = useState(null); // { id, publish } awaiting confirmation
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(() => {
-    fetchRevisions().then(setRows).catch((e) => setErr(errMsg(e, t("ui_k.error"))));
-  }, [t]);
+    fetchRevisions(bid).then(setRows).catch((e) => setErr(errMsg(e, t("ui_k.error"))));
+  }, [t, bid]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(load, [reloadKey]);
 
   const restore = async (id, publish) => {
     setBusy(true);
     try {
-      await restoreRevision(id, publish);
+      await restoreRevision(bid, id, publish);
       onToast(t("ui_k.revisions.restored"), "success");
       setPending(null);
       onRestored();

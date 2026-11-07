@@ -10,6 +10,7 @@ export const NAV_SECTIONS = [
     titleKey: "super.nav.management",
     items: [
       { icon: "📊", labelKey: "super.nav.dashboard", path: "/super" },
+      { icon: "🌐", labelKey: "ui_sfa.nav", path: "/super/app?tab=storefront" },
     ],
   },
   {

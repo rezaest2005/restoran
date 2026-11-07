@@ -6,6 +6,7 @@ import AddIcon from "@mui/icons-material/Add";
 import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
 import KbdHint from "@business/pos/common/KbdHint";
 import { uploadImage, errMsg } from "./api";
+import { useBusinessId } from "./BusinessContext";
 
 /**
  * Generic form built from the server-provided field schema.
@@ -14,6 +15,7 @@ import { uploadImage, errMsg } from "./api";
 
 function ImageField({ label, value, onChange }) {
   const { t } = useTranslation();
+  const bid = useBusinessId();
   const ref = useRef(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -24,7 +26,7 @@ function ImageField({ label, value, onChange }) {
     setBusy(true);
     setErr("");
     try {
-      const a = await uploadImage(file);
+      const a = await uploadImage(bid, file);
       onChange(a.url);
     } catch (ex) {
       setErr(errMsg(ex, t("ui_k.error")));

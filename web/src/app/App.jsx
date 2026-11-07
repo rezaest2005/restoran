@@ -12,13 +12,11 @@ import Pos from "@business/pos/Pos";
 import Dictionary from "@business/dictionary/Dictionary";
 import InventoryPage from "@business/inventory/InventoryPage";
 import ProductionPage from "@business/production/ProductionPage";
-import AccountingPage from "@business/accounting/AccountingPage";
 import DispatchPage from "@business/delivery/DispatchPage";
 import DriverPage from "@business/delivery/DriverPage";
 import TrackingPage from "@business/delivery/TrackingPage";
 import QrMenu from "../features/public/QrMenu";
 import StorefrontPage from "../features/public/storefront/StorefrontPage";
-import StorefrontEditor from "@business/storefront/StorefrontEditor";
 
 function App() {
   return (
@@ -51,9 +49,8 @@ function App() {
             <Route path="dictionary" element={<Dictionary />} />
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="production" element={<ProductionPage />} />
-            <Route path="accounting" element={<AccountingPage />} />
+            <Route path="accounting" element={<Navigate to="../dashboard?tab=accounting" replace />} />
             <Route path="delivery" element={<DispatchPage />} />
-            <Route path="storefront" element={<StorefrontEditor />} />
           </Route>
 
           {/* بدون slug */}
@@ -71,9 +68,8 @@ function App() {
             <Route path="dictionary" element={<Dictionary />} />
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="production" element={<ProductionPage />} />
-            <Route path="accounting" element={<AccountingPage />} />
+            <Route path="accounting" element={<Navigate to="../dashboard?tab=accounting" replace />} />
             <Route path="delivery" element={<DispatchPage />} />
-            <Route path="storefront" element={<StorefrontEditor />} />
           </Route>
 
           <Route path="/super/login" element={<SuperLogin />} />

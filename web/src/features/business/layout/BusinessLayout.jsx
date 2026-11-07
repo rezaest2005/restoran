@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, Outlet, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  Box, Typography, Button, IconButton, Drawer, Divider, Chip,
+  Box, Typography, Button, IconButton, Drawer, Divider,
   Snackbar, Alert, useMediaQuery, useTheme,
 } from "@mui/material";
 import { useThemeMode } from "@shared/contexts/ThemeContext";
@@ -45,29 +45,11 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    titleKey: "ui_i.nav_accounting",
-    items: [
-      {
-        icon: "📒", labelKey: "ui_i.nav_accounting", basePath: "accounting",
-        anyTabs: ["accounting"], module: "accounting",
-      },
-    ],
-  },
-  {
     titleKey: "ui_del.nav",
     items: [
       {
         icon: "🚴", labelKey: "ui_del.nav", basePath: "delivery",
         anyTabs: ["delivery"], module: "delivery",
-      },
-    ],
-  },
-  {
-    titleKey: "ui_k.nav",
-    items: [
-      {
-        icon: "🌐", labelKey: "ui_k.nav", basePath: "storefront",
-        anyTabs: ["storefront"], module: "storefront",
       },
     ],
   },
@@ -80,11 +62,6 @@ const NAV_SECTIONS = [
       },
     ],
   },
-];
-
-const DASHBOARDS = [
-  { icon: "🧮", labelKey: "rest.dash_accounting", locked: true },
-  { icon: "💎", labelKey: "rest.dash_loyalty", locked: true },
 ];
 
 const animations = `
@@ -185,7 +162,6 @@ export default function BusinessLayout() {
 
   const [mounted, setMounted] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("business");
   const [toast, setToast] = useState({ open: false, message: "", type: "info" });
 
   const userTabs = useMemo(() => getUserTabs(), []);
@@ -275,8 +251,6 @@ export default function BusinessLayout() {
   useShortcuts(layoutShortcuts);
   const comboFor = (to) => navTargets.find((n) => n.to === to)?.combo;
 
-  const showToast = useCallback((message, type = "info") => setToast({ open: true, message, type }), []);
-  const handleLockedClick = (nameKey) => showToast(t("rest.locked_msg", { name: t(nameKey) }), "warning");
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
@@ -312,69 +286,34 @@ export default function BusinessLayout() {
         </Box>
       )}
 
-      <Box sx={{ display: "flex", gap: 0.5, px: 1.5, mb: 1 }}>
-        {[
-          { id: "business", label: t("rest.tab_business"), icon: "🏪" },
-          { id: "dashboards", label: t("rest.tab_dashboards"), icon: "📊" },
-        ].map((tab) => (
-          <Button key={tab.id} onClick={() => setActiveTab(tab.id)} sx={{
-            flex: 1, py: 0.8, borderRadius: "8px", fontSize: 11, fontWeight: activeTab === tab.id ? 700 : 500,
-            textTransform: "none", transition: "all 0.2s ease",
-            color: activeTab === tab.id ? C.olive : C.sub,
-            bgcolor: activeTab === tab.id ? C.oliveSubtle : "transparent",
-            border: activeTab === tab.id ? `1px solid ${C.glassBorder}` : "1px solid transparent",
-            "&:hover": { bgcolor: C.oliveSubtle },
-          }}>
-            {tab.icon} {tab.label}
-          </Button>
-        ))}
-      </Box>
-
       <Box sx={{ flex: 1, overflowY: "auto", py: 1, px: 1.5 }}>
-        {activeTab === "business" ? (
-          filteredSections.length === 0 ? (
-            <Box sx={{ textAlign: "center", py: 4 }}>
-              <Typography sx={{ fontSize: 28, mb: 1 }}>🔒</Typography>
-              <Typography sx={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>
-                {t("ui_a.layout.no_access")}
-              </Typography>
-              <Typography sx={{ fontSize: 10, color: C.muted, mt: 0.5 }}>
-                {t("ui_a.layout.contact_admin")}
-              </Typography>
-            </Box>
-          ) : (
-            filteredSections.map((section, si) => (
-              <Box key={si} sx={{ mb: 2 }}>
-                <Typography sx={{ fontSize: 9, fontWeight: 700, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase", px: 1.5, mb: 0.5 }}>
-                  {section.titleKey ? t(section.titleKey) : section.title}
-                </Typography>
-                {section.items.map((item, ii) => (
-                  <Box key={ii} component={Link} to={`${prefix}/${item.basePath}`}
-                    title={comboFor(`${prefix}/${item.basePath}`)}
-                    onClick={() => isMobile && setSidebarOpen(false)}
-                    sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1, borderRadius: "10px", textDecoration: "none", color: C.sub, transition: "all 0.2s ease", "&:hover": { bgcolor: C.oliveSubtle, color: C.olive } }}>
-                    <Typography sx={{ fontSize: 16, lineHeight: 1 }}>{item.icon}</Typography>
-                    <Typography sx={{ fontSize: 12.5, fontWeight: 500 }}>{t(item.labelKey)}</Typography>
-                  </Box>
-                ))}
-              </Box>
-            ))
-          )
-        ) : (
-          <Box sx={{ mb: 2 }}>
-            <Typography sx={{ fontSize: 9, fontWeight: 700, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase", px: 1.5, mb: 0.5 }}>
-              {t("rest.nav_dashboards")}
+        {filteredSections.length === 0 ? (
+          <Box sx={{ textAlign: "center", py: 4 }}>
+            <Typography sx={{ fontSize: 28, mb: 1 }}>🔒</Typography>
+            <Typography sx={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>
+              {t("ui_a.layout.no_access")}
             </Typography>
-            {DASHBOARDS.map((item, ii) => (
-              <Box key={ii} onClick={() => handleLockedClick(item.labelKey)} sx={{
-                display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1, borderRadius: "10px", cursor: "pointer", color: C.sub, transition: "all 0.2s ease", "&:hover": { bgcolor: C.oliveSubtle, color: C.olive },
-              }}>
-                <Typography sx={{ fontSize: 16, lineHeight: 1 }}>{item.icon}</Typography>
-                <Typography sx={{ fontSize: 12.5, fontWeight: 500, flex: 1 }}>{t(item.labelKey)}</Typography>
-                <Chip label={t("rest.coming_soon")} size="small" sx={{ height: 20, fontSize: 9, bgcolor: C.muted + "22", color: C.sub, borderRadius: "4px" }} />
-              </Box>
-            ))}
+            <Typography sx={{ fontSize: 10, color: C.muted, mt: 0.5 }}>
+              {t("ui_a.layout.contact_admin")}
+            </Typography>
           </Box>
+        ) : (
+          filteredSections.map((section, si) => (
+            <Box key={si} sx={{ mb: 2 }}>
+              <Typography sx={{ fontSize: 9, fontWeight: 700, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase", px: 1.5, mb: 0.5 }}>
+                {section.titleKey ? t(section.titleKey) : section.title}
+              </Typography>
+              {section.items.map((item, ii) => (
+                <Box key={ii} component={Link} to={`${prefix}/${item.basePath}`}
+                  title={comboFor(`${prefix}/${item.basePath}`)}
+                  onClick={() => isMobile && setSidebarOpen(false)}
+                  sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1, borderRadius: "10px", textDecoration: "none", color: C.sub, transition: "all 0.2s ease", "&:hover": { bgcolor: C.oliveSubtle, color: C.olive } }}>
+                  <Typography sx={{ fontSize: 16, lineHeight: 1 }}>{item.icon}</Typography>
+                  <Typography sx={{ fontSize: 12.5, fontWeight: 500 }}>{t(item.labelKey)}</Typography>
+                </Box>
+              ))}
+            </Box>
+          ))
         )}
       </Box>
 

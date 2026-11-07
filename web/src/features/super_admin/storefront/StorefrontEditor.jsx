@@ -18,6 +18,7 @@ import FieldEditor from "./FieldEditor";
 import ThemeTab from "./ThemeTab";
 import AddressesTab from "./AddressesTab";
 import RevisionsTab from "./RevisionsTab";
+import { BusinessContext } from "./BusinessContext";
 import {
   fetchMine, saveMine, publishMine, unpublishMine, applyTemplate, fetchTemplates, errMsg,
 } from "./api";
@@ -82,7 +83,7 @@ const newId = (type, taken) => {
   return id;
 };
 
-export default function StorefrontEditor() {
+export default function StorefrontEditor({ businessId }) {
   const { t } = useTranslation();
   const [srv, setSrv] = useState(null);
   const [theme, setTheme] = useState({});
@@ -114,13 +115,13 @@ export default function StorefrontEditor() {
 
   const load = useCallback(async () => {
     try {
-      const [d, tpls] = await Promise.all([fetchMine(), fetchTemplates()]);
+      const [d, tpls] = await Promise.all([fetchMine(businessId), fetchTemplates()]);
       adopt(d);
       setTemplates(tpls);
     } catch (e) {
       setError(errMsg(e, t("ui_k.error")));
     }
-  }, [adopt, t]);
+  }, [adopt, t, businessId]);
   useEffect(() => { load(); }, [load]);
 
   const mut = (fn) => { setSections(fn); setDirty(true); };
@@ -130,7 +131,7 @@ export default function StorefrontEditor() {
     if (!srv || busy) return true;
     setBusy(true);
     try {
-      const d = await saveMine({ theme, sections, content_language: language });
+      const d = await saveMine(businessId, { theme, sections, content_language: language });
       adopt(d);
       say(t("ui_k.saved"));
       return true;
@@ -140,16 +141,16 @@ export default function StorefrontEditor() {
     } finally {
       setBusy(false);
     }
-  }, [srv, busy, theme, sections, language, adopt, say, t]);
+  }, [srv, busy, theme, sections, language, adopt, say, t, businessId]);
 
   const doPublish = async () => {
     setBusy(true);
     try {
       if (dirty) {
-        const d = await saveMine({ theme, sections, content_language: language });
+        const d = await saveMine(businessId, { theme, sections, content_language: language });
         adopt(d);
       }
-      adopt(await publishMine());
+      adopt(await publishMine(businessId));
       setRevKey((k) => k + 1);
       say(t("ui_k.published"));
       setConfirm(null);
@@ -163,7 +164,7 @@ export default function StorefrontEditor() {
   const doUnpublish = async () => {
     setBusy(true);
     try {
-      adopt(await unpublishMine());
+      adopt(await unpublishMine(businessId));
       say(t("ui_k.unpublished"));
     } catch (e) {
       say(errMsg(e, t("ui_k.error")), "error");
@@ -175,7 +176,7 @@ export default function StorefrontEditor() {
   const doTemplate = async (key) => {
     setBusy(true);
     try {
-      adopt(await applyTemplate(key));
+      adopt(await applyTemplate(businessId, key));
       say(t("ui_k.theme.template_applied"));
     } catch (e) {
       say(errMsg(e, t("ui_k.error")), "error");
@@ -239,7 +240,8 @@ export default function StorefrontEditor() {
   if (!srv) return <Box sx={{ p: 4, textAlign: "center" }}><CircularProgress /></Box>;
 
   return (
-    <Box sx={{ p: { xs: 1, md: 2 } }}>
+    <BusinessContext.Provider value={businessId}>
+    <Box sx={{ p: { xs: 0, md: 1 } }}>
       <Stack direction="row" spacing={1.5} useFlexGap sx={{ mb: 1.5, alignItems: "center", flexWrap: "wrap" }}>
         <Typography variant="h6" sx={{ fontWeight: 800 }}>{t("ui_k.title")}</Typography>
         <Chip size="small" color={srv.is_published ? "success" : "default"}
@@ -353,5 +355,6 @@ export default function StorefrontEditor() {
         <Alert severity={toast.type} onClose={() => setToast({ ...toast, open: false })}>{toast.message}</Alert>
       </Snackbar>
     </Box>
+    </BusinessContext.Provider>
   );
 }
