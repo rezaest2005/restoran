@@ -1,29 +1,33 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  Box, Typography, Button, Tabs, Tab, Table, TableHead, TableBody, TableRow,
+  Box, Typography, Button, Table, TableHead, TableBody, TableRow,
   TableCell, Chip, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, MenuItem, IconButton, Alert, Snackbar, CircularProgress,
-  useMediaQuery, useTheme, Switch,
+  TextField, MenuItem, Alert, Snackbar, CircularProgress,
+  useMediaQuery, useTheme,
 } from "@mui/material";
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import { buildColors } from "@shared/palette";
 import useShortcuts from "@shared/common/useShortcuts";
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
+import { moduleEnabled, hasTab } from "@business/dashboard/access";
 import KbdHint from "@business/pos/common/KbdHint";
 import { blurFocused } from "@business/pos/common/focus";
 import {
-  num, fmt, fmtDate, STATUSES, newKey, useStyles, TableWrap, ConfirmDialog, enterIsNative,
-  TypeBadge, StatusCell, SubFormulaButton, ReadyBanner, RequirementsTable, lineStatus,
+  num, fmt, fmtDate, STATUSES, useStyles, TableWrap, ConfirmDialog, enterIsNative,
+  ReadyBanner, RequirementsTable,
 } from "./common";
 import {
-  fetchMaterials, fetchFormulas, fetchFormula, createFormula, updateFormula, deleteFormula,
+  fetchFormulas, fetchFormula,
   fetchOrders, fetchOrder, createOrder, startOrder, completeOrder, cancelOrder,
   errMsg,
 } from "./api";
 
-/* ───────── page ───────── */
+/* ───────── page ─────────
+   Production only MAKES things: orders are created from formulas defined in
+   Definitions (تعاریف → فرمول‌ها). Formulas are never edited here. */
 export default function ProductionPage() {
   const { t } = useTranslation();
   const { mode } = useThemeMode();
@@ -32,65 +36,47 @@ export default function ProductionPage() {
   const C = useMemo(() => buildColors(isDark), [isDark]);
   const S = useStyles(C);
   const muiTheme = useTheme();
+  const navigate = useNavigate();
   const fullScreen = useMediaQuery(muiTheme.breakpoints.down("sm"));
-
-  const [tab, setTab] = useState(0);
-  const [materials, setMaterials] = useState([]);
   const [toast, setToast] = useState({ open: false, msg: "", sev: "success" });
   const notify = useCallback((msg, sev = "success") => setToast({ open: true, msg, sev }), []);
 
-  useEffect(() => {
-    let alive = true;
-    fetchMaterials()
-      .then((list) => { if (alive) setMaterials(Array.isArray(list) ? [...list] : []); })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, []);
+  // relative to the layout route: …/app/production -> …/app/dictionary
+  const canDefine = moduleEnabled("production") && hasTab("dictionary_recipe");
+  const definitionsPath = "../dictionary?tab=formulas";
+  // jump from an order to the definition of a semi-finished input's formula
+  const goFormula = useCallback((id) => navigate(`../dictionary?tab=formulas&formula=${id}`), [navigate]);
+  const ctx = { t, C, S, isRtl, lang, fullScreen, notify, goFormula, canDefine, definitionsPath };
 
-  // jump from an order to the formula of a semi-finished input
-  const [jump, setJump] = useState(null);
-  const goFormula = useCallback((id) => { setJump({ id }); setTab(0); }, []);
-  const selectTab = (v) => { setJump(null); setTab(v); };
-  const ctx = { t, C, S, isRtl, lang, fullScreen, materials, notify, goFormula };
-
-  // ── میان‌برها: F1 راهنما · Alt+1/2 تب‌ها (F2 در هر تب ثبت می‌شود) ──
+  // ── میان‌برها: F1 راهنما (F2 در جدول ثبت می‌شود) ──
   const [helpOpen, setHelpOpen] = useState(false);
-  const pageShortcuts = [
-    { combo: "F1", label: t("shortcuts.help"), handler: () => setHelpOpen(true) },
-    { combo: "Alt+1", label: `${t("shortcuts.tab_n", { n: 1 })} — ${t("ui_e.tabs.formulas")}`, handler: () => selectTab(0) },
-    { combo: "Alt+2", label: `${t("shortcuts.tab_n", { n: 2 })} — ${t("ui_e.tabs.orders")}`, handler: () => selectTab(1) },
-  ];
+  const pageShortcuts = [{ combo: "F1", label: t("shortcuts.help"), handler: () => setHelpOpen(true) }];
   useShortcuts(pageShortcuts);
   const helpItems = [
     ...pageShortcuts,
-    { combo: "F2", label: tab === 0 ? t("ui_g.prod.new_formula") : t("ui_g.prod.new_order") },
+    { combo: "F2", label: t("ui_g.prod.new_order") },
     { combo: "Ctrl+D", label: t("shortcuts.save") },
-    { combo: "F3", label: t("ui_g.prod.new_line") },
     { combo: "Enter", label: t("shortcuts.confirm") },
     { combo: "Escape", label: t("shortcuts.close_dialog") },
   ];
 
   return (
     <Box dir={isRtl ? "rtl" : "ltr"} sx={{ p: { xs: 1, sm: 2 }, maxWidth: 1200, mx: "auto" }}>
-      <Typography sx={{ color: C.text, fontWeight: 800, fontSize: { xs: 18, sm: 22 }, mb: 0.5 }}>
-        {t("ui_e.page.title")}
-      </Typography>
-      <Typography sx={{ color: C.sub, fontSize: 13, mb: 2 }}>{t("ui_e.page.subtitle")}</Typography>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1.5, flexWrap: "wrap", mb: 2 }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ color: C.text, fontWeight: 800, fontSize: { xs: 18, sm: 22 }, mb: 0.5 }}>
+            {t("ui_def.prod.title")}
+          </Typography>
+          <Typography sx={{ color: C.sub, fontSize: 13 }}>{t("ui_def.prod.subtitle")}</Typography>
+        </Box>
+        {canDefine && (
+          <Button component={Link} to={definitionsPath} variant="outlined" sx={S.ghost}>
+            {t("ui_def.prod.define_link")}
+          </Button>
+        )}
+      </Box>
 
-      <Tabs
-        value={tab} onChange={(_, v) => selectTab(v)} variant="scrollable" scrollButtons="auto"
-        sx={{
-          mb: 2, minHeight: 40,
-          "& .MuiTab-root": { color: C.sub, textTransform: "none", fontWeight: 600, minHeight: 40 },
-          "& .Mui-selected": { color: `${C.primary} !important` },
-          "& .MuiTabs-indicator": { bgcolor: C.primary },
-        }}
-      >
-        <Tab label={t("ui_e.tabs.formulas")} />
-        <Tab label={t("ui_e.tabs.orders")} />
-      </Tabs>
-
-      {tab === 0 ? <FormulasTab {...ctx} jump={jump} /> : <OrdersTab {...ctx} />}
+      <OrdersTab {...ctx} />
 
       <ShortcutsHelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} items={helpItems} />
 
@@ -104,383 +90,6 @@ export default function ProductionPage() {
         </Alert>
       </Snackbar>
     </Box>
-  );
-}
-
-/* ═══════════════════════════════════════════
-   Formulations tab
-═══════════════════════════════════════════ */
-function FormulasTab(ctx) {
-  const { t, C, S, notify, jump } = ctx;
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [editing, setEditing] = useState(jump ? { id: jump.id } : null); // null | {} (new) | {id}
-  const [del, setDel] = useState(null);
-  const [delBusy, setDelBusy] = useState(false);
-  const [delErr, setDelErr] = useState("");
-
-  useShortcuts([{ combo: "F2", label: t("ui_g.prod.new_formula"), handler: () => setEditing({}) }]);
-
-  const load = useCallback(() => {
-    setLoading(true);
-    fetchFormulas()
-      .then((d) => { setRows(Array.isArray(d) ? d : []); setError(""); })
-      .catch((e) => setError(errMsg(e, t("ui_e.common.load_failed"))))
-      .finally(() => setLoading(false));
-  }, [t]);
-  useEffect(() => { load(); }, [load]);
-
-  const toggleActive = async (f) => {
-    try {
-      await updateFormula(f.id, { is_active: !f.is_active });
-      load();
-    } catch (e) { notify(errMsg(e, t("ui_e.common.save_failed")), "error"); }
-  };
-
-  const doDelete = async () => {
-    setDelBusy(true); setDelErr("");
-    try {
-      await deleteFormula(del.id);
-      notify(t("ui_e.formulas.deleted"));
-      setDel(null); load();
-    } catch (e) {
-      setDelErr(errMsg(e, t("ui_e.common.save_failed")) + " — " + t("ui_e.formulas.delete_hint"));
-    } finally { setDelBusy(false); }
-  };
-
-  return (
-    <Box sx={S.card}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, gap: 1, flexWrap: "wrap" }}>
-        <Typography sx={{ color: C.text, fontWeight: 700 }}>{t("ui_e.formulas.list_title")}</Typography>
-        <Button sx={S.btn} onClick={() => setEditing({})}>{t("ui_e.formulas.new")}<KbdHint>F2</KbdHint></Button>
-      </Box>
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-      {loading ? (
-        <Box sx={{ textAlign: "center", py: 4 }}><CircularProgress size={28} /></Box>
-      ) : rows.length === 0 ? (
-        <Typography sx={{ color: C.muted, textAlign: "center", py: 4 }}>{t("ui_e.formulas.empty")}</Typography>
-      ) : (
-        <TableWrap C={C}>
-          <Table size="small" sx={{ minWidth: 700 }}>
-            <TableHead>
-              <TableRow>
-                {["name", "code", "output", "batch", "version", "active", "actions"].map((k) => (
-                  <TableCell key={k} sx={S.th}>{t(`ui_e.formulas.col_${k}`)}</TableCell>
-                ))}
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows.map((f) => (
-                <TableRow key={f.id} hover>
-                  <TableCell sx={{ ...S.td, fontWeight: 600 }}>{f.name}</TableCell>
-                  <TableCell sx={S.td}>{f.code || "—"}</TableCell>
-                  <TableCell sx={S.td}>{f.output_material || "—"}</TableCell>
-                  <TableCell sx={S.td}>{fmt(f.output_quantity)} {f.output_unit}</TableCell>
-                  <TableCell sx={S.td}>{f.version}</TableCell>
-                  <TableCell sx={S.td}>
-                    <Switch size="small" checked={!!f.is_active} onChange={() => toggleActive(f)}
-                      slotProps={{ input: { "aria-label": t("ui_e.formulas.col_active") } }} />
-                  </TableCell>
-                  <TableCell sx={{ ...S.td, whiteSpace: "nowrap" }}>
-                    <Button size="small" sx={{ color: C.primary, textTransform: "none" }} onClick={() => setEditing(f)}>{t("ui_e.common.edit")}</Button>
-                    <Button size="small" sx={{ color: C.danger, textTransform: "none" }} onClick={() => { setDelErr(""); setDel(f); }}>{t("ui_e.common.delete")}</Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableWrap>
-      )}
-
-      {editing && (
-        <FormulaDialog key={editing.id || "new"} ctx={ctx} formula={editing}
-          openFormula={(id) => setEditing({ id })} onClose={() => setEditing(null)}
-          onSaved={() => { setEditing(null); load(); notify(t("ui_e.formulas.saved")); }} />
-      )}
-
-      <ConfirmDialog ctx={ctx} open={!!del} danger busy={delBusy} error={delErr}
-        title={t("ui_e.formulas.delete_title")}
-        text={t("ui_e.formulas.delete_text", { name: del?.name })}
-        confirmLabel={t("ui_e.common.delete")}
-        onClose={() => setDel(null)} onConfirm={doDelete} />
-    </Box>
-  );
-}
-
-function FormulaDialog({ ctx, formula, openFormula, onClose, onSaved }) {
-  const { t, C, S, fullScreen, materials } = ctx;
-  const isEdit = !!formula.id;
-  const [name, setName] = useState("");
-  const [code, setCode] = useState("");
-  const [notes, setNotes] = useState("");
-  const [outId, setOutId] = useState("");
-  const [outQty, setOutQty] = useState("1");
-  const [lines, setLines] = useState([{ key: newKey(), material_id: "", quantity: "", wastage: "0" }]);
-  const [loading, setLoading] = useState(isEdit);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [touched, setTouched] = useState(false);
-  const [dirty, setDirty] = useState(false);
-  const [jumpTo, setJumpTo] = useState(null);
-  const [subs, setSubs] = useState({}); // output material id -> formula id (active formulas)
-
-  useEffect(() => {
-    let alive = true;
-    fetchFormulas()
-      .then((list) => {
-        if (!alive) return;
-        const m = {};
-        (Array.isArray(list) ? list : []).forEach((f) => {
-          if (f.is_active && f.id !== formula.id && !m[String(f.output_material_id)]) m[String(f.output_material_id)] = f.id;
-        });
-        setSubs(m);
-      })
-      .catch(() => {});
-    return () => { alive = false; };
-  }, [formula.id]);
-
-  useEffect(() => {
-    if (!isEdit) return;
-    let alive = true;
-    fetchFormula(formula.id)
-      .then((f) => {
-        if (!alive) return;
-        setName(f.name || ""); setCode(f.code || ""); setNotes(f.notes || "");
-        setOutId(String(f.output_material_id ?? "")); setOutQty(String(f.output_quantity ?? "1"));
-        setLines((f.lines || []).map((l) => ({
-          key: newKey(), material_id: String(l.material_id), quantity: String(l.quantity),
-          wastage: String(l.wastage_percent ?? 0), notes: l.notes || "", unit_price: l.unit_price,
-          unit: l.unit, material: l.material, material_type: l.material_type,
-          stock: l.stock_quantity, sub_formula_id: l.sub_formula_id,
-        })));
-      })
-      .catch((e) => alive && setError(errMsg(e, t("ui_e.common.load_failed"))))
-      .finally(() => alive && setLoading(false));
-    return () => { alive = false; };
-  }, [isEdit, formula.id, t]);
-
-  const matById = useMemo(() => {
-    const m = {};
-    materials.forEach((x) => { m[String(x.id)] = x; });
-    return m;
-  }, [materials]);
-
-  // include materials of loaded lines that might be missing from the picker list
-  const options = useMemo(() => {
-    const list = [...materials];
-    lines.forEach((l) => {
-      if (l.material_id && !matById[l.material_id]) {
-        list.push({ id: l.material_id, name: l.material || `#${l.material_id}`, unit: l.unit, price: l.unit_price });
-      }
-    });
-    return list;
-  }, [materials, lines, matById]);
-
-  const optById = (id) => matById[id] || options.find((o) => String(o.id) === id);
-  const unitOf = (id) => optById(id)?.unit || "";
-  const priceOf = (l) => {
-    const p = num(optById(l.material_id)?.price);
-    if (Number.isFinite(p)) return p;
-    const q = num(l.unit_price);
-    return Number.isFinite(q) ? q : 0;
-  };
-
-  const used = new Set(lines.map((l) => l.material_id).filter(Boolean));
-  const batchCost = lines.reduce((s, l) => {
-    const q = num(l.quantity), w = num(l.wastage);
-    if (!(q > 0)) return s;
-    return s + q * (1 + (Number.isFinite(w) ? w : 0) / 100) * priceOf(l);
-  }, 0);
-
-  const setLine = (key, patch) => { setDirty(true); setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l))); };
-
-  // stock for a line: the material picker's current quantity, else the value loaded with the formula
-  const stockOf = (l) => {
-    const m = matById[l.material_id];
-    const v = m ? Number(m.quantity) : Number(l.stock);
-    return Number.isFinite(v) ? v : 0;
-  };
-  const needOf = (l) => {
-    const q = num(l.quantity), w = num(l.wastage);
-    return q > 0 ? q * (1 + (Number.isFinite(w) ? w : 0) / 100) : 0;
-  };
-  const typeOf = (l) => matById[l.material_id]?.material_type || l.material_type;
-  const subOf = (l) => subs[l.material_id] || null;
-  const filled = lines.filter((l) => l.material_id && needOf(l) > 0);
-  const shortCount = filled.filter((l) => stockOf(l) < needOf(l)).length;
-  const tryJump = (id) => { if (dirty) setJumpTo(id); else openFormula(id); };
-
-  const lineErr = (l) => ({
-    mat: !l.material_id,
-    qty: !(num(l.quantity) > 0),
-    waste: !(num(l.wastage) >= 0 && num(l.wastage) < 100),
-  });
-  const valid =
-    name.trim() && outId && num(outQty) > 0 && lines.length > 0 &&
-    lines.every((l) => { const e = lineErr(l); return !e.mat && !e.qty && !e.waste; });
-
-  const submit = async () => {
-    setTouched(true);
-    if (!valid) return;
-    setSaving(true); setError("");
-    const body = {
-      name: name.trim(), code: code.trim(), notes: notes.trim(),
-      output_material_id: Number(outId), output_quantity: num(outQty),
-      lines: lines.map((l) => ({
-        material_id: Number(l.material_id), quantity: num(l.quantity),
-        wastage_percent: num(l.wastage) || 0, notes: l.notes || "",
-      })),
-    };
-    try {
-      if (isEdit) await updateFormula(formula.id, body);
-      else await createFormula(body);
-      onSaved();
-    } catch (e) {
-      setError(errMsg(e, t("ui_e.common.save_failed")));
-    } finally { setSaving(false); }
-  };
-
-  const addLine = () => { setDirty(true); setLines((ls) => [...ls, { key: newKey(), material_id: "", quantity: "", wastage: "0" }]); };
-
-  useShortcuts([
-    { combo: "Ctrl+D", label: t("ui_g.prod.save"), scope: "dialog", handler: () => { if (!saving && !loading) submit(); } },
-    { combo: "Enter", label: t("shortcuts.confirm"), scope: "dialog", allowInInput: true,
-      handler: (e) => (enterIsNative(e) || saving || loading ? false : submit()) },
-    { combo: "F3", label: t("ui_g.prod.new_line"), scope: "dialog", handler: addLine },
-  ]);
-
-  const typeLabel = (m) => (m?.material_type ? ` · ${t(`ui_e.types.${m.material_type}`, { defaultValue: m.material_type })}` : "");
-
-  return (
-    <Dialog open onClose={saving ? undefined : onClose} fullScreen={fullScreen} maxWidth="md" fullWidth slotProps={{ paper: { sx: S.dialogPaper }, transition: { onExit: blurFocused } }}>
-      <DialogTitle sx={{ fontWeight: 700 }}>{isEdit ? t("ui_e.formulas.edit_title") : t("ui_e.formulas.new_title")}</DialogTitle>
-      <DialogContent dividers sx={{ borderColor: C.divider }}>
-        {loading ? <Box sx={{ textAlign: "center", py: 4 }}><CircularProgress size={28} /></Box> : (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 0.5 }}>
-            {error && <Alert severity="error">{error}</Alert>}
-            <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "2fr 1fr" } }}>
-              <TextField label={t("ui_e.formulas.f_name")} value={name} onChange={(e) => setName(e.target.value)} size="small" sx={S.field}
-                error={touched && !name.trim()} required />
-              <TextField label={t("ui_e.formulas.f_code")} value={code} onChange={(e) => setCode(e.target.value)} size="small" sx={S.field} />
-            </Box>
-            <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "2fr 1fr" } }}>
-              <TextField select label={t("ui_e.formulas.f_output")} value={outId} onChange={(e) => setOutId(e.target.value)}
-                size="small" sx={S.field} error={touched && !outId} required>
-                {options.filter((m) => !used.has(String(m.id))).concat(outId && used.has(outId) ? [optById(outId)] : []).map((m) => (
-                  <MenuItem key={m.id} value={String(m.id)}>{m.name}{typeLabel(m)}</MenuItem>
-                ))}
-              </TextField>
-              <TextField label={t("ui_e.formulas.f_batch_qty")} value={outQty} onChange={(e) => setOutQty(e.target.value)}
-                size="small" sx={S.field} type="number" slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" }, input: { endAdornment: <Typography sx={{ color: C.muted, fontSize: 12 }}>{unitOf(outId)}</Typography> } }}
-                error={touched && !(num(outQty) > 0)}
-                 />
-            </Box>
-
-            <Typography sx={{ color: C.text, fontWeight: 700, mt: 1 }}>{t("ui_e.formulas.lines_title")}</Typography>
-            <TableWrap C={C}>
-              <Table size="small" sx={{ minWidth: 820 }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={S.th}>{t("ui_e.formulas.l_material")}</TableCell>
-                    <TableCell sx={S.th}>{t("ui_prod.col_qty_batch")}</TableCell>
-                    <TableCell sx={S.th}>{t("ui_prod.col_waste")}</TableCell>
-                    <TableCell sx={S.th}>{t("ui_prod.col_stock")}</TableCell>
-                    <TableCell sx={S.th}>{t("ui_prod.col_status")}</TableCell>
-                    <TableCell sx={S.th} />
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {lines.map((l) => {
-                    const e = touched ? lineErr(l) : {};
-                    return (
-                      <TableRow key={l.key}>
-                        <TableCell sx={{ ...S.td, minWidth: 200 }}>
-                          <TextField select fullWidth size="small" value={l.material_id} sx={S.field}
-                            onChange={(ev) => setLine(l.key, { material_id: ev.target.value })} error={!!e.mat}>
-                            {options.filter((m) => !used.has(String(m.id)) || String(m.id) === l.material_id).map((m) => (
-                              <MenuItem key={m.id} value={String(m.id)}>{m.name}{typeLabel(m)}</MenuItem>
-                            ))}
-                          </TextField>
-                          {l.material_id && (
-                            <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 0.75, mt: 0.5 }}>
-                              <TypeBadge t={t} C={C} type={typeOf(l)} />
-                              {subOf(l) && (
-                                <SubFormulaButton t={t} C={C} name={optById(l.material_id)?.name || l.material || ""}
-                                  onOpen={() => tryJump(subOf(l))} />
-                              )}
-                            </Box>
-                          )}
-                        </TableCell>
-                        <TableCell sx={{ ...S.td, minWidth: 140 }}>
-                          <TextField size="small" type="number" value={l.quantity} sx={S.field} error={!!e.qty}
-                            onChange={(ev) => setLine(l.key, { quantity: ev.target.value })}
-                            slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" }, input: { endAdornment: <Typography sx={{ color: C.muted, fontSize: 12, ms: 0.5 }}>{unitOf(l.material_id)}</Typography> } }}
-                             />
-                        </TableCell>
-                        <TableCell sx={{ ...S.td, minWidth: 100 }}>
-                          <TextField size="small" type="number" value={l.wastage} sx={S.field} error={!!e.waste}
-                            onChange={(ev) => setLine(l.key, { wastage: ev.target.value })}
-                            slotProps={{ htmlInput: { min: 0, max: 99.99, step: "any", inputMode: "decimal" }, input: { endAdornment: <Typography sx={{ color: C.muted, fontSize: 12 }}>%</Typography> } }}
-                             />
-                        </TableCell>
-                        <TableCell sx={{ ...S.td, whiteSpace: "nowrap" }}>
-                          {l.material_id ? `${fmt(stockOf(l))} ${unitOf(l.material_id)}` : "—"}
-                        </TableCell>
-                        <TableCell sx={{ ...S.td, whiteSpace: "nowrap" }}>
-                          {l.material_id && needOf(l) > 0
-                            ? <StatusCell t={t} C={C} status={lineStatus(stockOf(l), needOf(l))} />
-                            : "—"}
-                        </TableCell>
-                        <TableCell sx={S.td}>
-                          <IconButton size="small" aria-label={t("ui_e.common.remove")} disabled={lines.length === 1}
-                            onClick={() => { setDirty(true); setLines((ls) => ls.filter((x) => x.key !== l.key)); }} sx={{ color: C.danger }}>✕</IconButton>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableWrap>
-            {filled.length > 0 && (
-              <ReadyBanner t={t} ready={shortCount === 0} count={shortCount}
-                okText={t("ui_prod.formula_banner_ok")}
-                shortText={t("ui_prod.formula_banner_short", { count: shortCount })} />
-            )}
-            <Typography sx={{ color: C.muted, fontSize: 12 }}>{t("ui_prod.formula_stock_hint")}</Typography>
-            <Box>
-              <Button variant="outlined" sx={S.ghost} onClick={addLine}>
-                + {t("ui_e.formulas.add_line")}<KbdHint>F3</KbdHint>
-              </Button>
-            </Box>
-
-            <TextField label={t("ui_e.formulas.f_notes")} value={notes} onChange={(e) => setNotes(e.target.value)}
-              size="small" sx={S.field} multiline minRows={2} />
-
-            <Box sx={{ bgcolor: C.infoBg, border: `1px solid ${C.glassBorder}`, borderRadius: 2, p: 1.5, display: "flex", justifyContent: "space-between", gap: 1, flexWrap: "wrap" }}>
-              <Typography sx={{ color: C.sub, fontSize: 13 }}>{t("ui_e.formulas.est_cost")}</Typography>
-              <Typography sx={{ color: C.text, fontWeight: 800 }}>
-                {fmt(batchCost)}
-                {num(outQty) > 0 && (
-                  <Box component="span" sx={{ color: C.sub, fontWeight: 500, fontSize: 12, ms: 1 }}>
-                    {" "}({t("ui_e.formulas.per_unit")}: {fmt(batchCost / num(outQty))})
-                  </Box>
-                )}
-              </Typography>
-            </Box>
-          </Box>
-        )}
-      </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button variant="outlined" sx={S.ghost} onClick={onClose} disabled={saving}>{t("ui_e.common.cancel")}</Button>
-        <Button sx={S.btn} onClick={submit} disabled={saving || loading}>
-          {saving ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_e.common.save")}<KbdHint>Ctrl+D</KbdHint></>}
-        </Button>
-      </DialogActions>
-      <ConfirmDialog ctx={ctx} open={!!jumpTo} title={t("ui_prod.jump_confirm_title")}
-        text={t("ui_prod.jump_confirm_text")} confirmLabel={t("ui_prod.jump_confirm")}
-        onClose={() => setJumpTo(null)} onConfirm={() => openFormula(jumpTo)} />
-    </Dialog>
   );
 }
 
@@ -510,7 +119,6 @@ function OrdersTab(ctx) {
   useShortcuts([{ combo: "F2", label: t("ui_g.prod.new_order"), handler: () => setCreating(true) }]);
 
   const load = useCallback(() => {
-    setLoading(true);
     fetchOrders(status)
       .then((d) => { setRows(Array.isArray(d) ? d : []); setError(""); })
       .catch((e) => setError(errMsg(e, t("ui_e.common.load_failed"))))
@@ -584,7 +192,7 @@ function OrdersTab(ctx) {
     <Box sx={S.card}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, gap: 1, flexWrap: "wrap" }}>
         <TextField select size="small" label={t("ui_e.orders.filter_status")} value={status}
-          onChange={(e) => setStatus(e.target.value)} sx={{ ...S.field, minWidth: 180 }}>
+          onChange={(e) => { setLoading(true); setStatus(e.target.value); }} sx={{ ...S.field, minWidth: 180 }}>
           <MenuItem value="">{t("ui_e.orders.all")}</MenuItem>
           {STATUSES.map((s) => <MenuItem key={s} value={s}>{t(`ui_e.status.${s}`)}</MenuItem>)}
         </TextField>
@@ -755,6 +363,11 @@ function OrderCreateDialog({ ctx, onClose, onCreated }) {
             error={touched && !fid} helperText={formulas.length === 0 ? t("ui_e.orders.no_active_formulas") : ""}>
             {formulas.map((f) => <MenuItem key={f.id} value={String(f.id)}>{f.name} — {f.output_material}</MenuItem>)}
           </TextField>
+          {formulas.length === 0 && ctx.canDefine && (
+            <Button component={Link} to={ctx.definitionsPath} variant="outlined" sx={{ ...S.ghost, alignSelf: "flex-start" }}>
+              {t("ui_def.prod.define_link")}
+            </Button>
+          )}
           <TextField size="small" type="number" label={t("ui_e.orders.f_planned")} value={qty} sx={S.field}
             onChange={(e) => setQty(e.target.value)} slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" }, input: { endAdornment: <Typography sx={{ color: C.muted, fontSize: 12 }}>{sel?.output_unit}</Typography> } }}
             error={touched && !(num(qty) > 0)}

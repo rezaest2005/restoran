@@ -9,14 +9,9 @@ export const errMsg = (e, fallback = "") =>
   e?.message ||
   fallback;
 
-/* Formulas */
-export const fetchMaterials = () =>
-  client.get("/api/production/materials/").then(unwrap);
+/* Formulas — read-only here; they are defined in Definitions (dictionary/) */
 export const fetchFormulas = () => client.get("/api/formulas/").then(unwrap);
 export const fetchFormula = (id) => client.get(`/api/formulas/${id}/`).then(unwrap);
-export const createFormula = (body) => client.post("/api/formulas/", body).then(unwrap);
-export const updateFormula = (id, body) => client.put(`/api/formulas/${id}/`, body).then(unwrap);
-export const deleteFormula = (id) => client.delete(`/api/formulas/${id}/`).then((r) => r.data);
 
 /* Production orders */
 export const fetchOrders = (status) =>
