@@ -1,6 +1,6 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Box, Typography, Drawer, Badge } from "@mui/material";
-import { Storefront, Assessment, Public, Settings, ShoppingCart, Notifications, QrCode2 } from "@mui/icons-material";
+import { Storefront, Assessment, ShoppingCart, Notifications, QrCode2 } from "@mui/icons-material";
 import { useParams } from "react-router-dom";
 import TableQrDialog from "@/features/public/TableQrDialog";
 import { useTranslation } from "react-i18next";
@@ -13,7 +13,9 @@ import useCart from "./hooks/useCart";
 import useCheckout from "./hooks/useCheckout";
 import useDailyReport from "./hooks/useDailyReport";
 import useAnalytics from "./hooks/useAnalytics";
-import usePaymentConfig from "./hooks/usePaymentConfig";
+import useBarcodeScanner from "./hooks/useBarcodeScanner";
+import { lookupBarcode } from "./api";
+import { beepOk, beepError } from "./common/beep";
 
 import PosHeader from "./components/PosHeader";
 import CategoryBar from "./components/CategoryBar";
@@ -23,7 +25,7 @@ import CartPanel from "./components/CartPanel";
 import CheckoutDialog from "./components/CheckoutDialog";
 import DailyReport from "./components/DailyReport";
 import OrderDetailDialog from "./components/OrderDetailDialog";
-import PaymentSettingsPage from "./components/PaymentSettingsPage";
+import DaySummary from "./components/DaySummary";
 import IncomingOrders from "./components/IncomingOrders";
 import useIncomingOrders from "./hooks/useIncomingOrders";
 import { buildColors } from "@shared/palette";
@@ -34,9 +36,7 @@ import { buildGlassCardSx, useToast, ToastSnackbar, formatMoney } from "./common
 const NAV_ITEMS = [
   { key: "pos", icon: Storefront, labelKey: "ui_c.pos.nav_pos" },
   { key: "report", icon: Assessment, labelKey: "ui_c.pos.nav_report" },
-  { key: "online", icon: Public, labelKey: "ui_c.pos.nav_online" },
   { key: "incoming", icon: Notifications, labelKey: "ui_f.incoming.nav" },
-  { key: "settings", icon: Settings, labelKey: "ui_c.pos.nav_settings" },
 ];
 
 const ORDER_TYPES = [
@@ -64,6 +64,7 @@ export default function Pos() {
   const [qrOpen, setQrOpen] = useState(false);
   const [accepted, setAccepted] = useState([]);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [reportView, setReportView] = useState("orders"); // orders | summary
 
   const incoming = useIncomingOrders({
     onNewOrder: (o) => showToast(
@@ -93,7 +94,7 @@ export default function Pos() {
   const {
     foods, categoryNames, loading: foodsLoading,
     search, setSearch, activeCat, setActiveCat,
-    reload, decreaseStock,
+    allFoods, reload,
   } = useFoods(useDictionary, isRtl);
 
   const {
@@ -113,16 +114,11 @@ export default function Pos() {
     reload: reloadReport,
     selectedDate, isToday,
     goPrevDay, goNextDay, goToday,
-  } = useDailyReport();
+  } = useDailyReport(mainTab === "report");
 
   const analytics = useAnalytics(dailyOrders);
   const deleteCartLine = useCallback((cartId) => updateQty(cartId, 0), [updateQty]);
 
-  const {
-    gateways, terminals, loading: configLoading,
-    saving: configSaving, testing, testResult,
-    save: saveConfig, remove: removeConfig, test: testConfig,
-  } = usePaymentConfig(mainTab === "settings");
 
   useEffect(() => {
     const tmr = setTimeout(() => setMounted(true), 80);
@@ -136,6 +132,73 @@ export default function Pos() {
   const C = useMemo(() => buildColors(isDark), [isDark]);
 
   const glassCardSx = useMemo(() => buildGlassCardSx(C), [C]);
+
+  // Adds a product to the cart without exceeding the server's effective stock.
+  const tryAdd = useCallback((item) => {
+    if (!item.is_manual && item.id != null) {
+      const live = allFoods.find((f) => f.id === item.id);
+      const stock = live ? live.stock : item.stock;
+      if (stock != null) {
+        const inCart = cart.filter((c) => c.id === item.id && !c.is_manual).reduce((n, c) => n + c.qty, 0);
+        const inc = inCart > 0 ? 1 : (item.qty || 1);
+        if (inCart + inc > stock) {
+          beepError();
+          showToast(
+            stock <= 0
+              ? t("ui_pos2.scan.out_of_stock", { name: item.name })
+              : t("ui_pos2.stock.limit", { name: item.name, n: stock }),
+            "error",
+          );
+          return false;
+        }
+      }
+    }
+    addToCart(item);
+    return true;
+  }, [allFoods, cart, addToCart, showToast, t]);
+
+  const tryAddRef = useRef(tryAdd);
+  useEffect(() => { tryAddRef.current = tryAdd; });
+
+  // Barcode (USB wedge burst or typed in the search box + Enter) -> catalog lookup -> cart.
+  const handleScan = useCallback(async (raw) => {
+    const code = String(raw || "").trim();
+    if (!code) return;
+    setSearch("");
+    try {
+      const p = await lookupBarcode(code);
+      if (!p) throw new Error("empty");
+      if (p.is_available === false) {
+        beepError();
+        showToast(t("ui_pos2.scan.unavailable", { name: p.name }), "error");
+        return;
+      }
+      const price = Number(p.price) || 0;
+      const fin = Number(p.final_price) || 0;
+      const live = allFoods.find((f) => f.id === p.id);
+      const item = {
+        id: p.id, name: p.name, name_en: p.name_en || "",
+        category: p.category || "",
+        category_en: live?.category_name_en || p.category || "",
+        price, discount: fin > 0 && fin < price ? price - fin : 0,
+        stock: Number(p.stock) || 0, is_manual: false,
+      };
+      if (tryAddRef.current(item)) {
+        beepOk();
+        showToast(t("ui_pos2.scan.added", { name: p.name }), "success");
+      }
+    } catch (err) {
+      beepError();
+      showToast(
+        err?.response?.status === 404
+          ? t("ui_pos2.scan.unknown", { code })
+          : t("ui_pos2.scan.error"),
+        "error",
+      );
+    }
+  }, [allFoods, setSearch, showToast, t]);
+
+  useBarcodeScanner({ enabled: mainTab === "pos" && !!useDictionary, onScan: handleScan });
 
   const handleAddManual = (item) => {
     addToCart(item);
@@ -160,10 +223,8 @@ export default function Pos() {
     });
     
     if (result) {
-      // ★ استفاده از Promise.all برای کاهش موجودی به صورت همزمان و سریع‌تر
-      await Promise.all(cart.map(item => decreaseStock(item.id, item.qty)));
-      
       clearCart();
+      reload(); // effective stock is decided by the server
       setCustName("");
       setCustPhone("");
       reloadReport();
@@ -221,12 +282,17 @@ export default function Pos() {
       { combo: "Ctrl+A", label: t("ui_g.pos.next_product") },
       { combo: "Ctrl+Z", label: t("ui_g.pos.prev_product") },
       { combo: "Enter", label: t("ui_g.pos.add_product") },
+      { combo: t("ui_pos2.help.scan_combo"), label: t("ui_pos2.help.scan") },
       { combo: "Alt+PageDown", label: t("ui_l.pos.next_category") },
       { combo: "Alt+PageUp", label: t("ui_l.pos.prev_category") },
       { combo: "Ctrl+A / Ctrl+Z", label: t("ui_l.pos.cart_next_row") + " / " + t("ui_l.pos.cart_prev_row") },
       { combo: "Delete", label: t("ui_l.pos.cart_row_remove") },
       { combo: "+", label: t("ui_l.pos.cart_row_inc") },
       { combo: "-", label: t("ui_l.pos.cart_row_dec") },
+    ] : []),
+    ...(mainTab === "report" ? [
+      { combo: "Ctrl+Z", label: t("shortcuts.prev") },
+      { combo: "Ctrl+A", label: t("shortcuts.next") },
     ] : []),
     ...(mainTab === "incoming" ? [
       { combo: "Ctrl+D", label: t("ui_g.pos.accept_first") },
@@ -240,7 +306,7 @@ export default function Pos() {
   // ★ استخراج پراپ‌های CartPanel برای جلوگیری از تکرار کد (DRY)
   const cartPanelProps = {
     cart, cartCount, cartTotal, categoryDiscounts,
-    onAdd: addToCart, onRemove: removeFromCart, onDelete: deleteCartLine, onClear: clearCart,
+    onAdd: tryAdd, onRemove: removeFromCart, onDelete: deleteCartLine, onClear: clearCart,
     orderType, setOrderType,
     custName, setCustName, custPhone, setCustPhone,
     requireCustomer,
@@ -354,7 +420,7 @@ export default function Pos() {
               pb: { xs: 10, md: 2 },
             }}>
               <PosHeader
-                search={search} setSearch={setSearch} C={C}
+                search={search} setSearch={setSearch} onScanCode={handleScan} C={C}
                 useDictionary={useDictionary} isRtl={isRtl}
                 editMode={editMode} setEditMode={setEditMode}
               />
@@ -372,7 +438,7 @@ export default function Pos() {
                   <FoodGrid
                     foods={foods}
                     loading={foodsLoading || settingsLoading}
-                    onAdd={addToCart}
+                    onAdd={tryAdd}
                     onRemove={removeOneFromCart}
                     C={C}
                     showStock={showStock}
@@ -544,21 +610,47 @@ export default function Pos() {
 
         {mainTab === "report" && (
           <Box sx={{ p: { xs: 1, sm: 2 }, overflowY: "auto", flex: 1, pb: 2 }}>
+            <Box role="tablist" sx={{ display: "flex", gap: 0.8, mb: 1.2, flexWrap: "wrap" }}>
+              {[["orders", "ui_pos2.tabs.orders"], ["summary", "ui_pos2.tabs.summary"]].map(([key, labelKey]) => (
+                <Box
+                  key={key} role="tab" tabIndex={0} aria-selected={reportView === key}
+                  onClick={() => setReportView(key)}
+                  onKeyDown={(ev) => (ev.key === "Enter" || ev.key === " ") && setReportView(key)}
+                  sx={{
+                    px: 1.8, py: 0.7, borderRadius: "10px", cursor: "pointer", fontSize: 13,
+                    fontWeight: reportView === key ? 800 : 500, fontFamily: "'Vazirmatn', sans-serif",
+                    color: reportView === key ? C.primary : C.sub,
+                    bgcolor: reportView === key ? C.primarySubtle : "transparent",
+                    border: `1px solid ${reportView === key ? C.primary : C.glassBorder}`,
+                  }}
+                >
+                  {t(labelKey)}
+                </Box>
+              ))}
+            </Box>
             <Box sx={{ ...glassCardSx, p: { xs: 1.5, sm: 2 } }}>
-              <DailyReport
-                orders={dailyOrders}
-                loading={reportLoading}
-                onRowClick={openDetail}
-                onReload={reloadReport}
-                C={C}
-                isRtl={isRtl}
-                selectedDate={selectedDate}
-                isToday={isToday}
-                onPrevDay={goPrevDay}
-                onNextDay={goNextDay}
-                onGoToday={goToday}
-                analytics={analytics}
-              />
+              {reportView === "summary" ? (
+                <DaySummary
+                  date={selectedDate} isToday={isToday}
+                  onPrevDay={goPrevDay} onNextDay={goNextDay} onGoToday={goToday}
+                  C={C} isRtl={isRtl} lang={lang}
+                />
+              ) : (
+                <DailyReport
+                  orders={dailyOrders}
+                  loading={reportLoading}
+                  onRowClick={openDetail}
+                  onReload={reloadReport}
+                  C={C}
+                  isRtl={isRtl}
+                  selectedDate={selectedDate}
+                  isToday={isToday}
+                  onPrevDay={goPrevDay}
+                  onNextDay={goNextDay}
+                  onGoToday={goToday}
+                  analytics={analytics}
+                />
+              )}
             </Box>
             <OrderDetailDialog
               open={detailOpen}
@@ -567,22 +659,6 @@ export default function Pos() {
               C={C}
               isRtl={isRtl}
             />
-          </Box>
-        )}
-
-        {mainTab === "online" && (
-          <Box sx={{ p: { xs: 1.5, sm: 3 }, overflowY: "auto", flex: 1 }}>
-            <Box sx={{ ...glassCardSx, p: { xs: 2, sm: 3 } }}>
-              <Typography sx={{
-                fontWeight: 800, fontSize: { xs: 17, sm: 20 }, mb: 2,
-                fontFamily: "'Vazirmatn', sans-serif",
-              }}>
-                {t("ui_c.pos.online_orders")}
-              </Typography>
-              <Typography sx={{ color: C.sub, fontSize: 14 }}>
-                {t("ui_c.pos.online_orders_will_appear_here")}
-              </Typography>
-            </Box>
           </Box>
         )}
 
@@ -595,24 +671,6 @@ export default function Pos() {
           />
         )}
 
-        {mainTab === "settings" && (
-          <Box sx={{ p: { xs: 1, sm: 2 }, overflowY: "auto", flex: 1 }}>
-            <Box sx={{ ...glassCardSx, p: { xs: 1.5, sm: 2.5 }, maxWidth: 800 }}>
-              <PaymentSettingsPage
-                gateways={gateways}
-                terminals={terminals}
-                loading={configLoading}
-                saving={configSaving}
-                testing={testing}
-                testResult={testResult}
-                onSave={saveConfig}
-                onDelete={removeConfig}
-                onTest={testConfig}
-                isRtl={isRtl}
-              />
-            </Box>
-          </Box>
-        )}
       </Box>
 
       {tenantSlug && (

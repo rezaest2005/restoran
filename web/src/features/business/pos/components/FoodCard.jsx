@@ -2,8 +2,7 @@ import { useState, useRef, useEffect, memo } from "react";
 import { Box, Typography, IconButton } from "@mui/material";
 import { CameraAlt, Add, Remove, PushPin, PushPinOutlined, Percent, AttachMoney } from "@mui/icons-material";
 
-// 1. ایمپورت استاتیک کلاینت (جایگزین ایمپورت داینامیک)
-import client from "../../api/client";
+import { updateProduct, uploadProductImage } from "../api";
 
 function FoodCard({
   food = {},
@@ -29,18 +28,19 @@ function FoodCard({
   const [hovered, setHovered] = useState(false);
   const [stock, setStock] = useState(food.stock != null ? food.stock : "");
   const [saving, setSaving] = useState(false);
-  const initialStock = useRef(food.stock != null ? food.stock : "");
   const fileRef = useRef(null);
 
-  const outOfStock = stock !== "" && Number(stock) <= 0;
-  const lowStock = stock !== "" && Number(stock) > 0 && Number(stock) <= 5;
+  // Effective stock comes from the server (refreshed by polling); what is already in the cart is reserved.
+  const serverStock = food.stock != null ? Number(food.stock) : null;
+  const avail = serverStock == null ? null : Math.max(0, serverStock - cartQty);
+  const outOfStock = avail != null && avail <= 0;
+  const lowStock = avail != null && avail > 0 && avail <= 5;
 
   useEffect(() => {
     setPrice(food.price || 0);
     setDiscount(0);
     setDiscountMode("percent");
     setStock(food.stock != null ? food.stock : "");
-    initialStock.current = food.stock != null ? food.stock : "";
     setImageUrl(food.image || null);
   }, [food.id, food.price, food.stock, food.image]);
 
@@ -126,9 +126,9 @@ function FoodCard({
     try {
       const finalPrice = effectivePrice;
       const payload = { price, final_price: finalPrice };
-      if (stock !== "") payload.stock = Number(stock);
+      if (stock !== "" && !food.linked) payload.stock = Number(stock);
 
-      await client.post(`/api/dictionary/food/${food.id}/update/`, payload);
+      await updateProduct(food.id, payload);
 
       if (typeof onSave === "function") {
         onSave({
@@ -154,15 +154,13 @@ function FoodCard({
     if (e) e.stopPropagation();
     if (outOfStock || editMode || typeof onAdd !== "function") return;
 
-    // مدیریت موجودی به صورت آپتیمیستیک (در صورت نیاز می‌توانید به سبد خرید منتقل کنید)
-    if (stock !== "") setStock((s) => Math.max(0, Number(s) - 1));
-
     onAdd({
       id: food.id,
       name: food.name,
       name_en: food.name_en || "",
       category: food.category_name || food.category || "",
       category_en: food.category_name_en || "",
+      stock: serverStock,
       price,
       discount: serverDiscount,
       effective_price: effectivePrice,
@@ -180,9 +178,6 @@ function FoodCard({
   const dec = (e) => {
     e.stopPropagation();
     if (cartQty > 0) {
-      if (stock !== "" && initialStock.current !== "") {
-        setStock((s) => Math.min(Number(initialStock.current), Number(s) + 1));
-      }
       if (typeof onRemove === "function") onRemove(food.id);
     }
   };
@@ -204,17 +199,8 @@ function FoodCard({
     if (!file) return;
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("image", file);
-      const res = await client.post(
-        `/api/dictionary/food/${food.id}/update/`,
-        fd,
-        {
-          headers: { "Content-Type": "multipart/form-data" },
-        },
-      );
-      if (res.data?.image) setImageUrl(res.data.image);
-      else if (res.data?.food?.image) setImageUrl(res.data.food.image);
+      const data = await uploadProductImage(food.id, file);
+      if (data?.image) setImageUrl(data.image);
     } catch (err) {
       console.error("Image upload failed:", err);
     } finally {
@@ -652,7 +638,8 @@ function FoodCard({
                       setStock(raw === "" ? "" : Math.max(0, Number(raw)));
                   }}
                   placeholder={isRtl ? "تعداد رو وارد کنین" : "Enter quantity"}
-                  style={{ ...inputSx, flex: 1 }}
+                  disabled={!!food.linked}
+                  style={{ ...inputSx, flex: 1, opacity: food.linked ? 0.5 : 1 }}
                 />
                 <Box
                   role="button" tabIndex={0}
@@ -781,7 +768,7 @@ function FoodCard({
                   textOverflow: "ellipsis",
                 }}
               >
-                {stock === ""
+                {avail == null
                   ? isRtl
                     ? "موجودی: نامشخص"
                     : "Stock: N/A"
@@ -791,11 +778,11 @@ function FoodCard({
                       : "Out of stock"
                     : lowStock
                       ? isRtl
-                        ? `رو به اتمام (${stock})`
-                        : `Low stock (${stock})`
+                        ? `رو به اتمام (${avail})`
+                        : `Low stock (${avail})`
                       : isRtl
-                        ? `موجودی: ${stock}`
-                        : `Stock: ${stock}`}
+                        ? `موجودی: ${avail}`
+                        : `Stock: ${avail}`}
               </Typography>
             </Box>
 

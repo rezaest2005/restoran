@@ -54,12 +54,12 @@ export default function CheckoutDialog({
 
   const paymentMethods = [
     { key: "cash", icon: Payments, labelFa: "پرداخت نقدی", labelEn: "Cash" },
-    { key: "card", icon: CreditCard, labelFa: "کارتخوان", labelEn: "Card" },
+    { key: "card", icon: CreditCard, labelFa: "کارت (ثبت دستی)", labelEn: "Card (recorded manually)" },
     {
       key: "online",
       icon: Language,
-      labelFa: "درگاه آنلاین",
-      labelEn: "Online",
+      labelFa: "آنلاین / انتقال (ثبت دستی)",
+      labelEn: "Online / transfer (recorded manually)",
     },
   ];
 
@@ -560,6 +560,11 @@ export default function CheckoutDialog({
                 }}
               >
                 {isRtl ? "روش پرداخت:" : "Payment Method:"}
+              </Typography>
+              <Typography
+                sx={{ fontSize: 11, color: C.sub, mb: 1, fontFamily: "'Vazirmatn', sans-serif" }}
+              >
+                {t("ui_pos2.checkout.manual_note")}
               </Typography>
 
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>

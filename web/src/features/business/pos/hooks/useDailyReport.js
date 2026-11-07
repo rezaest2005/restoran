@@ -1,38 +1,51 @@
-import { useState, useEffect, useCallback } from "react";
-import client from "../../api/client";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { fetchDailyOrders } from "../api";
+import usePolling from "../common/usePolling";
 
-export default function useDailyReport() {
+const REFRESH_MS = 15000;
+
+export const localDateStr = (d = new Date()) => {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
+
+const shiftDate = (str, days) => {
+  const [y, m, d] = str.split("-").map(Number);
+  return localDateStr(new Date(y, m - 1, d + days));
+};
+
+/** Orders of the selected day, always read from the server (shared by all terminals). */
+export default function useDailyReport(enabled = true) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const d = new Date();
-    return d.toISOString().split("T")[0]; // YYYY-MM-DD
-  });
+  const [selectedDate, setSelectedDate] = useState(() => localDateStr());
+  const ctrlRef = useRef(null);
+  const loadedFor = useRef(null);
 
   const load = useCallback(async () => {
+    ctrlRef.current?.abort();
+    const ctrl = new AbortController();
+    ctrlRef.current = ctrl;
+    // Spinner only on the first load of a given day; polling refreshes silently.
+    if (loadedFor.current !== selectedDate) setLoading(true);
     try {
-      setLoading(true);
-      // ★ فراخوانی مستقیم از بک‌اند با استفاده از client
-      // این دقیقاً به تابع pos_daily_orders در pos.py می‌رود
-      const res = await client.get(`/api/pos/daily-orders/?date=${selectedDate}`);
-      const data = res.data;
-      
-      if (data.success) {
-        setOrders(data.orders || []);
-      } else {
-        setOrders([]);
-      }
+      const data = await fetchDailyOrders(selectedDate, ctrl.signal);
+      if (ctrl.signal.aborted) return;
+      setOrders(data?.success ? data.orders || [] : []);
+      loadedFor.current = selectedDate;
     } catch (err) {
+      if (ctrl.signal.aborted || err?.code === "ERR_CANCELED") return;
       console.error("Failed to load daily orders:", err);
-      setOrders([]);
+      if (loadedFor.current !== selectedDate) setOrders([]);
     } finally {
-      setLoading(false);
+      if (!ctrl.signal.aborted) setLoading(false);
     }
   }, [selectedDate]);
 
-  useEffect(() => { load(); }, [load]);
+  usePolling(load, REFRESH_MS, enabled);
+  useEffect(() => () => ctrlRef.current?.abort(), []);
 
   const openDetail = useCallback((order) => {
     setSelectedOrder(order);
@@ -44,31 +57,9 @@ export default function useDailyReport() {
     setSelectedOrder(null);
   }, []);
 
-  // ★ رفتن به روز قبل
-  const goPrevDay = useCallback(() => {
-    setSelectedDate(prev => {
-      const d = new Date(prev);
-      d.setDate(d.getDate() - 1);
-      return d.toISOString().split("T")[0];
-    });
-  }, []);
-
-  // ★ رفتن به روز بعد
-  const goNextDay = useCallback(() => {
-    setSelectedDate(prev => {
-      const d = new Date(prev);
-      d.setDate(d.getDate() + 1);
-      return d.toISOString().split("T")[0];
-    });
-  }, []);
-
-  // ★ برگشت به امروز
-  const goToday = useCallback(() => {
-    const d = new Date();
-    setSelectedDate(d.toISOString().split("T")[0]);
-  }, []);
-
-  const isToday = selectedDate === new Date().toISOString().split("T")[0];
+  const goPrevDay = useCallback(() => setSelectedDate((p) => shiftDate(p, -1)), []);
+  const goNextDay = useCallback(() => setSelectedDate((p) => shiftDate(p, 1)), []);
+  const goToday = useCallback(() => setSelectedDate(localDateStr()), []);
 
   return {
     orders,
@@ -76,12 +67,13 @@ export default function useDailyReport() {
     selectedOrder,
     detailOpen,
     selectedDate,
-    isToday,
+    isToday: selectedDate === localDateStr(),
     openDetail,
     closeDetail,
     reload: load,
     goPrevDay,
     goNextDay,
     goToday,
+    setSelectedDate,
   };
 }

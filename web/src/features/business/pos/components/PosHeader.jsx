@@ -1,11 +1,14 @@
+import { useTranslation } from "react-i18next";
 import { Box, TextField, InputAdornment, Button } from "@mui/material";
 import { Search, Edit, Close } from "@mui/icons-material";
 import { KbdHint } from "../common";
+import { looksLikeBarcode } from "../common/barcodeScanner";
 
 export default function PosHeader({
-  search, setSearch, C, useDictionary, isRtl,
+  search, setSearch, onScanCode, C, useDictionary, isRtl,
   editMode, setEditMode,
 }) {
+  const { t } = useTranslation();
   if (!useDictionary) return null;
 
   return (
@@ -21,20 +24,31 @@ export default function PosHeader({
     >
       <TextField
         size="small"
-        placeholder={isRtl ? "جستجو..." : "Search..."}
+        placeholder={t("ui_pos2.scan.placeholder")}
         value={search}
         onChange={e => setSearch(e.target.value)}
         sx={{
           "& .MuiOutlinedInput-root": {
             borderRadius: "10px", bgcolor: C.inputBg, fontSize: 13,
-            width: 200, height: 36, fontFamily: "'Vazirmatn', sans-serif",
+            width: { xs: 170, sm: 260 }, height: 36, fontFamily: "'Vazirmatn', sans-serif",
             "& fieldset": { borderColor: C.glassBorder },
             "&:hover fieldset": { borderColor: C.olive },
             "&.Mui-focused fieldset": { borderColor: C.olive },
           },
         }}
         slotProps={{
-          htmlInput: { id: "pos-search-input", "data-pos-search": "1" },
+          htmlInput: {
+            id: "pos-search-input",
+            "data-pos-search": "1",
+            // A code typed (or scanned) in the search box + Enter is a barcode lookup.
+            onKeyDown: (e) => {
+              if (e.key === "Enter" && onScanCode && looksLikeBarcode(e.target.value)) {
+                e.preventDefault();
+                e.stopPropagation();
+                onScanCode(e.target.value);
+              }
+            },
+          },
           input: {
             startAdornment: (
               <InputAdornment position="start">

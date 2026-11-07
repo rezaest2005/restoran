@@ -1,0 +1,41 @@
+{
+  "ui_pos2": {
+    "tabs": { "orders": "Orders", "summary": "Day summary" },
+    "summary": {
+      "title": "Day summary",
+      "date": "Date",
+      "total_sales": "Total sales",
+      "orders": "Orders",
+      "cancelled": "Cancelled orders",
+      "average": "Average ticket",
+      "by_method": "By payment method",
+      "cash": "Cash",
+      "card": "Card",
+      "online": "Online",
+      "top_qty": "Top products (quantity)",
+      "top_revenue": "Top products (revenue)",
+      "hourly": "Orders per hour",
+      "product": "Product",
+      "qty": "Qty",
+      "revenue": "Amount",
+      "count": "Orders",
+      "hour": "Hour",
+      "print": "Print",
+      "today": "Today",
+      "refresh": "Refresh",
+      "empty": "No data",
+      "load_error": "Could not load the day summary"
+    },
+    "scan": {
+      "placeholder": "Search or scan barcode...",
+      "added": "\"{{name}}\" added by barcode",
+      "unknown": "Barcode \"{{code}}\" not found",
+      "out_of_stock": "\"{{name}}\" is out of stock",
+      "unavailable": "\"{{name}}\" is not available",
+      "error": "Barcode lookup failed"
+    },
+    "stock": { "limit": "Only {{n}} of \"{{name}}\" in stock" },
+    "checkout": { "manual_note": "Choose the payment method after receiving the money from the customer; payment is recorded manually." },
+    "help": { "scan_combo": "Scan + Enter", "scan": "Add a product by scanning its barcode" }
+  }
+}

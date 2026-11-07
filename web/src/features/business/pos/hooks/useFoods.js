@@ -1,96 +1,103 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
-import client from "../../api/client";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { fetchProducts, fetchCategories, updateProduct } from "../api";
+import usePolling from "../common/usePolling";
 
+const REFRESH_MS = 15000;
+
+/**
+ * Products come from the shared catalog; stock is the server's effective stock
+ * (linked inventory item or legacy counter) and is refreshed every 15 s while
+ * the tab is visible so all terminals stay in step.
+ */
 export default function useFoods(useDictionary, isRtl) {
-  const [foods, setFoods] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeCat, setActiveCat] = useState("all");
+  const ctrlRef = useRef(null);
 
   const catField = isRtl === false ? "category_name_en" : "category_name";
 
   const load = useCallback(async () => {
     if (!useDictionary) {
-      setFoods([]);
+      setProducts([]);
       setLoading(false);
       return;
     }
+    ctrlRef.current?.abort();
+    const ctrl = new AbortController();
+    ctrlRef.current = ctrl;
     try {
-      setLoading(true);
-      // فراخوانی لیست غذاها از API بک‌اند
-      // /api/dictionary/foods/ no longer exists; the menu endpoint serves the business's foods
-      const res = await client.get("/api/menu/public/", { params: { page_size: 200 } });
-      const data = (res.data?.results || []).map((f) => ({
-        ...f,
-        category_name_en: f.category_name_en || f.category_name || "",
-      }));
-      setFoods(data);
+      const [prods, cats] = await Promise.all([
+        fetchProducts(ctrl.signal),
+        fetchCategories(ctrl.signal),
+      ]);
+      if (ctrl.signal.aborted) return;
+      setProducts(prods);
+      setCategories(cats);
     } catch (err) {
-      console.error("Failed to load foods:", err);
+      if (ctrl.signal.aborted || err?.code === "ERR_CANCELED") return;
+      console.error("Failed to load products:", err);
     } finally {
-      setLoading(false);
+      if (!ctrl.signal.aborted) setLoading(false);
     }
   }, [useDictionary]);
 
-  useEffect(() => { load(); }, [load]);
+  usePolling(load, REFRESH_MS, !!useDictionary);
+  useEffect(() => () => ctrlRef.current?.abort(), []);
 
-  // ★ آپدیت قیمت و موجودی (فقط در حالت ویرایش FoodCard استفاده می‌شود)
+  // Catalog product -> POS food (adds the category name keys the cart/discounts use).
+  const foods = useMemo(() => {
+    const catEn = new Map(categories.map((c) => [c.id, c.name_en || ""]));
+    return products
+      .filter((p) => p.is_available !== false)
+      .map((p) => ({
+        ...p,
+        price: Number(p.price) || 0,
+        final_price: p.final_price != null ? Number(p.final_price) : null,
+        stock: Number(p.stock) || 0,
+        category_name: p.category || "",
+        category_name_en: catEn.get(p.category_id) || p.category || "",
+      }));
+  }, [products, categories]);
+
   const updateFoodData = useCallback(async (foodId, data) => {
-    // آپدیت آپتیمیستیک (اول UI آپدیت شود تا سریع باشد)
-    setFoods((prev) =>
-      prev.map((f) => (f.id === foodId ? { ...f, ...data } : f))
-    );
+    setProducts((prev) => prev.map((f) => (f.id === foodId ? { ...f, ...data } : f)));
     try {
-      await client.post(`/api/dictionary/food/${foodId}/update/`, data);
+      await updateProduct(foodId, data);
     } catch (err) {
-      console.error("Food update failed:", err);
-      await load(); // در صورت خطا، داده‌های اصلی از سرور دوباره لود شوند
+      console.error("Product update failed:", err);
     }
+    await load();
   }, [load]);
 
-  // ★ کاهش موجودی فقط در UI (برای سرعت بالا هنگام زدن دکمه +)
-  const decreaseStock = useCallback((foodId, qty = 1) => {
-    setFoods((prev) =>
-      prev.map((f) => {
-        if (f.id !== foodId) return f;
-        const current = Number(f.stock) || 0;
-        return { ...f, stock: Math.max(0, current - qty) };
-      })
-    );
-  }, []);
-
-  // ★ افزایش موجودی فقط در UI (هنگام زدن دکمه - یا حذف از سبد)
-  const increaseStock = useCallback((foodId, qty = 1) => {
-    setFoods((prev) =>
-      prev.map((f) => {
-        if (f.id !== foodId) return f;
-        const current = Number(f.stock) || 0;
-        return { ...f, stock: current + qty };
-      })
-    );
-  }, []);
-
   const filteredFoods = useMemo(() => {
+    const q = search.trim().toLowerCase();
     return foods.filter((f) => {
       const matchCat = activeCat === "all" || f[catField] === activeCat;
       const matchSearch =
-        !search ||
-        f.name.includes(search) ||
-        (f.name_en || "").toLowerCase().includes(search.toLowerCase());
+        !q ||
+        f.name.toLowerCase().includes(q) ||
+        (f.name_en || "").toLowerCase().includes(q) ||
+        (f.barcode || "") === search.trim();
       return matchCat && matchSearch;
     });
   }, [foods, activeCat, search, catField]);
 
-  // استخراج دسته‌بندی‌ها از داخل لیست غذاها
+  // Category names in the catalog's order, only those that have sellable products.
   const categoryNames = useMemo(() => {
-    const names = new Set(foods.map((f) => f[catField]).filter(Boolean));
-    return ["all", ...Array.from(names)];
-  }, [foods, catField]);
+    const used = new Set(foods.map((f) => f.category_id));
+    const names = categories
+      .filter((c) => used.has(c.id))
+      .map((c) => (isRtl === false ? c.name_en || c.name : c.name))
+      .filter(Boolean);
+    return ["all", ...Array.from(new Set(names))];
+  }, [foods, categories, isRtl]);
 
   return {
     foods: filteredFoods,
     allFoods: foods,
-    categories: categoryNames,
     categoryNames,
     loading,
     search,
@@ -98,10 +105,6 @@ export default function useFoods(useDictionary, isRtl) {
     activeCat,
     setActiveCat,
     reload: load,
-    decreaseStock,
-    increaseStock,
-    // تابع آپدیت برای استفاده در Edit Mode
-    updateStock: (id, stock) => updateFoodData(id, { stock }),
-    updatePrice: (id, price, final_price) => updateFoodData(id, { price, final_price }),
+    updateFoodData,
   };
 }
