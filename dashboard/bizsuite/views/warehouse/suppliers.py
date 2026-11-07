@@ -90,7 +90,8 @@ def supplier_save(request: HttpRequest):
         supplier.phone = data.get("phone", "").strip()
         supplier.address = data.get("address", "").strip()
         supplier.contact_person = data.get("contact_person", "").strip()
-        supplier.description = data.get("description", "").strip()
+        if "description" in data:  # فقط وقتی ارسال شده؛ ذخیره‌ی بدون آن توضیحات را پاک نکند
+            supplier.description = str(data.get("description") or "").strip()
         supplier.save()
 
         return JsonResponse({

@@ -17,6 +17,8 @@ ROLE_CASHIER  = "cashier"
 ROLE_KITCHEN  = "kitchen"
 ROLE_WAITER   = "waiter"
 ROLE_CUSTOMER = "customer"
+ROLE_WAREHOUSE = "warehouse"
+ROLE_DRIVER = "driver"
 
 ROLE_CHOICES = [
     (ROLE_OWNER,    "مالک"),
@@ -24,6 +26,8 @@ ROLE_CHOICES = [
     (ROLE_CASHIER,  "صندوقدار"),
     (ROLE_KITCHEN,  "خط تولید"),
     (ROLE_WAITER,   "گارسون"),
+    (ROLE_WAREHOUSE, "انباردار"),
+    (ROLE_DRIVER,   "راننده"),
     (ROLE_CUSTOMER, "مشتری"),
 ]
 
@@ -82,6 +86,11 @@ ROLE_PERMISSIONS = {
         "orders.view", "orders.change_status",
         "foods.view",
     ],
+    ROLE_WAREHOUSE: [
+        "inventory.view", "inventory.edit", "inventory.usage_log",
+        "suppliers.view", "recipes.view", "foods.view",
+    ],
+    ROLE_DRIVER: [],
     ROLE_CUSTOMER: [
         "foods.view",
     ],

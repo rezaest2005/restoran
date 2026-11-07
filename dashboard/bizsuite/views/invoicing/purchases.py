@@ -4,7 +4,7 @@
 
 from django.http import JsonResponse
 from django.utils import timezone
-from django.views.decorators.http import require_http_methods
+from ..common import staff_endpoint
 
 from ...models import (
     Expense,
@@ -16,7 +16,7 @@ from ...models import (
 from ...accounting_posting import post_expense, post_purchase_return, safe_post, unpost
 
 
-@require_http_methods(["GET", "POST"])
+@staff_endpoint(["GET", "POST"], "accounting", "inventory")
 def purchase_return_list_create(request):
     if request.method == "GET":
         qs = PurchaseReturn.objects.select_related("invoice")[:200]
@@ -49,7 +49,7 @@ def purchase_return_list_create(request):
     return JsonResponse({"id": r.pk}, status=201)
 
 
-@require_http_methods(["DELETE"])
+@staff_endpoint(["DELETE"], "accounting", "inventory")
 def purchase_return_delete(request, pk):
     for r in PurchaseReturn.objects.filter(pk=pk):
         unpost(r.business, "purchase_return", r.pk, user=request.user, reason="حذف مرجوعی")
@@ -62,7 +62,7 @@ def purchase_return_delete(request, pk):
 # ═══════════════════════════════════════
 
 
-@require_http_methods(["GET", "POST"])
+@staff_endpoint(["GET", "POST"], "accounting", "inventory")
 def expense_list_create(request):
     if request.method == "GET":
         qs = Expense.objects.all()
@@ -95,7 +95,7 @@ def expense_list_create(request):
     return JsonResponse({"id": e.pk}, status=201)
 
 
-@require_http_methods(["DELETE"])
+@staff_endpoint(["DELETE"], "accounting", "inventory")
 def expense_delete(request, pk):
     for e in Expense.objects.filter(pk=pk):
         unpost(e.business, "expense", e.pk, user=request.user, reason="حذف هزینه")
@@ -108,6 +108,7 @@ def expense_delete(request, pk):
 # ═══════════════════════════════════════
 
 
+@staff_endpoint(["GET"], "accounting", "inventory")
 def profit_report(request):
     date_from = request.GET.get("from", str(timezone.localdate().replace(day=1)))
     date_to = request.GET.get("to", str(timezone.localdate()))

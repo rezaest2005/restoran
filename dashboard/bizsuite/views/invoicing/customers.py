@@ -3,7 +3,7 @@
 """
 
 from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
+from ..common import staff_endpoint
 
 from ...models import Customer
 
@@ -13,7 +13,7 @@ from ...models import Customer
 # ═══════════════════════════════════════
 
 
-@require_http_methods(["GET", "POST"])
+@staff_endpoint(["GET", "POST"], "pos", "club", "accounting", "inventory", "dictionary")
 def customer_list_create(request):
     if request.method == "GET":
         qs = Customer.objects.all()
@@ -49,7 +49,7 @@ def customer_list_create(request):
     return JsonResponse({"id": c.pk}, status=201)
 
 
-@require_http_methods(["GET", "PUT", "DELETE"])
+@staff_endpoint(["GET", "PUT", "DELETE"], "pos", "club", "accounting", "inventory", "dictionary")
 def customer_detail(request, pk):
     try:
         c = Customer.objects.get(pk=pk)

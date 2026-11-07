@@ -40,17 +40,19 @@ class Customer(TenantModel):
 
     @property
     def total_debt(self):
-        """بدهی فعلی = بدهی اول دوره + فروش نسیه − پرداختی‌ها − مرجوعی‌ها"""
-        credit_total = self.invoices.filter(
-            payment_method="credit"
-        ).aggregate(t=Sum("total"))["t"] or Decimal("0")
-        paid = self.invoices.aggregate(
-            t=Sum("paid_amount")
+        """
+        بدهی فعلی = بدهی اول دوره + مانده‌ی فاکتورها (جمع − پرداخت‌شده) − مرجوعی فاکتورهای نسیه.
+        از all_objects می‌خوانیم تا خارج از درخواست (بدون tenant فعال) هم درست محاسبه شود.
+        """
+        from django.db.models import F
+
+        outstanding = SalesInvoice.all_objects.filter(customer=self).aggregate(
+            t=Sum(F("total") - F("paid_amount"))
         )["t"] or Decimal("0")
-        returns = self.returns.aggregate(
-            t=Sum("amount")
-        )["t"] or Decimal("0")
-        return self.opening_balance + credit_total - paid - returns
+        returns = SalesReturn.all_objects.filter(
+            invoice__customer=self, invoice__payment_method="credit"
+        ).aggregate(t=Sum("amount"))["t"] or Decimal("0")
+        return self.opening_balance + outstanding - returns
 
 
 class SalesInvoice(TenantModel):

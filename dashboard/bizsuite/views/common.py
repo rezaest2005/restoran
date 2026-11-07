@@ -10,7 +10,10 @@ import json
 import logging
 from decimal import Decimal, InvalidOperation
 
+from functools import wraps
+
 from django.http import Http404, JsonResponse
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
 
@@ -213,3 +216,25 @@ def server_error(exc, status=500):
         {"success": False, "error": "خطای داخلی سرور. دوباره تلاش کنید."},
         status=status,
     )
+
+
+def staff_endpoint(methods, *service_codes):
+    """
+    تبدیل یک view ساده‌ی Django به endpoint امن کارمند:
+    احراز هویت (نشست یا JWT)، بررسی دسترسی/ماژول و تعیین کسب‌وکار از روی کاربر.
+    بدون ورود → ۴۰۱/۴۰۳؛ بدون کسب‌وکار → ۴۰۰.
+    """
+    perm = make_service_permission(*service_codes)
+
+    def decorator(fn):
+        @wraps(fn)
+        def inner(request, *args, **kwargs):
+            if staff_business(request) is None:
+                return no_business_response()
+            return fn(request, *args, **kwargs)
+
+        inner = permission_classes([perm])(inner)
+        inner = authentication_classes(StaffAuth)(inner)
+        return api_view(methods)(inner)
+
+    return decorator
