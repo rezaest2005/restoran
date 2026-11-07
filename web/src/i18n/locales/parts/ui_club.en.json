@@ -1,0 +1,60 @@
+{
+  "ui_club": {
+    "tab_members": "Members",
+    "tab_settings": "Club settings",
+    "section_n": "Section {{n}}",
+    "search": "Search (phone or name)",
+    "open_row": "Open selected member",
+    "empty": "No members yet.",
+    "close": "Close",
+    "tier": { "member": "Member", "silver": "Silver", "gold": "Gold" },
+    "member": {
+      "new": "New member",
+      "save": "Add member",
+      "saved": "Member added.",
+      "detail": "Member details",
+      "name": "Name",
+      "phone": "Phone",
+      "tier": "Tier",
+      "points": "Points",
+      "lifetime": "Lifetime points"
+    },
+    "adjust": {
+      "title": "Manual points adjustment",
+      "points": "Points (+/-)",
+      "hint": "Positive or negative number",
+      "note": "Note",
+      "apply": "Apply"
+    },
+    "history": {
+      "title": "Transaction history",
+      "empty": "No transactions yet.",
+      "date": "Date",
+      "kind": "Type",
+      "points": "Points",
+      "note": "Note"
+    },
+    "settings": {
+      "active": "Club is active",
+      "earn_amount": "Spend per point",
+      "earn_amount_hint": "One point is earned for every this amount spent.",
+      "redeem_value": "Value of one point when redeemed",
+      "redeem_value_hint": "Discount amount per point.",
+      "min_redeem_points": "Minimum points to redeem",
+      "min_redeem_points_hint": "Fewer points than this cannot be used.",
+      "welcome_points": "Welcome points",
+      "welcome_points_hint": "Points a new member receives immediately.",
+      "silver_points": "Silver tier threshold",
+      "silver_points_hint": "Lifetime points needed for silver.",
+      "gold_points": "Gold tier threshold",
+      "gold_points_hint": "Must not be lower than the silver threshold.",
+      "save": "Save settings",
+      "saved": "Settings saved."
+    },
+    "err": {
+      "generic": "Could not reach the server.",
+      "phone_required": "Enter a phone number.",
+      "points_invalid": "Points must be a non-zero whole number."
+    }
+  }
+}

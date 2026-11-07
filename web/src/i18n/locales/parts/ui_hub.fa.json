@@ -1,0 +1,14 @@
+{
+  "ui_hub": {
+    "tab_overview": "نمای کلی",
+    "tab_accounting": "حسابداری",
+    "tab_club": "باشگاه مشتریان",
+    "site": {
+      "title": "وب‌سایت شما",
+      "public_url": "نشانی وب‌سایت",
+      "qr_url": "نشانی صفحه سفارش QR",
+      "copy": "کپی",
+      "copied": "کپی شد"
+    }
+  }
+}

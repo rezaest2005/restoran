@@ -22,7 +22,11 @@ import EntryDetailDialog from "./tabs/EntryDetailDialog";
 
 const TAB_KEYS = ["overview", "accounts", "journal", "ledger", "reports"];
 
-export default function AccountingPage() {
+/**
+ * `embedded`: rendered inside the dashboard hub. The hub owns F1 and Alt+1..n,
+ * so the inner tabs move to Alt+Shift+1..n and the page title is dropped.
+ */
+export default function AccountingPage({ embedded = false }) {
   const { t } = useTranslation();
   const { mode } = useThemeMode();
   const { isRtl, lang } = useLang();
@@ -75,8 +79,11 @@ export default function AccountingPage() {
   };
 
   const tabs = TAB_KEYS.map((k) => ({ id: k, label: t(`ui_i.tabs.${k}`) }));
+  const innerTabKeys = embedded
+    ? tabBindings(t, tabs, setTab).map((b) => ({ ...b, combo: b.combo.replace("Alt+", "Alt+Shift+") }))
+    : tabBindings(t, tabs, setTab);
   useRegisteredShortcuts([
-    helpBinding(t, () => {
+    ...(embedded ? [] : [helpBinding(t, () => {
       const dialogItems = [
         { combo: "Ctrl+D", label: t("shortcuts.save") },
         { combo: "F3", label: t("ui_i.keys.add_line") },
@@ -91,18 +98,22 @@ export default function AccountingPage() {
         return true;
       }));
       setHelpOpen(true);
-    }),
-    ...tabBindings(t, tabs, setTab),
+    })]),
+    ...innerTabKeys,
     // the Chart of accounts tab registers its own F2 (new account)
     { combo: "F2", label: t("ui_i.keys.new_entry"), handler: () => setNewEntry(true), when: tab !== "accounts" },
   ]);
 
   return (
     <Box dir={isRtl ? "rtl" : "ltr"} sx={{ p: { xs: 1, sm: 2 }, maxWidth: 1200, mx: "auto" }}>
-      <Typography sx={{ color: C.text, fontWeight: 800, fontSize: { xs: 18, sm: 22 }, mb: 0.5 }}>
-        {t("ui_i.page.title")}
-      </Typography>
-      <Typography sx={{ color: C.sub, fontSize: 13, mb: 2 }}>{t("ui_i.page.subtitle")}</Typography>
+      {!embedded && (
+        <>
+          <Typography sx={{ color: C.text, fontWeight: 800, fontSize: { xs: 18, sm: 22 }, mb: 0.5 }}>
+            {t("ui_i.page.title")}
+          </Typography>
+          <Typography sx={{ color: C.sub, fontSize: 13, mb: 2 }}>{t("ui_i.page.subtitle")}</Typography>
+        </>
+      )}
 
       <Tabs
         value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" scrollButtons="auto"
@@ -113,7 +124,7 @@ export default function AccountingPage() {
           "& .MuiTabs-indicator": { bgcolor: C.primary },
         }}
       >
-        {tabs.map((x) => <Tab key={x.id} value={x.id} label={x.label} />)}
+        {tabs.map((x, i) => <Tab key={x.id} value={x.id} label={embedded ? `${x.label}  (Alt+Shift+${i + 1})` : x.label} />)}
       </Tabs>
 
       {loadError && <Alert severity="error" sx={{ mb: 2 }}>{loadError}</Alert>}

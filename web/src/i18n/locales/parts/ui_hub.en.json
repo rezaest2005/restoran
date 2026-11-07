@@ -1,0 +1,14 @@
+{
+  "ui_hub": {
+    "tab_overview": "Overview",
+    "tab_accounting": "Accounting",
+    "tab_club": "Customer club",
+    "site": {
+      "title": "Your website",
+      "public_url": "Website address",
+      "qr_url": "QR ordering address",
+      "copy": "Copy",
+      "copied": "Copied"
+    }
+  }
+}
