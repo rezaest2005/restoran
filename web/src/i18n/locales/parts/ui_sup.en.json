@@ -1,0 +1,70 @@
+{
+  "ui_sup": {
+    "tab": "Support",
+    "nav": "Business support",
+    "admin_tab": "پشتیبانی / Support",
+    "cat": {
+      "bug": "Problem / error",
+      "question": "Question",
+      "request": "Request",
+      "billing": "Billing"
+    },
+    "priority": {
+      "normal": "Normal",
+      "high": "High"
+    },
+    "status": {
+      "open": "Open",
+      "in_progress": "In review",
+      "answered": "Answered",
+      "resolved": "Resolved"
+    },
+    "common": {
+      "subject": "Subject",
+      "category": "Category",
+      "priority_l": "Priority",
+      "status_l": "Status",
+      "message": "Message",
+      "messages_n": "Messages",
+      "last_activity": "Last activity",
+      "all": "All",
+      "close": "Close",
+      "refresh": "Refresh",
+      "send": "Send",
+      "reply_ph": "Write your reply…",
+      "you": "You",
+      "platform": "Support",
+      "created": "Created",
+      "err_generic": "The action failed. Please try again.",
+      "err_subject": "Please enter a subject.",
+      "err_message": "Please enter a message.",
+      "err_long": "The message is too long.",
+      "open_row": "Open selected ticket",
+      "empty": "No tickets.",
+      "loading": "Loading…"
+    },
+    "biz": {
+      "new": "New ticket",
+      "new_title": "Create a support ticket",
+      "create": "Create ticket",
+      "created_ok": "Ticket created.",
+      "resolve": "Solved, close ticket",
+      "resolved_ok": "Ticket closed.",
+      "hint": "Describe your problem or question for the platform support team; replies appear here.",
+      "reopen_note": "Sending a new message reopens the ticket."
+    },
+    "adm": {
+      "business": "Business",
+      "search": "Search (subject or text)",
+      "set_status": "Change status",
+      "status_changed": "Status changed.",
+      "reply_ok": "Reply sent.",
+      "waiting": "Awaiting reply",
+      "prev": "Previous",
+      "next": "Next",
+      "page_n": "Page {{a}} of {{b}}",
+      "by": "Created by",
+      "focus_search": "Search"
+    }
+  }
+}

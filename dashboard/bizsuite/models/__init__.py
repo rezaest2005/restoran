@@ -48,6 +48,7 @@ from .sales import Customer, Expense, SalesInvoice, SalesInvoiceItem, SalesRetur
 from .production import Formula, FormulaLine, ProductionOrder
 from .club import LoyaltyMember, LoyaltySettings, LoyaltyTransaction
 from .feedback import Feedback
+from .support import SupportMessage, SupportTicket
 from .accounting import Account, CostCenter, JournalEntry, JournalLine
 from .jobs import BackgroundJob
 from .modules import BusinessModule, Module, Plan
@@ -74,7 +75,7 @@ __all__ = [
     "Customer", "Expense", "SalesInvoice", "SalesInvoiceItem", "SalesReturn",
     "Formula", "FormulaLine", "ProductionOrder",
     "LoyaltyMember", "LoyaltySettings", "LoyaltyTransaction",
-    "Feedback",
+    "Feedback", "SupportMessage", "SupportTicket",
     "Account", "CostCenter", "JournalEntry", "JournalLine",
     "Carrier", "CashSettlement", "Driver", "LocationPing", "Trip", "TripStop", "Vehicle",
 ]

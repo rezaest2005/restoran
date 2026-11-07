@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Alert, Box, Button, Chip, CircularProgress, MenuItem, Table, TableBody, TableCell, TableHead, TableRow,
@@ -13,6 +13,7 @@ import {
 } from "../accounting/common";
 import { fetchFeedback, errMsg } from "./api";
 import FeedbackDialog from "./FeedbackDialog";
+import useLoad from "../support/useLoad";
 
 const STATUSES = ["open", "in_progress", "resolved"];
 const CATS = ["bug", "suggestion", "complaint", "other"];
@@ -31,27 +32,21 @@ export default function FeedbackPage({ onOpenCount }) {
 
   const [status, setStatus] = useState("");
   const [category, setCategory] = useState("");
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const params = useMemo(() => {
+    const p = {};
+    if (status) p.status = status;
+    if (category) p.category = category;
+    return p;
+  }, [status, category]);
+  const { data, error: loadErr, loading, reload: load } = useLoad(fetchFeedback, params);
+  const rows = useMemo(() => (Array.isArray(data) ? data : []), [data]);
+  const error = loadErr ? errMsg(loadErr, t("ui_fb.mgr.err_generic")) : "";
   const [selected, setSelected] = useState(null);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    const params = {};
-    if (status) params.status = status;
-    if (category) params.category = category;
-    fetchFeedback(params)
-      .then((d) => {
-        const list = Array.isArray(d) ? d : [];
-        setRows(list);
-        setError("");
-        if (!status && !category && onOpenCount) onOpenCount(list.filter((x) => x.status === "open").length);
-      })
-      .catch((e) => setError(errMsg(e, t("ui_fb.mgr.err_generic"))))
-      .finally(() => setLoading(false));
-  }, [status, category, t, onOpenCount]);
-  useEffect(() => { load(); }, [load]);
+  // keep the hub tab badge in sync (only when the list is unfiltered)
+  useEffect(() => {
+    if (data && !status && !category && onOpenCount) onOpenCount(rows.filter((x) => x.status === "open").length);
+  }, [data, rows, status, category, onOpenCount]);
 
   const cursor = useRowCursor(rows.length);
   const ctx = { t, C, S, lang, isRtl, fullScreen };

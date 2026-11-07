@@ -26,5 +26,8 @@ export function hasTab(key, user = readUser()) {
   return user.role === "owner" || user.role === "manager";
 }
 
+/** Platform support is open to every owner / manager (no module needed). */
+export const canSupport = (user = readUser()) => !user || user.role === "owner" || user.role === "manager";
+
 export const canUse = (module, tabKey = module, user = readUser()) =>
   moduleEnabled(module, user) && hasTab(tabKey, user);

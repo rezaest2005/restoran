@@ -4,7 +4,7 @@ import { useLang } from "@shared/contexts/LangContext";
 import { NAV_SECTIONS } from "@super/common/superConfig";
 import KbdHint from "@business/pos/common/KbdHint";
 
-export default function SuperSidebar({ isMobile, open, onClose, currentUser, onLogout, C, t }) {
+export default function SuperSidebar({ isMobile, open, onClose, currentUser, onLogout, C, t, badges = {} }) {
   const location = useLocation();
   const { isRtl } = useLang();
 
@@ -62,9 +62,18 @@ export default function SuperSidebar({ isMobile, open, onClose, currentUser, onL
                   }}
                 >
                   <Typography sx={{ fontSize: 16 }}>{item.icon}</Typography>
-                  <Typography sx={{ fontSize: 12.5, fontWeight: isActive ? 700 : 500 }}>
+                  <Typography sx={{ fontSize: 12.5, fontWeight: isActive ? 700 : 500, flex: 1 }}>
                     {t(item.labelKey)}
                   </Typography>
+                  {item.badge && badges[item.badge] > 0 && (
+                    <Box component="span" sx={{
+                      minWidth: 20, height: 20, px: 0.75, borderRadius: 10, fontSize: 11, fontWeight: 700,
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      bgcolor: C.danger, color: C.onPrimary,
+                    }}>
+                      {badges[item.badge]}
+                    </Box>
+                  )}
                 </Box>
               );
             })}

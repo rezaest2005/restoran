@@ -11,6 +11,7 @@ export const NAV_SECTIONS = [
     items: [
       { icon: "📊", labelKey: "super.nav.dashboard", path: "/super" },
       { icon: "🌐", labelKey: "ui_sfa.nav", path: "/super/app?tab=storefront" },
+      { icon: "🛟", labelKey: "ui_sup.nav", path: "/super/app?tab=support", badge: "support" },
     ],
   },
   {

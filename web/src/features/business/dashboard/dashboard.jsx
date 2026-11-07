@@ -11,13 +11,14 @@ import {
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 import AccountingPage from "@business/accounting/AccountingPage";
 import ClubPage from "@business/club/ClubPage";
+import SupportPage from "@business/support/SupportPage";
 import FeedbackPage from "@business/feedback/FeedbackPage";
 import { fetchFeedback } from "@business/feedback/api";
 import OverviewTab from "./OverviewTab";
-import { canUse } from "./access";
+import { canUse, canSupport } from "./access";
 
 /**
- * Dashboard hub: Overview + Accounting + Customer club + Feedback in one page.
+ * Dashboard hub: Overview + Accounting + Customer club + Feedback + Support in one page.
  * Accounting / Club tabs show only when the module is enabled for the business
  * AND the user holds the matching permission tab. Alt+1..n switch tabs, F1 help.
  * The tab lives in the URL (?tab=accounting) so old links keep working.
@@ -44,6 +45,7 @@ export default function Dashboard() {
     canUse("accounting") && { id: "accounting", label: t("ui_hub.tab_accounting") },
     canUse("club") && { id: "club", label: t("ui_hub.tab_club") },
     showFeedback && { id: "feedback", label: t("ui_fb.tab"), badge: openFeedback },
+    canSupport() && { id: "support", label: t("ui_sup.tab") },
   ].filter(Boolean), [t, showFeedback, openFeedback]);
 
   const wanted = params.get("tab");
@@ -92,6 +94,10 @@ export default function Dashboard() {
 
       {tab === "feedback" && (
         <Box sx={{ px: { xs: 1.5, sm: 2, md: 2.5 }, pb: 6 }}><FeedbackPage onOpenCount={onOpenCount} /></Box>
+      )}
+
+      {tab === "support" && (
+        <Box sx={{ px: { xs: 1.5, sm: 2, md: 2.5 }, pb: 6 }}><SupportPage /></Box>
       )}
 
       <ShortcutsHelpDialog open={helpItems !== null} onClose={() => setHelpItems(null)} items={helpItems || []} />

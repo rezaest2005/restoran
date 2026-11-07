@@ -16,6 +16,7 @@ from .models import (
     Warehouse,
     StockItem,
     Feedback,
+    SupportTicket,
 )
 
 
@@ -143,3 +144,16 @@ class FeedbackAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return Feedback.all_objects.all()
+
+
+
+# ─── Support tickets ────────────────────────
+
+@admin.register(SupportTicket)
+class SupportTicketAdmin(admin.ModelAdmin):
+    list_display = ["id", "subject", "business", "status", "category", "priority", "last_activity_at"]
+    list_filter = ["status", "category", "priority"]
+    search_fields = ["subject", "messages__body"]
+
+    def get_queryset(self, request):
+        return SupportTicket.all_objects.all()

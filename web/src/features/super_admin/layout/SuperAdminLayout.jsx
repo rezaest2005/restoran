@@ -10,6 +10,8 @@ import TenantsPanel from "@super/tenants/TenantsPanel";
 import UsersPanel from "@super/users/UsersPanel";
 import ModulesPanel from "@super/modules/ModulesPanel";
 import StorefrontPanel from "@super/storefront/StorefrontPanel";
+import SupportPanel from "@super/support/SupportPanel";
+import { fetchSupportSummary } from "@super/support/api";
 import {
   Box, Button, Snackbar, Alert, useMediaQuery, useTheme,
   Dialog, DialogTitle, DialogContent, DialogActions, Typography,
@@ -36,6 +38,21 @@ export default function SuperAdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [help, setHelp] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
+  const [supportWaiting, setSupportWaiting] = useState(0);
+
+  /* ── تیکت‌های در انتظار پاسخ: هر ۶۰ ثانیه، فقط وقتی صفحه دیده می‌شود ── */
+  const refreshSupport = useCallback(() => {
+    fetchSupportSummary().then((s) => setSupportWaiting(s?.waiting || 0)).catch(() => {});
+  }, []);
+  useEffect(() => {
+    refreshSupport();
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") refreshSupport();
+    }, 60000);
+    const onVisible = () => { if (document.visibilityState === "visible") refreshSupport(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { clearInterval(id); document.removeEventListener("visibilitychange", onVisible); };
+  }, [refreshSupport]);
 
   const {
     stats, tenants, loadTenants, users, loadUsers,
@@ -62,6 +79,7 @@ export default function SuperAdminLayout() {
     { id: "users", label: t("super.tab.users"), icon: "👥" },
     { id: "modules", label: t("ui_k.mod.title"), icon: "🧩" },
     { id: "storefront", label: t("ui_sfa.tab"), icon: "🌐" },
+    { id: "support", label: t("ui_sup.admin_tab"), icon: "🛟", badge: supportWaiting },
   ];
   const tabParam = searchParams.get("tab");
   const found = tabs.findIndex((x) => x.id === tabParam);
@@ -102,6 +120,7 @@ export default function SuperAdminLayout() {
         onClose={() => setSidebarOpen(false)}
         currentUser={{ username: "Admin" }}
         onLogout={() => setLogoutOpen(true)}
+        badges={{ support: supportWaiting }}
         C={C}
         t={t}
       />
@@ -154,6 +173,15 @@ export default function SuperAdminLayout() {
                 }}
               >
                 {tab.icon} {tab.label}
+                {tab.badge > 0 && (
+                  <Box component="span" sx={{
+                    ms: 1, minWidth: 20, height: 20, px: 0.75, borderRadius: 10, fontSize: 11, fontWeight: 700,
+                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                    bgcolor: C.danger, color: C.onPrimary,
+                  }}>
+                    {tab.badge}
+                  </Box>
+                )}
               </Button>
             ))}
           </Box>
@@ -179,6 +207,7 @@ export default function SuperAdminLayout() {
           )}
           {activeTab === 2 && <ModulesPanel tenants={tenants} C={C} />}
           {activeTab === 3 && <StorefrontPanel tenants={tenants} />}
+          {activeTab === 4 && <SupportPanel C={C} tenants={tenants} onChanged={refreshSupport} />}
         </Box>
       </Box>
 

@@ -10,6 +10,8 @@ from .views import storefront as sf_views
 from .views import delivery as dl_views
 from .views import catalog as cat_views
 from .views.super_admin import modules as mod_views
+from .views.super_admin import support as sup_super
+from .views import support as sup_views
 
 # ─── Invoicing ──────────────────────────
 from .views.invoicing import (
@@ -255,6 +257,16 @@ urlpatterns = [
     path("api/feedback/submit/", views.feedback_submit, name="feedback_submit"),
     path("api/feedback/list/", views.feedback_list, name="feedback_list"),
     path("api/feedback/<int:pk>/update/", views.feedback_update, name="feedback_update"),
+    # ── Platform support tickets (business -> platform owner) ──
+    path("api/support/tickets/", sup_views.support_tickets, name="support_tickets"),
+    path("api/support/tickets/<int:pk>/", sup_views.support_ticket_detail, name="support_ticket_detail"),
+    path("api/support/tickets/<int:pk>/messages/", sup_views.support_ticket_message, name="support_ticket_message"),
+    path("api/support/tickets/<int:pk>/resolve/", sup_views.support_ticket_resolve, name="support_ticket_resolve"),
+    path("api/super/support/tickets/", sup_super.super_support_tickets, name="super_support_tickets"),
+    path("api/super/support/tickets/<int:pk>/", sup_super.super_support_ticket_detail, name="super_support_ticket_detail"),
+    path("api/super/support/tickets/<int:pk>/reply/", sup_super.super_support_reply, name="super_support_reply"),
+    path("api/super/support/tickets/<int:pk>/status/", sup_super.super_support_status, name="super_support_status"),
+    path("api/super/support/summary/", sup_super.super_support_summary, name="super_support_summary"),
 
     # ── HTML Pages ──────────────────────────────────────────
     path("dashboard/", views.auth_page, name="auth_page"),
