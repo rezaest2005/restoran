@@ -8,7 +8,6 @@ import {
 import { Add, Search, Edit, Delete, Storefront, Dashboard } from "@mui/icons-material";
 import TenantModal from "@super/tenants/TenantModal";
 import DeleteModal from "@super/common/DeleteModal";
-import ServicesPanel from "@super/tenants/ServicesPanel";
 import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
 
 /* ════════════════════════════════════════
@@ -35,8 +34,7 @@ const ActionBtn = ({ icon, label, color, onClick, small }) => (
    ════════════════════════════════════════ */
 
 export default function TenantsPanel({
-  tenants, stats, loadTenants, loadServices,
-  services, servicesLoading, C,
+  tenants, stats, loadTenants, C,
 }) {
   const { t } = useTranslation();
   const { isRtl } = useLang();
@@ -94,7 +92,6 @@ export default function TenantsPanel({
 
   const handleSelect = (id) => {
     setSelectedId(id);
-    loadServices(id);
   };
 
   /* ── open dashboard in new tab ── */
@@ -378,17 +375,6 @@ export default function TenantsPanel({
           </Table>
         </TableContainer>
       )}
-
-      {/* ── services panel ── */}
-      <ServicesPanel
-        tenantId={selectedId}
-        tenantName={tenants.find(tn => tn.id === selectedId)?.name}
-        services={services}
-        loading={servicesLoading}
-        onSave={() => loadTenants()}
-        C={C}
-        t={t}
-      />
 
       {/* ── ★ modals — با پراپ‌های درست ── */}
       <TenantModal

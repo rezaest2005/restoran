@@ -10,8 +10,6 @@ export const useSuperAdmin = () => {
 
   const [stats, setStats] = useState(null);
   const [tenants, setTenants] = useState([]);
-  const [services, setServices] = useState([]);
-  const [servicesLoading, setServicesLoading] = useState(false);
   const [users, setUsers] = useState([]);
   const [usersPage, setUsersPage] = useState(1);
   const [usersPages, setUsersPages] = useState(1);
@@ -29,13 +27,6 @@ export const useSuperAdmin = () => {
     try { const { data } = await superClient.get("/api/super/tenants/"); setTenants(data.tenants || []); } 
     catch (err) { if (err.response?.status === 401 || err.response?.status === 403) navigate("/super/login"); }
   }, [navigate]);
-
-  const loadServices = useCallback(async (tenantId) => {
-    setServicesLoading(true);
-    try { const { data } = await superClient.get(`/api/super/tenants/${tenantId}/services/`); setServices(data.services || []); } 
-    catch { showToast(t("super.error.load_services"), "error"); } 
-    finally { setServicesLoading(false); }
-  }, [showToast, t]);
 
   const loadUsers = useCallback(async (page = 1, search = "", restId = "", role = "") => {
     setUsersLoading(true); setUsersPage(page);
@@ -63,7 +54,7 @@ export const useSuperAdmin = () => {
   }, [navigate]);
 
   return {
-    stats, tenants, services, servicesLoading, loadServices, loadTenants, loadStats,
+    stats, tenants, loadTenants, loadStats,
     users, usersPage, usersPages, usersLoading, loadUsers,
     toast, showToast, setToast
   };

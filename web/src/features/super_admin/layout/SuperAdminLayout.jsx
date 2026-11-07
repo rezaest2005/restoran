@@ -38,8 +38,7 @@ export default function SuperAdminLayout() {
   const [logoutOpen, setLogoutOpen] = useState(false);
 
   const {
-    stats, tenants, services, servicesLoading,
-    loadServices, loadTenants, users, loadUsers,
+    stats, tenants, loadTenants, users, loadUsers,
     toast, setToast,
   } = useSuperAdmin();
 
@@ -165,9 +164,6 @@ export default function SuperAdminLayout() {
               tenants={tenants}
               stats={stats}
               loadTenants={loadTenants}
-              loadServices={loadServices}
-              services={services}
-              servicesLoading={servicesLoading}
               C={C}
               t={t}
             />
