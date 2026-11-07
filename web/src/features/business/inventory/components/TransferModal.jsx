@@ -8,11 +8,19 @@ import {
   createTransfer,
   fetchRawMaterials,
   fetchStock,
+  fetchWarehouseAccess,
 } from "../api";
+import { AccessChip } from "./NetworkOverview";
 import { buildInputSx, buildDialogPaperSx, useRegisteredShortcuts, dialogBindings, KbdHint } from "../common";
 
-export default function TransferModal({ open, onClose, warehouses, C, isDark, onSuccess, showToast }) {
+export default function TransferModal({ open, onClose, warehouses: warehousesProp, C, isDark, onSuccess, showToast }) {
   const { t } = useTranslation();
+  // source: only the user's allowed warehouses; destination: any active warehouse
+  const [sources, setSources] = useState(null);
+  const [destinations, setDestinations] = useState(null);
+  const [access, setAccess] = useState(null);
+  const warehouses = sources || warehousesProp || [];
+  const destList = destinations || warehouses;
   const [materials, setMaterials] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -46,6 +54,13 @@ export default function TransferModal({ open, onClose, warehouses, C, isDark, on
       }
     };
     load();
+    fetchWarehouseAccess().then((d) => {
+      const src = d.warehouses || [];
+      setSources(src);
+      setDestinations(d.transfer_destinations || src);
+      setAccess(d.warehouse_access || null);
+      setForm((f) => ({ ...f, source_warehouse_id: src.find(w => w.is_mother)?.id || src[0]?.id || "" }));
+    });
     // ریست فرم
     setForm({
       source_warehouse_id: warehouses.find(w => w.is_mother)?.id || warehouses[0]?.id || "",
@@ -118,7 +133,7 @@ export default function TransferModal({ open, onClose, warehouses, C, isDark, on
   };
 
   const sourceWarehouse = warehouses.find(w => w.id == form.source_warehouse_id);
-  const destWarehouse = warehouses.find(w => w.id == form.destination_warehouse_id);
+  const destWarehouse = destList.find(w => w.id == form.destination_warehouse_id);
   const selectedMaterial = materials.find(m => m.id == form.raw_material_id);
 
   // ── میان‌برها: Ctrl+D / Enter ثبت · Escape بستن ──
@@ -151,6 +166,7 @@ export default function TransferModal({ open, onClose, warehouses, C, isDark, on
           </Box>
         ) : (
           <>
+            <AccessChip access={access} warehouses={warehouses} C={C} />
             {/* انبار مبدأ */}
             <Box>
               <Typography sx={{ fontSize: 11, color: C.sub, mb: 0.5 }}>
@@ -187,7 +203,7 @@ export default function TransferModal({ open, onClose, warehouses, C, isDark, on
                     انتخاب انبار مقصد...
                   </Typography>
                 </MenuItem>
-                {warehouses
+                {destList
                   .filter(w => w.id !== form.source_warehouse_id)
                   .map(w => (
                     <MenuItem key={w.id} value={w.id}>

@@ -16,6 +16,13 @@ from ..common import (
     resolve_business_active,
 )
 from ..common import server_error
+from ...warehouse_access import (
+    WarehouseAccessDenied,
+    access_payload,
+    assert_manager,
+    denied_response,
+    filter_warehouses,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +41,11 @@ def warehouse_list(request):
 
     get_or_create_mother_warehouse(business)
 
+    visible = filter_warehouses(
+        Warehouse.objects.filter(business=business, is_active=True), request.user, business
+    )
     warehouses = (
-        Warehouse.objects.filter(business=business, is_active=True)
+        visible
         .annotate(
             active_stock_count=Count(
                 "stock_items",
@@ -52,13 +62,27 @@ def warehouse_list(request):
             "warehouse_type": w.warehouse_type,
             "warehouse_type_display": w.get_warehouse_type_display(),
             "is_mother": w.is_mother,
+            "is_sales_default": w.is_sales_default,
             "description": w.description or "",
             "stock_count": w.active_stock_count,
         }
         for w in warehouses
     ]
 
-    return JsonResponse({"success": True, "warehouses": data})
+    # destinations for transfers: any active warehouse of the business
+    # (id / name / type only; a keeper may send stock to another warehouse)
+    destinations = [
+        {"id": w.pk, "name": w.name, "warehouse_type": w.warehouse_type, "is_mother": w.is_mother}
+        for w in Warehouse.objects.filter(business=business, is_active=True)
+        .order_by("-is_mother", "name")
+    ]
+
+    return JsonResponse({
+        "success": True,
+        "warehouses": data,
+        "transfer_destinations": destinations,
+        "warehouse_access": access_payload(request.user),
+    })
 
 
 @api_view(["POST"])
@@ -68,6 +92,11 @@ def warehouse_save(request):
     business = resolve_business_active(request)
     if not business:
         return no_business_response()
+
+    try:
+        assert_manager(request.user)
+    except WarehouseAccessDenied as exc:
+        return denied_response(exc)
 
     data = request.data
     pk = data.get("id")
@@ -121,6 +150,11 @@ def warehouse_delete(request):
     business = resolve_business_active(request)
     if not business:
         return no_business_response()
+
+    try:
+        assert_manager(request.user)
+    except WarehouseAccessDenied as exc:
+        return denied_response(exc)
 
     pk = request.data.get("id")
     if not pk:

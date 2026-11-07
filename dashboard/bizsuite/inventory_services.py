@@ -484,21 +484,19 @@ def get_stock_level(business, warehouse, raw_material):
     }
 
 
-def get_total_stock(business, raw_material):
-    """مجموع موجودی یک کالا در همه انبارها"""
-    total = (
-        StockItem.all_objects.filter(
-            business=business,
-            raw_material=raw_material,
-        ).aggregate(total=Sum("quantity"))["total"]
-        or ZERO
-    )
-    return float(total)
+def get_total_stock(business, raw_material, warehouse_ids=None):
+    """مجموع موجودی یک کالا در همه انبارها (یا فقط warehouse_ids در صورت محدودیت)"""
+    qs = StockItem.all_objects.filter(business=business, raw_material=raw_material)
+    if warehouse_ids is not None:
+        qs = qs.filter(warehouse_id__in=warehouse_ids)
+    return float(qs.aggregate(total=Sum("quantity"))["total"] or ZERO)
 
 
-def get_stock_totals(business, warehouse=None):
-    """مجموع موجودی همه کالاها در یک کوئری"""
+def get_stock_totals(business, warehouse=None, warehouse_ids=None):
+    """مجموع موجودی همه کالاها در یک کوئری (warehouse_ids: محدودیت دسترسی کاربر)"""
     qs = StockItem.all_objects.filter(business=business)
+    if warehouse_ids is not None:
+        qs = qs.filter(warehouse_id__in=warehouse_ids)
     if warehouse:
         qs = qs.filter(warehouse=warehouse)
     return {
@@ -507,7 +505,7 @@ def get_stock_totals(business, warehouse=None):
     }
 
 
-def get_stock_by_warehouse(business, raw_material):
+def get_stock_by_warehouse(business, raw_material, warehouse_ids=None):
     """موجودی یک کالا در هر انبار (تفکیکی)"""
     stocks = (
         StockItem.all_objects.filter(
@@ -515,6 +513,8 @@ def get_stock_by_warehouse(business, raw_material):
             raw_material=raw_material,
         ).select_related("warehouse").order_by("warehouse__name")
     )
+    if warehouse_ids is not None:
+        stocks = stocks.filter(warehouse_id__in=warehouse_ids)
     return [
         {
             "warehouse_id": s.warehouse.pk,
@@ -585,7 +585,7 @@ def _serialize_movement(m, include_material=False):
     return data
 
 
-def get_item_movements(business, raw_material, warehouse=None, limit=100):
+def get_item_movements(business, raw_material, warehouse=None, limit=100, warehouse_ids=None):
     """گردش کامل یک کالا"""
     qs = (
         InventoryMovement.all_objects.filter(
@@ -595,6 +595,8 @@ def get_item_movements(business, raw_material, warehouse=None, limit=100):
     )
     if warehouse:
         qs = qs.filter(warehouse=warehouse)
+    if warehouse_ids is not None:
+        qs = qs.filter(warehouse_id__in=warehouse_ids)
     return [_serialize_movement(m) for m in qs[:limit]]
 
 
@@ -613,7 +615,7 @@ def get_warehouse_movements(business, warehouse, limit=100):
 #  8. گزارش‌ها
 # ═══════════════════════════════════════
 
-def get_stock_value_report(business, warehouse=None):
+def get_stock_value_report(business, warehouse=None, warehouse_ids=None):
     """ارزش فعلی موجودی انبار"""
     qs = (
         StockItem.all_objects.filter(business=business)
@@ -622,6 +624,8 @@ def get_stock_value_report(business, warehouse=None):
     )
     if warehouse:
         qs = qs.filter(warehouse=warehouse)
+    if warehouse_ids is not None:
+        qs = qs.filter(warehouse_id__in=warehouse_ids)
 
     items = []
     total_value = ZERO

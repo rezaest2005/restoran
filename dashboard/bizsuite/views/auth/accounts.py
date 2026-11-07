@@ -22,6 +22,7 @@ from ...serializers import (
 from ...auth_services import change_password, register_user, reset_password
 from ...roles import get_user_role, ROLE_OWNER, ROLE_MANAGER
 from ...utils import api_error, api_success
+from ...warehouse_access import access_payload
 from .session import _get_business_tabs, _get_business_modules
 
 logger = logging.getLogger(__name__)
@@ -87,6 +88,7 @@ class CurrentUserView(APIView):
         data['tabs'] = getattr(request.user, 'tabs', {}) or {}
         data['business_tabs'] = _get_business_tabs(request.user)
         data['business_modules'] = _get_business_modules(request.user)
+        data['warehouse_access'] = access_payload(request.user)
         return api_success(data=data)
 
     def patch(self, request):

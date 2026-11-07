@@ -18,6 +18,14 @@ from ..common import (
     safe_float,
 )
 
+from ...warehouse_access import (
+    WarehouseAccessDenied,
+    allowed_warehouse_ids,
+    assert_can_use,
+    denied_response,
+)
+from ...models import Warehouse
+
 logger = logging.getLogger(__name__)
 
 
@@ -39,7 +47,16 @@ def stock_list(request):
     qs = StockItem.objects.select_related("raw_material", "warehouse").filter(
         business=business
     )
+    allowed = allowed_warehouse_ids(request.user, business)
+    if allowed is not None:
+        qs = qs.filter(warehouse_id__in=allowed)
     if warehouse_id:
+        wh = Warehouse.all_objects.filter(pk=warehouse_id, business=business).first() if str(warehouse_id).isdigit() else None
+        if wh is not None:
+            try:
+                assert_can_use(request.user, wh)
+            except WarehouseAccessDenied as exc:
+                return denied_response(exc)
         qs = qs.filter(warehouse_id=warehouse_id)
     if search:
         qs = qs.filter(Q(raw_material__name__icontains=search))

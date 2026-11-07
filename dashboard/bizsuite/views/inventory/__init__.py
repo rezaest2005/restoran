@@ -21,6 +21,10 @@ from .lists import (
     movement_list,
     purchase_suggestions,
 )
+from .network import (
+    inventory_network,
+    user_warehouse_access,
+)
 from .reports import (
     item_movement_report,
     stock_value_report,
@@ -45,4 +49,6 @@ __all__ = [
     "stock_value_report",
     "warehouse_movements",
     "inventory_dashboard",
+    "inventory_network",
+    "user_warehouse_access",
 ]

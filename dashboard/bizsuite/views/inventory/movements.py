@@ -22,6 +22,7 @@ from ..common import (
     resolve_business_active,
 )
 from ..common import server_error
+from ...warehouse_access import WarehouseAccessDenied, assert_can_use, denied_response
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,10 @@ def receiving_create(request):
     warehouse, mat, err = lookup_targets(business, warehouse_id, material_id)
     if err:
         return err
+    try:
+        assert_can_use(request.user, warehouse, write=True)
+    except WarehouseAccessDenied as exc:
+        return denied_response(exc)
 
     try:
         result = receive_stock(
@@ -122,6 +127,10 @@ def issue_create(request):
     warehouse, mat, err = lookup_targets(business, warehouse_id, material_id)
     if err:
         return err
+    try:
+        assert_can_use(request.user, warehouse, write=True)
+    except WarehouseAccessDenied as exc:
+        return denied_response(exc)
 
     try:
         result = issue_stock(
@@ -171,6 +180,10 @@ def waste_create(request):
     warehouse, mat, err = lookup_targets(business, warehouse_id, material_id)
     if err:
         return err
+    try:
+        assert_can_use(request.user, warehouse, write=True)
+    except WarehouseAccessDenied as exc:
+        return denied_response(exc)
 
     try:
         result = waste_stock(
@@ -215,6 +228,10 @@ def adjustment_create(request):
     warehouse, mat, err = lookup_targets(business, warehouse_id, material_id)
     if err:
         return err
+    try:
+        assert_can_use(request.user, warehouse, write=True)
+    except WarehouseAccessDenied as exc:
+        return denied_response(exc)
 
     new_quantity_raw = data.get("new_quantity")
     quantity_raw = data.get("quantity")
@@ -297,9 +314,16 @@ def transfer_create(request):
     source, mat, err = lookup_targets(business, source_id, material_id)
     if err:
         return err
+    # only the SOURCE is user-restricted; any active warehouse may receive
+    try:
+        assert_can_use(request.user, source, write=True)
+    except WarehouseAccessDenied as exc:
+        return denied_response(exc)
     destination, _mat, err = lookup_targets(business, dest_id, material_id)
     if err:
         return err
+    if not destination.is_active:
+        return JsonResponse({"success": False, "error": "انبار مقصد غیرفعال است."}, status=400)
 
     try:
         result = transfer_stock(

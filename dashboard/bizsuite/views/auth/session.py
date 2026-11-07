@@ -13,6 +13,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from ...serializers import CustomTokenObtainSerializer, UserDetailSerializer
 from ...utils import api_error, api_success
+from ...warehouse_access import access_payload
 
 logger = logging.getLogger(__name__)
 
@@ -91,6 +92,7 @@ class LoginView(TokenObtainPairView):
         user_data['tabs'] = getattr(user, 'tabs', {}) or {}
         user_data['business_tabs'] = _get_business_tabs(user)
         user_data['business_modules'] = _get_business_modules(user)
+        user_data['warehouse_access'] = access_payload(user)
 
         return Response({
             "access": str(refresh.access_token),

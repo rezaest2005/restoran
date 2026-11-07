@@ -268,3 +268,14 @@ export const fetchProfitReport = (params = {}) => {
   const qs = new URLSearchParams(params).toString();
   return client.get(`/api/invoicing/profit-report/${qs ? `?${qs}` : ""}`).then((r) => r.data);
 };
+
+/* ═══════════ شبکهٔ انبارها و دسترسی ═══════════ */
+// خروجی خام: { warehouses, transfer_destinations, warehouse_access: {all_access, warehouse_ids} }
+export const fetchWarehouseAccess = () =>
+  client.get("/api/inventory/warehouses/").then((r) => r.data).catch(() => ({
+    warehouses: [], transfer_destinations: [], warehouse_access: { all_access: true, warehouse_ids: [] },
+  }));
+
+// فقط مالک/مدیر؛ برای بقیه null برمی‌گرداند
+export const fetchInventoryNetwork = () =>
+  client.get("/api/inventory/network/").then((r) => r.data?.data?.warehouses || []).catch(() => null);

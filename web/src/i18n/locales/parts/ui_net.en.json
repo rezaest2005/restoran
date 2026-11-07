@@ -1,0 +1,20 @@
+{
+  "ui_net": {
+    "restricted": "You only have access to the warehouses assigned to you",
+    "restricted_list": "Your warehouses: {{names}}",
+    "none": "No warehouse has been assigned to you",
+    "network_title": "Warehouse network",
+    "network_hint": "Overview of all warehouses, their keepers and transfers in the last 7 days",
+    "mother": "Central",
+    "sales_default": "Sales warehouse",
+    "items": "{{count}} items",
+    "value": "Stock value",
+    "currency": "Toman",
+    "keepers": "Keeper",
+    "no_keepers": "No keeper assigned",
+    "out_7d": "Sent, last 7 days",
+    "in_7d": "Received, last 7 days",
+    "dest_any": "The destination can be any active warehouse of the business",
+    "source_limited": "Source is limited to your warehouses"
+  }
+}

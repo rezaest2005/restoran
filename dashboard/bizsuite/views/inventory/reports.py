@@ -20,6 +20,13 @@ from ...inventory_services import (
     get_warehouse_movements,
     get_stock_value_report,
 )
+from ...warehouse_access import (
+    WarehouseAccessDenied,
+    allowed_warehouse_ids,
+    assert_can_use,
+    denied_response,
+    filter_warehouses,
+)
 from ..common import (
     InventoryPerm,
     ZERO,
@@ -54,12 +61,18 @@ def item_movement_report(request):
     if not mat:
         return JsonResponse({"success": False, "error": "کالا یافت نشد."}, status=404)
 
+    allowed = allowed_warehouse_ids(request.user, business)
     warehouse = None
     if warehouse_id:
         warehouse = Warehouse.all_objects.filter(pk=warehouse_id, business=business).first()
+        if warehouse is not None:
+            try:
+                assert_can_use(request.user, warehouse)
+            except WarehouseAccessDenied as exc:
+                return denied_response(exc)
 
-    movements = get_item_movements(business, mat, warehouse, limit)
-    stock_by_wh = get_stock_by_warehouse(business, mat)
+    movements = get_item_movements(business, mat, warehouse, limit, warehouse_ids=allowed)
+    stock_by_wh = get_stock_by_warehouse(business, mat, warehouse_ids=allowed)
 
     return JsonResponse({
         "success": True,
@@ -71,7 +84,7 @@ def item_movement_report(request):
             "price": int(mat.price or 0),
         },
         "stock_by_warehouse": stock_by_wh,
-        "total_stock": get_total_stock(business, mat),
+        "total_stock": get_total_stock(business, mat, warehouse_ids=allowed),
         "movements": movements,
     })
 
@@ -88,8 +101,15 @@ def stock_value_report(request):
     warehouse = None
     if warehouse_id:
         warehouse = Warehouse.all_objects.filter(pk=warehouse_id, business=business).first()
+        if warehouse is not None:
+            try:
+                assert_can_use(request.user, warehouse)
+            except WarehouseAccessDenied as exc:
+                return denied_response(exc)
 
-    report = get_stock_value_report(business, warehouse)
+    report = get_stock_value_report(
+        business, warehouse, warehouse_ids=allowed_warehouse_ids(request.user, business)
+    )
     return JsonResponse({"success": True, **report})
 
 
@@ -110,6 +130,10 @@ def warehouse_movements(request):
     warehouse = Warehouse.all_objects.filter(pk=warehouse_id, business=business).first()
     if not warehouse:
         return JsonResponse({"success": False, "error": "انبار یافت نشد."}, status=404)
+    try:
+        assert_can_use(request.user, warehouse)
+    except WarehouseAccessDenied as exc:
+        return denied_response(exc)
 
     movements = get_warehouse_movements(business, warehouse, limit)
 
@@ -133,19 +157,28 @@ def inventory_dashboard(request):
         return no_business_response()
 
     total_materials = RawMaterial.objects.filter(business=business).count()
+    allowed = allowed_warehouse_ids(request.user, business)
 
+    stock_qs = StockItem.objects.select_related("raw_material").filter(business=business)
+    if allowed is not None:
+        stock_qs = stock_qs.filter(warehouse_id__in=allowed)
     total_value = ZERO
-    for s in StockItem.objects.select_related("raw_material").filter(business=business):
+    for s in stock_qs:
         total_value += s.quantity * (s.raw_material.price or ZERO)
 
-    stock_totals = get_stock_totals(business)
+    stock_totals = get_stock_totals(business, warehouse_ids=allowed)
     low_stock = 0
+    no_access = allowed is not None and not allowed
     for mat in RawMaterial.all_objects.filter(business=business, minimum_stock__gt=0):
+        if no_access:
+            break
         total = stock_totals.get(mat.pk, ZERO)
         if total < (mat.minimum_stock or ZERO):
             low_stock += 1
 
-    warehouse_count = Warehouse.objects.filter(business=business, is_active=True).count()
+    warehouse_count = filter_warehouses(
+        Warehouse.objects.filter(business=business, is_active=True), request.user, business
+    ).count()
 
     return JsonResponse({
         "success": True,

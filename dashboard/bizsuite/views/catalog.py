@@ -20,6 +20,7 @@ from ..models import (
 )
 from ..modules import module_enabled
 from ..utils import api_error, api_success
+from ..warehouse_access import is_manager_level
 from .common import PosPerm, StaffAuth, staff_business
 from .decorators import make_service_permission
 
@@ -629,6 +630,8 @@ def warehouse_sales_default(request, pk):
     wh = Warehouse.all_objects.filter(business=business, pk=pk).first()
     if wh is None:
         return _not_found("انبار")
+    if not is_manager_level(request.user):
+        return api_error("فقط مالک یا مدیر می‌تواند انبار فروش را تعیین کند.", status_code=403)
     wh.is_sales_default = _bool(request.data.get("value", True))
     wh.save()
     return api_success(data={"id": wh.id, "is_sales_default": wh.is_sales_default,

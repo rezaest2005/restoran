@@ -19,7 +19,8 @@ import {
 import { Add, Delete, Close, SwapHoriz } from "@mui/icons-material";
 import { getUnitLabel } from "../../../../shared/common/units";
 import { getCurrentUser, now, faDate, faTime, faDay, whIcon, makeScale, useRegisteredShortcuts, KbdHint } from "../common";
-import { fetchWarehouses, fetchStock, fetchRawMaterials, createTransfer } from "../api";
+import { fetchWarehouseAccess, fetchInventoryNetwork, fetchStock, fetchRawMaterials, createTransfer } from "../api";
+import NetworkOverview, { AccessChip } from "../components/NetworkOverview";
 
 const F = makeScale(1.1);
 
@@ -29,6 +30,9 @@ const F = makeScale(1.1);
 export default function WarehouseTab({ C, isDark, showToast }) {
   const { t } = useTranslation();
   const [warehouses, setWarehouses] = useState([]);
+  const [destinations, setDestinations] = useState([]);
+  const [access, setAccess] = useState(null);
+  const [network, setNetwork] = useState(null);
   const [selectedWh, setSelectedWh] = useState(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -73,13 +77,17 @@ export default function WarehouseTab({ C, isDark, showToast }) {
   // ── بارگذاری انبارها، موجودی و کالاها از سرور ──
   const load = useCallback(async () => {
     try {
-      const [whData, stockData, mats] = await Promise.all([
-        fetchWarehouses(),
+      const [whData, stockData, mats, net] = await Promise.all([
+        fetchWarehouseAccess(),
         fetchStock({}),
         fetchRawMaterials(),
+        fetchInventoryNetwork(),
       ]);
       const all = whData.warehouses || [];
       setWarehouses(all);
+      setDestinations(whData.transfer_destinations || all);
+      setAccess(whData.warehouse_access || null);
+      setNetwork(net);
       setStockRows(stockData.items || []);
       setMaterials(Array.isArray(mats) ? mats : []);
       setSelectedWh((prev) => {
@@ -175,13 +183,13 @@ export default function WarehouseTab({ C, isDark, showToast }) {
     setTransferForm({
       from_warehouse: selectedWh?.id ?? warehouses[0]?.id ?? "",
       to_warehouse:
-        warehouses.find((w) => String(w.id) !== String(selectedWh?.id))?.id ??
+        destinations.find((w) => String(w.id) !== String(selectedWh?.id ?? warehouses[0]?.id))?.id ??
         "",
       description: "",
       items: [{ material_name: "", quantity: "" }],
     });
     setTransferOpen(true);
-  }, [selectedWh, warehouses]);
+  }, [selectedWh, warehouses, destinations]);
 
   const closeTransfer = useCallback(() => {
     setTransferOpen(false);
@@ -362,6 +370,9 @@ export default function WarehouseTab({ C, isDark, showToast }) {
           🔄 حواله انتقال<KbdHint>F2</KbdHint>
         </Button>
       </Box>
+
+      <AccessChip access={access} warehouses={warehouses} C={C} />
+      <NetworkOverview rows={network} C={C} />
 
       {/* ═══════════ کارت‌های انبار ═══════════ */}
       <Box
@@ -982,7 +993,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                 }}
                 MenuProps={menuProps}
               >
-                {warehouses
+                {destinations
                   .filter(
                     (w) => String(w.id) !== String(transferForm.from_warehouse),
                   )

@@ -37,7 +37,7 @@ from .orders import (
     _update_order_total_on_save,
     set_order_item_price,
 )
-from .inventory import InventoryMovement, RawMaterial, StockItem, Warehouse
+from .inventory import InventoryMovement, RawMaterial, StockItem, UserWarehouse, Warehouse
 from .purchasing import (
     PurchaseInvoice,
     PurchaseInvoiceItem,
@@ -69,7 +69,7 @@ __all__ = [
     "validate_dashboard_permissions",
     "BarcodeSequence", "Category", "Food", "set_food_final_price",
     "Order", "OrderItem", "set_order_item_price",
-    "InventoryMovement", "RawMaterial", "StockItem", "Warehouse",
+    "InventoryMovement", "RawMaterial", "StockItem", "UserWarehouse", "Warehouse",
     "PurchaseInvoice", "PurchaseInvoiceItem", "PurchaseReturn", "Supplier",
     "Customer", "Expense", "SalesInvoice", "SalesInvoiceItem", "SalesReturn",
     "Formula", "FormulaLine", "ProductionOrder",

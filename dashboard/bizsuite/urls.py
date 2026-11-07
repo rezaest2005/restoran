@@ -32,6 +32,7 @@ from .views.inventory import (
     stock_list, stock_minimum_update,
     receiving_create, issue_create, waste_create, adjustment_create, transfer_create,
     movement_list, purchase_suggestions, warehouse_movements,
+    inventory_network, user_warehouse_access,
 )
 from .views.warehouse import raw_material_list_api
 from .views.auth import SessionCheckView          # ★ اضافه شد
@@ -110,6 +111,8 @@ urlpatterns = [
     path("api/inventory/transfer/", transfer_create, name="inv_transfer"),
     path("api/inventory/movements/", movement_list, name="inv_movements"),
     path("api/inventory/purchase-suggestions/", purchase_suggestions, name="inv_purchase_suggestions"),
+    path("api/inventory/network/", inventory_network, name="inv_network"),
+    path("api/inventory/users/<int:user_id>/warehouses/", user_warehouse_access, name="inv_user_warehouses"),
 
     # ── Dashboard Analytics ─────────────────────────────────
     path("api/dashboard/analytics/", dashboard_analytics, name="dashboard_analytics"),

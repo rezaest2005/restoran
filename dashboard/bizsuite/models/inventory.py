@@ -292,3 +292,29 @@ class StockItem(TenantModel):
             raise ValidationError(
                 f"موجودی کافی نیست. موجودی فعلی: {self.quantity}، درخواست: {amount}"
             )
+
+
+class UserWarehouse(TenantModel):
+    """انباری که یک کاربر (انباردار) حق کار با آن را دارد."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="warehouse_links",
+        verbose_name="کاربر",
+    )
+    warehouse = models.ForeignKey(
+        Warehouse,
+        on_delete=models.CASCADE,
+        related_name="user_links",
+        verbose_name="انبار",
+    )
+    created_at = created_at_field()
+
+    class Meta:
+        verbose_name = "دسترسی انبار کاربر"
+        verbose_name_plural = "دسترسی‌های انبار کاربران"
+        unique_together = ["user", "warehouse"]
+
+    def __str__(self):
+        return f"{self.user_id} → {self.warehouse_id}"

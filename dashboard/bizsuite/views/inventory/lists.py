@@ -10,6 +10,13 @@ from rest_framework.decorators import api_view, permission_classes
 
 from ...inventory_services import get_stock_totals
 from ...models import InventoryMovement, RawMaterial
+from ...models import Warehouse
+from ...warehouse_access import (
+    WarehouseAccessDenied,
+    allowed_warehouse_ids,
+    assert_can_use,
+    denied_response,
+)
 from ..common import (
     InventoryPerm,
     ZERO,
@@ -58,6 +65,12 @@ def movement_list(request):
     elif mtype:
         return _bad("نوع حرکت نامعتبر است.")
 
+    # restricted keepers see only movements of their warehouses; a transfer
+    # into their warehouse shows up as the incoming ("in") movement there.
+    allowed = allowed_warehouse_ids(request.user, business)
+    if allowed is not None:
+        qs = qs.filter(warehouse_id__in=allowed)
+
     for param, field in (("warehouse_id", "warehouse_id"), ("material_id", "raw_material_id")):
         raw = request.GET.get(param)
         if raw:
@@ -65,6 +78,13 @@ def movement_list(request):
                 qs = qs.filter(**{field: int(raw)})
             except ValueError:
                 return _bad("شناسه نامعتبر است.")
+            if param == "warehouse_id" and allowed is not None:
+                wh = Warehouse.all_objects.filter(pk=int(raw), business=business).first()
+                if wh is not None:
+                    try:
+                        assert_can_use(request.user, wh)
+                    except WarehouseAccessDenied as exc:
+                        return denied_response(exc)
 
     date_from, date_to = request.GET.get("from"), request.GET.get("to")
     try:
@@ -139,7 +159,11 @@ def purchase_suggestions(request):
     if not business:
         return no_business_response()
 
-    totals = get_stock_totals(business)
+    allowed = allowed_warehouse_ids(request.user, business)
+    if allowed is not None and not allowed:
+        return JsonResponse({"success": True, "results": [], "count": 0, "total_estimated_cost": 0})
+
+    totals = get_stock_totals(business, warehouse_ids=allowed)
     results = []
     grand_total = ZERO
     for mat in RawMaterial.all_objects.filter(business=business, minimum_stock__gt=0).order_by("name"):
