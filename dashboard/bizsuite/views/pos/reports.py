@@ -4,7 +4,7 @@ POS — گزارش روزانه و سفارشات امروز
 import datetime
 import logging
 
-from django.db.models import F
+from django.db.models import F, Sum
 from django.http import JsonResponse
 from django.utils import timezone
 
@@ -136,4 +136,75 @@ def pos_daily_orders(request):
         "date": str(today),
         "count": len(data),
         "orders": data,
+    })
+
+
+# ═══════════════════════════════════════
+#  خلاصه‌ی پایان روز
+# ═══════════════════════════════════════
+
+@api_view(["GET"])
+@permission_classes([PosPerm])
+def pos_day_summary(request):
+    """End-of-day summary computed from orders (cancelled orders excluded from sales)."""
+    business = resolve_business(request)
+    if not business:
+        return JsonResponse({"success": False, "error": "no business"}, status=400)
+
+    date_str = (request.GET.get("date") or "").strip()
+    if date_str:
+        try:
+            target = datetime.date.fromisoformat(date_str)
+        except ValueError:
+            return JsonResponse({"success": False, "error": "invalid date"}, status=400)
+    else:
+        target = timezone.localdate()
+
+    day_qs = Order.objects.filter(business=business, created_at__date=target)
+    sales_qs = day_qs.exclude(status="cancelled")
+
+    methods = {m: {"method": m, "count": 0, "total": 0} for m, _ in Order.PAYMENT_METHOD_CHOICES}
+    hourly = {h: {"hour": h, "count": 0, "total": 0} for h in range(24)}
+    total_sales = 0
+    count = 0
+    for created_at, method, total in sales_qs.values_list("created_at", "payment_method", "total_price"):
+        total = int(total or 0)
+        count += 1
+        total_sales += total
+        row = methods.setdefault(method or "cash", {"method": method or "cash", "count": 0, "total": 0})
+        row["count"] += 1
+        row["total"] += total
+        hour = hourly[timezone.localtime(created_at).hour]
+        hour["count"] += 1
+        hour["total"] += total
+
+    lines = (
+        OrderItem.objects.filter(order__in=sales_qs)
+        .values("food_id", "item_name", "item_name_en")
+        .annotate(qty=Sum("quantity"), revenue=Sum(F("quantity") * F("price")))
+    )
+    products = [
+        {
+            "food_id": r["food_id"],
+            "name": r["item_name"] or "—",
+            "name_en": r["item_name_en"] or "",
+            "qty": int(r["qty"] or 0),
+            "revenue": int(r["revenue"] or 0),
+        }
+        for r in lines
+    ]
+    top_by_qty = sorted(products, key=lambda p: (-p["qty"], -p["revenue"]))[:10]
+    top_by_revenue = sorted(products, key=lambda p: (-p["revenue"], -p["qty"]))[:10]
+
+    return JsonResponse({
+        "success": True,
+        "date": str(target),
+        "order_count": count,
+        "cancelled_count": day_qs.filter(status="cancelled").count(),
+        "total_sales": total_sales,
+        "average_ticket": int(total_sales / count) if count else 0,
+        "payment_methods": list(methods.values()),
+        "top_by_quantity": top_by_qty,
+        "top_by_revenue": top_by_revenue,
+        "hourly": list(hourly.values()),
     })

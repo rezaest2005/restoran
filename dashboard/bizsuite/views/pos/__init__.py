@@ -9,6 +9,7 @@ from .orders import (
 from .reports import (
     pos_daily_report,
     pos_daily_orders,
+    pos_day_summary,
 )
 from .online import (
     public_menu_api,
@@ -22,6 +23,7 @@ __all__ = [
     "pos_update_food_price",
     "pos_daily_report",
     "pos_daily_orders",
+    "pos_day_summary",
     "public_menu_api",
     "pos_online_orders",
     "pos_reject_online_order",

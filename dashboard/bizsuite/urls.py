@@ -121,6 +121,7 @@ urlpatterns = [
     path("api/pos/create-order/", _get_view("pos_create_order"), name="pos_create_order"),
     path("api/pos/daily-report/", _get_view("pos_daily_report"), name="pos_daily_report"),
     path("api/pos/daily-orders/", _get_view("pos_daily_orders"), name="pos-daily-orders"),
+    path("api/pos/day-summary/", _get_view("pos_day_summary"), name="pos_day_summary"),
     path("api/pos/close-pending/", _get_view("pos_close_all_pending"), name="pos_close_all_pending"),
     path("api/pos/update-food-price/", _get_view("pos_update_food_price"), name="pos_update_food_price"),
     path("api/pos/online-orders/", _get_view("pos_online_orders"), name="pos_online_orders"),
