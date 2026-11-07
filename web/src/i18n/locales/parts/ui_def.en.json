@@ -290,7 +290,7 @@
         "manager": "Everything",
         "none": "Nothing"
       },
-      "access_hint": "Only tabs of modules enabled for this business are shown. These ticks decide which menus the user sees.",
+      "access_hint": "Only tabs of modules enabled for this business are shown. These ticks decide which sections the user sees.",
       "active_count": "{{active}} of {{total}} on",
       "groups": {
         "general": "General",
