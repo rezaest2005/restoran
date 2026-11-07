@@ -1,171 +1,128 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, Tabs, Tab, useMediaQuery, useTheme } from "@mui/material";
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
-import MenuSection from "./components/MenuSection";
-import InvoiceSection from "./components/InvoiceSection";
-import RecipeSection from "./components/RecipeSection";
-import ManagersSection from "./components/ManagersSection";
+import { buildColors } from "@shared/palette";
+import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
+import { moduleEnabled, hasTab } from "@business/dashboard/access";
+import {
+  useToast, ToastSnackbar, useRegisteredShortcuts, tabBindings, helpBinding, collectShortcuts, useStyles,
+} from "./common";
+import ProductsSection from "./components/ProductsSection";
+import ItemsSection from "./components/ItemsSection";
+import FormulasSection from "./components/formulas/FormulasSection";
 import SupplierSection from "./components/SupplierSection";
 import CustomerSection from "./components/CustomerSection";
 import WarehouseSection from "./components/WarehouseSection";
-import { buildColors } from "@shared/palette";
-import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
-import { useToast, ToastSnackbar, TabBar, useRegisteredShortcuts, tabBindings, helpBinding, collectShortcuts } from "./common";
+import BarcodeSection from "./components/barcodes/BarcodeSection";
+import ManagersSection from "./components/ManagersSection";
 
+/**
+ * A tab shows only when one of its modules is enabled for the business (mods: null = always)
+ * AND the user holds one of its permission tabs.
+ */
 const ALL_TABS = [
-  { id: "menu", icon: "🍽️", labelKey: "dict.menu_tab", adminOnly: false },
-  { id: "invoice", icon: "🥜", labelKey: "ui_b.dictionary.tabItems", adminOnly: false },
-  { id: "recipe", icon: "📖", labelKey: "dict.recipe_tab", adminOnly: false },
-  { id: "suppliers", icon: "🏭", labelKey: "ui_b.dictionary.tabSuppliers", adminOnly: false },
-  { id: "customers", icon: "👥", labelKey: "ui_b.dictionary.tabCustomers", adminOnly: false },
-  { id: "warehouses", icon: "📦", labelKey: "ui_b.dictionary.tabWarehouses", adminOnly: false },
-  { id: "managers", icon: "👥", labelKey: "ui_b.dictionary.tabUsers", adminOnly: false },
+  { id: "products", icon: "🛍️", mods: ["pos"], perms: ["dictionary_menu"] },
+  { id: "items", icon: "🧱", mods: ["inventory", "production"], perms: ["dictionary_items"] },
+  { id: "formulas", icon: "📖", mods: ["production"], perms: ["dictionary_recipe"] },
+  { id: "suppliers", icon: "🏭", mods: ["inventory"], perms: ["dictionary_suppliers"] },
+  { id: "customers", icon: "👥", mods: ["pos", "inventory", "accounting"], perms: ["dictionary_customers"] },
+  { id: "warehouses", icon: "📦", mods: ["inventory"], perms: ["dictionary_warehouses"] },
+  { id: "barcodes", icon: "▮▯▮", mods: null, perms: ["dictionary_menu", "dictionary_items"], check: () => canBarcodeProducts() || canBarcodeItems() },
+  { id: "users", icon: "🔐", mods: null, perms: ["dictionary_users"] },
 ];
+
+const canBarcodeProducts = () => moduleEnabled("pos") && hasTab("dictionary_menu");
+const canBarcodeItems = () => (moduleEnabled("inventory") || moduleEnabled("production")) && hasTab("dictionary_items");
+
+const allowed = (tab) =>
+  (!tab.check || tab.check()) && (!tab.mods || tab.mods.some((m) => moduleEnabled(m))) && tab.perms.some((p) => hasTab(p));
 
 export default function Dictionary() {
   const { mode } = useThemeMode();
-  const { isRtl } = useLang();
+  const { isRtl, lang } = useLang();
   const { t } = useTranslation();
   const isDark = mode === "dark";
-
-  const [activeTab, setActiveTab] = useState("");
+  const C = useMemo(() => buildColors(isDark), [isDark]);
+  const S = useStyles(C);
+  const muiTheme = useTheme();
+  const fullScreen = useMediaQuery(muiTheme.breakpoints.down("sm"));
   const { toast, showToast, closeToast } = useToast();
   const [help, setHelp] = useState(null);
+  const [params, setParams] = useSearchParams();
 
-  // ── ترتیب تب‌ها (قابل جابجایی با Drag & Drop) ──
-  const [tabOrder, setTabOrder] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem("dict_tab_order") || "[]");
-      return saved.length ? saved : ALL_TABS.map((tb) => tb.id);
-    } catch {
-      return ALL_TABS.map((tb) => tb.id);
-    }
-  });
+  const tabs = useMemo(() => ALL_TABS.filter(allowed), []);
+  const wanted = params.get("tab");
+  const activeTab = tabs.some((x) => x.id === wanted) ? wanted : tabs[0]?.id || "";
+  const formulaJump = useMemo(() => {
+    const n = parseInt(params.get("formula") || "", 10);
+    return Number.isFinite(n) ? n : null;
+  }, [params]);
 
-  const dragItem = useRef(null);
-  const dragOverItem = useRef(null);
-
-  const currentUser = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem("user") || "{}"); }
-    catch { return {}; }
-  }, []);
-
-  const userRole = currentUser.role || "customer";
-  const isSuperuser = !!currentUser.is_superuser;
-  const isOwnerOrManager = isSuperuser || userRole === "owner" || userRole === "manager";
-
-  // ترتیب + فیلتر نقش
-  const TABS = useMemo(() => {
-    const filtered = ALL_TABS.filter((tab) => !tab.adminOnly || isOwnerOrManager);
-    const sorted = tabOrder
-      .map((id) => filtered.find((tb) => tb.id === id))
-      .filter(Boolean);
-    const missing = filtered.filter((tb) => !tabOrder.includes(tb.id));
-    return [...sorted, ...missing];
-  }, [tabOrder, isOwnerOrManager]);
-
-   // ── تب پیش‌فرض: اولین تب (راست‌ترین در فارسی / چپ‌ترین در انگلیسی) ──
+  // keep the URL in sync so a tab (and a formula link from Production) survives reloads
+  const selectTab = useCallback((id) => setParams({ tab: id }, { replace: true }), [setParams]);
   useEffect(() => {
-    if (TABS.length > 0 && (!activeTab || !TABS.find((t) => t.id === activeTab))) {
-      setActiveTab(TABS[0].id);
-    }
-  }, [TABS, activeTab]);
+    if (activeTab && wanted !== activeTab) setParams({ tab: activeTab }, { replace: true });
+  }, [activeTab, wanted, setParams]);
 
-  // ── Drag & Drop ──
-  const handleDragStart = (idx) => {
-    dragItem.current = idx;
-  };
+  const notify = useCallback((msg, type = "info") => showToast(msg, type), [showToast]);
+  const ctx = useMemo(() => ({ t, C, S, isRtl, lang, fullScreen, notify }), [t, C, S, isRtl, lang, fullScreen, notify]);
 
-  const handleDragEnter = (idx) => {
-    dragOverItem.current = idx;
-  };
-
-  const handleDragEnd = () => {
-    const from = dragItem.current;
-    const to = dragOverItem.current;
-    if (from === null || to === null || from === to) return;
-
-    const newOrder = [...tabOrder];
-    const moved = newOrder.splice(from, 1)[0];
-    newOrder.splice(to, 0, moved);
-    setTabOrder(newOrder);
-    localStorage.setItem("dict_tab_order", JSON.stringify(newOrder));
-    dragItem.current = null;
-    dragOverItem.current = null;
-  };
-
-  const C = useMemo(() => buildColors(isDark), [isDark]);
-
-  // ── میان‌برها: Alt+1…9 تب‌ها · F1 راهنما ──
   useRegisteredShortcuts([
-    ...tabBindings(t, TABS.map((tb) => ({ id: tb.id, label: tb.label || t(tb.labelKey) })), setActiveTab),
+    ...tabBindings(t, tabs.map((tb) => ({ id: tb.id, label: t(`ui_def.tabs.${tb.id}`) })), selectTab),
     helpBinding(t, () => setHelp(collectShortcuts())),
   ]);
 
   return (
-    <Box dir={isRtl ? "rtl" : "ltr"} sx={{
-      fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
-      width: "100%",
-    }}>
-      {/* هدر */}
-      <Box sx={{ mb: 3 }}>
+    <Box dir={isRtl ? "rtl" : "ltr"} sx={{ fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif", width: "100%" }}>
+      <Box sx={{ mb: 2 }}>
         <Typography sx={{ fontSize: { xs: 20, md: 24 }, fontWeight: 900, color: C.text, mb: 0.5 }}>
-          📚 {t("dict.title")}
+          📚 {t("ui_def.title")}
         </Typography>
-        <Typography sx={{ fontSize: 13, color: C.sub }}>
-          {t("dict.subtitle")}
-        </Typography>
+        <Typography sx={{ fontSize: 13, color: C.sub }}>{t("ui_def.subtitle")}</Typography>
       </Box>
 
-      {/* تب‌ها — قابل Drag & Drop */}
-      <TabBar
-        tabs={TABS.map((tb) => ({ ...tb, label: tb.label || t(tb.labelKey) }))}
-        active={activeTab}
-        onSelect={setActiveTab}
-        C={C}
-        getButtonProps={(tab, idx) => ({
-          draggable: true,
-          onDragStart: () => handleDragStart(idx),
-          onDragEnter: () => handleDragEnter(idx),
-          onDragEnd: handleDragEnd,
-          onDragOver: (e) => e.preventDefault(),
-          title: t("ui_b.dictionary.dragHint"),
-          sx: {
-            cursor: "grab",
-            "&:active": { cursor: "grabbing" },
-            opacity: dragItem.current === idx ? 0.5 : 1,
-          },
-        })}
-      />
+      {tabs.length === 0 ? (
+        <Typography sx={{ color: C.muted, textAlign: "center", py: 6 }}>{t("ui_def.no_access")}</Typography>
+      ) : (
+        <>
+          <Tabs value={activeTab} onChange={(_, v) => selectTab(v)} variant="scrollable" scrollButtons="auto" allowScrollButtonsMobile
+            sx={{
+              mb: 2, minHeight: 44, bgcolor: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 3,
+              "& .MuiTab-root": { color: C.sub, textTransform: "none", fontWeight: 600, minHeight: 44, fontSize: 13 },
+              "& .Mui-selected": { color: `${C.primary} !important` },
+              "& .MuiTabs-indicator": { bgcolor: C.primary },
+              "& .MuiTabScrollButton-root": { color: C.sub },
+            }}>
+            {tabs.map((tb, i) => (
+              <Tab key={tb.id} value={tb.id} iconPosition="start" icon={<span aria-hidden="true">{tb.icon}</span>}
+                label={<>{t(`ui_def.tabs.${tb.id}`)}{i < 9 && (
+                  <Box component="kbd" sx={{ display: { xs: "none", lg: "inline-block" }, marginInlineStart: 0.8, px: 0.5, fontSize: 9, fontFamily: "inherit", opacity: 0.55, border: "1px solid currentColor", borderRadius: "5px", direction: "ltr" }}>
+                    Alt+{i + 1}
+                  </Box>)}</>} />
+            ))}
+          </Tabs>
 
-      {/* راهنمای کوچیک */}
-      <Typography sx={{ fontSize: 10, color: C.muted, mb: 2, mt: -2 }}>
-        💡 {t("ui_b.dictionary.reorderHelp")}
-      </Typography>
+          <Box sx={{ ...S.card, p: { xs: 1.5, md: 3 } }}>
+            {activeTab === "products" && <ProductsSection ctx={ctx} canLink={moduleEnabled("inventory")} />}
+            {activeTab === "items" && <ItemsSection ctx={ctx} />}
+            {activeTab === "formulas" && <FormulasSection ctx={ctx} jump={formulaJump} />}
+            {activeTab === "suppliers" && <SupplierSection ctx={ctx} />}
+            {activeTab === "customers" && <CustomerSection ctx={ctx} />}
+            {activeTab === "warehouses" && <WarehouseSection ctx={ctx} />}
+            {activeTab === "barcodes" && (
+              <BarcodeSection ctx={ctx}
+                canProducts={canBarcodeProducts()}
+                canItems={canBarcodeItems()} />
+            )}
+            {activeTab === "users" && <ManagersSection ctx={ctx} />}
+          </Box>
+        </>
+      )}
 
-      {/* محتوای تب */}
-      <Box sx={{
-        bgcolor: C.glass, backdropFilter: "blur(28px)",
-        WebkitBackdropFilter: "blur(28px)",
-        border: `1px solid ${C.glassBorder}`,
-        borderRadius: "20px",
-        boxShadow: C.cardShadow,
-        p: { xs: 2, md: 3 },
-      }}>
-        {activeTab === "menu" && <MenuSection C={C} isRtl={isRtl} isDark={isDark} showToast={showToast} />}
-        {activeTab === "invoice" && <InvoiceSection C={C} isDark={isDark} showToast={showToast} />}
-        {activeTab === "recipe" && <RecipeSection C={C} />}
-        {activeTab === "suppliers" && <SupplierSection C={C} isDark={isDark} showToast={showToast} />}
-        {activeTab === "customers" && <CustomerSection C={C} isDark={isDark} showToast={showToast} />}
-        {activeTab === "warehouses" && <WarehouseSection C={C} isDark={isDark} showToast={showToast} />}
-        {activeTab === "managers" && <ManagersSection C={C} isRtl={isRtl} isDark={isDark} showToast={showToast} />}
-      </Box>
-
-      {/* Toast */}
       <ToastSnackbar toast={toast} onClose={closeToast} C={C} />
-
       <ShortcutsHelpDialog open={!!help} onClose={() => setHelp(null)} items={help || []} />
     </Box>
   );

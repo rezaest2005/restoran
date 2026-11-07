@@ -47,6 +47,7 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="pos" element={<Pos />} />
             <Route path="dictionary" element={<Dictionary />} />
+            <Route path="users" element={<Navigate to="../dictionary?tab=users" replace />} />
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="production" element={<ProductionPage />} />
             <Route path="accounting" element={<Navigate to="../dashboard?tab=accounting" replace />} />
@@ -66,6 +67,7 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="pos" element={<Pos />} />
             <Route path="dictionary" element={<Dictionary />} />
+            <Route path="users" element={<Navigate to="../dictionary?tab=users" replace />} />
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="production" element={<ProductionPage />} />
             <Route path="accounting" element={<Navigate to="../dashboard?tab=accounting" replace />} />

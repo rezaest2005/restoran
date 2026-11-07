@@ -1,800 +1,392 @@
 import { useState, useEffect, useMemo } from "react";
-import { useTranslation } from "react-i18next";
-import { Box, Typography, Button, TextField, Chip, CircularProgress, Dialog, DialogContent, Switch, Divider } from "@mui/material";
 import {
-  getUsers, createUser, updateUserRole, toggleUserActive,
-  resetUserPassword, deleteUser, updateUserTabs,
-} from "../../api/client";
-import { useRowCursor, cursorAttrs, cursorSx, cursorBindings, useRegisteredShortcuts, dialogBindings, onEnter, KbdHint } from "../common";
+  Box, Typography, Button, TextField, Chip, Switch, FormControlLabel, Autocomplete, Alert, CircularProgress,
+  MenuItem,
+} from "@mui/material";
+import { moduleEnabled } from "@business/dashboard/access";
+import {
+  SectionHeader, LoadState, FormDialog, ConfirmDialog, useRegisteredShortcuts, useRowCursor, cursorAttrs, cursorSx,
+  cursorBindings, onEnter, useLoader,
+} from "../common";
+import {
+  fetchUsers, createUser, updateUserRole, toggleUserActive, resetUserPassword, deleteUser, saveUserTabs,
+  fetchWarehouses, fetchUserWarehouses, saveUserWarehouses, errMsg,
+} from "../api";
 
-// ═══════ دسترسی‌ها — دقیقاً عین داشبورد ═══════
-const ALL_TABS = {
-  home: { icon: "📊", group: "dashboard" },
-
-  inventory_invoice: { icon: "🧾", group: "inventory" },
-  inventory_sales: { icon: "💰", group: "inventory" },
-  inventory_warehouse: { icon: "📦", group: "inventory" },
-  inventory_receiving: { icon: "🚚", group: "inventory" },
-  inventory_purchase_list: { icon: "🛒", group: "inventory" },
-  inventory_reports: { icon: "📊", group: "inventory" },
-
-  dictionary_items: { icon: "🏷️", group: "definitions" },
-  dictionary_menu: { icon: "🍽️", group: "definitions" },
-  dictionary_recipe: { icon: "📖", group: "definitions" },
-  dictionary_suppliers: { icon: "🤝", group: "definitions" },
-  dictionary_warehouses: { icon: "🏭", group: "definitions" },
-  dictionary_customers: { icon: "🧑", group: "definitions" },
-  dictionary_users: { icon: "👥", group: "definitions" },
-
-  pos: { icon: "💰", group: "pos" },
-  pos_report: { icon: "📊", group: "pos" },
-  pos_settings: { icon: "⚙️", group: "pos" },
-  orders: { icon: "📋", group: "pos" },
-
-  accounting: { icon: "🧮", group: "accounting" },
-  accounting_invoices: { icon: "🧾", group: "accounting" },
-  accounting_sales: { icon: "💰", group: "accounting" },
-  accounting_expenses: { icon: "💸", group: "accounting" },
-  accounting_profit: { icon: "📈", group: "accounting" },
-  accounting_returns: { icon: "↩️", group: "accounting" },
-};
-
+/**
+ * Permission tabs the server stores per user (ALL_TAB_KEYS), grouped by the module
+ * that must be enabled for the business. `mods: null` = always available.
+ * The ticks below are the ONLY place where per-user tab access is edited.
+ */
 const GROUPS = [
-  { name: "dashboard", icon: "📊", color: "#3B82F6" },
-  { name: "inventory", icon: "📦", color: "#10B981" },
-  { name: "definitions", icon: "📖", color: "#8B5CF6" },
-  { name: "pos", icon: "💰", color: "#F59E0B" },
-  { name: "accounting", icon: "🧮", color: "#EF4444" },
+  { id: "general", icon: "🏠", mods: null, tone: "primary", keys: ["home"] },
+  { id: "pos", icon: "💰", mods: ["pos"], tone: "success", keys: ["pos", "pos_report", "pos_settings", "orders"] },
+  { id: "inventory", icon: "📦", mods: ["inventory"], tone: "info", keys: ["inventory_invoice", "inventory_sales", "inventory_warehouse", "inventory_receiving", "inventory_purchase_list", "inventory_reports"] },
+  { id: "production", icon: "🏭", mods: ["production"], tone: "warning", keys: ["dictionary_recipe"] },
+  {
+    id: "definitions", icon: "📚", mods: null, tone: "accent",
+    keys: [
+      { key: "dictionary_menu", mods: ["pos"] },
+      { key: "dictionary_items", mods: ["inventory", "production"] },
+      { key: "dictionary_suppliers", mods: ["inventory"] },
+      { key: "dictionary_warehouses", mods: ["inventory"] },
+      { key: "dictionary_customers", mods: ["pos", "inventory", "accounting"] },
+      { key: "dictionary_users", mods: null },
+    ],
+  },
+  { id: "more", icon: "🧩", mods: null, tone: "gold", keys: [
+    { key: "club", mods: ["club"] }, { key: "accounting", mods: ["accounting"] },
+    { key: "delivery", mods: ["delivery"] }, { key: "feedback", mods: ["feedback"] },
+  ] },
 ];
 
-// ═══════ نقش‌ها ═══════
-function makeTabs(overrides = {}) {
-  return Object.keys(ALL_TABS).reduce((a, k) => ({ ...a, [k]: false }), { ...overrides });
+const anyEnabled = (mods) => !mods || mods.some((m) => moduleEnabled(m));
+
+/** Visible groups for this business: [{ ...group, keys: string[] }] (empty groups dropped). */
+function visibleGroups() {
+  return GROUPS.map((g) => ({
+    ...g,
+    keys: g.keys.map((k) => (typeof k === "string" ? { key: k, mods: g.mods } : k)).filter((k) => anyEnabled(k.mods)).map((k) => k.key),
+  })).filter((g) => anyEnabled(g.mods) && g.keys.length > 0);
 }
 
-const ROLE_PRESETS = {
-  owner: {
-    emoji: "👑", color: "#D4B76A",
-    tabs: makeTabs(Object.keys(ALL_TABS).reduce((a, k) => ({ ...a, [k]: true }), {})),
-  },
-  manager: {
-    emoji: "👤", color: "#3B82F6",
-    tabs: makeTabs(Object.keys(ALL_TABS).reduce((a, k) => ({ ...a, [k]: true }), {})),
-  },
-  warehouse: {
-    emoji: "📦", color: "#10B981",
-    tabs: makeTabs({
-      home: true,
-      inventory_invoice: true, inventory_sales: true, inventory_warehouse: true,
-      inventory_receiving: true, inventory_purchase_list: true, inventory_reports: true,
-      dictionary_items: true, dictionary_suppliers: true, dictionary_warehouses: true,
-    }),
-  },
-  cashier: {
-    emoji: "💰", color: "#F59E0B",
-    tabs: makeTabs({
-      home: true,
-      dictionary_menu: true, dictionary_customers: true,
-      pos: true, pos_report: true, pos_settings: true, orders: true,
-    }),
-  },
-  waiter: {
-    emoji: "🍽️", color: "#06B6D4",
-    tabs: makeTabs({
-      home: true,
-      dictionary_menu: true,
-      pos: true, orders: true,
-    }),
-  },
-  kitchen: {
-    emoji: "🏭", color: "#EC4899",
-    tabs: makeTabs({
-      home: true,
-      inventory_warehouse: true, inventory_reports: true,
-      dictionary_menu: true, dictionary_recipe: true,
-      orders: true,
-    }),
-  },
-  customer: {
-    emoji: "🧑", color: "#6B7280",
-    tabs: makeTabs({
-      home: true,
-      dictionary_menu: true,
-    }),
-  },
-  custom: {
-    emoji: "✏️", color: "#8B5CF6",
-    tabs: makeTabs(),
-  },
+const MANAGER_ROLES = ["owner", "manager"];
+const ROLES = ["manager", "cashier", "waiter", "kitchen", "customer"];
+
+/** Quick-fill templates (only keys of enabled modules are applied). */
+const TEMPLATES = {
+  warehouse: ["home", "inventory_invoice", "inventory_sales", "inventory_warehouse", "inventory_receiving", "inventory_purchase_list", "inventory_reports", "dictionary_items", "dictionary_suppliers", "dictionary_warehouses"],
+  cashier: ["home", "pos", "pos_report", "pos_settings", "orders", "dictionary_menu", "dictionary_customers"],
+  production: ["home", "dictionary_recipe", "dictionary_items", "inventory_warehouse", "inventory_reports"],
+  manager: "all",
+  none: [],
 };
 
-// ── تبدیل نقش UI به نقش معتبر سرور ──
-const ROLE_TO_BACKEND = {
-  owner: "owner",
-  manager: "manager",
-  warehouse: "manager",
-  cashier: "cashier",
-  waiter: "waiter",
-  kitchen: "kitchen",
-  customer: "customer",
-  custom: "manager",
+const readUser = () => {
+  try { return JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "{}"); } catch { return {}; }
 };
 
-// ═══════════════════════════════════════
-//  کامپوننت اصلی
-// ═══════════════════════════════════════
+const EMPTY_FORM = { username: "", password: "", phone_number: "", first_name: "", last_name: "", role: "cashier" };
 
-export default function ManagersSection({ C, isRtl, isDark, showToast }) {
-  const { t } = useTranslation();
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [formOpen, setFormOpen] = useState(false);
-  const [editUser, setEditUser] = useState(null);
-  const [resetOpen, setResetOpen] = useState(null);
-  const [newPassword, setNewPassword] = useState("");
+export default function ManagersSection({ ctx }) {
+  const { t, C, S, notify } = ctx;
+  const groups = useMemo(() => visibleGroups(), []);
+  const visibleKeys = useMemo(() => groups.flatMap((g) => g.keys), [groups]);
+  const me = useMemo(() => readUser(), []);
+  const iAmOwner = me.role === "owner" || !!me.is_superuser;
+  const warehouseModule = moduleEnabled("inventory");
+
+  const { data: userData, loading, error, reload: load } = useLoader(fetchUsers, "all", t("ui_def.common.load_failed"));
+  const users = Array.isArray(userData) ? userData : [];
+  const [q, setQ] = useState("");
+  const [dialog, setDialog] = useState(null); // null | { user: null | row }
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [tabs, setTabs] = useState({});
+  const [whAll, setWhAll] = useState(true);
+  const [whIds, setWhIds] = useState([]);
+  const [whRes, setWhRes] = useState({ token: 0, list: [], error: "" });
+  const [seq, setSeq] = useState(0);
+  const [touched, setTouched] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [formErr, setFormErr] = useState("");
+  const [reset, setReset] = useState(null);
+  const [newPass, setNewPass] = useState("");
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetErr, setResetErr] = useState("");
+  const [del, setDel] = useState(null);
+  const [delBusy, setDelBusy] = useState(false);
+  const [delErr, setDelErr] = useState("");
 
-  const [form, setForm] = useState({
-    username: "", password: "", phone_number: "",
-    first_name: "", last_name: "",
-    role: "cashier", customRole: "",
-    tabs: { ...ROLE_PRESETS.cashier.tabs },
-  });
+  const shown = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return users;
+    return users.filter((u) => `${u.username} ${u.first_name} ${u.last_name} ${u.phone_number}`.toLowerCase().includes(s));
+  }, [users, q]);
 
-  const notify = (msg, type = "info") => {
-    if (typeof showToast === "function") showToast(msg, type);
-    else console.warn("showToast missing:", msg, type);
+  const isManagerRole = MANAGER_ROLES.includes(form.role);
+
+  const openDialog = (user) => {
+    setTouched(false); setFormErr("");
+    setForm(user ? {
+      username: user.username, password: "", phone_number: user.phone_number || "",
+      first_name: user.first_name || "", last_name: user.last_name || "", role: user.role || "cashier",
+    } : EMPTY_FORM);
+    setTabs(user ? { ...user.tabs } : {});
+    setWhAll(true); setWhIds([]);
+    setSeq(seq + 1);
+    setDialog({ user, token: seq + 1 });
   };
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      const res = await getUsers();
-      setUsers(res.data.users || []);
-    } catch (err) {
-      console.error("Fetch users error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // warehouses (list + this user's access) are loaded when the dialog opens
+  const dialogToken = dialog?.token;
+  const dialogUserId = dialog?.user?.id;
+  useEffect(() => {
+    if (!dialogToken || !warehouseModule) return undefined;
+    let alive = true;
+    Promise.all([fetchWarehouses(), dialogUserId ? fetchUserWarehouses(dialogUserId) : Promise.resolve({ all_access: true, warehouse_ids: [] })])
+      .then(([list, access]) => {
+        if (!alive) return;
+        setWhAll(access?.all_access !== false);
+        setWhIds((access?.warehouse_ids || []).map(Number));
+        setWhRes({ token: dialogToken, list, error: "" });
+      })
+      .catch((e) => { if (alive) setWhRes({ token: dialogToken, list: [], error: errMsg(e, t("ui_def.common.load_failed")) }); });
+    return () => { alive = false; };
+  }, [dialogToken, dialogUserId, warehouseModule, t]);
+  const whState = !dialog || !warehouseModule ? "idle" : whRes.token !== dialog.token ? "loading" : whRes.error ? "error" : "ready";
+  const whList = whRes.list;
+  const whErr = whRes.error;
 
-  useEffect(() => { load(); }, []);
-
-  const filtered = useMemo(() => {
-    if (!search.trim()) return users;
-    const q = search.toLowerCase();
-    return users.filter(
-      (u) =>
-        u.username?.toLowerCase().includes(q) ||
-        u.first_name?.toLowerCase().includes(q) ||
-        u.last_name?.toLowerCase().includes(q) ||
-        u.phone_number?.includes(q)
-    );
-  }, [users, search]);
-
-  const handleRoleChange = (role) => {
-    const preset = ROLE_PRESETS[role];
-    setForm((f) => ({
-      ...f,
-      role,
-      customRole: role === "custom" ? f.customRole : "",
-      tabs: { ...preset.tabs },
-    }));
-  };
-
-  const openCreate = () => {
-    setEditUser(null);
-    setForm({
-      username: "", password: "", phone_number: "",
-      first_name: "", last_name: "",
-      role: "cashier", customRole: "",
-      tabs: { ...ROLE_PRESETS.cashier.tabs },
+  const applyTemplate = (id) => {
+    const tpl = TEMPLATES[id];
+    setTabs((cur) => {
+      const next = { ...cur };
+      visibleKeys.forEach((k) => { next[k] = tpl === "all" ? true : tpl.includes(k); });
+      return next;
     });
-    setFormOpen(true);
+  };
+  const toggleKey = (k) => setTabs((s) => ({ ...s, [k]: !s[k] }));
+  const toggleGroup = (g) => {
+    const on = g.keys.every((k) => tabs[k]);
+    setTabs((s) => ({ ...s, ...Object.fromEntries(g.keys.map((k) => [k, !on])) }));
+  };
+  const activeCount = visibleKeys.filter((k) => tabs[k]).length;
+
+  const errs = {
+    username: !form.username.trim(),
+    password: !dialog?.user && form.password.length < 4,
   };
 
-  const openEdit = (u) => {
-    setEditUser(u);
-    const isCustom = !ROLE_PRESETS[u.role];
-    setForm({
-      username: u.username, password: "",
-      phone_number: u.phone_number || "",
-      first_name: u.first_name || "",
-      last_name: u.last_name || "",
-      role: isCustom ? "custom" : (u.role || "cashier"),
-      customRole: isCustom ? (u.role_display || u.role || "") : "",
-      tabs: { ...makeTabs(), ...u.tabs },
-    });
-    setFormOpen(true);
-  };
-
-  const handleSave = async () => {
-    if (saving) return;
-    if (!form.username.trim()) { notify(t("ui_b.managers.usernameRequired"), "warning"); return; }
-    if (!editUser && !form.password) { notify(t("ui_b.managers.passwordRequired"), "warning"); return; }
-    if (form.role === "custom" && !form.customRole.trim()) { notify(t("ui_b.managers.customRoleRequired"), "warning"); return; }
-
-    setSaving(true);
+  const submit = async () => {
+    setTouched(true);
+    if (errs.username || errs.password) return;
+    setSaving(true); setFormErr("");
+    const editUser = dialog.user;
+    let userId = editUser?.id;
+    let created = false;
     try {
-      // ★ نقش معتبر سرور
-      const finalRole = ROLE_TO_BACKEND[form.role] || "cashier";
-
       if (editUser) {
-        if (finalRole !== editUser.role) {
-          await updateUserRole({ user_id: editUser.id, role: finalRole });
-        }
-        await updateUserTabs({ user_id: editUser.id, tabs: form.tabs });
-        notify(t("ui_b.managers.userUpdated", { name: editUser.username }), "success");
+        if (form.role !== editUser.role) await updateUserRole({ user_id: editUser.id, role: form.role });
       } else {
         const res = await createUser({
-          username: form.username.trim(),
-          password: form.password,
-          phone_number: form.phone_number.trim(),
-          first_name: form.first_name.trim(),
-          last_name: form.last_name.trim(),
-          role: finalRole,
+          username: form.username.trim(), password: form.password, phone_number: form.phone_number.trim(),
+          first_name: form.first_name.trim(), last_name: form.last_name.trim(), role: form.role,
         });
-        const newUserId = res.data?.user_id;
-        if (newUserId) {
-          await updateUserTabs({ user_id: newUserId, tabs: form.tabs });
-        }
-        notify(res.data?.msg || t("ui_b.managers.userCreated", { name: form.username }), "success");
+        userId = res.user_id;
+        created = true;
       }
-      setFormOpen(false);
-      setEditUser(null);
+      // hidden (disabled-module) keys keep their stored value; visible keys come from the ticks
+      const merged = { ...(editUser?.tabs || {}), ...Object.fromEntries(visibleKeys.map((k) => [k, !!tabs[k]])) };
+      await saveUserTabs({ user_id: userId, tabs: merged });
+      if (warehouseModule && whState === "ready" && !isManagerRole && (editUser || !whAll)) {
+        await saveUserWarehouses(userId, { all_access: whAll, warehouse_ids: whAll ? [] : whIds });
+      }
+      notify(editUser ? t("ui_def.users.updated", { name: editUser.username }) : t("ui_def.users.created", { name: form.username.trim() }), "success");
+      setDialog(null);
       load();
-    } catch (err) {
-      const msg = err.response?.data?.error || err.response?.data?.detail || err.message || t("ui_b.common.error");
-      notify(msg, "error");
-    } finally {
-      setSaving(false);
-    }
+    } catch (e) {
+      const msg = errMsg(e, t("ui_def.common.save_failed"));
+      if (created) {
+        notify(t("ui_def.users.partial", { name: form.username.trim(), error: msg }), "warning");
+        setDialog(null);
+      } else {
+        setFormErr(msg);
+      }
+      load();
+    } finally { setSaving(false); }
   };
 
-  const handleToggle = async (u) => {
+  const doToggle = async (u) => {
     try {
       await toggleUserActive({ user_id: u.id });
-      notify(t(!u.is_active ? "ui_b.managers.userActivated" : "ui_b.managers.userDeactivated", { name: u.username }), "success");
+      notify(t(u.is_active ? "ui_def.users.deactivated" : "ui_def.users.activated", { name: u.username }), "success");
       load();
-    } catch (err) {
-      notify(err.response?.data?.error || err.message || t("ui_b.common.error"), "error");
-    }
+    } catch (e) { notify(errMsg(e, t("ui_def.common.save_failed")), "error"); }
   };
 
-  const handleDelete = async (u) => {
-    if (!window.confirm(t("ui_b.managers.confirmDelete", { name: u.username }))) return;
+  const doDelete = async () => {
+    setDelBusy(true); setDelErr("");
     try {
-      await deleteUser({ user_id: u.id });
-      notify(t("ui_b.managers.userDeleted", { name: u.username }), "success");
-      load();
-    } catch (err) {
-      notify(err.response?.data?.error || err.message || t("ui_b.common.error"), "error");
-    }
+      await deleteUser({ user_id: del.id });
+      notify(t("ui_def.users.deleted", { name: del.username }), "success");
+      setDel(null); load();
+    } catch (e) { setDelErr(errMsg(e, t("ui_def.common.save_failed"))); } finally { setDelBusy(false); }
   };
 
-  const handleResetPassword = async () => {
-    if (!newPassword || newPassword.length < 4) {
-      notify(t("ui_b.managers.passwordMin"), "warning");
-      return;
-    }
+  const doReset = async () => {
+    if (newPass.length < 4) { setResetErr(t("ui_def.users.password_min")); return; }
+    setResetBusy(true); setResetErr("");
     try {
-      await resetUserPassword({ user_id: resetOpen.id, new_password: newPassword });
-      notify(t("ui_b.managers.passwordChanged", { name: resetOpen.username }), "success");
-      setResetOpen(null);
-      setNewPassword("");
-    } catch (err) {
-      notify(err.response?.data?.error || err.message || t("ui_b.common.error"), "error");
-    }
+      await resetUserPassword({ user_id: reset.id, new_password: newPass });
+      notify(t("ui_def.users.password_changed", { name: reset.username }), "success");
+      setReset(null); setNewPass("");
+    } catch (e) { setResetErr(errMsg(e, t("ui_def.common.save_failed"))); } finally { setResetBusy(false); }
   };
 
-  const toggleTab = (key) => {
-    setForm((f) => ({ ...f, tabs: { ...f.tabs, [key]: !f.tabs[key] } }));
-  };
-
-  const toggleGroup = (group) => {
-    const groupKeys = Object.keys(ALL_TABS).filter((k) => ALL_TABS[k].group === group);
-    const allOn = groupKeys.every((k) => form.tabs[k]);
-    setForm((f) => ({
-      ...f,
-      tabs: { ...f.tabs, ...groupKeys.reduce((a, k) => ({ ...a, [k]: !allOn }), {}) },
-    }));
-  };
-
-  const activeCount = Object.values(form.tabs).filter(Boolean).length;
-  const totalTabs = Object.keys(ALL_TABS).length;
-
-  // ── میان‌برها: F2 کاربر جدید · Ctrl+A/Z ردیف · Enter ویرایش · Delete حذف ──
-  const cursor = useRowCursor(filtered.length);
+  const cursor = useRowCursor(shown.length);
   useRegisteredShortcuts([
-    { combo: "F2", label: t("shortcuts.new"), handler: openCreate },
+    { combo: "F2", label: t("ui_def.users.new"), handler: () => openDialog(null) },
     ...cursorBindings(t, cursor),
-    {
-      combo: "Enter", label: t("ui_h.edit_selected"),
-      handler: onEnter(() => { const r = filtered[cursor.index]; if (!r) return false; openEdit(r); }),
-    },
-    {
-      combo: "Delete", label: t("ui_h.delete_selected"),
-      handler: () => { const r = filtered[cursor.index]; if (!r) return false; handleDelete(r); },
-    },
+    { combo: "Enter", label: t("ui_def.common.open_row"), handler: onEnter(() => { const r = shown[cursor.index]; if (!r) return false; openDialog(r); return true; }) },
   ]);
-  useRegisteredShortcuts(
-    dialogBindings(t, {
-      onConfirm: () => {
-        if (!saving && !(form.role === "custom" && !form.customRole.trim())) handleSave();
-      },
-      onClose: () => setFormOpen(false),
-    }),
-    { enabled: formOpen },
-  );
-  useRegisteredShortcuts(
-    dialogBindings(t, { onConfirm: handleResetPassword, onClose: () => setResetOpen(null) }),
-    { enabled: !!resetOpen },
-  );
 
-  if (loading) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-        <CircularProgress sx={{ color: C.olive }} size={36} />
-      </Box>
-    );
-  }
+  const tone = (name) => ({ primary: C.primary, success: C.success, info: C.info, warning: C.warning, accent: C.accent, gold: C.gold })[name] || C.primary;
+  const roleLabel = (r) => t(`ui_def.users.roles.${r}`, { defaultValue: r });
+  const roleOptions = iAmOwner || form.role === "owner" ? ["owner", ...ROLES] : ROLES;
 
   return (
     <Box>
-      {/* ═══════ هدر ═══════ */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5, flexWrap: "wrap", gap: 1.5 }}>
-        <Box>
-          <Typography sx={{ fontSize: { xs: 16, sm: 18 }, fontWeight: 800, color: C.text }}>
-            👥 {t("ui_b.managers.title")}
-          </Typography>
-          <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.3 }}>
-            {t("ui_b.managers.subtitle")}
-          </Typography>
-        </Box>
-        <Button
-          onClick={openCreate}
-          sx={{
-            borderRadius: "10px", fontSize: 12, fontWeight: 700, textTransform: "none",
-            px: 2.5, py: 1, color: "#fff", background: C.btnGrad,
-            boxShadow: `0 4px 20px ${C.olive}30`,
-            "&:hover": { transform: "translateY(-1px)", boxShadow: `0 6px 28px ${C.olive}40` },
-          }}
-        >
-          ➕ {t("ui_b.managers.newBtn")}<KbdHint>F2</KbdHint>
-        </Button>
-      </Box>
-
-      {/* ═══════ جستجو ═══════ */}
-      <TextField
-        size="small" placeholder={t("ui_b.common.search")}
-        value={search} onChange={(e) => setSearch(e.target.value)}
-        sx={{
-          width: "100%", maxWidth: 300, mb: 2,
-          "& .MuiOutlinedInput-root": {
-            borderRadius: "10px", bgcolor: C.inputBg, fontSize: 13,
-            fontFamily: "'Vazirmatn', sans-serif", color: C.text,
-            "& fieldset": { borderColor: C.glassBorder },
-            "&.Mui-focused fieldset": { borderColor: C.olive },
-          },
-          "& .MuiInputBase-input": { color: C.text },
-        }}
-      />
-
-      {/* ═══════ لیست ═══════ */}
-      {filtered.length === 0 ? (
-        <Box sx={{ textAlign: "center", py: 6 }}>
-          <Typography sx={{ fontSize: 40, mb: 1 }}>👥</Typography>
-          <Typography sx={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-            {t("ui_b.managers.empty")}
-          </Typography>
-        </Box>
-      ) : (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.8 }}>
-          {filtered.map((u, i) => (
+      <SectionHeader ctx={ctx} title={t("ui_def.users.title")} subtitle={t("ui_def.users.subtitle")}
+        onNew={() => openDialog(null)} newLabel={t("ui_def.users.new")} search={q} onSearch={setQ} />
+      <LoadState ctx={ctx} loading={loading && users.length === 0} error={error} onRetry={load}
+        empty={!loading && shown.length === 0} emptyText={q ? t("ui_def.common.no_results") : t("ui_def.users.empty")}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+          {shown.map((u, i) => (
             <Box key={u.id} {...cursorAttrs(cursor.isActive(i))} sx={{
-              ...cursorSx(C, cursor.isActive(i)),
-              display: "flex", alignItems: "center", flexWrap: "wrap", gap: 1,
-              px: 2, py: 1.5,
-              borderRadius: "10px", bgcolor: C.glass, backdropFilter: "blur(12px)",
-              border: `1px solid ${u.is_active ? C.glassBorder : C.danger + "30"}`,
-              opacity: 0,
-              animation: `fadeUp 0.3s ease-out ${i * 0.04}s forwards`,
-              "&:hover": { bgcolor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)" },
+              ...cursorSx(C, cursor.isActive(i)), display: "flex", alignItems: "center", flexWrap: "wrap", gap: 1.5, p: 1.5,
+              borderRadius: 2, bgcolor: C.glass, border: `1px solid ${u.is_active ? C.glassBorder : C.danger}`, opacity: u.is_active ? 1 : 0.75,
             }}>
-              <Box sx={{ flex: 1, minWidth: 140 }}>
+              <Box sx={{ flex: 1, minWidth: 200 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-                  <Typography sx={{ fontSize: 13, fontWeight: 700, color: C.text }}>{u.username}</Typography>
-                  <Typography sx={{ fontSize: 11, color: C.sub }}>{u.first_name} {u.last_name}</Typography>
-                  <Chip size="small" label={u.role_display || u.role}
-                    sx={{ height: 18, fontSize: 9, fontWeight: 600, borderRadius: "5px", bgcolor: C.oliveSubtle, color: C.olive }} />
-                  {!u.is_active && (
-                    <Chip size="small" label={t("ui_b.common.inactive")}
-                      sx={{ height: 18, fontSize: 9, fontWeight: 600, borderRadius: "5px", bgcolor: C.dangerBg, color: C.danger }} />
+                  <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.text }}>{u.username}</Typography>
+                  <Typography sx={{ fontSize: 12, color: C.sub }}>{`${u.first_name || ""} ${u.last_name || ""}`.trim()}</Typography>
+                  <Chip size="small" label={roleLabel(u.role)} sx={{ color: C.primary, bgcolor: C.primarySubtle, fontWeight: 700 }} />
+                  {!u.is_active && <Chip size="small" label={t("ui_def.common.inactive")} sx={{ color: C.danger, bgcolor: C.dangerBg, fontWeight: 700 }} />}
+                </Box>
+                <Box sx={{ display: "flex", gap: 0.5, mt: 0.75, flexWrap: "wrap" }}>
+                  {visibleKeys.filter((k) => u.tabs?.[k]).map((k) => (
+                    <Chip key={k} size="small" label={t(`ui_def.users.tabs.${k}`)} sx={{ height: 20, fontSize: 10, color: C.sub, bgcolor: C.divider }} />
+                  ))}
+                  {visibleKeys.every((k) => !u.tabs?.[k]) && (
+                    <Typography sx={{ fontSize: 11, color: C.muted }}>{t("ui_def.users.no_access")}</Typography>
                   )}
                 </Box>
-                <Box sx={{ display: "flex", gap: 0.5, mt: 0.5, flexWrap: "wrap" }}>
-                  {Object.entries(u.tabs || {}).filter(([, v]) => v).map(([k]) => (
-                    <Chip key={k} size="small" label={ALL_TABS[k] ? t(`ui_b.managers.tabs.${k}`) : k}
-                      sx={{ height: 17, fontSize: 8, fontWeight: 600, borderRadius: "4px", bgcolor: C.oliveSubtle, color: C.olive, border: `1px solid ${C.olive}30` }} />
-                  ))}
-                </Box>
               </Box>
-              <Box sx={{ display: "flex", gap: 0.5, flexShrink: 0 }}>
-                {[
-                  { icon: "✏️", label: t("ui_b.common.edit"), color: C.olive, bg: C.oliveSubtle, onClick: () => openEdit(u) },
-                  { icon: "🔑", label: t("ui_b.managers.resetPassword"), color: C.olive, bg: C.oliveSubtle, onClick: () => { setResetOpen(u); setNewPassword(""); } },
-                  { icon: u.is_active ? "🚫" : "✅", label: u.is_active ? t("ui_b.common.inactive") : t("ui_b.common.active"), color: u.is_active ? C.danger : C.olive, bg: u.is_active ? C.dangerBg : C.oliveSubtle, onClick: () => handleToggle(u) },
-                  { icon: "🗑️", label: t("ui_b.common.delete"), color: C.danger, bg: C.dangerBg, onClick: () => handleDelete(u) },
-                ].map((btn) => (
-                  <Box key={btn.label} onClick={btn.onClick} sx={{
-                    display: "flex", flexDirection: "column", alignItems: "center",
-                    gap: 0.3, px: 1, py: 0.5, borderRadius: "8px", cursor: "pointer",
-                    color: btn.color, transition: "all 0.2s",
-                    "&:hover": { bgcolor: btn.bg },
-                  }}>
-                    <Typography sx={{ fontSize: 14, lineHeight: 1 }}>{btn.icon}</Typography>
-                    <Typography sx={{ fontSize: 8, fontWeight: 600 }}>{btn.label}</Typography>
-                  </Box>
-                ))}
+              <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                <Button size="small" sx={{ color: C.primary, textTransform: "none" }} onClick={() => openDialog(u)}>{t("ui_def.users.edit_access")}</Button>
+                <Button size="small" sx={{ color: C.sub, textTransform: "none" }} onClick={() => { setReset(u); setNewPass(""); setResetErr(""); }}>{t("ui_def.users.reset_password")}</Button>
+                <Button size="small" sx={{ color: u.is_active ? C.warning : C.success, textTransform: "none" }} onClick={() => doToggle(u)}>
+                  {u.is_active ? t("ui_def.users.deactivate") : t("ui_def.users.activate")}
+                </Button>
+                <Button size="small" sx={{ color: C.danger, textTransform: "none" }} onClick={() => { setDelErr(""); setDel(u); }}>{t("ui_def.common.delete")}</Button>
               </Box>
             </Box>
           ))}
         </Box>
-      )}
+      </LoadState>
 
-      {/* ═══════════════════════════════════════════
-          دیالوگ ایجاد / ویرایش
-          ═══════════════════════════════════════════ */}
-      <Dialog
-        open={formOpen} onClose={() => setFormOpen(false)}
-        maxWidth="sm" fullWidth
-        slotProps={{
-          paper: {
-            sx: {
-              borderRadius: "20px",
-              bgcolor: isDark ? "#1A1B2E" : "#FFFFFF",
-              border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`,
-              boxShadow: isDark ? "0 24px 80px rgba(0,0,0,0.6)" : "0 24px 80px rgba(0,0,0,0.12)",
-              overflow: "hidden",
-            },
-          },
-        }}
-      >
-        {/* ── هدر ── */}
-        <Box sx={{
-          px: 3, py: 2.5,
-          background: `linear-gradient(135deg, ${C.olive}15 0%, ${C.olive}05 100%)`,
-          borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`,
-        }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <Box sx={{
-                width: 40, height: 40, borderRadius: "12px",
-                bgcolor: C.oliveSubtle,
-                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20,
-              }}>
-                {editUser ? "✏️" : "➕"}
-              </Box>
-              <Box>
-                <Typography sx={{ fontSize: 16, fontWeight: 800, color: C.text, fontFamily: "'Vazirmatn', sans-serif" }}>
-                  {editUser ? t("ui_b.common.editName", { name: editUser.username }) : t("ui_b.managers.newUser")}
-                </Typography>
-                <Typography sx={{ fontSize: 11, color: C.sub, fontFamily: "'Vazirmatn', sans-serif" }}>
-                  {t("ui_b.managers.activeAccess", { active: activeCount, total: totalTabs })}
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
-        </Box>
-
-        {/* ── محتوا ── */}
-        <DialogContent sx={{ px: 3, py: 2.5, maxHeight: "68vh", overflowY: "auto" }}>
-
-          {/* ━━━ اطلاعات کاربر ━━━ */}
-          <Typography sx={{ fontSize: 12, fontWeight: 700, color: C.olive, mb: 1.5, fontFamily: "'Vazirmatn', sans-serif" }}>
-            📋 {t("ui_b.managers.userInfo")}
-          </Typography>
-
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1.2, mb: 3 }}>
-            <TextField size="small" fullWidth label={t("ui_b.managers.username")}
-              value={form.username} disabled={!!editUser}
-              onChange={(e) => setForm({ ...form, username: e.target.value })}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: "10px", bgcolor: isDark ? "rgba(255,255,255,0.05)" : "#F5F5F5",
-                  fontSize: 13, fontFamily: "'Vazirmatn', sans-serif", color: C.text,
-                  "& fieldset": { borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.12)" },
-                  "&:hover fieldset": { borderColor: C.olive + "60" },
-                  "&.Mui-focused fieldset": { borderColor: C.olive, borderWidth: 1.5 },
-                },
-                "& .MuiInputLabel-root": { fontSize: 12, color: C.sub, fontFamily: "'Vazirmatn', sans-serif" },
-                "& .MuiInputBase-input": { color: C.text },
-              }}
-            />
-            {!editUser && (
-              <TextField size="small" fullWidth label={t("ui_b.managers.password")} type="password"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: "10px", bgcolor: isDark ? "rgba(255,255,255,0.05)" : "#F5F5F5",
-                    fontSize: 13, fontFamily: "'Vazirmatn', sans-serif", color: C.text,
-                    "& fieldset": { borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.12)" },
-                    "&:hover fieldset": { borderColor: C.olive + "60" },
-                    "&.Mui-focused fieldset": { borderColor: C.olive, borderWidth: 1.5 },
-                  },
-                  "& .MuiInputLabel-root": { fontSize: 12, color: C.sub, fontFamily: "'Vazirmatn', sans-serif" },
-                  "& .MuiInputBase-input": { color: C.text },
-                }}
-              />
+      {dialog && (
+        <FormDialog ctx={ctx} maxWidth="md" saving={saving} error={formErr} onClose={() => setDialog(null)} onSave={submit}
+          title={dialog.user ? t("ui_def.users.edit_title", { name: dialog.user.username }) : t("ui_def.users.new_title")}
+          saveLabel={dialog.user ? t("ui_def.common.save") : t("ui_def.users.create")}>
+          <Typography sx={{ fontSize: 12, fontWeight: 800, color: C.primary }}>{t("ui_def.users.section_info")}</Typography>
+          <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
+            <TextField label={t("ui_def.users.username")} value={form.username} disabled={!!dialog.user} size="small" sx={S.field} required autoFocus
+              onChange={(e) => setForm({ ...form, username: e.target.value })} error={touched && errs.username}
+              helperText={touched && errs.username ? t("ui_def.common.required") : ""} slotProps={{ htmlInput: { dir: "ltr" } }} />
+            {!dialog.user && (
+              <TextField label={t("ui_def.users.password")} type="password" value={form.password} size="small" sx={S.field} required
+                onChange={(e) => setForm({ ...form, password: e.target.value })} error={touched && errs.password}
+                helperText={touched && errs.password ? t("ui_def.users.password_min") : ""} slotProps={{ htmlInput: { autoComplete: "new-password" } }} />
             )}
-            <Box sx={{ display: "flex", gap: 1.2 }}>
-              {[t("ui_b.managers.firstName"), t("ui_b.managers.lastName")].map((lbl, idx) => (
-                <TextField key={lbl} size="small" fullWidth label={lbl}
-                  value={idx === 0 ? form.first_name : form.last_name}
-                  onChange={(e) => setForm({ ...form, [idx === 0 ? "first_name" : "last_name"]: e.target.value })}
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: "10px", bgcolor: isDark ? "rgba(255,255,255,0.05)" : "#F5F5F5",
-                      fontSize: 13, fontFamily: "'Vazirmatn', sans-serif", color: C.text,
-                      "& fieldset": { borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.12)" },
-                      "&.Mui-focused fieldset": { borderColor: C.olive },
-                    },
-                    "& .MuiInputLabel-root": { fontSize: 12, color: C.sub },
-                    "& .MuiInputBase-input": { color: C.text },
-                  }}
-                />
-              ))}
-            </Box>
-            <TextField size="small" fullWidth label={t("ui_b.managers.phoneNumber")}
-              value={form.phone_number}
-              onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: "10px", bgcolor: isDark ? "rgba(255,255,255,0.05)" : "#F5F5F5",
-                  fontSize: 13, fontFamily: "'Vazirmatn', sans-serif", color: C.text,
-                  "& fieldset": { borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.12)" },
-                  "&.Mui-focused fieldset": { borderColor: C.olive },
-                },
-                "& .MuiInputLabel-root": { fontSize: 12, color: C.sub },
-                "& .MuiInputBase-input": { color: C.text },
-              }}
-            />
+            <TextField label={t("ui_def.users.first_name")} value={form.first_name} size="small" sx={S.field} disabled={!!dialog.user}
+              onChange={(e) => setForm({ ...form, first_name: e.target.value })} />
+            <TextField label={t("ui_def.users.last_name")} value={form.last_name} size="small" sx={S.field} disabled={!!dialog.user}
+              onChange={(e) => setForm({ ...form, last_name: e.target.value })} />
+            <TextField label={t("ui_def.users.phone")} value={form.phone_number} size="small" sx={S.field} disabled={!!dialog.user}
+              onChange={(e) => setForm({ ...form, phone_number: e.target.value })} slotProps={{ htmlInput: { dir: "ltr", inputMode: "tel" } }} />
+            <TextField select label={t("ui_def.users.role")} value={form.role} size="small" sx={S.field}
+              onChange={(e) => setForm({ ...form, role: e.target.value })}
+              helperText={MANAGER_ROLES.includes(form.role) ? t("ui_def.users.role_manager_hint") : ""}>
+              {roleOptions.map((r) => <MenuItem key={r} value={r}>{roleLabel(r)}</MenuItem>)}
+            </TextField>
           </Box>
 
-          <Divider sx={{ borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)", mb: 2.5 }} />
-
-          {/* ━━━ نقش ━━━ */}
-          <Typography sx={{ fontSize: 12, fontWeight: 700, color: C.olive, mb: 1.5, fontFamily: "'Vazirmatn', sans-serif" }}>
-            🎭 {t("ui_b.managers.roleTitle")}
-          </Typography>
-
-          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.8, mb: 1.5 }}>
-            {Object.entries(ROLE_PRESETS).map(([key, preset]) => (
-              <Chip
-                key={key}
-                label={`${preset.emoji} ${t(`ui_b.managers.roles.${key}`)}`}
-                onClick={() => handleRoleChange(key)}
-                sx={{
-                  height: 34, fontSize: 12, fontWeight: form.role === key ? 700 : 500,
-                  borderRadius: "10px", cursor: "pointer",
-                  bgcolor: form.role === key ? (preset.color + "20") : (isDark ? "rgba(255,255,255,0.05)" : "#F0F0F0"),
-                  color: form.role === key ? preset.color : (isDark ? "#AAA" : "#555"),
-                  border: `2px solid ${form.role === key ? preset.color : (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.1)")}`,
-                  transition: "all 0.2s",
-                  "&:hover": {
-                    bgcolor: form.role === key ? (preset.color + "30") : (isDark ? "rgba(255,255,255,0.1)" : "#E8E8E8"),
-                    transform: "translateY(-1px)",
-                  },
-                }}
-              />
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, flexWrap: "wrap", mt: 1 }}>
+            <Typography sx={{ fontSize: 12, fontWeight: 800, color: C.primary }}>{t("ui_def.users.section_access")}</Typography>
+            <Chip size="small" label={t("ui_def.users.active_count", { active: activeCount, total: visibleKeys.length })}
+              sx={{ fontWeight: 700, color: activeCount ? C.primary : C.muted, bgcolor: activeCount ? C.primarySubtle : C.divider }} />
+          </Box>
+          <Alert severity="info" sx={{ py: 0 }}>{t("ui_def.users.access_hint")}</Alert>
+          <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap", alignItems: "center" }}>
+            <Typography sx={{ fontSize: 12, color: C.sub }}>{t("ui_def.users.templates")}:</Typography>
+            {Object.keys(TEMPLATES).map((id) => (
+              <Chip key={id} size="small" clickable onClick={() => applyTemplate(id)} label={t(`ui_def.users.tpl.${id}`)}
+                sx={{ border: `1px solid ${C.glassBorder}`, bgcolor: "transparent", color: C.text }} />
             ))}
           </Box>
 
-          {form.role === "custom" && (
-            <TextField size="small" fullWidth
-              label={t("ui_b.managers.customRoleName")}
-              placeholder={t("ui_b.managers.customRolePlaceholder")}
-              value={form.customRole}
-              onChange={(e) => setForm({ ...form, customRole: e.target.value })}
-              sx={{
-                mb: 2,
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: "10px", bgcolor: isDark ? "rgba(255,255,255,0.05)" : "#F5F5F5",
-                  fontSize: 13, fontFamily: "'Vazirmatn', sans-serif", color: C.text,
-                  "& fieldset": { borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.12)" },
-                  "&.Mui-focused fieldset": { borderColor: C.olive },
-                },
-                "& .MuiInputLabel-root": { fontSize: 12, color: C.sub },
-                "& .MuiInputBase-input": { color: C.text },
-              }}
-            />
-          )}
-
-          <Divider sx={{ borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)", mb: 2.5, mt: 2 }} />
-
-          {/* ━━━ دسترسی‌ها ━━━ */}
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
-            <Typography sx={{ fontSize: 12, fontWeight: 700, color: C.olive, fontFamily: "'Vazirmatn', sans-serif" }}>
-              🔐 {t("ui_b.managers.accessTitle")}
-            </Typography>
-            <Chip size="small" label={`${activeCount} / ${totalTabs}`}
-              sx={{
-                height: 22, fontSize: 11, fontWeight: 700, borderRadius: "8px",
-                bgcolor: activeCount > 0 ? C.olive + "25" : (isDark ? "rgba(255,255,255,0.08)" : "#F0F0F0"),
-                color: activeCount > 0 ? C.olive : (isDark ? "#888" : "#999"),
-              }} />
-          </Box>
-
-          {/* ── ۵ بخش اصلی ── */}
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1.2 }}>
-            {GROUPS.map(({ name: group, icon, color }) => {
-              const keys = Object.keys(ALL_TABS).filter((k) => ALL_TABS[k].group === group);
-              const groupActive = keys.filter((k) => form.tabs[k]).length;
-              const groupAll = keys.every((k) => form.tabs[k]);
-              const groupBg = color + "12";
-
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
+            {groups.map((g) => {
+              const color = tone(g.tone);
+              const on = g.keys.filter((k) => tabs[k]).length;
+              const all = on === g.keys.length;
               return (
-                <Box key={group} sx={{
-                  border: `1.5px solid ${groupAll ? color + "50" : (isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)")}`,
-                  borderRadius: "14px",
-                  overflow: "hidden",
-                  bgcolor: groupAll ? groupBg : "transparent",
-                  transition: "all 0.2s ease",
-                }}>
-                  {/* هدر بخش */}
-                  <Box
-                    onClick={() => toggleGroup(group)}
-                    sx={{
-                      display: "flex", alignItems: "center", justifyContent: "space-between",
-                      px: 2, py: 1.2, cursor: "pointer",
-                      bgcolor: groupAll ? groupBg : (isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)"),
-                      "&:hover": { bgcolor: groupBg },
-                      transition: "all 0.15s",
-                    }}
-                  >
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <Box sx={{
-                        width: 28, height: 28, borderRadius: "8px",
-                        bgcolor: color + "20",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 14,
-                      }}>
-                        {icon}
-                      </Box>
-                      <Box>
-                        <Typography sx={{
-                          fontSize: 13, fontWeight: 700,
-                          color: groupAll ? color : C.text,
-                          fontFamily: "'Vazirmatn', sans-serif",
-                        }}>
-                          {t(`ui_b.managers.groups.${group}`)}
-                        </Typography>
-                        <Typography sx={{ fontSize: 10, color: C.sub }}>
-                          {t("ui_b.managers.groupActive", { active: groupActive, total: keys.length })}
-                        </Typography>
-                      </Box>
-                    </Box>
-                    <Switch
-                      size="small"
-                      checked={groupAll}
-                      onChange={() => toggleGroup(group)}
-                      sx={{
-                        "& .MuiSwitch-switchBase.Mui-checked": { color },
-                        "& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track": { bgcolor: color },
-                      }}
-                    />
+                <Box key={g.id} sx={{ border: `1px solid ${all ? color : C.glassBorder}`, borderRadius: 2, overflow: "hidden" }}>
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 1.5, py: 0.75, bgcolor: C.inputBg }}>
+                    <Typography sx={{ fontSize: 13, fontWeight: 800, color: C.text }}>
+                      <span aria-hidden="true">{g.icon}</span> {t(`ui_def.users.groups.${g.id}`)}
+                      <Typography component="span" sx={{ fontSize: 11, color: C.muted, marginInlineStart: 1 }}>{on}/{g.keys.length}</Typography>
+                    </Typography>
+                    <Switch size="small" checked={all} onChange={() => toggleGroup(g)}
+                      slotProps={{ input: { "aria-label": t(`ui_def.users.groups.${g.id}`) } }} />
                   </Box>
-
-                  {/* زیرمجموعه‌ها */}
-                  <Box sx={{ px: 1.5, py: 0.8, display: "flex", flexWrap: "wrap", gap: 0.6 }}>
-                    {keys.map((key) => (
-                      <Chip
-                        key={key}
-                        label={`${ALL_TABS[key].icon} ${t(`ui_b.managers.tabs.${key}`)}`}
-                        onClick={() => toggleTab(key)}
+                  <Box sx={{ px: 1.5, py: 1, display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+                    {g.keys.map((k) => (
+                      <Chip key={k} clickable onClick={() => toggleKey(k)} aria-pressed={!!tabs[k]}
+                        label={`${tabs[k] ? "✓ " : ""}${t(`ui_def.users.tabs.${k}`)}`}
                         sx={{
-                          height: 30, fontSize: 11,
-                          fontWeight: form.tabs[key] ? 700 : 500,
-                          borderRadius: "8px", cursor: "pointer",
-                          bgcolor: form.tabs[key] ? (color + "25") : (isDark ? "rgba(255,255,255,0.04)" : "#F5F5F5"),
-                          color: form.tabs[key] ? color : (isDark ? "#999" : "#888"),
-                          border: `1.5px solid ${form.tabs[key] ? color + "50" : (isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.08)")}`,
-                          transition: "all 0.15s",
-                          "&:hover": {
-                            bgcolor: form.tabs[key] ? (color + "35") : (isDark ? "rgba(255,255,255,0.08)" : "#EEE"),
-                            transform: "translateY(-1px)",
-                          },
-                        }}
-                      />
+                          fontWeight: tabs[k] ? 800 : 500, color: tabs[k] ? color : C.sub,
+                          bgcolor: tabs[k] ? C.primarySubtle : "transparent", border: `1px solid ${tabs[k] ? color : C.glassBorder}`,
+                        }} />
                     ))}
                   </Box>
                 </Box>
               );
             })}
           </Box>
-        </DialogContent>
 
-        {/* ── فوتر ── */}
-        <Box sx={{
-          px: 3, py: 2,
-          borderTop: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`,
-          bgcolor: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
-          display: "flex", justifyContent: "flex-end", gap: 1.5,
-        }}>
-          <Button onClick={() => setFormOpen(false)}
-            sx={{
-              borderRadius: "10px", fontSize: 12, fontWeight: 600, textTransform: "none",
-              px: 3, py: 1, color: isDark ? "#AAA" : "#666",
-              border: `1px solid ${isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)"}`,
-              "&:hover": { bgcolor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)" },
-            }}>
-            {t("ui_b.common.cancel")}
-          </Button>
-          <Button onClick={handleSave}
-            disabled={saving || (form.role === "custom" && !form.customRole.trim())}
-            sx={{
-              borderRadius: "10px", fontSize: 12, fontWeight: 700, textTransform: "none",
-              px: 4, py: 1, color: "#fff", background: C.btnGrad,
-              boxShadow: `0 4px 16px ${C.olive}30`,
-              opacity: saving ? 0.6 : 1,
-              "&:hover": { transform: "translateY(-1px)", boxShadow: `0 6px 24px ${C.olive}40` },
-            }}>
-            {saving ? "..." : editUser ? t("ui_b.common.update") : t("ui_b.managers.createUser")}
-            {!saving && <KbdHint>Ctrl+D</KbdHint>}
-          </Button>
-        </Box>
-      </Dialog>
+          {warehouseModule && (
+            <>
+              <Typography sx={{ fontSize: 12, fontWeight: 800, color: C.primary, mt: 1 }}>{t("ui_def.users.section_warehouses")}</Typography>
+              {isManagerRole ? (
+                <Typography sx={{ fontSize: 12, color: C.muted }}>{t("ui_def.users.wh_manager_all")}</Typography>
+              ) : whState === "loading" ? (
+                <CircularProgress size={20} />
+              ) : whState === "error" ? (
+                <Alert severity="warning">{whErr}</Alert>
+              ) : (
+                <>
+                  <FormControlLabel sx={{ color: C.text, m: 0 }}
+                    control={<Switch checked={whAll} onChange={(e) => setWhAll(e.target.checked)} />}
+                    label={t("ui_def.users.wh_all")} />
+                  {!whAll && (
+                    <Autocomplete multiple size="small" options={whList} value={whList.filter((w) => whIds.includes(w.id))}
+                      onChange={(_, v) => setWhIds(v.map((w) => w.id))} getOptionLabel={(w) => w.name} isOptionEqualToValue={(a, b) => a.id === b.id}
+                      noOptionsText={t("ui_def.users.wh_none")}
+                      renderInput={(p) => (
+                        <TextField {...p} label={t("ui_def.users.wh_allowed")} sx={S.field}
+                          helperText={whIds.length === 0 ? t("ui_def.users.wh_empty_warning") : ""} />
+                      )} />
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </FormDialog>
+      )}
 
-      {/* ═══════ دیالوگ ریست رمز ═══════ */}
-      <Dialog open={!!resetOpen} onClose={() => setResetOpen(null)} maxWidth="xs"
-        slotProps={{
-          paper: {
-            sx: {
-              borderRadius: "16px",
-              bgcolor: isDark ? "#1A1B2E" : "#FFFFFF",
-              border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`,
-            },
-          },
-        }}
-      >
-        <Box sx={{
-          px: 3, py: 2,
-          bgcolor: isDark ? "rgba(107,155,110,0.1)" : "rgba(46,77,48,0.06)",
-          borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`,
-        }}>
-          <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.text, fontFamily: "'Vazirmatn', sans-serif" }}>
-            🔑 {t("ui_b.managers.resetPassword")} — {resetOpen?.username}
-          </Typography>
-        </Box>
-        <DialogContent sx={{ px: 3, py: 2.5 }}>
-          <TextField size="small" fullWidth type="password"
-            label={t("ui_b.managers.newPasswordLabel")}
-            value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                borderRadius: "10px", bgcolor: isDark ? "rgba(255,255,255,0.05)" : "#F5F5F5",
-                fontSize: 13, fontFamily: "'Vazirmatn', sans-serif", color: C.text,
-                "& fieldset": { borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.12)" },
-                "&.Mui-focused fieldset": { borderColor: C.olive },
-              },
-              "& .MuiInputLabel-root": { fontSize: 12, color: C.sub },
-              "& .MuiInputBase-input": { color: C.text },
-            }}
-          />
-        </DialogContent>
-        <Box sx={{ px: 3, py: 2, display: "flex", justifyContent: "flex-end", gap: 1.5, borderTop: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}` }}>
-          <Button onClick={() => setResetOpen(null)}
-            sx={{ borderRadius: "10px", fontSize: 12, fontWeight: 600, textTransform: "none", color: isDark ? "#AAA" : "#666", px: 2.5, py: 1 }}>
-            {t("ui_b.common.cancel")}
-          </Button>
-          <Button onClick={handleResetPassword}
-            sx={{ borderRadius: "10px", fontSize: 12, fontWeight: 700, textTransform: "none", px: 3, py: 1, color: "#fff", background: C.btnGrad }}>
-            {t("ui_b.managers.changePassword")}<KbdHint>Ctrl+D</KbdHint>
-          </Button>
-        </Box>
-      </Dialog>
+      {reset && (
+        <FormDialog ctx={ctx} maxWidth="xs" saving={resetBusy} error={resetErr} onClose={() => setReset(null)} onSave={doReset}
+          title={`${t("ui_def.users.reset_password")} — ${reset.username}`} saveLabel={t("ui_def.users.change_password")}>
+          <TextField size="small" type="password" label={t("ui_def.users.new_password")} value={newPass} sx={S.field} autoFocus
+            onChange={(e) => setNewPass(e.target.value)} slotProps={{ htmlInput: { autoComplete: "new-password" } }} />
+        </FormDialog>
+      )}
+
+      <ConfirmDialog ctx={ctx} open={!!del} danger busy={delBusy} error={delErr}
+        title={t("ui_def.users.delete_title")} text={t("ui_def.users.delete_text", { name: del?.username })}
+        confirmLabel={t("ui_def.common.delete")} onClose={() => setDel(null)} onConfirm={doDelete} />
     </Box>
   );
 }

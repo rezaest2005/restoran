@@ -1,391 +1,132 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { useTranslation } from "react-i18next";
+import { useState, useMemo } from "react";
+import { Box, Typography, Button, Table, TableHead, TableBody, TableRow, TableCell, TextField, MenuItem, Chip, Switch } from "@mui/material";
 import {
-  Box, Typography, Button, TextField, Chip, CircularProgress,
-} from "@mui/material";
-import { Delete, Edit, Warehouse } from "@mui/icons-material";
-import { makeScale, useRowCursor, cursorAttrs, cursorSx, cursorBindings, useRegisteredShortcuts, onEnter, KbdHint } from "../common";
+  SectionHeader, LoadState, TableWrap, ConfirmDialog, FormDialog, useRegisteredShortcuts, useRowCursor, cursorAttrs,
+  cursorSx, cursorBindings, onEnter, useLoader, WAREHOUSE_TYPES, fmtNum,
+} from "../common";
+import { fetchWarehouses, saveWarehouse, deleteWarehouse, setSalesDefault, errMsg } from "../api";
 
-const F = makeScale(1.15);
-const LS_KEY = "local_warehouses";
+const EMPTY = { name: "", warehouse_type: "other", description: "" };
 
-const MOTHER_WAREHOUSE = {
-  id: "mother",
-  warehouse_type: "main",
-  is_mother: true,
-};
-
-const readLocal = () => {
-  try { return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }
-  catch { return []; }
-};
-
-const writeLocal = (list) => {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(list)); } catch {}
-};
-
-export default function WarehouseSection({ C, isDark, showToast }) {
-  const { t } = useTranslation();
-  const [subWarehouses, setSubWarehouses] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function WarehouseSection({ ctx }) {
+  const { t, C, S, notify } = ctx;
+  const { data, loading, error, reload: load } = useLoader(fetchWarehouses, "all", t("ui_def.common.load_failed"));
+  const rows = Array.isArray(data) ? data : [];
+  const [q, setQ] = useState("");
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(EMPTY);
+  const [touched, setTouched] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [search, setSearch] = useState("");
-  const [editId, setEditId] = useState(null);
-  const [showForm, setShowForm] = useState(false);
-  const [name, setName] = useState("");
+  const [formErr, setFormErr] = useState("");
+  const [del, setDel] = useState(null);
+  const [delBusy, setDelBusy] = useState(false);
+  const [delErr, setDelErr] = useState("");
+  const [flagBusy, setFlagBusy] = useState(null);
 
-  const nameRef = useRef(null);
-  const searchRef = useRef(null);
-  const savingRef = useRef(false);
 
-  const nameRefState = useRef(name); nameRefState.current = name;
-  const editIdRef = useRef(editId); editIdRef.current = editId;
-  const showFormRef = useRef(showForm); showFormRef.current = showForm;
+  const shown = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    if (!s) return rows;
+    return rows.filter((r) => `${r.name} ${r.description}`.toLowerCase().includes(s));
+  }, [rows, q]);
 
-  const notify = (msg, type = "info") => {
-    if (typeof showToast === "function") showToast(msg, type);
+  const open = (row) => {
+    setTouched(false); setFormErr("");
+    setForm(row ? { name: row.name || "", warehouse_type: row.warehouse_type || "other", description: row.description || "" } : EMPTY);
+    setEditing(row || {});
   };
 
-  // ── بارگذاری فقط از localStorage ──
-  const load = useCallback(() => {
-    setLoading(true);
-    const local = readLocal();
-    setSubWarehouses(local);
-    setLoading(false);
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const focusName = useCallback(() => setTimeout(() => {
-    const el = nameRef.current?.querySelector?.("input") || nameRef.current;
-    el?.focus(); el?.select?.();
-  }, 100), []);
-
-  const openCreate = useCallback(() => {
-    setEditId(null);
-    setName("");
-    setShowForm(true);
-    focusName();
-  }, [focusName]);
-
-  const openEdit = useCallback((w) => {
-    setEditId(w.id);
-    setName(w.name || "");
-    setShowForm(true);
-    focusName();
-  }, [focusName]);
-
-  const closeForm = useCallback(() => {
-    setShowForm(false);
-    setEditId(null);
-    setName("");
-    searchRef.current?.focus();
-  }, []);
-
-  // ── ذخیره (فقط localStorage) ──
-  const handleSave = useCallback(() => {
-    const n = nameRefState.current.trim();
-    if (!n) {
-      notify(t("ui_b.warehouse.nameRequired"), "warning");
-      focusName();
-      return;
-    }
-    if (savingRef.current) return;
-    savingRef.current = true;
-    setSaving(true);
-
-    const payload = {
-      id: editIdRef.current || Date.now(),
-      name: n,
-      parent: MOTHER_WAREHOUSE.id,
-      warehouse_type: "sub",
-      description: "",
-      is_mother: false,
-    };
-
-    setSubWarehouses((prev) => {
-      let next;
-      if (editIdRef.current) {
-        next = prev.map((w) =>
-          w.id === editIdRef.current ? { ...w, name: n, id: editIdRef.current } : w
-        );
-      } else {
-        const exists = prev.find((w) => w.name === n);
-        if (exists) {
-          next = prev.map((w) => (w.id === exists.id ? { ...w, name: n } : w));
-        } else {
-          next = [...prev, payload];
-        }
-      }
-      writeLocal(next);
-      return next;
-    });
-
-    notify(editIdRef.current ? `${t("ui_b.warehouse.updated")} ✅` : `${t("ui_b.warehouse.subAdded")} ✅`, "success");
-    setEditId(null);
-    setName("");
-    focusName();
-    savingRef.current = false;
-    setSaving(false);
-  }, [notify, focusName, t]);
-
-  // ── حذف (فقط localStorage) ──
-  const handleDelete = useCallback((w) => {
-    if (!window.confirm(t("ui_b.common.confirmDelete", { name: w.name }))) return;
-    setSubWarehouses((prev) => {
-      const next = prev.filter((x) => x.id !== w.id);
-      writeLocal(next);
-      return next;
-    });
-    notify(t("ui_b.common.deleted", { name: w.name }), "info");
-  }, [notify, t]);
-
-  const filtered = useMemo(() => {
-    if (!search.trim()) return subWarehouses;
-    const q = search.toLowerCase();
-    return subWarehouses.filter((w) => w.name?.toLowerCase().includes(q));
-  }, [subWarehouses, search]);
-
-  // ═══════════ کیبورد: F2 جدید · Ctrl+D ذخیره · Enter ذخیره/ویرایش · Escape بستن · Ctrl+A/Z ردیف ═══════════
-  const cursor = useRowCursor(filtered.length);
+  const cursor = useRowCursor(shown.length);
   useRegisteredShortcuts([
-    { combo: "F2", label: t("shortcuts.new"), handler: openCreate },
-    { combo: "Ctrl+D", label: t("shortcuts.save"), handler: handleSave, when: showForm },
-    {
-      combo: "Enter", label: showForm ? t("shortcuts.confirm") : t("ui_h.edit_selected"), allowInInput: true,
-      handler: onEnter(() => {
-        if (showForm) { handleSave(); return; }
-        const r = filtered[cursor.index];
-        if (!r) return false;
-        openEdit(r);
-      }),
-    },
-    { combo: "Escape", label: t("shortcuts.close_dialog"), handler: closeForm, when: showForm },
-    ...cursorBindings(t, cursor, { when: !showForm }),
-    {
-      combo: "Delete", label: t("ui_h.delete_selected"),
-      handler: () => { const r = filtered[cursor.index]; if (!r) return false; handleDelete(r); },
-    },
+    { combo: "F2", label: t("ui_def.warehouses.new"), handler: () => open(null) },
+    ...cursorBindings(t, cursor),
+    { combo: "Enter", label: t("ui_def.common.open_row"), handler: onEnter(() => { const r = shown[cursor.index]; if (!r) return false; open(r); return true; }) },
   ]);
 
-  // ── استایل‌ها ──
-  const inputSx = {
-    "& .MuiOutlinedInput-root": {
-      borderRadius: "10px", bgcolor: C.inputBg, backdropFilter: "blur(8px)",
-      fontSize: F(13), color: C.text,
-      "& fieldset": { borderColor: C.glassBorder },
-      "&:hover fieldset": { borderColor: C.olive + "60" },
-      "&.Mui-focused fieldset": { borderColor: C.olive, borderWidth: 1.5 },
-      "&.Mui-focused": { boxShadow: `0 0 0 3px ${C.olive}18` },
-    },
-    "& .MuiInputLabel-root": { fontSize: F(12), color: C.sub },
-    "& .MuiInputBase-input": {
-      color: C.text,
-      "&::selection": { bgcolor: C.olive + "30", color: C.text },
-    },
-    "& .MuiInputBase-input::placeholder": { color: C.muted, opacity: 1 },
+  const submit = async () => {
+    setTouched(true);
+    if (!form.name.trim()) return;
+    setSaving(true); setFormErr("");
+    try {
+      await saveWarehouse({ ...(editing.id ? { id: editing.id } : {}), ...form, name: form.name.trim() });
+      notify(t("ui_def.warehouses.saved", { name: form.name.trim() }), "success");
+      setEditing(null); load();
+    } catch (e) { setFormErr(errMsg(e, t("ui_def.common.save_failed"))); } finally { setSaving(false); }
   };
 
-  const btnSx = {
-    borderRadius: "10px", fontSize: F(12), fontWeight: 700, textTransform: "none",
-    px: 2.5, py: 1, color: "#fff", background: C.btnGrad,
-    boxShadow: `0 4px 20px ${C.olive}30`,
-    transition: "all 0.25s ease",
-    "&:hover": { transform: "translateY(-1px)", boxShadow: `0 6px 28px ${C.olive}40` },
-    "&:active": { transform: "scale(0.985)" },
+  const doDelete = async () => {
+    setDelBusy(true); setDelErr("");
+    try {
+      await deleteWarehouse(del.id);
+      notify(t("ui_def.warehouses.deleted", { name: del.name }), "success");
+      setDel(null); load();
+    } catch (e) { setDelErr(errMsg(e, t("ui_def.common.save_failed"))); } finally { setDelBusy(false); }
   };
 
-  const cancelBtnSx = {
-    borderRadius: "10px", fontSize: F(12), fontWeight: 600, textTransform: "none",
-    color: C.sub, border: `1px solid ${C.glassBorder}`,
-    "&:hover": { bgcolor: C.oliveSubtle },
+  const toggleSales = async (w) => {
+    setFlagBusy(w.id);
+    try {
+      await setSalesDefault(w.id, !w.is_sales_default);
+      notify(!w.is_sales_default ? t("ui_def.warehouses.sales_on", { name: w.name }) : t("ui_def.warehouses.sales_off", { name: w.name }), "success");
+      load();
+    } catch (e) { notify(errMsg(e, t("ui_def.common.save_failed")), "error"); } finally { setFlagBusy(null); }
   };
 
-  if (loading) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
-        <CircularProgress sx={{ color: C.olive }} size={36} />
-      </Box>
-    );
-  }
+  const typeLabel = (k) => t(`ui_def.warehouse_types.${k}`, { defaultValue: k });
 
   return (
     <Box>
-      {/* ── هدر ── */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5, flexWrap: "wrap", gap: 1.5 }}>
-        <Box>
-          <Typography sx={{ fontSize: { xs: F(16), sm: F(18) }, fontWeight: 800, color: C.text }}>
-            📦 {t("ui_b.warehouse.title")}
-          </Typography>
-          <Typography sx={{ fontSize: F(11), color: C.muted, mt: 0.3 }}>
-            {t("ui_b.warehouse.summary", { count: subWarehouses.length })}
-          </Typography>
-        </Box>
-        <Button onClick={openCreate} sx={btnSx}>
-          ➕ {t("ui_b.warehouse.newBtn")}<KbdHint>F2</KbdHint>
-        </Button>
-      </Box>
+      <SectionHeader ctx={ctx} title={t("ui_def.warehouses.title")} subtitle={t("ui_def.warehouses.subtitle")}
+        onNew={() => open(null)} newLabel={t("ui_def.warehouses.new")} search={q} onSearch={setQ} />
+      <LoadState ctx={ctx} loading={loading && rows.length === 0} error={error} onRetry={load}
+        empty={!loading && shown.length === 0} emptyText={q ? t("ui_def.common.no_results") : t("ui_def.warehouses.empty")}>
+        <TableWrap C={C}>
+          <Table size="small" sx={{ minWidth: 700 }}>
+            <TableHead>
+              <TableRow>
+                {["name", "type", "stock", "sales", "description", "actions"].map((k) => <TableCell key={k} sx={S.th}>{t(`ui_def.warehouses.col_${k}`)}</TableCell>)}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {shown.map((r, i) => (
+                <TableRow key={r.id} hover {...cursorAttrs(cursor.isActive(i))} sx={{ ...cursorSx(C, cursor.isActive(i)), cursor: "pointer" }} onDoubleClick={() => open(r)}>
+                  <TableCell sx={{ ...S.td, fontWeight: 700 }}>
+                    {r.name} {r.is_mother && <Chip size="small" label={t("ui_def.warehouses.central")} sx={{ marginInlineStart: 0.5, color: C.accent, bgcolor: C.accentSubtle, fontWeight: 700 }} />}
+                  </TableCell>
+                  <TableCell sx={S.td}>{typeLabel(r.warehouse_type)}</TableCell>
+                  <TableCell sx={S.td}>{t("ui_def.warehouses.stock_count", { count: fmtNum(r.stock_count) })}</TableCell>
+                  <TableCell sx={S.td}>
+                    <Switch size="small" checked={!!r.is_sales_default} disabled={flagBusy === r.id} onChange={() => toggleSales(r)}
+                      slotProps={{ input: { "aria-label": t("ui_def.warehouses.sales_default") } }} />
+                  </TableCell>
+                  <TableCell sx={S.td}><Typography noWrap sx={{ fontSize: 13, maxWidth: 220 }} title={r.description}>{r.description || "—"}</Typography></TableCell>
+                  <TableCell sx={{ ...S.td, whiteSpace: "nowrap" }}>
+                    <Button size="small" sx={{ color: C.primary, textTransform: "none" }} onClick={() => open(r)}>{t("ui_def.common.edit")}</Button>
+                    {!r.is_mother && <Button size="small" sx={{ color: C.danger, textTransform: "none" }} onClick={() => { setDelErr(""); setDel(r); }}>{t("ui_def.common.delete")}</Button>}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableWrap>
+        <Typography sx={{ color: C.muted, fontSize: 11, mt: 1 }}>{t("ui_def.warehouses.sales_hint")}</Typography>
+      </LoadState>
 
-      {/* ── جستجو ── */}
-      <TextField
-        size="small"
-        placeholder={`🔍 ${t("ui_b.warehouse.searchPlaceholder")}`}
-        inputRef={searchRef}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            if (filtered.length > 0) openEdit(filtered[0]);
-            else openCreate();
-          }
-        }}
-        sx={{ ...inputSx, width: "100%", maxWidth: 300, mb: 2 }}
-      />
-
-      {/* ── فرم ── */}
-      {showForm && (
-        <Box sx={{
-          bgcolor: C.glass, backdropFilter: "blur(16px)",
-          border: `1px solid ${C.glassBorder}`, borderRadius: "14px",
-          p: { xs: 2, sm: 2.5 }, mb: 2.5,
-          animation: "fadeUp 0.25s ease-out",
-        }}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
-            <Typography sx={{ fontSize: F(13), fontWeight: 700, color: C.text }}>
-              {editId ? `✏️ ${t("ui_b.warehouse.editTitle")}` : `➕ ${t("ui_b.warehouse.addSubTitle")}`}
-            </Typography>
-            <Button onClick={closeForm} sx={{ ...cancelBtnSx, px: 1.5, py: 0.3, fontSize: F(11) }}>
-              ✖ {t("ui_b.common.close")}
-            </Button>
-          </Box>
-
-          <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-end", flexWrap: "wrap" }}>
-            <Box sx={{ flex: 1, minWidth: 200 }}>
-              <TextField
-                size="small" label={t("ui_b.warehouse.nameLabel")} fullWidth
-                inputRef={nameRef}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={t("ui_b.warehouse.namePlaceholder")}
-                sx={inputSx}
-              />
-            </Box>
-            <Box sx={{ display: "flex", gap: 0.5, pb: 0.1 }}>
-              <Button onClick={handleSave} disabled={saving} sx={{ ...btnSx, minWidth: 110 }}>
-                {saving ? `⏳ ${t("ui_b.warehouse.saving")}` : editId ? `💾 ${t("ui_b.common.update")}` : `➕ ${t("ui_b.common.add")}`}
-                {!saving && <KbdHint>Ctrl+D</KbdHint>}
-              </Button>
-              {editId && <Button onClick={closeForm} sx={cancelBtnSx}>{t("ui_b.common.cancel")}</Button>}
-            </Box>
-          </Box>
-        </Box>
+      {editing && (
+        <FormDialog ctx={ctx} saving={saving} error={formErr} onClose={() => setEditing(null)} onSave={submit}
+          title={editing.id ? t("ui_def.warehouses.edit_title", { name: editing.name }) : t("ui_def.warehouses.new_title")}>
+          <TextField label={t("ui_def.warehouses.f_name")} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} size="small" sx={S.field}
+            required autoFocus error={touched && !form.name.trim()} helperText={touched && !form.name.trim() ? t("ui_def.common.required") : ""} />
+          <TextField select label={t("ui_def.warehouses.f_type")} value={form.warehouse_type} onChange={(e) => setForm({ ...form, warehouse_type: e.target.value })}
+            size="small" sx={S.field} disabled={!!editing.is_mother}>
+            {WAREHOUSE_TYPES.filter((k) => k !== "mother" || editing.is_mother).map((k) => <MenuItem key={k} value={k}>{typeLabel(k)}</MenuItem>)}
+          </TextField>
+          <TextField label={t("ui_def.warehouses.f_description")} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} size="small" sx={S.field} multiline minRows={2} />
+        </FormDialog>
       )}
-
-      {/* ══ راهنمای کیبورد ══ */}
-      <Box sx={{
-        display: "flex", flexWrap: "wrap", gap: 0.8,
-        alignItems: "center", mb: 2.5,
-        px: 2, py: 1.2, borderRadius: "12px",
-        bgcolor: isDark ? "rgba(107,155,110,0.07)" : "rgba(46,77,48,0.06)",
-        border: `1px solid ${C.olive}20`,
-      }}>
-        <Chip size="small" label={t("ui_b.warehouse.helpChip")}
-          sx={{
-            height: 26, fontSize: F(11), fontWeight: 900,
-            borderRadius: "6px", bgcolor: "#FFD600", color: "#1A1A00",
-            px: 1, mr: 0.5,
-          }} />
-        {[
-          { key: "F2", label: t("ui_b.warehouse.kbNew") },
-          { key: "Ctrl+D", label: t("ui_b.common.add") },
-          { key: "Enter", label: t("ui_b.common.save") },
-          { key: "Esc", label: t("ui_b.common.close") },
-        ].map((item) => (
-          <Box key={item.key} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <Chip size="small" label={item.key}
-              sx={{
-                height: 24, fontSize: F(11), fontWeight: 800,
-                borderRadius: "6px", fontFamily: "monospace",
-                bgcolor: C.oliveSubtle, color: C.olive,
-                border: `1px solid ${C.olive}30`, px: 0.5,
-              }} />
-            <Typography sx={{ fontSize: F(11), color: C.sub, fontWeight: 600 }}>{item.label}</Typography>
-          </Box>
-        ))}
-      </Box>
-
-      {/* ══ انبار مرکزی ══ */}
-      <Box sx={{
-        display: "flex", alignItems: "center",
-        px: { xs: 1.5, sm: 2 }, py: 1.5, borderRadius: "12px",
-        bgcolor: C.oliveSubtle, border: `2px solid ${C.olive}50`,
-        mb: 1.5, boxShadow: `0 2px 12px ${C.olive}15`,
-      }}>
-        <Warehouse sx={{ fontSize: 28, color: C.olive, ml: 1 }} />
-        <Box sx={{ flex: 1 }}>
-          <Typography sx={{ fontSize: F(15), fontWeight: 800, color: C.olive }}>
-            {t("ui_b.warehouse.mainName")}
-          </Typography>
-          <Typography sx={{ fontSize: F(11), color: C.sub, mt: 0.2 }}>
-            {t("ui_b.warehouse.mainDesc")}
-          </Typography>
-        </Box>
-        <Chip size="small" label={t("ui_b.warehouse.mainChip")}
-          sx={{ height: 24, fontSize: F(11), fontWeight: 800, borderRadius: "8px", bgcolor: C.olive, color: "#fff", px: 1 }} />
-      </Box>
-
-      {/* ══ زیرمجموعه‌ها ══ */}
-      {filtered.length === 0 ? (
-        <Box sx={{ textAlign: "center", py: 5 }}>
-          <Typography sx={{ fontSize: 32, mb: 1 }}>📂</Typography>
-          <Typography sx={{ fontSize: F(14), fontWeight: 700, color: C.text }}>
-            {t("ui_b.warehouse.emptySub")}
-          </Typography>
-          <Typography sx={{ fontSize: F(12), color: C.sub, mt: 0.5 }}>
-            {t("ui_b.warehouse.emptySubHint")}
-          </Typography>
-        </Box>
-      ) : (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.8, pr: { sm: 3 } }}>
-          {filtered.map((w, i) => (
-            <Box key={w.id} {...cursorAttrs(cursor.isActive(i))} sx={{
-              ...cursorSx(C, cursor.isActive(i)),
-              display: "flex", alignItems: "center",
-              px: { xs: 1.5, sm: 2 }, py: { xs: 1, sm: 1.2 }, borderRadius: "12px",
-              bgcolor: C.glass, backdropFilter: "blur(12px)",
-              border: `1px solid ${C.glassBorder}`,
-              transition: "all 0.2s ease",
-              opacity: 0, animation: `fadeUp 0.35s ease-out ${i * 0.04}s forwards`,
-              "&:hover": {
-                bgcolor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)",
-                transform: "translateX(-2px)",
-              },
-            }}>
-              <Box sx={{ display: { xs: "none", sm: "flex" }, alignItems: "center", mr: 1.5 }}>
-                <Box sx={{ width: 2, height: 20, bgcolor: C.olive + "30", borderRadius: 1 }} />
-                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: C.olive + "50", mr: 0.5 }} />
-              </Box>
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography sx={{ fontSize: F(13), fontWeight: 700, color: C.text }}>{w.name}</Typography>
-                <Typography sx={{ fontSize: F(10), color: C.muted, mt: 0.2 }}>{t("ui_b.warehouse.subOfMain")}</Typography>
-              </Box>
-              <Box sx={{ minWidth: 100, display: "flex", gap: 0.5, justifyContent: "center" }}>
-                <Box onClick={() => openEdit(w)}
-                  sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.2, px: 0.8, py: 0.4, borderRadius: "8px", cursor: "pointer", color: C.olive, "&:hover": { bgcolor: C.oliveSubtle } }}>
-                  <Edit sx={{ fontSize: 16 }} />
-                  <Typography sx={{ fontSize: F(9), fontWeight: 600 }}>{t("ui_b.common.edit")}</Typography>
-                </Box>
-                <Box onClick={() => handleDelete(w)}
-                  sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.2, px: 0.8, py: 0.4, borderRadius: "8px", cursor: "pointer", color: C.danger, "&:hover": { bgcolor: C.dangerBg } }}>
-                  <Delete sx={{ fontSize: 16 }} />
-                  <Typography sx={{ fontSize: F(9), fontWeight: 600 }}>{t("ui_b.common.delete")}</Typography>
-                </Box>
-              </Box>
-            </Box>
-          ))}
-        </Box>
-      )}
+      <ConfirmDialog ctx={ctx} open={!!del} danger busy={delBusy} error={delErr}
+        title={t("ui_def.warehouses.delete_title")} text={t("ui_def.warehouses.delete_text", { name: del?.name })}
+        confirmLabel={t("ui_def.common.delete")} onClose={() => setDel(null)} onConfirm={doDelete} />
     </Box>
   );
 }
