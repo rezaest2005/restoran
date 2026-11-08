@@ -5,8 +5,7 @@ import {
 } from "@mui/material";
 import {
   SectionHeader, LoadState, TableWrap, ConfirmDialog, useRegisteredShortcuts, useRowCursor, cursorAttrs,
-  cursorSx, cursorBindings, onEnter, useDebounced, useLoader, fmtNum, fmtMoney, KbdHint,
-} from "../common";
+  cursorSx, cursorBindings, onEnter, useDebounced, useLoader, fmtNum, fmtMoney, } from "../common";
 import { fetchProducts, fetchCategories, deleteProduct, errMsg } from "../api";
 import ProductDialog from "./ProductDialog";
 import CategoriesDialog from "./CategoriesDialog";

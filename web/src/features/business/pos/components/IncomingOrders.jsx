@@ -10,7 +10,6 @@ import { setOrderStatus, rejectOnlineOrder } from "../api";
 import { printTicket } from "../services/printService";
 import useShortcuts from "@shared/common/useShortcuts";
 import { FONT } from "../common/constants";
-import KbdHint from "../common/KbdHint";
 import { formatMoney } from "../common/format";
 
 const MAX_ACCEPTED = 20;

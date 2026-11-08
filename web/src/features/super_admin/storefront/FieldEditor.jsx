@@ -4,7 +4,6 @@ import { Box, Button, FormControlLabel, IconButton, Stack, Switch, TextField, Ty
 import DeleteIcon from "@mui/icons-material/DeleteOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
 import { uploadImage, errMsg } from "./api";
 import { useBusinessId } from "./BusinessContext";
 

@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Box, TextField, InputAdornment, Button } from "@mui/material";
 import { Search, Edit, Close } from "@mui/icons-material";
-import { KbdHint } from "../common";
 import { looksLikeBarcode } from "../common/barcodeScanner";
 
 export default function PosHeader({

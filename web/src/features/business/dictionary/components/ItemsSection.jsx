@@ -2,8 +2,7 @@ import { useState } from "react";
 import { Box, Typography, Button, Table, TableHead, TableBody, TableRow, TableCell, Chip, TablePagination } from "@mui/material";
 import {
   SectionHeader, LoadState, TableWrap, ConfirmDialog, TypeBadge, useRegisteredShortcuts, useRowCursor, cursorAttrs,
-  cursorSx, cursorBindings, onEnter, useDebounced, useLoader, fmtNum, fmtMoney, KINDS, KbdHint,
-} from "../common";
+  cursorSx, cursorBindings, onEnter, useDebounced, useLoader, fmtNum, fmtMoney, KINDS, } from "../common";
 import { fetchItems, deleteItem, errMsg } from "../api";
 import ItemDialog from "./ItemDialog";
 

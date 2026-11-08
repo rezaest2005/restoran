@@ -3,7 +3,7 @@ import {
   Box, Typography, Button, Table, TableHead, TableBody, TableRow, TableCell, TextField, IconButton, CircularProgress,
 } from "@mui/material";
 import { num, fmt, newKey, TypeBadge, StatusCell, SubFormulaButton, ReadyBanner, lineStatus } from "@business/production/common";
-import { FormDialog, TableWrap, ConfirmDialog, KbdHint, useRegisteredShortcuts, KINDS } from "../../common";
+import { FormDialog, TableWrap, ConfirmDialog, useRegisteredShortcuts, KINDS } from "../../common";
 import { fetchFormulas, fetchFormula, createFormula, updateFormula, errMsg } from "../../api";
 import ItemDialog from "../ItemDialog";
 import ItemPicker from "./ItemPicker";

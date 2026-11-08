@@ -4,7 +4,7 @@ import {
   FormControlLabel, Switch, Chip,
 } from "@mui/material";
 import {
-  useRegisteredShortcuts, useDebounced, useLoader, KbdHint, fmtMoney, fmtNum,
+  useRegisteredShortcuts, useDebounced, useLoader, fmtMoney, fmtNum,
 } from "../../common";
 import { fetchProducts, fetchItems, generateBarcodes, fetchBarcodeLabels, errMsg } from "../../api";
 import { Label, PrintRoot } from "./labels";

@@ -7,7 +7,6 @@ import {
 import { Sell, Close, Percent, Payments } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "../common/KbdHint";
 
 // div-based buttons: make them reachable and activatable from the keyboard
 const kbdBtn = (fn) => ({

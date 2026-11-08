@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Box, Typography, TextField, Button } from "@mui/material";
 import { Add } from "@mui/icons-material";
 import useShortcuts from "@shared/common/useShortcuts";
-import KbdHint from "../common/KbdHint";
 
 export default function ManualItemInput({ onAdd, C, isRtl }) {
   const [name, setName] = useState("");

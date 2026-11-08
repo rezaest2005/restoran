@@ -1,5 +1,4 @@
 import { Box, Button } from "@mui/material";
-import { KbdHint } from "../common";
 import { Storefront, ShoppingBag, DeliveryDining } from "@mui/icons-material";
 
 const TYPES = [

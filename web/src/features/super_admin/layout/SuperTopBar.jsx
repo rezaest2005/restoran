@@ -1,7 +1,6 @@
 import { Box, Typography, IconButton, Button, Tooltip } from "@mui/material";
 import { LightMode, DarkMode, Language, Refresh, Menu } from "@mui/icons-material";
 import { useLang } from "@shared/contexts/LangContext";
-import KbdHint from "@business/pos/common/KbdHint";
 
 export default function SuperTopBar({ isMobile, onMenuClick, toggleTheme, toggleLang, onRefresh, C, t }) {
   const { isRtl } = useLang();
