@@ -72,8 +72,6 @@ export default function InventoryPage() {
       <Box
         sx={{
           bgcolor: C.glass,
-          backdropFilter: "blur(28px)",
-          WebkitBackdropFilter: "blur(28px)",
           border: `1px solid ${C.glassBorder}`,
           borderRadius: "20px",
           boxShadow: C.cardShadow,

@@ -269,7 +269,7 @@ export default function BusinessLayout() {
   const sidebarContent = (
     <Box dir={isRtl ? "rtl" : "ltr"} sx={{ height: "100%", display: "flex", flexDirection: "column", bgcolor: C.sidebarBg }}>
       <Box sx={{ p: 2.5, display: "flex", alignItems: "center", gap: 1.5 }}>
-        <Box sx={{ width: 42, height: 42, borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, background: C.btnGrad, color: "#fff" }}>🏪</Box>
+        <Box sx={{ width: 42, height: 42, borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, background: C.btnGrad, color: "var(--on-primary)" }}>🏪</Box>
         <Box>
           <Typography sx={{ fontWeight: 800, fontSize: 16, color: C.text }}>{appName(i18n.language)}</Typography>
           <Typography sx={{ fontSize: 9, color: C.muted, fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase" }}>{t("rest.panel_sub")}</Typography>
@@ -330,12 +330,12 @@ export default function BusinessLayout() {
     <Box dir={isRtl ? "rtl" : "ltr"} sx={{ minHeight: "100vh", bgcolor: C.bg, position: "relative", fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif", overflowX: "hidden" }}>
       <style>{animations}</style>
       <Box sx={{ position: "fixed", inset: 0, zIndex: 0, background: C.bgWarm, pointerEvents: "none" }} />
-      <Box sx={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: `radial-gradient(circle, ${isDark ? "rgba(107,155,110,0.06)" : "rgba(46,77,48,0.06)"} 1px, transparent 1px)`, backgroundSize: "36px 36px", pointerEvents: "none" }} />
+      <Box sx={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: `radial-gradient(circle, ${isDark ? "color-mix(in srgb, var(--success) 6%, transparent)" : "color-mix(in srgb, var(--success) 6%, transparent)"} 1px, transparent 1px)`, backgroundSize: "36px 36px", pointerEvents: "none" }} />
       {[
         { size: 600, pos: { top: "5%", left: "10%" }, bg: C.orb1, anim: "orb1 24s ease-in-out infinite" },
         { size: 500, pos: { bottom: "10%", right: "5%" }, bg: C.orb2, anim: "orb2 28s ease-in-out infinite" },
       ].map((orb, i) => (
-        <Box key={i} sx={{ position: "fixed", width: orb.size, height: orb.size, ...orb.pos, borderRadius: "50%", background: orb.bg, filter: "blur(80px)", animation: orb.anim, pointerEvents: "none", zIndex: 0 }} />
+        <Box key={i} sx={{ position: "fixed", width: orb.size, height: orb.size, ...orb.pos, borderRadius: "50%", background: orb.bg, animation: orb.anim, pointerEvents: "none", zIndex: 0 }} />
       ))}
 
       {!isMobile && (
@@ -366,8 +366,7 @@ export default function BusinessLayout() {
         flexDirection: "column",
       }}>
         <Box sx={{
-          position: "sticky", top: 0, zIndex: 50, bgcolor: C.headerBg, backdropFilter: "blur(16px)",
-          borderBottom: `1px solid ${C.headerBorder}`, px: { xs: 1.5, md: 3 }, py: 1.5,
+          position: "sticky", top: 0, zIndex: 50, bgcolor: C.headerBg,          borderBottom: `1px solid ${C.headerBorder}`, px: { xs: 1.5, md: 3 }, py: 1.5,
           display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1,
         }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0, flex: 1 }}>
@@ -413,7 +412,7 @@ export default function BusinessLayout() {
       <ShortcutsHelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} items={layoutShortcuts} />
 
       <Snackbar open={toast.open} autoHideDuration={3000} onClose={() => setToast(s => ({ ...s, open: false }))} anchorOrigin={{ vertical: "top", horizontal: "center" }}>
-        <Alert onClose={() => setToast(s => ({ ...s, open: false }))} severity={toast.type} sx={{ bgcolor: C.glass, backdropFilter: "blur(16px)", color: C.text, border: `1px solid ${C.olive}`, borderRadius: "12px", fontSize: 13, fontWeight: 600, boxShadow: C.cardShadow }}>
+        <Alert onClose={() => setToast(s => ({ ...s, open: false }))} severity={toast.type} sx={{ bgcolor: C.glass, color: C.text, border: `1px solid ${C.olive}`, borderRadius: "12px", fontSize: 13, fontWeight: 600, boxShadow: C.cardShadow }}>
           {toast.message}
         </Alert>
       </Snackbar>

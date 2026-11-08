@@ -4,7 +4,7 @@ import { useLang } from "@shared/contexts/LangContext";
 
 export default function SuperTopBar({ isMobile, onMenuClick, toggleTheme, toggleLang, onRefresh, C, t }) {
   const { isRtl } = useLang();
-  const isDark = C.bg === "#0B0A0B";
+  const isDark = C.bg === "var(--ink)";
 
   const iconBtnSx = {
     color: C.text,
@@ -16,8 +16,7 @@ export default function SuperTopBar({ isMobile, onMenuClick, toggleTheme, toggle
   return (
     <Box dir={isRtl ? "rtl" : "ltr"} sx={{
       position: "sticky", top: 0, zIndex: 50,
-      bgcolor: C.headerBg, backdropFilter: "blur(16px)",
-      borderBottom: `1px solid ${C.headerBorder}`,
+      bgcolor: C.headerBg,      borderBottom: `1px solid ${C.headerBorder}`,
       px: { xs: 1, md: 2 }, py: 1,
       display: "flex", alignItems: "center",
       justifyContent: "space-between",

@@ -9,8 +9,7 @@ export default function TabBar({ tabs, active, onSelect, C, getButtonProps, show
     <Box
       sx={{
         display: "flex", gap: 0.5, mb: 3,
-        bgcolor: C.glass, backdropFilter: "blur(16px)",
-        border: `1px solid ${C.glassBorder}`,
+        bgcolor: C.glass,        border: `1px solid ${C.glassBorder}`,
         borderRadius: "14px", p: 0.5,
         width: "fit-content", flexWrap: "wrap",
       }}

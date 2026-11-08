@@ -27,7 +27,7 @@ export default function OrderStatus({ orderStatus, totalOrders, L, C, isRtl, isD
                 </Box>
                 <LinearProgress variant="determinate" value={parseFloat(pct)} sx={{
                   height: 7, borderRadius: 4,
-                  bgcolor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
+                  bgcolor: isDark ? "var(--surface-sunken)" : "color-mix(in srgb, var(--ink) 5%, transparent)",
                   "& .MuiLinearProgress-bar": { bgcolor: st.color, borderRadius: 4 },
                 }} />
               </Box>

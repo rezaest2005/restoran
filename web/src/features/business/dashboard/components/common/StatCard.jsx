@@ -8,16 +8,16 @@ export default function StatCard({ icon, color, value, label, change, subValue, 
         width: "100%",
         p: { xs: 2.5, md: 3 },
         borderRadius: "20px",
-        background: C?.glass || "rgba(16,18,16,0.65)",
-        border: `1px solid ${C?.glassBorder || "rgba(107,155,110,0.12)"}`,
-        boxShadow: C?.cardShadow || "0 8px 60px rgba(0,0,0,0.5)",
+        background: C?.glass || "color-mix(in srgb, var(--ink) 65%, transparent)",
+        border: `1px solid ${C?.glassBorder || "color-mix(in srgb, var(--success) 12%, transparent)"}`,
+        boxShadow: C?.cardShadow || "0 8px 60px color-mix(in srgb, var(--ink) 50%, transparent)",
         display: "flex",
         flexDirection: "column",
         gap: 1.5,
         transition: "all 0.3s cubic-bezier(.4,0,.2,1)",
         "&:hover": {
           transform: "translateY(-4px)",
-          boxShadow: "0 20px 80px rgba(0,0,0,0.25)",
+          boxShadow: "0 20px 80px color-mix(in srgb, var(--ink) 25%, transparent)",
         },
       }}
     >
@@ -38,13 +38,13 @@ export default function StatCard({ icon, color, value, label, change, subValue, 
         >
           {icon}
         </Box>
-        <Typography sx={{ fontSize: 13, fontWeight: 600, color: C?.sub || "#8A8588" }}>
+        <Typography sx={{ fontSize: 13, fontWeight: 600, color: C?.sub || "var(--ink-muted)" }}>
           {label}
         </Typography>
       </Box>
 
       {/* مقدار اصلی */}
-      <Typography sx={{ fontSize: { xs: 22, md: 26 }, fontWeight: 800, color: C?.text || "#F0ECE8" }}>
+      <Typography sx={{ fontSize: { xs: 22, md: 26 }, fontWeight: 800, color: C?.text || "var(--ink-muted)" }}>
         {value}
       </Typography>
 
@@ -59,16 +59,16 @@ export default function StatCard({ icon, color, value, label, change, subValue, 
               px: 1.2,
               py: 0.3,
               borderRadius: "8px",
-              bgcolor: change >= 0 ? "rgba(76,175,80,0.12)" : "rgba(244,67,54,0.12)",
+              bgcolor: change >= 0 ? "color-mix(in srgb, var(--success) 12%, transparent)" : "color-mix(in srgb, var(--danger) 12%, transparent)",
             }}
           >
-            <Typography sx={{ fontSize: 13, fontWeight: 700, color: change >= 0 ? "#4caf50" : "#f44336" }}>
+            <Typography sx={{ fontSize: 13, fontWeight: 700, color: change >= 0 ? "var(--success)" : "var(--danger)" }}>
               {change >= 0 ? "▲" : "▼"} {Math.abs(change)}%
             </Typography>
           </Box>
         )}
         {subValue && (
-          <Typography sx={{ fontSize: 11.5, color: C?.muted || "#4A4548" }}>
+          <Typography sx={{ fontSize: 11.5, color: C?.muted || "var(--ink)" }}>
             {subValue}
           </Typography>
         )}

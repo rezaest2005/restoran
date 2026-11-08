@@ -107,7 +107,7 @@ export default function ManualItemInput({ onAdd, C, isRtl }) {
           disabled={!name.trim() || !price || Number(price) <= 0}
           sx={{
             bgcolor: C.btnGrad,
-            color: "#fff",
+            color: "var(--on-primary)",
             borderRadius: "12px",
             px: 3,
             py: 1,
@@ -116,7 +116,7 @@ export default function ManualItemInput({ onAdd, C, isRtl }) {
             fontFamily: "'Vazirmatn', sans-serif",
             whiteSpace: "nowrap",
             "&:hover": { transform: "translateY(-2px)" },
-            "&.Mui-disabled": { bgcolor: C.muted, color: "#fff" },
+            "&.Mui-disabled": { bgcolor: C.muted, color: "var(--on-primary)" },
           }}
         >
           <Add sx={{ fontSize: 18, mr: 0.5 }} />

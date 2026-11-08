@@ -13,8 +13,8 @@ export default function LatestActivity({ activities, C, isRtl }) {
             <Box key={i} sx={{ display: "flex", alignItems: "flex-start", gap: 1.2 }}>
               <Box sx={{
                 width: 9, height: 9, borderRadius: "50%", flexShrink: 0, mt: 0.5,
-                bgcolor: act.dot === "green" ? "#10b981" : act.dot === "blue" ? "#3b82f6" : "#ff6b35",
-                boxShadow: `0 0 10px ${act.dot === "green" ? "#10b981" : act.dot === "blue" ? "#3b82f6" : "#ff6b35"}55`,
+                bgcolor: act.dot === "green" ? "var(--success)" : act.dot === "blue" ? "var(--info)" : "var(--danger)",
+                boxShadow: `0 0 10px ${act.dot === "green" ? "var(--success)" : act.dot === "blue" ? "var(--info)" : "var(--danger)"}55`,
                 animation: "pulse 2s ease-in-out infinite",
               }} />
               <Box sx={{ flex: 1, minWidth: 0 }}>

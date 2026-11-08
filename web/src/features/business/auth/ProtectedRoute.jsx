@@ -63,7 +63,7 @@ export default function ProtectedRoute({ children }) {
     return (
       <div style={{
         display: "flex", justifyContent: "center", alignItems: "center",
-        height: "100vh", fontFamily: "'Vazirmatn', sans-serif", color: "#6b8e23"
+        height: "100vh", fontFamily: "'Vazirmatn', sans-serif", color: "var(--success)"
       }}>
         <div>...در حال بررسی</div>
       </div>

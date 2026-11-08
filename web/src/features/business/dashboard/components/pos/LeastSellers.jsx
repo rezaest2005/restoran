@@ -18,7 +18,7 @@ export default function LeastSellers({ lowItems, L, C, isRtl, isDark, fmtN }) {
               display: "flex", alignItems: "center", gap: 1.5,
               p: 1.5, borderRadius: "10px", mb: 0.5, transition: "all 0.2s ease",
               opacity: 0, animation: `fadeUp 0.4s ease-out ${0.75 + i * 0.04}s forwards`,
-              "&:hover": { bgcolor: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)" },
+              "&:hover": { bgcolor: isDark ? "var(--surface-sunken)" : "color-mix(in srgb, var(--ink) 2%, transparent)" },
             }}>
               <Box sx={{
                 width: 28, height: 28, borderRadius: "8px",

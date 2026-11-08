@@ -180,10 +180,8 @@ export default function CategoryDiscountButton({
             overflow: "hidden",
             bgcolor: C.bg,
             backgroundImage: `linear-gradient(160deg, ${C.burgundy}1A 0%, transparent 45%), linear-gradient(-20deg, ${C.gold}14 0%, transparent 40%)`,
-            backdropFilter: "blur(28px)",
-            WebkitBackdropFilter: "blur(28px)",
             border: `1px solid ${C.glassBorder}`,
-            boxShadow: `0 24px 70px rgba(0,0,0,0.35), 0 0 0 1px ${C.gold}10`,
+            boxShadow: `0 24px 70px color-mix(in srgb, var(--ink) 35%, transparent), 0 0 0 1px ${C.gold}10`,
           },
         } }}>
         <Box sx={{
@@ -216,10 +214,10 @@ export default function CategoryDiscountButton({
                   borderRadius: "20px",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   background: `linear-gradient(145deg, ${C.gold}, ${C.burgundy})`,
-                  boxShadow: `0 10px 30px ${C.burgundy}45, inset 0 1px 1px rgba(255,255,255,0.25)`,
+                  boxShadow: `0 10px 30px ${C.burgundy}45, inset 0 1px 1px var(--surface-sunken)`,
                 }}
               >
-                <Sell sx={{ fontSize: 32, color: "#fff" }} />
+                <Sell sx={{ fontSize: 32, color: "var(--on-primary)" }} />
               </Box>
             </Box>
 
@@ -326,7 +324,6 @@ export default function CategoryDiscountButton({
                   "& .MuiOutlinedInput-root": {
                     borderRadius: "12px",
                     bgcolor: C.inputBg,
-                    backdropFilter: "blur(8px)",
                     fontSize: 20,
                     fontWeight: 800,
                     color: C.gold,
@@ -419,7 +416,7 @@ export default function CategoryDiscountButton({
                             px: 1.4, py: 0.6, borderRadius: "10px", cursor: "pointer",
                             bgcolor: selected ? C.gold : "transparent",
                             border: `1.5px solid ${selected ? C.gold : C.glassBorder}`,
-                            color: selected ? "#1A1817" : C.sub,
+                            color: selected ? "var(--ink)" : C.sub,
                             fontSize: 11.5, fontWeight: 700,
                             fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                             transition: "all 0.2s ease",
@@ -468,7 +465,7 @@ export default function CategoryDiscountButton({
                 sx={{
                   flex: 2, textAlign: "center", py: 1.6, borderRadius: "14px",
                   background: `linear-gradient(135deg, ${C.gold}, ${C.burgundy})`,
-                  color: "#fff", cursor: "pointer",
+                  color: "var(--on-primary)", cursor: "pointer",
                   fontSize: 14.5, fontWeight: 800,
                   fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                   boxShadow: `0 8px 20px ${C.burgundy}35`,

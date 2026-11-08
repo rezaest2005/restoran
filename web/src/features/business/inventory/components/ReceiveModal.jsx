@@ -227,7 +227,7 @@ export default function ReceiveModal({ open, onClose, warehouse, C, isDark, onSu
         </Button>
         <Button onClick={handleSubmit} disabled={saving || loading} sx={{
           borderRadius: "10px", fontSize: 12, fontWeight: 700, textTransform: "none",
-          px: 2.5, color: "#fff", background: C.btnGrad, opacity: saving ? 0.6 : 1,
+          px: 2.5, color: "var(--on-primary)", background: C.btnGrad, opacity: saving ? 0.6 : 1,
         }}>
           {saving ? "..." : "✅ ثبت ورود"}
           {!saving && <KbdHint>Ctrl+D</KbdHint>}

@@ -16,7 +16,7 @@ export default function DeleteModal({ open, onClose, onConfirm, type, name, C })
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} sx={{ color: C.sub }}>{t("ui_c.super.cancel")}</Button>
-        <Button onClick={onConfirm} sx={{ bgcolor: C.danger, color: "#fff" }}>{t("ui_c.super.delete.confirm_btn")}</Button>
+        <Button onClick={onConfirm} sx={{ bgcolor: C.danger, color: "var(--on-status)" }}>{t("ui_c.super.delete.confirm_btn")}</Button>
       </DialogActions>
     </Dialog>
   );

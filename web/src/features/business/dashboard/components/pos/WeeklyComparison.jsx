@@ -27,7 +27,7 @@ export default function WeeklyComparison({ weeklyCompare, L, C, isRtl, isDark, f
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                   <Box sx={{
                     flex: 1, height: 14, borderRadius: 7,
-                    bgcolor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
+                    bgcolor: isDark ? "var(--surface-sunken)" : "color-mix(in srgb, var(--ink) 5%, transparent)",
                     overflow: "hidden",
                   }}>
                     <Box sx={{

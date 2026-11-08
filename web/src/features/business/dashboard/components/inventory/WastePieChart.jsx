@@ -3,7 +3,7 @@ import GlassCard from '../common/GlassCard';
 
 const WastePieChart = ({ data }) => (
   <GlassCard>
-    <h3 style={{ color: '#fff', margin: '0 0 1rem' }}>🥧 تفکیک ضایعات</h3>
+    <h3 style={{ color: 'var(--on-primary)', margin: '0 0 1rem' }}>🥧 تفکیک ضایعات</h3>
     <ResponsiveContainer width="100%" height={300}>
       <PieChart>
         <Pie
@@ -21,16 +21,16 @@ const WastePieChart = ({ data }) => (
         </Pie>
         <Tooltip
           contentStyle={{
-            background: 'rgba(30,30,50,0.95)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'color-mix(in srgb, var(--ink) 95%, transparent)',
+            border: '1px solid var(--line)',
             borderRadius: 12,
-            color: '#fff',
+            color: 'var(--on-primary)',
           }}
           formatter={(value) => [`${value}%`, 'درصد ضایعات']}
         />
         <Legend
           formatter={(value) => (
-            <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13 }}>{value}</span>
+            <span style={{ color: 'var(--on-primary)', fontSize: 13 }}>{value}</span>
           )}
         />
       </PieChart>

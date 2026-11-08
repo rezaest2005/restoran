@@ -179,7 +179,6 @@ export default function Login() {
       borderRadius: "12px",
       fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
       bgcolor: C.inputBg,
-      backdropFilter: "blur(8px)",
       transition: "all 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
       "& fieldset": {
         borderColor: focusedField === field ? C.olive : C.glassBorder,
@@ -187,14 +186,14 @@ export default function Login() {
         transition: "all 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
       },
       "&:hover fieldset": {
-        borderColor: isDark ? "rgba(107,155,110,0.3)" : "rgba(74,106,148,0.3)",
+        borderColor: isDark ? "color-mix(in srgb, var(--success) 30%, transparent)" : "color-mix(in srgb, var(--info) 30%, transparent)",
       },
       "&.Mui-focused fieldset": {
         borderColor: C.olive,
         borderWidth: 1.5,
       },
       "&.Mui-focused": {
-        bgcolor: isDark ? "rgba(11,10,11,0.7)" : "rgba(240,244,252,0.95)",
+        bgcolor: isDark ? "color-mix(in srgb, var(--ink) 70%, transparent)" : "var(--surface)",
         boxShadow: C.inputFocusGlow,
       },
     },
@@ -214,31 +213,31 @@ export default function Login() {
     {
       w: { xs: 450, md: 650 },
       pos: { top: "-20%", left: "-15%" },
-      bg: isDark ? "rgba(107,155,110,0.09)" : "rgba(74,106,148,0.12)",
+      bg: isDark ? "color-mix(in srgb, var(--success) 9%, transparent)" : "color-mix(in srgb, var(--info) 12%, transparent)",
       anim: "orb1 22s ease-in-out infinite",
     },
     {
       w: { xs: 380, md: 560 },
       pos: { bottom: "-18%", right: "-12%" },
-      bg: isDark ? "rgba(168,64,96,0.07)" : "rgba(122,40,69,0.1)",
+      bg: isDark ? "color-mix(in srgb, var(--danger) 7%, transparent)" : "color-mix(in srgb, var(--primary) 10%, transparent)",
       anim: "orb2 28s ease-in-out infinite",
     },
     {
       w: { xs: 220, md: 400 },
       pos: { top: "20%", right: "8%" },
-      bg: isDark ? "rgba(212,183,106,0.06)" : "rgba(160,128,64,0.09)",
+      bg: isDark ? "color-mix(in srgb, var(--warning) 6%, transparent)" : "color-mix(in srgb, var(--warning) 9%, transparent)",
       anim: "orb3 18s ease-in-out infinite",
     },
     {
       w: { xs: 200, md: 350 },
       pos: { bottom: "12%", left: "5%" },
-      bg: isDark ? "rgba(107,155,110,0.06)" : "rgba(46,77,48,0.08)",
+      bg: isDark ? "color-mix(in srgb, var(--success) 6%, transparent)" : "color-mix(in srgb, var(--success) 8%, transparent)",
       anim: "orb1 26s ease-in-out infinite reverse",
     },
     {
       w: { xs: 160, md: 300 },
       pos: { top: "50%", left: "40%" },
-      bg: isDark ? "rgba(168,64,96,0.05)" : "rgba(74,106,148,0.07)",
+      bg: isDark ? "color-mix(in srgb, var(--danger) 5%, transparent)" : "color-mix(in srgb, var(--info) 7%, transparent)",
       anim: "orb2 32s ease-in-out infinite",
     },
   ];
@@ -264,8 +263,6 @@ export default function Login() {
             top: 0,
             zIndex: 20,
             bgcolor: C.headerBg,
-            backdropFilter: "blur(16px)",
-            WebkitBackdropFilter: "blur(16px)",
             borderBottom: `1px solid ${C.headerBorder}`,
             boxShadow: C.headerShadow,
             px: { xs: 2, md: 4 },
@@ -352,8 +349,8 @@ export default function Login() {
                     borderRadius: "10px",
                     "&:hover": {
                       bgcolor: isDark
-                        ? "rgba(107,155,110,0.15)"
-                        : "rgba(46,77,48,0.12)",
+                        ? "color-mix(in srgb, var(--success) 15%, transparent)"
+                        : "color-mix(in srgb, var(--success) 12%, transparent)",
                     },
                     transition: "all 0.2s ease",
                   }}
@@ -400,8 +397,8 @@ export default function Login() {
                     borderRadius: "10px",
                     "&:hover": {
                       bgcolor: isDark
-                        ? "rgba(107,155,110,0.15)"
-                        : "rgba(46,77,48,0.12)",
+                        ? "color-mix(in srgb, var(--success) 15%, transparent)"
+                        : "color-mix(in srgb, var(--success) 12%, transparent)",
                     },
                     transition: "all 0.2s ease",
                   }}
@@ -531,11 +528,10 @@ export default function Login() {
                 bottom: "-15%",
                 borderRadius: "36px",
                 background: isDark
-                  ? `radial-gradient(ellipse at 30% 30%, rgba(107,155,110,0.06) 0%, transparent 50%),
-                   radial-gradient(ellipse at 70% 70%, rgba(168,64,96,0.05) 0%, transparent 50%)`
-                  : `radial-gradient(ellipse at 30% 30%, rgba(74,106,148,0.08) 0%, transparent 50%),
-                   radial-gradient(ellipse at 70% 70%, rgba(122,40,69,0.06) 0%, transparent 50%)`,
-                filter: "blur(50px)",
+                  ? `radial-gradient(ellipse at 30% 30%, color-mix(in srgb, var(--success) 6%, transparent) 0%, transparent 50%),
+                   radial-gradient(ellipse at 70% 70%, color-mix(in srgb, var(--danger) 5%, transparent) 0%, transparent 50%)`
+                  : `radial-gradient(ellipse at 30% 30%, color-mix(in srgb, var(--info) 8%, transparent) 0%, transparent 50%),
+                   radial-gradient(ellipse at 70% 70%, color-mix(in srgb, var(--primary) 6%, transparent) 0%, transparent 50%)`,
                 pointerEvents: "none",
                 animation: "breathe 6s ease-in-out infinite",
               }}
@@ -544,8 +540,6 @@ export default function Login() {
             <Box
               sx={{
                 background: C.glass,
-                backdropFilter: "blur(28px)",
-                WebkitBackdropFilter: "blur(28px)",
                 border: `1px solid ${C.glassBorder}`,
                 borderRadius: "24px",
                 p: { xs: 3.5, sm: 4.5, md: 5 },
@@ -596,7 +590,7 @@ export default function Login() {
                       position: "absolute",
                       inset: -8 - i * 6,
                       borderRadius: `${28 + i * 6}px`,
-                      border: `1px solid ${isDark ? "rgba(107,155,110,0.08)" : "rgba(74,106,148,0.08)"}`,
+                      border: `1px solid ${isDark ? "color-mix(in srgb, var(--success) 8%, transparent)" : "color-mix(in srgb, var(--info) 8%, transparent)"}`,
                       animation: `pulseRing 3s ease-in-out ${i * 0.5}s infinite`,
                       pointerEvents: "none",
                     }}
@@ -680,9 +674,9 @@ export default function Login() {
                     fontSize: 13,
                     fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                     bgcolor: isDark
-                      ? "rgba(198,40,40,0.08)"
-                      : "rgba(198,40,40,0.06)",
-                    border: `1px solid ${isDark ? "rgba(198,40,40,0.15)" : "rgba(198,40,40,0.12)"}`,
+                      ? "color-mix(in srgb, var(--danger) 8%, transparent)"
+                      : "color-mix(in srgb, var(--danger) 6%, transparent)",
+                    border: `1px solid ${isDark ? "color-mix(in srgb, var(--danger) 15%, transparent)" : "color-mix(in srgb, var(--danger) 12%, transparent)"}`,
                     "& .MuiAlert-icon": { fontSize: 20 },
                   }}
                 >
@@ -698,9 +692,9 @@ export default function Login() {
                     fontSize: 13,
                     fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                     bgcolor: isDark
-                      ? "rgba(46,125,50,0.08)"
-                      : "rgba(46,125,50,0.06)",
-                    border: `1px solid ${isDark ? "rgba(46,125,50,0.15)" : "rgba(46,125,50,0.12)"}`,
+                      ? "color-mix(in srgb, var(--success) 8%, transparent)"
+                      : "color-mix(in srgb, var(--success) 6%, transparent)",
+                    border: `1px solid ${isDark ? "color-mix(in srgb, var(--success) 15%, transparent)" : "color-mix(in srgb, var(--success) 12%, transparent)"}`,
                     "& .MuiAlert-icon": { fontSize: 20 },
                   }}
                 >
@@ -838,7 +832,7 @@ export default function Login() {
                       right: 0,
                       bottom: 0,
                       background:
-                        "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 50%)",
+                        "linear-gradient(180deg, var(--surface-sunken) 0%, transparent 50%)",
                       borderRadius: "14px",
                       pointerEvents: "none",
                     },
@@ -850,7 +844,7 @@ export default function Login() {
                       width: "100%",
                       height: "100%",
                       background:
-                        "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)",
+                        "linear-gradient(90deg, transparent, var(--surface-sunken), transparent)",
                       transition: "left 0.6s ease",
                     },
                     "&:hover": {
@@ -868,7 +862,7 @@ export default function Login() {
                   {loading ? (
                     <CircularProgress
                       size={22}
-                      sx={{ color: "rgba(255,255,255,0.85)" }}
+                      sx={{ color: "var(--on-primary)" }}
                     />
                   ) : (
                     <>
@@ -894,7 +888,7 @@ export default function Login() {
           <Typography
             sx={{
               fontSize: 11,
-              color: isDark ? "rgba(240,236,232,0.1)" : "rgba(26,26,36,0.14)",
+              color: isDark ? "color-mix(in srgb, var(--ink-muted) 10%, transparent)" : "color-mix(in srgb, var(--ink) 14%, transparent)",
               fontFamily: "'Plus Jakarta Sans', sans-serif",
               letterSpacing: "0.12em",
               textTransform: "uppercase",

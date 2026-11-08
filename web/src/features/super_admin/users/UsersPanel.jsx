@@ -37,7 +37,7 @@ export default function UsersPanel({ users, tenants, loadUsers, C, t }) {
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
         <Typography variant="h5" sx={{ color: C.text }}>{t("ui_c.super.users.title")}</Typography>
-        <Button onClick={() => setModal({ open: true, editId: null })} sx={{ bgcolor: C.btnGrad, color: "#fff" }}>{t("ui_c.super.users.new")}</Button>
+        <Button onClick={() => setModal({ open: true, editId: null })} sx={{ bgcolor: C.btnGrad, color: "var(--on-primary)" }}>{t("ui_c.super.users.new")}</Button>
       </Box>
 
       <Box sx={{ display: "flex", gap: 2, mb: 2 }}>

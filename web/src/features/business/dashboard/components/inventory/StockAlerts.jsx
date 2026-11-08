@@ -19,27 +19,27 @@ export default function StockAlerts({ stockAlerts, L, C, isRtl, isDark, fmtN }) 
             return (
               <Box key={i} sx={{
                 p: 1.3, borderRadius: "12px",
-                border: `1px solid ${critical ? "rgba(232,64,87,0.22)" : C.glassBorder}`,
-                bgcolor: critical ? "rgba(232,64,87,0.05)" : "transparent",
+                border: `1px solid ${critical ? "color-mix(in srgb, var(--danger) 22%, transparent)" : C.glassBorder}`,
+                bgcolor: critical ? "color-mix(in srgb, var(--danger) 5%, transparent)" : "transparent",
                 transition: "all 0.2s ease",
               }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.6 }}>
                   <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: C.text }}>
                     {isRtl ? item.name : item.nameEn}
                   </Typography>
-                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: critical ? C.danger : "#f59e0b" }}>
+                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: critical ? C.danger : "var(--warning)" }}>
                     {fmtN(item.current)} {isRtl ? item.unit : item.unitEn}
                   </Typography>
                 </Box>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <Box sx={{
                     flex: 1, height: 5, borderRadius: 3,
-                    bgcolor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
+                    bgcolor: isDark ? "var(--surface-sunken)" : "color-mix(in srgb, var(--ink) 5%, transparent)",
                     overflow: "hidden",
                   }}>
                     <Box sx={{
                       width: `${pct}%`, height: "100%", borderRadius: 3,
-                      bgcolor: critical ? C.danger : "#f59e0b",
+                      bgcolor: critical ? C.danger : "var(--warning)",
                       transition: "width 0.8s ease",
                     }} />
                   </Box>

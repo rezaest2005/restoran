@@ -129,7 +129,7 @@ export default function CartPanel({
           disabled={cart.length === 0 || submitting}
           sx={{
             bgcolor: C.olive,
-            color: "#fff",
+            color: "var(--on-primary)",
             py: 1.5,
             fontSize: 14,
             fontWeight: 700,

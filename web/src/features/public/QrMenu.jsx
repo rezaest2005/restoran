@@ -214,8 +214,7 @@ export default function QrMenu() {
       <Box sx={wrap}>
         <Box sx={{
           position: "sticky", top: 0, zIndex: 5, py: 1.5, mx: -2, px: 2,
-          background: C.headerBg, borderBottom: `1px solid ${C.headerBorder}`, backdropFilter: "blur(12px)",
-          display: "flex", alignItems: "center", gap: 1,
+          background: C.headerBg, borderBottom: `1px solid ${C.headerBorder}`,          display: "flex", alignItems: "center", gap: 1,
         }}>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography noWrap sx={{ fontWeight: 800, fontSize: 18 }}>
@@ -282,8 +281,7 @@ export default function QrMenu() {
         <Box sx={{
           position: "fixed", insetInline: 0, bottom: 0, zIndex: 10, px: 2, pt: 1.5,
           pb: "calc(12px + env(safe-area-inset-bottom, 0px))",
-          background: C.headerBg, borderTop: `1px solid ${C.headerBorder}`, backdropFilter: "blur(12px)",
-        }}>
+          background: C.headerBg, borderTop: `1px solid ${C.headerBorder}`,        }}>
           <Box sx={{ ...wrap, display: "flex", alignItems: "center", gap: 1.5 }}>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography sx={{ color: C.sub, fontSize: 12 }}>{t("ui_d.qr.items_count", { count })}</Typography>

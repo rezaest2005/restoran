@@ -272,22 +272,22 @@ export default function CheckoutDialog({
         @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;800;900&display=swap');
         *{margin:0;padding:0;box-sizing:border-box;}
         body{font-family:'Vazirmatn',Tahoma,sans-serif;width:300px;margin:20px auto;}
-        .r{border:2px solid #333;border-radius:12px;padding:20px;}
+        .r{border:2px solid var(--ink);border-radius:12px;padding:20px;}
         .h{text-align:center;margin-bottom:14px;}
         .h h2{font-size:18px;font-weight:900;margin-bottom:4px;}
-        .h .s{font-size:11px;color:#666;}
-        .d{border-top:2px dashed #aaa;margin:12px 0;}
-        .ir{display:flex;justify-content:space-between;font-size:12px;color:#555;margin:3px 0;}
-        .ir b{color:#111;}
+        .h .s{font-size:11px;color:var(--ink-muted);}
+        .d{border-top:2px dashed var(--ink-muted);margin:12px 0;}
+        .ir{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-muted);margin:3px 0;}
+        .ir b{color:var(--ink);}
         table{width:100%;border-collapse:collapse;margin:8px 0;}
-        thead th{font-size:11px;font-weight:800;color:#444;padding:6px;border-bottom:2px solid #333;text-align:center;}
+        thead th{font-size:11px;font-weight:800;color:var(--ink);padding:6px;border-bottom:2px solid var(--ink);text-align:center;}
         thead th:first-child{text-align:right;}
         thead th:last-child{text-align:left;}
-        tbody td{padding:6px;font-size:12px;border-bottom:1px dashed #ddd;}
-        .tb{background:#f5f5f5;border:2px solid #333;border-radius:10px;padding:12px;display:flex;justify-content:space-between;align-items:center;margin-top:12px;}
+        tbody td{padding:6px;font-size:12px;border-bottom:1px dashed var(--ink-muted);}
+        .tb{background:var(--surface);border:2px solid var(--ink);border-radius:10px;padding:12px;display:flex;justify-content:space-between;align-items:center;margin-top:12px;}
         .tl{font-size:14px;font-weight:800;}
         .ta{font-size:20px;font-weight:900;}
-        .f{text-align:center;margin-top:14px;font-size:11px;color:#888;}
+        .f{text-align:center;margin-top:14px;font-size:11px;color:var(--ink-muted);}
       </style>
     </head><body>
       <div class="r">
@@ -354,7 +354,6 @@ export default function CheckoutDialog({
       <Box
         sx={{
           bgcolor: C.glass,
-          backdropFilter: "blur(40px)",
           border: `1px solid ${C.glassBorder}`,
           borderRadius: "24px",
           boxShadow: C.cardShadow,
@@ -799,7 +798,7 @@ export default function CheckoutDialog({
                 fullWidth
                 sx={{
                   bgcolor: C.olive,
-                  color: "#fff",
+                  color: "var(--on-primary)",
                   borderRadius: "12px",
                   py: 1.5,
                   fontSize: 14,

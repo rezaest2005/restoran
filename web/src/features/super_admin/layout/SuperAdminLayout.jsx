@@ -163,7 +163,7 @@ export default function SuperAdminLayout() {
                   fontSize: 13,
                   borderRadius: "10px",
                   px: 2, py: 0.8,
-                  color: activeTab === i ? "#fff" : C.sub,
+                  color: activeTab === i ? "var(--on-primary)" : C.sub,
                   bgcolor: activeTab === i ? C.olive : "transparent",
                   border: `1px solid ${activeTab === i ? C.olive : C.glassBorder}`,
                   "&:hover": {

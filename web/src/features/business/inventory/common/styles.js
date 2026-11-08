@@ -2,8 +2,7 @@
 
 export const buildInputSx = (C) => ({
   "& .MuiOutlinedInput-root": {
-    borderRadius: "12px", bgcolor: C.inputBg, backdropFilter: "blur(8px)",
-    fontSize: 13, fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif", color: C.text,
+    borderRadius: "12px", bgcolor: C.inputBg,    fontSize: 13, fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif", color: C.text,
     transition: "all 0.25s ease",
     "& fieldset": { borderColor: C.glassBorder },
     "&:hover fieldset": { borderColor: C.olive + "60" },
@@ -16,6 +15,6 @@ export const buildInputSx = (C) => ({
 });
 
 export const buildDialogPaperSx = (C, isDark) => ({
-  borderRadius: "16px", bgcolor: isDark ? "#1A1A2E" : "#fff",
+  borderRadius: "16px", bgcolor: isDark ? "var(--ink)" : "var(--surface)",
   border: `1px solid ${C.glassBorder}`,
 });

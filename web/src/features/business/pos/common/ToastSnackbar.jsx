@@ -10,7 +10,6 @@ export default function ToastSnackbar({ toast, onClose, C }) {
     >
       <Alert severity={toast.type} sx={{
         bgcolor: C.glass,
-        backdropFilter: "blur(16px)",
         color: C.text,
         border: `1px solid ${C.olive}`,
         borderRadius: "12px",

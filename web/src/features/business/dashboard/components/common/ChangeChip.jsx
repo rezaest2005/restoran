@@ -18,12 +18,12 @@ export default function ChangeChip({ value, suffix = "%", ...props }) {
       size="small"
       sx={{
         backgroundColor: isPositive
-          ? "rgba(76, 175, 80, 0.15)"
-          : "rgba(244, 67, 54, 0.15)",
-        color: isPositive ? "#4caf50" : "#f44336",
+          ? "color-mix(in srgb, var(--success) 15%, transparent)"
+          : "color-mix(in srgb, var(--danger) 15%, transparent)",
+        color: isPositive ? "var(--success)" : "var(--danger)",
         fontWeight: 600,
         "& .MuiChip-icon": {
-          color: isPositive ? "#4caf50" : "#f44336",
+          color: isPositive ? "var(--success)" : "var(--danger)",
         },
       }}
       {...props}

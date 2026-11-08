@@ -29,7 +29,7 @@ export default function SalesTrendChart({
                 fontSize: 11, fontWeight: 700, cursor: "pointer",
                 border: "none", outline: "none", transition: "all 0.25s ease",
                 background: chartView === v ? C.olive : "transparent",
-                color: chartView === v ? "#fff" : C.sub,
+                color: chartView === v ? "var(--on-primary)" : C.sub,
                 boxShadow: chartView === v ? `0 2px 8px ${C.olive}40` : "none",
                 fontFamily: "inherit",
               }}>
@@ -50,14 +50,14 @@ export default function SalesTrendChart({
               <Legend wrapperStyle={{ fontFamily: "Vazirmatn", fontSize: 12 }} />
               <defs>
                 <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#ff6b35" stopOpacity={0.9} />
-                  <stop offset="100%" stopColor="#ff6b35" stopOpacity={0.35} />
+                  <stop offset="0%" stopColor="var(--danger)" stopOpacity={0.9} />
+                  <stop offset="100%" stopColor="var(--danger)" stopOpacity={0.35} />
                 </linearGradient>
               </defs>
               <Bar dataKey="sales" name={L.sales} fill="url(#salesGrad)"
                 radius={[6, 6, 0, 0]} barSize={chartView === "week" ? 30 : 52} />
               <Line type="monotone" dataKey="orders" name={L.orders}
-                stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: "#3b82f6" }} />
+                stroke="var(--info)" strokeWidth={3} dot={{ r: 4, fill: "var(--info)" }} />
             </ComposedChart>
           </ResponsiveContainer>
         </Box>

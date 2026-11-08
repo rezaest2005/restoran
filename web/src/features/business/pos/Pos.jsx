@@ -334,9 +334,7 @@ export default function Pos() {
         gap: { xs: 0.2, sm: 0.5 },
         px: { xs: 1, sm: 2 },
         borderBottom: `1px solid ${C.glassBorder}`,
-        bgcolor: C.glass, backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        position: "sticky", top: 0, zIndex: 100,
+        bgcolor: C.glass,        position: "sticky", top: 0, zIndex: 100,
         minHeight: 48, flexShrink: 0,
         overflowX: "auto",
         "&::-webkit-scrollbar": { display: "none" },
@@ -368,7 +366,7 @@ export default function Pos() {
               {key === "incoming" && incoming.orders.length > 0 && (
                 <Box sx={{
                   minWidth: 20, height: 20, px: 0.6, borderRadius: "10px",
-                  bgcolor: C.burgundy, color: "#fff", fontSize: 11, fontWeight: 900,
+                  bgcolor: C.burgundy, color: "var(--on-primary)", fontSize: 11, fontWeight: 900,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   {incoming.orders.length}
@@ -461,9 +459,7 @@ export default function Pos() {
               minWidth: { md: 300 }, maxWidth: { md: 380 },
               borderLeft: isRtl ? "none" : { md: `1px solid ${C.glassBorder}` },
               borderRight: isRtl ? { md: `1px solid ${C.glassBorder}` } : "none",
-              bgcolor: C.glass, backdropFilter: "blur(28px)",
-              WebkitBackdropFilter: "blur(28px)",
-              display: { xs: "none", md: "flex" }, flexDirection: "column",
+              bgcolor: C.glass,              display: { xs: "none", md: "flex" }, flexDirection: "column",
               overflowY: "auto", p: 2,
               position: { md: "sticky" }, top: 48,
               height: { md: "calc(100vh - 48px)" }, flexShrink: 0,
@@ -479,12 +475,10 @@ export default function Pos() {
                 display: { xs: "flex", md: "none" },
                 position: "fixed", bottom: 0, left: 0, right: 0,
                 zIndex: 99, bgcolor: C.glass,
-                backdropFilter: "blur(20px)",
-                WebkitBackdropFilter: "blur(20px)",
                 borderTop: `1px solid ${C.glassBorder}`,
                 px: 1.5, py: 1,
                 alignItems: "center", justifyContent: "space-between",
-                boxShadow: "0 -4px 20px rgba(0,0,0,0.2)",
+                boxShadow: "0 -4px 20px color-mix(in srgb, var(--ink) 20%, transparent)",
                 cursor: cart.length > 0 ? "pointer" : "default",
               }}
             >
@@ -494,7 +488,7 @@ export default function Pos() {
                   color="error"
                   sx={{
                     "& .MuiBadge-badge": {
-                      bgcolor: C.burgundy, color: "#fff",
+                      bgcolor: C.burgundy, color: "var(--on-primary)",
                       fontFamily: "'Vazirmatn', sans-serif",
                       fontSize: 10, fontWeight: 800,
                       minWidth: 18, height: 18,
@@ -530,7 +524,7 @@ export default function Pos() {
 
               <Box sx={{
                 bgcolor: cart.length > 0 ? C.olive : `${C.muted}30`,
-                color: cart.length > 0 ? "#fff" : C.muted,
+                color: cart.length > 0 ? "var(--on-primary)" : C.muted,
                 borderRadius: "12px", px: { xs: 2, sm: 3 }, py: 1,
                 fontWeight: 800, fontSize: { xs: 13, sm: 14 },
                 fontFamily: "'Vazirmatn', sans-serif",
@@ -542,7 +536,7 @@ export default function Pos() {
                 {cartCount > 0 && (
                   <Box sx={{
                     minWidth: 18, height: 18, borderRadius: "50%",
-                    bgcolor: "rgba(255,255,255,0.3)",
+                    bgcolor: "var(--surface-sunken)",
                     display: "flex", alignItems: "center",
                     justifyContent: "center",
                     fontSize: 11, fontWeight: 900,

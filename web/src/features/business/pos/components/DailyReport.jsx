@@ -41,25 +41,25 @@ const fNum = groupDigits;
 
 /* ── رنگ‌های نمودار: سبز + طلایی ───────────── */
 const CHART_COLORS = [
-  "#6B9B6E", // سبز
-  "#D4B76A", // طلایی
-  "#A84060", // بورگاندی
-  "#5B8DB8", // آبی
-  "#8B7355", // قهوه‌ای
-  "#7B68AE", // بنفش
-  "#E07050", // نارنجی
-  "#4A8A7A", // سبزآبی
+  "var(--success)", // سبز
+  "var(--warning)", // طلایی
+  "var(--danger)", // بورگاندی
+  "var(--info)", // آبی
+  "var(--warning)", // قهوه‌ای
+  "var(--chart-4)", // بنفش
+  "var(--danger)", // نارنجی
+  "var(--success)", // سبزآبی
 ];
 
 const PAYMENT_COLORS = {
-  cash: "#6B9B6E",
-  card: "#D4B76A",
-  online: "#5B8DB8",
+  cash: "var(--success)",
+  card: "var(--warning)",
+  online: "var(--info)",
 };
 
 const SOURCE_COLORS = {
-  pos: "#6B9B6E",
-  online: "#D4B76A",
+  pos: "var(--success)",
+  online: "var(--warning)",
 };
 
 /* ── Chart tooltip (قابل تنظیم برای تعداد یا مبلغ) ── */
@@ -83,7 +83,7 @@ function ChartTooltip({
         borderRadius: "10px",
         px: 1.5,
         py: 1,
-        boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
+        boxShadow: "0 8px 30px color-mix(in srgb, var(--ink) 20%, transparent)",
       }}
     >
       <Typography
@@ -619,9 +619,9 @@ export default function DailyReport({
                   0,
                 ),
             icon: "🍽",
-            bg: `#5B8DB80A`,
-            border: "#5B8DB815",
-            color: "#5B8DB8",
+            bg: `color-mix(in srgb, var(--info) 5%, transparent)`,
+            border: "color-mix(in srgb, var(--info) 8%, transparent)",
+            color: "var(--info)",
           },
         ].map((card, i) => (
           <Box

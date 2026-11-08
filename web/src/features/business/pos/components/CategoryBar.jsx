@@ -187,7 +187,7 @@ function CategoryBar({
               variant={isActive ? "filled" : "outlined"}
               sx={{
                 bgcolor: isActive ? C.olive : hasDiscount ? C.dangerBg : "transparent",
-                color: isActive ? "#fff" : hasDiscount ? C.burgundy : C.sub,
+                color: isActive ? "var(--on-primary)" : hasDiscount ? C.burgundy : C.sub,
                 borderColor: C.glassBorder,
                 fontWeight: isActive ? 800 : 600,
                 fontSize: { xs: 12, sm: 13 },

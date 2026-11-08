@@ -4,8 +4,7 @@ import { useMemo } from "react";
 export default function useStyles(C) {
   return useMemo(() => ({
     card: {
-      bgcolor: C.glass, backdropFilter: "blur(16px)",
-      border: `1px solid ${C.glassBorder}`, borderRadius: 3,
+      bgcolor: C.glass,      border: `1px solid ${C.glassBorder}`, borderRadius: 3,
       boxShadow: C.cardShadow, p: { xs: 1.5, sm: 2.5 },
     },
     btn: {

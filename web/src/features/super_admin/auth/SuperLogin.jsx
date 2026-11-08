@@ -120,7 +120,6 @@ export default function SuperLogin() {
       borderRadius: "14px",
       fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
       bgcolor: C.inputBg,
-      backdropFilter: "blur(8px)",
       fontSize: "14px",
       transition: "all 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
       "& fieldset": {
@@ -129,11 +128,11 @@ export default function SuperLogin() {
         transition: "all 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
       },
       "&:hover fieldset": {
-        borderColor: isDark ? "rgba(107,155,110,0.3)" : "rgba(74,106,148,0.3)",
+        borderColor: isDark ? "color-mix(in srgb, var(--success) 30%, transparent)" : "color-mix(in srgb, var(--info) 30%, transparent)",
       },
       "&.Mui-focused fieldset": { borderColor: C.olive, borderWidth: 1.5 },
       "&.Mui-focused": {
-        bgcolor: isDark ? "rgba(11,10,11,0.7)" : "rgba(240,244,252,0.95)",
+        bgcolor: isDark ? "color-mix(in srgb, var(--ink) 70%, transparent)" : "var(--surface)",
         boxShadow: C.inputFocusGlow,
       },
     },
@@ -230,7 +229,7 @@ export default function SuperLogin() {
             position: "fixed",
             inset: 0,
             zIndex: 0,
-            backgroundImage: `radial-gradient(circle, ${isDark ? "rgba(107,155,110,0.06)" : "rgba(46,77,48,0.06)"} 1px, transparent 1px)`,
+            backgroundImage: `radial-gradient(circle, ${isDark ? "color-mix(in srgb, var(--success) 6%, transparent)" : "color-mix(in srgb, var(--success) 6%, transparent)"} 1px, transparent 1px)`,
             backgroundSize: "36px 36px",
             pointerEvents: "none",
           }}
@@ -279,7 +278,6 @@ export default function SuperLogin() {
               ...orb.pos,
               borderRadius: "50%",
               background: orb.bg,
-              filter: "blur(80px)",
               animation: orb.anim,
               pointerEvents: "none",
               zIndex: 0,
@@ -296,7 +294,6 @@ export default function SuperLogin() {
             top: 0,
             zIndex: 50,
             bgcolor: C.headerBg,
-            backdropFilter: "blur(16px)",
             borderBottom: `1px solid ${C.headerBorder}`,
             px: { xs: 2, md: 3 },
             py: 1.5,
@@ -415,7 +412,6 @@ export default function SuperLogin() {
             <Box
               sx={{
                 bgcolor: C.glass,
-                backdropFilter: "blur(28px)",
                 border: `1px solid ${C.glassBorder}`,
                 borderRadius: "28px",
                 boxShadow: C.cardShadow,
@@ -647,7 +643,7 @@ export default function SuperLogin() {
                     fullWidth
                     sx={{
                       background: C.btnGrad,
-                      color: "#fff",
+                      color: "var(--on-primary)",
                       fontSize: 14,
                       fontWeight: 700,
                       textTransform: "none",
@@ -668,7 +664,7 @@ export default function SuperLogin() {
                         right: 0,
                         height: 1,
                         background:
-                          "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)",
+                          "linear-gradient(90deg, transparent, var(--surface-sunken), transparent)",
                       },
                       "&::after": {
                         content: '""',
@@ -678,7 +674,7 @@ export default function SuperLogin() {
                         width: "60%",
                         height: "100%",
                         background:
-                          "linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)",
+                          "linear-gradient(90deg, transparent, var(--surface-sunken), transparent)",
                         transition: "left 0.5s ease",
                       },
                       "&:hover": {
@@ -688,12 +684,12 @@ export default function SuperLogin() {
                         "&::after": { left: "120%" },
                       },
                       "&:active": { transform: "scale(0.985)" },
-                      "&.Mui-disabled": { opacity: 0.6, color: "#fff" },
+                      "&.Mui-disabled": { opacity: 0.6, color: "var(--on-primary)" },
                       transition: "all 0.3s cubic-bezier(0.16,1,0.3,1)",
                     }}
                   >
                     {loading ? (
-                      <CircularProgress size={22} sx={{ color: "#fff" }} />
+                      <CircularProgress size={22} sx={{ color: "var(--on-primary)" }} />
                     ) : (
                       <>
                         {t("superLogin.submit")}

@@ -274,15 +274,15 @@ function FoodCard({
           width: { xs: 26, sm: 28 },
           height: { xs: 26, sm: 28 },
           borderRadius: "7px",
-          bgcolor: isPinned ? C.gold : "rgba(0,0,0,0.35)",
-          color: isPinned ? "#fff" : "rgba(255,255,255,0.8)",
+          bgcolor: isPinned ? C.gold : "color-mix(in srgb, var(--ink) 35%, transparent)",
+          color: isPinned ? "var(--on-primary)" : "var(--on-primary)",
           opacity: hovered || isPinned ? 1 : 0.5,
           border: isPinned
             ? `2px solid ${C.gold}`
-            : "2px solid rgba(255,255,255,0.15)",
+            : "2px solid var(--surface-sunken)",
           transition: "all 0.2s ease",
           "&:hover": {
-            bgcolor: isPinned ? C.gold : "rgba(0,0,0,0.5)",
+            bgcolor: isPinned ? C.gold : "color-mix(in srgb, var(--ink) 50%, transparent)",
             transform: "scale(1.1)",
             opacity: 1,
           },
@@ -307,7 +307,7 @@ function FoodCard({
             left: isRtl ? "auto" : 6,
             zIndex: 3,
             bgcolor: C.burgundy,
-            color: "#fff",
+            color: "var(--on-primary)",
             fontSize: { xs: 9, sm: 10 },
             fontWeight: 800,
             px: 0.7,
@@ -357,7 +357,7 @@ function FoodCard({
             left: isRtl ? 6 : "auto",
             zIndex: 3,
             bgcolor: C.danger,
-            color: "#fff",
+            color: "var(--on-primary)",
             fontSize: { xs: 10, sm: 11 },
             fontWeight: 800,
             px: 0.8,
@@ -412,7 +412,7 @@ function FoodCard({
             sx={{
               position: "absolute",
               inset: 0,
-              background: "rgba(0,0,0,0.4)",
+              background: "color-mix(in srgb, var(--ink) 40%, transparent)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -425,14 +425,14 @@ function FoodCard({
                 sx={{
                   width: 32,
                   height: 32,
-                  border: "3px solid rgba(255,255,255,0.2)",
-                  borderTopColor: "#fff",
+                  border: "3px solid var(--line)",
+                  borderTopColor: "var(--on-primary)",
                   borderRadius: "50%",
                   animation: "spin 0.7s linear infinite",
                 }}
               />
             ) : (
-              <CameraAlt sx={{ color: "#fff", fontSize: 28 }} />
+              <CameraAlt sx={{ color: "var(--on-primary)", fontSize: 28 }} />
             )}
           </Box>
         )}
@@ -714,7 +714,7 @@ function FoodCard({
                 height: 38,
                 borderRadius: "10px",
                 bgcolor: saving ? `${C.olive}40` : C.olive,
-                color: "#fff",
+                color: "var(--on-primary)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -897,7 +897,7 @@ function FoodCard({
                       height: { xs: 26, sm: 30 },
                       borderRadius: "8px",
                       bgcolor: outOfStock ? C.muted : C.olive,
-                      color: "#fff",
+                      color: "var(--on-primary)",
                       "&:hover": {
                         bgcolor: outOfStock ? C.muted : C.olive,
                         opacity: 0.85,

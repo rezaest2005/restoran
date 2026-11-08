@@ -298,7 +298,7 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
           disabled={form.role === "other" && !form.customRole.trim()}
           sx={{
             bgcolor: C.btnGrad,
-            color: "#fff",
+            color: "var(--on-primary)",
             textTransform: "none",
             fontWeight: 700,
             borderRadius: "10px",

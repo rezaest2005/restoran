@@ -28,11 +28,11 @@ class SectionErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <Box sx={{ p: 3, m: 2, borderRadius: 3, border: "2px solid #f44336", background: "rgba(244,67,54,0.15)" }}>
-          <Typography sx={{ fontSize: 16, fontWeight: 800, color: "#f44336" }}>
+        <Box sx={{ p: 3, m: 2, borderRadius: 3, border: "2px solid var(--danger)", background: "color-mix(in srgb, var(--danger) 15%, transparent)" }}>
+          <Typography sx={{ fontSize: 16, fontWeight: 800, color: "var(--danger)" }}>
             ⚠️ {i18n.t("ui_a.dashboard.error_in", { name: this.props.name })}
           </Typography>
-          <Typography sx={{ fontSize: 12, color: "#f44336", fontFamily: "monospace", mt: 1 }}>
+          <Typography sx={{ fontSize: 12, color: "var(--danger)", fontFamily: "monospace", mt: 1 }}>
             {this.state.error?.message}
           </Typography>
         </Box>
@@ -127,8 +127,8 @@ export default function OverviewTab() {
       fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
       opacity: 1,
       background: isDark
-        ? "radial-gradient(ellipse at 15% 30%, rgba(107,155,110,0.04) 0%, transparent 50%), radial-gradient(ellipse at 85% 70%, rgba(168,64,96,0.03) 0%, transparent 50%)"
-        : "radial-gradient(ellipse at 15% 30%, rgba(80,100,160,0.04) 0%, transparent 50%), radial-gradient(ellipse at 85% 70%, rgba(120,40,70,0.03) 0%, transparent 50%)",
+        ? "radial-gradient(ellipse at 15% 30%, color-mix(in srgb, var(--success) 5%, transparent) 0%, transparent 50%), radial-gradient(ellipse at 85% 70%, color-mix(in srgb, var(--danger) 5%, transparent) 0%, transparent 50%)"
+        : "radial-gradient(ellipse at 15% 30%, color-mix(in srgb, var(--info) 5%, transparent) 0%, transparent 50%), radial-gradient(ellipse at 85% 70%, color-mix(in srgb, var(--primary) 5%, transparent) 0%, transparent 50%)",
       minHeight: "100vh",
     }}>
       <style>{animations}</style>
@@ -151,7 +151,6 @@ export default function OverviewTab() {
           display: "flex", alignItems: "center", gap: 1.5,
           bgcolor: C.glass, border: `1px solid ${C.glassBorder}`,
           borderRadius: 2, px: 2, py: 1,
-          backdropFilter: "blur(12px)",
         }}>
           <span style={{ fontSize: 16 }}>📅</span>
           <Typography sx={{ fontSize: 13, fontWeight: 600, color: C.text }}>

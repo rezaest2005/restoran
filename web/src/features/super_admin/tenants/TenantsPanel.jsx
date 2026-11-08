@@ -59,9 +59,8 @@ export default function TenantsPanel({
 
   /* ── styles ── */
   const glassCardSx = {
-    bgcolor: C.glass, backdropFilter: "blur(28px)", WebkitBackdropFilter: "blur(28px)",
-    border: `1px solid ${C.glassBorder}`, borderRadius: "20px",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.05)", position: "relative", overflow: "hidden",
+    bgcolor: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: "20px",
+    boxShadow: "0 4px 20px color-mix(in srgb, var(--ink) 5%, transparent)", position: "relative", overflow: "hidden",
   };
 
   const inputSx = {
@@ -148,7 +147,7 @@ export default function TenantsPanel({
           startIcon={<Add />}
           size={isMobile ? "small" : "medium"}
           sx={{
-            bgcolor: C.btnGrad, color: "#fff", fontWeight: 700,
+            bgcolor: C.btnGrad, color: "var(--on-primary)", fontWeight: 700,
             textTransform: "none", borderRadius: "12px",
             px: { xs: 2, md: 2.5 }, py: { xs: 0.7, md: 1 },
             fontSize: { xs: 12, md: 14 },
@@ -217,8 +216,8 @@ export default function TenantsPanel({
                   label={tn.is_active ? t("super.badge.active") : t("super.badge.inactive")}
                   size="small"
                   sx={{
-                    bgcolor: tn.is_active ? (C.successBg || "#4CAF5020") : (C.dangerBg || "#E8405720"),
-                    color: tn.is_active ? (C.success || "#4CAF50") : (C.danger || "#E84057"),
+                    bgcolor: tn.is_active ? (C.successBg || "color-mix(in srgb, var(--success) 13%, transparent)") : (C.dangerBg || "color-mix(in srgb, var(--danger) 13%, transparent)"),
+                    color: tn.is_active ? (C.success || "var(--success)") : (C.danger || "var(--danger)"),
                     fontWeight: 600, borderRadius: "8px", fontSize: 10, height: 22,
                   }}
                 />
@@ -239,9 +238,9 @@ export default function TenantsPanel({
 
               <Box sx={{ display: "flex", gap: 0.5, justifyContent: isRtl ? "flex-start" : "flex-end" }}>
                 <ActionBtn small
-                  icon={<Dashboard sx={{ fontSize: 14, color: C.info || "#2196F3" }} />}
+                  icon={<Dashboard sx={{ fontSize: 14, color: C.info || "var(--info)" }} />}
                   label={t("super.action.dashboard")}
-                  color={C.info || "#2196F3"}
+                  color={C.info || "var(--info)"}
                   onClick={(e) => openDashboard(e, tn.slug)}
                 />
                 <ActionBtn small
@@ -334,8 +333,8 @@ export default function TenantsPanel({
                       label={tn.is_active ? t("super.badge.active") : t("super.badge.inactive")}
                       size="small"
                       sx={{
-                        bgcolor: tn.is_active ? (C.successBg || "#4CAF5020") : (C.dangerBg || "#E8405720"),
-                        color: tn.is_active ? (C.success || "#4CAF50") : (C.danger || "#E84057"),
+                        bgcolor: tn.is_active ? (C.successBg || "color-mix(in srgb, var(--success) 13%, transparent)") : (C.dangerBg || "color-mix(in srgb, var(--danger) 13%, transparent)"),
+                        color: tn.is_active ? (C.success || "var(--success)") : (C.danger || "var(--danger)"),
                         fontWeight: 600, borderRadius: "8px", fontSize: 11,
                       }}
                     />
@@ -343,9 +342,9 @@ export default function TenantsPanel({
                   <TableCell align={isRtl ? "left" : "right"} sx={{ py: 1.5 }}>
                     <Box sx={{ display: "flex", gap: 0.5, justifyContent: isRtl ? "flex-start" : "flex-end" }}>
                       <ActionBtn
-                        icon={<Dashboard sx={{ fontSize: 16, color: C.info || "#2196F3" }} />}
+                        icon={<Dashboard sx={{ fontSize: 16, color: C.info || "var(--info)" }} />}
                         label={t("super.action.dashboard")}
-                        color={C.info || "#2196F3"}
+                        color={C.info || "var(--info)"}
                         onClick={(e) => openDashboard(e, tn.slug)}
                       />
                       <ActionBtn

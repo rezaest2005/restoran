@@ -351,9 +351,9 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
               onClick={() => handleRoleChange("all")}
               sx={{
                 height: 34, fontSize: 12, fontWeight: 700, borderRadius: "10px",
-                bgcolor: role === "all" ? "#4CAF50" : "#4CAF5015",
-                color: role === "all" ? "#fff" : "#4CAF50",
-                border: "1.5px solid #4CAF5040",
+                bgcolor: role === "all" ? "var(--success)" : "color-mix(in srgb, var(--success) 8%, transparent)",
+                color: role === "all" ? "var(--on-primary)" : "var(--success)",
+                border: "1.5px solid color-mix(in srgb, var(--success) 25%, transparent)",
               }}
             />
             {Object.entries(ROLE_PERM_PRESETS).map(([key, preset]) => (
@@ -362,7 +362,7 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
                 sx={{
                   height: 34, fontSize: 12, fontWeight: 700, borderRadius: "10px",
                   bgcolor: role === key ? C.olive : C.olive + "15",
-                  color: role === key ? "#fff" : C.olive,
+                  color: role === key ? "var(--on-primary)" : C.olive,
                   border: `1.5px solid ${C.olive}40`,
                 }}
               />
@@ -371,9 +371,9 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
               onClick={() => { setForm((f) => ({ ...f, perms: [] })); setRole("none"); }}
               sx={{
                 height: 34, fontSize: 12, fontWeight: 700, borderRadius: "10px",
-                bgcolor: role === "none" ? "#E84057" : "#E8405715",
-                color: role === "none" ? "#fff" : "#E84057",
-                border: "1.5px solid #E8405740",
+                bgcolor: role === "none" ? "var(--danger)" : "color-mix(in srgb, var(--danger) 8%, transparent)",
+                color: role === "none" ? "var(--on-primary)" : "var(--danger)",
+                border: "1.5px solid color-mix(in srgb, var(--danger) 25%, transparent)",
               }}
             />
           </Box>
@@ -510,7 +510,7 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
         </Button>
         <Button onClick={handleSave} disabled={loading}
           sx={{
-            bgcolor: C.btnGrad, color: "#fff",
+            bgcolor: C.btnGrad, color: "var(--on-primary)",
             fontWeight: 700, textTransform: "none",
             borderRadius: "12px", px: 4, fontSize: 13,
           }}>

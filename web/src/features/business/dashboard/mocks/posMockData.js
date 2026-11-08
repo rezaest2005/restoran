@@ -49,12 +49,12 @@ export const MOCK_HOURLY = [
 ];
 
 export const MOCK_CATEGORIES = [
-  { name: "غذای اصلی", nameEn: "Main Dish", value: 35, color: "#ff6b35" },
-  { name: "پیش‌غذا", nameEn: "Appetizer", value: 20, color: "#3b82f6" },
-  { name: "نوشیدنی", nameEn: "Drinks", value: 18, color: "#10b981" },
-  { name: "دسر", nameEn: "Dessert", value: 15, color: "#8b5cf6" },
-  { name: "سالاد", nameEn: "Salad", value: 8, color: "#f59e0b" },
-  { name: "سایر", nameEn: "Other", value: 4, color: "#6b7280" },
+  { name: "غذای اصلی", nameEn: "Main Dish", value: 35, color: "var(--danger)" },
+  { name: "پیش‌غذا", nameEn: "Appetizer", value: 20, color: "var(--info)" },
+  { name: "نوشیدنی", nameEn: "Drinks", value: 18, color: "var(--success)" },
+  { name: "دسر", nameEn: "Dessert", value: 15, color: "var(--chart-4)" },
+  { name: "سالاد", nameEn: "Salad", value: 8, color: "var(--warning)" },
+  { name: "سایر", nameEn: "Other", value: 4, color: "var(--ink-muted)" },
 ];
 
 export const MOCK_TOP_ITEMS = [
@@ -72,10 +72,10 @@ export const MOCK_LOW_ITEMS = [
 ];
 
 export const MOCK_ORDER_STATUS = [
-  { name: "تکمیل شده", nameEn: "Completed", count: 68, color: "#10b981" },
-  { name: "در حال آماده‌سازی", nameEn: "Preparing", count: 12, color: "#f59e0b" },
-  { name: "در حال ارسال", nameEn: "Delivering", count: 5, color: "#3b82f6" },
-  { name: "لغو شده", nameEn: "Cancelled", count: 2, color: "#ef4444" },
+  { name: "تکمیل شده", nameEn: "Completed", count: 68, color: "var(--success)" },
+  { name: "در حال آماده‌سازی", nameEn: "Preparing", count: 12, color: "var(--warning)" },
+  { name: "در حال ارسال", nameEn: "Delivering", count: 5, color: "var(--info)" },
+  { name: "لغو شده", nameEn: "Cancelled", count: 2, color: "var(--danger)" },
 ];
 
 export const MOCK_WEEKLY_COMPARE = {

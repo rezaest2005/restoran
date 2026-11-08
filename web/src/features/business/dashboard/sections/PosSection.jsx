@@ -48,10 +48,10 @@ export default function PosSection({ data }) {
   const lowItemsData = data.lowItems || [];
 
   const stats = [
-    { icon: "💰", color: "#ff6b35", value: `${fmtN(data.stats?.sales)}`, unit: L.tuman, label: L.todaySales },
-    { icon: "🧾", color: "#3b82f6", value: `${fmtN(data.stats?.orders)}`, unit: "", label: L.todayOrders },
-    { icon: "👥", color: "#10b981", value: `${fmtN(data.stats?.customers)}`, unit: "", label: L.activeCustomers },
-    { icon: "⏱️", color: "#8b5cf6", value: `${fmtN(data.stats?.avgTime)}`, unit: L.min, label: L.avgTime }
+    { icon: "💰", color: "var(--danger)", value: `${fmtN(data.stats?.sales)}`, unit: L.tuman, label: L.todaySales },
+    { icon: "🧾", color: "var(--info)", value: `${fmtN(data.stats?.orders)}`, unit: "", label: L.todayOrders },
+    { icon: "👥", color: "var(--success)", value: `${fmtN(data.stats?.customers)}`, unit: "", label: L.activeCustomers },
+    { icon: "⏱️", color: "var(--chart-4)", value: `${fmtN(data.stats?.avgTime)}`, unit: L.min, label: L.avgTime }
   ];
 
   return (
@@ -90,12 +90,12 @@ export default function PosSection({ data }) {
               <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
                 <defs>
                   <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ff6b35" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#ff6b35" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="var(--danger)" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="var(--danger)" stopOpacity={0}/>
                   </linearGradient>
                   <linearGradient id="colorOrders" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="var(--info)" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="var(--info)" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={chartGridStroke} vertical={false} />
@@ -103,8 +103,8 @@ export default function PosSection({ data }) {
                 <YAxis stroke={C.muted} fontSize={16} tickLine={false} axisLine={false} dx={-10} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ stroke: C.glassBorder, strokeWidth: 1 }} />
                 <Legend wrapperStyle={{ fontSize: 16, paddingTop: "20px" }} />
-                <Area type="monotone" dataKey="sales" name={t("ui_b.dashPos.sales")} stroke="#ff6b35" strokeWidth={4} fillOpacity={1} fill="url(#colorSales)" />
-                <Area type="monotone" dataKey="orders" name={t("ui_b.dashPos.orders")} stroke="#3b82f6" strokeWidth={4} fillOpacity={1} fill="url(#colorOrders)" />
+                <Area type="monotone" dataKey="sales" name={t("ui_b.dashPos.sales")} stroke="var(--danger)" strokeWidth={4} fillOpacity={1} fill="url(#colorSales)" />
+                <Area type="monotone" dataKey="orders" name={t("ui_b.dashPos.orders")} stroke="var(--info)" strokeWidth={4} fillOpacity={1} fill="url(#colorOrders)" />
               </AreaChart>
             </ResponsiveContainer>
           </Box>
@@ -138,7 +138,7 @@ export default function PosSection({ data }) {
                 <XAxis dataKey="displayName" stroke={C.muted} fontSize={16} tickLine={false} axisLine={false} dy={10} />
                 <YAxis stroke={C.muted} fontSize={16} tickLine={false} axisLine={false} dx={-10} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'transparent' }} />
-                <Bar dataKey="orders" name={t("ui_b.dashPos.orderCount")} fill="#10b981" radius={[8, 8, 0, 0]} barSize={32} />
+                <Bar dataKey="orders" name={t("ui_b.dashPos.orderCount")} fill="var(--success)" radius={[8, 8, 0, 0]} barSize={32} />
               </BarChart>
             </ResponsiveContainer>
           </Box>
@@ -147,15 +147,15 @@ export default function PosSection({ data }) {
         <GlassCard C={C} sx={{ p: 3, width: "100%", height: 500, display: "flex", flexDirection: "column", overflow: "hidden" }}>
           <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3, flexShrink: 0 }}>{t("ui_b.dashPos.weeklyCompare")}</Typography>
           <Box sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 3, width: "100%" }}>
-            <Box sx={{ background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)", p: 3, borderRadius: 3, width: "100%" }}>
+            <Box sx={{ background: isDark ? "var(--line)" : "color-mix(in srgb, var(--ink) 2%, transparent)", p: 3, borderRadius: 3, width: "100%" }}>
               <Typography sx={{ fontSize: 14, color: C.sub, mb: 1 }}>{t("ui_b.dashPos.thisWeekSales")}</Typography>
               <Typography sx={{ fontSize: 26, fontWeight: 800, color: C.olive }}>{fmtN(data.weeklyCompare?.thisWeek)} <span style={{fontSize: 14, fontWeight: 600}}>{L.tuman}</span></Typography>
             </Box>
-            <Box sx={{ background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)", p: 3, borderRadius: 3, width: "100%" }}>
+            <Box sx={{ background: isDark ? "var(--line)" : "color-mix(in srgb, var(--ink) 2%, transparent)", p: 3, borderRadius: 3, width: "100%" }}>
               <Typography sx={{ fontSize: 14, color: C.sub, mb: 1 }}>{t("ui_b.dashPos.lastWeekSales")}</Typography>
               <Typography sx={{ fontSize: 22, fontWeight: 700, color: C.text, opacity: 0.7 }}>{fmtN(data.weeklyCompare?.lastWeek)} <span style={{fontSize: 14, fontWeight: 600}}>{L.tuman}</span></Typography>
             </Box>
-            <Chip label={t("ui_b.dashPos.change", { value: data.weeklyCompare?.change })} sx={{ alignSelf: "flex-start", bgcolor: data.weeklyCompare?.change > 0 ? "rgba(16,185,129,0.1)" : "rgba(239,68,68,0.1)", color: data.weeklyCompare?.change > 0 ? "#10b981" : "#ef4444", fontWeight: 800, fontSize: 16, py: 2, px: 1 }} />
+            <Chip label={t("ui_b.dashPos.change", { value: data.weeklyCompare?.change })} sx={{ alignSelf: "flex-start", bgcolor: data.weeklyCompare?.change > 0 ? "color-mix(in srgb, var(--success) 10%, transparent)" : "color-mix(in srgb, var(--danger) 10%, transparent)", color: data.weeklyCompare?.change > 0 ? "var(--success)" : "var(--danger)", fontWeight: 800, fontSize: 16, py: 2, px: 1 }} />
           </Box>
         </GlassCard>
       </Box>
@@ -167,9 +167,9 @@ export default function PosSection({ data }) {
           <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>{t("ui_b.dashPos.topProducts")}</Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2, width: "100%" }}>
             {topItemsData.map((item, i) => (
-              <Box key={i} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", p: 2, borderRadius: 2, background: i === 0 ? `${C.olive}15` : (isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)") }}>
+              <Box key={i} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", p: 2, borderRadius: 2, background: i === 0 ? `${C.olive}15` : (isDark ? "var(--line)" : "color-mix(in srgb, var(--ink) 2%, transparent)") }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 2, minWidth: 0 }}>
-                  <Box sx={{ width: 32, height: 32, borderRadius: "50%", background: i < 3 ? C.olive : C.muted, color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, flexShrink: 0 }}>{isRtl ? (i+1).toLocaleString("fa-IR") : i+1}</Box>
+                  <Box sx={{ width: 32, height: 32, borderRadius: "50%", background: i < 3 ? C.olive : C.muted, color: "var(--on-primary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 800, flexShrink: 0 }}>{isRtl ? (i+1).toLocaleString("fa-IR") : i+1}</Box>
                   <Typography sx={{ fontSize: 16, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{item.name}</Typography>
                 </Box>
                 <Typography sx={{ fontSize: 14, fontWeight: 700, color: C.sub, flexShrink: 0, mr: 2, ml: 2 }}>{fmtN(item.sales)} {t("ui_b.dashPos.salesUnit")}</Typography>
@@ -182,9 +182,9 @@ export default function PosSection({ data }) {
           <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>{t("ui_b.dashPos.lowProducts")}</Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2, width: "100%" }}>
             {lowItemsData.map((item, i) => (
-              <Box key={i} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", p: 2, borderRadius: 2, background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)" }}>
+              <Box key={i} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", p: 2, borderRadius: 2, background: isDark ? "var(--line)" : "color-mix(in srgb, var(--ink) 2%, transparent)" }}>
                 <Typography sx={{ fontSize: 16, fontWeight: 600, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}>{item.name}</Typography>
-                <Typography sx={{ fontSize: 14, fontWeight: 700, color: "#ef4444", flexShrink: 0, mr: 2, ml: 2 }}>{fmtN(item.sales)} {t("ui_b.dashPos.salesUnit")}</Typography>
+                <Typography sx={{ fontSize: 14, fontWeight: 700, color: "var(--danger)", flexShrink: 0, mr: 2, ml: 2 }}>{fmtN(item.sales)} {t("ui_b.dashPos.salesUnit")}</Typography>
               </Box>
             ))}
           </Box>

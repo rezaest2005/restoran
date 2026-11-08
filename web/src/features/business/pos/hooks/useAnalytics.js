@@ -1,25 +1,25 @@
 import { useMemo } from "react";
 
 const CHART_COLORS = [
-  "#6B9B6E",  // سبز
-  "#D4B76A",  // طلایی
-  "#A84060",  // بورگاندی
-  "#5B8DB8",  // آبی
-  "#C87850",  // نارنجی
-  "#8B6AAE",  // بنفش
-  "#4A9B8E",  // سبزآبی
-  "#B8868B",  // صورتی
+  "var(--success)",  // سبز
+  "var(--warning)",  // طلایی
+  "var(--danger)",  // بورگاندی
+  "var(--info)",  // آبی
+  "var(--danger)",  // نارنجی
+  "var(--chart-4)",  // بنفش
+  "var(--success)",  // سبزآبی
+  "var(--danger)",  // صورتی
 ];
 
 const PAYMENT_COLORS = {
-  cash: "#6B9B6E",
-  card: "#5B8DB8",
-  online: "#D4B76A",
+  cash: "var(--success)",
+  card: "var(--info)",
+  online: "var(--warning)",
 };
 
 const SOURCE_COLORS = {
-  pos: "#6B9B6E",
-  online: "#D4B76A",
+  pos: "var(--success)",
+  online: "var(--warning)",
 };
 
 export default function useAnalytics(orders = []) {

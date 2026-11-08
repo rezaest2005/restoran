@@ -44,7 +44,7 @@ export default function OrderDetailDialog({
         transition: { onExit: blurFocused }, paper: {
           sx: {
             borderRadius: "20px", bgcolor: C.glass,
-            backdropFilter: "blur(28px)", border: `1px solid ${C.glassBorder}`,
+            border: `1px solid ${C.glassBorder}`,
           },
         },
       }}

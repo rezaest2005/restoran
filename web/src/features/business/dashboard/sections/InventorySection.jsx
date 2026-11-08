@@ -50,9 +50,9 @@ export default function InventorySection({ data }) {
   const { tooltipStyle, chartGridStroke } = useChartStyle(C, isDark, isRtl);
 
   const SEVERITY = {
-    critical: { bg: isDark ? "rgba(232,64,87,0.12)" : "rgba(200,48,72,0.1)", color: isDark ? "#E84057" : "#C83048" },
-    warning: { bg: isDark ? "rgba(245,158,11,0.12)" : "rgba(217,119,6,0.1)", color: isDark ? "#F59E0B" : "#D97706" },
-    ok: { bg: isDark ? "rgba(16,185,129,0.12)" : "rgba(5,150,105,0.1)", color: isDark ? "#10B981" : "#059669" },
+    critical: { bg: isDark ? "color-mix(in srgb, var(--danger) 12%, transparent)" : "color-mix(in srgb, var(--danger) 10%, transparent)", color: isDark ? "var(--danger)" : "var(--danger)" },
+    warning: { bg: isDark ? "color-mix(in srgb, var(--warning) 12%, transparent)" : "color-mix(in srgb, var(--warning) 10%, transparent)", color: isDark ? "var(--warning)" : "var(--warning)" },
+    ok: { bg: isDark ? "color-mix(in srgb, var(--success) 12%, transparent)" : "color-mix(in srgb, var(--success) 10%, transparent)", color: isDark ? "var(--success)" : "var(--success)" },
   };
 
   // ★ ایمن‌سازی داده‌ها با || [] تا اگر بک‌اند خالی فرستاد، کرش نکند
@@ -65,10 +65,10 @@ export default function InventorySection({ data }) {
   const slowMoversData = data.slowMovers || [];
 
   const stats = [
-    { icon: "📦", color: "#10b981", value: fmtN(data.stats?.stockValue), unit: L.tuman, label: L.stockValue },
-    { icon: "⚠️", color: "#f59e0b", value: fmtN(data.stats?.lowStock), unit: "", label: L.lowStock },
-    { icon: "⏳", color: "#ef4444", value: fmtN(data.stats?.expiring), unit: "", label: L.expiring },
-    { icon: "🗑️", color: "#8b5cf6", value: fmtN(data.stats?.monthlyWaste), unit: L.tuman, label: L.monthlyWaste }
+    { icon: "📦", color: "var(--success)", value: fmtN(data.stats?.stockValue), unit: L.tuman, label: L.stockValue },
+    { icon: "⚠️", color: "var(--warning)", value: fmtN(data.stats?.lowStock), unit: "", label: L.lowStock },
+    { icon: "⏳", color: "var(--danger)", value: fmtN(data.stats?.expiring), unit: "", label: L.expiring },
+    { icon: "🗑️", color: "var(--chart-4)", value: fmtN(data.stats?.monthlyWaste), unit: L.tuman, label: L.monthlyWaste }
   ];
 
   return (
@@ -109,7 +109,7 @@ export default function InventorySection({ data }) {
                 <YAxis dataKey="displayName" type="category" tick={{ fill: C.text, fontSize: 13, fontWeight: 600, textAnchor: isRtl ? "start" : "end" }} width={160} interval={0} orientation={isRtl ? "left" : "right"} tickLine={false} axisLine={{ stroke: C.glassBorder, strokeWidth: 2 }} tickMargin={isRtl ? 25 : 15} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "transparent" }} formatter={(v, name) => [v, name === "current" ? L.current : L.minLabel]} />
                 <Legend wrapperStyle={{ fontSize: 14, paddingTop: "15px" }} />
-                <Bar dataKey="min" name={L.minLabel} fill="#E84057" radius={[0, 8, 8, 0]} opacity={0.4} barSize={14} />
+                <Bar dataKey="min" name={L.minLabel} fill="var(--danger)" radius={[0, 8, 8, 0]} opacity={0.4} barSize={14} />
                 <Bar dataKey="current" name={L.current} fill={C.olive} radius={[0, 8, 8, 0]} barSize={14} />
               </BarChart>
             </ResponsiveContainer>
@@ -126,8 +126,8 @@ export default function InventorySection({ data }) {
                 <YAxis stroke={C.muted} fontSize={14} tickLine={false} axisLine={false} dx={-10} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "transparent" }} formatter={(v, name) => [v, name === "inbound" ? L.inbound : L.outbound]} />
                 <Legend wrapperStyle={{ fontSize: 14, paddingTop: "15px" }} />
-                <Bar dataKey="inbound" name={L.inbound} fill="#6B9B6E" radius={[6, 6, 0, 0]} barSize={22} />
-                <Bar dataKey="outbound" name={L.outbound} fill="#E84057" radius={[6, 6, 0, 0]} barSize={22} />
+                <Bar dataKey="inbound" name={L.inbound} fill="var(--success)" radius={[6, 6, 0, 0]} barSize={22} />
+                <Bar dataKey="outbound" name={L.outbound} fill="var(--danger)" radius={[6, 6, 0, 0]} barSize={22} />
               </BarChart>
             </ResponsiveContainer>
           </Box>
@@ -181,7 +181,7 @@ export default function InventorySection({ data }) {
             {expiringData.map((item, i) => {
               const sev = SEVERITY[item.severity] || SEVERITY.ok;
               return (
-                <Box key={i} sx={{ p: 2, borderRadius: 2, background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)", borderRight: `4px solid ${sev.color}`, display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                <Box key={i} sx={{ p: 2, borderRadius: 2, background: isDark ? "var(--line)" : "color-mix(in srgb, var(--ink) 2%, transparent)", borderRight: `4px solid ${sev.color}`, display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
                   <Box sx={{ minWidth: 0, flex: 1 }}>
                     <Typography sx={{ color: C.text, fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{isRtl ? item.name : item.nameEn}</Typography>
                     <Typography sx={{ color: C.sub, fontSize: 13, mt: 0.3 }}>{fmtN(item.quantity)} {item.unit}</Typography>
@@ -197,9 +197,9 @@ export default function InventorySection({ data }) {
           <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>🆙 {L.topUsed}</Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
             {topUsedData.map((item, i) => (
-              <Box key={i} sx={{ p: 2, borderRadius: 2, background: i === 0 ? `${C.olive}15` : (isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)"), display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+              <Box key={i} sx={{ p: 2, borderRadius: 2, background: i === 0 ? `${C.olive}15` : (isDark ? "var(--line)" : "color-mix(in srgb, var(--ink) 2%, transparent)"), display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0, flex: 1 }}>
-                  <Box sx={{ width: 32, height: 32, borderRadius: "50%", background: i < 3 ? C.olive : C.glassBorder, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 14, fontWeight: 800, flexShrink: 0 }}>{isRtl ? (i+1).toLocaleString("fa-IR") : i+1}</Box>
+                  <Box sx={{ width: 32, height: 32, borderRadius: "50%", background: i < 3 ? C.olive : C.glassBorder, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--on-primary)", fontSize: 14, fontWeight: 800, flexShrink: 0 }}>{isRtl ? (i+1).toLocaleString("fa-IR") : i+1}</Box>
                   <Typography sx={{ color: C.text, fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{isRtl ? item.name : item.nameEn}</Typography>
                 </Box>
                 <Typography sx={{ color: C.sub, fontWeight: 700, fontSize: 14, flexShrink: 0, mr: 2, ml: 2 }}>{fmtN(item.used)} {item.unit}</Typography>
@@ -212,12 +212,12 @@ export default function InventorySection({ data }) {
           <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>📉 {L.slowMovers}</Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
             {slowMoversData.map((item, i) => (
-              <Box key={i} sx={{ p: 2, borderRadius: 2, background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)", display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+              <Box key={i} sx={{ p: 2, borderRadius: 2, background: isDark ? "var(--line)" : "color-mix(in srgb, var(--ink) 2%, transparent)", display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
                 <Box sx={{ minWidth: 0, flex: 1 }}>
                   <Typography sx={{ color: C.text, fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{isRtl ? item.name : item.nameEn}</Typography>
                   <Typography sx={{ color: C.sub, fontSize: 13, mt: 0.3 }}>{isRtl ? item.lastUsed : item.lastUsedEn}</Typography>
                 </Box>
-                <Typography sx={{ color: "#D97706", fontWeight: 700, fontSize: 14, flexShrink: 0, mr: 2, ml: 2 }}>{fmtN(item.quantity)} {item.unit}</Typography>
+                <Typography sx={{ color: "var(--warning)", fontWeight: 700, fontSize: 14, flexShrink: 0, mr: 2, ml: 2 }}>{fmtN(item.quantity)} {item.unit}</Typography>
               </Box>
             ))}
           </Box>

@@ -79,7 +79,7 @@ export default function PurchaseListTab({ C, isDark, showToast }) {
             onClick={load}
             sx={{
               borderRadius: "12px", fontSize: 12, fontWeight: 700, textTransform: "none",
-              px: 2.5, py: 1, color: "#fff", background: C.btnGrad,
+              px: 2.5, py: 1, color: "var(--on-primary)", background: C.btnGrad,
               boxShadow: `0 4px 20px ${C.olive}30`,
               "&:hover": { transform: "translateY(-1px)", boxShadow: `0 6px 28px ${C.olive}40` },
             }}
@@ -114,13 +114,12 @@ export default function PurchaseListTab({ C, isDark, showToast }) {
                 ...cursorSx(C, cursor.isActive(i)),
                 display: "flex", alignItems: "center", flexWrap: "wrap", gap: 1,
                 px: { xs: 1.5, sm: 2 }, py: { xs: 1, sm: 1.5 },
-                borderRadius: "12px", bgcolor: C.glass, backdropFilter: "blur(12px)",
-                border: `1px solid ${C.glassBorder}`,
+                borderRadius: "12px", bgcolor: C.glass,                border: `1px solid ${C.glassBorder}`,
                 transition: "all 0.2s ease",
                 opacity: 0,
                 animation: `fadeUp 0.3s ease-out ${i * 0.04}s forwards`,
                 "&:hover": {
-                  bgcolor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)",
+                  bgcolor: isDark ? "var(--surface-sunken)" : "color-mix(in srgb, var(--ink) 2%, transparent)",
                 },
               }}
             >

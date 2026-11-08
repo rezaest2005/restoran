@@ -307,7 +307,7 @@ export default function TransferModal({ open, onClose, warehouses: warehousesPro
           sx={{
             borderRadius: "10px", fontSize: 12, fontWeight: 700,
             textTransform: "none", px: 2.5,
-            color: "#fff", background: C.btnGrad,
+            color: "var(--on-primary)", background: C.btnGrad,
             opacity: saving ? 0.6 : 1,
           }}
         >

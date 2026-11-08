@@ -31,10 +31,10 @@ export default function SharedSection() {
   const C = useMemo(() => buildColors(isDark), [isDark]);
 
   const quickActions = [
-    { id: 1, icon: "💰", label: L.pos, path: "pos", color: "#10b981", bg: "rgba(16,185,129,0.1)" },
-    { id: 2, icon: "📦", label: L.inventory, path: "inventory", color: "#3b82f6", bg: "rgba(59,130,246,0.1)" },
-    { id: 3, icon: "🍽️", label: L.menu, path: "dictionary", color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
-    { id: 4, icon: "📊", label: L.reports, path: "reports", color: "#8b5cf6", bg: "rgba(139,92,246,0.1)" },
+    { id: 1, icon: "💰", label: L.pos, path: "pos", color: "var(--success)", bg: "color-mix(in srgb, var(--success) 10%, transparent)" },
+    { id: 2, icon: "📦", label: L.inventory, path: "inventory", color: "var(--info)", bg: "color-mix(in srgb, var(--info) 10%, transparent)" },
+    { id: 3, icon: "🍽️", label: L.menu, path: "dictionary", color: "var(--warning)", bg: "color-mix(in srgb, var(--warning) 10%, transparent)" },
+    { id: 4, icon: "📊", label: L.reports, path: "reports", color: "var(--chart-4)", bg: "color-mix(in srgb, var(--chart-4) 10%, transparent)" },
   ];
 
   // ★★★ حذف لیست ثابت فعالیت‌ها. در آینده می‌توان این را از API گرفت ★★★
@@ -92,8 +92,8 @@ export default function SharedSection() {
             activities.map((a, i) => (
               <Box key={i} sx={{
                 display: "flex", alignItems: "center", gap: 1.5, p: 1.2, borderRadius: 2,
-                background: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
-                borderRight: `3px solid ${a.type === "pos" ? "#6B9B6E" : "#3b82f6"}`,
+                background: isDark ? "var(--surface-sunken)" : "color-mix(in srgb, var(--ink) 2%, transparent)",
+                borderRight: `3px solid ${a.type === "pos" ? "var(--success)" : "var(--info)"}`,
               }}>
                 <span style={{ fontSize: "1.1rem" }}>{a.icon}</span>
                 <Box sx={{ flex: 1 }}>
@@ -108,8 +108,8 @@ export default function SharedSection() {
                   label={a.type === "pos" ? t("ui_b.dashShared.chipPos") : t("ui_b.dashShared.chipInv")}
                   size="small"
                   sx={{
-                    bgcolor: a.type === "pos" ? "rgba(107,155,110,0.12)" : "rgba(59,130,246,0.12)",
-                    color: a.type === "pos" ? "#6B9B6E" : "#3b82f6",
+                    bgcolor: a.type === "pos" ? "color-mix(in srgb, var(--success) 12%, transparent)" : "color-mix(in srgb, var(--info) 12%, transparent)",
+                    color: a.type === "pos" ? "var(--success)" : "var(--info)",
                     fontWeight: 600, fontSize: 10,
                   }}
                 />

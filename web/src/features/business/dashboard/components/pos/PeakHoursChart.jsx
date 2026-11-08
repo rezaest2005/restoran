@@ -26,8 +26,8 @@ export default function PeakHoursChart({
               />
               <defs>
                 <linearGradient id="hourGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={isDark ? "#6B9B6E" : "#2E4D30"} stopOpacity={0.9} />
-                  <stop offset="100%" stopColor={isDark ? "#6B9B6E" : "#2E4D30"} stopOpacity={0.3} />
+                  <stop offset="0%" stopColor={isDark ? "var(--success)" : "var(--success)"} stopOpacity={0.9} />
+                  <stop offset="100%" stopColor={isDark ? "var(--success)" : "var(--success)"} stopOpacity={0.3} />
                 </linearGradient>
               </defs>
               <Bar dataKey="orders" fill="url(#hourGrad)" radius={[5, 5, 0, 0]} barSize={22} />

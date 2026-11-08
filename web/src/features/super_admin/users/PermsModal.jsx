@@ -363,7 +363,7 @@ export default function PermsModal({ open, onClose, userId, C }) {
             disabled={saving || (role === "other" && !customRole.trim())}
             sx={{
               bgcolor: C.btnGrad,
-              color: "#fff",
+              color: "var(--on-primary)",
               textTransform: "none",
               fontWeight: 700,
               borderRadius: "10px",
@@ -373,7 +373,7 @@ export default function PermsModal({ open, onClose, userId, C }) {
             }}
           >
             {saving ? (
-              <CircularProgress size={18} sx={{ color: "#fff" }} />
+              <CircularProgress size={18} sx={{ color: "var(--on-primary)" }} />
             ) : (
               t("ui_c.super.save")
             )}

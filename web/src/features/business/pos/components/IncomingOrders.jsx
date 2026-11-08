@@ -165,7 +165,7 @@ export default function IncomingOrders({
           ) : (
             <>
               <Button variant="contained" disabled={pending} onClick={() => accept(o)}
-                sx={{ ...btnBase, bgcolor: C.olive, color: "#fff", "&:hover": { bgcolor: C.olive } }}>
+                sx={{ ...btnBase, bgcolor: C.olive, color: "var(--on-primary)", "&:hover": { bgcolor: C.olive } }}>
                 {t("ui_f.incoming.accept")}
                
               </Button>

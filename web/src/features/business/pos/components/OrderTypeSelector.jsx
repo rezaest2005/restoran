@@ -16,7 +16,7 @@ const LABELS = {
 export default function OrderTypeSelector({ orderType, setOrderType, C, isRtl }) {
   return (
     <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
-      {TYPES.map((t, i) => {
+      {TYPES.map((t) => {
         const Icon = t.icon;
         const active = orderType === t.key;
         const label = isRtl ? LABELS[t.key].fa : LABELS[t.key].en;
@@ -33,7 +33,7 @@ export default function OrderTypeSelector({ orderType, setOrderType, C, isRtl })
               fontWeight: 600,
               fontFamily: "'Vazirmatn', sans-serif",
               bgcolor: active ? C.btnGrad : "transparent",
-              color: active ? "#fff" : C.sub,
+              color: active ? "var(--on-primary)" : C.sub,
               border: active ? "none" : `1px solid ${C.glassBorder}`,
               "&:hover": {
                 bgcolor: active ? C.btnGrad : C.oliveSubtle,

@@ -31,10 +31,10 @@ export const MOCK_STOCK_FLOW = [
 ];
 
 export const MOCK_WASTE_PIE = [
-  { name: "مواد اولیه فاسد", nameEn: "Spoiled Raw", value: 45, color: "#ef4444" },
-  { name: "غذای پخته‌شده", nameEn: "Cooked Food", value: 25, color: "#f59e0b" },
-  { name: "بسته‌بندی", nameEn: "Packaging", value: 15, color: "#8b5cf6" },
-  { name: "سایر", nameEn: "Other", value: 15, color: "#6b7280" },
+  { name: "مواد اولیه فاسد", nameEn: "Spoiled Raw", value: 45, color: "var(--danger)" },
+  { name: "غذای پخته‌شده", nameEn: "Cooked Food", value: 25, color: "var(--warning)" },
+  { name: "بسته‌بندی", nameEn: "Packaging", value: 15, color: "var(--chart-4)" },
+  { name: "سایر", nameEn: "Other", value: 15, color: "var(--ink-muted)" },
 ];
 
 export const MOCK_STOCK_ALERTS = [
