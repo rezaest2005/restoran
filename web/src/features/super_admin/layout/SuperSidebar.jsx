@@ -1,3 +1,7 @@
+import NavIcon from "@shared/ui/NavIcon";
+import { BrandSquare } from "@shared/ui/BrandMark";
+import PersonIcon from "@mui/icons-material/Person";
+import LogoutIcon from "@mui/icons-material/Logout";
 import { Box, Typography, Button, Divider, Drawer } from "@mui/material";
 import { Link, useLocation } from "react-router-dom";
 import { useLang } from "@shared/contexts/LangContext";
@@ -15,11 +19,7 @@ export default function SuperSidebar({ isMobile, open, onClose, currentUser, onL
     }}>
       {/* header */}
       <Box sx={{ p: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
-        <Box sx={{
-          width: 40, height: 40, borderRadius: "12px",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 20, bgcolor: C.oliveSubtle,
-        }}>🏪</Box>
+        <BrandSquare />
         <Box>
           <Typography sx={{ fontWeight: 800, fontSize: 15, color: C.text }}>
             {t("super.panel_title")}
@@ -60,7 +60,7 @@ export default function SuperSidebar({ isMobile, open, onClose, currentUser, onL
                     "&:focus": { bgcolor: isActive ? C.oliveSubtle : "transparent" },
                   }}
                 >
-                  <Typography sx={{ fontSize: 16 }}>{item.icon}</Typography>
+                  <NavIcon name={item.icon} />
                   <Typography sx={{ fontSize: 12.5, fontWeight: isActive ? 700 : 500, flex: 1 }}>
                     {t(item.labelKey)}
                   </Typography>
@@ -88,7 +88,7 @@ export default function SuperSidebar({ isMobile, open, onClose, currentUser, onL
             width: 36, height: 36, borderRadius: "10px",
             display: "flex", alignItems: "center", justifyContent: "center",
             fontSize: 16, bgcolor: C.oliveSubtle,
-          }}>👤</Box>
+          }}><PersonIcon fontSize="small" /></Box>
           <Box>
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: C.text }}>
               {currentUser?.username || "—"}
@@ -110,7 +110,7 @@ export default function SuperSidebar({ isMobile, open, onClose, currentUser, onL
             "&:focus": { bgcolor: "transparent" },
           }}
         >
-          🚪 {t("super.logout")}
+          <LogoutIcon fontSize="small" sx={{ marginInlineEnd: 1 }} /> {t("super.logout")}
         </Button>
       </Box>
     </Box>

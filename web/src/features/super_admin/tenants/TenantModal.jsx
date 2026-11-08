@@ -1,3 +1,4 @@
+import NavIcon from "@shared/ui/NavIcon";
 // web/src/features/super_admin/tenants/TenantModal.jsx
 import { useState, useEffect } from "react";
 import {
@@ -427,7 +428,7 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
                         }}
                       />
                       <Typography sx={{ fontSize: 12, fontWeight: 800, color: groupAll ? C.olive : C.text }}>
-                        {group.icon} {t(group.labelKey)}
+                        <NavIcon name={group.icon} fontSize="inherit" sx={{ marginInlineEnd: 0.5, verticalAlign: "middle" }} />{t(group.labelKey)}
                       </Typography>
                     </Box>
 

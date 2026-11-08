@@ -11,6 +11,13 @@ import { buildColors } from "@shared/palette";
 import useShortcuts from "@shared/common/useShortcuts";
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 import { appName } from "@shared/branding";
+import NavIcon from "@shared/ui/NavIcon";
+import { BrandSquare } from "@shared/ui/BrandMark";
+import LogoutIcon from "@mui/icons-material/Logout";
+import LockIcon from "@mui/icons-material/Lock";
+import MenuIcon from "@mui/icons-material/Menu";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import DarkModeIcon from "@mui/icons-material/DarkMode";
 
 /* ═══════════════════════════════════════
    ۱. کانفیگ منوها — با کلیدهای دسترسی
@@ -21,7 +28,7 @@ const NAV_SECTIONS = [
     titleKey: "rest.nav_management",
     items: [
       {
-        icon: "💻", labelKey: "rest.nav_pos", basePath: "pos",
+        icon: "pos", labelKey: "rest.nav_pos", basePath: "pos",
         anyTabs: ["pos", "pos_report", "pos_settings", "orders"], module: "pos",
       },
     ],
@@ -30,7 +37,7 @@ const NAV_SECTIONS = [
     titleKey: "rest.nav_inventory",
     items: [
       {
-        icon: "📦", labelKey: "rest.nav_inventory", basePath: "inventory",
+        icon: "inventory", labelKey: "rest.nav_inventory", basePath: "inventory",
         anyTabs: ["inventory_invoice", "inventory_sales", "inventory_warehouse", "inventory_receiving", "inventory_purchase_list", "inventory_reports"], module: "inventory",
       },
     ],
@@ -39,7 +46,7 @@ const NAV_SECTIONS = [
     titleKey: "ui_e.nav_production",
     items: [
       {
-        icon: "🏭", labelKey: "ui_e.nav_production", basePath: "production",
+        icon: "production", labelKey: "ui_e.nav_production", basePath: "production",
         anyTabs: ["kitchen", "recipes", "dictionary_recipe"], module: "production",
       },
     ],
@@ -48,7 +55,7 @@ const NAV_SECTIONS = [
     titleKey: "ui_del.nav",
     items: [
       {
-        icon: "🚴", labelKey: "ui_del.nav", basePath: "delivery",
+        icon: "delivery", labelKey: "ui_del.nav", basePath: "delivery",
         anyTabs: ["delivery"], module: "delivery",
       },
     ],
@@ -57,7 +64,7 @@ const NAV_SECTIONS = [
     titleKey: "rest.nav_system",
     items: [
       {
-        icon: "📚", labelKey: "rest.nav_dictionary", basePath: "dictionary",
+        icon: "dictionary", labelKey: "rest.nav_dictionary", basePath: "dictionary",
         anyTabs: ["dictionary_items", "dictionary_menu", "dictionary_recipe", "dictionary_suppliers", "dictionary_warehouses", "dictionary_customers", "dictionary_users"],
       },
     ],
@@ -269,7 +276,7 @@ export default function BusinessLayout() {
   const sidebarContent = (
     <Box dir={isRtl ? "rtl" : "ltr"} sx={{ height: "100%", display: "flex", flexDirection: "column", bgcolor: C.sidebarBg }}>
       <Box sx={{ p: 2.5, display: "flex", alignItems: "center", gap: 1.5 }}>
-        <Box sx={{ width: 42, height: 42, borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, background: C.btnGrad, color: "var(--on-primary)" }}>🏪</Box>
+        <BrandSquare />
         <Box>
           <Typography sx={{ fontWeight: 800, fontSize: 16, color: C.text }}>{appName(i18n.language)}</Typography>
           <Typography sx={{ fontSize: 9, color: C.muted, fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase" }}>{t("rest.panel_sub")}</Typography>
@@ -281,7 +288,7 @@ export default function BusinessLayout() {
         <Box sx={{ p: 1.5 }}>
           <Button component={Link} to={prefix} fullWidth title={comboFor(prefix)} onClick={() => isMobile && setSidebarOpen(false)}
             sx={{ justifyContent: "flex-start", py: 1, px: 1.5, color: C.olive, fontSize: 13, fontWeight: 700, textTransform: "none", borderRadius: "10px", bgcolor: C.oliveSubtle, "&:hover": { bgcolor: C.oliveSubtle } }}>
-            🏠 {t("rest.main_dashboard")}
+            <NavIcon name="home" sx={{ marginInlineEnd: 1 }} /> {t("rest.main_dashboard")}
           </Button>
         </Box>
       )}
@@ -289,7 +296,7 @@ export default function BusinessLayout() {
       <Box sx={{ flex: 1, overflowY: "auto", py: 1, px: 1.5 }}>
         {filteredSections.length === 0 ? (
           <Box sx={{ textAlign: "center", py: 4 }}>
-            <Typography sx={{ fontSize: 28, mb: 1 }}>🔒</Typography>
+            <LockIcon sx={{ fontSize: 28, mb: 1 }} />
             <Typography sx={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>
               {t("ui_a.layout.no_access")}
             </Typography>
@@ -308,7 +315,7 @@ export default function BusinessLayout() {
                   title={comboFor(`${prefix}/${item.basePath}`)}
                   onClick={() => isMobile && setSidebarOpen(false)}
                   sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1, borderRadius: "10px", textDecoration: "none", color: C.sub, transition: "all 0.2s ease", "&:hover": { bgcolor: C.oliveSubtle, color: C.olive } }}>
-                  <Typography sx={{ fontSize: 16, lineHeight: 1 }}>{item.icon}</Typography>
+                  <NavIcon name={item.icon} />
                   <Typography sx={{ fontSize: 12.5, fontWeight: 500 }}>{t(item.labelKey)}</Typography>
                 </Box>
               ))}
@@ -320,7 +327,7 @@ export default function BusinessLayout() {
       <Divider sx={{ borderColor: C.sidebarBorder, mx: 2 }} />
       <Box sx={{ p: 1.5 }}>
         <Button onClick={handleLogout} fullWidth sx={{ justifyContent: "flex-start", color: C.danger, fontSize: 12, fontWeight: 600, textTransform: "none", borderRadius: "10px", py: 1, px: 1.5, "&:hover": { bgcolor: C.dangerBg } }}>
-          🚪 {t("rest.logout")}
+          <LogoutIcon fontSize="small" sx={{ marginInlineEnd: 1 }} /> {t("rest.logout")}
         </Button>
       </Box>
     </Box>
@@ -372,7 +379,7 @@ export default function BusinessLayout() {
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0, flex: 1 }}>
             {isMobile && (
               <IconButton onClick={() => setSidebarOpen(true)} size="small" sx={{ color: C.text, border: `1px solid ${C.glassBorder}`, borderRadius: "10px", bgcolor: C.glass, flexShrink: 0, width: 36, height: 36 }}>
-                <Typography sx={{ fontSize: 18, lineHeight: 1 }}>☰</Typography>
+                <MenuIcon fontSize="small" />
               </IconButton>
             )}
             <Typography component={Link} to={prefix} sx={{ fontSize: { xs: 13, md: 14 }, color: C.olive, textDecoration: "none", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
@@ -382,7 +389,7 @@ export default function BusinessLayout() {
 
           <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, md: 1 }, flexShrink: 0 }}>
             <IconButton onClick={toggleTheme} size="small" sx={{ color: C.text, border: `1px solid ${C.glassBorder}`, borderRadius: "10px", bgcolor: C.glass, width: 34, height: 34, "&:hover": { bgcolor: C.oliveSubtle, borderColor: C.olive } }}>
-              <Typography sx={{ fontSize: 14 }}>{isDark ? "☀️" : "🌙"}</Typography>
+              {isDark ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
             </IconButton>
             <Box sx={{ display: "flex", border: `1px solid ${C.glassBorder}`, borderRadius: "10px", overflow: "hidden", bgcolor: C.glass, height: 34 }}>
               {["fa", "en"].map((lng) => (

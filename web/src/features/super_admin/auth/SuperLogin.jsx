@@ -17,6 +17,7 @@ import { useLang } from "@shared/contexts/LangContext";
 import superClient from "@super/api/super_client";
 import { buildColors } from "@shared/palette";
 import { appName } from "@shared/branding";
+import { BrandSquare } from "@shared/ui/BrandMark";
 import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
 import KbdHint from "@business/pos/common/KbdHint";
 
@@ -306,21 +307,7 @@ export default function SuperLogin() {
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <Box
-              sx={{
-                width: 38,
-                height: 38,
-                borderRadius: "12px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 18,
-                background: C.iconBg,
-                border: `1px solid ${C.glassBorder}`,
-              }}
-            >
-              🛡️
-            </Box>
+            <BrandSquare />
             <Box>
               <Typography
                 sx={{

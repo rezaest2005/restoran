@@ -27,6 +27,7 @@ import useShortcuts from "@shared/common/useShortcuts";
 import KbdHint from "@business/pos/common/KbdHint";
 import { buildColors } from "@shared/palette";
 import { appName } from "@shared/branding";
+import { BrandSquare } from "@shared/ui/BrandMark";
 
 const animations = `
   @keyframes orb1 {
@@ -283,21 +284,7 @@ export default function Login() {
           >
             {/* لوگو */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <Box
-                sx={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: "10px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 18,
-                  background: C.iconBg,
-                  border: `1px solid ${C.iconBorder}`,
-                }}
-              >
-                🍷
-              </Box>
+              <BrandSquare />
               <Box>
                 <Typography
                   sx={{

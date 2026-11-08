@@ -1,3 +1,4 @@
+import NavIcon from "@shared/ui/NavIcon";
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useThemeMode } from "@shared/contexts/ThemeContext";
@@ -75,11 +76,11 @@ export default function SuperAdminLayout() {
 
   /* ── تب‌ها ── */
   const tabs = [
-    { id: "tenants", label: t("super.tab.tenants"), icon: "🏪" },
-    { id: "users", label: t("super.tab.users"), icon: "👥" },
-    { id: "modules", label: t("ui_k.mod.title"), icon: "🧩" },
-    { id: "storefront", label: t("ui_sfa.tab"), icon: "🌐" },
-    { id: "support", label: t("ui_sup.admin_tab"), icon: "🛟", badge: supportWaiting },
+    { id: "tenants", label: t("super.tab.tenants"), icon: "tenants" },
+    { id: "users", label: t("super.tab.users"), icon: "users" },
+    { id: "modules", label: t("ui_k.mod.title"), icon: "modules" },
+    { id: "storefront", label: t("ui_sfa.tab"), icon: "website" },
+    { id: "support", label: t("ui_sup.admin_tab"), icon: "support", badge: supportWaiting },
   ];
   const tabParam = searchParams.get("tab");
   const found = tabs.findIndex((x) => x.id === tabParam);
@@ -172,7 +173,7 @@ export default function SuperAdminLayout() {
                   whiteSpace: "nowrap",
                 }}
               >
-                {tab.icon} {tab.label}
+                <NavIcon name={tab.icon} fontSize="inherit" sx={{ marginInlineEnd: 0.75, verticalAlign: "middle" }} />{tab.label}
                 {tab.badge > 0 && (
                   <Box component="span" sx={{
                     ms: 1, minWidth: 20, height: 20, px: 0.75, borderRadius: 10, fontSize: 11, fontWeight: 700,

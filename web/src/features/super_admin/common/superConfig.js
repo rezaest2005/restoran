@@ -9,40 +9,40 @@ export const NAV_SECTIONS = [
   {
     titleKey: "super.nav.management",
     items: [
-      { icon: "📊", labelKey: "super.nav.dashboard", path: "/super" },
-      { icon: "🌐", labelKey: "ui_sfa.nav", path: "/super/app?tab=storefront" },
-      { icon: "🛟", labelKey: "ui_sup.nav", path: "/super/app?tab=support", badge: "support" },
+      { icon: "dashboard", labelKey: "super.nav.dashboard", path: "/super" },
+      { icon: "website", labelKey: "ui_sfa.nav", path: "/super/app?tab=storefront" },
+      { icon: "support", labelKey: "ui_sup.nav", path: "/super/app?tab=support", badge: "support" },
     ],
   },
   {
     titleKey: "super.nav.business",
     items: [
-      { icon: "🏠", labelKey: "super.nav.main_dashboard", path: "/dashboard" },
-      { icon: "📖", labelKey: "super.nav.dictionary", path: "/dashboard/dictionary" },
-      { icon: "🍽️", labelKey: "super.nav.food_menu", path: "/dashboard/foods" },
-      { icon: "💰", labelKey: "super.nav.pos", path: "/dashboard/pos" },
-      { icon: "📋", labelKey: "super.nav.orders", path: "/dashboard/orders" },
+      { icon: "home", labelKey: "super.nav.main_dashboard", path: "/dashboard" },
+      { icon: "menubook", labelKey: "super.nav.dictionary", path: "/dashboard/dictionary" },
+      { icon: "food", labelKey: "super.nav.food_menu", path: "/dashboard/foods" },
+      { icon: "pos", labelKey: "super.nav.pos", path: "/dashboard/pos" },
+      { icon: "list", labelKey: "super.nav.orders", path: "/dashboard/orders" },
     ],
   },
   {
     titleKey: "super.nav.warehouse",
     items: [
-      { icon: "🧾", labelKey: "super.nav.purchase_invoice", path: "/dashboard/invoices/create" },
-      { icon: "🥕", labelKey: "super.nav.raw_materials", path: "/dashboard/raw-materials" },
-      { icon: "🥘", labelKey: "super.nav.semi_finished", path: "/dashboard/semi-finished" },
-      { icon: "📦", labelKey: "super.nav.ready_materials", path: "/dashboard/ready-materials" },
-      { icon: "📝", labelKey: "super.nav.usage_log", path: "/dashboard/usage-log" },
-      { icon: "📋", labelKey: "super.nav.recipes", path: "/dashboard/recipes" },
-      { icon: "👨‍🍳", labelKey: "super.nav.kitchen", path: "/dashboard/kitchen" },
+      { icon: "receipt", labelKey: "super.nav.purchase_invoice", path: "/dashboard/invoices/create" },
+      { icon: "inventory", labelKey: "super.nav.raw_materials", path: "/dashboard/raw-materials" },
+      { icon: "inventory", labelKey: "super.nav.semi_finished", path: "/dashboard/semi-finished" },
+      { icon: "inventory", labelKey: "super.nav.ready_materials", path: "/dashboard/ready-materials" },
+      { icon: "doc", labelKey: "super.nav.usage_log", path: "/dashboard/usage-log" },
+      { icon: "list", labelKey: "super.nav.recipes", path: "/dashboard/recipes" },
+      { icon: "kitchen", labelKey: "super.nav.kitchen", path: "/dashboard/kitchen" },
     ],
   },
   {
     titleKey: "super.nav.customers",
     items: [
-      { icon: "🏆", labelKey: "super.nav.loyalty", path: "/dashboard/loyalty" },
-      { icon: "👥", labelKey: "super.nav.customer_list", path: "/dashboard/loyalty/customers" },
-      { icon: "🎟️", labelKey: "super.nav.coupons", path: "/dashboard/loyalty/coupons" },
-      { icon: "🎁", labelKey: "super.nav.rewards", path: "/dashboard/loyalty/rewards" },
+      { icon: "club", labelKey: "super.nav.loyalty", path: "/dashboard/loyalty" },
+      { icon: "users", labelKey: "super.nav.customer_list", path: "/dashboard/loyalty/customers" },
+      { icon: "coupon", labelKey: "super.nav.coupons", path: "/dashboard/loyalty/coupons" },
+      { icon: "gift", labelKey: "super.nav.rewards", path: "/dashboard/loyalty/rewards" },
     ],
   },
 ];
@@ -68,28 +68,28 @@ export const ROLE_OPTIONS = [
 export const ALL_PERM_CODES = [
   // داشبورد
   "home",
-  // 📦 انبار
+  // انبار
   "inventory_invoice", "inventory_sales", "inventory_warehouse",
   "inventory_receiving", "inventory_purchase_list", "inventory_reports",
-  // 📖 تعاریف
+  // تعاریف
   "dictionary", "dictionary_menu", "dictionary_suppliers",
   "dictionary_warehouses", "dictionary_customers",
   "dictionary_managers", "dictionary_recipes",
-  // 💰 صندوق
+  // صندوق
   "pos", "pos_report", "pos_settings", "orders",
 ];
 
 export const PERM_LABELS = {
   // داشبورد
   home: "ui_c.super.perm.home",
-  // 📦 انبار
+  // انبار
   inventory_invoice: "ui_c.super.perm.inventory_invoice",
   inventory_sales: "ui_c.super.perm.inventory_sales",
   inventory_warehouse: "ui_c.super.perm.inventory_warehouse",
   inventory_receiving: "ui_c.super.perm.inventory_receiving",
   inventory_purchase_list: "ui_c.super.perm.inventory_purchase_list",
   inventory_reports: "ui_c.super.perm.inventory_reports",
-  // 📖 تعاریف
+  // تعاریف
   dictionary: "ui_c.super.perm.dictionary",
   dictionary_menu: "ui_c.super.perm.dictionary_menu",
   dictionary_suppliers: "ui_c.super.perm.dictionary_suppliers",
@@ -97,7 +97,7 @@ export const PERM_LABELS = {
   dictionary_customers: "ui_c.super.perm.dictionary_customers",
   dictionary_managers: "ui_c.super.perm.dictionary_managers",
   dictionary_recipes: "ui_c.super.perm.dictionary_recipes",
-  // 💰 صندوق
+  // صندوق
   pos: "ui_c.super.perm.pos",
   pos_report: "ui_c.super.perm.pos_report",
   pos_settings: "ui_c.super.perm.pos_settings",
@@ -111,12 +111,12 @@ export const PERM_LABELS = {
 export const PERM_GROUPS = {
   home: {
     labelKey: "ui_c.super.group.home",
-    icon: "🏠",
+    icon: "home",
     codes: ["home"],
   },
   inventory: {
     labelKey: "ui_c.super.group.inventory",
-    icon: "📦",
+    icon: "inventory",
     codes: [
       "inventory_invoice", "inventory_sales", "inventory_warehouse",
       "inventory_receiving", "inventory_purchase_list", "inventory_reports",
@@ -124,7 +124,7 @@ export const PERM_GROUPS = {
   },
   dictionary: {
     labelKey: "ui_c.super.group.dictionary",
-    icon: "📖",
+    icon: "menubook",
     codes: [
       "dictionary", "dictionary_menu", "dictionary_suppliers",
       "dictionary_warehouses", "dictionary_customers",
@@ -133,7 +133,7 @@ export const PERM_GROUPS = {
   },
   pos: {
     labelKey: "ui_c.super.group.pos",
-    icon: "💰",
+    icon: "pos",
     codes: ["pos", "pos_report", "pos_settings", "orders"],
   },
 };
