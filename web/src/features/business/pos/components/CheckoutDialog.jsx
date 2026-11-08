@@ -600,7 +600,7 @@ export default function CheckoutDialog({
                       <Icon sx={{ fontSize: 20, color: C.olive }} />
                     )}
                     {isRtl ? labelFa : labelEn}
-                    {selKey === key && !busy && <KbdHint>Enter</KbdHint>}
+                   
                   </Button>
                 ))}
               </Box>

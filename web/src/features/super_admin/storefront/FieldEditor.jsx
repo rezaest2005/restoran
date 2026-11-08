@@ -125,7 +125,7 @@ function ListField({ name, spec, value, onChange, primary }) {
           </Box>
         ))}
         {items.length < spec.max && (
-          <Button size="small" startIcon={<AddIcon />} onClick={() => onChange([...items, blank()])}>{t("ui_k.add_item")}{primary && <> <KbdHint>F3</KbdHint></>}</Button>
+          <Button size="small" startIcon={<AddIcon />} onClick={() => onChange([...items, blank()])}>{t("ui_k.add_item")}{primary && <></>}</Button>
         )}
       </Stack>
     </Box>

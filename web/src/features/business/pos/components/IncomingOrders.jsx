@@ -168,7 +168,7 @@ export default function IncomingOrders({
               <Button variant="contained" disabled={pending} onClick={() => accept(o)}
                 sx={{ ...btnBase, bgcolor: C.olive, color: "#fff", "&:hover": { bgcolor: C.olive } }}>
                 {t("ui_f.incoming.accept")}
-                {targetOrder?.id === o.id && !pending && <KbdHint>Ctrl+D</KbdHint>}
+               
               </Button>
               <Button variant="outlined" disabled={pending} onClick={() => setConfirmId(o.id)}
                 sx={{ ...btnBase, color: C.burgundy, borderColor: C.burgundy }}>
@@ -232,7 +232,6 @@ export default function IncomingOrders({
           <Button color="error" variant="contained" sx={{ minHeight: 40, fontFamily: FONT }}
             onClick={confirmReject}>
             {t("ui_f.incoming.confirm_reject")}
-            <KbdHint>Enter</KbdHint>
           </Button>
         </DialogActions>
       </Dialog>

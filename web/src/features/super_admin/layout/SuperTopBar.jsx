@@ -89,7 +89,7 @@ export default function SuperTopBar({ isMobile, onMenuClick, toggleTheme, toggle
               whiteSpace: "nowrap",
             }}
           >
-            {t("super.refresh")} <KbdHint sx={{ mx: 0.8 }}>Alt+R</KbdHint>
+            {t("super.refresh")}
           </Button>
         )}
       </Box>

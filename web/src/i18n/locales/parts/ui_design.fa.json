@@ -1,0 +1,13 @@
+{
+  "ui_design": {
+    "hint_new": "مورد جدید",
+    "hint_save": "ثبت",
+    "hint_close": "بستن",
+    "hint_help": "راهنمای میان‌برها",
+    "hint_tabs": "تب‌ها",
+    "hint_add_line": "افزودن ردیف",
+    "hint_next_prev": "بعدی / قبلی",
+    "hint_confirm": "تأیید",
+    "hint_bar": "میان‌برها"
+  }
+}

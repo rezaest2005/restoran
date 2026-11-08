@@ -67,7 +67,7 @@ export default function FeedbackDialog({ ctx, item, onClose, onSaved }) {
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button variant="outlined" sx={S.ghost} onClick={onClose}>{t("ui_fb.mgr.close")} <KbdHint>Esc</KbdHint></Button>
+        <Button variant="outlined" sx={S.ghost} onClick={onClose}>{t("ui_fb.mgr.close")}</Button>
         <Button sx={S.btn} onClick={save} disabled={busy}>{t("ui_fb.mgr.save")}<KbdHint>Ctrl+D</KbdHint></Button>
       </DialogActions>
     </Dialog>

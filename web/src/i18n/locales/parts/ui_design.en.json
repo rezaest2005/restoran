@@ -1,0 +1,13 @@
+{
+  "ui_design": {
+    "hint_new": "New",
+    "hint_save": "Save",
+    "hint_close": "Close",
+    "hint_help": "Shortcut help",
+    "hint_tabs": "Tabs",
+    "hint_add_line": "Add row",
+    "hint_next_prev": "Next / previous",
+    "hint_confirm": "Confirm",
+    "hint_bar": "Shortcuts"
+  }
+}

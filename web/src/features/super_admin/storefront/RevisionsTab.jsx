@@ -95,7 +95,7 @@ export default function RevisionsTab({ reloadKey, onRestored, onToast }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPending(null)} disabled={busy}>
-            {t("shortcuts.close_dialog")} <KbdHint>Esc</KbdHint>
+            {t("shortcuts.close_dialog")}
           </Button>
           <Button variant="contained" onClick={confirmRestore} disabled={busy}>
             {t("shortcuts.confirm")} <KbdHint>Ctrl+D</KbdHint>

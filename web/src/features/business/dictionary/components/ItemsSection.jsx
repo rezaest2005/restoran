@@ -118,7 +118,7 @@ export default function ItemsSection({ ctx }) {
         <TablePagination component="div" count={total} page={page} rowsPerPage={PAGE} rowsPerPageOptions={[PAGE]}
           onPageChange={(_, p) => setPage(p)} sx={{ color: C.sub, "& .MuiTablePagination-selectIcon": { color: C.sub } }} />
         <Typography sx={{ color: C.muted, fontSize: 11 }}>
-          <KbdHint>Ctrl+A</KbdHint><KbdHint>Ctrl+Z</KbdHint> {t("ui_def.common.cursor_hint")}
+          {t("ui_def.common.cursor_hint")}
         </Typography>
       </LoadState>
 

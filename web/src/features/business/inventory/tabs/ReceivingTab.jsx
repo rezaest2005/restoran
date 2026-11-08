@@ -199,7 +199,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
               border: `1px solid ${C.warning}30`,
             }}
           >
-            ➖ خروج<KbdHint>F3</KbdHint>
+            ➖ خروج
           </Button>
           <Button
             onClick={() => setWasteOpen(true)}
@@ -210,7 +210,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
               border: `1px solid ${C.danger}30`,
             }}
           >
-            🗑 ضایعات<KbdHint>F4</KbdHint>
+            🗑 ضایعات
           </Button>
         </Box>
       </Box>

@@ -73,7 +73,7 @@ export default function PosHeader({
         startIcon={editMode ? <Close sx={{ fontSize: 14 }} /> : <Edit sx={{ fontSize: 14 }} />}
       >
         {editMode ? (isRtl ? "لغو" : "Cancel") : (isRtl ? "ویرایش" : "Edit")}
-        <KbdHint sx={{ mx: 0.5 }}>F4</KbdHint>
+       
       </Button>
     </Box>
   );

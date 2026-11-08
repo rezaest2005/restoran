@@ -43,7 +43,7 @@ export default function OrderTypeSelector({ orderType, setOrderType, C, isRtl })
           >
             <Icon sx={{ fontSize: 14, mr: 0.5 }} />
             {label}
-            <KbdHint sx={{ mx: 0.5 }}>Ctrl+Shift+{i + 1}</KbdHint>
+           
           </Button>
         );
       })}

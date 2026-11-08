@@ -6,7 +6,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "@app/App";
 import i18n from "./i18n";
 import { appName } from "@shared/branding";
+import "@shared/tokens.css";
+import "@shared/ui/bundle.css";
 import "./index.css";
+import { installAltHint } from "@shared/ui/altHint";
+installAltHint();
 
 const syncTitle = () => { document.title = appName(i18n.language); };
 syncTitle();

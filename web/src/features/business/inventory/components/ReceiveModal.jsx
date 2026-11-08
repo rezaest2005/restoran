@@ -201,7 +201,7 @@ export default function ReceiveModal({ open, onClose, warehouse, C, isDark, onSu
               textTransform: "none", color: C.olive,
               border: `1px dashed ${C.olive}40`, py: 0.8,
             }}>
-              ➕ افزودن کالای دیگر<KbdHint>F3</KbdHint>
+              ➕ افزودن کالای دیگر
             </Button>
 
             {/* جمع کل */}

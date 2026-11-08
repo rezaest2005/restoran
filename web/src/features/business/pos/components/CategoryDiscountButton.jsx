@@ -479,7 +479,6 @@ export default function CategoryDiscountButton({
                 }}
               >
                 {isRtl ? "اعمال تخفیف" : "Apply discount"}
-                <KbdHint sx={{ ml: 1 }}>Ctrl+D</KbdHint>
               </Box>
               <Box
                 role="button" tabIndex={0}

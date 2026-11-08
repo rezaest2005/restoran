@@ -121,7 +121,7 @@ export default function MemberDetailDialog({ ctx, id, onClose, onChanged }) {
         )}
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button variant="outlined" sx={S.ghost} onClick={onClose}>{t("ui_club.close")} <KbdHint>Esc</KbdHint></Button>
+        <Button variant="outlined" sx={S.ghost} onClick={onClose}>{t("ui_club.close")}</Button>
       </DialogActions>
     </Dialog>
   );

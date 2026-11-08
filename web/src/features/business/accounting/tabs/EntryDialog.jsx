@@ -154,7 +154,7 @@ export default function EntryDialog({ ctx, onClose, onSaved }) {
 
           <Box>
             <Button variant="outlined" sx={S.ghost} onClick={addLine}>
-              + {t("ui_i.entry.add_line")}<KbdHint>F3</KbdHint>
+              + {t("ui_i.entry.add_line")}
             </Button>
           </Box>
 

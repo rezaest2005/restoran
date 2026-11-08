@@ -36,7 +36,7 @@ function ConfirmDialog({ open, title, text, onClose, onConfirm, busy }) {
       <DialogTitle>{title}</DialogTitle>
       <DialogContent><Typography>{text}</Typography></DialogContent>
       <DialogActions>
-        <Button onClick={onClose} disabled={busy}>{t("shortcuts.close_dialog")} <KbdHint>Esc</KbdHint></Button>
+        <Button onClick={onClose} disabled={busy}>{t("shortcuts.close_dialog")}</Button>
         <Button variant="contained" onClick={onConfirm} disabled={busy}>{t("shortcuts.confirm")} <KbdHint>Ctrl+D</KbdHint></Button>
       </DialogActions>
     </Dialog>
@@ -249,13 +249,13 @@ export default function StorefrontEditor({ businessId }) {
         {dirty && <Chip size="small" color="warning" label={t("ui_k.dirty")} />}
         <Box sx={{ flex: 1 }} />
         <Button variant="outlined" onClick={save} disabled={busy || !dirty}>
-          {t("ui_k.save")} <KbdHint>Ctrl+D</KbdHint>
+          {t("ui_k.save")}
         </Button>
         {srv.is_published && (
           <Button color="inherit" onClick={() => setConfirm("unpublish")} disabled={busy}>{t("ui_k.unpublish")}</Button>
         )}
         <Button variant="contained" onClick={() => setConfirm("publish")} disabled={busy}>
-          {t("ui_k.publish")} <KbdHint>Ctrl+Shift+P</KbdHint>
+          {t("ui_k.publish")}
         </Button>
       </Stack>
 

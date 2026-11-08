@@ -134,7 +134,7 @@ export default function ThreadDialog({ ctx, id, api, admin = false, onClose, onC
           </Button>
         )}
         <Box sx={{ flex: 1 }} />
-        <Button variant="outlined" sx={S.ghost} onClick={onClose}>{t("ui_sup.common.close")} <KbdHint>Esc</KbdHint></Button>
+        <Button variant="outlined" sx={S.ghost} onClick={onClose}>{t("ui_sup.common.close")}</Button>
         <Button sx={S.btn} onClick={send} disabled={busy || !ticket}>{t("ui_sup.common.send")}<KbdHint>Ctrl+D</KbdHint></Button>
       </DialogActions>
     </Dialog>

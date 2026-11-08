@@ -254,7 +254,7 @@ export default function FormulaDialog({ ctx, formula, materials, reloadMaterials
             )}
             <Typography sx={{ color: C.muted, fontSize: 12 }}>{t("ui_prod.formula_stock_hint")}</Typography>
             <Box>
-              <Button variant="outlined" sx={S.ghost} onClick={addLine}>+ {t("ui_e.formulas.add_line")}<KbdHint>F3</KbdHint></Button>
+              <Button variant="outlined" sx={S.ghost} onClick={addLine}>+ {t("ui_e.formulas.add_line")}</Button>
             </Box>
 
             <TextField label={t("ui_e.formulas.f_notes")} value={notes} onChange={(e) => { setNotes(e.target.value); setDirty(true); }}

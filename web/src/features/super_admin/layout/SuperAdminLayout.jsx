@@ -215,7 +215,7 @@ export default function SuperAdminLayout() {
         <DialogTitle>{t("ui_l.super.logout_title")}</DialogTitle>
         <DialogContent><Typography>{t("ui_l.super.logout_text")}</Typography></DialogContent>
         <DialogActions>
-          <Button onClick={() => setLogoutOpen(false)}>{t("shortcuts.close_dialog")} <KbdHint>Esc</KbdHint></Button>
+          <Button onClick={() => setLogoutOpen(false)}>{t("shortcuts.close_dialog")}</Button>
           <Button variant="contained" onClick={() => { setLogoutOpen(false); handleLogout(); }}>
             {t("ui_l.super.logout")} <KbdHint>Enter</KbdHint>
           </Button>

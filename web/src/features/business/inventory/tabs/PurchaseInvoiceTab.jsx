@@ -653,7 +653,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
             <Refresh sx={{ fontSize: 16 }} />
           </IconButton>
           <Button onClick={() => (showForm ? closeForm() : openForm())} sx={btnSx}>
-            {showForm ? "✖ بستن فرم" : "➕ فاکتور جدید"}<KbdHint>{showForm ? "Esc" : "F2"}</KbdHint>
+            {showForm ? "✖ بستن فرم" : "➕ فاکتور جدید"}
           </Button>
         </Box>
       </Box>

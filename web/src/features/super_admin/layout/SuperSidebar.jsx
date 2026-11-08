@@ -111,7 +111,7 @@ export default function SuperSidebar({ isMobile, open, onClose, currentUser, onL
             "&:focus": { bgcolor: "transparent" },
           }}
         >
-          🚪 {t("super.logout")} <KbdHint sx={{ mx: 1 }}>Alt+L</KbdHint>
+          🚪 {t("super.logout")}
         </Button>
       </Box>
     </Box>

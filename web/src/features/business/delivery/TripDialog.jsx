@@ -90,7 +90,7 @@ export default function TripDialog({ ctx, drivers, vehicles, carriers, onClose, 
 
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
           <Typography sx={{ fontWeight: 700, color: C.text }}>{t("ui_del.trip.stops")}</Typography>
-          <Button variant="outlined" sx={S.ghost} onClick={addStop}>+ {t("ui_del.trip.add_stop")}<KbdHint>F3</KbdHint></Button>
+          <Button variant="outlined" sx={S.ghost} onClick={addStop}>+ {t("ui_del.trip.add_stop")}</Button>
         </Box>
         {stops.map((s, i) => (
           <Box key={s.key} sx={{ border: `1px solid ${C.divider}`, borderRadius: 2, p: 1.5, mb: 1.5 }}>

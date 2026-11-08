@@ -49,7 +49,7 @@ export default function MemberDialog({ ctx, onClose, onSaved }) {
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button variant="outlined" sx={S.ghost} onClick={onClose} disabled={busy}>
-          {t("ui_club.close")} <KbdHint>Esc</KbdHint>
+          {t("ui_club.close")}
         </Button>
         <Button sx={S.btn} onClick={submit} disabled={busy}>
           {busy ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_club.member.save")}<KbdHint>Ctrl+D</KbdHint></>}

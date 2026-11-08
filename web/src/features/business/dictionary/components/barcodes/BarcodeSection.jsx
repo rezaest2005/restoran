@@ -248,7 +248,7 @@ export default function BarcodeSection({ ctx, canProducts, canItems }) {
           <FormControlLabel sx={{ color: C.text, m: 0 }} control={<Switch size="small" checked={showName} onChange={(e) => setShowName(e.target.checked)} />} label={t("ui_def.barcodes.show_name")} />
           <FormControlLabel sx={{ color: C.text, m: 0 }} control={<Switch size="small" checked={showPrice} onChange={(e) => setShowPrice(e.target.checked)} />} label={t("ui_def.barcodes.show_price")} />
           <Button sx={S.btn} onClick={startPrint} disabled={labels.rows.length === 0 || labelBusy || printing}>
-            {t("ui_def.barcodes.print")}<KbdHint>Ctrl+P</KbdHint>
+            {t("ui_def.barcodes.print")}
           </Button>
         </Box>
 

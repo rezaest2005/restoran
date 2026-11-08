@@ -122,7 +122,6 @@ export default function ManualItemInput({ onAdd, C, isRtl }) {
         >
           <Add sx={{ fontSize: 18, mr: 0.5 }} />
           {isRtl ? "افزودن" : "Add"}
-          <KbdHint>Ctrl+D</KbdHint>
         </Button>
       </Box>
     </Box>
