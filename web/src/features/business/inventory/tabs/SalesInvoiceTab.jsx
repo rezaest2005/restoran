@@ -8,13 +8,14 @@ import {
 import { Add, Delete, Close, Receipt, Visibility } from "@mui/icons-material";
 import { getUnitLabel } from "../../../../shared/common/units";
 import { readJSON, writeJSON, getCurrentUser, now, faDate, faTime, faDay, whIcon, calcStock, makeScale, useRowCursor, cursorAttrs, cursorSx, cursorBindings, useRegisteredShortcuts, onEnter, KbdHint } from "../common";
+import { soft } from "@shared/ui/colorUtil";
 
 const F = makeScale(1.1);
 
 const PAYMENTS = {
-  cash: { label: "نقد", color: "#2E7D32", icon: "💵" },
-  credit: { label: "نسیه", color: "#E65100", icon: "📝" },
-  check: { label: "چک", color: "#1565C0", icon: "📄" },
+  cash: { label: "نقد", color: "var(--success)", icon: "💵" },
+  credit: { label: "نسیه", color: "var(--danger)", icon: "📝" },
+  check: { label: "چک", color: "var(--info)", icon: "📄" },
 };
 
 // ═══════════ کامپوننت ═══════════
@@ -258,9 +259,9 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
     "& .MuiOutlinedInput-root": {
       borderRadius: "8px", bgcolor: C.inputBg, fontSize: F(12), color: C.text,
       "& fieldset": { borderColor: C.glassBorder },
-      "&:hover fieldset": { borderColor: C.olive + "60" },
+      "&:hover fieldset": { borderColor: soft(C.olive, "60") },
       "&.Mui-focused fieldset": { borderColor: C.olive, borderWidth: 1.5 },
-      "&.Mui-focused": { boxShadow: `0 0 0 2px ${C.olive}18` },
+      "&.Mui-focused": { boxShadow: `0 0 0 2px ${soft(C.olive, "18")}` },
     },
     "& .MuiInputBase-input": { color: C.text, py: 0.8 },
     "& .MuiInputBase-input::placeholder": { color: C.muted, opacity: 1 },
@@ -270,8 +271,8 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
     slotProps: {
       paper: {
         sx: {
-          bgcolor: isDark ? "#1a1a2e" : "#fff", borderRadius: "10px",
-          border: `1px solid ${C.olive}30`, boxShadow: "0 12px 40px rgba(0,0,0,0.25)",
+          bgcolor: isDark ? "var(--ink)" : "var(--surface)", borderRadius: "10px",
+          border: `1px solid ${soft(C.olive, "30")}`, boxShadow: "0 12px 40px color-mix(in srgb, var(--ink) 25%, transparent)",
           maxHeight: 200, overflowY: "auto",
           "& .MuiMenuItem-root": {
             fontSize: F(11), minHeight: 30, py: 0.3, px: 1.5, borderRadius: "6px", mx: 0.5,
@@ -308,8 +309,8 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
             sx={{ ...inputSx, width: 200 }} />
           <Button onClick={openNew} sx={{
             borderRadius: "8px", fontSize: F(11), fontWeight: 700, textTransform: "none",
-            px: 2, py: 0.7, color: "#fff", background: C.btnGrad,
-            boxShadow: `0 2px 12px ${C.olive}25`,
+            px: 2, py: 0.7, color: "var(--on-primary)", background: C.btnGrad,
+            boxShadow: `0 2px 12px ${soft(C.olive, "25")}`,
             "&:hover": { transform: "translateY(-1px)" },
           }}>
             + فاکتور جدید<KbdHint>F2</KbdHint>
@@ -321,12 +322,12 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
       <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}>
         {[
           { label: `${invoices.length} فاکتور`, color: C.olive, bg: C.oliveSubtle },
-          { label: `فروش کل: ${invoices.reduce((s, i) => s + (i.grand_total || 0), 0).toLocaleString("en-US")} تومان`, color: "#2E7D32", bg: "rgba(46,125,50,0.1)" },
-          { label: `بدهکاری: ${invoices.reduce((s, i) => s + (i.remaining || 0), 0).toLocaleString("en-US")} تومان`, color: "#E65100", bg: "rgba(230,81,0,0.1)" },
+          { label: `فروش کل: ${invoices.reduce((s, i) => s + (i.grand_total || 0), 0).toLocaleString("en-US")} تومان`, color: "var(--success)", bg: "color-mix(in srgb, var(--success) 10%, transparent)" },
+          { label: `بدهکاری: ${invoices.reduce((s, i) => s + (i.remaining || 0), 0).toLocaleString("en-US")} تومان`, color: "var(--danger)", bg: "color-mix(in srgb, var(--danger) 10%, transparent)" },
         ].map((c, i) => (
           <Chip key={i} size="small" label={c.label} sx={{
             height: 28, fontSize: F(10), fontWeight: 700, borderRadius: "8px",
-            bgcolor: c.bg, color: c.color, border: `1px solid ${c.color}30`,
+            bgcolor: c.bg, color: c.color, border: `1px solid ${soft(c.color, "30")}`,
           }} />
         ))}
       </Box>
@@ -344,7 +345,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
           <Box sx={{
             display: "grid", gridTemplateColumns: "80px 1.2fr 100px 80px 100px 110px 90px 80px 60px",
             gap: 1, px: 1.5, py: 0.8, borderRadius: "8px",
-            bgcolor: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
+            bgcolor: isDark ? "var(--surface-sunken)" : "color-mix(in srgb, var(--ink) 2%, transparent)",
           }}>
             {["شماره", "مشتری", "موبایل", "اقلام", "پرداخت", "مبلغ کل", "پرداختی", "باقی", ""].map((h) => (
               <Typography key={h} sx={{ fontSize: F(9), fontWeight: 700, color: C.muted }}>{h}</Typography>
@@ -360,7 +361,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
                 gap: 1, px: 1.5, py: 1, borderRadius: "10px", mt: 0.5,
                 bgcolor: C.glass, border: `1px solid ${C.glassBorder}`,
                 opacity: 0, animation: `fadeUp 0.3s ease-out ${i * 0.03}s forwards`,
-                "&:hover": { bgcolor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)" },
+                "&:hover": { bgcolor: isDark ? "var(--surface-sunken)" : "color-mix(in srgb, var(--ink) 2%, transparent)" },
               }}>
                 <Chip size="small" label={inv.invoice_number} sx={{
                   height: 22, fontSize: F(9), fontWeight: 700, borderRadius: "5px",
@@ -379,23 +380,23 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
                 <Chip size="small" label={`${pay.icon} ${pay.label}`} sx={{
                   height: 20, fontSize: F(8), fontWeight: 700, borderRadius: "5px",
                   alignSelf: "center", justifyContent: "center",
-                  bgcolor: pay.color + "18", color: pay.color, border: `1px solid ${pay.color}30`,
+                  bgcolor: soft(pay.color, "18"), color: pay.color, border: `1px solid ${soft(pay.color, "30")}`,
                 }} />
                 <Typography sx={{ fontSize: F(11), fontWeight: 700, color: C.olive, alignSelf: "center" }}>
                   {(inv.grand_total || 0).toLocaleString("en-US")}
                 </Typography>
-                <Typography sx={{ fontSize: F(10), color: "#2E7D32", alignSelf: "center" }}>
+                <Typography sx={{ fontSize: F(10), color: "var(--success)", alignSelf: "center" }}>
                   {(inv.paid_amount || 0).toLocaleString("en-US")}
                 </Typography>
                 <Typography sx={{
                   fontSize: F(10), fontWeight: 700, alignSelf: "center",
-                  color: inv.remaining > 0 ? C.danger : "#2E7D32",
+                  color: inv.remaining > 0 ? C.danger : "var(--success)",
                 }}>
                   {(inv.remaining || 0).toLocaleString("en-US")}
                 </Typography>
                 <IconButton size="small" onClick={() => openDetail(inv)} sx={{
                   color: C.info, bgcolor: C.infoBg, borderRadius: "6px", p: 0.5,
-                  "&:hover": { bgcolor: C.info, color: "#fff" },
+                  "&:hover": { bgcolor: C.info, color: "var(--on-primary)" },
                 }}>
                   <Visibility sx={{ fontSize: 16 }} />
                 </IconButton>
@@ -412,22 +413,22 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
         slotProps={{
           paper: {
             sx: {
-              borderRadius: "20px", bgcolor: isDark ? "#0f1128" : "#ffffff",
-              border: `2px solid ${C.olive}40`, boxShadow: "0 24px 100px rgba(0,0,0,0.5)",
+              borderRadius: "20px", bgcolor: isDark ? "var(--ink)" : "var(--surface)",
+              border: `2px solid ${soft(C.olive, "40")}`, boxShadow: "0 24px 100px color-mix(in srgb, var(--ink) 50%, transparent)",
             },
           },
         }}
       >
         <DialogTitle sx={{
-          px: 3, pt: 2.5, pb: 2, borderBottom: `2px solid ${C.olive}20`,
-          bgcolor: isDark ? "rgba(107,155,110,0.1)" : "rgba(46,77,48,0.07)",
+          px: 3, pt: 2.5, pb: 2, borderBottom: `2px solid ${soft(C.olive, "20")}`,
+          bgcolor: isDark ? "color-mix(in srgb, var(--success) 10%, transparent)" : "color-mix(in srgb, var(--success) 7%, transparent)",
         }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
               <Box sx={{
                 width: 52, height: 52, borderRadius: "14px",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                bgcolor: C.oliveSubtle, border: `2px solid ${C.olive}40`,
+                bgcolor: C.oliveSubtle, border: `2px solid ${soft(C.olive, "40")}`,
               }}>
                 <Receipt sx={{ fontSize: 30, color: C.olive }} />
               </Box>
@@ -435,13 +436,13 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
                 <Typography sx={{ fontSize: 20, fontWeight: 900, color: C.text }}>فاکتور فروش جدید</Typography>
                 <Chip size="small"
                   label={`شماره: SI-${String(readJSON("local_sales_invoices", []).length + 1).padStart(3, "0")}`}
-                  sx={{ height: 26, fontSize: 13, fontWeight: 800, borderRadius: "8px", bgcolor: C.olive, color: "#fff", px: 1, mt: 0.5 }}
+                  sx={{ height: 26, fontSize: 13, fontWeight: 800, borderRadius: "8px", bgcolor: C.olive, color: "var(--on-primary)", px: 1, mt: 0.5 }}
                 />
               </Box>
             </Box>
             <IconButton onClick={closeDialog} size="large" sx={{
-              color: C.danger, bgcolor: C.dangerBg, border: `2px solid ${C.danger}30`,
-              borderRadius: "12px", p: 1, "&:hover": { bgcolor: C.danger, color: "#fff" },
+              color: C.danger, bgcolor: C.dangerBg, border: `2px solid ${soft(C.danger, "30")}`,
+              borderRadius: "12px", p: 1, "&:hover": { bgcolor: C.danger, color: "var(--on-status)" },
             }}>
               <Close sx={{ fontSize: 24 }} />
             </IconButton>
@@ -449,14 +450,14 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
 
           <Box sx={{ display: "flex", gap: 1.5, mt: 2, flexWrap: "wrap" }}>
             {[
-              { icon: "👤", label: getCurrentUser(), color: "#7C4DFF" },
-              { icon: "📅", label: faDate(now()), color: "#00897B" },
-              { icon: "🕐", label: faTime(now()), color: "#F57C00" },
-              { icon: "📆", label: faDay(now()), color: "#1565C0" },
+              { icon: "👤", label: getCurrentUser(), color: "var(--chart-4)" },
+              { icon: "📅", label: faDate(now()), color: "var(--success)" },
+              { icon: "🕐", label: faTime(now()), color: "var(--warning)" },
+              { icon: "📆", label: faDay(now()), color: "var(--info)" },
             ].map((info, i) => (
               <Chip key={i} size="small" label={`${info.icon} ${info.label}`} sx={{
                 height: 30, fontSize: 13, fontWeight: 700, borderRadius: "10px",
-                bgcolor: info.color + "18", color: info.color, border: `1.5px solid ${info.color}30`, px: 0.5,
+                bgcolor: soft(info.color, "18"), color: info.color, border: `1.5px solid ${soft(info.color, "30")}`, px: 0.5,
               }} />
             ))}
           </Box>
@@ -496,7 +497,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
             ))}
           </Select>
 
-          <Divider sx={{ mb: 2, borderColor: C.olive + "25" }} />
+          <Divider sx={{ mb: 2, borderColor: soft(C.olive, "25") }} />
 
           {/* ── اقلام ── */}
           <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.olive, mb: 1 }}>📋 اقلام فروش</Typography>
@@ -504,12 +505,12 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
           <Box sx={{
             display: "grid", gridTemplateColumns: "36px 1.5fr 80px 100px 110px 44px",
             gap: 1, px: 1, mb: 1, py: 0.8, borderRadius: "8px",
-            bgcolor: isDark ? "rgba(107,155,110,0.12)" : "rgba(46,77,48,0.08)",
+            bgcolor: isDark ? "color-mix(in srgb, var(--success) 12%, transparent)" : "color-mix(in srgb, var(--success) 8%, transparent)",
           }}>
             {["#", "کالا", "واحد", "تعداد", "قیمت واحد", ""].map((h, i) => (
               <Typography key={i} sx={{
                 fontSize: 12, fontWeight: 800,
-                color: isDark ? "#B8D4B9" : "#2E4D30",
+                color: isDark ? "var(--success)" : "var(--success)",
                 textAlign: i >= 2 ? "center" : "right",
               }}>{h}</Typography>
             ))}
@@ -522,13 +523,13 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
                 display: "grid", gridTemplateColumns: "36px 1.5fr 80px 100px 110px 44px",
                 gap: 1, mb: 1, alignItems: "center", px: 1, py: 0.8,
                 borderRadius: "10px",
-                bgcolor: idx % 2 === 0 ? (isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.015)") : "transparent",
-                border: `1px solid ${isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}`,
+                bgcolor: idx % 2 === 0 ? (isDark ? "var(--surface-sunken)" : "color-mix(in srgb, var(--ink) 2%, transparent)") : "transparent",
+                border: `1px solid ${isDark ? "var(--line)" : "color-mix(in srgb, var(--ink) 5%, transparent)"}`,
               }}>
                 <Box sx={{
                   width: 28, height: 28, borderRadius: "8px",
                   display: "flex", alignItems: "center", justifyContent: "center",
-                  bgcolor: C.olive, color: "#fff", fontSize: 14, fontWeight: 900,
+                  bgcolor: C.olive, color: "var(--on-primary)", fontSize: 14, fontWeight: 900,
                 }}>{idx + 1}</Box>
 
                 <Select size="small" fullWidth value={it.material_name}
@@ -536,9 +537,9 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
                   displayEmpty
                   sx={{
                     "& .MuiOutlinedInput-root": {
-                      borderRadius: "8px", bgcolor: isDark ? "rgba(255,255,255,0.06)" : "#fff",
+                      borderRadius: "8px", bgcolor: isDark ? "var(--line)" : "var(--surface)",
                       fontSize: 13, "& fieldset": { borderColor: C.glassBorder },
-                      "&:hover fieldset": { borderColor: C.olive + "60" },
+                      "&:hover fieldset": { borderColor: soft(C.olive, "60") },
                       "&.Mui-focused fieldset": { borderColor: C.olive },
                     },
                     "& .MuiSelect-select": { fontSize: 13, py: 0.6 },
@@ -553,7 +554,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
 
                 <Chip size="small" label={mat ? getUnitLabel(mat.unit) : "—"} sx={{
                   height: 26, fontSize: 11, fontWeight: 700, borderRadius: "6px",
-                  bgcolor: "rgba(21,101,192,0.1)", color: "#1565C0",
+                  bgcolor: "color-mix(in srgb, var(--info) 10%, transparent)", color: "var(--info)",
                   width: "100%", justifyContent: "center",
                 }} />
 
@@ -562,12 +563,12 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
                   onChange={(e) => updateItem(idx, "quantity", e.target.value)}
                   sx={{
                     "& .MuiOutlinedInput-root": {
-                      borderRadius: "8px", bgcolor: "rgba(255,214,0,0.1)",
-                      "& fieldset": { borderColor: "#FFD600", borderWidth: 2 },
-                      "&:hover fieldset": { borderColor: "#FFC107" },
-                      "&.Mui-focused fieldset": { borderColor: "#FFA000" },
+                      borderRadius: "8px", bgcolor: "color-mix(in srgb, var(--warning) 10%, transparent)",
+                      "& fieldset": { borderColor: "var(--warning)", borderWidth: 2 },
+                      "&:hover fieldset": { borderColor: "var(--warning)" },
+                      "&.Mui-focused fieldset": { borderColor: "var(--warning)" },
                     },
-                    "& .MuiInputBase-input": { textAlign: "center", fontSize: 16, fontWeight: 800, color: "#E65100" },
+                    "& .MuiInputBase-input": { textAlign: "center", fontSize: 16, fontWeight: 800, color: "var(--danger)" },
                   }} />
 
                 <TextField size="small" type="number" placeholder="0"
@@ -577,7 +578,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
                     "& .MuiOutlinedInput-root": {
                       borderRadius: "8px", bgcolor: C.inputBg,
                       "& fieldset": { borderColor: C.glassBorder },
-                      "&:hover fieldset": { borderColor: C.olive + "60" },
+                      "&:hover fieldset": { borderColor: soft(C.olive, "60") },
                       "&.Mui-focused fieldset": { borderColor: C.olive },
                     },
                     "& .MuiInputBase-input": { textAlign: "center", fontSize: 13, color: C.text },
@@ -585,7 +586,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
 
                 <IconButton size="small" onClick={() => removeItem(idx)} sx={{
                   color: C.danger, bgcolor: C.dangerBg, borderRadius: "8px", p: 0.5,
-                  "&:hover": { bgcolor: C.danger, color: "#fff" },
+                  "&:hover": { bgcolor: C.danger, color: "var(--on-status)" },
                 }}>
                   <Delete sx={{ fontSize: 18 }} />
                 </IconButton>
@@ -595,15 +596,15 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
 
           <Button startIcon={<Add sx={{ fontSize: 20 }} />} onClick={addItem} fullWidth sx={{
             mt: 1, mb: 2, color: C.olive,
-            bgcolor: isDark ? "rgba(107,155,110,0.1)" : "rgba(107,155,110,0.08)",
-            border: `2px dashed ${C.olive}50`, borderRadius: "10px",
+            bgcolor: isDark ? "color-mix(in srgb, var(--success) 10%, transparent)" : "color-mix(in srgb, var(--success) 8%, transparent)",
+            border: `2px dashed ${soft(C.olive, "50")}`, borderRadius: "10px",
             fontWeight: 800, fontSize: 14, textTransform: "none", py: 1,
             "&:hover": { bgcolor: C.oliveSubtle, border: `2px solid ${C.olive}` },
           }}>
             افزودن قلم (Enter / F3)
           </Button>
 
-          <Divider sx={{ mb: 2, borderColor: C.olive + "25" }} />
+          <Divider sx={{ mb: 2, borderColor: soft(C.olive, "25") }} />
 
           {/* ── پرداخت ── */}
           <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.olive, mb: 1 }}>💳 روش پرداخت</Typography>
@@ -614,7 +615,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
                 onClick={() => setForm((f) => ({ ...f, payment_method: key }))}
                 sx={{
                   height: 36, fontSize: 13, fontWeight: 800, borderRadius: "10px",
-                  bgcolor: form.payment_method === key ? val.color + "25" : (isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"),
+                  bgcolor: form.payment_method === key ? soft(val.color, "25") : (isDark ? "var(--surface-sunken)" : "color-mix(in srgb, var(--ink) 4%, transparent)"),
                   color: form.payment_method === key ? val.color : C.sub,
                   border: `2px solid ${form.payment_method === key ? val.color : "transparent"}`,
                   px: 2,
@@ -649,7 +650,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
               value={form.paid_amount}
               onChange={(e) => setForm((f) => ({ ...f, paid_amount: e.target.value }))}
               sx={inputSx} />
-            <Box sx={{ p: 1, borderRadius: "8px", bgcolor: C.oliveSubtle, border: `1px solid ${C.olive}30` }}>
+            <Box sx={{ p: 1, borderRadius: "8px", bgcolor: C.oliveSubtle, border: `1px solid ${soft(C.olive, "30")}` }}>
               <Typography sx={{ fontSize: 10, color: C.sub }}>جمع کل</Typography>
               <Typography sx={{ fontSize: 16, fontWeight: 900, color: C.olive }}>
                 {grandTotal.toLocaleString("en-US")}
@@ -657,13 +658,13 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
             </Box>
             <Box sx={{
               p: 1, borderRadius: "8px",
-              bgcolor: remaining > 0 ? "rgba(230,81,0,0.1)" : "rgba(46,125,50,0.1)",
-              border: `1px solid ${remaining > 0 ? "#E6510030" : "#2E7D3230"}`,
+              bgcolor: remaining > 0 ? "color-mix(in srgb, var(--danger) 10%, transparent)" : "color-mix(in srgb, var(--success) 10%, transparent)",
+              border: `1px solid ${remaining > 0 ? "color-mix(in srgb, var(--danger) 19%, transparent)" : "color-mix(in srgb, var(--success) 19%, transparent)"}`,
             }}>
               <Typography sx={{ fontSize: 10, color: C.sub }}>باقی‌مانده</Typography>
               <Typography sx={{
                 fontSize: 16, fontWeight: 900,
-                color: remaining > 0 ? "#E65100" : "#2E7D32",
+                color: remaining > 0 ? "var(--danger)" : "var(--success)",
               }}>
                 {remaining.toLocaleString("en-US")}
               </Typography>
@@ -678,21 +679,21 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
           {/* راهنمای میان‌بر */}
           <Box sx={{
             display: "flex", flexWrap: "wrap", gap: 1, mt: 1, px: 2, py: 1,
-            borderRadius: "10px", bgcolor: isDark ? "rgba(255,214,0,0.08)" : "rgba(255,214,0,0.1)",
-            border: `1.5px solid rgba(255,214,0,0.25)`, alignItems: "center",
+            borderRadius: "10px", bgcolor: isDark ? "color-mix(in srgb, var(--warning) 8%, transparent)" : "color-mix(in srgb, var(--warning) 10%, transparent)",
+            border: `1.5px solid color-mix(in srgb, var(--warning) 25%, transparent)`, alignItems: "center",
           }}>
-            <Chip size="small" label="⌨️" sx={{ height: 24, fontSize: 11, fontWeight: 900, borderRadius: "6px", bgcolor: "#FFD600", color: "#1A1A00" }} />
+            <Chip size="small" label="⌨️" sx={{ height: 24, fontSize: 11, fontWeight: 900, borderRadius: "6px", bgcolor: "var(--warning)", color: "var(--ink)" }} />
             {[
-              { key: "Ctrl+D", label: "ثبت", color: "#2E7D32" },
-              { key: "Enter", label: "قلم جدید", color: "#1565C0" },
-              { key: "F3", label: "قلم جدید", color: "#1565C0" },
-              { key: "Ctrl+⌫", label: "حذف قلم", color: "#C62828" },
-              { key: "Esc", label: "بستن", color: "#E65100" },
+              { key: "Ctrl+D", label: "ثبت", color: "var(--success)" },
+              { key: "Enter", label: "قلم جدید", color: "var(--info)" },
+              { key: "F3", label: "قلم جدید", color: "var(--info)" },
+              { key: "Ctrl+⌫", label: "حذف قلم", color: "var(--danger)" },
+              { key: "Esc", label: "بستن", color: "var(--danger)" },
             ].map((item) => (
               <Box key={item.key} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                 <Box sx={{
-                  px: 0.8, py: 0.2, borderRadius: "5px", bgcolor: item.color + "18",
-                  border: `1px solid ${item.color}40`, fontFamily: "monospace",
+                  px: 0.8, py: 0.2, borderRadius: "5px", bgcolor: soft(item.color, "18"),
+                  border: `1px solid ${soft(item.color, "40")}`, fontFamily: "monospace",
                   fontSize: 11, fontWeight: 800, color: item.color,
                 }}>{item.key}</Box>
                 <Typography sx={{ fontSize: 10, color: C.sub }}>{item.label}</Typography>
@@ -701,17 +702,17 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
           </Box>
         </DialogContent>
 
-        <DialogActions sx={{ px: 3, pb: 2.5, pt: 2, borderTop: `2px solid ${C.olive}20`, gap: 2 }}>
+        <DialogActions sx={{ px: 3, pb: 2.5, pt: 2, borderTop: `2px solid ${soft(C.olive, "20")}`, gap: 2 }}>
           <Button onClick={closeDialog} size="large" sx={{
             borderRadius: "10px", fontSize: 14, fontWeight: 700, textTransform: "none",
-            color: C.danger, bgcolor: C.dangerBg, border: `2px solid ${C.danger}30`, px: 3,
-            "&:hover": { bgcolor: C.danger, color: "#fff" },
+            color: C.danger, bgcolor: C.dangerBg, border: `2px solid ${soft(C.danger, "30")}`, px: 3,
+            "&:hover": { bgcolor: C.danger, color: "var(--on-status)" },
           }}>✖ انصراف (Esc)</Button>
           <Button onClick={handleSave} disabled={validItems.length === 0} size="large" sx={{
             borderRadius: "10px", fontSize: 14, fontWeight: 800, textTransform: "none",
-            color: "#fff", background: C.btnGrad, boxShadow: `0 4px 20px ${C.olive}40`, px: 4,
+            color: "var(--on-primary)", background: C.btnGrad, boxShadow: `0 4px 20px ${soft(C.olive, "40")}`, px: 4,
             "&:hover": { transform: "translateY(-2px)" },
-            "&.Mui-disabled": { bgcolor: C.muted, color: "#fff", opacity: 0.4 },
+            "&.Mui-disabled": { bgcolor: C.muted, color: "var(--on-primary)", opacity: 0.4 },
           }}>💾 ثبت فاکتور (Ctrl+D)</Button>
         </DialogActions>
       </Dialog>
@@ -723,8 +724,8 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
         slotProps={{
           paper: {
             sx: {
-              borderRadius: "16px", bgcolor: isDark ? "#0f1128" : "#ffffff",
-              border: `2px solid ${C.olive}30`,
+              borderRadius: "16px", bgcolor: isDark ? "var(--ink)" : "var(--surface)",
+              border: `2px solid ${soft(C.olive, "30")}`,
             },
           },
         }}
@@ -733,7 +734,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
           <>
             <DialogTitle sx={{
               px: 3, pt: 2, pb: 1.5,
-              bgcolor: isDark ? "rgba(107,155,110,0.1)" : "rgba(46,77,48,0.07)",
+              bgcolor: isDark ? "color-mix(in srgb, var(--success) 10%, transparent)" : "color-mix(in srgb, var(--success) 7%, transparent)",
             }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Typography sx={{ fontSize: 18, fontWeight: 900, color: C.text }}>
@@ -777,7 +778,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
                 <Box key={i} sx={{
                   display: "flex", justifyContent: "space-between", alignItems: "center",
                   px: 1, py: 0.8, borderRadius: "8px", mb: 0.5,
-                  bgcolor: i % 2 === 0 ? (isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.015)") : "transparent",
+                  bgcolor: i % 2 === 0 ? (isDark ? "var(--surface-sunken)" : "color-mix(in srgb, var(--ink) 2%, transparent)") : "transparent",
                 }}>
                   <Typography sx={{ fontSize: 12, color: C.text }}>
                     {it.material_code} {it.material_name}
@@ -796,10 +797,10 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
               {/* مبالغ */}
               {[
                 { label: "جمع کل", value: selectedInvoice.subtotal, color: C.text },
-                { label: "تخفیف", value: selectedInvoice.discount, color: "#E65100" },
+                { label: "تخفیف", value: selectedInvoice.discount, color: "var(--danger)" },
                 { label: "مبلغ نهایی", value: selectedInvoice.grand_total, color: C.olive, bold: true },
-                { label: "پرداختی", value: selectedInvoice.paid_amount, color: "#2E7D32" },
-                { label: "باقی‌مانده", value: selectedInvoice.remaining, color: selectedInvoice.remaining > 0 ? C.danger : "#2E7D32" },
+                { label: "پرداختی", value: selectedInvoice.paid_amount, color: "var(--success)" },
+                { label: "باقی‌مانده", value: selectedInvoice.remaining, color: selectedInvoice.remaining > 0 ? C.danger : "var(--success)" },
               ].map((row, i) => (
                 <Box key={i} sx={{ display: "flex", justifyContent: "space-between", py: 0.3 }}>
                   <Typography sx={{ fontSize: 12, color: C.sub, fontWeight: row.bold ? 800 : 500 }}>{row.label}</Typography>
@@ -810,8 +811,8 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
               ))}
 
               {selectedInvoice.check_number && (
-                <Box sx={{ mt: 1, p: 1, borderRadius: "8px", bgcolor: "rgba(21,101,192,0.1)" }}>
-                  <Typography sx={{ fontSize: 11, color: "#1565C0" }}>
+                <Box sx={{ mt: 1, p: 1, borderRadius: "8px", bgcolor: "color-mix(in srgb, var(--info) 10%, transparent)" }}>
+                  <Typography sx={{ fontSize: 11, color: "var(--info)" }}>
                     📄 چک: {selectedInvoice.check_number} | سررسید: {selectedInvoice.check_due_date}
                   </Typography>
                 </Box>

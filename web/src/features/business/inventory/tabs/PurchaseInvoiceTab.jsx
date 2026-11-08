@@ -7,6 +7,7 @@ import {
 import { Add, Delete, Refresh, ReceiptLong } from "@mui/icons-material";
 import { getUnitLabel } from "../../../../shared/common/units";
 import { readJSON, writeJSON, toFa, toLatin, pad2, gregorianToJalali, jalaliToGregorian, makeScale, useRowCursor, cursorAttrs, cursorSx, useRegisteredShortcuts, KbdHint } from "../common";
+import { soft } from "@shared/ui/colorUtil";
 
 const F = makeScale(1.1);
 
@@ -109,7 +110,7 @@ function JalaliDateField({ C, value, onChange, sx }) {
               cursor: "pointer", fontSize: F(10), fontWeight: 800, color: C.olive,
               bgcolor: C.oliveSubtle, borderRadius: "5px", px: 0.7, py: 0.2, ml: 0.5,
               userSelect: "none", whiteSpace: "nowrap",
-              "&:hover": { bgcolor: C.olive + "30" },
+              "&:hover": { bgcolor: soft(C.olive, "30") },
             }}
           >
             امروز
@@ -577,9 +578,9 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
       borderRadius: "8px", bgcolor: C.inputBg,
       fontSize: F(11), color: C.text, height: CTRL_H,
       "& fieldset": { borderColor: C.glassBorder },
-      "&:hover fieldset": { borderColor: C.olive + "60" },
+      "&:hover fieldset": { borderColor: soft(C.olive, "60") },
       "&.Mui-focused fieldset": { borderColor: C.olive, borderWidth: 1.5 },
-      "&.Mui-focused": { boxShadow: `0 0 0 2px ${C.olive}18` },
+      "&.Mui-focused": { boxShadow: `0 0 0 2px ${soft(C.olive, "18")}` },
       "&.Mui-error fieldset": { borderColor: C.danger },
     },
     "& .MuiInputLabel-root": { fontSize: F(12), color: C.sub },
@@ -606,10 +607,10 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
 
   const btnSx = {
     borderRadius: "8px", fontSize: F(11), fontWeight: 700, textTransform: "none",
-    px: 2, py: 0.7, color: "#fff", background: C.btnGrad,
-    boxShadow: `0 2px 12px ${C.olive}25`,
+    px: 2, py: 0.7, color: "var(--on-primary)", background: C.btnGrad,
+    boxShadow: `0 2px 12px ${soft(C.olive, "25")}`,
     transition: "all 0.2s ease",
-    "&:hover": { transform: "translateY(-1px)", boxShadow: `0 4px 16px ${C.olive}35` },
+    "&:hover": { transform: "translateY(-1px)", boxShadow: `0 4px 16px ${soft(C.olive, "35")}` },
     "&:active": { transform: "scale(0.98)" },
   };
 
@@ -620,8 +621,8 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
   };
 
   const blueChip = {
-    bgcolor: isDark ? "rgba(100,140,255,0.1)" : "rgba(50,90,200,0.08)",
-    color: isDark ? "#8AAFFF" : "#2A4AAA",
+    bgcolor: isDark ? "color-mix(in srgb, var(--info) 10%, transparent)" : "color-mix(in srgb, var(--info) 8%, transparent)",
+    color: isDark ? "var(--info)" : "var(--info)",
   };
 
   const getWhName = (id) =>
@@ -778,9 +779,9 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
                 sx={{
                   position: "absolute", top: "100%", left: 0, right: 0, mt: 0.5, zIndex: 30,
                   maxHeight: 240, overflowY: "auto", borderRadius: "10px", p: 0.5,
-                  bgcolor: isDark ? "#1A1A2E" : "#fff",
+                  bgcolor: isDark ? "var(--ink)" : "var(--surface)",
                   border: `1px solid ${C.glassBorder}`,
-                  boxShadow: "0 12px 32px rgba(0,0,0,0.4)",
+                  boxShadow: "0 12px 32px color-mix(in srgb, var(--ink) 40%, transparent)",
                 }}
               >
                 {supMatches.map((s, i) => {
@@ -798,7 +799,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
                         display: "flex", alignItems: "center", gap: 1.2, flexWrap: "wrap",
                         px: 1.2, py: 0.8, borderRadius: "8px", cursor: "pointer",
                         bgcolor: active ? C.oliveSubtle : "transparent",
-                        border: `1px solid ${active ? C.olive + "60" : "transparent"}`,
+                        border: `1px solid ${active ? soft(C.olive, "60") : "transparent"}`,
                       }}
                     >
                       <Typography sx={{ fontSize: F(12), fontWeight: 800, color: C.text }}>
@@ -855,10 +856,10 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
                   gridTemplateColumns: { xs: "1fr 1fr", md: ITEM_COLS },
                   gap: 1.2, mb: 1.2, alignItems: "center",
                   px: 1.5, py: 1.2, borderRadius: "10px",
-                  bgcolor: isDark ? "rgba(255,255,255,0.025)" : "rgba(0,0,0,0.02)",
+                  bgcolor: isDark ? "var(--surface-sunken)" : "color-mix(in srgb, var(--ink) 2%, transparent)",
                   border: `1px solid ${C.glassBorder}`,
                   transition: "border-color 0.15s ease",
-                  "&:focus-within": { borderColor: C.olive + "70" },
+                  "&:focus-within": { borderColor: soft(C.olive, "70") },
                 }}
               >
                 {/* شماره */}
@@ -905,7 +906,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
                       <span style={{
                         fontFamily: "monospace", color: C.text, fontSize: F(11), fontWeight: 800,
                         minWidth: 56, textAlign: "center", padding: "2px 8px", borderRadius: 5,
-                        background: C.oliveSubtle, border: `1px solid ${C.olive}40`,
+                        background: C.oliveSubtle, border: `1px solid ${soft(C.olive, "40")}`,
                       }}>{m.code || "—"}</span>
                       <span style={{ fontWeight: 700 }}>{m.name}</span>
                       {m.unit ? (
@@ -931,7 +932,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
                   height: 26, display: "flex", alignItems: "center", justifyContent: "center",
                   borderRadius: "6px", px: 0.5,
                   bgcolor: mat ? C.oliveSubtle : "transparent",
-                  border: `1px solid ${mat ? C.olive + "40" : "transparent"}`,
+                  border: `1px solid ${mat ? soft(C.olive, "40") : "transparent"}`,
                 }}>
                   <Typography sx={{ fontSize: F(11), color: mat ? C.text : C.sub, fontWeight: 800 }}>
                     {mat ? getUnitLabel(mat.unit) : "—"}
@@ -968,7 +969,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
 
           {/* ── افزودن قلم ── */}
           <Button startIcon={<Add sx={{ fontSize: 14 }} />} onClick={addItem} size="small"
-            sx={{ mt: 0.5, mb: 0.5, color: C.olive, fontWeight: 700, fontSize: F(12), textTransform: "none", py: 0.5, px: 1.2, borderRadius: "8px", border: `1px dashed ${C.olive}50` }}>
+            sx={{ mt: 0.5, mb: 0.5, color: C.olive, fontWeight: 700, fontSize: F(12), textTransform: "none", py: 0.5, px: 1.2, borderRadius: "8px", border: `1px dashed ${soft(C.olive, "50")}` }}>
             افزودن قلم (F2)
           </Button>
 
@@ -1006,7 +1007,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
           <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 1.5 }}>
             <Button onClick={closeForm} sx={cancelBtnSx}>انصراف (Esc)</Button>
             <Button onClick={handleSave} disabled={saving || validItems.length === 0} sx={btnSx}>
-              {saving ? <CircularProgress size={14} sx={{ color: "#fff" }} /> : "💾 ذخیره"}
+              {saving ? <CircularProgress size={14} sx={{ color: "var(--on-primary)" }} /> : "💾 ذخیره"}
               {!saving && <KbdHint>Ctrl+D</KbdHint>}
             </Button>
           </Box>
@@ -1018,13 +1019,13 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
         display: "flex", flexWrap: "wrap", gap: 0.6,
         alignItems: "center", mb: 2, px: 1.5, py: 1,
         borderRadius: "10px",
-        bgcolor: isDark ? "rgba(107,155,110,0.07)" : "rgba(46,77,48,0.06)",
-        border: `1px solid ${C.olive}20`,
+        bgcolor: isDark ? "color-mix(in srgb, var(--success) 7%, transparent)" : "color-mix(in srgb, var(--success) 6%, transparent)",
+        border: `1px solid ${soft(C.olive, "20")}`,
       }}>
         <Chip size="small" label="راهنما"
           sx={{
             height: 22, fontSize: F(11), fontWeight: 900,
-            borderRadius: "5px", bgcolor: "#FFD600", color: "#1A1A00",
+            borderRadius: "5px", bgcolor: "var(--warning)", color: "var(--ink)",
             px: 0.8, mr: 0.5,
           }} />
         {[
@@ -1041,7 +1042,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
                 height: 20, fontSize: F(11), fontWeight: 800,
                 borderRadius: "5px", fontFamily: "monospace",
                 bgcolor: C.oliveSubtle, color: C.olive,
-                border: `1px solid ${C.olive}30`, px: 0.4,
+                border: `1px solid ${soft(C.olive, "30")}`, px: 0.4,
               }} />
             <Typography sx={{ fontSize: F(11), color: C.sub, fontWeight: 700 }}>
               {item.label}
@@ -1140,7 +1141,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
                   <Box sx={{ mt: 1, pr: 3, display: "flex", flexDirection: "column", gap: 0.3 }}>
                     {inv.items.map((it, j) => (
                       <Box key={j} sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-                        <Box sx={{ width: 5, height: 5, borderRadius: "50%", bgcolor: C.olive + "60", flexShrink: 0 }} />
+                        <Box sx={{ width: 5, height: 5, borderRadius: "50%", bgcolor: soft(C.olive, "60"), flexShrink: 0 }} />
                         <Chip size="small" label={it.material_code || "—"}
                           sx={{
                             height: 18, fontSize: F(9), fontFamily: "monospace",

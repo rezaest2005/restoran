@@ -12,8 +12,8 @@ export const animations = `
     to   { opacity: 1; transform: translateY(0) scale(1); }
   }
   @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(107,155,110,0.35); }
-    50%      { box-shadow: 0 0 0 8px rgba(107,155,110,0); }
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--success) 35%, transparent); }
+    50%      { box-shadow: 0 0 0 8px color-mix(in srgb, var(--success) 0%, transparent); }
   }
   @keyframes lineGrow {
     from { transform: scaleX(0); }

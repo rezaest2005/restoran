@@ -21,6 +21,7 @@ import { getUnitLabel } from "../../../../shared/common/units";
 import { getCurrentUser, now, faDate, faTime, faDay, whIcon, makeScale, useRegisteredShortcuts, KbdHint } from "../common";
 import { fetchWarehouseAccess, fetchInventoryNetwork, fetchStock, fetchRawMaterials, createTransfer } from "../api";
 import NetworkOverview, { AccessChip } from "../components/NetworkOverview";
+import { soft } from "@shared/ui/colorUtil";
 
 const F = makeScale(1.1);
 
@@ -285,9 +286,9 @@ export default function WarehouseTab({ C, isDark, showToast }) {
       fontSize: F(12),
       color: C.text,
       "& fieldset": { borderColor: C.glassBorder },
-      "&:hover fieldset": { borderColor: C.olive + "60" },
+      "&:hover fieldset": { borderColor: soft(C.olive, "60") },
       "&.Mui-focused fieldset": { borderColor: C.olive, borderWidth: 1.5 },
-      "&.Mui-focused": { boxShadow: `0 0 0 2px ${C.olive}18` },
+      "&.Mui-focused": { boxShadow: `0 0 0 2px ${soft(C.olive, "18")}` },
     },
     "& .MuiInputLabel-root": { fontSize: F(10), color: C.sub },
     "& .MuiInputBase-input": { color: C.text, py: 0.8 },
@@ -303,7 +304,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
     py: 0.7,
     color: C.info,
     bgcolor: C.infoBg,
-    border: `1px solid ${C.info}30`,
+    border: `1px solid ${soft(C.info, "30")}`,
     "&:hover": { bgcolor: C.infoBg, transform: "translateY(-1px)" },
   };
 
@@ -311,10 +312,10 @@ export default function WarehouseTab({ C, isDark, showToast }) {
     slotProps: {
       paper: {
         sx: {
-          bgcolor: isDark ? "#1a1a2e" : "#fff",
+          bgcolor: isDark ? "var(--ink)" : "var(--surface)",
           borderRadius: "10px",
-          border: `1px solid ${C.olive}30`,
-          boxShadow: "0 12px 40px rgba(0,0,0,0.25)",
+          border: `1px solid ${soft(C.olive, "30")}`,
+          boxShadow: "0 12px 40px color-mix(in srgb, var(--ink) 25%, transparent)",
           maxHeight: 200,
           overflowY: "auto",
           "& .MuiMenuItem-root": {
@@ -409,7 +410,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                 animation: `fadeUp 0.3s ease-out ${i * 0.05}s forwards`,
                 "&:hover": {
                   transform: "translateY(-2px)",
-                  boxShadow: `0 4px 16px ${C.olive}15`,
+                  boxShadow: `0 4px 16px ${soft(C.olive, "15")}`,
                 },
               }}
             >
@@ -466,8 +467,8 @@ export default function WarehouseTab({ C, isDark, showToast }) {
               p: 1.2,
               mb: 2,
               borderRadius: "10px",
-              bgcolor: isDark ? "rgba(255,214,0,0.06)" : "rgba(255,214,0,0.08)",
-              border: `1.5px solid rgba(255,214,0,0.2)`,
+              bgcolor: isDark ? "color-mix(in srgb, var(--warning) 6%, transparent)" : "color-mix(in srgb, var(--warning) 8%, transparent)",
+              border: `1.5px solid color-mix(in srgb, var(--warning) 20%, transparent)`,
               flexWrap: "wrap",
             }}
           >
@@ -479,8 +480,8 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                 fontSize: F(10),
                 fontWeight: 800,
                 borderRadius: "6px",
-                bgcolor: "#FFD600",
-                color: "#1A1A00",
+                bgcolor: "var(--warning)",
+                color: "var(--ink)",
               }}
             />
             {Object.entries(allStock).map(([name, info]) => (
@@ -494,8 +495,8 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                   fontWeight: 700,
                   borderRadius: "6px",
                   bgcolor: isDark
-                    ? "rgba(255,255,255,0.06)"
-                    : "rgba(0,0,0,0.05)",
+                    ? "var(--surface-sunken)"
+                    : "color-mix(in srgb, var(--ink) 5%, transparent)",
                   color: C.text,
                   border: `1px solid ${C.glassBorder}`,
                 }}
@@ -541,7 +542,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
               fontWeight: 700,
               borderRadius: "6px",
               bgcolor: C.olive,
-              color: "#fff",
+              color: "var(--on-primary)",
             }}
           />
           <TextField
@@ -576,7 +577,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
               px: 1.5,
               py: 0.8,
               borderRadius: "8px",
-              bgcolor: isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
+              bgcolor: isDark ? "var(--surface-sunken)" : "color-mix(in srgb, var(--ink) 2%, transparent)",
             }}
           >
             {[
@@ -616,8 +617,8 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                 animation: `fadeUp 0.3s ease-out ${i * 0.03}s forwards`,
                 "&:hover": {
                   bgcolor: isDark
-                    ? "rgba(255,255,255,0.04)"
-                    : "rgba(0,0,0,0.02)",
+                    ? "var(--surface-sunken)"
+                    : "color-mix(in srgb, var(--ink) 2%, transparent)",
                 },
               }}
             >
@@ -658,13 +659,13 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                   alignSelf: "center",
                   bgcolor: item.category
                     ? isDark
-                      ? "rgba(100,140,255,0.1)"
-                      : "rgba(50,90,200,0.08)"
+                      ? "color-mix(in srgb, var(--info) 10%, transparent)"
+                      : "color-mix(in srgb, var(--info) 8%, transparent)"
                     : "transparent",
                   color: item.category
                     ? isDark
-                      ? "#8AAFFF"
-                      : "#2A4AAA"
+                      ? "var(--info)"
+                      : "var(--info)"
                     : C.muted,
                   justifyContent: "center",
                 }}
@@ -752,9 +753,9 @@ export default function WarehouseTab({ C, isDark, showToast }) {
           paper: {
             sx: {
               borderRadius: "20px",
-              bgcolor: isDark ? "#0f1128" : "#ffffff",
-              border: `2px solid ${C.olive}40`,
-              boxShadow: "0 24px 100px rgba(0,0,0,0.5)",
+              bgcolor: isDark ? "var(--ink)" : "var(--surface)",
+              border: `2px solid ${soft(C.olive, "40")}`,
+              boxShadow: "0 24px 100px color-mix(in srgb, var(--ink) 50%, transparent)",
             },
           },
         }}
@@ -764,10 +765,10 @@ export default function WarehouseTab({ C, isDark, showToast }) {
             px: 3,
             pt: 2.5,
             pb: 2,
-            borderBottom: `2px solid ${C.olive}20`,
+            borderBottom: `2px solid ${soft(C.olive, "20")}`,
             bgcolor: isDark
-              ? "rgba(107,155,110,0.1)"
-              : "rgba(46,77,48,0.07)",
+              ? "color-mix(in srgb, var(--success) 10%, transparent)"
+              : "color-mix(in srgb, var(--success) 7%, transparent)",
           }}
         >
           <Box
@@ -787,7 +788,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                   alignItems: "center",
                   justifyContent: "center",
                   bgcolor: C.infoBg,
-                  border: `2px solid ${C.info}40`,
+                  border: `2px solid ${soft(C.info, "40")}`,
                 }}
               >
                 <SwapHoriz sx={{ fontSize: 30, color: C.info }} />
@@ -812,7 +813,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                     fontWeight: 800,
                     borderRadius: "8px",
                     bgcolor: C.olive,
-                    color: "#fff",
+                    color: "var(--on-primary)",
                     px: 1,
                     mt: 0.5,
                   }}
@@ -825,10 +826,10 @@ export default function WarehouseTab({ C, isDark, showToast }) {
               sx={{
                 color: C.danger,
                 bgcolor: C.dangerBg,
-                border: `2px solid ${C.danger}30`,
+                border: `2px solid ${soft(C.danger, "30")}`,
                 borderRadius: "12px",
                 p: 1,
-                "&:hover": { bgcolor: C.danger, color: "#fff" },
+                "&:hover": { bgcolor: C.danger, color: "var(--on-status)" },
               }}
             >
               <Close sx={{ fontSize: 24 }} />
@@ -837,10 +838,10 @@ export default function WarehouseTab({ C, isDark, showToast }) {
 
           <Box sx={{ display: "flex", gap: 1.5, mt: 2, flexWrap: "wrap" }}>
             {[
-              { icon: "👤", label: getCurrentUser(), color: "#7C4DFF" },
-              { icon: "📅", label: faDate(now()), color: "#00897B" },
-              { icon: "🕐", label: faTime(now()), color: "#F57C00" },
-              { icon: "📆", label: faDay(now()), color: "#1565C0" },
+              { icon: "👤", label: getCurrentUser(), color: "var(--chart-4)" },
+              { icon: "📅", label: faDate(now()), color: "var(--success)" },
+              { icon: "🕐", label: faTime(now()), color: "var(--warning)" },
+              { icon: "📆", label: faDay(now()), color: "var(--info)" },
             ].map((info, i) => (
               <Chip
                 key={i}
@@ -851,9 +852,9 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                   fontSize: 14,
                   fontWeight: 700,
                   borderRadius: "10px",
-                  bgcolor: info.color + "18",
+                  bgcolor: soft(info.color, "18"),
                   color: info.color,
-                  border: `1.5px solid ${info.color}30`,
+                  border: `1.5px solid ${soft(info.color, "30")}`,
                   px: 0.5,
                 }}
               />
@@ -897,15 +898,15 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                   "& .MuiOutlinedInput-root": {
                     borderRadius: "12px",
                     bgcolor: isDark
-                      ? "rgba(107,155,110,0.08)"
-                      : "rgba(46,77,48,0.05)",
+                      ? "color-mix(in srgb, var(--success) 8%, transparent)"
+                      : "color-mix(in srgb, var(--success) 5%, transparent)",
                     fontSize: 16,
                     color: C.text,
                     "& fieldset": {
-                      borderColor: C.olive + "50",
+                      borderColor: soft(C.olive, "50"),
                       borderWidth: 2,
                     },
-                    "&:hover fieldset": { borderColor: C.olive + "80" },
+                    "&:hover fieldset": { borderColor: soft(C.olive, "80") },
                     "&.Mui-focused fieldset": {
                       borderColor: C.olive,
                       borderWidth: 2.5,
@@ -937,9 +938,9 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                 height: 50,
                 borderRadius: "50%",
                 bgcolor: C.olive,
-                color: "#fff",
+                color: "var(--on-primary)",
                 mt: 2.8,
-                boxShadow: `0 4px 16px ${C.olive}50`,
+                boxShadow: `0 4px 16px ${soft(C.olive, "50")}`,
               }}
             >
               <SwapHoriz sx={{ fontSize: 28 }} />
@@ -970,15 +971,15 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                   "& .MuiOutlinedInput-root": {
                     borderRadius: "12px",
                     bgcolor: isDark
-                      ? "rgba(21,101,192,0.08)"
-                      : "rgba(21,101,192,0.05)",
+                      ? "color-mix(in srgb, var(--info) 8%, transparent)"
+                      : "color-mix(in srgb, var(--info) 5%, transparent)",
                     fontSize: 16,
                     color: C.text,
                     "& fieldset": {
-                      borderColor: C.info + "50",
+                      borderColor: soft(C.info, "50"),
                       borderWidth: 2,
                     },
-                    "&:hover fieldset": { borderColor: C.info + "80" },
+                    "&:hover fieldset": { borderColor: soft(C.info, "80") },
                     "&.Mui-focused fieldset": {
                       borderColor: C.info,
                       borderWidth: 2.5,
@@ -1007,7 +1008,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
           </Box>
 
           <Divider
-            sx={{ mb: 2, borderColor: C.olive + "25", borderWidth: 1.5 }}
+            sx={{ mb: 2, borderColor: soft(C.olive, "25"), borderWidth: 1.5 }}
           />
 
           {/* هدر جدول اقلام */}
@@ -1021,8 +1022,8 @@ export default function WarehouseTab({ C, isDark, showToast }) {
               py: 1,
               borderRadius: "10px",
               bgcolor: isDark
-                ? "rgba(107,155,110,0.12)"
-                : "rgba(46,77,48,0.08)",
+                ? "color-mix(in srgb, var(--success) 12%, transparent)"
+                : "color-mix(in srgb, var(--success) 8%, transparent)",
             }}
           >
             {["#", "کد کالا", "نام کالا", "واحد", "تعداد", ""].map((h, i) => (
@@ -1031,7 +1032,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                 sx={{
                   fontSize: 13,
                   fontWeight: 900,
-                  color: isDark ? "#B8D4B9" : "#2E4D30",
+                  color: isDark ? "var(--success)" : "var(--success)",
                   textAlign: i >= 3 ? "center" : "right",
                   letterSpacing: "0.3px",
                 }}
@@ -1059,17 +1060,17 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                   bgcolor:
                     idx % 2 === 0
                       ? isDark
-                        ? "rgba(255,255,255,0.03)"
-                        : "rgba(0,0,0,0.015)"
+                        ? "var(--surface-sunken)"
+                        : "color-mix(in srgb, var(--ink) 2%, transparent)"
                       : "transparent",
-                  border: `1.5px solid ${isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}`,
+                  border: `1.5px solid ${isDark ? "var(--line)" : "color-mix(in srgb, var(--ink) 5%, transparent)"}`,
                   animation: `fadeUp 0.2s ease-out ${idx * 0.05}s backwards`,
                   transition: "all 0.15s ease",
                   "&:hover": {
                     bgcolor: isDark
-                      ? "rgba(107,155,110,0.08)"
-                      : "rgba(107,155,110,0.05)",
-                    borderColor: C.olive + "40",
+                      ? "color-mix(in srgb, var(--success) 8%, transparent)"
+                      : "color-mix(in srgb, var(--success) 5%, transparent)",
+                    borderColor: soft(C.olive, "40"),
                   },
                 }}
               >
@@ -1082,7 +1083,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                     alignItems: "center",
                     justifyContent: "center",
                     bgcolor: C.olive,
-                    color: "#fff",
+                    color: "var(--on-primary)",
                     fontSize: 15,
                     fontWeight: 900,
                   }}
@@ -1103,7 +1104,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                     fontFamily: "monospace",
                     width: "100%",
                     justifyContent: "center",
-                    border: `1.5px solid ${C.olive}30`,
+                    border: `1.5px solid ${soft(C.olive, "30")}`,
                   }}
                 />
 
@@ -1118,14 +1119,14 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                   sx={{
                     "& .MuiOutlinedInput-root": {
                       borderRadius: "10px",
-                      bgcolor: isDark ? "rgba(255,255,255,0.06)" : "#fff",
+                      bgcolor: isDark ? "var(--surface-sunken)" : "var(--surface)",
                       fontSize: 15,
                       color: C.text,
                       "& fieldset": {
                         borderColor: C.glassBorder,
                         borderWidth: 2,
                       },
-                      "&:hover fieldset": { borderColor: C.olive + "60" },
+                      "&:hover fieldset": { borderColor: soft(C.olive, "60") },
                       "&.Mui-focused fieldset": {
                         borderColor: C.olive,
                         borderWidth: 2.5,
@@ -1157,10 +1158,10 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                     fontWeight: 700,
                     borderRadius: "8px",
                     bgcolor: isDark
-                      ? "rgba(21,101,192,0.15)"
-                      : "rgba(21,101,192,0.1)",
-                    color: isDark ? "#82B1FF" : "#1565C0",
-                    border: `1.5px solid ${isDark ? "rgba(21,101,192,0.3)" : "rgba(21,101,192,0.2)"}`,
+                      ? "color-mix(in srgb, var(--info) 15%, transparent)"
+                      : "color-mix(in srgb, var(--info) 10%, transparent)",
+                    color: isDark ? "var(--info)" : "var(--info)",
+                    border: `1.5px solid ${isDark ? "color-mix(in srgb, var(--info) 30%, transparent)" : "color-mix(in srgb, var(--info) 20%, transparent)"}`,
                     width: "100%",
                     justifyContent: "center",
                   }}
@@ -1178,24 +1179,24 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                     "& .MuiOutlinedInput-root": {
                       borderRadius: "10px",
                       bgcolor: isDark
-                        ? "rgba(255,214,0,0.08)"
-                        : "rgba(255,214,0,0.1)",
+                        ? "color-mix(in srgb, var(--warning) 8%, transparent)"
+                        : "color-mix(in srgb, var(--warning) 10%, transparent)",
                       fontSize: 18,
                       color: C.text,
                       "& fieldset": {
-                        borderColor: "#FFD600",
+                        borderColor: "var(--warning)",
                         borderWidth: 2.5,
                       },
                       "&:hover fieldset": {
-                        borderColor: "#FFC107",
+                        borderColor: "var(--warning)",
                         borderWidth: 3,
                       },
                       "&.Mui-focused fieldset": {
-                        borderColor: "#FFA000",
+                        borderColor: "var(--warning)",
                         borderWidth: 3,
                       },
                       "&.Mui-focused": {
-                        boxShadow: `0 0 0 3px rgba(255,214,0,0.25)`,
+                        boxShadow: `0 0 0 3px color-mix(in srgb, var(--warning) 25%, transparent)`,
                       },
                     },
                     "& .MuiInputBase-input": {
@@ -1204,7 +1205,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                       px: 1,
                       fontSize: 20,
                       fontWeight: 900,
-                      color: isDark ? "#FFE082" : "#E65100",
+                      color: isDark ? "var(--warning)" : "var(--danger)",
                       "&::placeholder": { color: C.muted, opacity: 0.5 },
                     },
                   }}
@@ -1218,10 +1219,10 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                     bgcolor: C.dangerBg,
                     borderRadius: "10px",
                     p: 0.8,
-                    border: `2px solid ${C.danger}30`,
+                    border: `2px solid ${soft(C.danger, "30")}`,
                     "&:hover": {
                       bgcolor: C.danger,
-                      color: "#fff",
+                      color: "var(--on-primary)",
                       transform: "scale(1.1)",
                     },
                     transition: "all 0.15s ease",
@@ -1242,9 +1243,9 @@ export default function WarehouseTab({ C, isDark, showToast }) {
               mb: 2,
               color: C.olive,
               bgcolor: isDark
-                ? "rgba(107,155,110,0.1)"
-                : "rgba(107,155,110,0.08)",
-              border: `2.5px dashed ${C.olive}50`,
+                ? "color-mix(in srgb, var(--success) 10%, transparent)"
+                : "color-mix(in srgb, var(--success) 8%, transparent)",
+              border: `2.5px dashed ${soft(C.olive, "50")}`,
               borderRadius: "12px",
               fontWeight: 800,
               fontSize: 16,
@@ -1270,10 +1271,10 @@ export default function WarehouseTab({ C, isDark, showToast }) {
               mt: 1,
               p: 2,
               bgcolor: isDark
-                ? "rgba(107,155,110,0.12)"
-                : "rgba(107,155,110,0.1)",
+                ? "color-mix(in srgb, var(--success) 12%, transparent)"
+                : "color-mix(in srgb, var(--success) 10%, transparent)",
               borderRadius: "14px",
-              border: `2px solid ${C.olive}35`,
+              border: `2px solid ${soft(C.olive, "35")}`,
               alignItems: "center",
             }}
           >
@@ -1326,13 +1327,13 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                 sx={{
                   "& .MuiOutlinedInput-root": {
                     borderRadius: "10px",
-                    bgcolor: isDark ? "rgba(255,255,255,0.06)" : "#fff",
+                    bgcolor: isDark ? "var(--surface-sunken)" : "var(--surface)",
                     fontSize: 15,
                     "& fieldset": {
-                      borderColor: C.olive + "40",
+                      borderColor: soft(C.olive, "40"),
                       borderWidth: 2,
                     },
-                    "&:hover fieldset": { borderColor: C.olive + "60" },
+                    "&:hover fieldset": { borderColor: soft(C.olive, "60") },
                     "&.Mui-focused fieldset": {
                       borderColor: C.olive,
                       borderWidth: 2.5,
@@ -1356,9 +1357,9 @@ export default function WarehouseTab({ C, isDark, showToast }) {
               py: 1.2,
               borderRadius: "12px",
               bgcolor: isDark
-                ? "rgba(255,214,0,0.08)"
-                : "rgba(255,214,0,0.1)",
-              border: `2px solid rgba(255,214,0,0.25)`,
+                ? "color-mix(in srgb, var(--warning) 8%, transparent)"
+                : "color-mix(in srgb, var(--warning) 10%, transparent)",
+              border: `2px solid color-mix(in srgb, var(--warning) 25%, transparent)`,
               alignItems: "center",
             }}
           >
@@ -1370,17 +1371,17 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                 fontSize: 13,
                 fontWeight: 900,
                 borderRadius: "8px",
-                bgcolor: "#FFD600",
-                color: "#1A1A00",
+                bgcolor: "var(--warning)",
+                color: "var(--ink)",
                 px: 1.5,
               }}
             />
             {[
-              { key: "Ctrl+D", label: "ثبت", color: "#2E7D32" },
-              { key: "Enter", label: "قلم جدید", color: "#1565C0" },
-              { key: "F3", label: "قلم جدید", color: "#1565C0" },
-              { key: "Ctrl+⌫", label: "حذف قلم", color: "#C62828" },
-              { key: "Esc", label: "بستن", color: "#E65100" },
+              { key: "Ctrl+D", label: "ثبت", color: "var(--success)" },
+              { key: "Enter", label: "قلم جدید", color: "var(--info)" },
+              { key: "F3", label: "قلم جدید", color: "var(--info)" },
+              { key: "Ctrl+⌫", label: "حذف قلم", color: "var(--danger)" },
+              { key: "Esc", label: "بستن", color: "var(--danger)" },
             ].map((item) => (
               <Box
                 key={item.key}
@@ -1395,8 +1396,8 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                     px: 1,
                     py: 0.3,
                     borderRadius: "6px",
-                    bgcolor: item.color + "18",
-                    border: `1.5px solid ${item.color}40`,
+                    bgcolor: soft(item.color, "18"),
+                    border: `1.5px solid ${soft(item.color, "40")}`,
                     fontFamily: "monospace",
                     fontSize: 13,
                     fontWeight: 800,
@@ -1420,7 +1421,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
             px: 3,
             pb: 2.5,
             pt: 2,
-            borderTop: `2px solid ${C.olive}20`,
+            borderTop: `2px solid ${soft(C.olive, "20")}`,
             gap: 2,
           }}
         >
@@ -1434,10 +1435,10 @@ export default function WarehouseTab({ C, isDark, showToast }) {
               textTransform: "none",
               color: C.danger,
               bgcolor: C.dangerBg,
-              border: `2px solid ${C.danger}30`,
+              border: `2px solid ${soft(C.danger, "30")}`,
               px: 3,
               py: 1,
-              "&:hover": { bgcolor: C.danger, color: "#fff" },
+              "&:hover": { bgcolor: C.danger, color: "var(--on-status)" },
             }}
           >
             ✖ انصراف (Esc)
@@ -1451,20 +1452,20 @@ export default function WarehouseTab({ C, isDark, showToast }) {
               fontSize: 16,
               fontWeight: 800,
               textTransform: "none",
-              color: "#fff",
+              color: "var(--on-primary)",
               background: C.btnGrad,
-              boxShadow: `0 4px 20px ${C.olive}40`,
+              boxShadow: `0 4px 20px ${soft(C.olive, "40")}`,
               px: 4,
               py: 1,
               transition: "all 0.2s ease",
               "&:hover": {
                 transform: "translateY(-2px)",
-                boxShadow: `0 8px 30px ${C.olive}50`,
+                boxShadow: `0 8px 30px ${soft(C.olive, "50")}`,
               },
               "&:active": { transform: "scale(0.97)" },
               "&.Mui-disabled": {
                 bgcolor: C.muted,
-                color: "#fff",
+                color: "var(--on-primary)",
                 opacity: 0.4,
               },
             }}

@@ -9,6 +9,7 @@ import ReceiveModal from "../components/ReceiveModal";
 import IssueModal from "../components/IssueModal";
 import WasteModal from "../components/WasteModal";
 import { buildInputSx, buildDialogPaperSx, useRowCursor, cursorAttrs, cursorSx, cursorBindings, useRegisteredShortcuts, onEnter, KbdHint } from "../common";
+import { soft } from "@shared/ui/colorUtil";
 
 const TYPE_FILTERS = [
   { value: "all", label: "همه", icon: "📋" },
@@ -184,7 +185,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
             sx={{
               borderRadius: "10px", fontSize: 11, fontWeight: 700,
               textTransform: "none", px: 2, py: 0.8,
-              color: "#fff", background: C.btnGrad,
+              color: "var(--on-primary)", background: C.btnGrad,
               "&:hover": { transform: "translateY(-1px)" },
             }}
           >
@@ -196,7 +197,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
               borderRadius: "10px", fontSize: 11, fontWeight: 700,
               textTransform: "none", px: 2, py: 0.8,
               color: C.warning, bgcolor: C.warningBg,
-              border: `1px solid ${C.warning}30`,
+              border: `1px solid ${soft(C.warning, "30")}`,
             }}
           >
             ➖ خروج
@@ -207,7 +208,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
               borderRadius: "10px", fontSize: 11, fontWeight: 700,
               textTransform: "none", px: 2, py: 0.8,
               color: C.danger, bgcolor: C.dangerBg,
-              border: `1px solid ${C.danger}30`,
+              border: `1px solid ${soft(C.danger, "30")}`,
             }}
           >
             🗑 ضایعات
@@ -228,7 +229,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
               height: 26, fontSize: 11, fontWeight: 600, borderRadius: "8px",
               bgcolor: typeFilter === tf.value ? C.oliveSubtle : C.glass,
               color: typeFilter === tf.value ? C.olive : C.sub,
-              border: `1px solid ${typeFilter === tf.value ? C.olive + "40" : C.glassBorder}`,
+              border: `1px solid ${typeFilter === tf.value ? soft(C.olive, "40") : C.glassBorder}`,
               "&:hover": { bgcolor: C.oliveSubtle },
             }}
           />
@@ -305,8 +306,8 @@ export default function ReceivingTab({ C, isDark, showToast }) {
                   opacity: 0,
                   animation: `fadeUp 0.3s ease-out ${i * 0.02}s forwards`,
                   "&:hover": {
-                    bgcolor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.02)",
-                    borderColor: C[tc.color] + "40",
+                    bgcolor: isDark ? "var(--surface-sunken)" : "color-mix(in srgb, var(--ink) 2%, transparent)",
+                    borderColor: soft(C[tc.color], "40"),
                   },
                 }}
               >
