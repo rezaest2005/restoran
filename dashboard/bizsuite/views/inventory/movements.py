@@ -7,7 +7,8 @@ from django.http import JsonResponse
 
 from rest_framework.decorators import api_view, permission_classes
 
-from ...models import RawMaterial, Warehouse
+from ...models import InventoryMovement, RawMaterial, Warehouse
+from ...accounting_posting import post_stock_waste, safe_post
 from ...inventory_services import (
     receive_stock,
     issue_stock,
@@ -195,6 +196,9 @@ def waste_create(request):
             user=request.user if request.user.is_authenticated else None,
             notes=notes,
         )
+        mv = InventoryMovement.all_objects.filter(pk=result.get("movement_id")).select_related("raw_material").first()
+        if mv is not None:
+            safe_post(post_stock_waste, mv, request.user if request.user.is_authenticated else None)
         return JsonResponse(result)
     except ValueError as exc:
         return JsonResponse({"success": False, "error": str(exc)}, status=400)

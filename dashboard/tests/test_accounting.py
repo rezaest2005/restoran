@@ -286,3 +286,51 @@ class ApiTests(TestCase):
         acc = self._accounts()
         res = self.api.delete(f"/api/accounting/accounts/{acc['1110']}/")
         self.assertEqual(res.status_code, 400)
+
+
+class CogsAndWasteTests(TestCase):
+    """بهای تمام‌شده‌ی فروش صندوق و ضایعات انبار باید سند بسازند."""
+
+    @classmethod
+    def setUpTestData(cls):
+        from bizsuite.models import Category, Food, OrderItem, RawMaterial
+        cls.r = Business.objects.create(name="کافه", slug="ac-cogs")
+        cls.item = RawMaterial.all_objects.create(business=cls.r, name="آرد", price=40, quantity=100)
+        cat = Category.all_objects.create(business=cls.r, name="عمومی")
+        cls.linked = Food.all_objects.create(business=cls.r, category=cat, name="نان", price=100, item=cls.item)
+        cls.unlinked = Food.all_objects.create(business=cls.r, category=cat, name="چای", price=50)
+        cls.OrderItem = OrderItem
+
+    def setUp(self):
+        clear_current_business()
+
+    def _bal(self, code):
+        return {r["code"]: r for r in trial_balance(self.r)["rows"]}.get(code)
+
+    def test_pos_order_posts_cogs_for_linked_products_only(self):
+        order = Order.all_objects.create(
+            business=self.r, total_price=350, payment_status="paid", payment_method="cash")
+        self.OrderItem.all_objects.create(business=self.r, order=order, food=self.linked,
+                                          item_name="نان", quantity=3, price=100)
+        self.OrderItem.all_objects.create(business=self.r, order=order, food=self.unlinked,
+                                          item_name="چای", quantity=1, price=50)
+        post_pos_order(order)
+        self.assertEqual(self._bal("5110")["balance_debit"], D("120"))   # 3 × 40
+        self.assertEqual(self._bal("1140")["balance_credit"], D("120"))
+        self.assertTrue(trial_balance(self.r)["balanced"])
+        unpost(self.r, "pos_order", order.pk, reason="لغو")
+        self.assertTrue(trial_balance(self.r)["balanced"])
+
+    def test_waste_posts_expense(self):
+        from bizsuite.accounting_posting import post_stock_waste
+        from bizsuite.inventory_services import waste_stock
+        from bizsuite.models import InventoryMovement, Warehouse
+        wh = Warehouse.all_objects.create(business=self.r, name="اصلی")
+        from bizsuite.inventory_services import receive_stock
+        receive_stock(self.r, wh, self.item, 10, unit_price=40)
+        res = waste_stock(self.r, wh, self.item, 5, waste_reason="spoiled")
+        mv = InventoryMovement.all_objects.get(pk=res["movement_id"])
+        post_stock_waste(mv)
+        post_stock_waste(mv)  # idempotent
+        self.assertEqual(self._bal("5120")["balance_debit"], D("200"))
+        self.assertEqual(self._bal("1140")["balance_credit"], D("200"))

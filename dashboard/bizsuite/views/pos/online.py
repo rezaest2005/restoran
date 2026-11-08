@@ -15,6 +15,7 @@ from ...models import Order, Food, Business
 from ...modules import module_enabled
 from ...tenancy import set_current_business
 from ...order_services import restore_order_stock
+from ...accounting_posting import unpost
 from ..common import PosPerm, resolve_business
 
 logger = logging.getLogger(__name__)
@@ -195,6 +196,7 @@ def pos_reject_online_order(request, order_id):
         order.confirmed_at = timezone.now()
         order.save(update_fields=["status", "confirmed_by", "confirmed_at"])
         restore_order_stock(order)
+        unpost(order.business, "pos_order", order.pk, user=request.user, reason="لغو سفارش")
 
     return JsonResponse({
         "success": True,

@@ -8,11 +8,13 @@
 import logging
 from decimal import Decimal
 
-from .models import JournalEntry, PurchaseInvoiceItem, SalesInvoiceItem
+from .models import InventoryMovement, JournalEntry, OrderItem, PurchaseInvoiceItem, SalesInvoiceItem
 from .accounting_services import (
     BANK, CASH, COGS, INVENTORY, OTHER_EXPENSE, PAYABLE, RECEIVABLE,
     SALES, SALES_RETURNS, post_entry, q2, reverse_by_source, reverse_entry,
 )
+
+WASTE = "5120"
 
 logger = logging.getLogger(__name__)
 
@@ -147,14 +149,39 @@ def post_pos_order(order, user=None):
     total = q2(order.total_price)
     if total <= 0 or order.payment_status != "paid":
         return None
+    lines = [{"account": _money_account(order.payment_method), "debit": total,
+              "memo": f"سفارش #{order.pk}"},
+             {"account": SALES, "credit": total}]
+    # بهای تمام‌شده: فقط محصولاتی که به آیتم انبار وصل‌اند (بهای آیتم × تعداد)
+    cost = Decimal("0")
+    for oi in OrderItem.all_objects.filter(order_id=order.pk, food__isnull=False).select_related("food__item"):
+        item = oi.food.item if oi.food else None
+        if item is not None:
+            cost += Decimal(oi.quantity) * Decimal(item.price)
+    cost = q2(cost)
+    if cost > 0:
+        lines.append({"account": COGS, "debit": cost, "memo": "بهای تمام‌شده"})
+        lines.append({"account": INVENTORY, "credit": cost})
     return post_entry(
-        order.business,
-        [{"account": _money_account(order.payment_method), "debit": total,
-          "memo": f"سفارش #{order.pk}"},
-         {"account": SALES, "credit": total}],
+        order.business, lines,
         date=order.created_at.date() if order.created_at else None,
         source_type="pos_order", source_id=order.pk,
         description=f"فروش صندوق — سفارش #{order.pk}", user=user,
+    )
+
+
+def post_stock_waste(mv, user=None):
+    """ضایعات انبار: بدهکار «ضایعات و کسری»، بستانکار موجودی (به بهای فعلی آیتم)."""
+    mat = mv.raw_material
+    amount = q2(Decimal(mv.quantity) * Decimal(mat.price))
+    if amount <= 0:
+        return None
+    return post_entry(
+        mv.business,
+        [{"account": WASTE, "debit": amount, "memo": mat.name},
+         {"account": INVENTORY, "credit": amount}],
+        source_type="stock_waste", source_id=mv.pk,
+        description=f"ضایعات — {mat.name}", user=user,
     )
 
 
@@ -196,6 +223,6 @@ def unpost(business, source_type, source_id, user=None, reason=""):
 POSTERS = {
     fn.__name__: fn for fn in (
         post_sales_invoice, post_sales_return, post_purchase_invoice,
-        post_purchase_return, post_expense, post_pos_order,
+        post_purchase_return, post_expense, post_pos_order, post_stock_waste,
     )
 }
