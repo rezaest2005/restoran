@@ -46,9 +46,9 @@ export default function LedgerTab(ctx) {
           <AccountPicker ctx={ctx} value={account} postableOnly={false} label={t("ui_i.common.account")}
             onChange={(a) => { setAccount(a); cursor.reset(); }} />
         </Box>
-        <TextField type="date" size="small" label={t("ui_i.common.from")} value={from} sx={{ ...S.field, width: { xs: "calc(50% - 6px)", sm: 160 } }}
+        <TextField type="date" slotProps={{ inputLabel: { shrink: true } }} size="small" label={t("ui_i.common.from")} value={from} sx={{ ...S.field, width: { xs: "calc(50% - 6px)", sm: 160 } }}
           onChange={(e) => setFrom(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
-        <TextField type="date" size="small" label={t("ui_i.common.to")} value={to} sx={{ ...S.field, width: { xs: "calc(50% - 6px)", sm: 160 } }}
+        <TextField type="date" slotProps={{ inputLabel: { shrink: true } }} size="small" label={t("ui_i.common.to")} value={to} sx={{ ...S.field, width: { xs: "calc(50% - 6px)", sm: 160 } }}
           onChange={(e) => setTo(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
       </Box>
 

@@ -125,7 +125,7 @@ export default function DispatchTab({ ctx, drivers, vehicles, refreshKey, select
             <MenuItem value="">{t("ui_del.common.all")}</MenuItem>
             {drivers.map((d) => <MenuItem key={d.id} value={d.id}>{d.name}</MenuItem>)}
           </TextField>
-          <TextField size="small" type="date" label={t("ui_del.dispatch.date")} value={date} onChange={(e) => setDate(e.target.value)} sx={{ ...S.field, gridColumn: "1 / -1" }} InputLabelProps={{ shrink: true }} />
+          <TextField size="small" type="date" label={t("ui_del.dispatch.date")} value={date} onChange={(e) => setDate(e.target.value)} sx={{ ...S.field, gridColumn: "1 / -1" }} slotProps={{ inputLabel: { shrink: true } }} />
         </Box>
         {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
         {loading && <CircularProgress size={22} />}

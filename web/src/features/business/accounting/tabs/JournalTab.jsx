@@ -57,9 +57,9 @@ export default function JournalTab(ctx) {
   return (
     <Box sx={S.card}>
       <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center", mb: 1.5 }}>
-        <TextField type="date" size="small" label={t("ui_i.common.from")} value={from} sx={{ ...S.field, width: { xs: "calc(50% - 6px)", sm: 160 } }}
+        <TextField type="date" slotProps={{ inputLabel: { shrink: true } }} size="small" label={t("ui_i.common.from")} value={from} sx={{ ...S.field, width: { xs: "calc(50% - 6px)", sm: 160 } }}
           onChange={setFilter(setFrom)} slotProps={{ inputLabel: { shrink: true } }} />
-        <TextField type="date" size="small" label={t("ui_i.common.to")} value={to} sx={{ ...S.field, width: { xs: "calc(50% - 6px)", sm: 160 } }}
+        <TextField type="date" slotProps={{ inputLabel: { shrink: true } }} size="small" label={t("ui_i.common.to")} value={to} sx={{ ...S.field, width: { xs: "calc(50% - 6px)", sm: 160 } }}
           onChange={setFilter(setTo)} slotProps={{ inputLabel: { shrink: true } }} />
         <TextField size="small" label={t("ui_i.common.search")} value={qInput} sx={{ ...S.field, flex: 1, minWidth: { xs: "100%", sm: 200 } }}
           onChange={(e) => setQInput(e.target.value)} />

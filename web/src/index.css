@@ -9,3 +9,10 @@ body {
 }
 html[dir="ltr"] body { font-family: var(--font-en); }
 html[dir="rtl"] body { font-family: var(--font-fa); }
+
+/* ورودی تاریخ: آیکن تقویم با متن یا برچسب هم‌پوشانی نداشته باشد */
+input[type="date"] { min-height: 1.4375em; }
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer; margin-inline-start: 8px; margin-inline-end: 0; opacity: .7;
+}
+html[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }

@@ -16,6 +16,10 @@ const syncTitle = () => { document.title = appName(i18n.language); };
 syncTitle();
 i18n.on("languageChanged", syncTitle);
 
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { retry: 2, staleTime: 5 * 60 * 1000 },

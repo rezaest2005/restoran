@@ -110,6 +110,17 @@ export default function DriverPage() {
     return () => navigator.geolocation.clearWatch(wid);
   }, []);
 
+  // صفحه روشن بماند تا GPS قطع نشود (در مرورگرهای پشتیبان)
+  useEffect(() => {
+    let lock = null;
+    const acquire = async () => {
+      try { if ("wakeLock" in navigator && !document.hidden) lock = await navigator.wakeLock.request("screen"); } catch { /* ignore */ }
+    };
+    acquire();
+    document.addEventListener("visibilitychange", acquire);
+    return () => { document.removeEventListener("visibilitychange", acquire); lock?.release?.().catch(() => {}); };
+  }, []);
+
   let current = null;
   let remaining = 0;
   (data?.trips || []).forEach((trip) => {

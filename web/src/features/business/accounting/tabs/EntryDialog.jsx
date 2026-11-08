@@ -87,7 +87,7 @@ export default function EntryDialog({ ctx, onClose, onSaved }) {
           {error && <Alert severity="error">{error}</Alert>}
           <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 3fr" } }}>
             <TextField
-              type="date" size="small" label={t("ui_i.common.date")} value={date} sx={S.field}
+              type="date" slotProps={{ inputLabel: { shrink: true } }} size="small" label={t("ui_i.common.date")} value={date} sx={S.field}
               onChange={(e) => setDate(e.target.value)}
               error={touched && !date} required slotProps={{ inputLabel: { shrink: true } }} />
             <TextField

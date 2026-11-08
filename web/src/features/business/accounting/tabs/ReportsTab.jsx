@@ -92,7 +92,7 @@ export default function ReportsTab(ctx) {
   ]);
 
   const dateField = (label, value, set, w = 160) => (
-    <TextField type="date" size="small" label={label} value={value} sx={{ ...S.field, width: { xs: "calc(50% - 6px)", sm: w } }}
+    <TextField type="date" slotProps={{ inputLabel: { shrink: true } }} size="small" label={label} value={value} sx={{ ...S.field, width: { xs: "calc(50% - 6px)", sm: w } }}
       onChange={(e) => set(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
   );
 
