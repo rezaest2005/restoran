@@ -28,14 +28,14 @@ export default function ConfirmDialog({
         {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button variant="outlined" sx={S.ghost} onClick={onClose} disabled={busy}>{t("ui_i.common.cancel")}</Button>
+        <Button variant="outlined" sx={S.ghost} autoFocus={!!danger} onClick={onClose} disabled={busy}>{t("ui_i.common.cancel")}</Button>
         <Button
           variant="contained" disabled={busy} onClick={onConfirm}
           sx={danger
-            ? { bgcolor: C.danger, color: C.onPrimary, textTransform: "none", fontWeight: 700, minHeight: 40, "&:hover": { bgcolor: C.danger, opacity: 0.9 } }
+            ? { bgcolor: C.text, color: C.bg, textTransform: "none", fontWeight: 700, minHeight: 40, "&:hover": { bgcolor: C.text, opacity: 0.85 } }
             : S.btn}
         >
-          {busy ? <CircularProgress size={18} color="inherit" /> : <>{confirmLabel}<KbdHint>Ctrl+D</KbdHint></>}
+          {busy ? <CircularProgress size={18} color="inherit" /> : <>{confirmLabel}{!danger && <KbdHint>Ctrl+D</KbdHint>}</>}
         </Button>
       </DialogActions>
     </Dialog>
