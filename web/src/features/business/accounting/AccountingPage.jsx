@@ -19,6 +19,7 @@ import LedgerTab from "./tabs/LedgerTab";
 import ReportsTab from "./tabs/ReportsTab";
 import EntryDialog from "./tabs/EntryDialog";
 import EntryDetailDialog from "./tabs/EntryDetailDialog";
+import HintBar from "@shared/ui/HintBar";
 
 const TAB_KEYS = ["overview", "accounts", "journal", "ledger", "reports"];
 
@@ -124,7 +125,7 @@ export default function AccountingPage({ embedded = false }) {
           "& .MuiTabs-indicator": { bgcolor: C.primary },
         }}
       >
-        {tabs.map((x, i) => <Tab key={x.id} value={x.id} label={embedded ? `${x.label}  (Alt+Shift+${i + 1})` : x.label} />)}
+        {tabs.map((x, i) => <Tab key={x.id} value={x.id} label={<>{x.label}{embedded && <span className="ks-alt-hint ks-kbd" dir="ltr" style={{ marginInlineStart: 6 }}>Alt+Shift+{i + 1}</span>}</>} />)}
       </Tabs>
 
       {loadError && <Alert severity="error" sx={{ mb: 2 }}>{loadError}</Alert>}
@@ -159,6 +160,7 @@ export default function AccountingPage({ embedded = false }) {
           {toast.msg}
         </Alert>
       </Snackbar>
+      {!embedded && <HintBar items={[{ keys: "F2", label: t("ui_design.hint_new") }, { keys: "F3", label: t("ui_design.hint_add_line") }, { keys: "Ctrl+D", label: t("ui_design.hint_save") }, { keys: "Esc", label: t("ui_design.hint_close") }]} />}
     </Box>
   );
 }

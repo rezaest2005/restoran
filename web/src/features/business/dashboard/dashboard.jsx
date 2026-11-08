@@ -16,6 +16,7 @@ import FeedbackPage from "@business/feedback/FeedbackPage";
 import { fetchFeedback } from "@business/feedback/api";
 import OverviewTab from "./OverviewTab";
 import { canUse, canSupport } from "./access";
+import HintBar from "@shared/ui/HintBar";
 
 /**
  * Dashboard hub: Overview + Accounting + Customer club + Feedback + Support in one page.
@@ -73,7 +74,7 @@ export default function Dashboard() {
             <Tab key={x.id} value={x.id}
               label={(
                 <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
-                  {`${x.label}  (Alt+${i + 1})`}
+                  {x.label}<span className="ks-alt-hint ks-kbd" dir="ltr" style={{ marginInlineStart: 6 }}>Alt+{i + 1}</span>
                   {x.badge > 0 && (
                     <Chip size="small" label={x.badge}
                       sx={{ height: 20, bgcolor: C.danger, color: C.onPrimary, fontWeight: 700, "& .MuiChip-label": { px: 0.75 } }} />
@@ -101,6 +102,7 @@ export default function Dashboard() {
       )}
 
       <ShortcutsHelpDialog open={helpItems !== null} onClose={() => setHelpItems(null)} items={helpItems || []} />
+      <HintBar items={[{ keys: "Alt+1…9", label: t("ui_design.hint_tabs") }, { keys: "F1", label: t("ui_design.hint_help") }]} />
     </Box>
   );
 }

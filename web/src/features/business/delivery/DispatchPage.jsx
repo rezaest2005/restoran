@@ -15,6 +15,7 @@ import DispatchTab from "./DispatchTab";
 import FleetTab from "./FleetTab";
 import CashTab from "./CashTab";
 import TripDialog from "./TripDialog";
+import HintBar from "@shared/ui/HintBar";
 
 const TAB_KEYS = ["dispatch", "fleet", "cash"];
 
@@ -135,6 +136,7 @@ export default function DispatchPage() {
           {toast.msg}
         </Alert>
       </Snackbar>
+      <HintBar items={[{ keys: "F2", label: t("ui_design.hint_new") }, { keys: "F3", label: t("ui_design.hint_add_line") }, { keys: "Ctrl+D", label: t("ui_design.hint_save") }, { keys: "Esc", label: t("ui_design.hint_close") }]} />
     </Box>
   );
 }

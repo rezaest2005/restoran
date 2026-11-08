@@ -32,6 +32,7 @@ import { buildColors } from "@shared/palette";
 import useShortcuts from "@shared/common/useShortcuts";
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 import { buildGlassCardSx, useToast, ToastSnackbar, formatMoney } from "./common";
+import HintBar from "@shared/ui/HintBar";
 
 const NAV_ITEMS = [
   { key: "pos", icon: Storefront, labelKey: "ui_c.pos.nav_pos" },
@@ -687,6 +688,7 @@ export default function Pos() {
 
       <ToastSnackbar toast={toast} onClose={closeToast} C={C} />
       <ShortcutsHelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} items={helpItems} />
+      <HintBar items={[{ keys: "F2", label: t("ui_g.pos.new_order") }, { keys: "Ctrl+D", label: t("ui_g.pos.checkout") }, { keys: "/", label: t("ui_g.pos.focus_search") }, { keys: "Alt+C", label: t("ui_l.pos.focus_cart") }, { keys: "Ctrl+A / Ctrl+Z", label: t("ui_design.hint_next_prev") }, { keys: "F1", label: t("ui_design.hint_help") }]} />
     </Box>
   );
 }

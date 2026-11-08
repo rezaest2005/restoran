@@ -24,6 +24,7 @@ import {
   fetchOrders, fetchOrder, createOrder, startOrder, completeOrder, cancelOrder,
   errMsg,
 } from "./api";
+import HintBar from "@shared/ui/HintBar";
 
 /* ───────── page ─────────
    Production only MAKES things: orders are created from formulas defined in
@@ -89,6 +90,7 @@ export default function ProductionPage() {
           {toast.msg}
         </Alert>
       </Snackbar>
+      <HintBar items={[{ keys: "F2", label: t("ui_design.hint_new") }, { keys: "Ctrl+D", label: t("ui_design.hint_save") }, { keys: "Esc", label: t("ui_design.hint_close") }, { keys: "F1", label: t("ui_design.hint_help") }]} />
     </Box>
   );
 }

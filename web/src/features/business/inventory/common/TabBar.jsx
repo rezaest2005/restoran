@@ -35,16 +35,7 @@ export default function TabBar({ tabs, active, onSelect, C, getButtonProps, show
           >
             {tab.icon} {tab.label}
             {showHints && idx < 9 && (
-              <Box
-                component="kbd"
-                sx={{
-                  display: { xs: "none", lg: "inline-block" }, marginInlineStart: 0.8,
-                  px: 0.5, fontSize: 9, fontFamily: "inherit", opacity: 0.55,
-                  border: "1px solid currentColor", borderRadius: "5px", direction: "ltr",
-                }}
-              >
-                Alt+{idx + 1}
-              </Box>
+              <span className="ks-alt-hint ks-kbd" dir="ltr" style={{ marginInlineStart: 6 }}>Alt+{idx + 1}</span>
             )}
           </Button>
         );

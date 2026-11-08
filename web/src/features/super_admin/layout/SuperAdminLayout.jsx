@@ -22,6 +22,7 @@ import superClient from "@super/api/super_client";
 import { collectShortcuts, useRegisteredShortcuts, tabBindings, helpBinding, dialogBindings } from "@shared/common/shortcutKit";
 import KbdHint from "@business/pos/common/KbdHint";
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
+import HintBar from "@shared/ui/HintBar";
 
 export default function SuperAdminLayout() {
   const navigate = useNavigate();
@@ -238,6 +239,7 @@ export default function SuperAdminLayout() {
           {toast.message}
         </Alert>
       </Snackbar>
+      <HintBar items={[{ keys: "Alt+R", label: t("ui_l.super.refresh") }, { keys: "Alt+T", label: t("ui_l.super.toggle_theme") }, { keys: "Alt+G", label: t("ui_l.super.toggle_lang") }, { keys: "Alt+L", label: t("ui_l.super.logout") }]} />
     </Box>
   );
 }

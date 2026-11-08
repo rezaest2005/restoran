@@ -18,6 +18,7 @@ import CustomerSection from "./components/CustomerSection";
 import WarehouseSection from "./components/WarehouseSection";
 import BarcodeSection from "./components/barcodes/BarcodeSection";
 import ManagersSection from "./components/ManagersSection";
+import HintBar from "@shared/ui/HintBar";
 
 /**
  * A tab shows only when one of its modules is enabled for the business (mods: null = always)
@@ -98,10 +99,7 @@ export default function Dictionary() {
             }}>
             {tabs.map((tb, i) => (
               <Tab key={tb.id} value={tb.id} iconPosition="start" icon={<span aria-hidden="true">{tb.icon}</span>}
-                label={<>{t(`ui_def.tabs.${tb.id}`)}{i < 9 && (
-                  <Box component="kbd" sx={{ display: { xs: "none", lg: "inline-block" }, marginInlineStart: 0.8, px: 0.5, fontSize: 9, fontFamily: "inherit", opacity: 0.55, border: "1px solid currentColor", borderRadius: "5px", direction: "ltr" }}>
-                    Alt+{i + 1}
-                  </Box>)}</>} />
+                label={<>{t(`ui_def.tabs.${tb.id}`)}{i < 9 && (<span className="ks-alt-hint ks-kbd" dir="ltr" style={{ marginInlineStart: 6 }}>Alt+{i + 1}</span>)}</>} />
             ))}
           </Tabs>
 
@@ -124,6 +122,7 @@ export default function Dictionary() {
 
       <ToastSnackbar toast={toast} onClose={closeToast} C={C} />
       <ShortcutsHelpDialog open={!!help} onClose={() => setHelp(null)} items={help || []} />
+      <HintBar items={[{ keys: "F2", label: t("ui_design.hint_new") }, { keys: "Ctrl+D", label: t("ui_design.hint_save") }, { keys: "Esc", label: t("ui_design.hint_close") }, { keys: "F1", label: t("ui_design.hint_help") }]} />
     </Box>
   );
 }

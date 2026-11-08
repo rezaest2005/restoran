@@ -22,6 +22,7 @@ import { BusinessContext } from "./BusinessContext";
 import {
   fetchMine, saveMine, publishMine, unpublishMine, applyTemplate, fetchTemplates, errMsg,
 } from "./api";
+import HintBar from "@shared/ui/HintBar";
 
 const TABS = ["content", "theme", "addresses", "revisions"];
 
@@ -260,7 +261,7 @@ export default function StorefrontEditor({ businessId }) {
       </Stack>
 
       <Tabs value={tab} onChange={(_, v) => setTab(v)} variant="scrollable" sx={{ mb: 2 }}>
-        {tabItems.map((x, i) => <Tab key={x.id} value={x.id} label={`${x.label}  (Alt+${i + 1})`} />)}
+        {tabItems.map((x, i) => <Tab key={x.id} value={x.id} label={<>{x.label}<span className="ks-alt-hint ks-kbd" dir="ltr" style={{ marginInlineStart: 6 }}>Alt+{i + 1}</span></>} />)}
       </Tabs>
 
       {tab === "theme" && (
@@ -354,6 +355,7 @@ export default function StorefrontEditor({ businessId }) {
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
         <Alert severity={toast.type} onClose={() => setToast({ ...toast, open: false })}>{toast.message}</Alert>
       </Snackbar>
+      <HintBar items={[{ keys: "Alt+H", label: t("ui_k.shortcut.toggle") }, { keys: "Alt+M", label: t("ui_k.shortcut.mobile") }, { keys: "Ctrl+D", label: t("ui_design.hint_save") }, { keys: "Esc", label: t("ui_design.hint_close") }]} />
     </Box>
     </BusinessContext.Provider>
   );

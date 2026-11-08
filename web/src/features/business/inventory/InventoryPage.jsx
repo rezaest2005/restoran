@@ -13,6 +13,7 @@ import SalesInvoiceTab from "./tabs/SalesInvoiceTab";
 import { buildColors } from "@shared/palette";
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 import { useToast, ToastSnackbar, TabBar, useRegisteredShortcuts, tabBindings, helpBinding, collectShortcuts } from "./common";
+import HintBar from "@shared/ui/HintBar";
 
 const TABS = [
   { id: "invoice", icon: "🧾", label: "ثبت فاکتور خرید" },
@@ -102,6 +103,7 @@ export default function InventoryPage() {
       <ToastSnackbar toast={toast} onClose={closeToast} C={C} />
 
       <ShortcutsHelpDialog open={!!help} onClose={() => setHelp(null)} items={help || []} />
+      <HintBar items={[{ keys: "F2", label: t("ui_design.hint_new") }, { keys: "Ctrl+D", label: t("ui_design.hint_save") }, { keys: "Esc", label: t("ui_design.hint_close") }, { keys: "F1", label: t("ui_design.hint_help") }]} />
     </Box>
   );
 }

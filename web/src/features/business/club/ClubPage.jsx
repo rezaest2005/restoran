@@ -90,7 +90,7 @@ export default function ClubPage() {
           "& .Mui-selected": { color: `${C.primary} !important` },
           "& .MuiTabs-indicator": { bgcolor: C.primary },
         }}>
-        {views.map((v, i) => <Tab key={v.id} value={v.id} label={`${v.label}  (Alt+Shift+${i + 1})`} />)}
+        {views.map((v, i) => <Tab key={v.id} value={v.id} label={<>{v.label}<span className="ks-alt-hint ks-kbd" dir="ltr" style={{ marginInlineStart: 6 }}>Alt+Shift+{i + 1}</span></>} />)}
       </Tabs>
 
       {view === "settings" && <SettingsForm ctx={ctx} onSaved={load} />}
