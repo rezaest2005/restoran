@@ -56,8 +56,7 @@ snapshot in `published_data`), `StorefrontRevision`, `StorefrontAsset`. All cont
 - Custom domain: `Storefront.custom_domain` (unique hostname). `StorefrontDomainMiddleware` (first in the chain)
   maps an exact Host match of a *published* storefront to it and serves the storefront payload at `/`
   (`/api/storefront/by-host/`). Other hosts are untouched; platform hosts cannot be claimed.
-- The preset converted from the former sample page lives in `storefront-template/` (reference only) and as the
-  `restaurant_classic` template data (display name "Classic").
+- The storefront preset is stored as template data (`restaurant_classic`, display name "Classic"); the former sample app was removed.
 - Club sign-up from the page: `POST /api/storefront/<slug>/club/join/` (needs published page + club module).
 
 ## Modules and subscriptions
