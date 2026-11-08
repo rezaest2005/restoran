@@ -68,7 +68,7 @@ export default function SuperSidebar({ isMobile, open, onClose, currentUser, onL
                     <Box component="span" sx={{
                       minWidth: 20, height: 20, px: 0.75, borderRadius: 10, fontSize: 11, fontWeight: 700,
                       display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      bgcolor: C.danger, color: C.onPrimary,
+                      bgcolor: C.accentSoft, color: C.accentInk,
                     }}>
                       {badges[item.badge]}
                     </Box>

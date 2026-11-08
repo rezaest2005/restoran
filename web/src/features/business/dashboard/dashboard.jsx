@@ -77,7 +77,7 @@ export default function Dashboard() {
                   {x.label}<span className="ks-alt-hint ks-kbd" dir="ltr" style={{ marginInlineStart: 6 }}>Alt+{i + 1}</span>
                   {x.badge > 0 && (
                     <Chip size="small" label={x.badge}
-                      sx={{ height: 20, bgcolor: C.danger, color: C.onPrimary, fontWeight: 700, "& .MuiChip-label": { px: 0.75 } }} />
+                      sx={{ height: 20, bgcolor: C.accentSoft, color: C.accentInk, fontWeight: 700, "& .MuiChip-label": { px: 0.75 } }} />
                   )}
                 </Box>
               )} />
