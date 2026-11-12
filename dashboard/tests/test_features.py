@@ -89,8 +89,15 @@ class ApiEnforcementTests(FeatureBase):
         c = self.api(self.owner)
         self.assertEqual(c.get("/api/delivery/cash/").status_code, 403)
         self.assertEqual(c.get("/api/delivery/settlements/").status_code, 403)
-        self.assertEqual(c.get("/api/delivery/vehicles/").status_code, 403)
+        self.assertEqual(c.get("/api/delivery/vehicles/").status_code, 200)      # dispatch tab may read the fleet
+        self.assertEqual(c.post("/api/delivery/vehicles/", {"name": "x"}, format="json").status_code, 403)  # only fleet tab writes
         self.assertEqual(c.get("/api/delivery/trips/").status_code, 200)
+
+    def test_delivery_without_any_trip_tab_blocks_fleet_reads(self):
+        self.sell("delivery", disabled=["delivery_dispatch", "delivery_shipments", "delivery_fleet"])
+        c = self.api(self.owner)
+        self.assertEqual(c.get("/api/delivery/vehicles/").status_code, 403)
+        self.assertEqual(c.get("/api/delivery/trips/").status_code, 403)
 
     def test_inventory_report_tab_switch_blocks_report_api(self):
         self.sell("inventory", disabled=["inventory_reports"])

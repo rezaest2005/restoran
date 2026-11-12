@@ -17,13 +17,14 @@ export function moduleEnabled(code, user = readUser()) {
   return !Array.isArray(mods) || mods.includes(code);
 }
 
+/**
+ * The server computes the effective tabs (licence ∩ what the owner granted) and sends them as
+ * `business_tabs`. That list is the only thing the UI trusts; an absent list (old payload) grants nothing.
+ */
 export function hasTab(key, user = readUser()) {
-  if (!user) return true;
+  if (!user) return false;
   const bt = user.business_tabs;
-  if (Array.isArray(bt) && bt.length > 0) return bt.includes(key);
-  if (user.tabs && Object.keys(user.tabs).length > 0) return user.tabs[key] === true;
-  if (user.permissions && Object.keys(user.permissions).length > 0) return user.permissions[key] === true;
-  return user.role === "owner" || user.role === "manager";
+  return Array.isArray(bt) && bt.includes(key);
 }
 
 /** Platform support is open to every owner / manager (no module needed). */

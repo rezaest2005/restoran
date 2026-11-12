@@ -64,7 +64,7 @@ def _tenant_url(request, url_name=None, path=None):
 #  بررسی دسترسی کاربر
 # ═══════════════════════════════════════════
 
-def _user_has_any_service(user, service_codes, path=None):
+def _user_has_any_service(user, service_codes, path=None, method="GET"):
     """
     بررسی دسترسی — مشترک بین decorator و permission.
     سه لایه: ماژول خریداری‌شده ∩ تب‌های فعال‌شده توسط سوپرادمین ∩ تب‌های داده‌شده به کاربر
@@ -75,7 +75,7 @@ def _user_has_any_service(user, service_codes, path=None):
     if user.is_superuser:
         return True
     from ..features import service_allowed
-    return service_allowed(user, _expand_codes(service_codes), path)
+    return service_allowed(user, _expand_codes(service_codes), path, method)
 
 
 # ═══════════════════════════════════════════
@@ -120,7 +120,7 @@ def require_service(*service_codes):
                     )
                 return redirect(_tenant_url(request, 'auth_page'))
 
-            if _user_has_any_service(user, service_codes, request.path_info):
+            if _user_has_any_service(user, service_codes, request.path_info, request.method):
                 return view_func(request, *args, **kwargs)
 
             if _is_api(request):
@@ -152,7 +152,7 @@ def make_service_permission(*service_codes):
         message = 'شما دسترسی به این بخش را ندارید'
 
         def has_permission(self, request, view):
-            return _user_has_any_service(request.user, service_codes, request.path_info)
+            return _user_has_any_service(request.user, service_codes, request.path_info, request.method)
 
         def has_object_permission(self, request, view, obj):
             return _user_has_any_service(request.user, service_codes)

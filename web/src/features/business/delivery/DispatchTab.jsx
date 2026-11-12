@@ -7,12 +7,13 @@ import {
   fmtMoney, fmtInt, useRowCursor, cursorBindings, cursorProps, ConfirmDialog,
 } from "@business/accounting/common";
 import {
-  fetchTrips, fetchTrip, assignTrip, setTripStatus, fetchMap, errMsg,
+  fetchTrips, fetchTrip, assignTrip, setTripStatus, fetchMap, errMsg, trackingUrl,
 } from "./api";
 import {
   TRIP_STATUSES, NEXT_TRIP, tripStatusColor, stopStatusColor, fmtTime, fmtDateTime,
 } from "./common";
 import LiveMap from "./LiveMap";
+import CopyLink from "./CopyLink";
 
 const MAP_POLL_MS = 15000;
 
@@ -169,6 +170,19 @@ export default function DispatchTab({ ctx, drivers, vehicles, refreshKey, select
               {detail.waybill ? ` · ${t("ui_del.trip.waybill")}: ${detail.waybill}` : ""}
               {detail.carrier_name ? ` · ${detail.carrier_name}` : ""}
             </Typography>
+
+            {detail.cargo_description && (
+              <Box sx={{ border: `1px solid ${C.divider}`, borderRadius: 2, p: 1.25, mb: 1.5 }}>
+                <Typography sx={{ color: C.text, fontWeight: 700, fontSize: 13 }}>{detail.cargo_description}</Typography>
+                <Typography sx={{ color: C.sub, fontSize: 12 }}>
+                  {detail.shipper_name}{detail.cargo_weight_kg != null ? ` · ${fmtInt(detail.cargo_weight_kg, lang)} kg` : ""}
+                  {detail.origin_name || detail.destination_name ? ` · ${detail.origin_name || "—"} ← → ${detail.destination_name || "—"}` : ""}
+                </Typography>
+              </Box>
+            )}
+            <Box sx={{ mb: 1.5 }}>
+              <CopyLink url={trackingUrl(detail.tracking_token)} label={t("ui_del.ship.copy_link")} doneLabel={t("ui_del.ship.copied")} />
+            </Box>
 
             {canAssign && (
               <Box sx={{ display: "grid", gap: 1, gridTemplateColumns: "1fr 1fr auto", mb: 2, alignItems: "center" }}>

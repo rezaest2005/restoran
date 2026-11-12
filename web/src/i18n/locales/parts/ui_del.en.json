@@ -3,12 +3,14 @@
     "nav": "Delivery",
     "page": {
       "title": "Delivery and dispatch",
-      "subtitle": "Trips, drivers, fleet and cash settlement"
+      "subtitle": "Trips, drivers, fleet and cash settlement",
+      "no_access": "None of the delivery sections is enabled for your account."
     },
     "tabs": {
       "dispatch": "Dispatch",
       "fleet": "Fleet and drivers",
-      "cash": "Cash settlement"
+      "cash": "Cash settlement",
+      "shipments": "Shipments & tracking"
     },
     "common": {
       "active": "Active",
@@ -212,6 +214,46 @@
       "not_found": "This tracking link is not valid.",
       "error": "Could not connect. Retrying.",
       "amount_due": "Amount due on delivery: {{v}}"
+    },
+    "queue": {
+      "title": "Orders waiting for a courier",
+      "make_trip": "Create trip ({{n}} orders)",
+      "one": "Dispatch this order",
+      "cod": "Cash on delivery",
+      "paid": "Paid"
+    },
+    "pos": {
+      "title": "Courier delivery details",
+      "address": "Delivery address",
+      "courier": "Courier",
+      "courier_later": "Choose later (dispatch queue)",
+      "cod": "Cash on delivery (courier collects)",
+      "address_required": "Enter the delivery address for a courier order.",
+      "queued": "waiting in the dispatch queue",
+      "trip_made": "trip {{n}} created"
+    },
+    "ship": {
+      "title": "Shipments & tracking",
+      "new": "New shipment",
+      "new_title": "New shipment",
+      "cargo_block": "Cargo",
+      "shipper": "Cargo owner",
+      "shipper_phone": "Owner phone",
+      "cargo": "Cargo description",
+      "weight": "Total weight (kg)",
+      "expected": "Expected arrival",
+      "origin": "Origin",
+      "destination": "Destination",
+      "stop_cargo": "Cargo for this stop",
+      "cargo_required": "Describe the cargo.",
+      "search": "Search (cargo, owner, waybill …)",
+      "none": "No shipments yet.",
+      "open": "Details",
+      "copy_link": "Copy tracking link",
+      "copied": "Copied ✓",
+      "shipment_no": "Shipment {{n}}",
+      "where_now": "Where is it now?",
+      "route": "Route and stops"
     }
   }
 }

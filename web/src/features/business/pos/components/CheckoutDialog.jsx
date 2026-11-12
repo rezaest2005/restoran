@@ -299,6 +299,7 @@ export default function CheckoutDialog({
         <div class="d"></div>
         <div class="ir"><span>مشتری</span><b>${lastOrder.customer_name || "مشتری"}</b></div>
         ${lastOrder.phone ? `<div class="ir"><span>تلفن</span><b>${lastOrder.phone}</b></div>` : ""}
+        ${lastOrder.dispatch?.tracking_token ? `<div class="ir"><span>پیگیری مسیر</span><b dir="ltr">${window.location.origin}/t/${lastOrder.dispatch.tracking_token}</b></div>` : ""}
         <div class="d"></div>
         <table>
           <thead><tr><th>نام کالا</th><th>تعداد</th><th>فی</th></tr></thead>

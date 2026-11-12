@@ -26,6 +26,7 @@ export default function useCheckout() {
     tableId,
     orderType,
     paymentMethod,
+    delivery,
   }) => {
     try {
       setSubmitting(true);
@@ -48,6 +49,12 @@ export default function useCheckout() {
         table_id: tableId || null,
         source: "pos",
         payment_method: paymentMethod,
+        order_type: orderType || "",
+        ...(orderType === "delivery" && delivery ? {
+          delivery_address: (delivery.address || "").trim(),
+          driver_id: delivery.driverId || null,
+          cod: !!delivery.cod,
+        } : {}),
       };
 
       // ★ ارسال درخواست به EndPoint ثبت سفارش

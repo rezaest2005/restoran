@@ -196,7 +196,14 @@
       "sc_next": "Next business",
       "sc_prev": "Previous business",
       "sc_save": "Save modules",
-      "sc_plan": "Focus plan picker"
+      "sc_plan": "Focus plan picker",
+      "features_title": "Tabs sold to this account",
+      "features_hint": "Switch each tab on or off. A switched-off tab is hidden for everyone in this account (even the owner) and its API is closed too. Locked tabs are always on.",
+      "core": "Core (always available)",
+      "not_sold": "Module not sold",
+      "all_on": "All on",
+      "all_off": "All off",
+      "locked": "Locked"
     }
   }
 }

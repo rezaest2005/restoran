@@ -3,6 +3,7 @@ import { ShoppingBag, ShoppingBagOutlined, CreditCard } from "@mui/icons-materia
 import CartItem from "./CartItem";
 import CustomerInfo from "./CustomerInfo";
 import OrderTypeSelector from "./OrderTypeSelector";
+import DeliveryInfo from "./DeliveryInfo";
 import { KbdHint, formatMoney } from "../common";
 
 export default function CartPanel({
@@ -10,6 +11,7 @@ export default function CartPanel({
   categoryDiscounts,
   onAdd, onRemove, onDelete, onClear,
   orderType, setOrderType,
+  delivery, setDelivery, couriers = [], deliveryEnabled = false,
   custName, setCustName,
   custPhone, setCustPhone,
   requireCustomer,
@@ -77,9 +79,14 @@ export default function CartPanel({
         <OrderTypeSelector
           orderType={orderType}
           setOrderType={setOrderType}
+          deliveryEnabled={deliveryEnabled}
           C={C}
           isRtl={isRtl}
         />
+
+        {orderType === "delivery" && deliveryEnabled && (
+          <DeliveryInfo delivery={delivery} setDelivery={setDelivery} couriers={couriers} C={C} />
+        )}
 
         {/* اطلاعات مشتری */}
         <CustomerInfo

@@ -116,19 +116,21 @@ SERVICE_FEATURES: dict[str, list[str]] = {
 
 # Extra, finer requirement checked by URL prefix on top of the service check.
 # A request needs ANY feature listed for the longest matching prefix.
-PATH_FEATURES: list[tuple[str, list[str]]] = [
-    ("/api/delivery/vehicles", ["delivery_fleet"]),
-    ("/api/delivery/drivers", ["delivery_fleet"]),
-    ("/api/delivery/carriers", ["delivery_fleet"]),
-    ("/api/delivery/cash", ["delivery_cash"]),
-    ("/api/delivery/settlements", ["delivery_cash"]),
-    ("/api/delivery/trips", ["delivery_dispatch", "delivery_shipments"]),
-    ("/api/delivery/stops", ["delivery_dispatch", "delivery_shipments"]),
-    ("/api/delivery/map", ["delivery_dispatch", "delivery_shipments", "delivery_fleet"]),
-    ("/api/delivery/shipments", ["delivery_shipments"]),
-    ("/api/delivery/pending-orders", ["delivery_dispatch"]),
-    ("/api/inventory/reports", ["inventory_reports"]),
-    ("/api/inventory/purchase-suggestions", ["inventory_purchase_list"]),
+# (prefix, any-of features for reading, any-of features for writing; None = same as reading)
+_TRIP_TABS = ["delivery_dispatch", "delivery_shipments"]
+PATH_FEATURES: list[tuple[str, list[str], list[str] | None]] = [
+    # dispatchers need to *read* drivers/vehicles to assign them; only the fleet tab may change them
+    ("/api/delivery/vehicles", _TRIP_TABS + ["delivery_fleet"], ["delivery_fleet"]),
+    ("/api/delivery/drivers", _TRIP_TABS + ["delivery_fleet"], ["delivery_fleet"]),
+    ("/api/delivery/carriers", _TRIP_TABS + ["delivery_fleet"], ["delivery_fleet"]),
+    ("/api/delivery/cash", ["delivery_cash"], None),
+    ("/api/delivery/settlements", ["delivery_cash"], None),
+    ("/api/delivery/trips", _TRIP_TABS, None),
+    ("/api/delivery/stops", _TRIP_TABS, None),
+    ("/api/delivery/map", _TRIP_TABS + ["delivery_fleet"], None),
+    ("/api/delivery/pending-orders", ["delivery_dispatch"], None),
+    ("/api/inventory/reports", ["inventory_reports"], None),
+    ("/api/inventory/purchase-suggestions", ["inventory_purchase_list"], None),
 ]
 
 # Default tabs when an account has none ticked yet (by role).
@@ -203,7 +205,7 @@ def user_features(user) -> set[str]:
     return out
 
 
-def service_allowed(user, service_codes, path: str | None = None) -> bool:
+def service_allowed(user, service_codes, path: str | None = None, method: str = "GET") -> bool:
     """True when ``user`` may use any of ``service_codes`` (and the path-level feature, if any)."""
     if not getattr(user, "is_authenticated", False):
         return False
@@ -223,11 +225,14 @@ def service_allowed(user, service_codes, path: str | None = None) -> bool:
         return False
     if path:
         best = None
-        for prefix, req in PATH_FEATURES:
-            if path.startswith(prefix) and (best is None or len(prefix) > len(best[0])):
-                best = (prefix, req)
-        if best and not any(f in feats for f in best[1]):
-            return False
+        for rule in PATH_FEATURES:
+            if path.startswith(rule[0]) and (best is None or len(rule[0]) > len(best[0])):
+                best = rule
+        if best:
+            writing = method.upper() not in ("GET", "HEAD", "OPTIONS")
+            req = best[2] if (writing and best[2]) else best[1]
+            if not any(f in feats for f in req):
+                return False
     return True
 
 

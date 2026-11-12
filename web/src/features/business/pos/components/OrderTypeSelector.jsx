@@ -13,10 +13,10 @@ const LABELS = {
   delivery: { fa: "پیک", en: "Delivery" },
 };
 
-export default function OrderTypeSelector({ orderType, setOrderType, C, isRtl }) {
+export default function OrderTypeSelector({ orderType, setOrderType, C, isRtl, deliveryEnabled = true }) {
   return (
     <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
-      {TYPES.map((t) => {
+      {TYPES.filter((x) => deliveryEnabled || x.key !== "delivery").map((t) => {
         const Icon = t.icon;
         const active = orderType === t.key;
         const label = isRtl ? LABELS[t.key].fa : LABELS[t.key].en;

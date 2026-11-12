@@ -24,19 +24,22 @@ export default function ModulesPanel({ tenants, C }) {
   const [auto, setAuto] = useState(false);
   const [plan, setPlan] = useState("");
   const [msg, setMsg] = useState(null);
+  const [features, setFeatures] = useState([]);
+  const [disabled, setDisabled] = useState([]);
   const planRef = useRef(null);
 
   const nameOf = useCallback((m) => (fa ? m.name_fa : m.name_en), [fa]);
   const byCode = useMemo(() => Object.fromEntries(catalog.map((m) => [m.code, m])), [catalog]);
 
   useEffect(() => {
-    Promise.all([superClient.get("/api/super/modules/"), superClient.get("/api/super/plans/")])
-      .then(([m, p]) => { setCatalog(unwrap(m)); setPlans(unwrap(p)); })
+    Promise.all([superClient.get("/api/super/modules/"), superClient.get("/api/super/plans/"), superClient.get("/api/super/features/")])
+      .then(([m, p, f]) => { setCatalog(unwrap(m)); setPlans(unwrap(p)); setFeatures(unwrap(f)); })
       .catch(() => {});
   }, []);
 
   const adopt = useCallback((s) => {
     setState(s);
+    setDisabled(s.disabled_features || []);
     setRows(Object.fromEntries(s.modules.map((m) => [m.code, {
       is_enabled: m.is_enabled, starts_at: m.starts_at, expires_at: m.expires_at, price_override: m.price_override,
     }])));
@@ -62,14 +65,14 @@ export default function ModulesPanel({ tenants, C }) {
   const save = useCallback(async () => {
     if (bid == null) return;
     try {
-      const r = await superClient.put(`/api/super/businesses/${bid}/modules/`, { modules: rows, auto_requires: auto });
+      const r = await superClient.put(`/api/super/businesses/${bid}/modules/`, { modules: rows, auto_requires: auto, disabled_features: disabled });
       adopt(unwrap(r));
       setMsg({ type: "success", text: t("ui_k.mod.saved") });
     } catch (e) {
       setMsg({ type: "error", text: describe(e) });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bid, rows, auto, adopt, t, byCode]);
+  }, [bid, rows, auto, disabled, adopt, t, byCode]);
 
   const applyPlan = async () => {
     if (!plan || bid == null) return;
@@ -105,6 +108,17 @@ export default function ModulesPanel({ tenants, C }) {
     { combo: "Ctrl+Z", label: t("ui_k.mod.sc_prev"), handler: () => step(-1) },
     { combo: "F2", label: t("ui_k.mod.sc_plan"), handler: () => planRef.current?.focus() },
   ]);
+
+  const toggleFeature = (key, on) =>
+    setDisabled((d) => (on ? d.filter((k) => k !== key) : [...new Set([...d, key])]));
+  const setGroup = (keys, on) =>
+    setDisabled((d) => (on ? d.filter((k) => !keys.includes(k)) : [...new Set([...d, ...keys])]));
+  // features grouped under their module ("core" = always-available definitions)
+  const featureGroups = useMemo(() => {
+    const out = {};
+    features.forEach((f) => { (out[f.module || "core"] ||= []).push(f); });
+    return out;
+  }, [features]);
 
   const setRow = (code, patch) => setRows((r) => ({ ...r, [code]: { ...r[code], ...patch } }));
   const cell = { color: C.text, borderColor: C.glassBorder };
@@ -186,6 +200,38 @@ export default function ModulesPanel({ tenants, C }) {
               </TableBody>
             </Table>
           </TableContainer>
+          <Typography sx={{ fontWeight: 700, color: C.text, mb: 0.5 }}>{t("ui_k.mod.features_title")}</Typography>
+          <Typography sx={{ color: C.sub, fontSize: 13, mb: 1.5 }}>{t("ui_k.mod.features_hint")}</Typography>
+          <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)" }, mb: 3 }}>
+            {Object.entries(featureGroups).map(([mod, list]) => {
+              const live = mod === "core" || state.modules.find((m) => m.code === mod)?.is_live;
+              const keys = list.filter((f) => !f.locked).map((f) => f.key);
+              return (
+                <Box key={mod} sx={{ border: `1px solid ${C.glassBorder}`, borderRadius: "12px", p: 1.5, opacity: live ? 1 : 0.55 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5, flexWrap: "wrap" }}>
+                    <Typography sx={{ fontWeight: 700, color: C.text }}>
+                      {mod === "core" ? t("ui_k.mod.core") : (byCode[mod] ? nameOf(byCode[mod]) : mod)}
+                    </Typography>
+                    {!live && <Chip size="small" label={t("ui_k.mod.not_sold")} />}
+                    <Box sx={{ marginInlineStart: "auto", display: "flex", gap: 0.5 }}>
+                      <Button size="small" onClick={() => setGroup(keys, true)}>{t("ui_k.mod.all_on")}</Button>
+                      <Button size="small" onClick={() => setGroup(keys, false)}>{t("ui_k.mod.all_off")}</Button>
+                    </Box>
+                  </Box>
+                  {list.map((f) => (
+                    <Box key={f.key} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <Typography sx={{ color: C.text, fontSize: 14 }}>
+                        {nameOf(f)} {f.locked && <Chip size="small" label={t("ui_k.mod.locked")} sx={{ ml: 0.5 }} />}
+                      </Typography>
+                      <Switch size="small" checked={f.locked || !disabled.includes(f.key)} disabled={f.locked}
+                        onChange={(e) => toggleFeature(f.key, e.target.checked)}
+                        slotProps={{ input: { "aria-label": f.key } }} />
+                    </Box>
+                  ))}
+                </Box>
+              );
+            })}
+          </Box>
           <Box sx={{ display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
             <FormControlLabel control={<Checkbox checked={auto} onChange={(e) => setAuto(e.target.checked)} />} label={t("ui_k.mod.auto_requires")} sx={{ color: C.text }} />
             <Button variant="contained" onClick={save}>{t("ui_k.mod.save")} <KbdHint>Ctrl+D</KbdHint></Button>

@@ -56,7 +56,7 @@ const NAV_SECTIONS = [
     items: [
       {
         icon: "delivery", labelKey: "ui_del.nav", basePath: "delivery",
-        anyTabs: ["delivery"], module: "delivery",
+        anyTabs: ["delivery_dispatch", "delivery_shipments", "delivery_fleet", "delivery_cash"], module: "delivery",
       },
     ],
   },
@@ -86,7 +86,7 @@ function getUserTabs() {
 
     // ★★★ اول: تب‌های مجاز کسب‌وکار (از سوپرادمین) ★★★
     const restTabs = user?.business_tabs;
-    if (Array.isArray(restTabs) && restTabs.length > 0) {
+    if (Array.isArray(restTabs)) {
       const allowed = {};
       restTabs.forEach(k => { allowed[k] = true; });
       return allowed;
@@ -213,7 +213,25 @@ export default function BusinessLayout() {
           localStorage.removeItem("refresh_token");
           localStorage.removeItem("user");
           navigate(slug ? `/${slug}/dashboard/login` : "/dashboard/login");
+          return null;
         }
+        // keep the cached licence fresh: if the super admin changed this account's tabs/modules since
+        // login, store the new lists and reload once so the menu matches what the server allows
+        return fetch("/api/auth/me/", { headers: { Authorization: `Bearer ${token}` } })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((body) => {
+            const fresh = body?.data ?? body;
+            if (!fresh || !Array.isArray(fresh.business_tabs)) return;
+            const store = sessionStorage.getItem("user") ? sessionStorage : localStorage;
+            const cached = JSON.parse(store.getItem("user") || "{}");
+            const same = JSON.stringify(cached.business_tabs) === JSON.stringify(fresh.business_tabs)
+              && JSON.stringify(cached.business_modules) === JSON.stringify(fresh.business_modules);
+            if (same) return;
+            store.setItem("user", JSON.stringify({
+              ...cached, business_tabs: fresh.business_tabs, business_modules: fresh.business_modules, tabs: fresh.tabs ?? cached.tabs,
+            }));
+            window.location.reload();
+          });
       })
       .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -322,7 +322,11 @@
         "club": "باشگاه مشتریان",
         "accounting": "حسابداری",
         "delivery": "حمل و تحویل",
-        "feedback": "نظرسنجی"
+        "feedback": "نظرسنجی",
+        "delivery_dispatch": "ارسال و مأموریت‌ها",
+        "delivery_shipments": "بارها و پیگیری",
+        "delivery_fleet": "ناوگان و رانندگان",
+        "delivery_cash": "صندوق پیک و تسویه"
       },
       "wh_all": "دسترسی به همه‌ی انبارها",
       "wh_allowed": "انبارهای مجاز",

@@ -15,6 +15,8 @@ import useDailyReport from "./hooks/useDailyReport";
 import useAnalytics from "./hooks/useAnalytics";
 import useBarcodeScanner from "./hooks/useBarcodeScanner";
 import { lookupBarcode } from "./api";
+import client from "../api/client";
+import { moduleEnabled } from "@business/dashboard/access";
 import { beepOk, beepError } from "./common/beep";
 
 import PosHeader from "./components/PosHeader";
@@ -58,6 +60,9 @@ export default function Pos() {
   const [orderType, setOrderType] = useState("hall");
   const [custName, setCustName] = useState("");
   const [custPhone, setCustPhone] = useState("");
+  const [delivery, setDelivery] = useState({ address: "", driverId: "", cod: false });
+  const [couriers, setCouriers] = useState([]);
+  const deliveryEnabled = moduleEnabled("delivery");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const { toast, showToast, closeToast } = useToast();
   const [mainTab, setMainTab] = useState("pos");
@@ -206,8 +211,21 @@ export default function Pos() {
     showToast(t("ui_c.pos.added_to_cart", { name: item.name }), "success");
   };
 
+  // couriers for the optional "send now" select (needs a delivery tab; silently empty otherwise)
+  useEffect(() => {
+    if (!deliveryEnabled) return;
+    client.get("/api/delivery/drivers/").then((r) => {
+      const list = r.data?.data ?? r.data;
+      setCouriers(Array.isArray(list) ? list.filter((d) => d.is_active) : []);
+    }).catch(() => setCouriers([]));
+  }, [deliveryEnabled]);
+
   const handleCheckoutClick = () => {
     if (cart.length === 0) return;
+    if (orderType === "delivery" && deliveryEnabled && !delivery.address.trim()) {
+      showToast(t("ui_del.pos.address_required"), "warning");
+      return;
+    }
     if (requireCustomer && !custName.trim()) {
       showToast(t("ui_c.pos.customer_required"), "warning");
       return;
@@ -220,7 +238,7 @@ export default function Pos() {
     const items = toOrderItems();
     const result = await submitOrder({
       items, customerName: custName, phone: custPhone,
-      orderType, paymentMethod: method,
+      orderType, paymentMethod: method, delivery,
     });
     
     if (result) {
@@ -228,8 +246,17 @@ export default function Pos() {
       reload(); // effective stock is decided by the server
       setCustName("");
       setCustPhone("");
+      setDelivery({ address: "", driverId: "", cod: false });
       reloadReport();
-      showToast(t("ui_c.pos.order_saved", { id: result.order_id }), "success");
+      const dp = result.dispatch;
+      showToast(
+        dp
+          ? (dp.queued
+            ? `${t("ui_c.pos.order_saved", { id: result.order_id })} — ${t("ui_del.pos.queued")}`
+            : `${t("ui_c.pos.order_saved", { id: result.order_id })} — ${t("ui_del.pos.trip_made", { n: dp.trip_number })}`)
+          : t("ui_c.pos.order_saved", { id: result.order_id }),
+        "success",
+      );
     }
     return result;
   };
@@ -308,7 +335,7 @@ export default function Pos() {
   const cartPanelProps = {
     cart, cartCount, cartTotal, categoryDiscounts,
     onAdd: tryAdd, onRemove: removeFromCart, onDelete: deleteCartLine, onClear: clearCart,
-    orderType, setOrderType,
+    orderType, setOrderType, delivery, setDelivery, couriers, deliveryEnabled,
     custName, setCustName, custPhone, setCustPhone,
     requireCustomer,
     onCheckout: handleCheckoutClick,

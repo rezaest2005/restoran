@@ -29,6 +29,10 @@ export const assignTrip = (id, body) => client.post(`/api/delivery/trips/${id}/a
 export const setTripStatus = (id, status) => client.post(`/api/delivery/trips/${id}/status/`, { status }).then(unwrap);
 export const setStopStatus = (id, body) => client.post(`/api/delivery/stops/${id}/status/`, body).then(unwrap);
 
+export const fetchPendingOrders = () => client.get("/api/delivery/pending-orders/").then(unwrap);
+/** Public tracking page URL (stop token for a customer, trip token for a cargo owner). */
+export const trackingUrl = (token) => `${window.location.origin}/t/${token}`;
+
 export const fetchMap = () => client.get("/api/delivery/map/").then(unwrap);
 export const fetchCash = () => client.get("/api/delivery/cash/").then(unwrap);
 export const fetchSettlements = (params) =>

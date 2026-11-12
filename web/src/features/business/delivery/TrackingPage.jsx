@@ -6,12 +6,96 @@ import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import { buildColors } from "@shared/palette";
 import { fetchTracking } from "./api";
-import { stopStatusColor, fmtTime, fmtDateTime } from "./common";
+import { stopStatusColor, tripStatusColor, fmtTime, fmtDateTime } from "./common";
 import LiveMap from "./LiveMap";
 
 const POLL_MS = 15000;
 
-/** Public customer tracking page (`/t/:token`) — shows no internal data. */
+/** Cargo owner's view of a whole shipment (trip token): the load, the route, the truck and where it is now. */
+function ShipmentView({ data, C, t, lang, card }) {
+  const col = tripStatusColor(C, data.status);
+  const done = data.status === "completed" || data.status === "cancelled";
+  const points = data.position ? [{ id: 1, type: "driver", name: data.driver?.name || "", lat: data.position.lat, lng: data.position.lng }] : [];
+  const stops = data.stops.filter((s) => s.lat != null && s.lng != null).map((s) => ({ id: s.sequence, lat: s.lat, lng: s.lng, status: s.status }));
+  return (
+    <Box sx={{ display: "grid", gap: 2 }}>
+      <Typography sx={{ color: C.sub, fontSize: 14, fontWeight: 700, textAlign: "center" }}>{data.business}</Typography>
+      <Box sx={{ ...card, textAlign: "center", py: 3 }}>
+        <Typography sx={{ color: C.sub, fontSize: 12 }}>
+          {t("ui_del.ship.shipment_no", { n: data.number })}{data.waybill ? ` · ${data.waybill}` : ""}
+        </Typography>
+        <Typography sx={{ color: col, fontWeight: 800, fontSize: 30, lineHeight: 1.4 }}>{t(`ui_del.trip_status.${data.status}`)}</Typography>
+        {!done && data.expected_arrival && (
+          <Typography sx={{ color: C.text, fontSize: 15, mt: 1 }}>
+            {t("ui_del.ship.expected")}: <b>{fmtDateTime(data.expected_arrival, lang)}</b>
+          </Typography>
+        )}
+        {data.status === "completed" && data.completed_at && (
+          <Typography sx={{ color: C.text, fontSize: 15, mt: 1 }}>
+            {t("ui_del.track.delivered_at")}: <b>{fmtDateTime(data.completed_at, lang)}</b>
+          </Typography>
+        )}
+      </Box>
+
+      <Box sx={card}>
+        <Typography sx={{ color: C.sub, fontSize: 12 }}>{t("ui_del.ship.cargo")}</Typography>
+        <Typography sx={{ color: C.text, fontWeight: 800, fontSize: 18 }}>{data.cargo_description || "—"}</Typography>
+        <Typography sx={{ color: C.sub, fontSize: 13, mt: 0.5 }}>
+          {data.shipper_name ? `${t("ui_del.ship.shipper")}: ${data.shipper_name}` : ""}
+          {data.cargo_weight_kg != null ? ` · ${Number(data.cargo_weight_kg).toLocaleString(lang === "fa" ? "fa-IR" : "en-US")} kg` : ""}
+        </Typography>
+        {(data.origin_name || data.destination_name) && (
+          <Typography sx={{ color: C.text, fontSize: 14, mt: 1 }}>{data.origin_name || "—"} ← → {data.destination_name || "—"}</Typography>
+        )}
+      </Box>
+
+      {(data.driver?.name || data.vehicle) && (
+        <Box sx={card}>
+          {data.driver?.name && (
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+              <Box>
+                <Typography sx={{ color: C.sub, fontSize: 12 }}>{t("ui_del.track.driver")}</Typography>
+                <Typography sx={{ color: C.text, fontWeight: 700, fontSize: 18 }}>{data.driver.name}</Typography>
+              </Box>
+              {data.driver.phone && !done && (
+                <Button component="a" href={`tel:${data.driver.phone}`} variant="contained"
+                  sx={{ minHeight: 48, px: 3, borderRadius: 3, fontWeight: 700 }}>📞 {t("ui_del.track.call")}</Button>
+              )}
+            </Box>
+          )}
+          {data.vehicle && <Typography sx={{ color: C.sub, fontSize: 13, mt: 1 }}>{t("ui_del.track.vehicle")}: {data.vehicle}</Typography>}
+        </Box>
+      )}
+
+      {data.position && !done && (
+        <Box sx={card}>
+          <Typography sx={{ color: C.text, fontWeight: 700, mb: 1 }}>{t("ui_del.ship.where_now")}</Typography>
+          <LiveMap ctx={{ t, C }} points={points} stops={stops} />
+        </Box>
+      )}
+
+      <Box sx={card}>
+        <Typography sx={{ color: C.text, fontWeight: 700, mb: 1 }}>{t("ui_del.ship.route")}</Typography>
+        {data.stops.map((s) => (
+          <Box key={s.sequence} sx={{ display: "flex", justifyContent: "space-between", gap: 1, py: 0.75, borderTop: `1px solid ${C.divider}` }}>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ color: C.text, fontSize: 14, fontWeight: 700 }}>{s.sequence}. {s.name || s.address}</Typography>
+              {s.name && s.address && <Typography sx={{ color: C.sub, fontSize: 12 }}>{s.address}</Typography>}
+              {s.cargo_description && <Typography sx={{ color: C.sub, fontSize: 12 }}>{s.cargo_description}</Typography>}
+              {s.status === "failed" && s.failure_reason && <Typography sx={{ color: C.danger, fontSize: 12 }}>{s.failure_reason}</Typography>}
+            </Box>
+            <Typography sx={{ color: stopStatusColor(C, s.status), fontWeight: 700, fontSize: 12, whiteSpace: "nowrap" }}>
+              {t(`ui_del.stop_status.${s.status}`)}
+              {s.delivered_at ? ` · ${fmtTime(s.delivered_at, lang)}` : ""}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  );
+}
+
+/** Public tracking page (`/t/:token`) — a customer's parcel (stop token) or a cargo owner's shipment (trip token). Shows no internal data. */
 export default function TrackingPage() {
   const { token } = useParams();
   const { t } = useTranslation();
@@ -70,7 +154,8 @@ export default function TrackingPage() {
         </Box>
       )}
 
-      {state === "ok" && data && (
+      {state === "ok" && data?.kind === "shipment" && <ShipmentView data={data} C={C} t={t} lang={lang} card={card} />}
+      {state === "ok" && data && data.kind !== "shipment" && (
         <Box sx={{ display: "grid", gap: 2 }}>
           <Typography sx={{ color: C.sub, fontSize: 14, fontWeight: 700, textAlign: "center" }}>{data.business}</Typography>
 

@@ -3,7 +3,7 @@ import {
   Box, Typography, Button, TextField, Chip, Switch, FormControlLabel, Autocomplete, Alert, CircularProgress,
   MenuItem,
 } from "@mui/material";
-import { moduleEnabled } from "@business/dashboard/access";
+import { moduleEnabled, hasTab } from "@business/dashboard/access";
 import {
   SectionHeader, LoadState, FormDialog, ConfirmDialog, useRegisteredShortcuts, useRowCursor, cursorAttrs, cursorSx,
   cursorBindings, onEnter, useLoader,
@@ -36,7 +36,9 @@ const GROUPS = [
   },
   { id: "more", icon: "🧩", mods: null, tone: "gold", keys: [
     { key: "club", mods: ["club"] }, { key: "accounting", mods: ["accounting"] },
-    { key: "delivery", mods: ["delivery"] }, { key: "feedback", mods: ["feedback"] },
+    { key: "delivery_dispatch", mods: ["delivery"] }, { key: "delivery_shipments", mods: ["delivery"] },
+    { key: "delivery_fleet", mods: ["delivery"] }, { key: "delivery_cash", mods: ["delivery"] },
+    { key: "feedback", mods: ["feedback"] },
   ] },
 ];
 
@@ -46,7 +48,7 @@ const anyEnabled = (mods) => !mods || mods.some((m) => moduleEnabled(m));
 function visibleGroups() {
   return GROUPS.map((g) => ({
     ...g,
-    keys: g.keys.map((k) => (typeof k === "string" ? { key: k, mods: g.mods } : k)).filter((k) => anyEnabled(k.mods)).map((k) => k.key),
+    keys: g.keys.map((k) => (typeof k === "string" ? { key: k, mods: g.mods } : k)).filter((k) => anyEnabled(k.mods) && hasTab(k.key)).map((k) => k.key),
   })).filter((g) => anyEnabled(g.mods) && g.keys.length > 0);
 }
 

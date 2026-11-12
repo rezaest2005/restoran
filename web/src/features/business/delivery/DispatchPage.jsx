@@ -10,14 +10,19 @@ import {
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 import KbdHint from "@business/pos/common/KbdHint";
 import { useStyles } from "@business/accounting/common";
+import { hasTab } from "@business/dashboard/access";
 import { vehiclesApi, carriersApi, driversApi, errMsg } from "./api";
 import DispatchTab from "./DispatchTab";
+import ShipmentsTab from "./ShipmentsTab";
+import PendingOrders from "./PendingOrders";
 import FleetTab from "./FleetTab";
 import CashTab from "./CashTab";
 import TripDialog from "./TripDialog";
 import HintBar from "@shared/ui/HintBar";
 
-const TAB_KEYS = ["dispatch", "fleet", "cash"];
+// each tab is its own sellable feature; only the ones this account may use are shown
+const TAB_FEATURE = { dispatch: "delivery_dispatch", shipments: "delivery_shipments", fleet: "delivery_fleet", cash: "delivery_cash" };
+const allowedTabs = () => Object.keys(TAB_FEATURE).filter((k) => hasTab(TAB_FEATURE[k]));
 
 export default function DispatchPage() {
   const { t } = useTranslation();
@@ -28,14 +33,16 @@ export default function DispatchPage() {
   const muiTheme = useTheme();
   const fullScreen = useMediaQuery(muiTheme.breakpoints.down("sm"));
 
-  const [tab, setTab] = useState("dispatch");
+  const TAB_KEYS = useMemo(() => allowedTabs(), []);
+  const canTrips = TAB_KEYS.includes("dispatch") || TAB_KEYS.includes("shipments");
+  const [tab, setTab] = useState(() => allowedTabs()[0] || "dispatch");
   const [vehicles, setVehicles] = useState([]);
   const [carriers, setCarriers] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const [loadError, setLoadError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedId, setSelectedId] = useState(null);
-  const [newTrip, setNewTrip] = useState(false);
+  const [dialog, setDialog] = useState(null);   // { mode: "trip" | "shipment", initialStops? }
   const [helpOpen, setHelpOpen] = useState(false);
   const [helpItems, setHelpItems] = useState([]);
   const [toast, setToast] = useState({ open: false, msg: "", sev: "success" });
@@ -54,6 +61,13 @@ export default function DispatchPage() {
   }, [t]);
 
   useEffect(() => { reloadFleet(); }, [reloadFleet]);
+
+  const openNew = useCallback((mode, initialStops = null) => {
+    if (!canTrips) return;
+    const m = mode || (TAB_KEYS.includes("dispatch") ? "trip" : "shipment");
+    setTab(m === "shipment" && TAB_KEYS.includes("shipments") ? "shipments" : "dispatch");
+    setDialog({ mode: m, initialStops });
+  }, [canTrips, TAB_KEYS]);
 
   const ctx = { t, C, S, isRtl, lang, fullScreen, notify };
   const tabs = TAB_KEYS.map((k) => ({ id: k, label: t(`ui_del.tabs.${k}`) }));
@@ -76,7 +90,7 @@ export default function DispatchPage() {
     }),
     ...tabBindings(t, tabs, setTab),
     // on the fleet tab F2 is registered by the tab itself (new driver)
-    { combo: "F2", label: t("ui_del.keys.new_trip"), handler: () => { setTab("dispatch"); setNewTrip(true); }, when: tab !== "fleet" },
+    ...(canTrips ? [{ combo: "F2", label: t("ui_del.keys.new_trip"), handler: () => openNew(tab === "shipments" ? "shipment" : "trip"), when: tab !== "fleet" }] : []),
   ]);
 
   return (
@@ -88,9 +102,11 @@ export default function DispatchPage() {
           </Typography>
           <Typography sx={{ color: C.sub, fontSize: 13 }}>{t("ui_del.page.subtitle")}</Typography>
         </Box>
-        <Button sx={S.btn} onClick={() => { setTab("dispatch"); setNewTrip(true); }}>
-          + {t("ui_del.trip.new")}<KbdHint>F2</KbdHint>
-        </Button>
+        {canTrips && (
+          <Button sx={S.btn} onClick={() => openNew(tab === "shipments" ? "shipment" : "trip")}>
+            + {tab === "shipments" ? t("ui_del.ship.new") : t("ui_del.trip.new")}<KbdHint>F2</KbdHint>
+          </Button>
+        )}
       </Box>
 
       <Tabs
@@ -107,9 +123,18 @@ export default function DispatchPage() {
 
       {loadError && <Alert severity="error" sx={{ mb: 2 }}>{loadError}</Alert>}
 
+      {TAB_KEYS.length === 0 && <Alert severity="info">{t("ui_del.page.no_access")}</Alert>}
+
       {tab === "dispatch" && (
-        <DispatchTab ctx={ctx} drivers={drivers} vehicles={vehicles} refreshKey={refreshKey}
-          selectedId={selectedId} onSelect={setSelectedId} />
+        <>
+          <PendingOrders ctx={ctx} refreshKey={refreshKey} onDispatch={(stops) => openNew("trip", stops)} />
+          <DispatchTab ctx={ctx} drivers={drivers} vehicles={vehicles} refreshKey={refreshKey}
+            selectedId={selectedId} onSelect={setSelectedId} />
+        </>
+      )}
+      {tab === "shipments" && (
+        <ShipmentsTab ctx={ctx} refreshKey={refreshKey} onNew={() => openNew("shipment")}
+          onOpen={(id) => { setSelectedId(id); setTab(TAB_KEYS.includes("dispatch") ? "dispatch" : "shipments"); }} />
       )}
       {tab === "fleet" && (
         <FleetTab ctx={ctx} vehicles={vehicles} carriers={carriers} drivers={drivers}
@@ -117,11 +142,12 @@ export default function DispatchPage() {
       )}
       {tab === "cash" && <CashTab ctx={ctx} refreshKey={refreshKey} bump={bump} />}
 
-      {newTrip && (
+      {dialog && (
         <TripDialog
           ctx={ctx} drivers={drivers} vehicles={vehicles} carriers={carriers}
-          onClose={() => setNewTrip(false)}
-          onSaved={(trip) => { setNewTrip(false); setSelectedId(trip.id); bump(); notify(t("ui_del.trip.saved")); }}
+          mode={dialog.mode} initialStops={dialog.initialStops}
+          onClose={() => setDialog(null)}
+          onSaved={(trip) => { setDialog(null); setSelectedId(trip.id); bump(); notify(t("ui_del.trip.saved")); }}
         />
       )}
 
