@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Link, Outlet, useNavigate, useParams } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Box, Typography, Button, IconButton, Drawer, Divider,
@@ -47,7 +47,7 @@ const NAV_SECTIONS = [
     items: [
       {
         icon: "production", labelKey: "ui_e.nav_production", basePath: "production",
-        anyTabs: ["kitchen", "recipes", "dictionary_recipe"], module: "production",
+        anyTabs: ["kitchen"], module: "production",
       },
     ],
   },
@@ -247,6 +247,15 @@ export default function BusinessLayout() {
       .filter((section) => section.items.length > 0);
   }, [userTabs, userModules]);
 
+  // typing a URL by hand must not open a section the account does not have
+  const location = useLocation();
+  const routeBlocked = useMemo(() => {
+    const seg = location.pathname.split("/").filter(Boolean).pop();
+    const item = NAV_SECTIONS.flatMap((s) => s.items).find((i) => i.basePath === seg);
+    if (!item) return false;
+    return !(hasAnyTab(userTabs, item.anyTabs) && (!item.module || !userModules || userModules.includes(item.module)));
+  }, [location.pathname, userTabs, userModules]);
+
   const canSeeHome = useMemo(() => {
     if (!userTabs) return true;
     return userTabs.home === true;
@@ -430,7 +439,12 @@ export default function BusinessLayout() {
           opacity: mounted ? 1 : 0,
           transition: "opacity 0.5s ease",
         }}>
-          <Outlet />
+          {routeBlocked ? (
+            <Box sx={{ textAlign: "center", py: 8 }}>
+              <Typography sx={{ fontWeight: 800, fontSize: 18, mb: 1 }}>{t("ui_def.common.no_access")}</Typography>
+              <Button component={Link} to={prefix + "/dashboard"} variant="outlined">{t("ui_def.common.back_home")}</Button>
+            </Box>
+          ) : <Outlet />}
         </Box>
       </Box>
 

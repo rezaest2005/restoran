@@ -14,6 +14,7 @@ import { buildColors } from "@shared/palette";
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 import { useToast, ToastSnackbar, TabBar, useRegisteredShortcuts, tabBindings, helpBinding, collectShortcuts } from "./common";
 import HintBar from "@shared/ui/HintBar";
+import { hasTab } from "@business/dashboard/access";
 
 const TABS = [
   { id: "invoice", icon: "🧾", label: "ثبت فاکتور خرید" },
@@ -24,18 +25,25 @@ const TABS = [
   { id: "reports", icon: "📊", label: "گزارشات" },
 ];
 
+const TAB_FEATURE = {
+  invoice: "inventory_invoice", sales: "inventory_sales", warehouse: "inventory_warehouse",
+  receiving: "inventory_receiving", purchase_list: "inventory_purchase_list", reports: "inventory_reports",
+};
+const allowedTabs = () => TABS.filter((x) => hasTab(TAB_FEATURE[x.id]));
+
 export default function InventoryPage() {
   const { mode } = useThemeMode();
   const { isRtl } = useLang();
   const isDark = mode === "dark";
 
-  const [activeTab, setActiveTab] = useState(TABS[0].id);
+  const tabs = useMemo(() => allowedTabs(), []);
+  const [activeTab, setActiveTab] = useState(() => allowedTabs()[0]?.id);
   const { toast, showToast, closeToast } = useToast();
   const { t } = useTranslation();
   const [help, setHelp] = useState(null);
 
   useRegisteredShortcuts([
-    ...tabBindings(t, TABS, setActiveTab),
+    ...tabBindings(t, tabs, setActiveTab),
     helpBinding(t, () => setHelp(collectShortcuts())),
   ]);
 
@@ -67,7 +75,7 @@ export default function InventoryPage() {
       </Box>
 
       {/* تب‌ها */}
-      <TabBar tabs={TABS} active={activeTab} onSelect={setActiveTab} C={C} />
+      <TabBar tabs={tabs} active={activeTab} onSelect={setActiveTab} C={C} />
 
       {/* محتوای تب */}
       <Box

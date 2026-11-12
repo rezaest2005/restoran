@@ -99,6 +99,11 @@ class ApiEnforcementTests(FeatureBase):
         self.assertEqual(c.get("/api/delivery/vehicles/").status_code, 403)
         self.assertEqual(c.get("/api/delivery/trips/").status_code, 403)
 
+    def test_pos_price_edit_needs_pos_settings_tab(self):
+        self.sell("pos", disabled=["pos_settings"])
+        r = self.api(self.owner).post("/api/pos/update-food-price/", {"food_id": 1, "price": 5}, format="json")
+        self.assertEqual(r.status_code, 403)
+
     def test_inventory_report_tab_switch_blocks_report_api(self):
         self.sell("inventory", disabled=["inventory_reports"])
         c = self.api(self.owner)
@@ -153,3 +158,49 @@ class SuperAdminLicenceTests(FeatureBase):
         r = self.api(self.owner).put(f"/api/super/businesses/{self.biz.id}/modules/",
                                      {"disabled_features": []}, format="json")
         self.assertIn(r.status_code, (401, 403))
+
+
+class EndToEndTickTests(FeatureBase):
+    """سناریوی کاربر: تیک سوپرادمین ← داشبورد نشان می‌دهد؛ بی‌تیک ← نه منو، نه API."""
+
+    def api(self, user):
+        # هر درخواست واقعی کاربر را تازه از دیتابیس می‌خواند؛ نمونه‌ی کش‌شده‌ی تست نباید مجوز قدیمی را نگه دارد
+        return super().api(User.objects.get(pk=user.pk))
+
+    def tabs_of(self, user):
+        c = self.api(user)
+        return set(c.get("/api/auth/me/").json()["data"]["business_tabs"])
+
+    def test_super_admin_tick_untick_changes_menu_and_api_together(self):
+        sup = APIClient()
+        sup.credentials(HTTP_AUTHORIZATION="Token " + _make_super_token(self.root))
+        url = f"/api/super/businesses/{self.biz.id}/modules/"
+        mods = {m: {"is_enabled": m in ("delivery", "pos")} for m in
+                ("pos", "club", "inventory", "production", "accounting", "delivery", "feedback", "storefront")}
+        sup.put(url, {"modules": mods, "disabled_features": []}, format="json")
+        clear_current_business()
+        self.assertIn("delivery_cash", self.tabs_of(self.owner))
+        self.assertEqual(self.api(self.owner).get("/api/delivery/cash/").status_code, 200)
+
+        # سوپرادمین تیک «صندوق پیک» را برمی‌دارد
+        sup.put(url, {"disabled_features": ["delivery_cash"]}, format="json")
+        clear_current_business()
+        self.assertNotIn("delivery_cash", self.tabs_of(self.owner))
+        self.assertEqual(self.api(self.owner).get("/api/delivery/cash/").status_code, 403)
+        self.assertIn("delivery_fleet", self.tabs_of(self.owner))     # بقیه سر جای خود
+
+        # دوباره تیک می‌زند
+        sup.put(url, {"disabled_features": []}, format="json")
+        clear_current_business()
+        self.assertIn("delivery_cash", self.tabs_of(self.owner))
+        self.assertEqual(self.api(self.owner).get("/api/delivery/cash/").status_code, 200)
+
+    def test_owner_ticks_for_staff_only_inside_what_was_sold(self):
+        self.sell("pos", "delivery", disabled=["delivery_cash"])
+        from django.urls import reverse
+        r = self.api(self.owner).post(reverse("user_tabs_api"), {"user_id": self.cashier.id, "tabs": {
+            "pos": True, "orders": True, "delivery_dispatch": True, "delivery_cash": True, "accounting": True}}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(self.tabs_of(self.cashier), {"home", "pos", "orders", "delivery_dispatch"})
+        self.assertEqual(self.api(self.cashier).get("/api/delivery/cash/").status_code, 403)
+        self.assertEqual(self.api(self.cashier).get("/api/delivery/trips/").status_code, 200)

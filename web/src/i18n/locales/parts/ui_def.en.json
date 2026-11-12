@@ -30,7 +30,9 @@
       "load_failed": "Could not load the data.",
       "save_failed": "The operation failed.",
       "open_row": "Open the selected row",
-      "cursor_hint": "move between rows, Enter to open"
+      "cursor_hint": "move between rows, Enter to open",
+      "no_access": "This section is not enabled for your account.",
+      "back_home": "Back to home"
     },
     "units": {
       "kg": "Kilogram",

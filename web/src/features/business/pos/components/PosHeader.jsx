@@ -5,7 +5,7 @@ import { looksLikeBarcode } from "../common/barcodeScanner";
 
 export default function PosHeader({
   search, setSearch, onScanCode, C, useDictionary, isRtl,
-  editMode, setEditMode,
+  editMode, setEditMode, canEdit = true,
 }) {
   const { t } = useTranslation();
   if (!useDictionary) return null;
@@ -57,6 +57,7 @@ export default function PosHeader({
           },
         }}
       />
+      {canEdit && (
       <Button
         onClick={() => setEditMode(!editMode)}
         size="small"
@@ -74,6 +75,7 @@ export default function PosHeader({
         {editMode ? (isRtl ? "لغو" : "Cancel") : (isRtl ? "ویرایش" : "Edit")}
        
       </Button>
+      )}
     </Box>
   );
 }

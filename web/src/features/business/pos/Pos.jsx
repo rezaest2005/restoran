@@ -16,7 +16,7 @@ import useAnalytics from "./hooks/useAnalytics";
 import useBarcodeScanner from "./hooks/useBarcodeScanner";
 import { lookupBarcode } from "./api";
 import client from "../api/client";
-import { moduleEnabled } from "@business/dashboard/access";
+import { moduleEnabled, hasTab } from "@business/dashboard/access";
 import { beepOk, beepError } from "./common/beep";
 
 import PosHeader from "./components/PosHeader";
@@ -36,11 +36,14 @@ import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 import { buildGlassCardSx, useToast, ToastSnackbar, formatMoney } from "./common";
 import HintBar from "@shared/ui/HintBar";
 
-const NAV_ITEMS = [
+const NAV_FEATURE = { pos: "pos", report: "pos_report", incoming: "orders" };
+const NAV_ALL = [
   { key: "pos", icon: Storefront, labelKey: "ui_c.pos.nav_pos" },
   { key: "report", icon: Assessment, labelKey: "ui_c.pos.nav_report" },
   { key: "incoming", icon: Notifications, labelKey: "ui_f.incoming.nav" },
 ];
+// only the sections this user was given (sold + ticked)
+const NAV_ITEMS = NAV_ALL.filter((n) => hasTab(NAV_FEATURE[n.key]));
 
 const ORDER_TYPES = [
   { key: "hall", labelKey: "ui_l.pos.type_hall" },
@@ -65,7 +68,8 @@ export default function Pos() {
   const deliveryEnabled = moduleEnabled("delivery");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const { toast, showToast, closeToast } = useToast();
-  const [mainTab, setMainTab] = useState("pos");
+  const [mainTab, setMainTab] = useState(NAV_ITEMS[0]?.key || "pos");
+  const canEditPos = hasTab("pos_settings");
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const [accepted, setAccepted] = useState([]);
@@ -284,7 +288,7 @@ export default function Pos() {
     { combo: "Ctrl+D", label: t("ui_g.pos.checkout"), handler: handleCheckoutClick, when: mainTab === "pos" },
     { combo: "/", label: t("ui_g.pos.focus_search"), when: mainTab === "pos" && !!useDictionary,
       handler: () => document.getElementById("pos-search-input")?.focus() },
-    { combo: "F4", label: t("ui_l.pos.toggle_edit"), when: mainTab === "pos" && !!useDictionary,
+    { combo: "F4", label: t("ui_l.pos.toggle_edit"), when: mainTab === "pos" && !!useDictionary && canEditPos,
       handler: () => setEditMode((v) => !v) },
     { combo: "Escape", label: t("ui_l.pos.exit_edit"), when: mainTab === "pos" && editMode,
       handler: () => (editMode ? setEditMode(false) : false) },
@@ -448,7 +452,7 @@ export default function Pos() {
               <PosHeader
                 search={search} setSearch={setSearch} onScanCode={handleScan} C={C}
                 useDictionary={useDictionary} isRtl={isRtl}
-                editMode={editMode} setEditMode={setEditMode}
+                editMode={editMode} setEditMode={setEditMode} canEdit={canEditPos}
               />
               <CategoryBar
                 categoryNames={categoryNames}
