@@ -15,7 +15,7 @@ from decimal import Decimal, InvalidOperation
 from django.utils import timezone
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 
-from ..accounting_autopilot import overview, run_recurring
+from ..accounting_autopilot import next_due, opening_balances, overview, run_recurring, set_opening
 from ..accounting_posting import post_expense, post_payment, safe_post, unpost
 from ..accounting_services import normalize_category
 from ..models import EXPENSE_CATEGORIES, Customer, Expense, Payment, RecurringExpense, Supplier
@@ -78,7 +78,7 @@ def _payment_row(p):
 def _recurring_row(r):
     return {"id": r.id, "title": r.title, "category": normalize_category(r.category), "amount": float(r.amount),
             "day_of_month": r.day_of_month, "payment_method": r.payment_method, "is_active": r.is_active,
-            "start_date": r.start_date.isoformat(), "note": r.note}
+            "start_date": r.start_date.isoformat(), "note": r.note, "next_due": next_due(r).isoformat()}
 
 
 @api_view(["GET"])
@@ -253,3 +253,24 @@ def recurring_detail(request, pk):
     except ValueError as exc:
         return api_error(str(exc))
     return api_success(data=_recurring_row(rec))
+
+
+@api_view(["GET", "POST"])
+@authentication_classes(StaffAuth)
+@permission_classes([AccountingPerm])
+def opening(request):
+    """Starting cash and bank balance (so the home page does not start from a negative number)."""
+    r = _biz(request)
+    if r is None:
+        return api_error("کسب‌وکار پیدا نشد.", 400)
+    if request.method == "GET":
+        return api_success(data=_jsonable(opening_balances(r)))
+    d = request.data
+    try:
+        def amt(k):
+            v = d.get(k)
+            return Decimal("0") if v in (None, "", 0, "0") else _amount(v, "مبلغ")
+        set_opening(r, amt("cash"), amt("bank"), _date(d.get("date"), "تاریخ"), _user(request))
+    except ValueError as exc:
+        return api_error(str(exc))
+    return api_success(data=_jsonable(opening_balances(r)))

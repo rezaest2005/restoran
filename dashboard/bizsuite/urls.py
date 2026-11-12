@@ -203,6 +203,7 @@ urlpatterns = [
     path("api/accounting/reports/income-statement/", views.report_income_statement, name="accounting_income_statement"),
     path("api/accounting/reports/balance-sheet/", views.report_balance_sheet, name="accounting_balance_sheet"),
     path("api/accounting/autopilot/", acc_auto.autopilot_overview, name="acc_autopilot"),
+    path("api/accounting/opening/", acc_auto.opening, name="acc_opening"),
     path("api/accounting/expenses/", acc_auto.expenses, name="acc_expenses"),
     path("api/accounting/expenses/<int:pk>/", acc_auto.expense_remove, name="acc_expense_remove"),
     path("api/accounting/payments/", acc_auto.payments, name="acc_payments"),

@@ -120,6 +120,62 @@ def supplier_balances(business, limit=20):
     return rows[:limit]
 
 
+# ───────────────────────── opening balances ─────────────────────────
+
+CAPITAL = "3110"
+
+
+def _current_opening(business):
+    from .models import JournalEntry
+    from django.db.models import Exists, OuterRef
+    reversed_ = JournalEntry.all_objects.filter(reversal_of=OuterRef("pk"))
+    return (JournalEntry.all_objects.filter(business=business, source_type="opening")
+            .annotate(_rev=Exists(reversed_)).filter(_rev=False).order_by("-id").first())
+
+
+def opening_balances(business):
+    """{cash, bank, date} of the current opening entry, or zeros."""
+    from .models import JournalLine
+    e = _current_opening(business)
+    out = {"cash": ZERO, "bank": ZERO, "date": None}
+    if e is None:
+        return out
+    for ln in JournalLine.all_objects.filter(entry=e).select_related("account"):
+        if ln.account.code == CASH:
+            out["cash"] = q2(ln.debit)
+        elif ln.account.code == BANK:
+            out["bank"] = q2(ln.debit)
+    out["date"] = e.date.isoformat()
+    return out
+
+
+@transaction.atomic
+def set_opening(business, cash, bank, date=None, user=None):
+    """Cash and bank balance the business starts with. Calling it again replaces the earlier figures."""
+    from .accounting_services import post_entry, reverse_entry
+    from .models import JournalEntry
+    ensure_chart(business)
+    cash, bank = q2(cash), q2(bank)
+    if cash < 0 or bank < 0:
+        raise ValueError("موجودی اولیه نمی‌تواند منفی باشد.")
+    old = _current_opening(business)
+    if old is not None:
+        # same convention as editing an invoice: reverse the old entry and move it to an "_vN" key
+        reverse_entry(old, user=user, reason="جایگزینی موجودی اولیه")
+        n = JournalEntry.all_objects.filter(business=business, source_id=business.pk, source_type__startswith="opening_v").count() + 1
+        JournalEntry.all_objects.filter(pk=old.pk).update(source_type=f"opening_v{n}")
+    if cash == 0 and bank == 0:
+        return None
+    lines = []
+    if cash > 0:
+        lines.append({"account": CASH, "debit": cash, "memo": "موجودی اولیه صندوق"})
+    if bank > 0:
+        lines.append({"account": BANK, "debit": bank, "memo": "موجودی اولیه بانک"})
+    lines.append({"account": CAPITAL, "credit": cash + bank, "memo": "سرمایه‌ی اولیه"})
+    return post_entry(business, lines, date=date or timezone.localdate(), source_type="opening", source_id=business.pk,
+                      description="موجودی اول دوره", user=user)
+
+
 # ───────────────────────── the home page ─────────────────────────
 
 def overview(business, today: datetime.date | None = None):
@@ -158,6 +214,7 @@ def overview(business, today: datetime.date | None = None):
         "recurring": recurring,
         "recurring_monthly_total": q2(sum((Decimal(r.amount) for r in RecurringExpense.all_objects.filter(
             business=business, is_active=True)), ZERO)),
+        "opening": opening_balances(business),
         "balanced": bs["balanced"],
         "categories": [{"key": k, "label": label} for k, label, _ in EXPENSE_CATEGORIES],
     }

@@ -12,7 +12,9 @@ import {
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 import { useStyles } from "./common";
 import { fetchAccounts, fetchCostCenters, errMsg } from "./api";
-import OverviewTab from "./tabs/OverviewTab";
+import HomeTab from "./tabs/HomeTab";
+import QuickTab from "./tabs/QuickTab";
+import FixedTab from "./tabs/FixedTab";
 import AccountsTab from "./tabs/AccountsTab";
 import JournalTab from "./tabs/JournalTab";
 import LedgerTab from "./tabs/LedgerTab";
@@ -21,7 +23,8 @@ import EntryDialog from "./tabs/EntryDialog";
 import EntryDetailDialog from "./tabs/EntryDetailDialog";
 import HintBar from "@shared/ui/HintBar";
 
-const TAB_KEYS = ["overview", "accounts", "journal", "ledger", "reports"];
+// the first three are the simple screens (the system keeps the books); the rest are for an accountant
+const TAB_KEYS = ["home", "quick", "fixed", "reports", "journal", "ledger", "accounts"];
 
 /**
  * `embedded`: rendered inside the dashboard hub. The hub owns F1 and Alt+1..n,
@@ -36,7 +39,11 @@ export default function AccountingPage({ embedded = false }) {
   const muiTheme = useTheme();
   const fullScreen = useMediaQuery(muiTheme.breakpoints.down("sm"));
 
-  const [tab, setTab] = useState("overview");
+  // ?sub=quick|fixed|... opens that tab directly (deep links)
+  const [tab, setTab] = useState(() => {
+    const w = new URLSearchParams(window.location.search).get("sub");
+    return TAB_KEYS.includes(w) ? w : "home";
+  });
   const [accounts, setAccounts] = useState([]);
   const [costCenters, setCostCenters] = useState([]);
   const [loadError, setLoadError] = useState("");
@@ -75,7 +82,7 @@ export default function AccountingPage({ embedded = false }) {
 
   const ctx = {
     t, C, S, isRtl, lang, fullScreen, notify, accounts, accById, accByCode, costCenters,
-    reloadAccounts, refreshKey, bump,
+    reloadAccounts, refreshKey, bump, goTab: setTab,
     openDetail: setDetailId, openNewEntry: () => setNewEntry(true),
   };
 
@@ -101,8 +108,8 @@ export default function AccountingPage({ embedded = false }) {
       setHelpOpen(true);
     })]),
     ...innerTabKeys,
-    // the Chart of accounts tab registers its own F2 (new account)
-    { combo: "F2", label: t("ui_i.keys.new_entry"), handler: () => setNewEntry(true), when: tab !== "accounts" },
+    // manual journal entry is an accountant's tool; the chart of accounts registers its own F2
+    { combo: "F2", label: t("ui_i.keys.new_entry"), handler: () => setNewEntry(true), when: tab === "journal" },
   ]);
 
   return (
@@ -130,7 +137,9 @@ export default function AccountingPage({ embedded = false }) {
 
       {loadError && <Alert severity="error" sx={{ mb: 2 }}>{loadError}</Alert>}
 
-      {tab === "overview" && <OverviewTab {...ctx} />}
+      {tab === "home" && <HomeTab {...ctx} />}
+      {tab === "quick" && <QuickTab {...ctx} />}
+      {tab === "fixed" && <FixedTab {...ctx} />}
       {tab === "accounts" && <AccountsTab {...ctx} />}
       {tab === "journal" && <JournalTab {...ctx} />}
       {tab === "ledger" && <LedgerTab {...ctx} />}

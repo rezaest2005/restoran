@@ -7,3 +7,4 @@ export { default as ConfirmDialog } from "./ConfirmDialog";
 export { default as AccountPicker } from "./AccountPicker";
 export { default as useRowCursor, cursorBindings, cursorProps } from "./useRowCursor";
 export { downloadCsv } from "./download";
+export * from "./categories";

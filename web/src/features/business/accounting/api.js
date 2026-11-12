@@ -32,3 +32,17 @@ export const fetchTrialBalance = (p) => report("trial-balance", p);
 export const fetchLedger = (p) => report("ledger", p);
 export const fetchIncomeStatement = (p) => report("income-statement", p);
 export const fetchBalanceSheet = (p) => report("balance-sheet", p);
+
+// ── autopilot: the simple screens ──────────────────────────────────────────────
+export const fetchAutopilot = () => client.get("/api/accounting/autopilot/").then(unwrap);
+export const saveOpening = (body) => client.post("/api/accounting/opening/", body).then(unwrap);
+export const fetchExpenses = (params) => client.get("/api/accounting/expenses/", { params: clean(params) }).then(unwrap);
+export const createExpense = (body) => client.post("/api/accounting/expenses/", body).then(unwrap);
+export const deleteExpense = (id) => client.delete(`/api/accounting/expenses/${id}/`).then((r) => r.data);
+export const fetchPayments = () => client.get("/api/accounting/payments/").then(unwrap);
+export const createPayment = (body) => client.post("/api/accounting/payments/", body).then(unwrap);
+export const deletePayment = (id) => client.delete(`/api/accounting/payments/${id}/`).then((r) => r.data);
+export const fetchRecurring = () => client.get("/api/accounting/recurring/").then(unwrap);
+export const createRecurring = (body) => client.post("/api/accounting/recurring/", body).then(unwrap);
+export const updateRecurring = (id, body) => client.put(`/api/accounting/recurring/${id}/`, body).then(unwrap);
+export const deleteRecurring = (id) => client.delete(`/api/accounting/recurring/${id}/`).then((r) => r.data);

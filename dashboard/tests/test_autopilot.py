@@ -176,7 +176,7 @@ class OverviewAndAccessTests(Base):
         self.api_post("/api/accounting/expenses/", {"category": "utilities", "amount": 500000})
         data = self.api.get("/api/accounting/autopilot/").json()["data"]
         self.assertEqual(set(data), {"money", "receivable", "payable", "month", "recurring",
-                                     "recurring_monthly_total", "balanced", "categories"})
+                                     "recurring_monthly_total", "balanced", "categories", "opening"})
         cats = {c["key"]: c["amount"] for c in data["month"]["expenses_by_category"]}
         self.assertEqual(cats, {"rent": 3000000.0, "utilities": 500000.0})
         self.assertEqual(data["month"]["expense"], 3500000.0)
@@ -207,3 +207,26 @@ class OverviewAndAccessTests(Base):
             c = APIClient()
             c.force_authenticate(User.objects.get(pk=self.owner.pk))
             self.assertEqual(c.get(path).status_code, 403, path)
+
+
+class OpeningBalanceTests(Base):
+    def test_opening_balances_start_cash_and_bank_and_can_be_replaced(self):
+        r = self.api_post("/api/accounting/opening/", {"cash": 5000000, "bank": 20000000})
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertEqual(self.bal("1110")["balance_debit"], D("5000000"))
+        self.assertEqual(self.bal("1120")["balance_debit"], D("20000000"))
+        self.assertEqual(self.bal("3110")["balance_credit"], D("25000000"))
+        self.assertTrue(trial_balance(self.b)["balanced"])
+        # typing different numbers later replaces the earlier ones (no double counting)
+        self.api_post("/api/accounting/opening/", {"cash": 1000000, "bank": 0})
+        self.assertEqual(self.bal("1110")["balance_debit"], D("1000000"))
+        self.assertTrue(self.bal("1120") is None or self.bal("1120")["balance_debit"] == D("0"))
+        self.assertEqual(self.bal("3110")["balance_credit"], D("1000000"))
+        data = self.api.get("/api/accounting/autopilot/").json()["data"]
+        self.assertEqual((data["opening"]["cash"], data["opening"]["bank"]), (1000000.0, 0.0))
+        self.assertEqual(data["money"]["cash"], 1000000.0)
+        self.assertTrue(data["balanced"])
+
+    def test_negative_or_bad_values_are_refused(self):
+        for body in ({"cash": -5}, {"bank": "abc"}):
+            self.assertEqual(self.api_post("/api/accounting/opening/", body).status_code, 400, body)

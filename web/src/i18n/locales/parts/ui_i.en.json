@@ -10,7 +10,10 @@
       "accounts": "Chart of accounts",
       "journal": "Journal",
       "ledger": "Ledger",
-      "reports": "Reports"
+      "reports": "Reports",
+      "home": "Home",
+      "quick": "Quick entry",
+      "fixed": "Fixed costs & salaries"
     },
     "types": {
       "asset": "Assets",
@@ -28,7 +31,11 @@
       "expense": "Expense",
       "pos_order": "POS order",
       "reversal": "Reversal",
-      "version": "superseded v{{n}}"
+      "version": "superseded v{{n}}",
+      "payment": "Payment / receipt",
+      "stock_waste": "Stock waste",
+      "trip": "Delivery trip",
+      "driver_settlement": "Courier settlement"
     },
     "common": {
       "cancel": "Cancel",

@@ -1,6 +1,6 @@
 export const SOURCE_TYPES = [
   "manual", "sales_invoice", "sales_return", "purchase_invoice",
-  "purchase_return", "expense", "pos_order", "reversal",
+  "purchase_return", "expense", "payment", "pos_order", "stock_waste", "trip", "driver_settlement", "reversal",
 ];
 
 export const ACCOUNT_TYPES = ["asset", "liability", "equity", "income", "expense"];
