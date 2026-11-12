@@ -33,6 +33,8 @@
 .ks-card[role="button"], .ks-card.ks-clickable, a.ks-card { box-shadow: var(--shadow-sm); cursor: pointer; }
 .ks-touch { min-height: var(--control-lg); }
 :focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: inherit; }
+/* text fields: the 2px primary border is the focus indicator; no second ring on the inner <input> */
+.MuiInputBase-input:focus-visible { box-shadow: none; }
 .ks-alt-hint { display: none !important; }
 body.kbd-alt .ks-alt-hint { display: inline-block !important; }
 :root { --motion-fast: 120ms; --motion-panel: 200ms; --ease: ease-out; }
