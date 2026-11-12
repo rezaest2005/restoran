@@ -35,7 +35,11 @@ ZERO = Decimal("0")
 #  احراز هویت و دسترسی
 # ═══════════════════════════════════════
 
-StaffAuth = [SessionAuthentication, TenantJWTAuthentication]
+# JWT first: a request that carries an Authorization header is authenticated by it and is not subject to
+# the cookie CSRF check (a header cannot be forged by another site). Only requests with NO token fall back
+# to the session cookie, and those still go through CSRF. (Session first made every POST from a signed-in
+# browser fail with "CSRF Failed" because the browser also holds the session cookie.)
+StaffAuth = [TenantJWTAuthentication, SessionAuthentication]
 
 PosPerm = make_service_permission("pos")
 InventoryPerm = make_service_permission("inventory")
