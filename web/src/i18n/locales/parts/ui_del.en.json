@@ -254,6 +254,13 @@
       "shipment_no": "Shipment {{n}}",
       "where_now": "Where is it now?",
       "route": "Route and stops"
+    },
+    "drvlink": {
+      "title": "Courier sign-in link",
+      "hint": "Give this address to the courier, or let them scan the QR. They sign in with the username and password you created for them. The business slug comes first in the address.",
+      "copy": "Copy address",
+      "open": "Open",
+      "session": "The courier stays signed in while the app is open; after closing the app the sign-in page appears again."
     }
   }
 }

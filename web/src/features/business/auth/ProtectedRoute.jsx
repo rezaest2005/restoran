@@ -37,6 +37,14 @@ function tryRefreshToken() {
     .catch(() => false);
 }
 
+const RESERVED = ["dashboard", "api", "super", "static", "media", "driver", "t", "m", "s", "f", "q", "login"];
+
+/** "/zfc/driver" -> "/zfc/dashboard/login" so the courier lands on his own business's sign-in. */
+function loginPath(pathname) {
+  const first = (pathname || "").split("/").filter(Boolean)[0] || "";
+  return first && !RESERVED.includes(first) ? `/${first}/dashboard/login` : "/dashboard/login";
+}
+
 export default function ProtectedRoute({ children }) {
   const location = useLocation();
   const [status, setStatus] = useState("checking");
@@ -45,7 +53,9 @@ export default function ProtectedRoute({ children }) {
     // ★★★ تغییر به sessionStorage
     const token = sessionStorage.getItem("access_token");
 
-    if (!token) {
+    // session_alive lives in sessionStorage too: it disappears when the app/tab is closed, so a
+    // courier who closes the app must sign in again (a leftover server cookie does not count).
+    if (!token || !sessionStorage.getItem("session_alive")) {
       setStatus("no_token");
       return;
     }
@@ -74,7 +84,7 @@ export default function ProtectedRoute({ children }) {
     // ★★★ تغییر به sessionStorage
     sessionStorage.removeItem("access_token");
     sessionStorage.removeItem("refresh_token");
-    return <Navigate to="/dashboard/login" state={{ from: location }} replace />;
+    return <Navigate to={loginPath(location.pathname)} state={{ from: location }} replace />;
   }
 
   return children;

@@ -8,6 +8,7 @@ import KbdHint from "@business/pos/common/KbdHint";
 import { TableWrap, ConfirmDialog, fmtMoney, num } from "@business/accounting/common";
 import { vehiclesApi, carriersApi, driversApi, setDriverShift, errMsg } from "./api";
 import { VEHICLE_KINDS } from "./common";
+import DriverLinkCard from "./DriverLinkCard";
 
 /** Generic edit dialog: `fields` = [{ key, label, type?: "text"|"number"|"select"|"switch", options? }]. */
 function EditDialog({ ctx, title, fields, initial, onClose, onSave }) {
@@ -208,6 +209,7 @@ export default function FleetTab({ ctx, vehicles, carriers, drivers, reloadFleet
 
   return (
     <Box>
+      <DriverLinkCard ctx={ctx} />
       {section("driver", t("ui_del.fleet.drivers"),
         [t("ui_del.fleet.name"), t("ui_del.fleet.phone"), t("ui_del.fleet.pay_per_trip"), t("ui_del.fleet.shift"), t("ui_del.common.status")],
         drivers, (d) => (

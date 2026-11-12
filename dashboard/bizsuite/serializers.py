@@ -546,6 +546,9 @@ class UserDetailSerializer(serializers.ModelSerializer):
     business_name = serializers.CharField(
         source="business.name", read_only=True, default=None
     )
+    business_slug = serializers.CharField(
+        source="business.slug", read_only=True, default=None
+    )
 
     class Meta:
         model = User
@@ -561,6 +564,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
             "role_display",
             "business",
             "business_name",
+            "business_slug",
             "profile_image",
             "is_verified",
             "is_active",

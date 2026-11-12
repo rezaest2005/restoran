@@ -41,3 +41,19 @@ export const routeUrl = (stop) => {
   const dest = stop.lat != null && stop.lng != null ? `${stop.lat},${stop.lng}` : encodeURIComponent(stop.address || "");
   return `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
 };
+
+const readUser = () => {
+  try { return JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "{}"); } catch { return {}; }
+};
+
+/** The business slug (e.g. "zfc") the courier page lives under. */
+export function currentSlug() {
+  const u = readUser();
+  let remembered = "";
+  try { remembered = localStorage.getItem("tenant_slug") || ""; } catch { /* ignore */ }
+  return u.business_slug || remembered || "";
+}
+
+/** Courier sign-in address of this business: <domain>/<slug>/driver. */
+export const driverUrl = (slug = currentSlug()) =>
+  `${window.location.origin}${slug ? `/${encodeURIComponent(slug)}` : ""}/driver`;
