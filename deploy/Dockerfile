@@ -8,7 +8,9 @@ WORKDIR /app
 COPY web/package.json web/package-lock.json ./
 RUN npm ci
 COPY web/ .
-RUN npm run build
+# Mount path when the app shares a domain with other apps (empty = domain root). Example: --build-arg APP_BASE_PATH=/biz
+ARG APP_BASE_PATH=
+RUN B="${APP_BASE_PATH%/}"; VITE_BASE="${B}/" npm run build
 
 # ── Stage 2: Django API image (used by api, worker and migrate) ──
 FROM python:3.12-slim AS api

@@ -73,6 +73,8 @@ services:
       context: ..
       dockerfile: deploy/Dockerfile
       target: web
+      args:
+        APP_BASE_PATH: ${URL_PREFIX:-}
     ports:
       - "${WEB_PORT:-8080}:80"
     volumes:

@@ -1,3 +1,4 @@
+import { appUrl } from "@shared/basePath";
 /** Status → palette colour keys shared by the delivery screens. */
 export const tripStatusColor = (C, s) => ({
   planned: C.muted, assigned: C.info, in_progress: C.warning, completed: C.success, cancelled: C.danger,
@@ -56,4 +57,4 @@ export function currentSlug() {
 
 /** Courier sign-in address of this business: <domain>/<slug>/driver. */
 export const driverUrl = (slug = currentSlug()) =>
-  `${window.location.origin}${slug ? `/${encodeURIComponent(slug)}` : ""}/driver`;
+  appUrl(`${slug ? `/${encodeURIComponent(slug)}` : ""}/driver`);

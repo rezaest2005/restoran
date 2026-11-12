@@ -1,3 +1,4 @@
+import { withBase } from "@shared/basePath";
 import axios from "axios";
 
 const superClient = axios.create({
@@ -26,7 +27,7 @@ superClient.interceptors.response.use(
     if ((status === 401 || status === 403) && !isLoginRequest) {
       sessionStorage.removeItem("super_token");
       sessionStorage.removeItem("super_user");
-      window.location.href = "/super/login";
+      window.location.href = withBase("/super/login");
     }
 
     return Promise.reject(err);

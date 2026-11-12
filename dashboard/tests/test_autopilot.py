@@ -230,3 +230,38 @@ class OpeningBalanceTests(Base):
     def test_negative_or_bad_values_are_refused(self):
         for body in ({"cash": -5}, {"bank": "abc"}):
             self.assertEqual(self.api_post("/api/accounting/opening/", body).status_code, 400, body)
+
+
+from django.test import TransactionTestCase
+
+
+class ConcurrentFirstOpenTests(TransactionTestCase):
+    """سه درخواست هم‌زمان روی کسب‌وکار تازه: همه باید موفق شوند (قبلاً یکی ۵۰۰ می‌گرفت)."""
+
+    def test_parallel_requests_on_a_new_business_all_succeed(self):
+        import threading
+        from django.db import connection
+        ensure_catalog()
+        clear_current_business()
+        b = Business.objects.create(name="تازه", slug="ap-race")
+        owner = User.objects.create_user(username="ap_race", password="Pass12345!", role="owner", business=b)
+        statuses = []
+        barrier = threading.Barrier(3)
+
+        def hit(path):
+            try:
+                c = APIClient()
+                c.force_authenticate(User.objects.get(pk=owner.pk))
+                barrier.wait(timeout=10)
+                statuses.append(c.get(path).status_code)
+            finally:
+                connection.close()
+
+        paths = ["/api/accounting/autopilot/", "/api/accounting/accounts/", "/api/accounting/summary/"]
+        threads = [threading.Thread(target=hit, args=(p,)) for p in paths]
+        [t.start() for t in threads]
+        [t.join(timeout=60) for t in threads]
+        self.assertEqual(statuses, [200, 200, 200])
+        from bizsuite.models import Account
+        codes = list(Account.all_objects.filter(business=b).values_list("code", flat=True))
+        self.assertEqual(len(codes), len(set(codes)))              # no duplicates

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { appUrl } from "@shared/basePath";
 import { useTranslation } from "react-i18next";
 import { Box, Button, TextField, Typography } from "@mui/material";
 import { useThemeMode } from "@shared/contexts/ThemeContext";
@@ -9,7 +10,7 @@ import { moduleEnabled } from "./access";
 function AddrRow({ label, value, C }) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
-  const full = value.startsWith("/") ? window.location.origin + value : value;
+  const full = value.startsWith("/") ? appUrl(value) : value;
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(full);

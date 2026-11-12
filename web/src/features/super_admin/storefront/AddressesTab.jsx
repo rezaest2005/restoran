@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { appUrl } from "@shared/basePath";
 import { useTranslation } from "react-i18next";
 import { Alert, Box, Button, Stack, TextField, Typography } from "@mui/material";
 import KbdHint from "@business/pos/common/KbdHint";
@@ -8,7 +9,7 @@ import { useBusinessId } from "./BusinessContext";
 function AddrRow({ label, value }) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
-  const full = value.startsWith("/") ? window.location.origin + value : value;
+  const full = value.startsWith("/") ? appUrl(value) : value;
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(full);

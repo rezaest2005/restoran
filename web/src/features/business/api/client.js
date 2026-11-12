@@ -1,3 +1,4 @@
+import { pathWithoutBase, withBase } from "@shared/basePath";
 import axios from "axios";
 
 // ═══════════════════════════════════════════════════
@@ -5,7 +6,7 @@ import axios from "axios";
 // ═══════════════════════════════════════════════════
 
 function saveTenantSlug() {
-  const parts = window.location.pathname.split("/").filter(Boolean);
+  const parts = pathWithoutBase().split("/").filter(Boolean);
   const slug = parts[0] || "";
   if (
     slug &&
@@ -121,7 +122,7 @@ function redirectToLogin() {
   
   // این برای اطلاع به سایر تب‌ها است، در localStorage بماند
   localStorage.setItem("__logout__", Date.now().toString());
-  window.location.href = "/dashboard/login";
+  window.location.href = withBase("/dashboard/login");
 
   setTimeout(() => {
     redirecting = false;
@@ -133,7 +134,7 @@ window.addEventListener("storage", (e) => {
   if (e.key === "__logout__") {
     if (!redirecting) {
       redirecting = true;
-      window.location.href = "/dashboard/login";
+      window.location.href = withBase("/dashboard/login");
       setTimeout(() => {
         redirecting = false;
       }, 2000);

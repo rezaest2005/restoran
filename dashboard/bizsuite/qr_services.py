@@ -4,10 +4,16 @@ from __future__ import annotations
 
 from urllib.parse import parse_qsl, quote, urlencode, urlparse, urlunparse
 
+from django.conf import settings
+
 from .models import QrLink, Storefront
 from .modules import module_enabled
 
 MAX_BULK = 200
+
+
+def _prefix() -> str:
+    return getattr(settings, "URL_PREFIX", "") or ""
 
 
 def validate_custom_url(value: str) -> str:
@@ -36,12 +42,12 @@ def resolve_target(link: QrLink) -> str | None:
     if link.kind == QrLink.Kind.MENU:
         if not module_enabled(biz, "pos"):
             return None
-        return _with_table(f"/m/{quote(biz.slug)}", link.table_number)
+        return _with_table(f"{_prefix()}/m/{quote(biz.slug)}", link.table_number)
     if link.kind == QrLink.Kind.STOREFRONT:
         sf = Storefront.all_objects.filter(business=biz).first()
         if sf is None or not getattr(sf, "published_data", None):
             return None
-        return _with_table(f"/s/{quote(sf.slug)}", link.table_number)
+        return _with_table(f"{_prefix()}/s/{quote(sf.slug)}", link.table_number)
     if link.kind == QrLink.Kind.CUSTOM:
         try:
             return _with_table(validate_custom_url(link.custom_url), link.table_number)

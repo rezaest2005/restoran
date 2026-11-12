@@ -1,8 +1,9 @@
 // Service worker حداقلی: فقط برای نصب‌پذیری و باز شدن پوسته‌ی برنامه بدون اینترنت.
 // درخواست‌های API هرگز کش نمی‌شوند (داده‌ی مأموریت و مالی باید همیشه تازه باشد).
 const CACHE = "bizsuite-shell-v1";
+const ROOT = self.registration.scope;     // wherever the app is mounted ("/" or "/biz/")
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.add("/")).catch(() => {}));
+  e.waitUntil(caches.open(CACHE).then((c) => c.add(ROOT)).catch(() => {}));
   self.skipWaiting();
 });
 self.addEventListener("activate", (e) => {
@@ -15,6 +16,6 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET" || url.origin !== location.origin) return;
   if (url.pathname.includes("/api/") || url.pathname.startsWith("/admin/")) return;
   if (req.mode === "navigate") {
-    e.respondWith(fetch(req).catch(() => caches.match("/")));
+    e.respondWith(fetch(req).catch(() => caches.match(ROOT)));
   }
 });

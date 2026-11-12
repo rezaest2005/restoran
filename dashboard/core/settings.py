@@ -154,13 +154,19 @@ TIME_ZONE = 'Asia/Tehran'
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = 'static/'
+# Optional mount path when the app shares one domain with other applications behind a reverse proxy that
+# strips the prefix (e.g. URL_PREFIX=/biz -> https://example.com/biz/...). Empty = served at the domain root.
+URL_PREFIX = os.getenv("URL_PREFIX", "").strip().rstrip("/")
+if URL_PREFIX and not URL_PREFIX.startswith("/"):
+    URL_PREFIX = "/" + URL_PREFIX
+
+STATIC_URL = f'{URL_PREFIX}/static/' if URL_PREFIX else 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
     BASE_DIR / 'bizsuite' / 'static',
 ]
 
-MEDIA_URL = '/media/'
+MEDIA_URL = f'{URL_PREFIX}/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 JAZZMIN_UI_TWEAKS = {
@@ -182,6 +188,13 @@ CSRF_COOKIE_SAMESITE = 'Lax'
 COOKIE_SECURE = os.getenv('COOKIE_SECURE', 'False') == 'True'
 SESSION_COOKIE_SECURE = COOKIE_SECURE
 CSRF_COOKIE_SECURE = COOKIE_SECURE
+
+if URL_PREFIX:
+    FORCE_SCRIPT_NAME = URL_PREFIX                 # generated links (admin, redirects) include the mount path
+    SESSION_COOKIE_PATH = URL_PREFIX + "/"         # cookies are not shared with the other apps on the domain
+    CSRF_COOKIE_PATH = URL_PREFIX + "/"
+    SESSION_COOKIE_NAME = "bizsuite_sessionid"
+    CSRF_COOKIE_NAME = "bizsuite_csrftoken"
 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 # هر درخواست = یک نوشتن در دیتابیس؛ فقط در صورت نیاز واقعی True کنید

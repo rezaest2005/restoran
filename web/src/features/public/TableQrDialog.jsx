@@ -1,4 +1,5 @@
 import { blurFocused } from "@/features/business/pos/common/focus";
+import { BASE } from "@shared/basePath";
 import { useMemo, useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Typography, Box, GlobalStyles } from "@mui/material";
 import { QRCodeSVG } from "qrcode.react";
@@ -15,7 +16,7 @@ export default function TableQrDialog({ open, onClose, slug }) {
   useShortcuts([
     { combo: "Ctrl+D", label: t("ui_d.table_qr.print"), scope: "dialog", handler: () => window.print() },
   ], { enabled: open });
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const origin = typeof window !== "undefined" ? window.location.origin + BASE : "";
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md" slotProps={{ transition: { onExit: blurFocused } }}>

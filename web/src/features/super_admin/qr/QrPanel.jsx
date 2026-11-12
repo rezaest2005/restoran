@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { appUrl } from "@shared/basePath";
 import { useTranslation } from "react-i18next";
 import {
   Alert, Autocomplete, Box, Button, Chip, GlobalStyles, MenuItem, Switch, TextField, Typography,
@@ -35,7 +36,7 @@ export default function QrPanel({ tenants, C }) {
   const fa = i18n.language !== "en";
   const businesses = useMemo(() => tenants.filter((x) => x.business_id), [tenants]);
   const [bid, setBid] = useState(() => Number(read(LAST_KEY)) || null);
-  const [base, setBase] = useState(() => read(BASE_KEY) || window.location.origin);
+  const [base, setBase] = useState(() => read(BASE_KEY) || appUrl());
   const [rows, setRows] = useState([]);
   const [edits, setEdits] = useState({});          // id -> unsaved changes
   const [msg, setMsg] = useState(null);

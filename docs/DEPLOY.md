@@ -77,3 +77,29 @@ IMAGE_OWNER=<owner> IMAGE_TAG=<older tag> sh deploy.sh
 * `SECRET_KEY` and `DB_PASSWORD` must be long random values that exist only in the server's `.env`.
 * Back up the `pgdata` volume (for example a nightly `pg_dump`) and the `media_data` volume.
 * The bootstrap passwords in `.env` create the first accounts; change them in the app afterwards.
+
+## One domain shared with other applications
+
+Normally the app owns the whole domain. If the domain is shared (for example `est.rysh.ir` also serves other apps
+and their `/api/` paths), give this app its own path, for example `/biz`:
+
+1. In `deploy/.env` set `URL_PREFIX=/biz` and pick a free `WEB_PORT` (for example `8200`). Also set
+   `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS=https://<domain>`, `CORS_ALLOWED_ORIGINS=https://<domain>` and
+   `PLATFORM_PUBLIC_URL=https://<domain>/biz`.
+2. Rebuild (the prefix is baked into the web image): `docker compose -p bizsuite up -d --build`.
+3. In the reverse proxy, send `/biz/*` to this app **with the prefix stripped**. With Caddy:
+
+```
+handle_path /biz/* {
+        request_body { max_size 60MB }
+        reverse_proxy 127.0.0.1:8200 {
+                header_up Host <domain>
+                header_up X-Forwarded-Proto https
+                transport http { read_timeout 300s }
+        }
+}
+```
+
+The app is then at `https://<domain>/biz/dashboard/login`, couriers use `https://<domain>/biz/<slug>/driver`, QR links
+and tracking links carry the prefix automatically. Session and CSRF cookies are limited to `/biz/` so they are not
+shared with the other apps. Images published to GHCR are built for the domain root; this mode builds on the server.

@@ -88,3 +88,18 @@ class AdminApiTests(QrBase):
         q = self.make()
         self.assertEqual(self.sup.delete(f"/api/super/qr/{q['id']}/").status_code, 200)
         self.assertEqual(self.client.get(q["path"]).status_code, 404)
+
+
+from django.test import override_settings
+
+
+class MountedUnderPrefixTests(QrBase):
+    @override_settings(URL_PREFIX="/biz")
+    def test_menu_target_carries_the_mount_path(self):
+        q = self.make(kind="menu", table_number="5")
+        self.assertEqual(self.client.get(q["path"])["Location"], "/biz/m/cafe-one?table=5")
+
+    @override_settings(URL_PREFIX="/biz")
+    def test_custom_url_is_never_prefixed(self):
+        q = self.make(kind="custom", custom_url="https://menu.example.com/page")
+        self.assertEqual(self.client.get(q["path"])["Location"], "https://menu.example.com/page")

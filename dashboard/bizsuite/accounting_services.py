@@ -113,6 +113,9 @@ def expense_account(category) -> str:
 def seed_default_chart(business) -> int:
     """چارت حساب پیش‌فرض را می‌سازد (idempotent)؛ تعداد حساب‌های جدید را برمی‌گرداند."""
     created = 0
+    # Several requests can open the accounting screens of a brand-new business at the same moment and all try to
+    # seed; the row lock makes them take turns, so the second one finds the accounts the first one created.
+    type(business).objects.select_for_update().filter(pk=business.pk).first()
     by_code = {a.code: a for a in Account.all_objects.filter(business=business)}
     for code, name, name_en, typ, parent_code, postable in DEFAULT_CHART:
         if code in by_code:
@@ -128,8 +131,10 @@ def seed_default_chart(business) -> int:
 
 
 def ensure_chart(business) -> None:
-    if not Account.all_objects.filter(business=business).exists():
-        seed_default_chart(business)
+    # normally one cheap query; the (locked) seeding runs only the first time
+    if Account.all_objects.filter(business=business, code=CASH).exists():
+        return
+    seed_default_chart(business)
 
 
 def get_account(business, ref) -> Account:

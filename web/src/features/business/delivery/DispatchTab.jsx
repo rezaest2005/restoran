@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { withBase } from "@shared/basePath";
 import {
   Box, Typography, Button, Chip, TextField, MenuItem, Alert, CircularProgress, Link as MuiLink,
 } from "@mui/material";
@@ -222,7 +223,7 @@ export default function DispatchTab({ ctx, drivers, vehicles, refreshKey, select
                     {s.delivered_at && <span>{t("ui_del.dispatch.delivered_at")}: {fmtTime(s.delivered_at, lang)}</span>}
                   </Box>
                   {s.failure_reason && <Typography sx={{ color: C.danger, fontSize: 12, mt: 0.5 }}>{s.failure_reason}</Typography>}
-                  <MuiLink href={`/t/${s.tracking_token}`} target="_blank" rel="noreferrer" sx={{ fontSize: 11, color: C.primary }}>
+                  <MuiLink href={withBase(`/t/${s.tracking_token}`)} target="_blank" rel="noreferrer" sx={{ fontSize: 11, color: C.primary }}>
                     {t("ui_del.dispatch.tracking_link")}
                   </MuiLink>
                 </Box>

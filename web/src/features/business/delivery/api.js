@@ -1,3 +1,4 @@
+import { appUrl } from "@shared/basePath";
 import client from "../api/client";
 
 const unwrap = (r) => r.data?.data ?? r.data;
@@ -32,7 +33,7 @@ export const setStopStatus = (id, body) => client.post(`/api/delivery/stops/${id
 export const fetchDispatchable = () => client.get("/api/delivery/dispatchable/").then(unwrap);
 export const fetchPendingOrders = () => client.get("/api/delivery/pending-orders/").then(unwrap);
 /** Public tracking page URL (stop token for a customer, trip token for a cargo owner). */
-export const trackingUrl = (token) => `${window.location.origin}/t/${token}`;
+export const trackingUrl = (token) => appUrl(`/t/${token}`);
 
 export const fetchMap = () => client.get("/api/delivery/map/").then(unwrap);
 export const fetchCash = () => client.get("/api/delivery/cash/").then(unwrap);

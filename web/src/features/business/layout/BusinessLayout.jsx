@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { pathWithoutBase } from "@shared/basePath";
 import { Link, Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -176,7 +177,7 @@ export default function BusinessLayout() {
 
   const slug = useMemo(() => {
     if (urlSlug) return urlSlug;
-    const parts = window.location.pathname.split("/").filter(Boolean);
+    const parts = pathWithoutBase().split("/").filter(Boolean);
     const first = parts[0] || "";
     if (first === "dashboard" || first === "super") return "";
     return first;

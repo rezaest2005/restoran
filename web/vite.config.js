@@ -3,6 +3,8 @@ import react from "@vitejs/plugin-react";
 import path from "path";
 
 export default defineConfig({
+  // "/" normally; "/biz/" when the app shares a domain behind a proxy that strips the prefix (docs/DEPLOY.md)
+  base: process.env.VITE_BASE || "/",
   plugins: [react()],
   server: {
     port: 5173,

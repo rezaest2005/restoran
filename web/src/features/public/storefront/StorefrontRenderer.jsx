@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { withBase } from "@shared/basePath";
 import i18n from "i18next";
 import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
 
@@ -185,7 +186,7 @@ function Footer({ d, data, tr, preview }) {
       </p>
       {d.copyright && <p className="sf-muted">{d.copyright}</p>}
       {data.slug && !preview && (
-        <p><a href={`/f/${encodeURIComponent(data.slug)}`} className="">{tr("ui_fb.pub.link")}</a></p>
+        <p><a href={withBase(`/f/${encodeURIComponent(data.slug)}`)} className="">{tr("ui_fb.pub.link")}</a></p>
       )}
       {data.dashboard_url && (
         <Link href={data.dashboard_url} className="sf-btn alt">{tr("ui_k.public.dashboard")}</Link>

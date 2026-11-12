@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { withBase } from "@shared/basePath";
 import { useTranslation } from "react-i18next";
 import { useLang } from "@shared/contexts/LangContext";
 import {
@@ -96,7 +97,7 @@ export default function TenantsPanel({
   /* ── open dashboard in new tab ── */
   const openDashboard = (e, slug) => {
     e.stopPropagation();
-    window.open(`/${slug}/dashboard/login`, "_blank");
+    window.open(withBase(`/${slug}/dashboard/login`), "_blank");
   };
 
   /* ── ★ باز کردن مودال ویرایش با کل داده ── */
