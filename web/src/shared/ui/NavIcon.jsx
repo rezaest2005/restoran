@@ -9,6 +9,7 @@ import Stars from "@mui/icons-material/Stars";
 import Feedback from "@mui/icons-material/Feedback";
 import SupportAgent from "@mui/icons-material/SupportAgent";
 import Language from "@mui/icons-material/Language";
+import QrCode2 from "@mui/icons-material/QrCode2";
 import Dashboard from "@mui/icons-material/Dashboard";
 import Group from "@mui/icons-material/Group";
 import Extension from "@mui/icons-material/Extension";
@@ -26,7 +27,7 @@ import AccountBalance from "@mui/icons-material/AccountBalance";
 const ICONS = {
   pos: PointOfSale, tenants: Storefront, inventory: Inventory2, production: Factory,
   dictionary: Label, delivery: LocalShipping, accounting: AccountBalance, menubook: MenuBook,
-  club: Stars, feedback: Feedback, support: SupportAgent, website: Language,
+  club: Stars, feedback: Feedback, support: SupportAgent, website: Language, qr: QrCode2,
   dashboard: Dashboard, users: Group, modules: Extension, home: Home,
   food: Restaurant, list: ListAlt, receipt: ReceiptLong, doc: Description,
   kitchen: Kitchen, coupon: ConfirmationNumber, gift: CardGiftcard,

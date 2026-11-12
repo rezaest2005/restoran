@@ -1,0 +1,43 @@
+{
+  "ui_qr": {
+    "tab": "QR codes",
+    "title": "Customer QR codes",
+    "intro": "Every QR holds a short permanent link. You choose where it leads here and can change it any time — no reprinting. It can open the built-in QR ordering page, the published website, or any address you give (for example a page you built in Elementor).",
+    "pick_business": "Business",
+    "pick_hint": "Pick a business.",
+    "base_url": "Main domain printed in the QR",
+    "base_hint": "The domain customers see (e.g. https://app.example.com). It is printed inside the QR.",
+    "new_one": "New QR",
+    "label": "Label (e.g. Table 5)",
+    "table": "Table number (optional)",
+    "opens": "Opens",
+    "url": "Target URL",
+    "create": "Create QR",
+    "bulk_title": "Create table QRs in one go",
+    "bulk_n": "Number of tables",
+    "bulk_create": "Create QR for all tables",
+    "kind": {
+      "storefront": "Published website",
+      "custom": "Custom address (e.g. an Elementor page)",
+      "ordering": "Built-in QR ordering page (customer orders)"
+    },
+    "list_title": "QR codes ({{n}})",
+    "none": "No QR codes yet.",
+    "print_all": "Print all active QR codes",
+    "ok": "Ready",
+    "unavailable": "Cannot be opened right now",
+    "scans": "{{n}} scans",
+    "last_scan": "Last scan",
+    "active": "Active",
+    "save": "Save",
+    "copy": "Copy link",
+    "download": "Download SVG",
+    "delete": "Delete",
+    "copied": "Link copied.",
+    "created": "Created.",
+    "saved": "Saved; printed QR codes now lead to the new target.",
+    "save_failed": "Could not save.",
+    "load_failed": "Could not load.",
+    "confirm_delete": "Delete “{{label}}”? Its printed QR will stop working."
+  }
+}

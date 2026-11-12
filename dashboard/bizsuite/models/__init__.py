@@ -49,6 +49,7 @@ from .production import Formula, FormulaLine, ProductionOrder
 from .club import LoyaltyMember, LoyaltySettings, LoyaltyTransaction
 from .feedback import Feedback
 from .support import SupportMessage, SupportTicket
+from .qr import QrLink
 from .accounting import Account, CostCenter, JournalEntry, JournalLine
 from .jobs import BackgroundJob
 from .modules import BusinessModule, Module, Plan
@@ -61,7 +62,7 @@ from .delivery import (
 
 __all__ = [
     "BusinessModule", "Module", "Plan",
-    "Storefront", "StorefrontAsset", "StorefrontRevision", "StorefrontTemplate",
+    "QrLink", "Storefront", "StorefrontAsset", "StorefrontRevision", "StorefrontTemplate",
     "BackgroundJob",
     "UNIT_CHOICES", "UNIT_MAX_LENGTH", "DecimalSafeEncoder", "check_constraint",
     "created_at_field", "description_field", "is_active_field", "name_field",

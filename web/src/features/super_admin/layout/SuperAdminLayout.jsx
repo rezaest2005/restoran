@@ -10,6 +10,7 @@ import SuperTopBar from "@super/layout/SuperTopBar";
 import TenantsPanel from "@super/tenants/TenantsPanel";
 import UsersPanel from "@super/users/UsersPanel";
 import ModulesPanel from "@super/modules/ModulesPanel";
+import QrPanel from "@super/qr/QrPanel";
 import StorefrontPanel from "@super/storefront/StorefrontPanel";
 import SupportPanel from "@super/support/SupportPanel";
 import { fetchSupportSummary } from "@super/support/api";
@@ -81,6 +82,7 @@ export default function SuperAdminLayout() {
     { id: "users", label: t("super.tab.users"), icon: "users" },
     { id: "modules", label: t("ui_k.mod.title"), icon: "modules" },
     { id: "storefront", label: t("ui_sfa.tab"), icon: "website" },
+    { id: "qr", label: t("ui_qr.tab"), icon: "qr" },
     { id: "support", label: t("ui_sup.admin_tab"), icon: "support", badge: supportWaiting },
   ];
   const tabParam = searchParams.get("tab");
@@ -209,7 +211,8 @@ export default function SuperAdminLayout() {
           )}
           {activeTab === 2 && <ModulesPanel tenants={tenants} C={C} />}
           {activeTab === 3 && <StorefrontPanel tenants={tenants} />}
-          {activeTab === 4 && <SupportPanel C={C} tenants={tenants} onChanged={refreshSupport} />}
+          {activeTab === 4 && <QrPanel tenants={tenants} C={C} />}
+          {activeTab === 5 && <SupportPanel C={C} tenants={tenants} onChanged={refreshSupport} />}
         </Box>
       </Box>
 

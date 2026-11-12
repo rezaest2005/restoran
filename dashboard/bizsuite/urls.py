@@ -1,7 +1,7 @@
 """
 Business Management System — URLs (★ نسخه v12 — session-check)
 """
-from django.urls import path
+from django.urls import path, re_path
 from django.http import JsonResponse
 from . import views
 from .views import system as system_views
@@ -10,6 +10,8 @@ from .views import storefront as sf_views
 from .views import delivery as dl_views
 from .views import catalog as cat_views
 from .views.super_admin import modules as mod_views
+from .views.super_admin import qr as qr_super
+from .views import qr_redirect as qr_public
 from .views.super_admin import support as sup_super
 from .views import support as sup_views
 
@@ -216,6 +218,9 @@ urlpatterns = [
     path("api/super/users/<int:pk>/permissions/", views.super_user_permissions_api, name="super_user_permissions"),
 
     path("api/super/modules/", mod_views.super_modules_api, name="super_modules"),
+    path("api/super/qr/", qr_super.super_qr_links, name="super_qr_links"),
+    path("api/super/qr/<int:pk>/", qr_super.super_qr_detail, name="super_qr_detail"),
+    re_path(r"^q/(?P<code>[A-Za-z0-9]{4,16})/?$", qr_public.qr_redirect, name="qr_redirect"),
     path("api/super/plans/", mod_views.super_plans_api, name="super_plans"),
     path("api/super/features/", mod_views.super_features_api, name="super_features"),
     path("api/super/businesses/<int:business_id>/modules/", mod_views.super_business_modules_api, name="super_business_modules"),
