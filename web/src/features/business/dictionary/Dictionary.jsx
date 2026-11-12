@@ -10,7 +10,6 @@ import { moduleEnabled, hasTab } from "@business/dashboard/access";
 import {
   useToast, ToastSnackbar, useRegisteredShortcuts, tabBindings, helpBinding, collectShortcuts, useStyles,
 } from "./common";
-import ProductsSection from "./components/ProductsSection";
 import ItemsSection from "./components/ItemsSection";
 import FormulasSection from "./components/formulas/FormulasSection";
 import SupplierSection from "./components/SupplierSection";
@@ -25,7 +24,6 @@ import HintBar from "@shared/ui/HintBar";
  * AND the user holds one of its permission tabs.
  */
 const ALL_TABS = [
-  { id: "products", icon: "🛍️", mods: ["pos"], perms: ["dictionary_menu"] },
   { id: "items", icon: "🧱", mods: ["inventory", "production"], perms: ["dictionary_items"] },
   { id: "formulas", icon: "📖", mods: ["production"], perms: ["dictionary_recipe"] },
   { id: "suppliers", icon: "🏭", mods: ["inventory"], perms: ["dictionary_suppliers"] },
@@ -104,7 +102,6 @@ export default function Dictionary() {
           </Tabs>
 
           <Box sx={{ ...S.card, p: { xs: 1.5, md: 3 } }}>
-            {activeTab === "products" && <ProductsSection ctx={ctx} canLink={moduleEnabled("inventory")} />}
             {activeTab === "items" && <ItemsSection ctx={ctx} />}
             {activeTab === "formulas" && <FormulasSection ctx={ctx} jump={formulaJump} />}
             {activeTab === "suppliers" && <SupplierSection ctx={ctx} />}
