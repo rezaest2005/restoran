@@ -16,7 +16,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 WORKDIR /app
 COPY dashboard/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt gunicorn "psycopg[binary]"
+RUN pip install --no-cache-dir -r requirements.txt
 COPY dashboard/ .
 COPY deploy/entrypoint.sh deploy/migrate.sh /app/
 RUN sed -i 's/\r$//' /app/entrypoint.sh /app/migrate.sh \

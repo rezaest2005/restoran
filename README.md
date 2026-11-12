@@ -38,6 +38,9 @@ docker compose -f deploy/docker-compose.yml up -d --build
 The app is then available on `http://localhost:8080` (change with `WEB_PORT`).
 Health check: `GET /api/health/`. Product info: `GET /api/app/info/`.
 
+CI (tests, build, docker smoke test) runs on every push; CD publishes the images to GHCR and can deploy over SSH.
+See [docs/DEPLOY.md](docs/DEPLOY.md).
+
 ## Local development
 
 ```bash
