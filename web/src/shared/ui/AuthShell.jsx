@@ -12,6 +12,7 @@ import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import { appName } from "@shared/branding";
 import { BrandSquare } from "@shared/ui/BrandMark";
+import LoginHero from "@shared/ui/LoginHero";
 
 /**
  * Shared sign-in layout (business + super admin): flat design-system background, one centred card,
@@ -45,14 +46,17 @@ export default function AuthShell({ title, subtitle, footer, children }) {
         <Box
           component="main"
           sx={{
-            width: "100%", maxWidth: 400, p: { xs: 3, sm: 4 },
+            width: "100%", maxWidth: 420, p: { xs: 3, sm: 4 },
             bgcolor: "var(--surface)", border: "1px solid var(--line)",
             borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-sm)",
           }}
         >
           <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1.25, mb: 3, textAlign: "center" }}>
-            <BrandSquare size={44} />
-            <Typography sx={{ fontWeight: 800, fontSize: 13, color: "var(--ink-muted)" }}>{appName(i18n.language)}</Typography>
+            <LoginHero width={340} />
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
+              <BrandSquare size={24} />
+              <Typography sx={{ fontWeight: 800, fontSize: 14, color: "var(--ink-muted)" }}>{appName(i18n.language)}</Typography>
+            </Box>
             <Typography component="h1" sx={{ fontWeight: 800, fontSize: 22, lineHeight: 1.5 }}>{title}</Typography>
             {subtitle && <Typography sx={{ color: "var(--ink-muted)", fontSize: 14, lineHeight: 1.8 }}>{subtitle}</Typography>}
           </Box>
