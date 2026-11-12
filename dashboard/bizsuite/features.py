@@ -129,6 +129,7 @@ PATH_FEATURES: list[tuple[str, list[str], list[str] | None]] = [
     ("/api/delivery/stops", _TRIP_TABS, None),
     ("/api/delivery/map", _TRIP_TABS + ["delivery_fleet"], None),
     ("/api/delivery/pending-orders", ["delivery_dispatch"], None),
+    ("/api/delivery/dispatchable", ["delivery_dispatch"], None),
     ("/api/pos/update-food-price", ["pos_settings"], None),
     ("/api/inventory/reports", ["inventory_reports"], None),
     ("/api/inventory/purchase-suggestions", ["inventory_purchase_list"], None),

@@ -8,10 +8,10 @@
 import logging
 from decimal import Decimal
 
-from .models import InventoryMovement, JournalEntry, OrderItem, PurchaseInvoiceItem, SalesInvoiceItem
+from .models import InventoryMovement, JournalEntry, OrderItem, Payment, PurchaseInvoiceItem, SalesInvoiceItem
 from .accounting_services import (
     BANK, CASH, COGS, INVENTORY, OTHER_EXPENSE, PAYABLE, RECEIVABLE,
-    SALES, SALES_RETURNS, post_entry, q2, reverse_by_source, reverse_entry,
+    SALES, SALES_RETURNS, expense_account, post_entry, q2, reverse_by_source, reverse_entry,
 )
 
 WASTE = "5120"
@@ -109,10 +109,14 @@ def post_purchase_invoice(inv, user=None):
     ))
     if total <= 0:
         return None
+    paid = min(q2(getattr(inv, "paid_amount", 0) or 0), total) if getattr(inv, "payment_method", "credit") != "credit" else q2(0)
+    lines = [{"account": INVENTORY, "debit": total, "memo": inv.supplier_name}]
+    if paid > 0:
+        lines.append({"account": CASH if inv.payment_method == "cash" else BANK, "credit": paid, "memo": inv.supplier_name})
+    if total - paid > 0:
+        lines.append({"account": PAYABLE, "credit": total - paid, "memo": inv.supplier_name})
     return post_entry(
-        inv.business,
-        [{"account": INVENTORY, "debit": total, "memo": inv.supplier_name},
-         {"account": PAYABLE, "credit": total, "memo": inv.supplier_name}],
+        inv.business, lines,
         date=inv.date, source_type="purchase_invoice", source_id=inv.pk,
         description=f"فاکتور خرید {inv.invoice_number or inv.pk}", user=user,
     )
@@ -135,13 +139,31 @@ def post_expense(exp, user=None):
     amount = q2(exp.amount)
     if amount <= 0:
         return None
+    paid_from = BANK if getattr(exp, "payment_method", "cash") == "bank" else CASH
     return post_entry(
         exp.business,
-        [{"account": OTHER_EXPENSE, "debit": amount, "memo": f"{exp.category}: {exp.title}"},
-         {"account": CASH, "credit": amount}],
+        [{"account": expense_account(exp.category), "debit": amount, "memo": f"{exp.category}: {exp.title}"},
+         {"account": paid_from, "credit": amount}],
         date=exp.date, source_type="expense", source_id=exp.pk,
         description=f"هزینه — {exp.title}", user=user,
     )
+
+
+def post_payment(pay, user=None):
+    """دریافت از مشتری: بدهکار صندوق/بانک، بستانکار دریافتنی. پرداخت به تأمین‌کننده: بدهکار پرداختنی، بستانکار صندوق/بانک."""
+    amount = q2(pay.amount)
+    if amount <= 0:
+        return None
+    money = BANK if pay.method == "bank" else CASH
+    who = pay.party_name or (pay.customer.name if pay.customer_id else pay.supplier.name if pay.supplier_id else "")
+    if pay.kind == Payment.Kind.RECEIPT:
+        lines = [{"account": money, "debit": amount, "memo": who}, {"account": RECEIVABLE, "credit": amount, "memo": who}]
+        desc = f"دریافت از مشتری — {who}"
+    else:
+        lines = [{"account": PAYABLE, "debit": amount, "memo": who}, {"account": money, "credit": amount, "memo": who}]
+        desc = f"پرداخت به تأمین‌کننده — {who}"
+    return post_entry(pay.business, lines, date=pay.date, source_type="payment", source_id=pay.pk,
+                      description=desc, user=user)
 
 
 def post_pos_order(order, user=None):
@@ -223,6 +245,6 @@ def unpost(business, source_type, source_id, user=None, reason=""):
 POSTERS = {
     fn.__name__: fn for fn in (
         post_sales_invoice, post_sales_return, post_purchase_invoice,
-        post_purchase_return, post_expense, post_pos_order, post_stock_waste,
+        post_purchase_return, post_expense, post_pos_order, post_stock_waste, post_payment,
     )
 }

@@ -45,6 +45,13 @@ class PurchaseInvoice(TenantModel):
         max_length=50, blank=True, default="", verbose_name="شماره فاکتور"
     )
     date = models.DateField(default=timezone.now, verbose_name="تاریخ")
+    payment_method = models.CharField(
+        max_length=10, default="credit", verbose_name="روش پرداخت",
+        help_text="credit = نسیه، cash = نقد، bank = بانک/کارت",
+    )
+    paid_amount = models.DecimalField(
+        max_digits=14, decimal_places=2, default=0, verbose_name="پرداخت‌شده هنگام خرید",
+    )
     description = description_field()
     file = models.FileField(
         upload_to="purchase_invoices/%Y/%m/", blank=True, verbose_name="فایل فاکتور"

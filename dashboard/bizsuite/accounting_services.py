@@ -82,6 +82,32 @@ PAYABLE, DRIVER_PAYABLE, CARRIER_PAYABLE = "2110", "2120", "2130"
 SALES, DELIVERY_REVENUE, SALES_RETURNS = "4110", "4120", "4130"
 COGS, DELIVERY_COST, OTHER_EXPENSE, CASH_DIFF = "5110", "5210", "5390", "5400"
 
+# expense category key -> account code (the customer never sees account codes)
+EXPENSE_ACCOUNT = {"payroll": "5310", "rent": "5320", "utilities": "5330",
+                   "fuel": "5220", "maintenance": "5230", "other": "5390"}
+_CATEGORY_WORDS = [
+    ("payroll", ("حقوق", "دستمزد", "کارگر", "پرسنل", "payroll", "salary", "wage")),
+    ("rent", ("اجاره", "رهن", "rent")),
+    ("utilities", ("قبض", "آب", "برق", "گاز", "تلفن", "اینترنت", "utilit", "electric", "water")),
+    ("fuel", ("سوخت", "بنزین", "گازوئیل", "fuel")),
+    ("maintenance", ("تعمیر", "نگهداری", "سرویس", "maint", "repair")),
+]
+
+
+def normalize_category(value) -> str:
+    """Accepts a key ("rent") or older free text ("اجاره مغازه") and returns a known key."""
+    v = str(value or "").strip().lower()
+    if v in EXPENSE_ACCOUNT:
+        return v
+    for key, words in _CATEGORY_WORDS:
+        if any(w in v for w in words):
+            return key
+    return "other"
+
+
+def expense_account(category) -> str:
+    return EXPENSE_ACCOUNT[normalize_category(category)]
+
 
 @transaction.atomic
 def seed_default_chart(business) -> int:

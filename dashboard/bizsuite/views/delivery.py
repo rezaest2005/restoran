@@ -26,7 +26,8 @@ from rest_framework.decorators import (
 from rest_framework.permissions import AllowAny, BasePermission
 
 from ..delivery_services import (
-    assign_trip, change_trip_status, create_trip, order_is_dispatched, public_tracking, record_ping,
+    assign_trip, change_trip_status, create_trip, order_is_dispatched, public_tracking, purchase_is_dispatched,
+    record_ping, sales_invoice_is_dispatched,
     settle_driver_cash, uncollected_cash, update_stop, validate_coords,
 )
 from ..models import (
@@ -132,6 +133,7 @@ def _stop_data(s):
         "collected_method": s.collected_method, "failure_reason": s.failure_reason,
         "eta": _local_dt(s.eta), "arrived_at": _local_dt(s.arrived_at),
         "delivered_at": _local_dt(s.delivered_at), "order_id": s.order_id,
+        "stop_type": s.stop_type, "sales_invoice_id": s.sales_invoice_id, "purchase_invoice_id": s.purchase_invoice_id,
         "tracking_token": s.public_token,
     }
 
@@ -410,6 +412,13 @@ def driver_shift(request, pk):
 #  مأموریت‌ها
 # ═══════════════════════════════════════
 
+def _items_text(qs, limit=4):
+    """What is on the invoice, e.g. "flour x 10, sugar x 5", for the cargo description."""
+    rows = list(qs[:limit + 1])
+    text = "، ".join(f"{i.item_name} × {Decimal(i.quantity).normalize():f}" for i in rows[:limit])
+    return text + (" …" if len(rows) > limit else "")
+
+
 def _parse_dt(v):
     if v in (None, ""):
         return None
@@ -451,6 +460,37 @@ def _parse_stops(r, raw):
             item["customer_name"] = item.get("customer_name") or order.customer_name
             item["phone"] = item.get("phone") or order.phone
             item["address"] = item.get("address") or order.delivery_address
+        if s.get("invoice_id"):
+            from ..models import SalesInvoice
+            inv = SalesInvoice.all_objects.filter(business=r, pk=s["invoice_id"]).select_related("customer").first()
+            if inv is None:
+                raise ValueError("فاکتور فروش پیدا نشد.")
+            if sales_invoice_is_dispatched(inv):
+                raise ValueError(f"فاکتور فروش {inv.invoice_number or inv.pk} قبلاً در یک مأموریت قرار گرفته است.")
+            item["sales_invoice"] = inv
+            cust = inv.customer
+            item["customer_name"] = item.get("customer_name") or inv.customer_name or (cust.name if cust else "")
+            item["phone"] = item.get("phone") or (cust.phone if cust else "")
+            item["address"] = item.get("address") or (cust.address if cust else "")
+            item["reference"] = item.get("reference") or f"فاکتور فروش {inv.invoice_number or inv.pk}"
+            item["cargo_description"] = item.get("cargo_description") or _items_text(inv.items.model.all_objects.filter(invoice=inv))
+            if s.get("cod") and not item.get("amount_due"):
+                item["amount_due"] = max(Decimal(inv.remaining), Decimal("0"))      # the customer pays the courier
+        if s.get("purchase_id"):
+            from ..models import PurchaseInvoice
+            pinv = PurchaseInvoice.all_objects.filter(business=r, pk=s["purchase_id"]).select_related("supplier").first()
+            if pinv is None:
+                raise ValueError("فاکتور خرید پیدا نشد.")
+            if purchase_is_dispatched(pinv):
+                raise ValueError(f"فاکتور خرید {pinv.invoice_number or pinv.pk} قبلاً در یک مأموریت قرار گرفته است.")
+            item["purchase_invoice"] = pinv
+            sup = pinv.supplier
+            item["customer_name"] = item.get("customer_name") or pinv.supplier_name
+            item["phone"] = item.get("phone") or (sup.phone if sup else "")
+            item["address"] = item.get("address") or (sup.address if sup else "")
+            item["reference"] = item.get("reference") or f"فاکتور خرید {pinv.invoice_number or pinv.pk}"
+            item["cargo_description"] = item.get("cargo_description") or _items_text(pinv.items.model.all_objects.filter(invoice=pinv))
+            item["stop_type"] = "pickup"
         out.append(item)
     return out
 
@@ -539,6 +579,46 @@ def pending_orders(request):
         "cod": o.payment_status != "paid", "created_at": _local_dt(o.created_at),
         "note": o.customer_note,
     } for o in qs])
+
+
+def _live_stops_qs(r):
+    return (TripStop.all_objects.filter(business=r)
+            .exclude(trip__status="cancelled").exclude(status="failed"))
+
+
+@api_view(["GET"])
+@authentication_classes(StaffAuth)
+@permission_classes([DeliveryPerm])
+def dispatchable_invoices(request):
+    """Warehouse documents that can go on a trip: recent sales invoices (out to a customer) and purchase
+    invoices (the business's own truck fetches the goods). Empty when the inventory module is off."""
+    from ..models import PurchaseInvoice, SalesInvoice
+    r = staff_business(request)
+    if r is None:
+        return _no_business()
+    if not module_enabled(r, "inventory"):
+        return api_success(data={"sales": [], "purchases": []})
+    since = timezone.localdate() - datetime.timedelta(days=30)
+    live_s = _live_stops_qs(r).exclude(sales_invoice__isnull=True).values("sales_invoice_id")
+    live_p = _live_stops_qs(r).exclude(purchase_invoice__isnull=True).values("purchase_invoice_id")
+    sales = (SalesInvoice.all_objects.filter(business=r, date__gte=since).exclude(pk__in=live_s)
+             .select_related("customer").order_by("-date", "-id")[:60])
+    purchases = (PurchaseInvoice.all_objects.filter(business=r, date__gte=since).exclude(pk__in=live_p)
+                 .select_related("supplier").order_by("-date", "-id")[:60])
+    return api_success(data={
+        "sales": [{
+            "id": i.id, "number": i.invoice_number, "date": i.date.isoformat(),
+            "customer_name": i.customer_name or (i.customer.name if i.customer else ""),
+            "phone": i.customer.phone if i.customer else "", "address": i.customer.address if i.customer else "",
+            "total": _f(i.net_total), "remaining": _f(max(Decimal(i.remaining), Decimal("0"))),
+            "items": _items_text(i.items.model.all_objects.filter(invoice=i)),
+        } for i in sales],
+        "purchases": [{
+            "id": i.id, "number": i.invoice_number, "date": i.date.isoformat(), "supplier_name": i.supplier_name,
+            "phone": i.supplier.phone if i.supplier else "", "address": i.supplier.address if i.supplier else "",
+            "items": _items_text(i.items.model.all_objects.filter(invoice=i)),
+        } for i in purchases],
+    })
 
 
 @api_view(["GET"])

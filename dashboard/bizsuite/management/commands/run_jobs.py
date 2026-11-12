@@ -29,6 +29,7 @@ class Command(BaseCommand):
                 pass
 
         self.stdout.write("worker started")
+        last_recurring = 0.0
         while not stop["flag"]:
             if not opts["once"]:
                 close_old_connections()
@@ -44,5 +45,14 @@ class Command(BaseCommand):
                 continue
             if opts["once"]:
                 break
+            if time.time() - last_recurring > 3600:      # monthly fixed costs: post what is due, at most hourly
+                last_recurring = time.time()
+                try:
+                    from ...accounting_autopilot import run_recurring_all
+                    n = run_recurring_all()
+                    if n:
+                        self.stdout.write(f"recurring costs posted: {n}")
+                except Exception as exc:
+                    self.stderr.write(f"recurring error: {exc}")
             time.sleep(opts["interval"])
         self.stdout.write("worker stopped")

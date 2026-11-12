@@ -29,6 +29,7 @@ export const assignTrip = (id, body) => client.post(`/api/delivery/trips/${id}/a
 export const setTripStatus = (id, status) => client.post(`/api/delivery/trips/${id}/status/`, { status }).then(unwrap);
 export const setStopStatus = (id, body) => client.post(`/api/delivery/stops/${id}/status/`, body).then(unwrap);
 
+export const fetchDispatchable = () => client.get("/api/delivery/dispatchable/").then(unwrap);
 export const fetchPendingOrders = () => client.get("/api/delivery/pending-orders/").then(unwrap);
 /** Public tracking page URL (stop token for a customer, trip token for a cargo owner). */
 export const trackingUrl = (token) => `${window.location.origin}/t/${token}`;

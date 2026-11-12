@@ -19,7 +19,7 @@ from django.utils import timezone
 
 from .accounting_services import (
     BANK, CARRIER_PAYABLE, CASH, CASH_DIFF, DELIVERY_COST, DELIVERY_REVENUE, DRIVER_CASH,
-    DRIVER_PAYABLE, SALES, post_entry, q2,
+    DRIVER_PAYABLE, RECEIVABLE, SALES, post_entry, q2,
 )
 from .accounting_posting import _accounting_on
 from .models import (
@@ -96,6 +96,18 @@ def order_is_dispatched(order) -> bool:
             .exclude(trip__status=Trip.Status.CANCELLED).exclude(status=TripStop.Status.FAILED).exists())
 
 
+def _live_stops():
+    return TripStop.all_objects.exclude(trip__status=Trip.Status.CANCELLED).exclude(status=TripStop.Status.FAILED)
+
+
+def sales_invoice_is_dispatched(inv) -> bool:
+    return _live_stops().filter(sales_invoice_id=getattr(inv, "pk", inv)).exists()
+
+
+def purchase_is_dispatched(inv) -> bool:
+    return _live_stops().filter(purchase_invoice_id=getattr(inv, "pk", inv)).exists()
+
+
 @transaction.atomic
 def create_trip(business, stops, driver=None, vehicle=None, carrier=None, user=None, **fields):
     """
@@ -135,11 +147,20 @@ def create_trip(business, stops, driver=None, vehicle=None, carrier=None, user=N
             type(order).all_objects.select_for_update().get(pk=order.pk)
             if order_is_dispatched(order):
                 raise ValueError(f"سفارش #{order.pk} قبلاً در یک مأموریت قرار گرفته است.")
+        sinv, pinv = s.get("sales_invoice"), s.get("purchase_invoice")
+        for doc, label, check in ((sinv, "فاکتور فروش", sales_invoice_is_dispatched), (pinv, "فاکتور خرید", purchase_is_dispatched)):
+            if doc is not None:
+                if doc.business_id != business.pk:
+                    raise ValueError(f"{label} متعلق به این کسب‌وکار نیست.")
+                type(doc).all_objects.select_for_update().get(pk=doc.pk)     # two dispatchers at once: second one waits
+                if check(doc):
+                    raise ValueError(f"{label} قبلاً در یک مأموریت قرار گرفته است.")
         weight = s.get("weight_kg")
         if weight not in (None, ""):
             total_weight += Decimal(str(weight))
         TripStop.all_objects.create(
-            business=business, trip=trip, sequence=i, order=order,
+            business=business, trip=trip, sequence=i, order=order, sales_invoice=sinv, purchase_invoice=pinv,
+            stop_type="pickup" if pinv is not None or s.get("stop_type") == "pickup" else "delivery",
             reference=str(s.get("reference") or "")[:100],
             cargo_description=str(s.get("cargo_description") or "")[:300],
             customer_name=str(s.get("customer_name") or "")[:200],
@@ -381,16 +402,23 @@ def post_trip_accounting(trip, user=None):
                 collected_cash += s.collected_amount
             else:
                 collected_other += s.collected_amount
+    # money collected for a warehouse sales invoice: the invoice already booked the sale (as a receivable),
+    # so the collection clears that receivable; everything else is a sale made at the door
+    invoice_part = sum((s.collected_amount for s in TripStop.all_objects.filter(
+        trip=trip, status=TripStop.Status.DELIVERED, sales_invoice__isnull=False) if s.collected_amount > 0), Decimal("0"))
     fee = q2(trip.delivery_fee)
     revenue_items = collected_cash + collected_other
     if revenue_items > 0:
         # وصول در محل: فروش (مبلغ منهای هزینه‌ی حمل) و درآمد حمل
-        sale_part = revenue_items - min(fee, revenue_items)
-        fee_part = min(fee, revenue_items)
+        door_sales = revenue_items - min(invoice_part, revenue_items)
+        fee_part = min(fee, door_sales)
+        sale_part = door_sales - fee_part
         if collected_cash > 0:
             lines.append({"account": DRIVER_CASH, "debit": q2(collected_cash), "memo": f"مأموریت {trip.number}"})
         if collected_other > 0:
             lines.append({"account": BANK, "debit": q2(collected_other), "memo": f"مأموریت {trip.number}"})
+        if invoice_part > 0:
+            lines.append({"account": RECEIVABLE, "credit": q2(min(invoice_part, revenue_items)), "memo": f"وصول فاکتور — مأموریت {trip.number}"})
         if sale_part > 0:
             lines.append({"account": SALES, "credit": q2(sale_part)})
         if fee_part > 0:

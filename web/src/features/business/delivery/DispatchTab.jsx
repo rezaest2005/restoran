@@ -209,7 +209,10 @@ export default function DispatchTab({ ctx, drivers, vehicles, refreshKey, select
                     <Typography sx={{ fontWeight: 700, color: C.text, fontSize: 13 }}>
                       {fmtInt(s.sequence, lang)}. {s.customer_name || s.address}
                     </Typography>
-                    <StatusChip color={stopStatusColor(C, s.status)} label={t(`ui_del.stop_status.${s.status}`)} />
+                    <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
+                      {s.stop_type === "pickup" && <StatusChip color={C.info} label={t("ui_del.queue.pickup")} />}
+                      <StatusChip color={stopStatusColor(C, s.status)} label={t(`ui_del.stop_status.${s.status}`)} />
+                    </Box>
                   </Box>
                   {s.customer_name && <Typography sx={{ color: C.sub, fontSize: 12 }}>{s.address}</Typography>}
                   <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5, mt: 0.5, color: C.sub, fontSize: 12 }}>

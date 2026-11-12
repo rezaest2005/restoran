@@ -11,6 +11,7 @@ import { createTrip, errMsg } from "./api";
 const blankStop = () => ({
   key: newKey(), customer_name: "", phone: "", address: "", lat: "", lng: "",
   reference: "", amount_due: "", weight_kg: "", cargo_description: "", order_id: null,
+  invoice_id: null, purchase_id: null, cod: false, stop_type: "delivery",
 });
 
 const blankCargo = () => ({
@@ -59,7 +60,9 @@ export default function TripDialog({ ctx, drivers, vehicles, carriers, onClose, 
         expected_arrival: cargo.expected_arrival || null,
       } : {}),
       stops: stops.map((s) => ({
-        order_id: s.order_id || undefined, cargo_description: s.cargo_description.trim(),
+        order_id: s.order_id || undefined, invoice_id: s.invoice_id || undefined, purchase_id: s.purchase_id || undefined,
+        cod: s.cod || undefined, stop_type: s.stop_type === "pickup" ? "pickup" : undefined,
+        cargo_description: s.cargo_description.trim(),
         customer_name: s.customer_name.trim(), phone: s.phone.trim(), address: s.address.trim(),
         lat: s.lat === "" ? null : num(s.lat), lng: s.lng === "" ? null : num(s.lng),
         reference: s.reference.trim(), amount_due: s.amount_due === "" ? 0 : num(s.amount_due),

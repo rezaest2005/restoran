@@ -52,7 +52,13 @@ class Customer(TenantModel):
         returns = SalesReturn.all_objects.filter(
             invoice__customer=self, invoice__payment_method="credit"
         ).aggregate(t=Sum("amount"))["t"] or Decimal("0")
-        return self.opening_balance + outstanding - returns
+        from .accounting import Payment
+        received = Payment.all_objects.filter(customer=self, kind="in").aggregate(t=Sum("amount"))["t"] or Decimal("0")
+        # cash the courier collected on delivery of this customer's invoices also settles the debt
+        from .delivery import TripStop
+        cod = TripStop.all_objects.filter(sales_invoice__customer=self, status="delivered").aggregate(
+            t=Sum("collected_amount"))["t"] or Decimal("0")
+        return self.opening_balance + outstanding - returns - received - cod
 
 
 class SalesInvoice(TenantModel):
@@ -208,6 +214,14 @@ class Expense(TenantModel):
     category = models.CharField(
         max_length=50, blank=True, default="سایر", verbose_name="دسته",
     )
+    payment_method = models.CharField(
+        max_length=10, default="cash", verbose_name="پرداخت از",
+        help_text="cash = صندوق، bank = بانک/کارت",
+    )
+    recurring = models.ForeignKey(
+        "RecurringExpense", on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+    )
+    period = models.CharField(max_length=7, blank=True, default="", help_text="YYYY-MM هزینه‌ی ثابت")
     date = models.DateField(default=timezone.now, verbose_name="تاریخ")
     note = description_field()
     created_at = created_at_field()
@@ -216,6 +230,11 @@ class Expense(TenantModel):
         ordering = ["-date"]
         verbose_name = "هزینه"
         verbose_name_plural = "هزینه‌ها"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["recurring", "period"], condition=~models.Q(period=""),
+                name="rms_expense_recurring_period_unique"),
+        ]
 
     def __str__(self):
         return f"{self.title} — {self.amount}"

@@ -12,6 +12,7 @@ from .views import catalog as cat_views
 from .views.super_admin import modules as mod_views
 from .views.super_admin import qr as qr_super
 from .views import qr_redirect as qr_public
+from .views import accounting_auto as acc_auto
 from .views.super_admin import support as sup_super
 from .views import support as sup_views
 
@@ -173,6 +174,7 @@ urlpatterns = [
     path("api/delivery/drivers/", dl_views.drivers, name="delivery_drivers"),
     path("api/delivery/drivers/<int:pk>/", dl_views.driver_detail, name="delivery_driver_detail"),
     path("api/delivery/drivers/<int:pk>/shift/", dl_views.driver_shift, name="delivery_driver_shift"),
+    path("api/delivery/dispatchable/", dl_views.dispatchable_invoices, name="delivery_dispatchable"),
     path("api/delivery/pending-orders/", dl_views.pending_orders, name="delivery_pending_orders"),
     path("api/delivery/trips/", dl_views.trips, name="delivery_trips"),
     path("api/delivery/trips/<int:pk>/", dl_views.trip_detail, name="delivery_trip_detail"),
@@ -200,6 +202,13 @@ urlpatterns = [
     path("api/accounting/reports/ledger/", views.report_ledger, name="accounting_ledger"),
     path("api/accounting/reports/income-statement/", views.report_income_statement, name="accounting_income_statement"),
     path("api/accounting/reports/balance-sheet/", views.report_balance_sheet, name="accounting_balance_sheet"),
+    path("api/accounting/autopilot/", acc_auto.autopilot_overview, name="acc_autopilot"),
+    path("api/accounting/expenses/", acc_auto.expenses, name="acc_expenses"),
+    path("api/accounting/expenses/<int:pk>/", acc_auto.expense_remove, name="acc_expense_remove"),
+    path("api/accounting/payments/", acc_auto.payments, name="acc_payments"),
+    path("api/accounting/payments/<int:pk>/", acc_auto.payment_remove, name="acc_payment_remove"),
+    path("api/accounting/recurring/", acc_auto.recurring, name="acc_recurring"),
+    path("api/accounting/recurring/<int:pk>/", acc_auto.recurring_detail, name="acc_recurring_detail"),
     path("api/accounting/summary/", views.accounting_summary, name="accounting_summary"),
 
     # ── Orders ──────────────────────────────────────────────

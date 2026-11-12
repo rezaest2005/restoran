@@ -179,6 +179,10 @@ class TripStop(TenantModel):
     trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name="stops")
     sequence = models.PositiveIntegerField("ترتیب", default=1)
     order = models.ForeignKey("Order", on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    # warehouse links: a sales invoice going out to a customer, or a purchase invoice the business's own truck fetches
+    sales_invoice = models.ForeignKey("SalesInvoice", on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    purchase_invoice = models.ForeignKey("PurchaseInvoice", on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    stop_type = models.CharField("نوع توقف", max_length=10, default="delivery", help_text="delivery = تحویل به مشتری، pickup = دریافت بار از تأمین‌کننده")
     reference = models.CharField("مرجع (فاکتور/بار)", max_length=100, blank=True, default="")
     cargo_description = models.CharField("شرح بار این توقف", max_length=300, blank=True, default="")
     customer_name = models.CharField(max_length=200, blank=True, default="")

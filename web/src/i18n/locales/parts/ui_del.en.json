@@ -220,7 +220,13 @@
       "make_trip": "Create trip ({{n}} orders)",
       "one": "Dispatch this order",
       "cod": "Cash on delivery",
-      "paid": "Paid"
+      "paid": "Paid",
+      "hint": "Courier orders from the POS, warehouse sales invoices (to deliver to a customer) and purchase invoices (your own truck fetches the goods from the supplier). Tick any mix and make one trip.",
+      "sale": "Sales invoice",
+      "purchase": "Purchase invoice",
+      "pickup": "Pickup",
+      "send_truck": "Send the truck",
+      "no_address": "No address saved — enter it on the trip"
     },
     "pos": {
       "title": "Courier delivery details",

@@ -132,3 +132,79 @@ class JournalLine(TenantModel):
             ),
         ]
         indexes = [models.Index(fields=["business", "account"])]
+
+
+# ───────────────────────── autopilot (هزینه‌های ثابت و پرداخت‌ها) ─────────────────────────
+
+EXPENSE_CATEGORIES = [
+    # key, label (fa), account code
+    ("payroll", "حقوق و دستمزد", "5310"),
+    ("rent", "اجاره", "5320"),
+    ("utilities", "آب، برق، گاز و تلفن", "5330"),
+    ("fuel", "سوخت", "5220"),
+    ("maintenance", "تعمیر و نگهداری", "5230"),
+    ("other", "سایر هزینه‌ها", "5390"),
+]
+EXPENSE_CATEGORY_KEYS = [c[0] for c in EXPENSE_CATEGORIES]
+
+
+class RecurringExpense(TenantModel):
+    """هزینه‌ی ثابت ماهانه (اجاره، حقوق یک کارمند، قبض …): سامانه خودش هر ماه ثبتش می‌کند."""
+
+    class Method(models.TextChoices):
+        CASH = "cash", "نقد (صندوق)"
+        BANK = "bank", "بانک / کارت"
+
+    title = models.CharField("عنوان", max_length=200)
+    category = models.CharField("دسته", max_length=20, default="other")
+    amount = models.DecimalField("مبلغ ماهانه", max_digits=14, decimal_places=2)
+    day_of_month = models.PositiveSmallIntegerField("روز ثبت در ماه", default=1)
+    payment_method = models.CharField(max_length=10, choices=Method.choices, default=Method.BANK)
+    start_date = models.DateField("از تاریخ")
+    is_active = models.BooleanField(default=True)
+    note = models.CharField(max_length=300, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "هزینه‌ی ثابت"
+        verbose_name_plural = "هزینه‌های ثابت"
+        ordering = ["category", "title"]
+        constraints = [
+            models.CheckConstraint(condition=Q(amount__gt=0), name="rms_recurring_amount_gt_0"),
+            models.CheckConstraint(condition=Q(day_of_month__gte=1, day_of_month__lte=28),
+                                   name="rms_recurring_day_1_28"),
+        ]
+
+    def __str__(self):
+        return f"{self.title} ({self.amount})"
+
+
+class Payment(TenantModel):
+    """دریافت از مشتری یا پرداخت به تأمین‌کننده (تسویه‌ی بدهی/طلب)."""
+
+    class Kind(models.TextChoices):
+        RECEIPT = "in", "دریافت از مشتری"
+        PAYOUT = "out", "پرداخت به تأمین‌کننده"
+
+    class Method(models.TextChoices):
+        CASH = "cash", "نقد (صندوق)"
+        BANK = "bank", "بانک / کارت"
+
+    kind = models.CharField(max_length=3, choices=Kind.choices, db_index=True)
+    customer = models.ForeignKey("Customer", on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    supplier = models.ForeignKey("Supplier", on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    party_name = models.CharField(max_length=200, blank=True, default="")
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    method = models.CharField(max_length=10, choices=Method.choices, default=Method.CASH)
+    date = models.DateField()
+    note = models.CharField(max_length=300, blank=True, default="")
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                   related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "پرداخت/دریافت"
+        verbose_name_plural = "پرداخت‌ها و دریافت‌ها"
+        ordering = ["-date", "-id"]
+        constraints = [models.CheckConstraint(condition=Q(amount__gt=0), name="rms_payment_amount_gt_0")]
+        indexes = [models.Index(fields=["business", "kind", "-date"])]

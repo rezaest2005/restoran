@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import logging
 
+from decimal import Decimal
+
 from django.db import transaction
 
 from ...models import PurchaseInvoice, PurchaseInvoiceItem
@@ -16,6 +18,19 @@ logger = logging.getLogger(__name__)
 # ═══════════════════════════════════════════════════════════════════
 #  INVOICE HELPERS
 # ═══════════════════════════════════════════════════════════════════
+
+def _pay_method(v):
+    v = (v or "credit")
+    return v if v in ("credit", "cash", "bank") else "credit"
+
+
+def _pay_amount(v):
+    try:
+        d = Decimal(str(v or 0).replace(",", ""))
+    except Exception:
+        return Decimal("0")
+    return d if d > 0 else Decimal("0")
+
 
 def _build_invoice_from_post(request, business=None):
     """ساخت فاکتور خرید از request."""
@@ -35,6 +50,8 @@ def _build_invoice_from_post(request, business=None):
         invoice_number=(data.get("invoice_number") or "").strip(),
         date=date,
         description=(data.get("description") or "").strip(),
+        payment_method=_pay_method(data.get("payment_method")),
+        paid_amount=_pay_amount(data.get("paid_amount")),
     )
 
     uploaded_file = files.get("invoice_file")
