@@ -90,6 +90,12 @@ def _next_trip_number(business) -> int:
     return (last or 0) + 1
 
 
+def order_is_dispatched(order) -> bool:
+    """An order counts as dispatched while it sits on a live stop (a cancelled trip or a failed stop frees it)."""
+    return (TripStop.all_objects.filter(order_id=getattr(order, "pk", order))
+            .exclude(trip__status=Trip.Status.CANCELLED).exclude(status=TripStop.Status.FAILED).exists())
+
+
 @transaction.atomic
 def create_trip(business, stops, driver=None, vehicle=None, carrier=None, user=None, **fields):
     """
@@ -123,6 +129,12 @@ def create_trip(business, stops, driver=None, vehicle=None, carrier=None, user=N
         order = s.get("order")
         if order is not None and order.business_id != business.pk:
             raise ValueError("سفارش متعلق به این کسب‌وکار نیست.")
+        if order is not None:
+            # two dispatchers clicking the same order at once: the row lock makes the second one wait,
+            # then it sees the first one's stop and is refused
+            type(order).all_objects.select_for_update().get(pk=order.pk)
+            if order_is_dispatched(order):
+                raise ValueError(f"سفارش #{order.pk} قبلاً در یک مأموریت قرار گرفته است.")
         weight = s.get("weight_kg")
         if weight not in (None, ""):
             total_weight += Decimal(str(weight))

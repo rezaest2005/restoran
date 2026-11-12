@@ -26,7 +26,7 @@ from rest_framework.decorators import (
 from rest_framework.permissions import AllowAny, BasePermission
 
 from ..delivery_services import (
-    assign_trip, change_trip_status, create_trip, public_tracking, record_ping,
+    assign_trip, change_trip_status, create_trip, order_is_dispatched, public_tracking, record_ping,
     settle_driver_cash, uncollected_cash, update_stop, validate_coords,
 )
 from ..models import (
@@ -442,7 +442,7 @@ def _parse_stops(r, raw):
             order = Order.all_objects.filter(business=r, pk=s["order_id"]).first()
             if order is None:
                 raise ValueError("سفارش پیدا نشد.")
-            if TripStop.all_objects.filter(business=r, order=order).exists():
+            if order_is_dispatched(order):
                 raise ValueError(f"سفارش #{order.pk} قبلاً در یک مأموریت قرار گرفته است.")
             item["order"] = order
             # پرداخت در محل: مبلغ سفارش پرداخت‌نشده خودکار قابل وصول می‌شود
@@ -528,7 +528,8 @@ def pending_orders(request):
     if r is None:
         return _no_business()
     since = timezone.now() - datetime.timedelta(days=3)
-    dispatched = TripStop.all_objects.filter(business=r, order__isnull=False).values("order_id")
+    dispatched = (TripStop.all_objects.filter(business=r, order__isnull=False)
+                  .exclude(trip__status="cancelled").exclude(status="failed").values("order_id"))
     qs = (Order.all_objects.filter(business=r, order_type="delivery", created_at__gte=since)
           .exclude(status__in=["cancelled", "rejected", "delivered"])
           .exclude(pk__in=dispatched).order_by("created_at")[:100])

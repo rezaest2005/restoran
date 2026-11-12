@@ -260,7 +260,9 @@
       "hint": "Give this address to the courier, or let them scan the QR. They sign in with the username and password you created for them. The business slug comes first in the address.",
       "copy": "Copy address",
       "open": "Open",
-      "session": "The courier stays signed in while the app is open; after closing the app the sign-in page appears again."
+      "session": "The courier stays signed in while the app is open; after closing the app the sign-in page appears again.",
+      "button": "Courier sign-in link",
+      "close": "Close"
     }
   }
 }

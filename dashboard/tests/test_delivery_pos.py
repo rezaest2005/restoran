@@ -131,3 +131,71 @@ class ShipmentTests(Base):
         self.b.disabled_features = ["delivery_shipments", "delivery_dispatch"]
         self.b.save()
         self.assertEqual(self.api.get("/api/delivery/trips/").status_code, 403)
+
+
+class MultiUserTests(Base):
+    """چند صندوقدار و چند مسئول ارسال همزمان: هر سفارش فقط یک بار به پیک می‌رسد."""
+
+    def test_second_trip_for_same_order_is_refused_until_the_first_is_cancelled(self):
+        oid = self.order()["order_id"]
+        first = self.api.post("/api/delivery/trips/", {"stops": [{"order_id": oid}]}, format="json")
+        self.assertEqual(first.status_code, 201)
+        self.assertEqual(self.api.post("/api/delivery/trips/", {"stops": [{"order_id": oid}]}, format="json").status_code, 400)
+        # the first trip is cancelled -> the order is back in the queue and can be sent again
+        self.api.post(f"/api/delivery/trips/{first.json()['data']['id']}/status/", {"status": "cancelled"}, format="json")
+        queue = [o["id"] for o in self.api.get("/api/delivery/pending-orders/").json()["data"]]
+        self.assertIn(oid, queue)
+        self.assertEqual(self.api.post("/api/delivery/trips/", {"stops": [{"order_id": oid}]}, format="json").status_code, 201)
+
+    def test_driver_sees_only_own_trips(self):
+        d2 = Driver.all_objects.create(business=self.b, name="دوم", user=User.objects.create_user(
+            username="dp_d2", password=P, role="driver", business=self.b))
+        d1u = User.objects.create_user(username="dp_d1", password=P, role="driver", business=self.b)
+        self.drv.user = d1u
+        self.drv.save()
+        o1, o2 = self.order()["order_id"], self.order()["order_id"]
+        self.api.post("/api/delivery/trips/", {"driver_id": self.drv.id, "stops": [{"order_id": o1}]}, format="json")
+        self.api.post("/api/delivery/trips/", {"driver_id": d2.id, "stops": [{"order_id": o2}]}, format="json")
+        from rest_framework_simplejwt.tokens import RefreshToken
+        c = APIClient()                      # real JWT, like the courier's phone (sets the tenant context)
+        c.credentials(HTTP_AUTHORIZATION="Bearer " + str(RefreshToken.for_user(d1u).access_token))
+        mine = c.get("/api/delivery/driver/me/").json()["data"]["trips"]
+        self.assertEqual(len(mine), 1)
+        self.assertEqual(mine[0]["stops"][0]["address"], "تهران، خیابان آزادی")
+        stop2 = TripStop.all_objects.get(order_id=o2)
+        self.assertEqual(c.post(f"/api/delivery/driver/stops/{stop2.id}/status/", {"status": "delivered"}, format="json").status_code, 404)   # not even visible to him
+
+
+from django.test import TransactionTestCase
+
+
+class ConcurrentDispatchTests(TransactionTestCase):
+    """دو مسئول ارسال هم‌زمان یک سفارش را بفرستند: دقیقاً یک مأموریت ساخته می‌شود."""
+
+    def test_two_dispatchers_one_order(self):
+        import threading
+        from django.db import connection
+        from bizsuite.delivery_services import create_trip
+        clear_current_business()
+        b = Business.objects.create(name="هم‌زمان", slug="dp-race")
+        order = Order.all_objects.create(business=b, customer_name="x", total_price=1000, order_type="delivery",
+                                         delivery_address="تهران", payment_status="paid")
+        results = []
+        barrier = threading.Barrier(2)
+
+        def go():
+            try:
+                barrier.wait(timeout=10)
+                create_trip(b, [{"customer_name": "x", "address": "تهران", "order": order}])
+                results.append("ok")
+            except ValueError:
+                results.append("refused")
+            finally:
+                connection.close()
+
+        threads = [threading.Thread(target=go) for _ in range(2)]
+        [t.start() for t in threads]
+        [t.join(timeout=30) for t in threads]
+        self.assertEqual(sorted(results), ["ok", "refused"])
+        self.assertEqual(TripStop.all_objects.filter(order=order).count(), 1)
+        self.assertEqual(Trip.all_objects.filter(business=b).count(), 1)     # the refused one rolled back completely
