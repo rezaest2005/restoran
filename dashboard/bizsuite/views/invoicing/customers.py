@@ -13,7 +13,7 @@ from ...models import Customer
 # ═══════════════════════════════════════
 
 
-@staff_endpoint(["GET", "POST"], "pos", "club", "accounting", "inventory", "dictionary")
+@staff_endpoint(["GET", "POST"], "pos", "club", "accounting", "inventory", "dictionary_customers")
 def customer_list_create(request):
     if request.method == "GET":
         qs = Customer.objects.all()
@@ -49,7 +49,7 @@ def customer_list_create(request):
     return JsonResponse({"id": c.pk}, status=201)
 
 
-@staff_endpoint(["GET", "PUT", "DELETE"], "pos", "club", "accounting", "inventory", "dictionary")
+@staff_endpoint(["GET", "PUT", "DELETE"], "pos", "club", "accounting", "inventory", "dictionary_customers")
 def customer_detail(request, pk):
     try:
         c = Customer.objects.get(pk=pk)

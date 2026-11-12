@@ -107,7 +107,7 @@ class RolesAndTabsTests(TestCase):
 
     def test_tab_keys_include_kitchen_and_recipes(self):
         from bizsuite.views.users.tabs import ALL_TAB_KEYS
-        for k in ("kitchen", "recipes", "accounting", "delivery", "club"):
+        for k in ("kitchen", "recipes", "accounting", "delivery_dispatch", "club"):
             self.assertIn(k, ALL_TAB_KEYS)
 
     def test_supplier_save_keeps_description(self):

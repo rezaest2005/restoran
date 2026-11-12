@@ -20,34 +20,15 @@ logger = logging.getLogger(__name__)
 #  ★ همه کلیدهای مجاز تب‌ها
 # ═══════════════════════════════════════
 
-ALL_TAB_KEYS = [
-    "home",
-    "pos", "pos_report", "pos_settings", "orders",
-    "inventory_invoice", "inventory_sales", "inventory_warehouse",
-    "inventory_receiving", "inventory_purchase_list", "inventory_reports",
-    "dictionary_items", "dictionary_menu", "dictionary_recipe",
-    "dictionary_suppliers", "dictionary_warehouses", "dictionary_customers",
-    "dictionary_users",
-    "feedback", "club", "accounting", "delivery",
-    "kitchen", "recipes",
-]
+from ...features import (
+    ALL_FEATURE_KEYS as ALL_TAB_KEYS, licensed_features, user_features, user_ticked,
+)
 
 
 def _get_normalized_tabs(user):
-    """
-    ★ فیکس تیک خودکار:
-      همه کلیدهای ALL_TAB_KEYS رو برمیگردونه
-      هر کلیدی که ذخیره نشده = False (خودکار True نمیشه!)
-    """
-    raw = getattr(user, "tabs", None)
-
-    # حالت ۱: tabs ذخیره شده → نرمال کن
-    if raw and isinstance(raw, dict) and len(raw) > 0:
-        return {k: bool(raw.get(k, False)) for k in ALL_TAB_KEYS}
-
-    # حالت ۲: tabs خالیه → از dashboard_permissions بساز
-    perms = set(user.dashboard_permissions or [])
-    return {k: (k in perms) for k in ALL_TAB_KEYS}
+    """همه‌ی کلیدها صریح؛ کلید ناموجود = False. منبع حقیقت: features.user_ticked."""
+    ticked = user_ticked(user)
+    return {k: (k in ticked) for k in ALL_TAB_KEYS}
 
 
 # ═══════════════════════════════════════
@@ -70,6 +51,8 @@ def user_tabs_api(request):
             "success": True,
             "dashboard_permissions": list(u.dashboard_permissions or []),
             "tabs": _get_normalized_tabs(u),       # ★ فیکس — نرمال‌شده
+            # تب‌هایی که این کسب‌وکار اصلاً دارد (UI فقط همین‌ها را برای تیک‌زدن نشان می‌دهد)
+            "licensed": sorted(licensed_features(getattr(u, "business", None))),
         })
 
     # POST — فقط مدیر/مالک
@@ -96,8 +79,15 @@ def user_tabs_api(request):
             status=404,
         )
 
-    # ★ فیکس — نرمال‌سازی: همه کلیدها explicit ذخیره بشن
-    normalized = {k: bool((tabs or {}).get(k, False)) for k in ALL_TAB_KEYS}
+    # فقط تب‌هایی داده می‌شود که (۱) کسب‌وکار دارد و (۲) خود دهنده‌ی دسترسی دارد.
+    # (سوپرادمین هر چه در مجوز کسب‌وکار هست؛ مالک همه‌ی مجوز؛ مدیر فقط تب‌های خودش)
+    biz = getattr(target, "business", None)
+    grantable = licensed_features(biz)
+    if not request.user.is_superuser:
+        grantable &= user_features(request.user)
+    wanted = tabs or {}
+    normalized = {k: bool(wanted.get(k, False)) and k in grantable for k in ALL_TAB_KEYS}
+    normalized["home"] = "home" in grantable
 
     target.tabs = normalized
     target.dashboard_permissions = [k for k, v in normalized.items() if v]

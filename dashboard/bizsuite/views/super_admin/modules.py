@@ -90,6 +90,14 @@ def _date(v):
     return dt
 
 
+@api_view(["GET"])
+@permission_classes([IsSuperAdmin])
+def super_features_api(request):
+    """Tab-level catalogue the licence editor shows under each module."""
+    from ...features import catalog_for_super_admin
+    return api_success(catalog_for_super_admin())
+
+
 @api_view(["GET", "PUT"])
 @permission_classes([IsSuperAdmin])
 def super_business_modules_api(request, business_id):
@@ -98,6 +106,18 @@ def super_business_modules_api(request, business_id):
         return api_error("not found", 404)
     if request.method == "GET":
         return api_success(business_state(business))
+    if "disabled_features" in request.data:
+        from ...features import FEATURE_BY_KEY, LOCKED_KEYS
+        df = request.data.get("disabled_features")
+        if not isinstance(df, list) or any(not isinstance(k, str) for k in df):
+            return api_error("disabled_features must be a list of keys")
+        unknown = [k for k in df if k not in FEATURE_BY_KEY]
+        if unknown:
+            return api_error("unknown features", 400, errors={"unknown": unknown})
+        business.disabled_features = sorted(set(df) - LOCKED_KEYS)
+        business.save(update_fields=["disabled_features"])
+        if "modules" not in request.data:
+            return api_success(business_state(business), "saved")
     raw = request.data.get("modules")
     if not isinstance(raw, dict):
         return api_error("modules must be an object")

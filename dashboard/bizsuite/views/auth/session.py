@@ -23,17 +23,9 @@ logger = logging.getLogger(__name__)
 # ═══════════════════════════════════════
 
 def _get_business_tabs(user):
-    """Business tabs from Business.dashboard_permissions, filtered by live
-    modules (a tab is visible only if the module is on)."""
-    from ...modules import TAB_MODULE, enabled_modules
-    rest = getattr(user, 'business', None)
-    if not rest:
-        return []
-    tabs = list(rest.dashboard_permissions or [])
-    live = enabled_modules(rest)
-    if live is not None and tabs:
-        tabs = [t for t in tabs if TAB_MODULE.get(t) is None or TAB_MODULE[t] in live]
-    return tabs
+    """Effective features of this user (licence ∩ user's grant) — the ONLY list the UI trusts."""
+    from ...features import user_features
+    return sorted(user_features(user))
 
 
 def _get_business_modules(user):

@@ -64,22 +64,18 @@ def _tenant_url(request, url_name=None, path=None):
 #  بررسی دسترسی کاربر
 # ═══════════════════════════════════════════
 
-def _user_has_any_service(user, service_codes):
-    """بررسی دسترسی — مشترک بین decorator و permission"""
+def _user_has_any_service(user, service_codes, path=None):
+    """
+    بررسی دسترسی — مشترک بین decorator و permission.
+    سه لایه: ماژول خریداری‌شده ∩ تب‌های فعال‌شده توسط سوپرادمین ∩ تب‌های داده‌شده به کاربر
+    (منطق در features.py؛ همان منطقی که منوی UI را می‌سازد).
+    """
     if not user.is_authenticated:
         return False
     if user.is_superuser:
         return True
-    user_perms = user.get_permissions() if hasattr(user, 'get_permissions') else []
-    # ★ اول کدهای گروهی رو باز کن
-    expanded = _expand_codes(service_codes)
-    # ماژول‌های غیرفعال کسب‌وکار: تب فقط وقتی دیده می‌شود که ماژولش فعال باشد
-    from ..modules import enabled_modules, SERVICE_MODULE
-    live = enabled_modules(getattr(user, 'business', None))
-    if live is not None:
-        expanded = [c for c in expanded
-                    if SERVICE_MODULE.get(c) is None or SERVICE_MODULE[c] in live]
-    return any(code in user_perms for code in expanded)
+    from ..features import service_allowed
+    return service_allowed(user, _expand_codes(service_codes), path)
 
 
 # ═══════════════════════════════════════════
@@ -124,7 +120,7 @@ def require_service(*service_codes):
                     )
                 return redirect(_tenant_url(request, 'auth_page'))
 
-            if _user_has_any_service(user, service_codes):
+            if _user_has_any_service(user, service_codes, request.path_info):
                 return view_func(request, *args, **kwargs)
 
             if _is_api(request):
@@ -156,7 +152,7 @@ def make_service_permission(*service_codes):
         message = 'شما دسترسی به این بخش را ندارید'
 
         def has_permission(self, request, view):
-            return _user_has_any_service(request.user, service_codes)
+            return _user_has_any_service(request.user, service_codes, request.path_info)
 
         def has_object_permission(self, request, view, obj):
             return _user_has_any_service(request.user, service_codes)

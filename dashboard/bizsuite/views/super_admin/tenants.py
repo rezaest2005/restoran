@@ -62,10 +62,7 @@ def _tenant_to_dict(tenant, business=None):
         'username_prefix': (
             business.username_prefix if business else ''
         ) or '',
-        # ★★★ فیلد جدید — تب‌های مجاز کسب‌وکار ★★★
-        'dashboard_permissions': (
-            list(business.dashboard_permissions) if business else []
-        ),
+        'disabled_features': list(business.disabled_features) if business else [],
         'created_at': tenant.created_at.strftime('%Y/%m/%d'),
     }
 
@@ -161,8 +158,6 @@ def super_tenants_api(request):
                 slug=slug,
                 phone=data.get('phone', ''),
                 address=data.get('address', ''),
-                # ★★★ ذخیره تب‌های مجاز هنگام ساخت ★★★
-                dashboard_permissions=data.get('dashboard_permissions', []),
             )
 
             if not owner.business:
@@ -207,11 +202,6 @@ def super_tenant_detail_api(request, pk):
         tenant.save()
 
         if business:
-            # ★ ذخیره تب‌های مجاز
-            if 'dashboard_permissions' in data:
-                business.dashboard_permissions = data['dashboard_permissions']
-                business.save(update_fields=['dashboard_permissions'])
-
             # ★ ذخیره username_prefix
             if 'username_prefix' in data:
                 business.username_prefix = (data['username_prefix'] or '').strip()
@@ -230,9 +220,7 @@ def super_tenant_detail_api(request, pk):
         return Response({
             'ok': True,
             'msg': f'کسب‌وکار «{tenant.name}» بروزرسانی شد',
-            'dashboard_permissions': (
-                list(business.dashboard_permissions) if business else []
-            ),
+            'disabled_features': list(business.disabled_features) if business else [],
         })
 
     elif request.method == "DELETE":

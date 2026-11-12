@@ -39,10 +39,16 @@ DASHBOARD_SECTIONS = [
 _ALL_SECTIONS = [s[0] for s in DASHBOARD_SECTIONS]
 
 
+def _valid_permission_values():
+    from ..features import ALL_FEATURE_KEYS
+    return set(_ALL_SECTIONS) | set(ALL_FEATURE_KEYS)
+
+
 def validate_dashboard_permissions(value):
     if not isinstance(value, list):
         raise ValidationError("دسترسی‌ها باید یک لیست باشد.")
-    invalid = [v for v in value if v not in _ALL_SECTIONS]
+    ok = _valid_permission_values()
+    invalid = [v for v in value if v not in ok]
     if invalid:
         raise ValidationError(
             "بخش‌های نامعتبر: " + ", ".join(str(v) for v in invalid)

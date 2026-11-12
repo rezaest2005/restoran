@@ -160,7 +160,8 @@ def business_state(business):
             "price_override": r.price_override if r else None,
             "price": price,
         })
-    return {"managed": managed, "modules": out, "total_monthly": total}
+    return {"managed": managed, "modules": out, "total_monthly": total,
+            "disabled_features": list(getattr(business, "disabled_features", None) or [])}
 
 
 def _validate_codes(codes, cat):

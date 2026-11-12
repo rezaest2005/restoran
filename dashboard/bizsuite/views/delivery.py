@@ -126,6 +126,7 @@ def _stop_data(s):
         "id": s.id, "trip_id": s.trip_id, "sequence": s.sequence, "reference": s.reference,
         "customer_name": s.customer_name, "phone": s.phone, "address": s.address,
         "lat": _f(s.lat), "lng": _f(s.lng), "weight_kg": _f(s.weight_kg),
+        "cargo_description": s.cargo_description,
         "status": s.status, "status_display": s.get_status_display(),
         "amount_due": _f(s.amount_due), "collected_amount": _f(s.collected_amount),
         "collected_method": s.collected_method, "failure_reason": s.failure_reason,
@@ -143,6 +144,10 @@ def _trip_data(t, with_stops=False, stops=None):
     data = {
         "id": t.id, "number": t.number, "waybill": t.waybill, "status": t.status,
         "status_display": t.get_status_display(), "notes": t.notes,
+        "shipper_name": t.shipper_name, "shipper_phone": t.shipper_phone,
+        "cargo_description": t.cargo_description, "cargo_weight_kg": _f(t.cargo_weight_kg),
+        "origin_name": t.origin_name, "destination_name": t.destination_name,
+        "expected_arrival": _local_dt(t.expected_arrival), "tracking_token": t.public_token,
         "driver_id": t.driver_id, "driver_name": t.driver.name if t.driver_id else "",
         "vehicle_id": t.vehicle_id, "vehicle_name": str(t.vehicle) if t.vehicle_id else "",
         "carrier_id": t.carrier_id, "carrier_name": t.carrier.name if t.carrier_id else "",
@@ -405,6 +410,18 @@ def driver_shift(request, pk):
 #  مأموریت‌ها
 # ═══════════════════════════════════════
 
+def _parse_dt(v):
+    if v in (None, ""):
+        return None
+    try:
+        dt = datetime.datetime.fromisoformat(str(v).replace("Z", "+00:00"))
+    except ValueError:
+        raise ValueError("زمان نامعتبر است.")
+    if timezone.is_naive(dt):
+        dt = timezone.make_aware(dt)
+    return dt
+
+
 def _trip_qs(r):
     return (Trip.all_objects.filter(business=r)
             .select_related("driver", "vehicle", "carrier").prefetch_related("stops"))
@@ -418,15 +435,22 @@ def _parse_stops(r, raw):
         if not isinstance(s, dict):
             raise ValueError("توقف نامعتبر است.")
         item = {k: s.get(k) for k in ("customer_name", "phone", "address", "lat", "lng",
-                                      "reference", "amount_due", "weight_kg")}
+                                      "reference", "amount_due", "weight_kg", "cargo_description")}
         item["amount_due"] = _dec(s.get("amount_due"), "مبلغ قابل وصول") or Decimal("0")
         if s.get("order_id"):
             from ..models import Order
-            order = Order.all_objects.filter(business=r, pk=s["order_id"]).first() \
-                if hasattr(Order, "all_objects") else None
+            order = Order.all_objects.filter(business=r, pk=s["order_id"]).first()
             if order is None:
                 raise ValueError("سفارش پیدا نشد.")
+            if TripStop.all_objects.filter(business=r, order=order).exists():
+                raise ValueError(f"سفارش #{order.pk} قبلاً در یک مأموریت قرار گرفته است.")
             item["order"] = order
+            # پرداخت در محل: مبلغ سفارش پرداخت‌نشده خودکار قابل وصول می‌شود
+            if order.payment_status != "paid" and not item.get("amount_due"):
+                item["amount_due"] = order.total_price
+            item["customer_name"] = item.get("customer_name") or order.customer_name
+            item["phone"] = item.get("phone") or order.phone
+            item["address"] = item.get("address") or order.delivery_address
         out.append(item)
     return out
 
@@ -477,6 +501,13 @@ def trips(request):
             "carrier_cost": _dec(d.get("carrier_cost"), "هزینه‌ی حمل‌کننده") or Decimal("0"),
             "waybill": str(d.get("waybill") or "")[:50],
             "notes": str(d.get("notes") or "")[:500],
+            "shipper_name": str(d.get("shipper_name") or "")[:200],
+            "shipper_phone": str(d.get("shipper_phone") or "")[:20],
+            "cargo_description": str(d.get("cargo_description") or "")[:500],
+            "cargo_weight_kg": _dec(d.get("cargo_weight_kg"), "وزن بار"),
+            "origin_name": str(d.get("origin_name") or "")[:200],
+            "destination_name": str(d.get("destination_name") or "")[:200],
+            "expected_arrival": _parse_dt(d.get("expected_arrival")),
         }
         trip = create_trip(r, stops, driver=driver, vehicle=vehicle, carrier=carrier,
                            user=request.user, **fields)
@@ -485,6 +516,28 @@ def trips(request):
     except Exception as e:
         return server_error(e)
     return api_success(data=_trip_data(_trip_qs(r).get(pk=trip.pk), with_stops=True), status_code=201)
+
+
+@api_view(["GET"])
+@authentication_classes(StaffAuth)
+@permission_classes([DeliveryPerm])
+def pending_orders(request):
+    """سفارش‌های پیک صندوق که هنوز در هیچ مأموریتی نیستند (صف ارسال)."""
+    from ..models import Order
+    r = staff_business(request)
+    if r is None:
+        return _no_business()
+    since = timezone.now() - datetime.timedelta(days=3)
+    dispatched = TripStop.all_objects.filter(business=r, order__isnull=False).values("order_id")
+    qs = (Order.all_objects.filter(business=r, order_type="delivery", created_at__gte=since)
+          .exclude(status__in=["cancelled", "rejected", "delivered"])
+          .exclude(pk__in=dispatched).order_by("created_at")[:100])
+    return api_success(data=[{
+        "id": o.id, "customer_name": o.customer_name, "phone": o.phone,
+        "address": o.delivery_address, "total": _f(o.total_price),
+        "cod": o.payment_status != "paid", "created_at": _local_dt(o.created_at),
+        "note": o.customer_note,
+    } for o in qs])
 
 
 @api_view(["GET"])
@@ -814,10 +867,21 @@ def cash_overview(request):
 @authentication_classes([])
 @permission_classes([AllowAny])
 def public_track(request, token):
+    """لینک عمومی: توکن توقف (مشتری مقصد) یا توکن مأموریت (صاحب بار)."""
+    from ..delivery_services import public_shipment_tracking
     stop = TripStop.all_objects.select_related("business").filter(public_token=token).first()
-    if stop is None or not module_enabled(stop.business, "delivery"):
+    if stop is not None:
+        biz = stop.business
+        fn = public_tracking
+    else:
+        trip = Trip.all_objects.select_related("business").filter(public_token=token).first()
+        if trip is None:
+            return api_error("لینک پیگیری معتبر نیست.", status_code=404)
+        biz = trip.business
+        fn = public_shipment_tracking
+    if not module_enabled(biz, "delivery"):
         return api_error("لینک پیگیری معتبر نیست.", status_code=404)
-    data = public_tracking(token)
+    data = fn(token)
     if data is None:
         return api_error("لینک پیگیری معتبر نیست.", status_code=404)
     return api_success(data=data)

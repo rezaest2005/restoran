@@ -17,7 +17,7 @@ class ModuleBase(TestCase):
     @classmethod
     def setUpTestData(cls):
         ensure_catalog()
-        cls.biz = Business.objects.create(name="الف", slug="mod-a", dashboard_permissions=[])
+        cls.biz = Business.objects.create(name="الف", slug="mod-a")
         cls.owner = User.objects.create_user(
             username="mo1", password="Pass12345!", role="owner", business=cls.biz)
         cls.admin = User.objects.create_superuser(username="msu", password="Pass12345!")
@@ -134,11 +134,9 @@ class ExpiryAndEnforcementTests(ModuleBase):
         self.assertEqual(c.get("/api/club/members/").status_code, 403)
 
     def test_business_tabs_and_modules_in_me(self):
-        self.biz.dashboard_permissions = ["pos", "accounting", "storefront"]
-        self.biz.save()
         self.put({"accounting": {"is_enabled": False}})
         data = self.staff.get("/api/auth/me/").json()["data"]
-        self.assertNotIn("accounting", data["business_tabs"])
+        self.assertNotIn("accounting", data["business_tabs"])      # unsold module -> no tab
         self.assertIn("pos", data["business_tabs"])
         self.assertNotIn("accounting", data["business_modules"])
         self.assertIn("storefront", data["business_modules"])

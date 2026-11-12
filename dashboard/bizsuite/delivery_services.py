@@ -129,6 +129,7 @@ def create_trip(business, stops, driver=None, vehicle=None, carrier=None, user=N
         TripStop.all_objects.create(
             business=business, trip=trip, sequence=i, order=order,
             reference=str(s.get("reference") or "")[:100],
+            cargo_description=str(s.get("cargo_description") or "")[:300],
             customer_name=str(s.get("customer_name") or "")[:200],
             phone=str(s.get("phone") or "")[:20], address=str(s.get("address") or "")[:500],
             lat=lat, lng=lng, amount_due=due,
@@ -422,7 +423,9 @@ def public_tracking(token):
             pos = {"lat": p[0], "lng": p[1]}
     driver = trip.driver
     return {
+        "kind": "stop",
         "business": stop.business.name,
+        "cargo_description": stop.cargo_description or trip.cargo_description,
         "status": stop.status,
         "status_display": stop.get_status_display(),
         "trip_status": trip.status,
@@ -434,4 +437,47 @@ def public_tracking(token):
         "delivered_at": stop.delivered_at.isoformat() if stop.delivered_at else None,
         "failure_reason": stop.failure_reason if stop.status == TripStop.Status.FAILED else "",
         "amount_due": float(stop.amount_due),
+    }
+
+
+def public_shipment_tracking(token):
+    """پیگیری کل بار برای صاحب بار (لینک سطح مأموریت): بار، مسیر، خودرو، موقعیت و وضعیت هر مقصد."""
+    trip = Trip.all_objects.select_related("driver", "vehicle", "business").filter(public_token=token).first()
+    if trip is None:
+        return None
+    stops = list(TripStop.all_objects.filter(trip_id=trip.pk).order_by("sequence", "id"))
+    pos = None
+    if trip.status in (Trip.Status.IN_PROGRESS, Trip.Status.ASSIGNED):
+        p = last_position(trip)
+        if p:
+            pos = {"lat": p[0], "lng": p[1]}
+    driver = trip.driver
+    return {
+        "kind": "shipment",
+        "business": trip.business.name,
+        "number": trip.number,
+        "waybill": trip.waybill,
+        "status": trip.status,
+        "status_display": trip.get_status_display(),
+        "shipper_name": trip.shipper_name,
+        "cargo_description": trip.cargo_description,
+        "cargo_weight_kg": float(trip.cargo_weight_kg) if trip.cargo_weight_kg is not None else None,
+        "origin_name": trip.origin_name,
+        "destination_name": trip.destination_name,
+        "expected_arrival": trip.expected_arrival.isoformat() if trip.expected_arrival else None,
+        "started_at": trip.started_at.isoformat() if trip.started_at else None,
+        "completed_at": trip.completed_at.isoformat() if trip.completed_at else None,
+        "driver": {"name": driver.name.split(" ")[0] if driver else "", "phone": driver.phone if driver else ""},
+        "vehicle": str(trip.vehicle) if trip.vehicle else "",
+        "position": pos,
+        "stops": [{
+            "sequence": s.sequence, "name": s.customer_name, "address": s.address,
+            "cargo_description": s.cargo_description, "status": s.status,
+            "status_display": s.get_status_display(),
+            "eta": s.eta.isoformat() if s.eta else None,
+            "delivered_at": s.delivered_at.isoformat() if s.delivered_at else None,
+            "lat": float(s.lat) if s.lat is not None else None,
+            "lng": float(s.lng) if s.lng is not None else None,
+            "failure_reason": s.failure_reason if s.status == TripStop.Status.FAILED else "",
+        } for s in stops],
     }

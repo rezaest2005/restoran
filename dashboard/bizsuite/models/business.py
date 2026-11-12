@@ -47,12 +47,13 @@ class Business(models.Model):
         help_text="حرف اول نام کاربری مالک — برای ساخت نام کاربری کارمندان (مثلاً: z)",
     )
 
-    # ★★★ تب‌های مجاز کسب‌وکار — از پنل سوپرادمین ★★★
-    dashboard_permissions = models.JSONField(
-        "دسترسی‌های داشبورد",
+    # تب‌هایی که سوپرادمین برای این کسب‌وکار خاموش کرده است (به‌علاوه‌ی ماژول‌های خریداری‌نشده).
+    # خالی = همه‌ی تب‌های ماژول‌های فعال. منطق در features.py
+    disabled_features = models.JSONField(
+        "تب‌های غیرفعال‌شده",
         default=list,
         blank=True,
-        help_text="لیست تب‌های مجاز کسب‌وکار — خالی = همه تب‌ها",
+        help_text="کلید تب‌هایی که برای این حساب فروخته نشده‌اند",
     )
 
     is_active = is_active_field(verbose_name="فعال")

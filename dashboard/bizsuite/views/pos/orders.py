@@ -26,6 +26,39 @@ logger = logging.getLogger(__name__)
 
 
 # ═══════════════════════════════════════
+#  ارسال خودکار سفارش پیک
+# ═══════════════════════════════════════
+
+def _auto_dispatch(business, order, driver_id, cod, user):
+    """
+    سفارش پیک را برای ارسال آماده می‌کند. اگر راننده انتخاب شده، همان‌جا مأموریت (و لینک پیگیری)
+    می‌سازد؛ وگرنه سفارش در «سفارش‌های منتظر پیک» می‌ماند. خطا هرگز سفارش را خراب نمی‌کند.
+    """
+    if not driver_id:
+        return {"queued": True}
+    try:
+        from ...delivery_services import create_trip
+        from ...models import Driver
+        driver = Driver.all_objects.filter(business=business, pk=driver_id, is_active=True).first()
+        if driver is None:
+            return {"queued": True, "error": "راننده پیدا نشد؛ سفارش در صف ارسال ماند."}
+        trip = create_trip(
+            business,
+            [{"customer_name": order.customer_name, "phone": order.phone,
+              "address": order.delivery_address, "order": order,
+              "reference": f"#{order.pk}",
+              "amount_due": order.total_price if cod else 0}],
+            driver=driver, user=user,
+        )
+        stop = trip.stops.model.all_objects.filter(trip=trip).first()
+        return {"queued": False, "trip_id": trip.pk, "trip_number": trip.number,
+                "tracking_token": stop.public_token if stop else None}
+    except Exception:
+        logger.exception("auto dispatch failed for order %s", order.pk)
+        return {"queued": True, "error": "ثبت مأموریت ناموفق بود؛ سفارش در صف ارسال ماند."}
+
+
+# ═══════════════════════════════════════
 #  ایجاد سفارش
 # ═══════════════════════════════════════
 
@@ -40,6 +73,9 @@ def pos_create_order(request):
         source = data.get("source", "pos")
         payment_method = data.get("payment_method", "cash")
         items = data.get("items", [])
+        order_type = str(data.get("order_type") or "").strip()[:20]
+        delivery_address = str(data.get("delivery_address") or "").strip()[:500]
+        cod = bool(data.get("cod"))
 
         if not items:
             return JsonResponse(
@@ -49,6 +85,14 @@ def pos_create_order(request):
         business = resolve_business(request)
         if not business:
             return no_business_response()
+
+        # سفارش پیک: آدرس الزامی است (وقتی ماژول حمل‌وتحویل فعال است)
+        from ...modules import module_enabled
+        is_delivery = order_type == "delivery" and module_enabled(business, "delivery")
+        if is_delivery and not delivery_address:
+            return JsonResponse(
+                {"success": False, "error": "برای سفارش پیک، آدرس تحویل را وارد کنید."}, status=400)
+        cod = cod and is_delivery
 
         validated_items = []
         stock_errors = []
@@ -114,8 +158,10 @@ def pos_create_order(request):
                 status="pending",
                 source=source,
                 payment_method=payment_method,
-                payment_status="paid" if source == "pos" else "pending",
+                payment_status="paid" if (source == "pos" and not cod) else "pending",
                 total_price=0,
+                order_type=order_type,
+                delivery_address=delivery_address if is_delivery else "",
             )
 
             total = 0
@@ -160,8 +206,15 @@ def pos_create_order(request):
                 logger.exception("club earn failed for order %s", order.pk)
             safe_post(post_pos_order, order, request.user if request.user.is_authenticated else None)
 
+        dispatch = None
+        if is_delivery:
+            dispatch = _auto_dispatch(
+                business, order, data.get("driver_id"), cod,
+                request.user if request.user.is_authenticated else None)
+
         return JsonResponse({
             "success": True,
+            "dispatch": dispatch,
             "order_id": order.id,
             "customer_name": order.customer_name,
             "customer_name_en": order.customer_name_en,

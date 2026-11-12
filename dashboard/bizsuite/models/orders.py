@@ -58,6 +58,11 @@ class Order(TenantModel):
     customer_note = models.CharField(
         "توضیح مشتری", max_length=300, blank=True, default=""
     )
+    order_type = models.CharField(
+        "نوع سفارش", max_length=20, blank=True, default="", db_index=True,
+        help_text="hall / takeaway / delivery ...",
+    )
+    delivery_address = models.CharField("آدرس تحویل", max_length=500, blank=True, default="")
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True
     )

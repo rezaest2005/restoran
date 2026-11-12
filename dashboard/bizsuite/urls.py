@@ -171,6 +171,7 @@ urlpatterns = [
     path("api/delivery/drivers/", dl_views.drivers, name="delivery_drivers"),
     path("api/delivery/drivers/<int:pk>/", dl_views.driver_detail, name="delivery_driver_detail"),
     path("api/delivery/drivers/<int:pk>/shift/", dl_views.driver_shift, name="delivery_driver_shift"),
+    path("api/delivery/pending-orders/", dl_views.pending_orders, name="delivery_pending_orders"),
     path("api/delivery/trips/", dl_views.trips, name="delivery_trips"),
     path("api/delivery/trips/<int:pk>/", dl_views.trip_detail, name="delivery_trip_detail"),
     path("api/delivery/trips/<int:pk>/assign/", dl_views.trip_assign, name="delivery_trip_assign"),
@@ -216,6 +217,7 @@ urlpatterns = [
 
     path("api/super/modules/", mod_views.super_modules_api, name="super_modules"),
     path("api/super/plans/", mod_views.super_plans_api, name="super_plans"),
+    path("api/super/features/", mod_views.super_features_api, name="super_features"),
     path("api/super/businesses/<int:business_id>/modules/", mod_views.super_business_modules_api, name="super_business_modules"),
     path("api/super/businesses/<int:business_id>/plan/", mod_views.super_business_plan_api, name="super_business_plan"),
     path("api/super/storefront/templates/", sf_views.super_storefront_templates, name="super_sf_templates"),

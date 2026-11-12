@@ -51,8 +51,8 @@ def _definitions_perm(*codes):
     return _Perm
 
 
-ProductPerm = _definitions_perm("pos", "dictionary")
-ItemPerm = _definitions_perm("inventory", "dictionary")
+ProductPerm = _definitions_perm("pos", "inventory", "dictionary_menu")
+ItemPerm = _definitions_perm("inventory", "dictionary_items")
 
 
 # ═══════════════════════════════════════
@@ -542,7 +542,7 @@ def _id_list(raw):
 
 @api_view(["POST"])
 @authentication_classes(StaffAuth)
-@permission_classes([_definitions_perm("pos", "inventory", "dictionary")])
+@permission_classes([_definitions_perm("pos", "inventory", "dictionary_menu", "dictionary_items")])
 def barcodes_generate(request):
     business = staff_business(request)
     if business is None:
@@ -561,7 +561,7 @@ def barcodes_generate(request):
 
 @api_view(["GET"])
 @authentication_classes(StaffAuth)
-@permission_classes([_definitions_perm("pos", "inventory", "dictionary")])
+@permission_classes([_definitions_perm("pos", "inventory", "dictionary_menu", "dictionary_items")])
 def barcodes_labels(request):
     business = staff_business(request)
     if business is None:
