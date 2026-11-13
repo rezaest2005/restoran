@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from ...models import Business, Tenant, User
+from ...subscription import payload as subscription_payload
 from .auth import IsSuperAdmin
 from ..common import server_error
 
@@ -52,6 +53,7 @@ def _tenant_to_dict(tenant, business=None):
             business.username_prefix if business else ''
         ) or '',
         'disabled_features': list(business.disabled_features) if business else [],
+        'subscription': subscription_payload(business) if business else None,
         'created_at': tenant.created_at.strftime('%Y/%m/%d'),
     }
 

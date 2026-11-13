@@ -167,6 +167,9 @@ def licensed_features(business) -> set[str]:
     """Features the business is allowed to use (modules live AND not switched off)."""
     if business is None:
         return set()
+    from .subscription import is_expired
+    if is_expired(business):          # subscription ended: nothing is licensed, every tab and API closes at that second
+        return set()
     live = enabled_modules(business)   # None = unmanaged -> every module is live
     disabled = set(getattr(business, "disabled_features", None) or []) - LOCKED_KEYS
     out = set()

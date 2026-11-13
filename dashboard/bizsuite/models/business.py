@@ -56,6 +56,15 @@ class Business(models.Model):
         help_text="کلید تب‌هایی که برای این حساب فروخته نشده‌اند",
     )
 
+    # اشتراک کل داشبورد: لحظه‌ی دقیق پایان (تا ثانیه). خالی = بدون تاریخ. منطق در subscription.py
+    subscription_plan = models.CharField(
+        "نوع اشتراک", max_length=12, default="unlimited",
+        choices=[("unlimited", "بدون تاریخ"), ("monthly", "یک‌ماهه"), ("quarterly", "سه‌ماهه"),
+                 ("semiannual", "شش‌ماهه"), ("yearly", "سالانه"), ("custom", "تاریخ دلخواه")],
+    )
+    subscription_started_at = models.DateTimeField("شروع اشتراک", null=True, blank=True)
+    subscription_ends_at = models.DateTimeField("پایان اشتراک", null=True, blank=True, db_index=True)
+
     is_active = is_active_field(verbose_name="فعال")
     created_at = created_at_field(verbose_name="تاریخ ایجاد")
 

@@ -13,6 +13,18 @@ from .common import StaffAuth, staff_business
 from ..activity import audit
 
 
+@api_view(["GET"])
+@authentication_classes(StaffAuth)
+@permission_classes([IsAuthenticated])
+def business_subscription(request):
+    """The countdown data of this business (the dashboard polls it, so a renewal shows up without signing in again)."""
+    from ..subscription import payload
+    biz = staff_business(request)
+    if biz is None:
+        return api_error("کسب‌وکار پیدا نشد.", 400)
+    return api_success(data=payload(biz))
+
+
 def _payload(biz):
     return {"slug": biz.slug, "reserved": sorted(RESERVED_SLUGS)}
 

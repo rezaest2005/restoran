@@ -1,0 +1,36 @@
+{
+  "ui_sub": {
+    "title": "Dashboard subscription",
+    "plan_label": "Subscription type",
+    "plan": {
+      "unlimited": "No end date (unlimited)",
+      "monthly": "Monthly (30 days)",
+      "quarterly": "3 months (90 days)",
+      "semiannual": "6 months (180 days)",
+      "yearly": "Yearly (365 days)",
+      "custom": "Exact date and time"
+    },
+    "mode_label": "Calculation",
+    "mode_set": "From this moment",
+    "mode_extend": "Extend from the current end",
+    "custom_label": "Subscription end (to the second)",
+    "apply": "Apply",
+    "saved": "Subscription saved.",
+    "need_date": "Enter the end date and time.",
+    "no_end": "No end date; the dashboard never closes.",
+    "expired": "Expired",
+    "ends": "Subscription ends",
+    "ended_at": "Subscription ended",
+    "hint": "The end is fixed to the second at the moment you apply it. As soon as it is reached the dashboard and every sign-in of that business close.",
+    "left_label": "Subscription time left:",
+    "days": "days",
+    "and": "and",
+    "warn": "Your subscription is about to end; renew it so the dashboard does not close.",
+    "remind_title": "Subscription ending",
+    "remind_text": "Only {{time}} is left on your subscription. After that the dashboard and every user sign-in (including couriers) close. Contact support to renew.",
+    "ok": "Got it",
+    "expired_title": "Your subscription has ended",
+    "expired_text": "Your dashboard is closed. Contact support to renew, then sign in again.",
+    "logout": "Sign out"
+  }
+}

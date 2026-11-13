@@ -161,3 +161,43 @@ def super_business_plan_api(request, business_id):
         return api_success(apply_plan(business, plan), "plan applied")
     except ModuleDependencyError as exc:
         return api_error(str(exc), 409, errors=exc.details)
+
+
+@api_view(["GET", "POST"])
+@permission_classes([IsSuperAdmin])
+def super_business_subscription_api(request, business_id):
+    """Whole-dashboard subscription of one business.
+
+    GET   current state (plan, exact end, seconds left)
+    POST  {plan: unlimited|monthly|quarterly|semiannual|yearly|custom, mode: set|extend, ends_at: ISO (custom only)}
+    """
+    from ...activity import log
+    from ... import subscription as sub
+
+    business = Business.objects.filter(pk=business_id).first()
+    if business is None:
+        return api_error("not found", 404)
+    if request.method == "GET":
+        return api_success(sub.payload(business))
+    plan = request.data.get("plan")
+    mode = request.data.get("mode") or "set"
+    if mode not in ("set", "extend"):
+        return api_error("mode must be set or extend")
+    ends = None
+    if plan == "custom":
+        ends = parse_datetime(str(request.data.get("ends_at") or ""))
+        if ends is None:
+            return api_error("ends_at must be an ISO date-time")
+        if timezone.is_naive(ends):
+            ends = timezone.make_aware(ends)
+    before = business.subscription_ends_at.isoformat() if business.subscription_ends_at else None
+    try:
+        sub.apply(business, plan, mode, ends)
+    except ValueError as exc:
+        return api_error(str(exc))
+    after = sub.payload(business)
+    log(business, "system", "subscription.set",
+        f"اشتراک: {after['plan_display']}" + (f" — پایان {after['ends_at']}" if after["ends_at"] else " — بدون تاریخ"),
+        actor=request.user if getattr(request.user, "is_authenticated", False) else None,
+        details={"plan": plan, "mode": mode, "from": before, "to": after["ends_at"]})
+    return api_success(after, "saved")

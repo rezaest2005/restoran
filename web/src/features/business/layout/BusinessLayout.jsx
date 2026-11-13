@@ -14,6 +14,7 @@ import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 import { appName } from "@shared/branding";
 import NavIcon from "@shared/ui/NavIcon";
 import { BrandSquare } from "@shared/ui/BrandMark";
+import SubscriptionGuard from "./SubscriptionGuard";
 import LogoutIcon from "@mui/icons-material/Logout";
 import LockIcon from "@mui/icons-material/Lock";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -433,6 +434,8 @@ export default function BusinessLayout() {
             </Box>
           </Box>
         </Box>
+
+        <SubscriptionGuard C={C} onLogout={handleLogout} />
 
         <Box sx={{
           flex: 1,

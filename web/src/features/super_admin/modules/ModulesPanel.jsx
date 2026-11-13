@@ -7,6 +7,7 @@ import {
 import superClient from "@super/api/super_client";
 import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
 import KbdHint from "@business/pos/common/KbdHint";
+import SubscriptionCard from "./SubscriptionCard";
 
 const toLocalInput = (iso) => (iso ? iso.slice(0, 16) : "");
 const fromLocalInput = (v) => (v ? new Date(v).toISOString() : null);
@@ -160,6 +161,8 @@ export default function ModulesPanel({ tenants, C }) {
         </TextField>
         <Button variant="outlined" disabled={!plan} onClick={applyPlan}>{t("ui_k.mod.apply_plan")}</Button>
       </Box>
+
+      <SubscriptionCard bid={bid} C={C} />
 
       {state && (
         <>

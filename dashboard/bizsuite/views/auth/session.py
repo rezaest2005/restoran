@@ -59,6 +59,12 @@ class LoginView(TokenObtainPairView):
         serializer.is_valid(raise_exception=True)
         user = serializer.user
 
+        # subscription over: the owner and staff cannot sign in until it is renewed
+        if not user.is_superuser and getattr(user, "business_id", None):
+            from ...subscription import MESSAGE, is_expired
+            if is_expired(user.business):
+                return Response({"error": MESSAGE, "code": "subscription_expired"}, status=status.HTTP_403_FORBIDDEN)
+
         # Django session بساز
         django_login(
             request, user,
@@ -89,6 +95,9 @@ class LoginView(TokenObtainPairView):
         user_data['business_tabs'] = _get_business_tabs(user)
         user_data['business_modules'] = _get_business_modules(user)
         user_data['warehouse_access'] = access_payload(user)
+        if getattr(user, "business_id", None):
+            from ...subscription import payload as _sub_payload
+            user_data['subscription'] = _sub_payload(user.business)
 
         return Response({
             "access": str(refresh.access_token),

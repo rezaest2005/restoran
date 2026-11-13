@@ -46,6 +46,8 @@ def custom_exception_handler(exc, context):
             'error': error_msg,
             'status_code': response.status_code,
         }
+        if isinstance(data, dict) and data.get('code'):
+            response.data['code'] = data['code']
     return response
 
 

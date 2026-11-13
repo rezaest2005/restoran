@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
+from rest_framework.exceptions import APIException
+
 from .tenancy import clear_current_business, set_current_business
 
 User = get_user_model()
@@ -14,6 +16,16 @@ def _business_of(user):
     if business is not None and business.is_active:
         return business
     return None
+
+
+class SubscriptionExpired(APIException):
+    """403 with a machine-readable code so the dashboard can show the "subscription ended" screen."""
+    status_code = 403
+    default_code = "subscription_expired"
+
+    def __init__(self, ends_at=None):
+        from .subscription import MESSAGE
+        self.detail = {"detail": MESSAGE, "code": "subscription_expired", "ends_at": ends_at}
 
 
 class StorefrontDomainMiddleware:
@@ -108,6 +120,10 @@ class TenantJWTAuthentication(JWTAuthentication):
                     pass
 
             if business:
+                if not user.is_superuser:
+                    from .subscription import is_expired
+                    if is_expired(business):
+                        raise SubscriptionExpired(business.subscription_ends_at.isoformat())
                 set_current_business(business)
                 request.business = business
         return result

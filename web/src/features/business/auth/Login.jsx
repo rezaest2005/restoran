@@ -88,7 +88,9 @@ export default function Login() {
         else navigate(routes[data.user.role] || base);
       }, 500);
     } catch (err) {
-      if (err.response?.status === 400 || err.response?.status === 401) {
+      if (err.response?.data?.code === "subscription_expired") {
+        setError(err.response.data.error);
+      } else if (err.response?.status === 400 || err.response?.status === 401) {
         setError(
           t("ui_a.login.invalid_credentials"),
         );

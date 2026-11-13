@@ -105,6 +105,11 @@ client.interceptors.response.use(
       }
     }
 
+    // subscription ended: the server closes every API; the dashboard shows the "ended" screen
+    if (status === 403 && err.response?.data?.code === "subscription_expired") {
+      window.dispatchEvent(new Event("bizsuite:subscription-expired"));
+    }
+
     return Promise.reject(err);
   }
 );
