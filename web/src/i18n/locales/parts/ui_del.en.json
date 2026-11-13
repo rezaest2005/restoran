@@ -154,7 +154,10 @@
       "delete_text": "Delete \"{{name}}\"?",
       "number": "No.",
       "link": "Courier link",
-      "copy_link": "Copy link"
+      "copy_link": "Copy link",
+      "username": "Courier username",
+      "password": "Password (to create or change)",
+      "account_hint": "Enter a username and password and the courier's sign-in is created here; the courier signs in with them at the courier address."
     },
     "cash": {
       "title": "Unsettled cash",
@@ -274,6 +277,19 @@
       "session": "The courier stays signed in while the app is open; after closing the app the sign-in page appears again.",
       "button": "Courier sign-in link",
       "close": "Close"
+    },
+    "hist": {
+      "courier": "Courier",
+      "trips": "Trips",
+      "delivered": "Delivered",
+      "failed": "Failed",
+      "collected": "Collected",
+      "km": "km",
+      "cargo": "Cargo / order",
+      "empty": "No trips in this period.",
+      "no_courier": "No courier",
+      "no_route": "No route was recorded for this trip.",
+      "route_note": "Actual route ({{n}} points, about {{km}} km). Green: start, red: last point, squares: stops."
     }
   }
 }

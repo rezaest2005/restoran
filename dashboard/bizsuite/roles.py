@@ -19,6 +19,7 @@ ROLE_WAITER   = "waiter"
 ROLE_CUSTOMER = "customer"
 ROLE_WAREHOUSE = "warehouse"
 ROLE_DRIVER = "driver"
+ROLE_OTHER = "other"        # any custom job title: the owner ticks exactly the tabs it needs
 
 ROLE_CHOICES = [
     (ROLE_OWNER,    "مالک"),
@@ -29,6 +30,7 @@ ROLE_CHOICES = [
     (ROLE_WAREHOUSE, "انباردار"),
     (ROLE_DRIVER,   "راننده"),
     (ROLE_CUSTOMER, "مشتری"),
+    (ROLE_OTHER,    "سایر"),
 ]
 
 

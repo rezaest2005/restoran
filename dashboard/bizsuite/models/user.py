@@ -64,6 +64,7 @@ class User(AbstractUser):
         WAREHOUSE = "warehouse", "انباردار"
         DRIVER = "driver", "راننده"
         CUSTOMER = "customer", "مشتری"
+        OTHER = "other", "سایر"
 
     phone_number = models.CharField(
         "شماره موبایل", max_length=11, unique=True, blank=True, null=True

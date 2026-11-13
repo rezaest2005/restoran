@@ -95,7 +95,7 @@ class AuditDecoratorTests(Base):
 
     def test_passwords_and_tokens_are_never_stored(self):
         c = self.client_for(self.owner)
-        c.post("/api/auth/users/create/", {"username": "newguy", "password": "Sup3r-Secret-9", "role": "cashier"}, format="json")
+        c.post("/api/users/create/", {"username": "newguy", "password": "Sup3r-Secret-9", "role": "cashier"}, format="json")
         for a in ActivityLog.all_objects.filter(business=self.b):
             self.assertNotIn("Sup3r-Secret-9", str(a.details) + a.summary)
             self.assertFalse(any("pass" in k.lower() for k in a.details))

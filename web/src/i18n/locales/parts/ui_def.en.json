@@ -282,7 +282,8 @@
         "waiter": "Floor / shop staff",
         "kitchen": "Production staff",
         "customer": "Customer",
-        "warehouse": "Warehouse keeper"
+        "warehouse": "Warehouse keeper",
+        "other": "Other (custom role)"
       },
       "templates": "Quick templates",
       "tpl": {

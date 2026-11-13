@@ -55,7 +55,7 @@ function visibleGroups() {
 }
 
 const MANAGER_ROLES = ["owner", "manager"];
-const ROLES = ["manager", "cashier", "waiter", "kitchen", "customer"];
+const ROLES = ["manager", "cashier", "waiter", "kitchen", "customer", "other"];
 
 /** Quick-fill templates (only keys of enabled modules are applied). */
 const TEMPLATES = {

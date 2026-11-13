@@ -42,7 +42,8 @@ function EditDialog({ ctx, title, fields, initial, onClose, onSave }) {
       <DialogTitle sx={{ fontWeight: 700 }}>{title}</DialogTitle>
       <DialogContent dividers>
         <Box sx={{ display: "grid", gap: 1.5, mt: 0.5 }}>
-          {fields.map((f) => {
+          {fields.map((fd) => {
+            const f = fd.readOnlyWhenLinked && initial?.__linked ? { ...fd, readOnly: true } : fd;
             if (f.type === "switch") {
               return (
                 <FormControlLabel
@@ -54,6 +55,8 @@ function EditDialog({ ctx, title, fields, initial, onClose, onSave }) {
             return (
               <TextField
                 key={f.key} size="small" label={f.label} value={v[f.key] ?? ""} select={f.type === "select"}
+                disabled={!!f.readOnly} type={f.type === "password" ? "password" : undefined}
+                autoComplete={f.type === "password" ? "new-password" : undefined} helperText={f.hint}
                 onChange={(e) => setV((x) => ({ ...x, [f.key]: e.target.value }))} sx={S.field}
                 inputProps={f.type === "number" ? { inputMode: "decimal", dir: "ltr" } : undefined}
               >
@@ -128,14 +131,20 @@ export default function FleetTab({ ctx, vehicles, carriers, drivers, reloadFleet
         { key: "carrier_id", label: t("ui_del.trip.carrier"), type: "select", options: carrierOpts },
         { key: "default_vehicle_id", label: t("ui_del.fleet.default_vehicle"), type: "select", options: vehicleOpts },
         { key: "pay_per_trip", label: t("ui_del.fleet.pay_per_trip"), type: "number" },
-        { key: "user_id", label: t("ui_del.fleet.user_id"), type: "number" },
+        { key: "username", label: t("ui_del.fleet.username"), hint: t("ui_del.fleet.account_hint"), readOnlyWhenLinked: true },
+        { key: "password", label: t("ui_del.fleet.password"), type: "password" },
         { key: "is_active", label: t("ui_del.common.active"), type: "switch" },
       ],
-      blank: { name: "", phone: "", carrier_id: "", default_vehicle_id: "", pay_per_trip: "", user_id: "", is_active: true },
-      toBody: (v) => ({
-        ...v, carrier_id: v.carrier_id || null, default_vehicle_id: v.default_vehicle_id || null,
-        user_id: v.user_id === "" || v.user_id == null ? null : v.user_id, pay_per_trip: numOrNull(v.pay_per_trip) ?? 0,
-      }),
+      blank: { name: "", phone: "", carrier_id: "", default_vehicle_id: "", pay_per_trip: "", username: "", password: "", is_active: true },
+      toBody: (v) => {
+        const body = {
+          ...v, carrier_id: v.carrier_id || null, default_vehicle_id: v.default_vehicle_id || null,
+          pay_per_trip: numOrNull(v.pay_per_trip) ?? 0,
+        };
+        delete body.__linked;
+        if (!body.password) delete body.password;
+        return body;
+      },
     },
   };
 
@@ -206,6 +215,7 @@ export default function FleetTab({ ctx, vehicles, carriers, drivers, reloadFleet
     if (!row) return defs[kind].blank;
     const out = { ...defs[kind].blank };
     Object.keys(out).forEach((k) => { out[k] = row[k] ?? out[k]; });
+    if (kind === "driver" && row.user_id) out.__linked = true;   // already has a sign-in: the username is shown, not edited
     return out;
   };
 
@@ -213,11 +223,12 @@ export default function FleetTab({ ctx, vehicles, carriers, drivers, reloadFleet
     <Box>
       <DriverLinkCard ctx={ctx} />
       {section("driver", t("ui_del.fleet.drivers"),
-        [t("ui_del.fleet.number"), t("ui_del.fleet.name"), t("ui_del.fleet.phone"), t("ui_del.fleet.pay_per_trip"), t("ui_del.fleet.link"), t("ui_del.fleet.shift"), t("ui_del.common.status")],
+        [t("ui_del.fleet.number"), t("ui_del.fleet.name"), t("ui_del.fleet.username"), t("ui_del.fleet.phone"), t("ui_del.fleet.pay_per_trip"), t("ui_del.fleet.link"), t("ui_del.fleet.shift"), t("ui_del.common.status")],
         drivers, (d) => (
           <TableRow key={d.id}>
             <TableCell sx={{ ...S.td, fontWeight: 800 }}>{d.number ? fmtInt(d.number, lang) : "—"}</TableCell>
             <TableCell sx={S.td}>{d.name}</TableCell>
+            <TableCell sx={S.td} dir="ltr">{d.username || "—"}</TableCell>
             <TableCell sx={S.td} dir="ltr">{d.phone}</TableCell>
             <TableCell sx={S.td}>{fmtMoney(d.pay_per_trip, lang)}</TableCell>
             <TableCell sx={S.td}>

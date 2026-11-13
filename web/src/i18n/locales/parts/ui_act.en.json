@@ -12,20 +12,5 @@
     "more": "Show more",
     "system": "System",
     "load_failed": "Could not load the history."
-  },
-  "ui_del": {
-    "hist": {
-      "courier": "Courier",
-      "trips": "Trips",
-      "delivered": "Delivered",
-      "failed": "Failed",
-      "collected": "Collected",
-      "km": "km",
-      "cargo": "Cargo / order",
-      "empty": "No trips in this period.",
-      "no_courier": "No courier",
-      "no_route": "No route was recorded for this trip.",
-      "route_note": "Actual route ({{n}} points, about {{km}} km). Green: start, red: last point, squares: stops."
-    }
   }
 }

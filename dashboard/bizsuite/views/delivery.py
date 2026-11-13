@@ -117,6 +117,7 @@ def _carrier_data(c):
 def _driver_data(d):
     return {
         "id": d.id, "number": d.number, "name": d.name, "phone": d.phone, "user_id": d.user_id,
+        "username": d.user.username if d.user_id else "",
         "link_path": f"/{d.business.slug}/bizsuite_driver/{d.number}" if d.number else f"/{d.business.slug}/bizsuite_driver",
         "carrier_id": d.carrier_id, "default_vehicle_id": d.default_vehicle_id,
         "pay_per_trip": _f(d.pay_per_trip), "is_active": d.is_active, "on_shift": d.on_shift,
@@ -346,6 +347,39 @@ def _driver_fields(r, d, drv=None):
     return out
 
 
+def _apply_driver_account(r, data, fields, name, drv=None):
+    """Courier sign-in made right in the fleet form: username + password create the courier's account
+    (or, when one is linked already, a filled password resets it). The username gets the business prefix."""
+    username = str(data.get("username") or "").strip()
+    password = str(data.get("password") or "")
+    user = fields["user"] if "user" in fields else (drv.user if drv is not None else None)
+    if user is not None:
+        if password:
+            if len(password) < 4:
+                raise ValueError("رمز باید حداقل ۴ کاراکتر باشد.")
+            user.set_password(password)
+            user.save(update_fields=["password"])
+        return
+    if not username and not password:
+        return
+    if not username or len(password) < 4:
+        raise ValueError("برای ساخت ورود پیک هم نام کاربری و هم رمز (حداقل ۴ کاراکتر) لازم است.")
+    from .users.base import _apply_prefix
+    final = _apply_prefix(username, r)
+    if User.objects.filter(username=final).exists():
+        raise ValueError(f"نام کاربری «{final}» قبلاً ثبت شده است.")
+    u = User.objects.create_user(username=final, password=password)
+    u.role = "driver"
+    u.business = r
+    u.first_name = (name or "")[:150]
+    u.is_approved = True
+    u.is_staff = False
+    u.is_superuser = False
+    u.tabs = {}
+    u.save()
+    fields["user"] = u
+
+
 @api_view(["GET", "POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([DeliveryPerm])
@@ -361,6 +395,7 @@ def drivers(request):
         fields = _driver_fields(r, request.data)
         with transaction.atomic():
             type(r).objects.select_for_update().filter(pk=r.pk).first()
+            _apply_driver_account(r, request.data, fields, fields.get("name"))
             top = Driver.all_objects.filter(business=r).aggregate(m=Max("number"))["m"] or 0
             drv = Driver.all_objects.create(business=r, number=top + 1, **fields)
     except ValueError as e:
@@ -387,9 +422,12 @@ def driver_detail(request, pk):
         drv.delete()
         return api_success(data={"id": pk})
     try:
-        for k, val in _driver_fields(r, request.data, drv).items():
-            setattr(drv, k, val)
-        drv.save()
+        with transaction.atomic():
+            fields = _driver_fields(r, request.data, drv)
+            _apply_driver_account(r, request.data, fields, fields.get("name") or drv.name, drv)
+            for k, val in fields.items():
+                setattr(drv, k, val)
+            drv.save()
     except ValueError as e:
         return api_error(str(e))
     except Exception as e:
