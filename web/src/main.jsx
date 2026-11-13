@@ -27,7 +27,17 @@ import "@shared/ui/bundle.css";
 import "./index.css";
 import { installAltHint } from "@shared/ui/altHint";
 import { installApiPrefix } from "@shared/apiPrefix";
+import { BASE } from "@shared/basePath";
 installApiPrefix();
+
+// Older builds installed a service worker for the whole site. Only the courier pages may have one now, so remove ours
+// everywhere else (a worker of ANOTHER application on this domain is never touched: only our own script address matches).
+if ("serviceWorker" in navigator && !window.location.pathname.includes("/bizsuite_driver")) {
+  navigator.serviceWorker.getRegistrations().then((list) => list.forEach((r) => {
+    const url = (r.active || r.waiting || r.installing)?.scriptURL || "";
+    if (url === `${window.location.origin}${BASE}/sw.js` && !r.scope.includes("/bizsuite_driver")) r.unregister();
+  })).catch(() => {});
+}
 installAltHint();
 
 const syncTitle = () => { document.title = appName(i18n.language); };
