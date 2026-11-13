@@ -28,14 +28,18 @@ each with its own users, data and enabled modules.
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## Run with Docker Compose
+## Run with Docker
+
+The image recipe is `Dockerfile` (+ `docker/`). Compose file and settings live in the shared deploy folder next to
+this project (see `../deploy/README.md`):
 
 ```bash
-cp deploy/.env.example deploy/.env      # fill SECRET_KEY, DB_PASSWORD, bootstrap passwords
-docker compose -f deploy/docker-compose.yml up -d --build
+cd ../deploy
+cp restaurant/.env.example restaurant/.env   # fill SECRET_KEY, DB_PASSWORD, bootstrap passwords
+./deploy.sh restaurant
 ```
 
-The app is then available on `http://localhost:8080` (change with `WEB_PORT`).
+The app is then available on `http://localhost:8200` (change with `PORT`).
 Health check: `GET /api/health/`. Product info: `GET /api/app/info/`.
 
 CI (tests, build, docker smoke test) runs on every push; CD publishes the images to GHCR and can deploy over SSH.
@@ -59,7 +63,7 @@ npm run dev
 
 ## Configuration
 
-Environment variables (see `.env.example` and `deploy/.env.example`):
+Environment variables (see `.env.example` and `../deploy/restaurant/.env.example`):
 
 | Variable | Purpose |
 |----------|---------|

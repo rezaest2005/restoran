@@ -1,0 +1,43 @@
+# CD: after CI passes on a push (or by hand from the Actions tab), update the server.
+#
+# The server is on a private network (192.168.20.169), so GitHub's cloud machines cannot reach it. Instead this job runs on
+# a self-hosted runner installed ON the server (label "deploy"); it runs the shared deploy script there:
+#   <deploy folder>/deploy.sh --branch <pushed branch> restaurant     (git pull + docker build + up)
+# The server only deploys the branch its restaurant clone is checked out on; pushes to other branches are skipped.
+#
+# Turn on (once): install the runner on the server (deploy/README.md, "CI/CD"), then in GitHub:
+#   Settings > Secrets and variables > Actions > Variables:  DEPLOY_ENABLED = true
+#   optional DEPLOY_DIR = /home/mostafa/Documents/deploy   (default: $HOME/Documents/deploy of the runner user)
+name: CD
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to the server
+    # only after a green CI of a push to this repository (never for pull requests: their code must not run on the server)
+    if: >-
+      vars.DEPLOY_ENABLED == 'true' && (github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'))
+    runs-on: [self-hosted, deploy]
+    timeout-minutes: 40
+    env:
+      DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
+      BRANCH: ${{ github.event.workflow_run.head_branch || github.ref_name }}
+    steps:
+      - name: Pull, build and restart
+        run: sh "${DEPLOY_DIR:-$HOME/Documents/deploy}/deploy.sh" --branch "$BRANCH" restaurant
+      - name: Status
+        if: always()
+        run: sh "${DEPLOY_DIR:-$HOME/Documents/deploy}/deploy.sh" ps restaurant

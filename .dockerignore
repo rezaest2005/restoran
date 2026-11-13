@@ -1,4 +1,4 @@
-# Build context is the repository root (docker build -f deploy/Dockerfile .)
+# Build context is the repository root (docker build .)
 .git
 .gitignore
 .vscode

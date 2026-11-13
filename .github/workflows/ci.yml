@@ -87,19 +87,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
-      - name: Create a throw-away .env
+      - name: Throw-away settings
         run: |
-          cp deploy/.env.example deploy/.env
+          DBP="ci-$(openssl rand -hex 12)"
           {
             echo "SECRET_KEY=ci-only-$(openssl rand -hex 24)"
+            echo "DEBUG=False"
             echo "ALLOWED_HOSTS=localhost,127.0.0.1"
-            echo "DB_PASSWORD=ci-$(openssl rand -hex 12)"
+            echo "DB_NAME=bizsuite"
+            echo "DB_USER=bizsuite"
+            echo "DB_PASSWORD=$DBP"
+            echo "DB_HOST=db"
+            echo "DB_PORT=5432"
             echo "BOOTSTRAP_ADMIN_PASSWORD=ci-$(openssl rand -hex 12)"
             echo "BOOTSTRAP_SUPER_PASSWORD=ci-$(openssl rand -hex 12)"
-            echo "WEB_PORT=18080"
-          } >> deploy/.env
-      - name: Build and start the whole stack
-        run: docker compose -f deploy/docker-compose.yml up -d --build --wait --wait-timeout 240
+          } > ci.env
+      - name: Build the two images
+        run: |
+          docker build --target api -t bizsuite-api:ci .
+          docker build --target web -t bizsuite-web:ci .
+      - name: Start db -> migrate -> api -> web
+        run: |
+          set -e
+          docker network create bz
+          docker run -d --name db --network bz --env-file ci.env             -e POSTGRES_DB=bizsuite -e POSTGRES_USER=bizsuite -e POSTGRES_PASSWORD="$(sed -n 's/^DB_PASSWORD=//p' ci.env)" postgres:16
+          for i in $(seq 1 30); do docker exec db pg_isready -U bizsuite -d bizsuite && break; sleep 2; done
+          docker run --rm --network bz --env-file ci.env bizsuite-api:ci sh /app/migrate.sh
+          docker run -d --name api --network bz --env-file ci.env bizsuite-api:ci sh /app/entrypoint.sh
+          docker run -d --name web --network bz -p 18080:80 bizsuite-web:ci
+          for i in $(seq 1 60); do curl -fsS http://127.0.0.1:18080/api/health/ >/dev/null 2>&1 && break; sleep 2; done
       - name: Smoke test through the web container
         run: |
           set -e
@@ -109,7 +125,7 @@ jobs:
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/q/zzzzzzzz/)" = "404"   # QR redirect reaches the api
       - name: Logs on failure
         if: failure()
-        run: docker compose -f deploy/docker-compose.yml logs --no-color --tail=100
+        run: for c in db api web; do echo "== $c"; docker logs --tail=100 $c || true; done
       - name: Tear down
         if: always()
-        run: docker compose -f deploy/docker-compose.yml down -v
+        run: docker rm -f db api web || true

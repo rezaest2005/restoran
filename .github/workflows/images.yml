@@ -1,7 +1,7 @@
-name: CD
+name: Images
 
 # After CI passes on main (or when a version tag is pushed): build the two images, publish them to
-# GitHub Container Registry, and - only if you turned it on - deploy them to your server over SSH.
+# GitHub Container Registry. The server runs from the shared deploy folder (next to this project), not from here.
 on:
   workflow_run:
     workflows: [CI]
@@ -54,7 +54,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: deploy/Dockerfile
+          file: Dockerfile
           target: api
           push: true
           tags: |
@@ -66,7 +66,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: deploy/Dockerfile
+          file: Dockerfile
           target: web
           push: true
           tags: |
@@ -75,41 +75,3 @@ jobs:
           cache-from: type=gha,scope=web
           cache-to: type=gha,scope=web,mode=max
 
-  deploy:
-    name: Deploy to the server
-    needs: images
-    # Off by default. Turn on with the repository variable DEPLOY_ENABLED=true (see docs/DEPLOY.md).
-    if: ${{ vars.DEPLOY_ENABLED == 'true' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    environment: production        # add required reviewers on this environment to approve each release
-    env:
-      HOST: ${{ secrets.DEPLOY_HOST }}
-      USER_NAME: ${{ secrets.DEPLOY_USER }}
-      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-      PORT: ${{ secrets.DEPLOY_PORT || 22 }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install the SSH key
-        env:
-          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-        run: |
-          install -m 700 -d ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
-          chmod 600 ~/.ssh/id_deploy
-          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-      - name: Copy the compose files and the deploy script
-        run: |
-          scp -i ~/.ssh/id_deploy -P "$PORT" \
-            deploy/docker-compose.yml deploy/docker-compose.prod.yml deploy/deploy.sh \
-            "$USER_NAME@$HOST:$DEPLOY_PATH/"
-      - name: Pull the new images and restart
-        env:
-          IMAGE_OWNER: ${{ needs.images.outputs.owner }}
-          IMAGE_TAG: ${{ needs.images.outputs.tag }}
-          GHCR_USER: ${{ github.actor }}
-          GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
-        run: |
-          ssh -i ~/.ssh/id_deploy -p "$PORT" "$USER_NAME@$HOST" \
-            "cd '$DEPLOY_PATH' && IMAGE_OWNER='$IMAGE_OWNER' IMAGE_TAG='$IMAGE_TAG' GHCR_USER='$GHCR_USER' GHCR_TOKEN='$GHCR_TOKEN' sh deploy.sh"

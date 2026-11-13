@@ -2,7 +2,8 @@
 
 ## What runs
 
-Five containers from two images (see `deploy/docker-compose.yml`):
+Five containers from two images. The image recipe is `Dockerfile` (+ `docker/`) in this repo; the compose file and `.env`
+live in the shared deploy folder next to this project (`../deploy/restaurant/`), together with the other projects on the server.
 
 | Service   | Image            | Job                                                     |
 |-----------|------------------|---------------------------------------------------------|
@@ -14,62 +15,30 @@ Five containers from two images (see `deploy/docker-compose.yml`):
 
 Start order is enforced: `db` healthy → `migrate` finished → `api` / `worker` → `web`.
 
-## On a server, by hand
+## On a server
 
 ```bash
-cp deploy/.env.example deploy/.env      # fill every value; never commit this file
-docker compose -f deploy/docker-compose.yml up -d --build
+cd ~/Documents/deploy                         # the shared deploy folder
+cp restaurant/.env.example restaurant/.env    # fill every value; never commit this file
+./deploy.sh restaurant                        # git pull + build + up
 ```
 
 ## CI (`.github/workflows/ci.yml`) — every push and pull request
 
 1. **Backend**: `manage.py check`, `makemigrations --check` (fails if a model change has no migration), the full Django test suite against a real PostgreSQL 16.
 2. **Frontend**: translation-key check (`npm run check:i18n`), production build. Lint runs too but is informational for now (older findings exist).
-3. **Docker smoke test**: builds both images, starts the whole stack with throw-away secrets, and checks `/api/health/`, the app page and the QR redirect through nginx.
+3. **Docker smoke test**: builds both images, starts db → migrate → api → web with throw-away secrets, and checks `/api/health/`, the app page and the QR redirect through nginx.
 
 Nothing is published by CI.
 
-## CD (`.github/workflows/cd.yml`)
+## CD
 
-Runs after CI is green on `main`, on a version tag (`v1.2.0`), or manually.
-
-1. **Publish**: builds `bizsuite-api` and `bizsuite-web` and pushes them to GitHub Container Registry
-   (`ghcr.io/<owner>/bizsuite-api|web`), tagged `sha-<12 chars>` (or the version tag) and `latest`.
-2. **Deploy** (optional, **off by default**): copies the compose files to your server over SSH and runs `deploy/deploy.sh`,
-   which pulls the new images and restarts the stack (migrations run before the API starts).
-
-### Turning deployment on
-
-On the server (once):
-
-```bash
-mkdir -p /opt/bizsuite && cd /opt/bizsuite
-# put your filled-in .env here (copy of deploy/.env.example). The CD job never touches it.
-```
-
-In GitHub → Settings:
-
-* **Variables**: `DEPLOY_ENABLED = true`
-* **Secrets** (preferably on an *Environment* named `production` with required reviewers, so each release needs your approval):
-
-| Secret              | Value                                                        |
-|---------------------|--------------------------------------------------------------|
-| `DEPLOY_HOST`       | server address                                               |
-| `DEPLOY_USER`       | SSH user (must be allowed to run `docker`)                   |
-| `DEPLOY_PATH`       | `/opt/bizsuite`                                              |
-| `DEPLOY_PORT`       | optional, default 22                                         |
-| `DEPLOY_SSH_KEY`    | private key of a **deploy-only** key pair                    |
-| `DEPLOY_KNOWN_HOSTS`| output of `ssh-keyscan -p 22 <host>` (pins the server key)   |
-| `GHCR_PULL_TOKEN`   | a token with `read:packages` (only if the images are private)|
-
-### Rolling back
-
-Every image is kept under its `sha-…` / version tag. On the server:
-
-```bash
-cd /opt/bizsuite
-IMAGE_OWNER=<owner> IMAGE_TAG=<older tag> sh deploy.sh
-```
+* `.github/workflows/deploy.yml` (**CD**): after CI is green on a push, a self-hosted runner installed on the server
+  (label `deploy`) runs `../deploy/deploy.sh --branch <branch> restaurant` there (git pull + build + up). Only the
+  branch the server's clone is on is deployed. Off until the repository variable `DEPLOY_ENABLED=true` is set; runner
+  setup is in `../deploy/README.md`.
+* `.github/workflows/images.yml` (**Images**): after CI is green on `main` or on a version tag, publishes
+  `ghcr.io/<owner>/bizsuite-api|web` (tags `sha-<12 chars>` / version, and `latest`).
 
 ## Production checklist
 
@@ -88,10 +57,10 @@ for example `/biz`:
 |---|---|
 | `/admin/login` (super admin), `/<slug>/dashboard/login`, `/<slug>/driver/1`, `/m/<slug>`, `/q/<code>` | `/biz/api/...`, `/biz/assets/...`, `/biz/media/...`, `/biz/static/...`, `/biz/sw.js` |
 
-1. In `deploy/.env` set `URL_PREFIX=/biz` and a free `WEB_PORT` (for example `8200`). Also `ALLOWED_HOSTS`,
+1. In `../deploy/restaurant/.env` set `URL_PREFIX=/biz` and a free `PORT` (for example `8200`). Also `ALLOWED_HOSTS`,
    `CSRF_TRUSTED_ORIGINS=https://<domain>`, `CORS_ALLOWED_ORIGINS=https://<domain>`, `PLATFORM_PUBLIC_URL=https://<domain>`.
-2. Rebuild (the prefix is baked into the web image): `docker compose -p bizsuite up -d --build`.
-3. In the reverse proxy, send the hidden prefix **with the prefix stripped** and the page paths **as they are**.
+2. Rebuild (the prefix is baked into the web image): `./deploy.sh restaurant`.
+3. In the reverse proxy (`../deploy/router/Caddyfile` already has these rules), send the hidden prefix **with the prefix stripped** and the page paths **as they are**.
    With Caddy (put both blocks before the blocks of the other applications):
 
 ```
