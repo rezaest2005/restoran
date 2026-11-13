@@ -270,7 +270,6 @@ export default function CheckoutDialog({
 
     const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/>
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;800;900&display=swap');
         *{margin:0;padding:0;box-sizing:border-box;}
         body{font-family:'Vazirmatn',Tahoma,sans-serif;width:300px;margin:20px auto;}
         .r{border:2px solid var(--ink);border-radius:12px;padding:20px;}
