@@ -1,7 +1,7 @@
 /**
  * Hidden prefix for assets / API / static / media (build-time, from Vite `base`). Empty when the app owns the whole
  * domain; "/biz" when it shares a domain with other applications behind a proxy that strips that prefix
- * (see docs/DEPLOY.md). Pages people see (/<slug>/dashboard, /admin, /<slug>/driver/1 ...) are always at the root.
+ * (see docs/DEPLOY.md). Pages people see (/<slug>/dashboard, /admin, /<slug>/bizsuite_driver/1 ...) are always at the root.
  */
 export const BASE = (import.meta.env.BASE_URL || "/").replace(/\/+$/, "");
 

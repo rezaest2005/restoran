@@ -81,7 +81,7 @@ export default function Login() {
         warehouse: base,
         waiter: `${base}/pos`,
         customer: base,
-        driver: bslug ? `/${bslug}/driver` : "/driver",
+        driver: bslug ? `/${bslug}/bizsuite_driver` : "/bizsuite_driver",
       };
       setTimeout(() => {
         if (data.user.is_superuser) navigate("/bizsuite_admin/app");

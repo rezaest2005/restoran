@@ -117,7 +117,7 @@ def _carrier_data(c):
 def _driver_data(d):
     return {
         "id": d.id, "number": d.number, "name": d.name, "phone": d.phone, "user_id": d.user_id,
-        "link_path": f"/{d.business.slug}/driver/{d.number}" if d.number else f"/{d.business.slug}/driver",
+        "link_path": f"/{d.business.slug}/bizsuite_driver/{d.number}" if d.number else f"/{d.business.slug}/bizsuite_driver",
         "carrier_id": d.carrier_id, "default_vehicle_id": d.default_vehicle_id,
         "pay_per_trip": _f(d.pay_per_trip), "is_active": d.is_active, "on_shift": d.on_shift,
         "last_lat": _f(d.last_lat), "last_lng": _f(d.last_lng), "last_seen": _local_dt(d.last_seen),
@@ -983,7 +983,7 @@ def public_track(request, token):
     return api_success(data=data)
 
 
-_DRIVER_PATH_RE = __import__("re").compile(r"^/[a-z0-9][a-z0-9_-]{1,48}/driver(/[0-9]{1,6})?$")
+_DRIVER_PATH_RE = __import__("re").compile(r"^/[a-z0-9][a-z0-9_-]{1,48}/bizsuite_driver(/[0-9]{1,6})?$")
 
 
 @api_view(["GET"])
@@ -996,7 +996,7 @@ def driver_manifest(request):
     if not _DRIVER_PATH_RE.match(path):
         return api_error("آدرس نامعتبر است.", status_code=400)
     prefix = getattr(__import__("django.conf", fromlist=["settings"]).settings, "URL_PREFIX", "") or ""
-    scope = path.rsplit("/driver", 1)[0] + "/driver/"
+    scope = path.rsplit("/bizsuite_driver", 1)[0] + "/bizsuite_driver/"
     resp = JsonResponse({
         "name": "پیک — سامانه جامع کسب‌وکار", "short_name": "پیک", "lang": "fa", "dir": "rtl",
         "start_url": path, "scope": scope, "display": "standalone", "orientation": "portrait",

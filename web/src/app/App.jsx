@@ -98,10 +98,10 @@ function App() {
 
           <Route path="/m/:slug" element={<QrMenu />} />
           <Route path="/t/:token" element={<TrackingPage />} />
-          <Route path="/driver" element={<ProtectedRoute><DriverPage /></ProtectedRoute>} />
-          <Route path="/:slug/driver" element={<ProtectedRoute><DriverPage /></ProtectedRoute>} />
-          {/* each courier has a numbered address: /<slug>/driver/1, /<slug>/driver/2 ... */}
-          <Route path="/:slug/driver/:number" element={<ProtectedRoute><DriverPage /></ProtectedRoute>} />
+          <Route path="/bizsuite_driver" element={<ProtectedRoute><DriverPage /></ProtectedRoute>} />
+          <Route path="/:slug/bizsuite_driver" element={<ProtectedRoute><DriverPage /></ProtectedRoute>} />
+          {/* each courier has a numbered address: /<slug>/bizsuite_driver/1, /<slug>/bizsuite_driver/2 ... */}
+          <Route path="/:slug/bizsuite_driver/:number" element={<ProtectedRoute><DriverPage /></ProtectedRoute>} />
           {/* https://domain/<slug> opens that business's sign-in */}
           <Route path="/:slug" element={<SlugEntry />} />
 

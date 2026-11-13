@@ -268,7 +268,7 @@
     },
     "drvlink": {
       "title": "Courier sign-in link",
-      "hint": "This is the general courier sign-in address. Every courier also has a numbered address of their own (/business-name/driver/1, 2, ...) shown in the drivers table below. They sign in with the username and password you created for them.",
+      "hint": "This is the general courier sign-in address. Every courier also has a numbered address of their own (/business-name/bizsuite_driver/1, 2, ...) shown in the drivers table below. They sign in with the username and password you created for them.",
       "copy": "Copy address",
       "open": "Open",
       "session": "The courier stays signed in while the app is open; after closing the app the sign-in page appears again.",

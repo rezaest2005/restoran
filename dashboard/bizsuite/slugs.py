@@ -8,7 +8,7 @@ SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{1,48}$")
 
 # first path segments the platform (or another application on the same domain) already uses
 RESERVED_SLUGS = frozenset({
-    "admin", "bizsuite_admin", "bizsuite_dashboard", "api", "assets", "static", "media", "super", "dashboard", "driver", "login", "logout", "accounts",
+    "admin", "bizsuite_admin", "bizsuite_dashboard", "bizsuite_driver", "api", "assets", "static", "media", "super", "dashboard", "driver", "login", "logout", "accounts",
     "m", "s", "f", "t", "q", "biz", "django-admin", "health", "favicon", "manifest", "sw", "icon", "ember",
     "trade_dashboard", "trade_admin", "www", "app", "root", "null", "undefined",
 })

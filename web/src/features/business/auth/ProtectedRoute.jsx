@@ -37,9 +37,9 @@ function tryRefreshToken() {
     .catch(() => false);
 }
 
-const RESERVED = ["dashboard", "bizsuite_dashboard", "bizsuite_admin", "api", "super", "static", "media", "driver", "t", "m", "s", "f", "q", "login"];
+const RESERVED = ["dashboard", "bizsuite_dashboard", "bizsuite_admin", "api", "super", "static", "media", "driver", "bizsuite_driver", "t", "m", "s", "f", "q", "login"];
 
-/** "/zfc/driver" -> "/zfc/bizsuite_dashboard/login" so the courier lands on his own business's sign-in. */
+/** "/zfc/bizsuite_driver" -> "/zfc/bizsuite_dashboard/login" so the courier lands on his own business's sign-in. */
 function loginPath(pathname) {
   const first = (pathname || "").split("/").filter(Boolean)[0] || "";
   return first && !RESERVED.includes(first) ? `/${first}/bizsuite_dashboard/login` : "/bizsuite_dashboard/login";

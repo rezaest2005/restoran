@@ -55,5 +55,5 @@ export function currentSlug() {
   return u.business_slug || remembered || "";
 }
 
-/** Courier address: <domain>/driver (no slug). After sign-in the app moves to <domain>/<slug>/driver/<number>. */
-export const driverUrl = () => appUrl("/driver");
+/** Courier address: <domain>/bizsuite_driver (no slug). After sign-in the app moves to <domain>/<slug>/bizsuite_driver/<number>. */
+export const driverUrl = () => appUrl("/bizsuite_driver");

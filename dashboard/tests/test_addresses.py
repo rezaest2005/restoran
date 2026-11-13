@@ -1,4 +1,4 @@
-"""آدرس‌ها: slug قابل‌ویرایش توسط مالک، شماره‌ی پیک‌ها (۱، ۲، ۳ …)، manifest هر پیک و جابه‌جایی پنل جنگو."""
+﻿"""آدرس‌ها: slug قابل‌ویرایش توسط مالک، شماره‌ی پیک‌ها (۱، ۲، ۳ …)، manifest هر پیک و جابه‌جایی پنل جنگو."""
 
 from django.test import Client, TestCase, TransactionTestCase
 from rest_framework.test import APIClient
@@ -41,7 +41,7 @@ class SlugTests(Base):
 
     def test_bad_reserved_and_taken_slugs_are_refused(self):
         c = self.client_for(self.owner)
-        for bad in ("", "a", "has space", "ünï", "-start", "x" * 60, "admin", "api", "driver", "dashboard", "bizsuite_dashboard", "bizsuite_admin", "trade_dashboard", "ember", "beta"):
+        for bad in ("", "a", "has space", "ünï", "-start", "x" * 60, "admin", "api", "driver", "dashboard", "bizsuite_dashboard", "bizsuite_admin", "bizsuite_driver", "trade_dashboard", "ember", "beta"):
             self.assertEqual(c.put("/api/business/slug/", {"slug": bad}, format="json").status_code, 400, bad)
         self.a.refresh_from_db()
         self.assertEqual(self.a.slug, "alpha")
@@ -67,8 +67,8 @@ class DriverNumberTests(Base):
         one, two = self.make(ca, "رضا"), self.make(ca, "علی")
         other = self.make(cb, "سارا")
         self.assertEqual((one["number"], two["number"], other["number"]), (1, 2, 1))
-        self.assertEqual(one["link_path"], "/alpha/driver/1")
-        self.assertEqual(other["link_path"], "/beta/driver/1")
+        self.assertEqual(one["link_path"], "/alpha/bizsuite_driver/1")
+        self.assertEqual(other["link_path"], "/beta/bizsuite_driver/1")
 
     def test_a_deleted_courier_does_not_cause_a_duplicate_number(self):
         ca = self.client_for(self.owner)
@@ -82,19 +82,19 @@ class DriverNumberTests(Base):
         self.make(ca, "رضا")
         ca.put("/api/business/slug/", {"slug": "newshop"}, format="json")
         listed = self.client_for(self.owner).get("/api/delivery/drivers/").json()["data"]
-        self.assertEqual(listed[0]["link_path"], "/newshop/driver/1")
+        self.assertEqual(listed[0]["link_path"], "/newshop/bizsuite_driver/1")
 
 
 class ManifestAndAdminTests(Base):
     def test_manifest_for_a_courier_page(self):
-        r = Client().get("/api/delivery/driver-manifest/", {"path": "/alpha/driver/3"})
+        r = Client().get("/api/delivery/driver-manifest/", {"path": "/alpha/bizsuite_driver/3"})
         self.assertEqual(r.status_code, 200)
         self.assertIn("manifest+json", r["Content-Type"])
         m = r.json()
-        self.assertEqual((m["start_url"], m["scope"], m["display"]), ("/alpha/driver/3", "/alpha/driver/", "standalone"))
+        self.assertEqual((m["start_url"], m["scope"], m["display"]), ("/alpha/bizsuite_driver/3", "/alpha/bizsuite_driver/", "standalone"))
 
     def test_manifest_refuses_anything_that_is_not_a_courier_page(self):
-        for bad in ("", "/alpha/dashboard/login", "https://evil.example/driver/1", "/alpha/driver/1/../../x", "//evil.com/driver/1", "/a/driver/x"):
+        for bad in ("", "/alpha/dashboard/login", "https://evil.example/bizsuite_driver/1", "/alpha/bizsuite_driver/1/../../x", "//evil.com/bizsuite_driver/1", "/a/bizsuite_driver/x"):
             self.assertEqual(Client().get("/api/delivery/driver-manifest/", {"path": bad}).status_code, 400, bad)
 
     def test_django_admin_moved_and_the_old_address_is_free(self):

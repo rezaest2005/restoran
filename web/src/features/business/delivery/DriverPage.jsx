@@ -90,7 +90,7 @@ export default function DriverPage() {
     return () => clearInterval(id);
   }, [load]);
 
-  // The courier's own address is /<slug>/driver/<number>. Whatever he typed (no number, someone else's number,
+  // The courier's own address is /<slug>/bizsuite_driver/<number>. Whatever he typed (no number, someone else's number,
   // an old slug after the owner renamed the business) he is sent to his own.
   const myPath = data?.driver?.link_path;
   useEffect(() => {

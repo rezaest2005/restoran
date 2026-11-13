@@ -10,7 +10,7 @@ function saveTenantSlug() {
   const slug = parts[0] || "";
   if (
     slug &&
-    !["dashboard", "bizsuite_dashboard", "bizsuite_admin", "api", "super", "static", "media", "driver", "t"].includes(slug)
+    !["dashboard", "bizsuite_dashboard", "bizsuite_admin", "api", "super", "static", "media", "driver", "bizsuite_driver", "t"].includes(slug)
   ) {
     localStorage.setItem("tenant_slug", slug);
     return slug;
