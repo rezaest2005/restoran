@@ -71,7 +71,8 @@ export default function Login() {
       setSuccess(t("login.success"));
 
       // ★ مسیر بر اساس نقش
-      const base = slug ? `/${slug}/dashboard/app` : "/dashboard/app";
+      const bslug = data.user.business_slug || slug || "";
+      const base = bslug ? `/${bslug}/dashboard/app` : "/dashboard/app";
       const routes = {
         owner: base,
         manager: base,
@@ -80,7 +81,7 @@ export default function Login() {
         warehouse: base,
         waiter: `${base}/pos`,
         customer: base,
-        driver: slug ? `/${slug}/driver` : "/driver",
+        driver: bslug ? `/${bslug}/driver` : "/driver",
       };
       setTimeout(() => {
         if (data.user.is_superuser) navigate("/admin/app");

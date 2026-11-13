@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, useParams } from "react-router-dom";
+import { Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@shared/contexts/ThemeContext";
 import { LangProvider } from "@shared/contexts/LangContext";
 import Login from "@business/auth/Login";
@@ -19,6 +19,15 @@ import TrackingPage from "@business/delivery/TrackingPage";
 import QrMenu from "../features/public/QrMenu";
 import FeedbackPublicPage from "../features/public/feedback/FeedbackPublicPage";
 import StorefrontPage from "../features/public/storefront/StorefrontPage";
+
+/** /dashboard/app/... -> /<slug>/dashboard/app/... using the signed-in user's business. */
+function ToSlug() {
+  const loc = useLocation();
+  let slug = "";
+  try { slug = JSON.parse(sessionStorage.getItem("user") || "{}").business_slug || ""; } catch { /* ignore */ }
+  if (!slug) return <Navigate to="/dashboard/login" replace />;
+  return <Navigate to={`/${slug}${loc.pathname}${loc.search}`} replace />;
+}
 
 function SlugEntry() {
   const { slug } = useParams();
@@ -63,28 +72,9 @@ function App() {
             <Route path="activity" element={<ActivityPage />} />
           </Route>
 
-          {/* بدون slug */}
-          <Route
-            path="/dashboard/app"
-            element={
-              <ProtectedRoute>
-                <BusinessLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Dashboard />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="pos" element={<Pos />} />
-            <Route path="dictionary" element={<Dictionary />} />
-            <Route path="users" element={<Navigate to="../dictionary?tab=users" replace />} />
-            <Route path="inventory" element={<InventoryPage />} />
-            <Route path="production" element={<ProductionPage />} />
-            <Route path="accounting" element={<Navigate to="../dashboard?tab=accounting" replace />} />
-            <Route path="delivery" element={<DispatchPage />} />
-            <Route path="activity" element={<ActivityPage />} />
-          </Route>
+          {/* بدون slug: بعد از ورود به آدرس با slug می‌رود */}
+          <Route path="/dashboard/app/*" element={<ProtectedRoute><ToSlug /></ProtectedRoute>} />
 
-          {/* super admin panel: https://domain/admin/login (the old /super/... addresses still work) */}
           <Route path="/admin/login" element={<SuperLogin />} />
           <Route
             path="/admin"

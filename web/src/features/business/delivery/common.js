@@ -55,6 +55,5 @@ export function currentSlug() {
   return u.business_slug || remembered || "";
 }
 
-/** Courier sign-in address of this business: <domain>/<slug>/driver. */
-export const driverUrl = (slug = currentSlug()) =>
-  appUrl(`${slug ? `/${encodeURIComponent(slug)}` : ""}/driver`);
+/** Courier address: <domain>/driver (no slug). After sign-in the app moves to <domain>/<slug>/driver/<number>. */
+export const driverUrl = () => appUrl("/driver");

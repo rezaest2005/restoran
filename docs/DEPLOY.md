@@ -76,7 +76,7 @@ handle_path /biz/* {
 		}
 	}
 }
-@bizpages path_regexp bizpages ^/(admin(/.*)?|django-admin(/.*)?|(m|s|f|t|q)/.*|[a-z0-9][a-z0-9_-]+/(dashboard|driver)(/.*)?)$
+@bizpages path_regexp bizpages ^/(admin(/.*)?|django-admin(/.*)?|(m|s|f|t|q)/.*|(dashboard|driver)(/.*)?|[a-z0-9][a-z0-9_-]+/(dashboard|driver)(/.*)?)$
 handle @bizpages {
 	request_body {
 		max_size 60MB
