@@ -214,6 +214,7 @@ export default function SuperAdminLayout() {
           {activeTab === 4 && <QrPanel tenants={tenants} C={C} />}
           {activeTab === 5 && <SupportPanel C={C} tenants={tenants} onChanged={refreshSupport} />}
         </Box>
+        <HintBar items={[{ keys: "Alt+R", label: t("ui_l.super.refresh") }, { keys: "Alt+T", label: t("ui_l.super.toggle_theme") }, { keys: "Alt+G", label: t("ui_l.super.toggle_lang") }, { keys: "Alt+L", label: t("ui_l.super.logout") }]} />
       </Box>
 
       <Dialog open={logoutOpen} onClose={() => setLogoutOpen(false)} maxWidth="xs" fullWidth dir={isRtl ? "rtl" : "ltr"}>
@@ -242,7 +243,6 @@ export default function SuperAdminLayout() {
           {toast.message}
         </Alert>
       </Snackbar>
-      <HintBar items={[{ keys: "Alt+R", label: t("ui_l.super.refresh") }, { keys: "Alt+T", label: t("ui_l.super.toggle_theme") }, { keys: "Alt+G", label: t("ui_l.super.toggle_lang") }, { keys: "Alt+L", label: t("ui_l.super.logout") }]} />
     </Box>
   );
 }
