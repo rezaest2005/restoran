@@ -27,7 +27,7 @@ superClient.interceptors.response.use(
     if ((status === 401 || status === 403) && !isLoginRequest) {
       sessionStorage.removeItem("super_token");
       sessionStorage.removeItem("super_user");
-      window.location.href = withBase("/admin/login");
+      window.location.href = withBase("/bizsuite_admin/login");
     }
 
     return Promise.reject(err);

@@ -235,7 +235,7 @@ class TenantMiddleware:
     """
 
     SKIP_PATHS = ("/static/", "/media/", "/admin/", "/django-admin/", "/favicon.ico")
-    NON_TENANT_SLUGS = frozenset({"dashboard", "api"})
+    NON_TENANT_SLUGS = frozenset({"dashboard", "bizsuite_dashboard", "bizsuite_admin", "api"})
 
     def __init__(self, get_response):
         self.get_response = get_response

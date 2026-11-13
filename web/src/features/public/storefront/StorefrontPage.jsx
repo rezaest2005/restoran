@@ -28,7 +28,7 @@ export default function StorefrontPage({ byHost = false }) {
   }, [slug, byHost]);
 
   if (state.status === "notfound") {
-    return byHost ? <Navigate to="/dashboard" replace /> : (
+    return byHost ? <Navigate to="/bizsuite_dashboard" replace /> : (
       <div style={{ padding: 40, textAlign: "center" }}>{t("ui_k.public.not_found")}</div>
     );
   }

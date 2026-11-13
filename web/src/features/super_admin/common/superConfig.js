@@ -9,9 +9,9 @@ export const NAV_SECTIONS = [
   {
     titleKey: "super.nav.management",
     items: [
-      { icon: "dashboard", labelKey: "super.nav.dashboard", path: "/admin" },
-      { icon: "website", labelKey: "ui_sfa.nav", path: "/admin/app?tab=storefront" },
-      { icon: "support", labelKey: "ui_sup.nav", path: "/admin/app?tab=support", badge: "support" },
+      { icon: "dashboard", labelKey: "super.nav.dashboard", path: "/bizsuite_admin" },
+      { icon: "website", labelKey: "ui_sfa.nav", path: "/bizsuite_admin/app?tab=storefront" },
+      { icon: "support", labelKey: "ui_sup.nav", path: "/bizsuite_admin/app?tab=support", badge: "support" },
     ],
   },
   {

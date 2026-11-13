@@ -39,7 +39,7 @@ def _tenant_to_dict(tenant, business=None):
         'name': tenant.name,
         'slug': business.slug if business else '',
         'business_id': business.id if business else None,
-        'dashboard_url': f'/{business.slug}/dashboard/app/' if business else '',
+        'dashboard_url': f'/{business.slug}/bizsuite_dashboard/app/' if business else '',
         'owner_id': tenant.owner_id,
         'owner_name': (
             (tenant.owner.get_full_name() or tenant.owner.username)
@@ -157,7 +157,7 @@ def super_tenants_api(request):
             'ok': True,
             'tenant_id': tenant.id,
             'slug': slug,
-            'dashboard_url': f'/{slug}/dashboard/app/',
+            'dashboard_url': f'/{slug}/bizsuite_dashboard/app/',
             'msg': f'کسب‌وکار «{tenant.name}» با شناسه «{slug}» ساخته شد',
         }, status=status.HTTP_201_CREATED)
 

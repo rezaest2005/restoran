@@ -44,7 +44,7 @@ export default function SuperLogin() {
 
   useEffect(() => {
     const token = sessionStorage.getItem("super_token");
-    if (token) navigate("/admin/app", { replace: true });
+    if (token) navigate("/bizsuite_admin/app", { replace: true });
   }, [navigate]);
 
   const handleLogin = async (e) => {
@@ -71,7 +71,7 @@ export default function SuperLogin() {
         if (data.user) {
           sessionStorage.setItem("super_user", JSON.stringify(data.user));
         }
-        navigate("/admin/app", { replace: true });
+        navigate("/bizsuite_admin/app", { replace: true });
       } else {
         // ★ تبدیل خطا به متن ساده
         setError(extractError(data, t));

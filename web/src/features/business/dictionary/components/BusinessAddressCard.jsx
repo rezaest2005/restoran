@@ -7,7 +7,7 @@ const unwrap = (r) => r.data?.data ?? r.data;
 const readUser = () => { try { return JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "{}"); } catch { return {}; } };
 
 /**
- * The owner's own address name (slug): https://domain/<slug>/dashboard/login, https://domain/<slug>/driver/1 ...
+ * The owner's own address name (slug): https://domain/<slug>/bizsuite_dashboard/login, https://domain/<slug>/driver/1 ...
  * Defaults to the name the platform gave the account; the owner may pick another one (the server checks it).
  */
 export default function BusinessAddressCard({ ctx }) {
@@ -37,7 +37,7 @@ export default function BusinessAddressCard({ ctx }) {
       store.setItem("user", JSON.stringify({ ...readUser(), business_slug: slug }));
       try { localStorage.setItem("tenant_slug", slug); } catch { /* ignore */ }
       notify(t("ui_def.address.saved"));
-      window.location.assign(`/${slug}/dashboard/app/dictionary?tab=users`);
+      window.location.assign(`/${slug}/bizsuite_dashboard/app/dictionary?tab=users`);
     } catch (e) {
       setError(e?.response?.data?.error || t("ui_def.address.save_failed"));
       setSaving(false);
@@ -59,7 +59,7 @@ export default function BusinessAddressCard({ ctx }) {
       </Box>
       {error && <Alert severity="error" sx={{ mt: 1.5 }}>{error}</Alert>}
       <Box dir="ltr" sx={{ mt: 1.5, display: "grid", gap: 0.5, fontFamily: "var(--font-mono)", fontSize: 12.5, color: C.sub }}>
-        <span>{appUrl(`/${preview}/dashboard/login`)}</span>
+        <span>{appUrl(`/${preview}/bizsuite_dashboard/login`)}</span>
         <span>{appUrl(`/${preview}/driver/1`)}</span>
       </Box>
       <Typography sx={{ color: C.muted, fontSize: 12, mt: 1 }}>{t("ui_def.address.default_note")}</Typography>

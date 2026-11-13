@@ -41,7 +41,7 @@ class SlugTests(Base):
 
     def test_bad_reserved_and_taken_slugs_are_refused(self):
         c = self.client_for(self.owner)
-        for bad in ("", "a", "has space", "ünï", "-start", "x" * 60, "admin", "api", "driver", "dashboard", "trade_dashboard", "ember", "beta"):
+        for bad in ("", "a", "has space", "ünï", "-start", "x" * 60, "admin", "api", "driver", "dashboard", "bizsuite_dashboard", "bizsuite_admin", "trade_dashboard", "ember", "beta"):
             self.assertEqual(c.put("/api/business/slug/", {"slug": bad}, format="json").status_code, 400, bad)
         self.a.refresh_from_db()
         self.assertEqual(self.a.slug, "alpha")

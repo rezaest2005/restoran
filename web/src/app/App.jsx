@@ -20,18 +20,18 @@ import QrMenu from "../features/public/QrMenu";
 import FeedbackPublicPage from "../features/public/feedback/FeedbackPublicPage";
 import StorefrontPage from "../features/public/storefront/StorefrontPage";
 
-/** /dashboard/app/... -> /<slug>/dashboard/app/... using the signed-in user's business. */
+/** /bizsuite_dashboard/app/... -> /<slug>/bizsuite_dashboard/app/... using the signed-in user's business. */
 function ToSlug() {
   const loc = useLocation();
   let slug = "";
   try { slug = JSON.parse(sessionStorage.getItem("user") || "{}").business_slug || ""; } catch { /* ignore */ }
-  if (!slug) return <Navigate to="/dashboard/login" replace />;
+  if (!slug) return <Navigate to="/bizsuite_dashboard/login" replace />;
   return <Navigate to={`/${slug}${loc.pathname}${loc.search}`} replace />;
 }
 
 function SlugEntry() {
   const { slug } = useParams();
-  return <Navigate to={`/${slug}/dashboard/login`} replace />;
+  return <Navigate to={`/${slug}/bizsuite_dashboard/login`} replace />;
 }
 
 function App() {
@@ -43,17 +43,17 @@ function App() {
           <Route path="/s/:slug" element={<StorefrontPage />} />
           <Route path="/f/:slug" element={<FeedbackPublicPage />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/:slug/dashboard/login" element={<Login />} />
-          <Route path="/dashboard/login" element={<Login />} />
+          <Route path="/:slug/bizsuite_dashboard/login" element={<Login />} />
+          <Route path="/bizsuite_dashboard/login" element={<Login />} />
 
           <Route
-            path="/dashboard"
-            element={<Navigate to="/dashboard/login" replace />}
+            path="/bizsuite_dashboard"
+            element={<Navigate to="/bizsuite_dashboard/login" replace />}
           />
 
           {/* با slug */}
           <Route
-            path="/:slug/dashboard/app"
+            path="/:slug/bizsuite_dashboard/app"
             element={
               <ProtectedRoute>
                 <BusinessLayout />
@@ -73,28 +73,28 @@ function App() {
           </Route>
 
           {/* بدون slug: بعد از ورود به آدرس با slug می‌رود */}
-          <Route path="/dashboard/app/*" element={<ProtectedRoute><ToSlug /></ProtectedRoute>} />
+          <Route path="/bizsuite_dashboard/app/*" element={<ProtectedRoute><ToSlug /></ProtectedRoute>} />
 
-          <Route path="/admin/login" element={<SuperLogin />} />
+          <Route path="/bizsuite_admin/login" element={<SuperLogin />} />
           <Route
-            path="/admin"
+            path="/bizsuite_admin"
             element={
               <SuperProtectedRoute>
-                <Navigate to="/admin/app" replace />
+                <Navigate to="/bizsuite_admin/app" replace />
               </SuperProtectedRoute>
             }
           />
           <Route
-            path="/admin/app"
+            path="/bizsuite_admin/app"
             element={
               <SuperProtectedRoute>
                 <SuperAdmin />
               </SuperProtectedRoute>
             }
           />
-          <Route path="/super/login" element={<Navigate to="/admin/login" replace />} />
-          <Route path="/super" element={<Navigate to="/admin" replace />} />
-          <Route path="/super/app" element={<Navigate to="/admin/app" replace />} />
+          <Route path="/super/login" element={<Navigate to="/bizsuite_admin/login" replace />} />
+          <Route path="/super" element={<Navigate to="/bizsuite_admin" replace />} />
+          <Route path="/super/app" element={<Navigate to="/bizsuite_admin/app" replace />} />
 
           <Route path="/m/:slug" element={<QrMenu />} />
           <Route path="/t/:token" element={<TrackingPage />} />
@@ -105,7 +105,7 @@ function App() {
           {/* https://domain/<slug> opens that business's sign-in */}
           <Route path="/:slug" element={<SlugEntry />} />
 
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/bizsuite_dashboard" replace />} />
         </Routes>
       </LangProvider>
     </ThemeProvider>

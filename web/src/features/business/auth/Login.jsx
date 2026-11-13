@@ -11,7 +11,7 @@ export default function Login() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { slug } = useParams(); // tenant slug from the address (e.g. /cafe/dashboard/login)
+  const { slug } = useParams(); // tenant slug from the address (e.g. /cafe/bizsuite_dashboard/login)
 
   const [username, setUsername] = useState(() => searchParams.get("username") || "");
   const [password, setPassword] = useState("");
@@ -72,7 +72,7 @@ export default function Login() {
 
       // ★ مسیر بر اساس نقش
       const bslug = data.user.business_slug || slug || "";
-      const base = bslug ? `/${bslug}/dashboard/app` : "/dashboard/app";
+      const base = bslug ? `/${bslug}/bizsuite_dashboard/app` : "/bizsuite_dashboard/app";
       const routes = {
         owner: base,
         manager: base,
@@ -84,7 +84,7 @@ export default function Login() {
         driver: bslug ? `/${bslug}/driver` : "/driver",
       };
       setTimeout(() => {
-        if (data.user.is_superuser) navigate("/admin/app");
+        if (data.user.is_superuser) navigate("/bizsuite_admin/app");
         else navigate(routes[data.user.role] || base);
       }, 500);
     } catch (err) {

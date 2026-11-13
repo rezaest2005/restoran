@@ -10,7 +10,7 @@ function saveTenantSlug() {
   const slug = parts[0] || "";
   if (
     slug &&
-    !["dashboard", "api", "super", "static", "media", "driver", "t"].includes(slug)
+    !["dashboard", "bizsuite_dashboard", "bizsuite_admin", "api", "super", "static", "media", "driver", "t"].includes(slug)
   ) {
     localStorage.setItem("tenant_slug", slug);
     return slug;
@@ -122,7 +122,7 @@ function redirectToLogin() {
   
   // این برای اطلاع به سایر تب‌ها است، در localStorage بماند
   localStorage.setItem("__logout__", Date.now().toString());
-  window.location.href = withBase("/dashboard/login");
+  window.location.href = withBase("/bizsuite_dashboard/login");
 
   setTimeout(() => {
     redirecting = false;
@@ -134,7 +134,7 @@ window.addEventListener("storage", (e) => {
   if (e.key === "__logout__") {
     if (!redirecting) {
       redirecting = true;
-      window.location.href = withBase("/dashboard/login");
+      window.location.href = withBase("/bizsuite_dashboard/login");
       setTimeout(() => {
         redirecting = false;
       }, 2000);

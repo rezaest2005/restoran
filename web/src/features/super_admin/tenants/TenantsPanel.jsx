@@ -97,7 +97,7 @@ export default function TenantsPanel({
   /* ── open dashboard in new tab ── */
   const openDashboard = (e, slug) => {
     e.stopPropagation();
-    window.open(withBase(`/${slug}/dashboard/login`), "_blank");
+    window.open(withBase(`/${slug}/bizsuite_dashboard/login`), "_blank");
   };
 
   /* ── ★ باز کردن مودال ویرایش با کل داده ── */

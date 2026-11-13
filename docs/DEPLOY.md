@@ -55,7 +55,7 @@ for example `/biz`:
 
 | What people see (domain root) | What is hidden under the prefix |
 |---|---|
-| `/admin/login` (super admin), `/<slug>/dashboard/login`, `/<slug>/driver/1`, `/m/<slug>`, `/q/<code>` | `/biz/api/...`, `/biz/assets/...`, `/biz/media/...`, `/biz/static/...`, `/biz/sw.js` |
+| `/bizsuite_admin/login` (super admin), `/bizsuite_dashboard/login` and `/<slug>/bizsuite_dashboard/login`, `/driver` and `/<slug>/driver/1`, `/m/<slug>`, `/q/<code>` | `/biz/api/...`, `/biz/assets/...`, `/biz/media/...`, `/biz/static/...`, `/biz/sw.js` |
 
 1. In `../deploy/restaurant/.env` set `URL_PREFIX=/biz` and a free `PORT` (for example `8200`). Also `ALLOWED_HOSTS`,
    `CSRF_TRUSTED_ORIGINS=https://<domain>`, `CORS_ALLOWED_ORIGINS=https://<domain>`, `PLATFORM_PUBLIC_URL=https://<domain>`.
@@ -76,7 +76,7 @@ handle_path /biz/* {
 		}
 	}
 }
-@bizpages path_regexp bizpages ^/(admin(/.*)?|django-admin(/.*)?|(m|s|f|t|q)/.*|(dashboard|driver)(/.*)?|[a-z0-9][a-z0-9_-]+/(dashboard|driver)(/.*)?)$
+@bizpages path_regexp bizpages ^/(bizsuite_admin(/.*)?|django-admin(/.*)?|(m|s|f|t|q)/.*|(bizsuite_dashboard|driver)(/.*)?|[a-z0-9][a-z0-9_-]+/(bizsuite_dashboard|driver)(/.*)?)$
 handle @bizpages {
 	request_body {
 		max_size 60MB

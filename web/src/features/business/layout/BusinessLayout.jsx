@@ -180,11 +180,11 @@ export default function BusinessLayout() {
     if (urlSlug) return urlSlug;
     const parts = pathWithoutBase().split("/").filter(Boolean);
     const first = parts[0] || "";
-    if (first === "dashboard" || first === "super") return "";
+    if (first === "dashboard" || first === "bizsuite_dashboard" || first === "bizsuite_admin" || first === "super") return "";
     return first;
   }, [urlSlug]);
 
-  const prefix = slug ? `/${slug}/dashboard/app` : "/dashboard/app";
+  const prefix = slug ? `/${slug}/bizsuite_dashboard/app` : "/bizsuite_dashboard/app";
 
   useEffect(() => {
     document.documentElement.dir = isRtl ? "rtl" : "ltr";
@@ -201,7 +201,7 @@ export default function BusinessLayout() {
     const token = sessionStorage.getItem("access_token") || localStorage.getItem("access_token");
     const alive = sessionStorage.getItem("session_alive");
     if (!token || !alive) {
-      navigate(slug ? `/${slug}/dashboard/login` : "/dashboard/login");
+      navigate(slug ? `/${slug}/bizsuite_dashboard/login` : "/bizsuite_dashboard/login");
       return;
     }
 
@@ -214,7 +214,7 @@ export default function BusinessLayout() {
           localStorage.removeItem("access_token");
           localStorage.removeItem("refresh_token");
           localStorage.removeItem("user");
-          navigate(slug ? `/${slug}/dashboard/login` : "/dashboard/login");
+          navigate(slug ? `/${slug}/bizsuite_dashboard/login` : "/bizsuite_dashboard/login");
           return null;
         }
         // keep the cached licence fresh: if the super admin changed this account's tabs/modules since
@@ -299,7 +299,7 @@ export default function BusinessLayout() {
     sessionStorage.removeItem("db_auth");
     sessionStorage.removeItem("session_alive");
     sessionStorage.removeItem("demo_logins_remaining");
-    navigate(slug ? `/${slug}/dashboard/login` : "/dashboard/login");
+    navigate(slug ? `/${slug}/bizsuite_dashboard/login` : "/bizsuite_dashboard/login");
   };
 
   const sidebarContent = (
