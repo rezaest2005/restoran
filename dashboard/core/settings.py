@@ -154,8 +154,9 @@ TIME_ZONE = 'Asia/Tehran'
 USE_I18N = True
 USE_TZ = True
 
-# Optional mount path when the app shares one domain with other applications behind a reverse proxy that
-# strips the prefix (e.g. URL_PREFIX=/biz -> https://example.com/biz/...). Empty = served at the domain root.
+# Optional hidden prefix for assets, API, static and media when the app shares one domain with other applications
+# behind a reverse proxy that strips it (URL_PREFIX=/biz -> https://example.com/biz/api/...). The pages people see
+# (/<slug>/dashboard, /admin, /<slug>/driver/1 ...) stay at the domain root. Empty = everything at the root.
 URL_PREFIX = os.getenv("URL_PREFIX", "").strip().rstrip("/")
 if URL_PREFIX and not URL_PREFIX.startswith("/"):
     URL_PREFIX = "/" + URL_PREFIX
@@ -190,9 +191,7 @@ SESSION_COOKIE_SECURE = COOKIE_SECURE
 CSRF_COOKIE_SECURE = COOKIE_SECURE
 
 if URL_PREFIX:
-    FORCE_SCRIPT_NAME = URL_PREFIX                 # generated links (admin, redirects) include the mount path
-    SESSION_COOKIE_PATH = URL_PREFIX + "/"         # cookies are not shared with the other apps on the domain
-    CSRF_COOKIE_PATH = URL_PREFIX + "/"
+    # other applications share the domain, so our cookies get names of their own
     SESSION_COOKIE_NAME = "bizsuite_sessionid"
     CSRF_COOKIE_NAME = "bizsuite_csrftoken"
 

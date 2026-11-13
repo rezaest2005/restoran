@@ -7,7 +7,7 @@ export default function SuperProtectedRoute({ children }) {
   // اگه توکن نبود، کاربر رو بفرست به صفحه لاگین
   if (!token) {
     // ذخیره مسیر فعلی برای اینکه بعد از لاگین برگردیم همونجا (اختیاری)
-    return <Navigate to="/super/login" state={{ from: location }} replace />;
+    return <Navigate to="/admin/login" state={{ from: location }} replace />;
   }
 
   // اگه توکن بود، صفحه مورد نظر رو نشون بده

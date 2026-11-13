@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate, useParams } from "react-router-dom";
+import { BASE } from "@shared/basePath";
 import {
   Box, Typography, Button, Alert, Snackbar, TextField, CircularProgress, Dialog, DialogTitle,
   DialogContent, DialogActions, Chip,
@@ -54,6 +56,8 @@ function FailDialog({ t, C, onClose, onSubmit, busy }) {
 
 export default function DriverPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { slug: urlSlug } = useParams();
   const { mode } = useThemeMode();
   const { isRtl, lang } = useLang();
   const C = useMemo(() => buildColors(mode === "dark"), [mode]);
@@ -85,6 +89,26 @@ export default function DriverPage() {
     const id = setInterval(() => { if (!document.hidden) load(); }, REFRESH_MS);
     return () => clearInterval(id);
   }, [load]);
+
+  // The courier's own address is /<slug>/driver/<number>. Whatever he typed (no number, someone else's number,
+  // an old slug after the owner renamed the business) he is sent to his own.
+  const myPath = data?.driver?.link_path;
+  useEffect(() => {
+    if (urlSlug && myPath && window.location.pathname !== myPath) navigate(myPath, { replace: true });
+  }, [urlSlug, myPath, navigate]);
+
+  // Installable as an app: a manifest that starts on this very page, and a service worker scoped to the courier pages.
+  useEffect(() => {
+    if (!myPath) return undefined;
+    const link = document.createElement("link");
+    link.rel = "manifest";
+    link.href = `${BASE}/api/delivery/driver-manifest/?path=${encodeURIComponent(myPath)}`;
+    document.head.appendChild(link);
+    if ("serviceWorker" in navigator && import.meta.env.PROD) {
+      navigator.serviceWorker.register(`${BASE}/sw.js`, { scope: `${myPath.replace(/\/\d+$/, "")}/` }).catch(() => {});
+    }
+    return () => link.remove();
+  }, [myPath]);
 
   // GPS: send at most once per SEND_EVERY_MS while the page is open
   useEffect(() => {
@@ -198,6 +222,7 @@ export default function DriverPage() {
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, mb: 2 }}>
         <Box>
           <Typography sx={{ color: C.text, fontWeight: 800, fontSize: 20 }}>{data?.driver?.name || t("ui_del.driver.title")}</Typography>
+          {data?.driver?.number && <Chip size="small" label={t("ui_del.driver.number", { n: fmtInt(data.driver.number, lang) })} sx={{ height: 22, fontSize: 12, mt: 0.5 }} />}
           <Typography sx={{ color: C.sub, fontSize: 12 }}>{data?.business}</Typography>
         </Box>
         {data && (

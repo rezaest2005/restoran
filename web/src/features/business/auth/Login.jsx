@@ -83,7 +83,7 @@ export default function Login() {
         driver: slug ? `/${slug}/driver` : "/driver",
       };
       setTimeout(() => {
-        if (data.user.is_superuser) navigate("/super/app");
+        if (data.user.is_superuser) navigate("/admin/app");
         else navigate(routes[data.user.role] || base);
       }, 500);
     } catch (err) {

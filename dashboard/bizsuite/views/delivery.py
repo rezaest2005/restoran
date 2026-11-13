@@ -16,8 +16,8 @@ import secrets
 from decimal import Decimal, InvalidOperation
 
 from django.core.cache import cache
-from django.db import IntegrityError
-from django.db.models import Q
+from django.db import IntegrityError, transaction
+from django.db.models import Max, Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework.decorators import (
@@ -115,7 +115,8 @@ def _carrier_data(c):
 
 def _driver_data(d):
     return {
-        "id": d.id, "name": d.name, "phone": d.phone, "user_id": d.user_id,
+        "id": d.id, "number": d.number, "name": d.name, "phone": d.phone, "user_id": d.user_id,
+        "link_path": f"/{d.business.slug}/driver/{d.number}" if d.number else f"/{d.business.slug}/driver",
         "carrier_id": d.carrier_id, "default_vehicle_id": d.default_vehicle_id,
         "pay_per_trip": _f(d.pay_per_trip), "is_active": d.is_active, "on_shift": d.on_shift,
         "last_lat": _f(d.last_lat), "last_lng": _f(d.last_lng), "last_seen": _local_dt(d.last_seen),
@@ -351,7 +352,11 @@ def drivers(request):
         qs = Driver.all_objects.filter(business=r).order_by("name")
         return api_success(data=[_driver_data(d) for d in qs])
     try:
-        drv = Driver.all_objects.create(business=r, **_driver_fields(r, request.data))
+        fields = _driver_fields(r, request.data)
+        with transaction.atomic():
+            type(r).objects.select_for_update().filter(pk=r.pk).first()
+            top = Driver.all_objects.filter(business=r).aggregate(m=Max("number"))["m"] or 0
+            drv = Driver.all_objects.create(business=r, number=top + 1, **fields)
     except ValueError as e:
         return api_error(str(e))
     except Exception as e:
@@ -966,3 +971,31 @@ def public_track(request, token):
     if data is None:
         return api_error("لینک پیگیری معتبر نیست.", status_code=404)
     return api_success(data=data)
+
+
+_DRIVER_PATH_RE = __import__("re").compile(r"^/[a-z0-9][a-z0-9_-]{1,48}/driver(/[0-9]{1,6})?$")
+
+
+@api_view(["GET"])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def driver_manifest(request):
+    """Web-app manifest for one courier page (start_url = the page itself), so installing it opens that page."""
+    from django.http import JsonResponse
+    path = request.query_params.get("path", "")
+    if not _DRIVER_PATH_RE.match(path):
+        return api_error("آدرس نامعتبر است.", status_code=400)
+    prefix = getattr(__import__("django.conf", fromlist=["settings"]).settings, "URL_PREFIX", "") or ""
+    scope = path.rsplit("/driver", 1)[0] + "/driver/"
+    resp = JsonResponse({
+        "name": "پیک — سامانه جامع کسب‌وکار", "short_name": "پیک", "lang": "fa", "dir": "rtl",
+        "start_url": path, "scope": scope, "display": "standalone", "orientation": "portrait",
+        "background_color": "#F7F4F3", "theme_color": "#9B1C44",
+        "icons": [
+            {"src": f"{prefix}/icon-192.png", "sizes": "192x192", "type": "image/png"},
+            {"src": f"{prefix}/icon-512.png", "sizes": "512x512", "type": "image/png"},
+            {"src": f"{prefix}/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+        ],
+    })
+    resp["Content-Type"] = "application/manifest+json"
+    return resp

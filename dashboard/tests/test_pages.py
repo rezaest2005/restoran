@@ -55,4 +55,4 @@ class PageRenderTests(TestCase):
                 self._assert_no_server_error(c, path)
 
     def test_django_admin_login_renders(self):
-        self.assertLess(Client().get("/admin/login/").status_code, 500)
+        self.assertLess(Client().get("/django-admin/login/").status_code, 500)

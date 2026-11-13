@@ -4,6 +4,7 @@ import {
   MenuItem,
 } from "@mui/material";
 import { moduleEnabled, hasTab } from "@business/dashboard/access";
+import BusinessAddressCard from "./BusinessAddressCard";
 import {
   SectionHeader, LoadState, FormDialog, ConfirmDialog, useRegisteredShortcuts, useRowCursor, cursorAttrs, cursorSx,
   cursorBindings, onEnter, useLoader,
@@ -238,6 +239,7 @@ export default function ManagersSection({ ctx }) {
 
   return (
     <Box>
+      <BusinessAddressCard ctx={ctx} />
       <SectionHeader ctx={ctx} title={t("ui_def.users.title")} subtitle={t("ui_def.users.subtitle")}
         onNew={() => openDialog(null)} newLabel={t("ui_def.users.new")} search={q} onSearch={setQ} />
       <LoadState ctx={ctx} loading={loading && users.length === 0} error={error} onRetry={load}

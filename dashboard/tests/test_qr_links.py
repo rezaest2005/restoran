@@ -95,9 +95,9 @@ from django.test import override_settings
 
 class MountedUnderPrefixTests(QrBase):
     @override_settings(URL_PREFIX="/biz")
-    def test_menu_target_carries_the_mount_path(self):
+    def test_pages_stay_at_the_domain_root_even_with_the_hidden_prefix(self):
         q = self.make(kind="menu", table_number="5")
-        self.assertEqual(self.client.get(q["path"])["Location"], "/biz/m/cafe-one?table=5")
+        self.assertEqual(self.client.get(q["path"])["Location"], "/m/cafe-one?table=5")
 
     @override_settings(URL_PREFIX="/biz")
     def test_custom_url_is_never_prefixed(self):

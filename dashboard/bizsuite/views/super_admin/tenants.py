@@ -21,19 +21,8 @@ _SLUG_RE = re.compile(r'^[a-zA-Z0-9_-]+$')
 
 
 def _validate_slug(slug, exclude_business_id=None):
-    if not slug:
-        return False, 'شناسه URL (slug) الزامی است'
-    slug = slug.strip()
-    if len(slug) < 1 or len(slug) > 50:
-        return False, 'طول slug باید بین ۱ تا ۵۰ کاراکتر باشد'
-    if not _SLUG_RE.match(slug):
-        return False, 'slug فقط می‌تواند شامل حروف، اعداد، خط تیره و زیرخط باشد'
-    qs = Business.objects.filter(slug=slug)
-    if exclude_business_id:
-        qs = qs.exclude(pk=exclude_business_id)
-    if qs.exists():
-        return False, f'شناسه «{slug}» قبلاً استفاده شده'
-    return True, slug
+    from ...slugs import validate_slug
+    return validate_slug(slug, exclude_business_id)
 
 
 def _clean_phone(val):

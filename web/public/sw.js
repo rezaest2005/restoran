@@ -1,21 +1,5 @@
-// Service worker حداقلی: فقط برای نصب‌پذیری و باز شدن پوسته‌ی برنامه بدون اینترنت.
-// درخواست‌های API هرگز کش نمی‌شوند (داده‌ی مأموریت و مالی باید همیشه تازه باشد).
-const CACHE = "bizsuite-shell-v1";
-const ROOT = self.registration.scope;     // wherever the app is mounted ("/" or "/biz/")
-self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.add(ROOT)).catch(() => {}));
-  self.skipWaiting();
-});
-self.addEventListener("activate", (e) => {
-  e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k)))));
-  self.clients.claim();
-});
-self.addEventListener("fetch", (e) => {
-  const req = e.request;
-  const url = new URL(req.url);
-  if (req.method !== "GET" || url.origin !== location.origin) return;
-  if (url.pathname.includes("/api/") || url.pathname.startsWith("/admin/")) return;
-  if (req.mode === "navigate") {
-    e.respondWith(fetch(req).catch(() => caches.match(ROOT)));
-  }
-});
+// Minimal service worker: it only has to exist (with a fetch handler) so the courier page can be installed as an app.
+// It never answers or caches anything itself, so it cannot interfere with other applications on the same domain.
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
+self.addEventListener("fetch", () => {});

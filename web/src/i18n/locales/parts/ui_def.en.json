@@ -395,6 +395,17 @@
       "title": "Production",
       "subtitle": "Place and run production orders from the formulas you defined. Formulas are defined and edited in Definitions.",
       "define_link": "Define formulas in Definitions"
+    },
+    "address": {
+      "title": "Your business address",
+      "hint": "The name at the start of your addresses. If you do not choose one, the default created at activation stays.",
+      "rule": "Lower-case letters, digits, hyphen and underscore (2 to 49 characters)",
+      "owner_only": "Only the owner can change the address.",
+      "save": "Save address",
+      "confirm": "Change the address to “{{slug}}”? The old links (sign-in, couriers) stop working and you must give the new link to your couriers.",
+      "saved": "Address changed.",
+      "save_failed": "Could not save.",
+      "default_note": "Address preview:"
     }
   }
 }

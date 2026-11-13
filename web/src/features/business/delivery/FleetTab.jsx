@@ -5,10 +5,12 @@ import {
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
 import KbdHint from "@business/pos/common/KbdHint";
-import { TableWrap, ConfirmDialog, fmtMoney, num } from "@business/accounting/common";
+import { TableWrap, ConfirmDialog, fmtMoney, fmtInt, num } from "@business/accounting/common";
 import { vehiclesApi, carriersApi, driversApi, setDriverShift, errMsg } from "./api";
 import { VEHICLE_KINDS } from "./common";
 import DriverLinkCard from "./DriverLinkCard";
+import CopyLink from "./CopyLink";
+import { appUrl } from "@shared/basePath";
 
 /** Generic edit dialog: `fields` = [{ key, label, type?: "text"|"number"|"select"|"switch", options? }]. */
 function EditDialog({ ctx, title, fields, initial, onClose, onSave }) {
@@ -211,12 +213,16 @@ export default function FleetTab({ ctx, vehicles, carriers, drivers, reloadFleet
     <Box>
       <DriverLinkCard ctx={ctx} />
       {section("driver", t("ui_del.fleet.drivers"),
-        [t("ui_del.fleet.name"), t("ui_del.fleet.phone"), t("ui_del.fleet.pay_per_trip"), t("ui_del.fleet.shift"), t("ui_del.common.status")],
+        [t("ui_del.fleet.number"), t("ui_del.fleet.name"), t("ui_del.fleet.phone"), t("ui_del.fleet.pay_per_trip"), t("ui_del.fleet.link"), t("ui_del.fleet.shift"), t("ui_del.common.status")],
         drivers, (d) => (
           <TableRow key={d.id}>
+            <TableCell sx={{ ...S.td, fontWeight: 800 }}>{d.number ? fmtInt(d.number, lang) : "—"}</TableCell>
             <TableCell sx={S.td}>{d.name}</TableCell>
             <TableCell sx={S.td} dir="ltr">{d.phone}</TableCell>
             <TableCell sx={S.td}>{fmtMoney(d.pay_per_trip, lang)}</TableCell>
+            <TableCell sx={S.td}>
+              <CopyLink url={appUrl(d.link_path)} label={t("ui_del.fleet.copy_link")} doneLabel={t("ui_del.ship.copied")} />
+            </TableCell>
             <TableCell sx={S.td}>
               <Button size="small" sx={S.link} onClick={() => toggleShift(d)}>
                 {d.on_shift ? t("ui_del.fleet.shift_end") : t("ui_del.fleet.shift_start")}

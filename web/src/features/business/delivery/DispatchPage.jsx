@@ -36,7 +36,11 @@ export default function DispatchPage() {
 
   const TAB_KEYS = useMemo(() => allowedTabs(), []);
   const canTrips = TAB_KEYS.includes("dispatch") || TAB_KEYS.includes("shipments");
-  const [tab, setTab] = useState(() => allowedTabs()[0] || "dispatch");
+  // ?tab=fleet|cash|shipments|dispatch opens that tab directly (deep links)
+  const [tab, setTab] = useState(() => {
+    const w = new URLSearchParams(window.location.search).get("tab");
+    return allowedTabs().includes(w) ? w : (allowedTabs()[0] || "dispatch");
+  });
   const [vehicles, setVehicles] = useState([]);
   const [carriers, setCarriers] = useState([]);
   const [drivers, setDrivers] = useState([]);

@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import { ThemeProvider } from "@shared/contexts/ThemeContext";
 import { LangProvider } from "@shared/contexts/LangContext";
 import Login from "@business/auth/Login";
@@ -18,6 +18,11 @@ import TrackingPage from "@business/delivery/TrackingPage";
 import QrMenu from "../features/public/QrMenu";
 import FeedbackPublicPage from "../features/public/feedback/FeedbackPublicPage";
 import StorefrontPage from "../features/public/storefront/StorefrontPage";
+
+function SlugEntry() {
+  const { slug } = useParams();
+  return <Navigate to={`/${slug}/dashboard/login`} replace />;
+}
 
 function App() {
   return (
@@ -76,28 +81,36 @@ function App() {
             <Route path="delivery" element={<DispatchPage />} />
           </Route>
 
-          <Route path="/super/login" element={<SuperLogin />} />
+          {/* super admin panel: https://domain/admin/login (the old /super/... addresses still work) */}
+          <Route path="/admin/login" element={<SuperLogin />} />
           <Route
-            path="/super"
+            path="/admin"
             element={
               <SuperProtectedRoute>
-                <Navigate to="/super/app" replace />
+                <Navigate to="/admin/app" replace />
               </SuperProtectedRoute>
             }
           />
           <Route
-            path="/super/app"
+            path="/admin/app"
             element={
               <SuperProtectedRoute>
                 <SuperAdmin />
               </SuperProtectedRoute>
             }
           />
+          <Route path="/super/login" element={<Navigate to="/admin/login" replace />} />
+          <Route path="/super" element={<Navigate to="/admin" replace />} />
+          <Route path="/super/app" element={<Navigate to="/admin/app" replace />} />
 
           <Route path="/m/:slug" element={<QrMenu />} />
           <Route path="/t/:token" element={<TrackingPage />} />
           <Route path="/driver" element={<ProtectedRoute><DriverPage /></ProtectedRoute>} />
           <Route path="/:slug/driver" element={<ProtectedRoute><DriverPage /></ProtectedRoute>} />
+          {/* each courier has a numbered address: /<slug>/driver/1, /<slug>/driver/2 ... */}
+          <Route path="/:slug/driver/:number" element={<ProtectedRoute><DriverPage /></ProtectedRoute>} />
+          {/* https://domain/<slug> opens that business's sign-in */}
+          <Route path="/:slug" element={<SlugEntry />} />
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

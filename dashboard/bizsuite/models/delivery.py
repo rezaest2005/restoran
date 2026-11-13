@@ -86,6 +86,8 @@ class Vehicle(TenantModel):
 
 
 class Driver(TenantModel):
+    number = models.PositiveIntegerField("شماره‌ی پیک", null=True, blank=True,
+                                         help_text="1, 2, 3 ... در هر کسب‌وکار؛ بخشی از آدرس /<slug>/driver/<number>")
     name = models.CharField("نام", max_length=200)
     phone = models.CharField("موبایل", max_length=20, blank=True, default="")
     user = models.OneToOneField(
@@ -110,6 +112,10 @@ class Driver(TenantModel):
         verbose_name = "راننده"
         verbose_name_plural = "رانندگان"
         ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(fields=["business", "number"], condition=Q(number__isnull=False),
+                                    name="rms_driver_number_unique"),
+        ]
 
     def __str__(self):
         return self.name

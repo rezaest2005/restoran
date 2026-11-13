@@ -13,6 +13,7 @@ from .views.super_admin import modules as mod_views
 from .views.super_admin import qr as qr_super
 from .views import qr_redirect as qr_public
 from .views import accounting_auto as acc_auto
+from .views import business_settings
 from .views.super_admin import support as sup_super
 from .views import support as sup_views
 
@@ -174,6 +175,8 @@ urlpatterns = [
     path("api/delivery/drivers/", dl_views.drivers, name="delivery_drivers"),
     path("api/delivery/drivers/<int:pk>/", dl_views.driver_detail, name="delivery_driver_detail"),
     path("api/delivery/drivers/<int:pk>/shift/", dl_views.driver_shift, name="delivery_driver_shift"),
+    path("api/business/slug/", business_settings.business_slug, name="business_slug"),
+    path("api/delivery/driver-manifest/", dl_views.driver_manifest, name="delivery_driver_manifest"),
     path("api/delivery/dispatchable/", dl_views.dispatchable_invoices, name="delivery_dispatchable"),
     path("api/delivery/pending-orders/", dl_views.pending_orders, name="delivery_pending_orders"),
     path("api/delivery/trips/", dl_views.trips, name="delivery_trips"),

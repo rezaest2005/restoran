@@ -150,7 +150,10 @@
       "shift": "Shift",
       "shift_start": "Start shift",
       "shift_end": "End shift",
-      "delete_text": "Delete \"{{name}}\"?"
+      "delete_text": "Delete \"{{name}}\"?",
+      "number": "No.",
+      "link": "Courier link",
+      "copy_link": "Copy link"
     },
     "cash": {
       "title": "Unsettled cash",
@@ -200,7 +203,8 @@
       "geo_denied": "Location access is off, so your position is not shared. Enable it in the browser settings.",
       "geo_unsupported": "This device does not support location.",
       "geo_waiting": "Waiting for location access...",
-      "uncollected": "Your unsettled cash"
+      "uncollected": "Your unsettled cash",
+      "number": "Your number: {{n}}"
     },
     "track": {
       "status": "Delivery status",
@@ -263,7 +267,7 @@
     },
     "drvlink": {
       "title": "Courier sign-in link",
-      "hint": "Give this address to the courier, or let them scan the QR. They sign in with the username and password you created for them. The business slug comes first in the address.",
+      "hint": "This is the general courier sign-in address. Every courier also has a numbered address of their own (/business-name/driver/1, 2, ...) shown in the drivers table below. They sign in with the username and password you created for them.",
       "copy": "Copy address",
       "open": "Open",
       "session": "The courier stays signed in while the app is open; after closing the app the sign-in page appears again.",

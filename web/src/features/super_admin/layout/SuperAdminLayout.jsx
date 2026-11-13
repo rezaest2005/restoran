@@ -73,7 +73,7 @@ export default function SuperAdminLayout() {
     localStorage.removeItem("super_token");
     localStorage.removeItem("super_user");
     try { sessionStorage.removeItem("super_token"); sessionStorage.removeItem("super_user"); } catch { /* ignore */ }
-    navigate("/super/login");
+    navigate("/admin/login");
   }, [navigate]);
 
   /* ── تب‌ها ── */

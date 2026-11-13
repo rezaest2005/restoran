@@ -80,26 +80,50 @@ IMAGE_OWNER=<owner> IMAGE_TAG=<older tag> sh deploy.sh
 
 ## One domain shared with other applications
 
-Normally the app owns the whole domain. If the domain is shared (for example `est.rysh.ir` also serves other apps
-and their `/api/` paths), give this app its own path, for example `/biz`:
+Normally the app owns the whole domain. If the domain is shared (for example `est.rysh.ir` also serves other apps and
+their `/api/` paths), the app keeps its **pages** at the domain root and hides everything technical under one prefix,
+for example `/biz`:
 
-1. In `deploy/.env` set `URL_PREFIX=/biz` and pick a free `WEB_PORT` (for example `8200`). Also set
-   `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS=https://<domain>`, `CORS_ALLOWED_ORIGINS=https://<domain>` and
-   `PLATFORM_PUBLIC_URL=https://<domain>/biz`.
+| What people see (domain root) | What is hidden under the prefix |
+|---|---|
+| `/admin/login` (super admin), `/<slug>/dashboard/login`, `/<slug>/driver/1`, `/m/<slug>`, `/q/<code>` | `/biz/api/...`, `/biz/assets/...`, `/biz/media/...`, `/biz/static/...`, `/biz/sw.js` |
+
+1. In `deploy/.env` set `URL_PREFIX=/biz` and a free `WEB_PORT` (for example `8200`). Also `ALLOWED_HOSTS`,
+   `CSRF_TRUSTED_ORIGINS=https://<domain>`, `CORS_ALLOWED_ORIGINS=https://<domain>`, `PLATFORM_PUBLIC_URL=https://<domain>`.
 2. Rebuild (the prefix is baked into the web image): `docker compose -p bizsuite up -d --build`.
-3. In the reverse proxy, send `/biz/*` to this app **with the prefix stripped**. With Caddy:
+3. In the reverse proxy, send the hidden prefix **with the prefix stripped** and the page paths **as they are**.
+   With Caddy (put both blocks before the blocks of the other applications):
 
 ```
 handle_path /biz/* {
-        request_body { max_size 60MB }
-        reverse_proxy 127.0.0.1:8200 {
-                header_up Host <domain>
-                header_up X-Forwarded-Proto https
-                transport http { read_timeout 300s }
-        }
+	request_body {
+		max_size 60MB
+	}
+	reverse_proxy 127.0.0.1:8200 {
+		header_up Host <domain>
+		header_up X-Forwarded-Proto https
+		transport http {
+			read_timeout 300s
+		}
+	}
+}
+@bizpages path_regexp bizpages ^/(admin(/.*)?|django-admin(/.*)?|(m|s|f|t|q)/.*|[a-z0-9][a-z0-9_-]+/(dashboard|driver)(/.*)?)$
+handle @bizpages {
+	request_body {
+		max_size 60MB
+	}
+	reverse_proxy 127.0.0.1:8200 {
+		header_up Host <domain>
+		header_up X-Forwarded-Proto https
+		transport http {
+			read_timeout 300s
+		}
+	}
 }
 ```
 
-The app is then at `https://<domain>/biz/dashboard/login`, couriers use `https://<domain>/biz/<slug>/driver`, QR links
-and tracking links carry the prefix automatically. Session and CSRF cookies are limited to `/biz/` so they are not
-shared with the other apps. Images published to GHCR are built for the domain root; this mode builds on the server.
+The Django admin is at `/django-admin/`. Session and CSRF cookies have names of their own (`bizsuite_*`). Images
+published to GHCR are built for the domain root; this mode builds on the server.
+
+The business owner can change the first path segment (the *slug*) under Definitions, Users; couriers have numbered
+addresses `/<slug>/driver/<n>` shown in Delivery, Fleet.
