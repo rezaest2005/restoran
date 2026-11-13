@@ -17,6 +17,7 @@ from ...tenancy import set_current_business
 from ...order_services import restore_order_stock
 from ...accounting_posting import unpost
 from ..common import PosPerm, resolve_business
+from ...activity import audit
 
 logger = logging.getLogger(__name__)
 
@@ -173,6 +174,7 @@ def pos_online_orders(request):
 
 @api_view(["POST"])
 @permission_classes([PosPerm])
+@audit("pos", "online_reject", "رد سفارش آنلاین")
 def pos_reject_online_order(request, order_id):
     business = resolve_business(request)
 

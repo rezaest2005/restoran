@@ -12,6 +12,7 @@ from ...models import SalesInvoice, SalesInvoiceItem, SalesReturn
 from ...accounting_posting import (
     post_sales_invoice, post_sales_return, repost, safe_post, unpost,
 )
+from ...activity import audit
 
 
 # ═══════════════════════════════════════
@@ -20,6 +21,7 @@ from ...accounting_posting import (
 
 
 @staff_endpoint(["GET", "POST"], "accounting", "inventory")
+@audit("inventory", "sales_invoice", "فاکتور فروش")
 def sales_invoice_list_create(request):
     if request.method == "GET":
         qs = SalesInvoice.objects.prefetch_related("items", "returns")
@@ -74,6 +76,7 @@ def sales_invoice_list_create(request):
 
 
 @staff_endpoint(["GET", "PUT", "DELETE"], "accounting", "inventory")
+@audit("inventory", "sales_invoice", "فاکتور فروش")
 def sales_invoice_detail(request, pk):
     try:
         inv = SalesInvoice.objects.prefetch_related("items", "returns").get(pk=pk)
@@ -163,6 +166,7 @@ def _invoice_dict(inv, detail=False):
 
 
 @staff_endpoint(["GET", "POST"], "accounting", "inventory")
+@audit("inventory", "sales_return", "مرجوعی فروش")
 def sales_return_list_create(request):
     if request.method == "GET":
         qs = SalesReturn.objects.select_related("invoice")[:200]
@@ -197,6 +201,7 @@ def sales_return_list_create(request):
 
 
 @staff_endpoint(["DELETE"], "accounting", "inventory")
+@audit("inventory", "sales_return", "مرجوعی فروش")
 def sales_return_delete(request, pk):
     for r in SalesReturn.objects.filter(pk=pk):
         unpost(r.business, "sales_return", r.pk, user=request.user, reason="حذف مرجوعی")

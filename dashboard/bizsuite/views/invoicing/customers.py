@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from ..common import staff_endpoint
 
 from ...models import Customer
+from ...activity import audit
 
 
 # ═══════════════════════════════════════
@@ -14,6 +15,7 @@ from ...models import Customer
 
 
 @staff_endpoint(["GET", "POST"], "pos", "club", "accounting", "inventory", "dictionary_customers")
+@audit("definitions", "customer", "مشتری")
 def customer_list_create(request):
     if request.method == "GET":
         qs = Customer.objects.all()
@@ -50,6 +52,7 @@ def customer_list_create(request):
 
 
 @staff_endpoint(["GET", "PUT", "DELETE"], "pos", "club", "accounting", "inventory", "dictionary_customers")
+@audit("definitions", "customer", "مشتری")
 def customer_detail(request, pk):
     try:
         c = Customer.objects.get(pk=pk)

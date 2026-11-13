@@ -18,11 +18,12 @@ import PendingOrders from "./PendingOrders";
 import { DriverLinkDialog } from "./DriverLinkCard";
 import FleetTab from "./FleetTab";
 import CashTab from "./CashTab";
+import HistoryTab from "./HistoryTab";
 import TripDialog from "./TripDialog";
 import HintBar from "@shared/ui/HintBar";
 
 // each tab is its own sellable feature; only the ones this account may use are shown
-const TAB_FEATURE = { dispatch: "delivery_dispatch", shipments: "delivery_shipments", fleet: "delivery_fleet", cash: "delivery_cash" };
+const TAB_FEATURE = { dispatch: "delivery_dispatch", shipments: "delivery_shipments", fleet: "delivery_fleet", cash: "delivery_cash", history: "delivery_history" };
 const allowedTabs = () => Object.keys(TAB_FEATURE).filter((k) => hasTab(TAB_FEATURE[k]));
 
 export default function DispatchPage() {
@@ -152,6 +153,7 @@ export default function DispatchPage() {
           reloadFleet={reloadFleet} />
       )}
       {tab === "cash" && <CashTab ctx={ctx} refreshKey={refreshKey} bump={bump} />}
+      {tab === "history" && <HistoryTab ctx={ctx} drivers={drivers} />}
 
       {dialog && (
         <TripDialog

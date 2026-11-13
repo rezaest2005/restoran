@@ -20,6 +20,7 @@ from .base import (
 )
 from .tabs import _get_normalized_tabs
 from ..common import server_error
+from ...activity import audit
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +94,7 @@ def user_management_api(request):
 
 @api_view(["POST"])
 @permission_classes([UsersPerm])
+@audit("users", "user_create", "ساخت کاربر")
 def create_user_api(request):
     if not has_permission(request.user, "users.create"):
         return Response({"success": False, "error": "دسترسی ندارید."}, status=403)
@@ -203,6 +205,7 @@ def create_user_api(request):
 
 @api_view(["POST"])
 @permission_classes([UsersPerm])
+@audit("users", "user_role", "تغییر نقش کاربر")
 def user_update_role(request):
     if not has_permission(request.user, "users.edit"):
         return Response({"error": "دسترسی ندارید."}, status=403)
@@ -257,6 +260,7 @@ def user_update_role(request):
 
 @api_view(["POST"])
 @permission_classes([UsersPerm])
+@audit("users", "user_active", "فعال/غیرفعال کردن کاربر")
 def user_toggle_active(request):
     if not has_permission(request.user, "users.edit"):
         return Response({"error": "دسترسی ندارید."}, status=403)
@@ -290,6 +294,7 @@ def user_toggle_active(request):
 
 @api_view(["POST"])
 @permission_classes([UsersPerm])
+@audit("users", "user_delete", "حذف کاربر")
 def user_delete(request):
     if not has_permission(request.user, "users.delete"):
         return Response({"success": False, "error": "دسترسی ندارید."}, status=403)

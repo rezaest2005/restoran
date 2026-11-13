@@ -22,6 +22,7 @@ from ..models import EXPENSE_CATEGORIES, Customer, Expense, Payment, RecurringEx
 from ..utils import api_error, api_success
 from .accounting import AccountingPerm, _date
 from .common import StaffAuth, staff_business
+from ..activity import audit
 
 METHODS = ("cash", "bank")
 MAX_AMOUNT = Decimal("999999999999")
@@ -96,6 +97,7 @@ def autopilot_overview(request):
 @api_view(["GET", "POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([AccountingPerm])
+@audit("accounting", "expense", "هزینه")
 def expenses(request):
     r = _biz(request)
     if r is None:
@@ -126,6 +128,7 @@ def expenses(request):
 @api_view(["DELETE"])
 @authentication_classes(StaffAuth)
 @permission_classes([AccountingPerm])
+@audit("accounting", "expense", "هزینه")
 def expense_remove(request, pk):
     r = _biz(request)
     e = Expense.all_objects.filter(business=r, pk=pk).first() if r else None
@@ -141,6 +144,7 @@ def expense_remove(request, pk):
 @api_view(["GET", "POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([AccountingPerm])
+@audit("accounting", "payment", "دریافت/پرداخت")
 def payments(request):
     r = _biz(request)
     if r is None:
@@ -176,6 +180,7 @@ def payments(request):
 @api_view(["DELETE"])
 @authentication_classes(StaffAuth)
 @permission_classes([AccountingPerm])
+@audit("accounting", "payment", "دریافت/پرداخت")
 def payment_remove(request, pk):
     r = _biz(request)
     p = Payment.all_objects.filter(business=r, pk=pk).first() if r else None
@@ -221,6 +226,7 @@ def _recurring_fields(d, rec=None):
 @api_view(["GET", "POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([AccountingPerm])
+@audit("accounting", "recurring", "هزینه‌ی ثابت/حقوق")
 def recurring(request):
     r = _biz(request)
     if r is None:
@@ -238,6 +244,7 @@ def recurring(request):
 @api_view(["PUT", "DELETE"])
 @authentication_classes(StaffAuth)
 @permission_classes([AccountingPerm])
+@audit("accounting", "recurring", "هزینه‌ی ثابت/حقوق")
 def recurring_detail(request, pk):
     r = _biz(request)
     rec = RecurringExpense.all_objects.filter(business=r, pk=pk).first() if r else None
@@ -258,6 +265,7 @@ def recurring_detail(request, pk):
 @api_view(["GET", "POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([AccountingPerm])
+@audit("accounting", "opening", "موجودی اول دوره")
 def opening(request):
     """Starting cash and bank balance (so the home page does not start from a negative number)."""
     r = _biz(request)

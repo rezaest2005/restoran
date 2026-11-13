@@ -14,6 +14,7 @@ from ...models import Formula, FormulaLine, RawMaterial
 from ...production_services import sub_formula_map
 from ...utils import api_error, api_success
 from ..common import FormulaPerm, MaterialsPerm, StaffAuth, staff_business
+from ...activity import audit
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +151,7 @@ def production_materials(request):
 @api_view(["GET", "POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([FormulaPerm])
+@audit("production", "formula", "فرمول")
 def formulas(request):
     business = staff_business(request)
     if business is None:
@@ -185,6 +187,7 @@ def formulas(request):
 @api_view(["GET", "PUT", "DELETE"])
 @authentication_classes(StaffAuth)
 @permission_classes([FormulaPerm])
+@audit("production", "formula", "فرمول")
 def formula_detail(request, pk):
     business = staff_business(request)
     if business is None:

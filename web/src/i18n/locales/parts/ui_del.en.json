@@ -10,6 +10,7 @@
       "dispatch": "Dispatch",
       "fleet": "Fleet and drivers",
       "cash": "Cash settlement",
+      "history": "Courier history",
       "shipments": "Shipments & tracking"
     },
     "common": {

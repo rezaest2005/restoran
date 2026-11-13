@@ -57,13 +57,14 @@ const NAV_SECTIONS = [
     items: [
       {
         icon: "delivery", labelKey: "ui_del.nav", basePath: "delivery",
-        anyTabs: ["delivery_dispatch", "delivery_shipments", "delivery_fleet", "delivery_cash"], module: "delivery",
+        anyTabs: ["delivery_dispatch", "delivery_shipments", "delivery_fleet", "delivery_cash", "delivery_history"], module: "delivery",
       },
     ],
   },
   {
     titleKey: "rest.nav_system",
     items: [
+      { icon: "list", labelKey: "ui_act.title", basePath: "activity", anyTabs: ["activity"] },
       {
         icon: "dictionary", labelKey: "rest.nav_dictionary", basePath: "dictionary",
         anyTabs: ["dictionary_items", "dictionary_menu", "dictionary_recipe", "dictionary_suppliers", "dictionary_warehouses", "dictionary_customers", "dictionary_users"],

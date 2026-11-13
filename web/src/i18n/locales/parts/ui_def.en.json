@@ -328,7 +328,9 @@
         "delivery_dispatch": "Dispatch & trips",
         "delivery_shipments": "Shipments & tracking",
         "delivery_fleet": "Fleet & drivers",
-        "delivery_cash": "Driver cash & settlement"
+        "delivery_cash": "Driver cash & settlement",
+        "delivery_history": "Courier history",
+        "activity": "Activity history"
       },
       "wh_all": "Access to all warehouses",
       "wh_allowed": "Allowed warehouses",

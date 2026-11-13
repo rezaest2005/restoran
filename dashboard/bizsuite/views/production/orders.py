@@ -19,6 +19,7 @@ from ...inventory_services import get_or_create_mother_warehouse
 from ...utils import api_error, api_success
 from ..common import ProductionPerm, StaffAuth, staff_business
 from .formulas import _dec, _num
+from ...activity import audit
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +74,7 @@ def _order_data(o, business=None, with_needs=False):
 @api_view(["GET", "POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([ProductionPerm])
+@audit("production", "order", "دستور تولید")
 def production_orders(request):
     business = staff_business(request)
     if business is None:
@@ -167,6 +169,7 @@ def _transition(request, pk, action):
 @api_view(["POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([ProductionPerm])
+@audit("production", "order_start", "شروع تولید")
 def production_order_start(request, pk):
     return _transition(request, pk, "start")
 
@@ -174,6 +177,7 @@ def production_order_start(request, pk):
 @api_view(["POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([ProductionPerm])
+@audit("production", "order_complete", "تکمیل تولید")
 def production_order_complete(request, pk):
     return _transition(request, pk, "complete")
 
@@ -181,5 +185,6 @@ def production_order_complete(request, pk):
 @api_view(["POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([ProductionPerm])
+@audit("production", "order_cancel", "لغو تولید")
 def production_order_cancel(request, pk):
     return _transition(request, pk, "cancel")

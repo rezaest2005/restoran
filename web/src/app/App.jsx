@@ -13,6 +13,7 @@ import Dictionary from "@business/dictionary/Dictionary";
 import InventoryPage from "@business/inventory/InventoryPage";
 import ProductionPage from "@business/production/ProductionPage";
 import DispatchPage from "@business/delivery/DispatchPage";
+import ActivityPage from "@business/activity/ActivityPage";
 import DriverPage from "@business/delivery/DriverPage";
 import TrackingPage from "@business/delivery/TrackingPage";
 import QrMenu from "../features/public/QrMenu";
@@ -59,6 +60,7 @@ function App() {
             <Route path="production" element={<ProductionPage />} />
             <Route path="accounting" element={<Navigate to="../dashboard?tab=accounting" replace />} />
             <Route path="delivery" element={<DispatchPage />} />
+            <Route path="activity" element={<ActivityPage />} />
           </Route>
 
           {/* بدون slug */}
@@ -79,6 +81,7 @@ function App() {
             <Route path="production" element={<ProductionPage />} />
             <Route path="accounting" element={<Navigate to="../dashboard?tab=accounting" replace />} />
             <Route path="delivery" element={<DispatchPage />} />
+            <Route path="activity" element={<ActivityPage />} />
           </Route>
 
           {/* super admin panel: https://domain/admin/login (the old /super/... addresses still work) */}

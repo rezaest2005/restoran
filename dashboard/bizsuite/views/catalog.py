@@ -23,6 +23,7 @@ from ..utils import api_error, api_success
 from ..warehouse_access import is_manager_level
 from .common import PosPerm, StaffAuth, staff_business
 from .decorators import make_service_permission
+from ..activity import audit
 
 logger = logging.getLogger(__name__)
 
@@ -162,6 +163,7 @@ def _apply_category(business, c, d):
 @api_view(["GET", "POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([ProductPerm])
+@audit("definitions", "category", "دسته‌بندی")
 def categories(request):
     business = staff_business(request)
     if business is None:
@@ -182,6 +184,7 @@ def categories(request):
 @api_view(["PUT", "DELETE"])
 @authentication_classes(StaffAuth)
 @permission_classes([ProductPerm])
+@audit("definitions", "category", "دسته‌بندی")
 def category_detail(request, pk):
     business = staff_business(request)
     if business is None:
@@ -316,6 +319,7 @@ def _apply_product(business, f, d, files):
 @api_view(["GET", "POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([ProductPerm])
+@audit("definitions", "product", "محصول")
 def products(request):
     business = staff_business(request)
     if business is None:
@@ -353,6 +357,7 @@ def products(request):
 @api_view(["GET", "PUT", "DELETE"])
 @authentication_classes(StaffAuth)
 @permission_classes([ProductPerm])
+@audit("definitions", "product", "محصول")
 def product_detail(request, pk):
     business = staff_business(request)
     if business is None:
@@ -380,6 +385,7 @@ def product_detail(request, pk):
 @api_view(["POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([ProductPerm])
+@audit("definitions", "product_link", "اتصال محصول به کالا")
 def product_link_item(request, pk):
     business = staff_business(request)
     if business is None:
@@ -456,6 +462,7 @@ def _apply_item(business, it, d):
 @api_view(["GET", "POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([ItemPerm])
+@audit("definitions", "item", "کالا")
 def items(request):
     business = staff_business(request)
     if business is None:
@@ -485,6 +492,7 @@ def items(request):
 @api_view(["PUT", "DELETE", "GET"])
 @authentication_classes(StaffAuth)
 @permission_classes([ItemPerm])
+@audit("definitions", "item", "کالا")
 def item_detail(request, pk):
     business = staff_business(request)
     if business is None:
@@ -543,6 +551,7 @@ def _id_list(raw):
 @api_view(["POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([_definitions_perm("pos", "inventory", "dictionary_menu", "dictionary_items")])
+@audit("definitions", "barcode", "تولید بارکد")
 def barcodes_generate(request):
     business = staff_business(request)
     if business is None:
@@ -623,6 +632,7 @@ def pos_barcode_lookup(request, code):
 @api_view(["POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([ItemPerm])
+@audit("definitions", "sales_warehouse", "انبار پیش‌فرض فروش")
 def warehouse_sales_default(request, pk):
     business = staff_business(request)
     if business is None:

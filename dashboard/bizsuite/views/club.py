@@ -29,6 +29,7 @@ from .common import (
     StaffAuth,
     staff_business,
 )
+from ..activity import audit
 
 LIMIT = 200
 
@@ -68,6 +69,7 @@ def _int_field(data, key, minimum=0, maximum=10**9):
 @api_view(["GET", "PUT"])
 @authentication_classes(StaffAuth)
 @permission_classes([ClubPerm])
+@audit("pos", "club_settings", "تنظیمات باشگاه")
 def club_settings(request):
     business = staff_business(request)
     if business is None:
@@ -154,6 +156,7 @@ def club_member_detail(request, pk):
 @api_view(["POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([ClubPerm])
+@audit("pos", "club_adjust", "تعدیل امتیاز باشگاه")
 def club_member_adjust(request, pk):
     business = staff_business(request)
     if business is None:
@@ -193,6 +196,7 @@ def club_lookup(request):
 @api_view(["POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([CashierPerm])
+@audit("pos", "club_redeem", "استفاده از امتیاز باشگاه")
 def club_redeem(request):
     business = staff_business(request)
     if business is None:

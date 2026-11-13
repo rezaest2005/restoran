@@ -15,6 +15,7 @@ from ..common import (
     resolve_business,
 )
 from ..common import server_error
+from ...activity import audit
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,7 @@ def supplier_suggestions(request: HttpRequest):
 
 @api_view(["POST"])
 @permission_classes([InventoryPerm])
+@audit("definitions", "supplier", "تأمین‌کننده")
 def supplier_save(request: HttpRequest):
     """ایجاد / ویرایش تأمین‌کننده"""
     try:
@@ -110,6 +112,7 @@ def supplier_save(request: HttpRequest):
 
 @api_view(["POST"])
 @permission_classes([InventoryPerm])
+@audit("definitions", "supplier", "تأمین‌کننده")
 def supplier_delete(request: HttpRequest):
     """حذف تأمین‌کننده"""
     try:

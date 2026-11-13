@@ -10,6 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from ..slugs import RESERVED_SLUGS, validate_slug
 from ..utils import api_error, api_success
 from .common import StaffAuth, staff_business
+from ..activity import audit
 
 
 def _payload(biz):
@@ -19,6 +20,7 @@ def _payload(biz):
 @api_view(["GET", "PUT"])
 @authentication_classes(StaffAuth)
 @permission_classes([IsAuthenticated])
+@audit("users", "slug", "تغییر آدرس کسب‌وکار")
 def business_slug(request):
     biz = staff_business(request)
     if biz is None:

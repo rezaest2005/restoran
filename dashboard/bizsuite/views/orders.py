@@ -18,6 +18,7 @@ from ..club_services import earn_for_order
 from ..accounting_posting import unpost
 from .common import PosPerm, resolve_business
 from .common import server_error
+from ..activity import audit
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ VALID_TRANSITIONS = {
 
 @api_view(["POST"])
 @permission_classes([PosPerm])
+@audit("pos", "order_status", "تغییر وضعیت سفارش")
 def order_change_status(request, pk):
     """
     تغییر وضعیت سفارش.

@@ -37,6 +37,7 @@ FEATURES: list[Feature] = [
     Feature("home", None, "core", "صفحه اصلی", "Home", locked=True),
     Feature("dictionary_users", None, "core", "تعاریف: کاربران", "Definitions: users", locked=True),
     Feature("dictionary_customers", None, "core", "تعاریف: مشتریان", "Definitions: customers"),
+    Feature("activity", None, "core", "تاریخچه‌ی رویدادها", "Activity history"),
 
     Feature("pos", "pos", "pos", "صندوق فروش", "Point of sale"),
     Feature("pos_report", "pos", "pos", "گزارش صندوق", "POS report"),
@@ -66,6 +67,7 @@ FEATURES: list[Feature] = [
     Feature("delivery_shipments", "delivery", "delivery", "بارها و پیگیری", "Shipments & tracking"),
     Feature("delivery_fleet", "delivery", "delivery", "ناوگان و رانندگان", "Fleet & drivers"),
     Feature("delivery_cash", "delivery", "delivery", "صندوق پیک و تسویه", "Driver cash & settlement"),
+    Feature("delivery_history", "delivery", "delivery", "تاریخچه‌ی پیک‌ها", "Courier history"),
 ]
 
 FEATURE_BY_KEY = {f.key: f for f in FEATURES}
@@ -92,6 +94,7 @@ LEGACY_EXPANSION = {
 # Backend "service codes" (used by view decorators) → features that unlock them (any-of).
 SERVICE_FEATURES: dict[str, list[str]] = {
     "pos": ["pos"],
+    "activity": ["activity"],
     "pos_report": ["pos_report"],
     "pos_settings": ["pos_settings"],
     "orders": ["orders", "pos"],
@@ -128,6 +131,7 @@ PATH_FEATURES: list[tuple[str, list[str], list[str] | None]] = [
     ("/api/delivery/trips", _TRIP_TABS, None),
     ("/api/delivery/stops", _TRIP_TABS, None),
     ("/api/delivery/map", _TRIP_TABS + ["delivery_fleet"], None),
+    ("/api/delivery/history", ["delivery_history"], None),
     ("/api/delivery/pending-orders", ["delivery_dispatch"], None),
     ("/api/delivery/dispatchable", ["delivery_dispatch"], None),
     ("/api/pos/update-food-price", ["pos_settings"], None),

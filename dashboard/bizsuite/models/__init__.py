@@ -50,6 +50,7 @@ from .club import LoyaltyMember, LoyaltySettings, LoyaltyTransaction
 from .feedback import Feedback
 from .support import SupportMessage, SupportTicket
 from .qr import QrLink
+from .activity import ActivityLog
 from .accounting import (
     EXPENSE_CATEGORIES, EXPENSE_CATEGORY_KEYS, Account, CostCenter, JournalEntry, JournalLine, Payment,
     RecurringExpense,
@@ -65,7 +66,7 @@ from .delivery import (
 
 __all__ = [
     "BusinessModule", "Module", "Plan",
-    "QrLink", "Payment", "RecurringExpense", "EXPENSE_CATEGORIES", "EXPENSE_CATEGORY_KEYS", "Storefront", "StorefrontAsset", "StorefrontRevision", "StorefrontTemplate",
+    "QrLink", "ActivityLog", "Payment", "RecurringExpense", "EXPENSE_CATEGORIES", "EXPENSE_CATEGORY_KEYS", "Storefront", "StorefrontAsset", "StorefrontRevision", "StorefrontTemplate",
     "BackgroundJob",
     "UNIT_CHOICES", "UNIT_MAX_LENGTH", "DecimalSafeEncoder", "check_constraint",
     "created_at_field", "description_field", "is_active_field", "name_field",

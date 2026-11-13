@@ -8,6 +8,7 @@ from rest_framework.response import Response
 
 from ..common import UsersPerm
 from .base import AuthUser, _get_business_users_qs
+from ...activity import audit
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ def _get_normalized_tabs(user):
 
 @api_view(["GET", "POST"])
 @permission_classes([UsersPerm])
+@audit("users", "user_tabs", "تغییر دسترسی تب‌های کاربر")
 def user_tabs_api(request):
     """
     GET  → tabs نرمال‌شده کاربر فعلی

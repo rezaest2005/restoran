@@ -14,9 +14,11 @@ from ...models import (
     SalesReturn,
 )
 from ...accounting_posting import post_expense, post_purchase_return, safe_post, unpost
+from ...activity import audit
 
 
 @staff_endpoint(["GET", "POST"], "accounting", "inventory")
+@audit("inventory", "purchase_return", "مرجوعی خرید")
 def purchase_return_list_create(request):
     if request.method == "GET":
         qs = PurchaseReturn.objects.select_related("invoice")[:200]
@@ -50,6 +52,7 @@ def purchase_return_list_create(request):
 
 
 @staff_endpoint(["DELETE"], "accounting", "inventory")
+@audit("inventory", "purchase_return", "مرجوعی خرید")
 def purchase_return_delete(request, pk):
     for r in PurchaseReturn.objects.filter(pk=pk):
         unpost(r.business, "purchase_return", r.pk, user=request.user, reason="حذف مرجوعی")
@@ -63,6 +66,7 @@ def purchase_return_delete(request, pk):
 
 
 @staff_endpoint(["GET", "POST"], "accounting", "inventory")
+@audit("accounting", "expense", "هزینه")
 def expense_list_create(request):
     if request.method == "GET":
         qs = Expense.objects.all()
@@ -96,6 +100,7 @@ def expense_list_create(request):
 
 
 @staff_endpoint(["DELETE"], "accounting", "inventory")
+@audit("accounting", "expense", "هزینه")
 def expense_delete(request, pk):
     for e in Expense.objects.filter(pk=pk):
         unpost(e.business, "expense", e.pk, user=request.user, reason="حذف هزینه")

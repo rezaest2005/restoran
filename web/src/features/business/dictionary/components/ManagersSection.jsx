@@ -38,7 +38,8 @@ const GROUPS = [
   { id: "more", icon: "🧩", mods: null, tone: "gold", keys: [
     { key: "club", mods: ["club"] }, { key: "accounting", mods: ["accounting"] },
     { key: "delivery_dispatch", mods: ["delivery"] }, { key: "delivery_shipments", mods: ["delivery"] },
-    { key: "delivery_fleet", mods: ["delivery"] }, { key: "delivery_cash", mods: ["delivery"] },
+    { key: "delivery_fleet", mods: ["delivery"] }, { key: "delivery_cash", mods: ["delivery"] }, { key: "delivery_history", mods: ["delivery"] },
+    { key: "activity", mods: null },
     { key: "feedback", mods: ["feedback"] },
   ] },
 ];

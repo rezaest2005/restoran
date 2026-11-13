@@ -14,6 +14,7 @@ from .views.super_admin import qr as qr_super
 from .views import qr_redirect as qr_public
 from .views import accounting_auto as acc_auto
 from .views import business_settings
+from .views import activity as activity_views
 from .views.super_admin import support as sup_super
 from .views import support as sup_views
 
@@ -176,6 +177,10 @@ urlpatterns = [
     path("api/delivery/drivers/<int:pk>/", dl_views.driver_detail, name="delivery_driver_detail"),
     path("api/delivery/drivers/<int:pk>/shift/", dl_views.driver_shift, name="delivery_driver_shift"),
     path("api/business/slug/", business_settings.business_slug, name="business_slug"),
+    path("api/delivery/history/", dl_views.courier_history, name="delivery_history"),
+    path("api/delivery/history/trips/<int:pk>/route/", dl_views.trip_route, name="delivery_trip_route"),
+    path("api/activity/", activity_views.activity_list, name="activity_list"),
+    path("api/activity/meta/", activity_views.activity_meta, name="activity_meta"),
     path("api/delivery/driver-manifest/", dl_views.driver_manifest, name="delivery_driver_manifest"),
     path("api/delivery/dispatchable/", dl_views.dispatchable_invoices, name="delivery_dispatchable"),
     path("api/delivery/pending-orders/", dl_views.pending_orders, name="delivery_pending_orders"),

@@ -36,6 +36,7 @@ from ..models import (
 from ..modules import module_enabled
 from ..utils import api_error, api_success
 from .common import StaffAuth, make_service_permission, server_error, staff_business
+from ..activity import audit
 
 DeliveryPerm = make_service_permission("delivery")
 PAGE = 30
@@ -197,6 +198,7 @@ def _validate_vehicle(r, d, v=None):
 @api_view(["GET", "POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([DeliveryPerm])
+@audit("delivery", "vehicle", "خودرو")
 def vehicles(request):
     r = staff_business(request)
     if r is None:
@@ -222,6 +224,7 @@ def vehicles(request):
 @api_view(["PUT", "DELETE"])
 @authentication_classes(StaffAuth)
 @permission_classes([DeliveryPerm])
+@audit("delivery", "vehicle", "خودرو")
 def vehicle_detail(request, pk):
     r = staff_business(request)
     if r is None:
@@ -254,6 +257,7 @@ def vehicle_detail(request, pk):
 @api_view(["GET", "POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([DeliveryPerm])
+@audit("delivery", "carrier", "حمل‌کننده")
 def carriers(request):
     r = staff_business(request)
     if r is None:
@@ -280,6 +284,7 @@ def carriers(request):
 @api_view(["PUT", "DELETE"])
 @authentication_classes(StaffAuth)
 @permission_classes([DeliveryPerm])
+@audit("delivery", "carrier", "حمل‌کننده")
 def carrier_detail(request, pk):
     r = staff_business(request)
     if r is None:
@@ -344,6 +349,7 @@ def _driver_fields(r, d, drv=None):
 @api_view(["GET", "POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([DeliveryPerm])
+@audit("delivery", "driver", "پیک")
 def drivers(request):
     r = staff_business(request)
     if r is None:
@@ -367,6 +373,7 @@ def drivers(request):
 @api_view(["PUT", "DELETE"])
 @authentication_classes(StaffAuth)
 @permission_classes([DeliveryPerm])
+@audit("delivery", "driver", "پیک")
 def driver_detail(request, pk):
     r = staff_business(request)
     if r is None:
@@ -390,11 +397,14 @@ def driver_detail(request, pk):
     return api_success(data=_driver_data(drv))
 
 
-def _set_shift(drv, on):
+def _set_shift(drv, on, user=None):
     on = bool(on)
     Driver.all_objects.filter(pk=drv.pk).update(
         on_shift=on, shift_started_at=timezone.now() if on else drv.shift_started_at)
     drv.refresh_from_db()
+    from ..activity import log
+    log(drv.business, "delivery", "shift.on" if on else "shift.off",
+        f"{drv.name} شیفت را {'شروع کرد' if on else 'تمام کرد'}", actor=user, driver=drv, target=drv)
     return drv
 
 
@@ -410,7 +420,7 @@ def driver_shift(request, pk):
         return api_error("راننده پیدا نشد.", status_code=404)
     if "on" not in request.data:
         return api_error("مقدار on الزامی است.")
-    return api_success(data=_driver_data(_set_shift(drv, request.data.get("on"))))
+    return api_success(data=_driver_data(_set_shift(drv, request.data.get("on"), request.user)))
 
 
 # ═══════════════════════════════════════
@@ -656,7 +666,7 @@ def trip_assign(request, pk):
     if request.data.get("vehicle_id") and vehicle is None:
         return api_error("خودرو پیدا نشد.")
     try:
-        assign_trip(t, driver, vehicle)
+        assign_trip(t, driver, vehicle, user=request.user if request.user.is_authenticated else None)
     except ValueError as e:
         return api_error(str(e))
     except Exception as e:
@@ -768,7 +778,7 @@ def driver_shift_me(request):
         return api_error("برای این کاربر پروفایل راننده تعریف نشده است.", status_code=404)
     if "on" not in request.data:
         return api_error("مقدار on الزامی است.")
-    return api_success(data=_driver_data(_set_shift(drv, request.data.get("on"))))
+    return api_success(data=_driver_data(_set_shift(drv, request.data.get("on"), request.user)))
 
 
 @api_view(["POST"])
@@ -999,3 +1009,112 @@ def driver_manifest(request):
     })
     resp["Content-Type"] = "application/manifest+json"
     return resp
+
+
+# ═══════════════════════════════════════
+#  تاریخچه‌ی پیک: مأموریت‌ها، توقف‌ها، بار، پول، مسیر
+# ═══════════════════════════════════════
+
+MAX_ROUTE_POINTS = 500
+
+
+def _trip_pings(trip):
+    """Location pings of the trip's courier between the trip start and its end (or now)."""
+    if trip.driver_id is None:
+        return []
+    start = trip.started_at or trip.assigned_at or trip.created_at
+    end = trip.completed_at or timezone.now()
+    return list(LocationPing.all_objects.filter(driver_id=trip.driver_id, recorded_at__gte=start, recorded_at__lte=end)
+                .order_by("recorded_at").values("lat", "lng", "speed_kmh", "recorded_at"))
+
+
+def _distance_km(points):
+    from ..delivery_services import haversine_km
+    total = 0.0
+    for a, b in zip(points, points[1:]):
+        total += haversine_km(float(a["lat"]), float(a["lng"]), float(b["lat"]), float(b["lng"]))
+    return round(total, 1)
+
+
+def _history_stop(s):
+    return {
+        "sequence": s.sequence, "type": s.stop_type, "customer_name": s.customer_name, "phone": s.phone, "address": s.address,
+        "cargo": s.cargo_description, "reference": s.reference, "status": s.status, "status_display": s.get_status_display(),
+        "lat": _f(s.lat), "lng": _f(s.lng), "amount_due": _f(s.amount_due), "collected": _f(s.collected_amount),
+        "collected_method": s.collected_method, "failure_reason": s.failure_reason,
+        "arrived_at": _local_dt(s.arrived_at), "delivered_at": _local_dt(s.delivered_at), "order_id": s.order_id,
+        "sales_invoice_id": s.sales_invoice_id, "purchase_invoice_id": s.purchase_invoice_id,
+    }
+
+
+@api_view(["GET"])
+@authentication_classes(StaffAuth)
+@permission_classes([DeliveryPerm])
+def courier_history(request):
+    """Trips of one courier (or all) in a date range, with every stop, the cargo, the cash and the distance driven."""
+    r = staff_business(request)
+    if r is None:
+        return _no_business()
+    qp = request.query_params
+    qs = Trip.all_objects.filter(business=r).select_related("driver", "vehicle")
+    drv = None
+    if str(qp.get("driver_id", "")).isdigit():
+        drv = Driver.all_objects.filter(business=r, pk=int(qp["driver_id"])).first()
+        if drv is None:
+            return api_error("پیک پیدا نشد.", status_code=404)
+        qs = qs.filter(driver=drv)
+    try:
+        d_from = datetime.date.fromisoformat(qp["from"][:10]) if qp.get("from") else timezone.localdate() - datetime.timedelta(days=30)
+        d_to = datetime.date.fromisoformat(qp["to"][:10]) if qp.get("to") else timezone.localdate()
+    except ValueError:
+        return api_error("تاریخ نامعتبر است.")
+    qs = qs.filter(created_at__date__gte=d_from, created_at__date__lte=d_to).order_by("-created_at")[:60]
+    trips, totals = [], {"trips": 0, "completed": 0, "stops_delivered": 0, "stops_failed": 0, "collected": 0.0, "distance_km": 0.0}
+    for t in qs:
+        stops = list(TripStop.all_objects.filter(trip=t).order_by("sequence", "id"))
+        pings = _trip_pings(t)
+        km = _distance_km(pings)
+        delivered = [s for s in stops if s.status == "delivered"]
+        collected = float(sum((s.collected_amount for s in delivered), Decimal("0")))
+        trips.append({
+            "id": t.id, "number": t.number, "status": t.status, "status_display": t.get_status_display(),
+            "driver_id": t.driver_id, "driver_name": t.driver.name if t.driver_id else "", "vehicle": str(t.vehicle) if t.vehicle_id else "",
+            "created_at": _local_dt(t.created_at), "started_at": _local_dt(t.started_at), "completed_at": _local_dt(t.completed_at),
+            "shipper_name": t.shipper_name, "cargo_description": t.cargo_description, "origin_name": t.origin_name,
+            "destination_name": t.destination_name, "distance_km": km, "route_points": len(pings),
+            "collected": collected, "stops": [_history_stop(s) for s in stops],
+        })
+        totals["trips"] += 1
+        totals["completed"] += 1 if t.status == "completed" else 0
+        totals["stops_delivered"] += len(delivered)
+        totals["stops_failed"] += sum(1 for s in stops if s.status == "failed")
+        totals["collected"] += collected
+        totals["distance_km"] = round(totals["distance_km"] + km, 1)
+    return api_success(data={"driver": _driver_data(drv) if drv else None, "from": d_from.isoformat(), "to": d_to.isoformat(),
+                             "totals": totals, "trips": trips})
+
+
+@api_view(["GET"])
+@authentication_classes(StaffAuth)
+@permission_classes([DeliveryPerm])
+def trip_route(request, pk):
+    """Where the courier actually drove on one trip: sampled GPS points + the stops."""
+    r = staff_business(request)
+    if r is None:
+        return _no_business()
+    t = Trip.all_objects.filter(business=r, pk=pk).select_related("driver").first()
+    if t is None:
+        return api_error("مأموریت پیدا نشد.", status_code=404)
+    pings = _trip_pings(t)
+    step = max(1, len(pings) // MAX_ROUTE_POINTS)
+    sampled = pings[::step]
+    if pings and sampled[-1] is not pings[-1]:
+        sampled.append(pings[-1])
+    stops = TripStop.all_objects.filter(trip=t).order_by("sequence", "id")
+    return api_success(data={
+        "trip_id": t.id, "number": t.number, "distance_km": _distance_km(pings), "total_points": len(pings),
+        "points": [{"lat": float(p["lat"]), "lng": float(p["lng"]), "speed_kmh": _f(p["speed_kmh"]),
+                    "at": _local_dt(p["recorded_at"])} for p in sampled],
+        "stops": [{"sequence": s.sequence, "name": s.customer_name, "address": s.address, "lat": _f(s.lat), "lng": _f(s.lng),
+                   "status": s.status, "arrived_at": _local_dt(s.arrived_at), "delivered_at": _local_dt(s.delivered_at)} for s in stops],
+    })

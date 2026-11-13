@@ -25,6 +25,7 @@ from ...warehouse_access import (
     denied_response,
 )
 from ...models import Warehouse
+from ...activity import audit
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +85,7 @@ def stock_list(request):
 
 @api_view(["POST"])
 @permission_classes([InventoryPerm])
+@audit("inventory", "stock_min", "حداقل موجودی")
 def stock_minimum_update(request):
     """ویرایش حداقل موجودی / موجودی هدف"""
     business = resolve_business_active(request)

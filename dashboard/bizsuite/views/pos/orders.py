@@ -21,6 +21,7 @@ from ..common import (
     resolve_business,
 )
 from ..common import server_error
+from ...activity import audit
 
 logger = logging.getLogger(__name__)
 
@@ -206,6 +207,14 @@ def pos_create_order(request):
                 logger.exception("club earn failed for order %s", order.pk)
             safe_post(post_pos_order, order, request.user if request.user.is_authenticated else None)
 
+        from ...activity import log as _log
+        _log(business, "pos", "order.created",
+             f"سفارش #{order.id} ثبت شد — {len(order_items)} قلم — جمع {int(order.total_price)} ({order.payment_method})"
+             + (" — پیک" if is_delivery else ""),
+             actor=request.user if request.user.is_authenticated else None, target=order, request=request,
+             details={"items": [{"name": i["name"], "qty": i["quantity"], "price": i["price"]} for i in order_items],
+                      "type": order_type, "payment": order.payment_method, "customer": customer_name,
+                      "address": delivery_address if is_delivery else ""})
         dispatch = None
         if is_delivery:
             dispatch = _auto_dispatch(
@@ -237,6 +246,7 @@ def pos_create_order(request):
 
 @api_view(["POST"])
 @permission_classes([PosPerm])
+@audit("pos", "close_pending", "بستن سفارش‌های معلق")
 def pos_close_all_pending(request):
     today = timezone.localdate()
     business = resolve_business(request)
@@ -256,6 +266,7 @@ def pos_close_all_pending(request):
 
 @api_view(["POST"])
 @permission_classes([PosPerm])
+@audit("pos", "price", "تغییر قیمت محصول")
 def pos_update_food_price(request):
     try:
         data = request.data

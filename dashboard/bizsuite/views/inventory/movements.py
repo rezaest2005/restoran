@@ -24,6 +24,7 @@ from ..common import (
 )
 from ..common import server_error
 from ...warehouse_access import WarehouseAccessDenied, assert_can_use, denied_response
+from ...activity import audit
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +53,7 @@ def _str(value, limit=500):
 
 @api_view(["POST"])
 @permission_classes([InventoryPerm])
+@audit("inventory", "stock_in", "ورود کالا به انبار")
 def receiving_create(request):
     """ثبت ورود کالا"""
     business = resolve_business_active(request)
@@ -104,6 +106,7 @@ def receiving_create(request):
 
 @api_view(["POST"])
 @permission_classes([InventoryPerm])
+@audit("inventory", "stock_out", "خروج کالا از انبار")
 def issue_create(request):
     """ثبت خروج کالا"""
     business = resolve_business_active(request)
@@ -158,6 +161,7 @@ def issue_create(request):
 
 @api_view(["POST"])
 @permission_classes([InventoryPerm])
+@audit("inventory", "stock_waste", "ثبت ضایعات")
 def waste_create(request):
     """ثبت ضایعات"""
     business = resolve_business_active(request)
@@ -213,6 +217,7 @@ def waste_create(request):
 
 @api_view(["POST"])
 @permission_classes([InventoryPerm])
+@audit("inventory", "stock_adjust", "تعدیل / شمارش موجودی")
 def adjustment_create(request):
     """اصلاح / شمارش موجودی"""
     business = resolve_business_active(request)
@@ -293,6 +298,7 @@ def adjustment_create(request):
 
 @api_view(["POST"])
 @permission_classes([InventoryPerm])
+@audit("inventory", "stock_transfer", "انتقال بین انبارها")
 def transfer_create(request):
     """انتقال کالا بین دو انبار"""
     business = resolve_business_active(request)

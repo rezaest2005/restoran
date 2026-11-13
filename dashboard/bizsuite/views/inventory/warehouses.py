@@ -23,6 +23,7 @@ from ...warehouse_access import (
     denied_response,
     filter_warehouses,
 )
+from ...activity import audit
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +88,7 @@ def warehouse_list(request):
 
 @api_view(["POST"])
 @permission_classes([InventoryPerm])
+@audit("definitions", "warehouse", "انبار")
 def warehouse_save(request):
     """ایجاد / ویرایش انبار"""
     business = resolve_business_active(request)
@@ -145,6 +147,7 @@ def warehouse_save(request):
 
 @api_view(["POST"])
 @permission_classes([InventoryPerm])
+@audit("definitions", "warehouse", "انبار")
 def warehouse_delete(request):
     """حذف انبار (فقط اگر خالی باشد)"""
     business = resolve_business_active(request)

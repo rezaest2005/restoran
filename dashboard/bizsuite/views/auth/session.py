@@ -75,6 +75,10 @@ class LoginView(TokenObtainPairView):
 
         # JWT بساز
         refresh = RefreshToken.for_user(user)
+        if getattr(user, "business_id", None):
+            from ...activity import log as _log
+            _log(user.business, "auth", "login", f"ورود به سامانه: {user.get_full_name() or user.username} ({user.get_role_display()})",
+                 actor=user, request=request, details={"ua": request.META.get("HTTP_USER_AGENT", "")[:150]})
 
         # ★ ریست شمارنده بعد از لاگین موفق
         cache.delete(cache_key)

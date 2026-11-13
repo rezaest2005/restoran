@@ -27,6 +27,7 @@ from ..accounting_services import (
 from ..models import Account, CostCenter, JournalEntry, JournalLine
 from ..utils import api_error, api_success
 from .common import StaffAuth, make_service_permission, staff_business
+from ..activity import audit
 
 AccountingPerm = make_service_permission("accounting")
 PAGE = 50
@@ -86,6 +87,7 @@ def _no_business():
 @api_view(["GET", "POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([AccountingPerm])
+@audit("accounting", "account", "سرفصل حساب")
 def accounts(request):
     r = staff_business(request)
     if r is None:
@@ -124,6 +126,7 @@ def accounts(request):
 @api_view(["PUT", "DELETE"])
 @authentication_classes(StaffAuth)
 @permission_classes([AccountingPerm])
+@audit("accounting", "account", "سرفصل حساب")
 def account_detail(request, pk):
     r = staff_business(request)
     if r is None:
@@ -183,6 +186,7 @@ def cost_centers(request):
 @api_view(["GET", "POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([AccountingPerm])
+@audit("accounting", "journal", "سند حسابداری")
 def journal(request):
     r = staff_business(request)
     if r is None:
@@ -256,6 +260,7 @@ def journal_detail(request, pk):
 @api_view(["POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([AccountingPerm])
+@audit("accounting", "journal_reverse", "برگشت سند")
 def journal_reverse(request, pk):
     r = staff_business(request)
     if r is None:

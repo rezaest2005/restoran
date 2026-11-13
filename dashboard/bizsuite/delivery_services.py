@@ -96,6 +96,15 @@ def order_is_dispatched(order) -> bool:
             .exclude(trip__status=Trip.Status.CANCELLED).exclude(status=TripStop.Status.FAILED).exists())
 
 
+def _act(business, action, summary, user=None, driver=None, target=None, details=None):
+    from .activity import log
+    return log(business, "delivery", action, summary, actor=user, driver=driver, target=target, details=details)
+
+
+def _trip_label(trip):
+    return f"TR-{trip.number}"
+
+
 def _live_stops():
     return TripStop.all_objects.exclude(trip__status=Trip.Status.CANCELLED).exclude(status=TripStop.Status.FAILED)
 
@@ -172,11 +181,18 @@ def create_trip(business, stops, driver=None, vehicle=None, carrier=None, user=N
         raise ValueError(
             f"وزن بار ({total_weight} kg) از ظرفیت خودرو ({vehicle.capacity_kg} kg) بیشتر است."
         )
+    _stops = list(TripStop.all_objects.filter(trip=trip).order_by("sequence"))
+    _act(business, "trip.created",
+         f"مأموریت {_trip_label(trip)} ساخته شد — {len(_stops)} توقف" + (f" — پیک: {driver.name}" if driver else " — بدون پیک"),
+         user=user, driver=driver, target=trip,
+         details={"stops": [{"n": s.sequence, "type": s.stop_type, "name": s.customer_name, "address": s.address,
+                             "cargo": s.cargo_description, "due": str(s.amount_due)} for s in _stops],
+                  "vehicle": str(trip.vehicle) if trip.vehicle else "", "carrier": trip.carrier.name if trip.carrier else ""})
     return trip
 
 
 @transaction.atomic
-def assign_trip(trip, driver, vehicle=None):
+def assign_trip(trip, driver, vehicle=None, user=None):
     trip = Trip.all_objects.select_for_update().get(pk=trip.pk)
     if trip.status not in (Trip.Status.PLANNED, Trip.Status.ASSIGNED):
         raise ValueError("فقط مأموریت برنامه‌ریزی‌شده یا تخصیص‌یافته قابل تخصیص مجدد است.")
@@ -191,6 +207,8 @@ def assign_trip(trip, driver, vehicle=None):
     trip.status = Trip.Status.ASSIGNED
     trip.assigned_at = timezone.now()
     trip.save()
+    _act(trip.business, "trip.assigned", f"مأموریت {_trip_label(trip)} به {driver.name} داده شد"
+         + (f" با {trip.vehicle}" if trip.vehicle else ""), user=user, driver=driver, target=trip)
     return trip
 
 
@@ -212,6 +230,12 @@ def change_trip_status(trip, new_status, user=None):
     trip.save()
     if new_status == Trip.Status.COMPLETED:
         post_trip_accounting(trip, user=user)
+    _done = TripStop.all_objects.filter(trip=trip, status=TripStop.Status.DELIVERED).count()
+    _cash = sum((s.collected_amount for s in TripStop.all_objects.filter(trip=trip, status=TripStop.Status.DELIVERED)), Decimal("0"))
+    _act(trip.business, f"trip.{new_status}",
+         {"in_progress": f"مأموریت {_trip_label(trip)} شروع شد", "completed": f"مأموریت {_trip_label(trip)} تکمیل شد — {_done} تحویل، وصولی {q2(_cash)}",
+          "cancelled": f"مأموریت {_trip_label(trip)} لغو شد"}.get(new_status, f"وضعیت {_trip_label(trip)}: {new_status}"),
+         user=user, driver=trip.driver, target=trip, details={"delivered": _done, "collected": str(q2(_cash))})
     return trip
 
 
@@ -268,6 +292,17 @@ def update_stop(stop, new_status, driver=None, collected_amount=None, collected_
     if lat is not None and lng is not None and trip.driver_id:
         record_ping(trip.driver, lat, lng, source=LocationPing.Source.PHONE)
     refresh_etas(trip)
+    _label = {"picked_up": "برداشت", "arrived": "رسید به", "delivered": "تحویل داد به", "failed": "تحویل نشد به", "pending": "برگشت به انتظار"}
+    _who = stop.customer_name or stop.address or f"توقف {stop.sequence}"
+    _what = f" — {stop.cargo_description}" if stop.cargo_description else ""
+    _money = f" — وصول {q2(stop.collected_amount)} ({stop.collected_method})" if new_status == "delivered" and stop.collected_amount > 0 else ""
+    _why = f" — علت: {stop.failure_reason}" if new_status == "failed" and stop.failure_reason else ""
+    _act(trip.business, f"stop.{new_status}",
+         f"{trip.driver.name if trip.driver else 'پیک'} {_label.get(new_status, new_status)} {_who}{_what}{_money}{_why} ({_trip_label(trip)})",
+         user=(driver.user if driver is not None else None), driver=trip.driver, target=stop,
+         details={"trip": trip.number, "stop": stop.sequence, "type": stop.stop_type, "address": stop.address, "cargo": stop.cargo_description,
+                  "collected": str(q2(stop.collected_amount)), "method": stop.collected_method, "reason": stop.failure_reason,
+                  "lat": float(lat) if lat is not None else None, "lng": float(lng) if lng is not None else None})
     return stop
 
 
@@ -373,6 +408,9 @@ def settle_driver_cash(driver, received_amount, user=None, deposit_account=CASH,
     if len(lines) >= 2 and _accounting_on(business=driver.business):
         post_entry(driver.business, lines, source_type="driver_settlement", source_id=st.pk,
                    description=f"تسویه‌ی نقدی راننده {driver.name}", user=user)
+    _act(driver.business, "cash.settled", f"تسویه‌ی نقدی با {driver.name}: انتظار {expected}، دریافت {received}"
+         + (f"، اختلاف {diff}" if diff else ""), user=user, driver=driver, target=st,
+         details={"expected": str(expected), "received": str(received), "difference": str(diff), "note": note})
     return st
 
 
