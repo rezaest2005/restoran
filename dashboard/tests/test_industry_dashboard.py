@@ -1,4 +1,4 @@
-"""Business type presets, the setup wizard API and the module-gated main dashboard summary."""
+"""Business type presets and the module-gated main dashboard summary."""
 import datetime
 from decimal import Decimal
 from unittest import mock
@@ -93,72 +93,20 @@ class Base(TestCase):
         self.b.refresh_from_db()
 
 
-class SetupApiTests(Base):
-    def test_new_business_needs_setup_and_old_payload_keys(self):
+class LoginProfileTests(Base):
+    def test_unset_industry_gives_neutral_terms(self):
         self.assertEqual(self.b.industry, "")
-        self.assertTrue(industries.is_setup_required(self.b))
         r = APIClient().post("/api/auth/login/", {"username": "i_owner", "password": P}, format="json")
         self.assertEqual(r.status_code, 200, r.content)
         user = r.json()["user"]
-        self.assertTrue(user["setup_required"])
+        self.assertNotIn("setup_required", user)
         self.assertEqual(user["business_industry"], "")
         self.assertIn("product", user["business_terms"])
 
-    def test_owner_completes_wizard(self):
-        self.only(["accounting", "delivery"])
-        r = self.client_for(self.owner).put("/api/business/setup/", {
-            "industry": "distribution", "used_modules": ["accounting", "delivery", "inventory"],
-            "name": "پخش البرز", "phone": "02100000000", "address": "تهران",
-        }, format="json")
-        self.assertEqual(r.status_code, 200, r.content)
-        self.b.refresh_from_db()
-        self.assertEqual(self.b.industry, "distribution")
-        self.assertIsNotNone(self.b.setup_completed_at)
-        self.assertEqual(self.b.name, "پخش البرز")
-        self.assertEqual(self.b.industry_options["used_modules"], ["accounting", "delivery"])
-        self.assertEqual(self.b.industry_options["requested_modules"], ["inventory"])  # not bought: only a request
-        self.assertEqual(self.b.industry_options["coa_template"], "distribution")
-        data = r.json()["data"]
-        self.assertFalse(data["setup_required"])
-        self.assertEqual({m["code"] for m in data["modules"] if m["live"]}, {"accounting", "delivery"})
-
-    def test_wizard_never_changes_licensing(self):
-        self.only(["accounting"])
-        self.client_for(self.owner).put("/api/business/setup/", {"industry": "retail",
-                                                                 "used_modules": ["pos", "inventory"]}, format="json")
-        from bizsuite.modules import enabled_modules
-        self.assertEqual(enabled_modules(self.b), {"accounting"})
-
-    def test_only_owner_may_edit_and_type_validated(self):
-        r = self.client_for(self.cashier).put("/api/business/setup/", {"industry": "retail"}, format="json")
-        self.assertEqual(r.status_code, 403)
-        self.assertEqual(self.client_for(self.cashier).get("/api/business/setup/").status_code, 200)
-        r = self.client_for(self.owner).put("/api/business/setup/", {"industry": "spaceship"}, format="json")
-        self.assertEqual(r.status_code, 400)
-        r = self.client_for(self.owner).put("/api/business/setup/", {"industry": "retail",
-                                                                     "used_modules": ["nope"]}, format="json")
-        self.assertEqual(r.status_code, 400)
-
-    def test_industries_catalog_and_custom_terms(self):
-        r = self.client_for(self.cashier).get("/api/business/industries/")
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.json()["data"]["industries"]), len(industries.INDUSTRIES))
-        self.client_for(self.owner).put("/api/business/setup/", {
-            "industry": "retail", "terms": {"customer": {"fa": "خریدار", "en": "Buyer"}, "bogus": {"en": "x"}},
-        }, format="json")
-        self.b.refresh_from_db()
-        terms = industries.terms_for(self.b)
-        self.assertEqual(terms["customer"]["en"], "Buyer")
-        self.assertNotIn("bogus", terms)
-
-    def test_checklist_dismiss(self):
-        r = self.client_for(self.owner).post("/api/business/setup/checklist/", {"dismissed": True}, format="json")
-        self.assertEqual(r.status_code, 200)
-        self.b.refresh_from_db()
-        s = build_summary(self.b, User.objects.get(pk=self.owner.pk))
-        self.assertTrue(s["checklist_dismissed"])
-        self.assertEqual(s["checklist"], [])
-        self.assertEqual(self.client_for(self.cashier).post("/api/business/setup/checklist/", {}).status_code, 403)
+    def test_setup_endpoints_are_gone(self):
+        c = self.client_for(self.owner)
+        self.assertEqual(c.get("/api/business/setup/").status_code, 404)
+        self.assertEqual(c.post("/api/business/setup/checklist/", {}, format="json").status_code, 404)
 
 
 class SummaryGatingTests(Base):
@@ -174,11 +122,6 @@ class SummaryGatingTests(Base):
         self.assertEqual(s["data"]["receivables"]["source"], "ledger")
         self.assertTrue(set(s["widgets"]) <= {"receivables", "cash", "deliveries"})
         self.assertIn("cash", s["widgets"])
-        keys = {c["key"] for c in s["checklist"]}
-        self.assertNotIn("products", keys)
-        self.assertNotIn("formula", keys)
-        self.assertIn("fleet", keys)
-        self.assertIn("chart", keys)
 
     def test_club_with_pos(self):
         self.only(["pos", "club"])
@@ -235,9 +178,7 @@ class SummaryGatingTests(Base):
         self.assertIn("low_stock", alerts)
         self.assertEqual(alerts["unpaid_invoices"]["count"], 1)
         self.assertEqual(alerts["subscription"]["level"], "error")
-        steps = {c["key"]: c["done"] for c in s["checklist"]}
-        self.assertTrue(steps["products"])
-        self.assertTrue(steps["items"])
+        self.assertNotIn("checklist", s)
 
     def test_terms_follow_industry(self):
         self.b.industry = "restaurant"

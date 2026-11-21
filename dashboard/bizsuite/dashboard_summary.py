@@ -177,7 +177,7 @@ def _production(business, today, month_start):
                                .aggregate(s=Sum("total_cost"))["s"])}
 
 
-# ─── alerts & checklist ───────────────────────────────
+# ─── alerts ───────────────────────────────
 
 def _alerts(business, data, now):
     out = []
@@ -203,40 +203,6 @@ def _alerts(business, data, now):
     acc = data.get("accounting")
     if acc and acc["cash"] < 0:
         out.append({"key": "negative_cash", "level": "error", "total": acc["cash"]})
-    return out
-
-
-def checklist(business, user=None) -> list[dict]:
-    """Onboarding steps (idea from Odoo's onboarding banners / ERPNext's setup checklist) for the live modules."""
-    from .models import (Account, Customer, Driver, Food, Formula, LoyaltySettings, RawMaterial, User,
-                         Vehicle, Warehouse)
-    mods = dashboard_modules(business)
-    b = business
-    steps = [
-        ("business_type", None, bool(b.industry) and b.setup_completed_at is not None),
-        ("profile", None, bool(b.phone and b.address)),
-        ("logo", None, bool(b.logo)),
-        ("staff", None, User.objects.filter(business=b, is_active=True).exclude(role__in=["customer", "driver"]).count() > 1),
-        ("products", "pos", Food.all_objects.filter(business=b).exists()),
-        ("items", "inventory", RawMaterial.all_objects.filter(business=b).exists()),
-        ("warehouse", "inventory", Warehouse.all_objects.filter(business=b).exists()),
-        ("customers", "accounting", Customer.all_objects.filter(business=b).exists()),
-        ("chart", "accounting", Account.all_objects.filter(business=b).exists()),
-        ("formula", "production", Formula.all_objects.filter(business=b).exists()),
-        ("fleet", "delivery", Driver.all_objects.filter(business=b).exists() or Vehicle.all_objects.filter(business=b).exists()),
-        ("club", "club", LoyaltySettings.all_objects.filter(business=b).exists()),
-    ]
-    feats = user_features(user) if user is not None else None
-    need = {"staff": "dictionary_users", "products": "dictionary_menu", "items": "dictionary_items",
-            "warehouse": "dictionary_warehouses", "customers": "dictionary_customers", "chart": "accounting",
-            "formula": "recipes", "fleet": "delivery_fleet", "club": "club"}
-    out = []
-    for key, mod, done in steps:
-        if mod and mod not in mods:
-            continue
-        if feats is not None and key in need and need[key] not in feats:
-            continue
-        out.append({"key": key, "module": mod, "done": bool(done)})
     return out
 
 
@@ -276,20 +242,15 @@ def build_summary(business, user, now=None) -> dict:
             "source": "ledger" if "accounting" in data else "invoices"}
 
     ind = industries.get_industry(business)
-    show_checklist = not (business.industry_options or {}).get("checklist_dismissed")
-    steps = checklist(business, user) if show_checklist else []
     widgets = [w for w in industries.widget_order(business) if w in data or
                (w == "cash" and "accounting" in data)]
     return {
         "industry": {"key": ind.key, "name_fa": ind.name_fa, "name_en": ind.name_en, "icon": ind.icon,
                      "set": bool(business.industry)},
-        "setup_required": industries.is_setup_required(business),
         "terms": industries.terms_for(business),
         "modules": sorted(dashboard_modules(business)),
         "widgets": widgets,
         "data": data,
         "alerts": _alerts(business, data, now),
-        "checklist": steps,
-        "checklist_dismissed": not show_checklist,
         "server_now": now.isoformat(),
     }

@@ -193,20 +193,6 @@ def chart_template_for(business_or_key) -> str:
     return next(iter(registry))
 
 
-def is_setup_required(business) -> bool:
-    return business is not None and getattr(business, "setup_completed_at", None) is None
-
-
-def catalog(lang: str | None = None) -> list[dict]:
-    """Presets for the setup wizard (both languages are sent; the UI picks)."""
-    return [{
-        "key": i.key, "name_fa": i.name_fa, "name_en": i.name_en,
-        "description_fa": i.description_fa, "description_en": i.description_en,
-        "icon": i.icon, "modules": list(i.modules), "coa_template": i.coa_template,
-        "units": list(i.units), "widgets": list(i.widgets), "terms": i.all_terms(),
-    } for i in INDUSTRIES]
-
-
 def widget_order(business) -> list[str]:
     order = list(get_industry(business).widgets)
     return order + [w for w in ALL_WIDGETS if w not in order]
