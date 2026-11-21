@@ -98,7 +98,9 @@ from .users import (
     user_toggle_active,
     admin_reset_password,
     user_delete,
-    user_tabs_api, 
+    user_tabs_api,
+    transport_people,
+    transport_person_detail,
 )
 
 # ── Inventory ──
@@ -205,6 +207,8 @@ __all__ = [
     "admin_reset_password",
     "user_delete",
     "user_tabs_api",
+    "transport_people",
+    "transport_person_detail",
     # Inventory
     "item_movement_report",
     "stock_value_report",

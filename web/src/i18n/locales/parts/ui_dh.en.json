@@ -1,0 +1,157 @@
+{
+  "ui_dh": {
+    "title": "Definitions",
+    "subtitle": "Set up the basics once here; every other area (sales, stock, production, transport) uses these definitions.",
+    "groups_hub": {
+      "places": "Places",
+      "stock": "Buy & stock",
+      "sell": "Make & sell",
+      "people": "People"
+    },
+    "groups_hint": {
+      "places": "Where you keep goods.",
+      "stock": "What you buy and keep, and who you buy it from.",
+      "sell": "What you make, what you sell and their labels.",
+      "people": "Customers, staff, drivers and couriers."
+    },
+    "tabs_hub": {
+      "warehouses": "Warehouses",
+      "items": "Items & materials",
+      "suppliers": "Suppliers",
+      "formulas": "Formulas",
+      "products": "Finished products",
+      "barcodes": "Barcodes & labels",
+      "customers": "Customers",
+      "users": "Users & access"
+    },
+    "help": {
+      "warehouses": "Create your warehouses first (even if you have only one). Stock is always kept in a specific warehouse, and one of them is the sales warehouse.",
+      "items": "Anything you buy or keep: raw material, semi-finished, packaging or finished goods. Set the unit and minimum stock here.",
+      "suppliers": "Who you buy from. Purchase invoices and the purchase list pick from this list.",
+      "formulas": "If you make things, say which materials and how much go into each one. Production and stock deduction follow the formula.",
+      "products": "Finished goods you sell or deliver. They are the same stock items, just shown here on their own.",
+      "barcodes": "Make barcodes for items and products and print labels. This step is optional.",
+      "customers": "Customers you invoice, give credit to or deliver to.",
+      "users": "Everyone who signs in: staff (with a ready-made role), drivers or couriers (driver app only), or a custom role."
+    },
+    "empty_hint": {
+      "warehouses": "Stock can't be recorded without a warehouse. Start with one.",
+      "items": "Add the first item or material you buy or keep.",
+      "products": "Add the first finished product you sell.",
+      "suppliers": "Add your first supplier so you can pick it on purchase invoices.",
+      "customers": "Add your first customer.",
+      "users": "Add staff, drivers and couriers so everyone signs in with their own username."
+    },
+    "products": {
+      "title": "Finished products",
+      "subtitle": "Finished goods you sell or deliver.",
+      "new": "New finished product",
+      "empty": "No finished products defined yet."
+    },
+    "start": {
+      "title": "Start here",
+      "done_all": "All the basic definitions are done",
+      "progress": "{{done}} of {{total}} steps done",
+      "next": "Next step",
+      "go": "Start",
+      "open": "View",
+      "show": "Show steps",
+      "hide": "Hide",
+      "count": "{{n}} defined",
+      "todo": "Not defined yet",
+      "steps": {
+        "warehouses": { "title": "Warehouses", "hint": "Where you keep goods." },
+        "items": { "title": "Items & materials", "hint": "What you buy and keep." },
+        "formulas": { "title": "Formulas", "hint": "If you make things: from what." },
+        "products": { "title": "Finished products", "hint": "What you sell." },
+        "users": { "title": "People", "hint": "Staff, drivers and couriers." }
+      }
+    },
+    "people": {
+      "title": "Users & access",
+      "subtitle": "Everyone who signs in. Pick the kind of person first; only the fields that kind needs are shown.",
+      "new": "New person",
+      "filter": "Kind of person",
+      "filters": { "all": "All", "staff": "Staff", "transport": "Transport", "other": "Other" },
+      "type_title": "Who are you adding?",
+      "type_hint": "The kind of person decides what is needed. You can edit it later.",
+      "types": {
+        "staff": { "title": "Staff member", "hint": "Manager, sales & till, warehouse, production… pick a ready-made role and access is set for you." },
+        "transport": { "title": "Driver or courier (transport)", "hint": "Order couriers and cargo / product drivers alike. They only see the driver app; set their vehicle right here." },
+        "other": { "title": "Custom role", "hint": "For any other job: tick exactly the sections they need." }
+      },
+      "new_staff": "New staff member",
+      "new_other": "Person with a custom role",
+      "preset_title": "Role",
+      "preset_hint": "Picking a role ticks the right access for you. Open \"Advanced access\" for fine changes.",
+      "presets": {
+        "owner": "Full access, including settings and users.",
+        "manager": "Every section and every warehouse.",
+        "cashier": "Till, orders, daily report and customers.",
+        "waiter": "Take orders and follow their status.",
+        "warehouse": "Purchasing, receiving, stock, transfers and stock reports.",
+        "kitchen": "Production, formulas and material stock."
+      },
+      "other_hint": "Tick below only the sections this person needs.",
+      "advanced": "Advanced access",
+      "full_access": "Full access",
+      "transport_group_hint": "These ticks are for office staff who manage deliveries. Add the drivers and couriers themselves as \"Driver or courier\"."
+    },
+    "roles": {
+      "transport": "Driver / courier",
+      "driver": "Driver / courier",
+      "courier": "Driver / courier",
+      "kitchen": "Production",
+      "waiter": "Sales / floor staff"
+    },
+    "groups": {
+      "transport": "Transport management",
+      "more": "Other modules"
+    },
+    "tabs": {
+      "kitchen": "Production",
+      "recipes": "Formulation",
+      "delivery_dispatch": "Dispatch & trips",
+      "delivery_shipments": "Shipments & tracking",
+      "delivery_fleet": "Drivers, couriers & vehicles",
+      "delivery_cash": "Transport cash & settlement",
+      "delivery_history": "Trip history"
+    },
+    "transport": {
+      "new_title": "New driver or courier",
+      "edit_title": "\"{{name}}\"",
+      "create": "Add driver / courier",
+      "who": "Details",
+      "name": "Full name",
+      "phone": "Mobile",
+      "service": "What do they carry?",
+      "services": {
+        "both": { "title": "Both", "hint": "Customer orders and cargo / products." },
+        "orders": { "title": "Order courier", "hint": "Brings orders to customers." },
+        "cargo": { "title": "Cargo & products", "hint": "Moves goods between warehouses, suppliers and customers." }
+      },
+      "vehicle": "Vehicle",
+      "vehicle_none": "No fixed vehicle",
+      "vehicle_new": "New vehicle",
+      "vehicle_kind": "Vehicle type",
+      "plate": "Plate",
+      "pay": "Pay per trip",
+      "pay_hint": "Optional",
+      "carrier": "Carrier company",
+      "signin": "Driver app sign-in",
+      "signin_hint": "They sign in to the driver app on their phone with this username and password. The business prefix is added automatically.",
+      "signin_optional": "Optional: with a username and password they can sign in to the driver app on their phone.",
+      "signin_linked": "The username is fixed. To change the password, type a new one.",
+      "password_new": "New password",
+      "password_keep": "Leave empty to keep the current password",
+      "active": "Active",
+      "created": "\"{{name}}\" was added.",
+      "number": "No. {{n}}",
+      "copy_link": "Copy app link",
+      "no_record": "No driver details for this account yet; press \"Edit\".",
+      "module_off": "The Delivery module is not enabled for your business.",
+      "fleet_title": "Drivers & couriers",
+      "fleet_hint": "Drivers and couriers are one kind of person: anyone who moves orders or cargo. The same people appear in Definitions → Users & access, with the same form in both places."
+    }
+  }
+}

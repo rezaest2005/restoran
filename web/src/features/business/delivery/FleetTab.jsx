@@ -9,6 +9,7 @@ import { TableWrap, ConfirmDialog, fmtMoney, fmtInt, num } from "@business/accou
 import { vehiclesApi, carriersApi, driversApi, setDriverShift, errMsg } from "./api";
 import { VEHICLE_KINDS } from "./common";
 import DriverLinkCard from "./DriverLinkCard";
+import TransportPersonDialog from "@business/dictionary/components/TransportPersonDialog";
 import CopyLink from "./CopyLink";
 import { appUrl } from "@shared/basePath";
 
@@ -91,8 +92,6 @@ export default function FleetTab({ ctx, vehicles, carriers, drivers, reloadFleet
   ], { enabled: !edit && !del });
 
   const kindOpts = VEHICLE_KINDS.map((k) => ({ value: k, label: t(`ui_del.vehicle_kind.${k}`) }));
-  const carrierOpts = [{ value: "", label: "—" }, ...carriers.map((c) => ({ value: c.id, label: c.name }))];
-  const vehicleOpts = [{ value: "", label: "—" }, ...vehicles.map((x) => ({ value: x.id, label: x.name }))];
 
   const defs = {
     vehicle: {
@@ -122,30 +121,8 @@ export default function FleetTab({ ctx, vehicles, carriers, drivers, reloadFleet
       blank: { name: "", phone: "", notes: "", is_external: false, is_active: true },
       toBody: (v) => v,
     },
-    driver: {
-      api: driversApi,
-      title: t("ui_del.fleet.driver"),
-      fields: [
-        { key: "name", label: t("ui_del.fleet.name") },
-        { key: "phone", label: t("ui_del.fleet.phone") },
-        { key: "carrier_id", label: t("ui_del.trip.carrier"), type: "select", options: carrierOpts },
-        { key: "default_vehicle_id", label: t("ui_del.fleet.default_vehicle"), type: "select", options: vehicleOpts },
-        { key: "pay_per_trip", label: t("ui_del.fleet.pay_per_trip"), type: "number" },
-        { key: "username", label: t("ui_del.fleet.username"), hint: t("ui_del.fleet.account_hint"), readOnlyWhenLinked: true },
-        { key: "password", label: t("ui_del.fleet.password"), type: "password" },
-        { key: "is_active", label: t("ui_del.common.active"), type: "switch" },
-      ],
-      blank: { name: "", phone: "", carrier_id: "", default_vehicle_id: "", pay_per_trip: "", username: "", password: "", is_active: true },
-      toBody: (v) => {
-        const body = {
-          ...v, carrier_id: v.carrier_id || null, default_vehicle_id: v.default_vehicle_id || null,
-          pay_per_trip: numOrNull(v.pay_per_trip) ?? 0,
-        };
-        delete body.__linked;
-        if (!body.password) delete body.password;
-        return body;
-      },
-    },
+    // transport people are edited in the shared TransportPersonDialog (same form as Users & access)
+    driver: { api: driversApi },
   };
 
   const save = async (kind, row, v) => {
@@ -215,19 +192,27 @@ export default function FleetTab({ ctx, vehicles, carriers, drivers, reloadFleet
     if (!row) return defs[kind].blank;
     const out = { ...defs[kind].blank };
     Object.keys(out).forEach((k) => { out[k] = row[k] ?? out[k]; });
-    if (kind === "driver" && row.user_id) out.__linked = true;   // already has a sign-in: the username is shown, not edited
     return out;
+  };
+  const saveDriver = async (row, body) => {
+    if (row) await driversApi.update(row.id, body);
+    else await driversApi.create(body);
+    setEdit(null);
+    notify(t("ui_del.common.saved"));
+    reloadFleet();
   };
 
   return (
     <Box>
       <DriverLinkCard ctx={ctx} />
-      {section("driver", t("ui_del.fleet.drivers"),
-        [t("ui_del.fleet.number"), t("ui_del.fleet.name"), t("ui_del.fleet.username"), t("ui_del.fleet.phone"), t("ui_del.fleet.pay_per_trip"), t("ui_del.fleet.link"), t("ui_del.fleet.shift"), t("ui_del.common.status")],
+      <Alert severity="info" sx={{ mb: 2 }}>{t("ui_dh.transport.fleet_hint")}</Alert>
+      {section("driver", t("ui_dh.transport.fleet_title"),
+        [t("ui_del.fleet.number"), t("ui_del.fleet.name"), t("ui_dh.transport.service"), t("ui_del.fleet.username"), t("ui_del.fleet.phone"), t("ui_del.fleet.pay_per_trip"), t("ui_del.fleet.link"), t("ui_del.fleet.shift"), t("ui_del.common.status")],
         drivers, (d) => (
           <TableRow key={d.id}>
             <TableCell sx={{ ...S.td, fontWeight: 800 }}>{d.number ? fmtInt(d.number, lang) : "—"}</TableCell>
             <TableCell sx={S.td}>{d.name}</TableCell>
+            <TableCell sx={S.td}>{t(`ui_dh.transport.services.${d.service || "both"}.title`)}</TableCell>
             <TableCell sx={S.td} dir="ltr">{d.username || "—"}</TableCell>
             <TableCell sx={S.td} dir="ltr">{d.phone}</TableCell>
             <TableCell sx={S.td}>{fmtMoney(d.pay_per_trip, lang)}</TableCell>
@@ -267,7 +252,12 @@ export default function FleetTab({ ctx, vehicles, carriers, drivers, reloadFleet
           </TableRow>
         ))}
 
-      {edit && (
+      {edit && edit.kind === "driver" && (
+        <TransportPersonDialog key={`driver-${edit.row?.id || "new"}`} ctx={ctx} mode="fleet" person={edit.row}
+          vehicles={vehicles.filter((v) => v.is_active || v.id === edit.row?.default_vehicle_id)} carriers={carriers}
+          onClose={() => setEdit(null)} onSubmit={(body) => saveDriver(edit.row, body)} />
+      )}
+      {edit && edit.kind !== "driver" && (
         <EditDialog
           key={`${edit.kind}-${edit.row?.id || "new"}`} ctx={ctx} title={editing.title}
           fields={editing.fields} initial={initialOf(edit.kind, edit.row)}

@@ -88,6 +88,8 @@ urlpatterns = [
     path("api/users/toggle-active/", views.user_toggle_active, name="user_toggle_active"),
     path("api/users/delete/", views.user_delete, name="user_delete"),
     path("api/users/tabs/", views.user_tabs_api, name="user_tabs_api"),
+    path("api/users/transport/", views.transport_people, name="transport_people"),
+    path("api/users/transport/<int:user_id>/", views.transport_person_detail, name="transport_person_detail"),
 
     # ── Raw Materials & Suppliers ───────────────────────────
     path("api/raw-materials/", raw_material_list_api, name="raw_material_list"),

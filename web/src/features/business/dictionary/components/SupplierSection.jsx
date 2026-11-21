@@ -71,7 +71,8 @@ export default function SupplierSection({ ctx }) {
       <SectionHeader ctx={ctx} title={t("ui_def.suppliers.title")} subtitle={t("ui_def.suppliers.subtitle")}
         onNew={() => open(null)} newLabel={t("ui_def.suppliers.new")} search={q} onSearch={setQ} />
       <LoadState ctx={ctx} loading={loading && rows.length === 0} error={error} onRetry={load}
-        empty={!loading && shown.length === 0} emptyText={q ? t("ui_def.common.no_results") : t("ui_def.suppliers.empty")}>
+        empty={!loading && shown.length === 0} emptyText={q ? t("ui_def.common.no_results") : t("ui_def.suppliers.empty")}
+        emptyAction={q ? null : { label: t("ui_def.suppliers.new"), onClick: () => open(null), icon: "🏭", hint: t("ui_dh.empty_hint.suppliers") }}>
         <TableWrap C={C}>
           <Table size="small" sx={{ minWidth: 620 }}>
             <TableHead>

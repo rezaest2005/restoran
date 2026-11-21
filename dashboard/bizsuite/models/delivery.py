@@ -88,6 +88,13 @@ class Vehicle(TenantModel):
 
 
 class Driver(TenantModel):
+    """Transport person (role "transport"): one record whether they carry customer orders or cargo/units."""
+
+    class Service(models.TextChoices):
+        BOTH = "both", "سفارش‌ها و بار"
+        ORDERS = "orders", "پیک سفارش‌ها"
+        CARGO = "cargo", "حمل بار و محصول"
+
     number = models.PositiveIntegerField("شماره‌ی پیک", null=True, blank=True,
                                          help_text="1, 2, 3 ... در هر کسب‌وکار؛ بخشی از آدرس /<slug>/driver/<number>")
     name = models.CharField("نام", max_length=200)
@@ -102,6 +109,8 @@ class Driver(TenantModel):
     default_vehicle = models.ForeignKey(
         Vehicle, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
     )
+    service = models.CharField("نوع کار", max_length=10, choices=Service.choices, default=Service.BOTH,
+                               help_text="فقط برای نمایش و فیلتر؛ هر حمل‌کننده می‌تواند هر مأموریتی بگیرد.")
     pay_per_trip = models.DecimalField("کارمزد هر مأموریت", max_digits=14, decimal_places=2, default=0)
     is_active = models.BooleanField("فعال", default=True)
     on_shift = models.BooleanField("در شیفت", default=False)
