@@ -12,7 +12,8 @@ import { fetchJournal, errMsg } from "../api";
 import { SourceBadge } from "./EntryDetailDialog";
 
 export default function JournalTab(ctx) {
-  const { t, C, S, lang, refreshKey, openDetail, openNewEntry } = ctx;
+  const { t, C, S, lang, refreshKey, openDetail, openNewEntry, openVatDocument } = ctx;
+  const [status, setStatus] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [qInput, setQInput] = useState("");
@@ -33,11 +34,11 @@ export default function JournalTab(ctx) {
 
   const load = useCallback(() => {
     setLoading(true);
-    fetchJournal({ from, to, q, source_type: source, page })
+    fetchJournal({ from, to, q, source_type: source, page, status })
       .then((d) => { setData(d || { total: 0, results: [] }); setError(""); })
       .catch((e) => setError(errMsg(e, t("ui_i.common.load_failed"))))
       .finally(() => setLoading(false));
-  }, [from, to, q, source, page, t]);
+  }, [from, to, q, source, page, status, t]);
   useEffect(() => { load(); }, [load, refreshKey]);
 
   const rows = data.results || [];
@@ -63,6 +64,13 @@ export default function JournalTab(ctx) {
           onChange={setFilter(setTo)} slotProps={{ inputLabel: { shrink: true } }} />
         <TextField size="small" label={t("ui_i.common.search")} value={qInput} sx={{ ...S.field, flex: 1, minWidth: { xs: "100%", sm: 200 } }}
           onChange={(e) => setQInput(e.target.value)} />
+        <TextField select size="small" label={t("acc2.entry.status")} value={status} sx={{ ...S.field, width: { xs: "100%", sm: 150 } }}
+          onChange={setFilter(setStatus)} slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}>
+          <option value="">{t("ui_i.common.all")}</option>
+          <option value="posted">{t("acc2.entry.posted")}</option>
+          <option value="draft">{t("acc2.entry.draft")}</option>
+        </TextField>
+        <Button variant="outlined" sx={S.ghost} onClick={openVatDocument}>{t("acc2.vat.new_doc")}</Button>
         <Button sx={S.btn} onClick={openNewEntry}>{t("ui_i.entry.new")}<KbdHint>F2</KbdHint></Button>
       </Box>
 
@@ -106,7 +114,7 @@ export default function JournalTab(ctx) {
                 return (
                   <TableRow key={e.id} hover onClick={() => openDetail(e.id)} {...cp}
                     sx={{ cursor: "pointer", ...(cp.sx || {}) }}>
-                    <TableCell sx={{ ...S.td, fontWeight: 600 }}>{fmtInt(e.number, lang)}</TableCell>
+                    <TableCell sx={{ ...S.td, fontWeight: 600 }}>{e.number ? fmtInt(e.number, lang) : "—"}</TableCell>
                     <TableCell sx={S.td}>{fmtDate(e.date, lang)}</TableCell>
                     <TableCell sx={S.td}>{e.description || "—"}</TableCell>
                     <TableCell sx={S.td}>

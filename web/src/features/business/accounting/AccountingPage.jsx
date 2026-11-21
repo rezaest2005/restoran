@@ -11,7 +11,7 @@ import {
 } from "@shared/common/shortcutKit";
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 import { useStyles } from "./common";
-import { fetchAccounts, fetchCostCenters, errMsg } from "./api";
+import { fetchAccounts, fetchCostCenters, fetchDetails, errMsg } from "./api";
 import HomeTab from "./tabs/HomeTab";
 import QuickTab from "./tabs/QuickTab";
 import FixedTab from "./tabs/FixedTab";
@@ -19,12 +19,23 @@ import AccountsTab from "./tabs/AccountsTab";
 import JournalTab from "./tabs/JournalTab";
 import LedgerTab from "./tabs/LedgerTab";
 import ReportsTab from "./tabs/ReportsTab";
+import DetailsTab from "./tabs/DetailsTab";
+import TreasuryTab from "./tabs/TreasuryTab";
+import ChequesTab from "./tabs/ChequesTab";
+import BudgetsTab from "./tabs/BudgetsTab";
+import SettingsTab from "./tabs/SettingsTab";
+import VatDocumentDialog from "./tabs/VatDocumentDialog";
 import EntryDialog from "./tabs/EntryDialog";
 import EntryDetailDialog from "./tabs/EntryDetailDialog";
 import HintBar from "@shared/ui/HintBar";
 
 // the first three are the simple screens (the system keeps the books); the rest are for an accountant
-const TAB_KEYS = ["home", "quick", "fixed", "reports", "journal", "ledger", "accounts"];
+const TAB_KEYS = [
+  "home", "quick", "fixed", "reports", "journal", "ledger", "accounts",
+  "details", "treasury", "cheques", "budgets", "settings",
+];
+// tabs added by the professional module keep their labels in the acc2 translation part
+const NEW_TABS = new Set(["details", "treasury", "cheques", "budgets", "settings"]);
 
 /**
  * `embedded`: rendered inside the dashboard hub. The hub owns F1 and Alt+1..n,
@@ -49,6 +60,9 @@ export default function AccountingPage({ embedded = false }) {
   const [loadError, setLoadError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [newEntry, setNewEntry] = useState(false);
+  const [editDraft, setEditDraft] = useState(null);
+  const [vatDoc, setVatDoc] = useState(false);
+  const [details, setDetails] = useState([]);
   const [detailId, setDetailId] = useState(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [helpItems, setHelpItems] = useState([]);
@@ -63,6 +77,10 @@ export default function AccountingPage({ embedded = false }) {
   }, [t]);
 
   useEffect(() => { reloadAccounts(); }, [reloadAccounts]);
+  const reloadDetails = useCallback(() => {
+    fetchDetails().then((d) => setDetails(Array.isArray(d) ? d : [])).catch(() => {});
+  }, []);
+  useEffect(() => { reloadDetails(); }, [reloadDetails]);
   useEffect(() => {
     fetchCostCenters()
       .then((d) => setCostCenters(Array.isArray(d) ? d.filter((c) => c.is_active !== false) : []))
@@ -82,11 +100,13 @@ export default function AccountingPage({ embedded = false }) {
 
   const ctx = {
     t, C, S, isRtl, lang, fullScreen, notify, accounts, accById, accByCode, costCenters,
-    reloadAccounts, refreshKey, bump, goTab: setTab,
+    reloadAccounts, refreshKey, bump, goTab: setTab, details, reloadDetails,
     openDetail: setDetailId, openNewEntry: () => setNewEntry(true),
+    openEditDraft: (entry) => { setDetailId(null); setEditDraft(entry); },
+    openVatDocument: () => setVatDoc(true),
   };
 
-  const tabs = TAB_KEYS.map((k) => ({ id: k, label: t(`ui_i.tabs.${k}`) }));
+  const tabs = TAB_KEYS.map((k) => ({ id: k, label: NEW_TABS.has(k) ? t(`acc2.tabs.${k}`) : t(`ui_i.tabs.${k}`) }));
   const innerTabKeys = embedded
     ? tabBindings(t, tabs, setTab).map((b) => ({ ...b, combo: b.combo.replace("Alt+", "Alt+Shift+") }))
     : tabBindings(t, tabs, setTab);
@@ -144,11 +164,22 @@ export default function AccountingPage({ embedded = false }) {
       {tab === "journal" && <JournalTab {...ctx} />}
       {tab === "ledger" && <LedgerTab {...ctx} />}
       {tab === "reports" && <ReportsTab {...ctx} />}
+      {tab === "details" && <DetailsTab {...ctx} />}
+      {tab === "treasury" && <TreasuryTab {...ctx} />}
+      {tab === "cheques" && <ChequesTab {...ctx} />}
+      {tab === "budgets" && <BudgetsTab {...ctx} />}
+      {tab === "settings" && <SettingsTab {...ctx} />}
 
-      {newEntry && (
+      {(newEntry || editDraft) && (
         <EntryDialog
-          ctx={ctx} onClose={() => setNewEntry(false)}
-          onSaved={() => { setNewEntry(false); bump(); notify(t("ui_i.entry.saved")); }}
+          ctx={ctx} draft={editDraft} onClose={() => { setNewEntry(false); setEditDraft(null); }}
+          onSaved={(msg) => { setNewEntry(false); setEditDraft(null); bump(); notify(msg || t("ui_i.entry.saved")); }}
+        />
+      )}
+      {vatDoc && (
+        <VatDocumentDialog
+          ctx={ctx} onClose={() => setVatDoc(false)}
+          onSaved={() => { setVatDoc(false); bump(); notify(t("ui_i.entry.saved")); }}
         />
       )}
       {detailId != null && (

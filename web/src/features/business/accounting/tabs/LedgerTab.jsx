@@ -5,7 +5,7 @@ import {
 } from "@mui/material";
 import { useRegisteredShortcuts, onEnter } from "@shared/common/shortcutKit";
 import {
-  TableWrap, Money, AccountPicker, accName, fmtDate, fmtInt, monthStartISO, todayISO,
+  TableWrap, Money, AccountPicker, DetailPicker, accName, fmtDate, fmtInt, monthStartISO, todayISO,
   useRowCursor, cursorBindings, cursorProps,
 } from "../common";
 import { fetchLedger, errMsg } from "../api";
@@ -13,6 +13,7 @@ import { fetchLedger, errMsg } from "../api";
 export default function LedgerTab(ctx) {
   const { t, C, S, lang, refreshKey, openDetail, accById } = ctx;
   const [account, setAccount] = useState(null);
+  const [detail, setDetail] = useState(null);
   const [from, setFrom] = useState(monthStartISO());
   const [to, setTo] = useState(todayISO());
   const [data, setData] = useState(null);
@@ -22,11 +23,11 @@ export default function LedgerTab(ctx) {
   const load = useCallback(() => {
     if (!account) { setData(null); return; }
     setLoading(true);
-    fetchLedger({ account: account.id, from, to })
+    fetchLedger({ account: account.id, from, to, detail: detail?.id })
       .then((d) => { setData(d); setError(""); })
       .catch((e) => { setData(null); setError(errMsg(e, t("ui_i.common.load_failed"))); })
       .finally(() => setLoading(false));
-  }, [account, from, to, t]);
+  }, [account, detail, from, to, t]);
   useEffect(() => { load(); }, [load, refreshKey]);
 
   const rows = data?.rows || [];
@@ -45,6 +46,10 @@ export default function LedgerTab(ctx) {
         <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: 280 } }}>
           <AccountPicker ctx={ctx} value={account} postableOnly={false} label={t("ui_i.common.account")}
             onChange={(a) => { setAccount(a); cursor.reset(); }} />
+        </Box>
+        <Box sx={{ flex: 1, minWidth: { xs: "100%", sm: 220 } }}>
+          <DetailPicker ctx={ctx} value={detail} label={t("acc2.details.detail")}
+            onChange={(dv) => { setDetail(dv); cursor.reset(); }} />
         </Box>
         <TextField type="date" slotProps={{ inputLabel: { shrink: true } }} size="small" label={t("ui_i.common.from")} value={from} sx={{ ...S.field, width: { xs: "calc(50% - 6px)", sm: 160 } }}
           onChange={(e) => setFrom(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />

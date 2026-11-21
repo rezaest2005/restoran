@@ -1,3 +1,5 @@
+import { toJalaliStr } from "./jalaliRange";
+
 export const toPersianDigits = (s) => String(s).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[d]);
 
 /** Parse a user-typed number (commas allowed); NaN when invalid. */
@@ -21,10 +23,11 @@ export const fmtInt = (v, lang) => {
   return lang === "fa" ? toPersianDigits(s) : s;
 };
 
+/** Dates: Jalali (Persian calendar, Persian digits) in Persian, ISO in English. */
 export const fmtDate = (d, lang) => {
   if (!d) return "—";
   const s = String(d).slice(0, 10);
-  return lang === "fa" ? toPersianDigits(s) : s;
+  return lang === "fa" ? toPersianDigits(toJalaliStr(s)) : s;
 };
 
 const pad = (n) => String(n).padStart(2, "0");

@@ -32,6 +32,8 @@ from .models import (
 )
 
 S = Cheque.Status
+UNDO_NOTE = "لغو آخرین تغییر"
+UNDONE_MARK = "[لغو شد]"
 
 
 # ───────────────────────── بانک و صندوق ─────────────────────────
@@ -357,19 +359,21 @@ def change_cheque_status(ch: Cheque, to_status, date, money_account: MoneyAccoun
 def undo_cheque_status(ch: Cheque, user=None) -> Cheque:
     """آخرین تغییر وضعیت را با سند برگشتی خنثی می‌کند (ثبت اولیه را نه؛ برای آن «عودت» را بزنید)."""
     ch = Cheque.all_objects.select_for_update().get(pk=ch.pk)
-    last = ChequeEvent.all_objects.filter(cheque=ch).order_by("-id").first()
-    if last is None or not last.from_status:
+    # آخرین تغییر واقعی که هنوز لغو نشده و وضعیت فعلی را ساخته است (رویدادهای «لغو» خودشان لغوشدنی نیستند)
+    last = (ChequeEvent.all_objects.filter(cheque=ch).exclude(note__contains=UNDONE_MARK)
+            .exclude(note=UNDO_NOTE).order_by("-id").first())
+    if last is None or not last.from_status or last.to_status != ch.status:
         raise ValueError("تغییری برای برگرداندن وجود ندارد.")
     if last.entry_id:
         reverse_entry(last.entry, user=user, reason=f"لغو تغییر وضعیت چک {ch.number}")
     ChequeEvent.all_objects.create(business=ch.business, cheque=ch, from_status=ch.status,
-                                   to_status=last.from_status, date=datetime.date.today(), note="لغو آخرین تغییر")
+                                   to_status=last.from_status, date=datetime.date.today(), note=UNDO_NOTE)
     ch.status = last.from_status
     if last.to_status == S.ENDORSED:
         ch.endorsed_to = None
     ch.save(update_fields=["status", "endorsed_to"])
     # رویداد لغو و رویداد لغوشده دیگر «آخرین تغییر» حساب نمی‌شوند
-    ChequeEvent.all_objects.filter(pk=last.pk).update(note=(last.note + " [لغو شد]").strip())
+    ChequeEvent.all_objects.filter(pk=last.pk).update(note=(last.note + " " + UNDONE_MARK).strip())
     return ch
 
 
