@@ -86,7 +86,6 @@ export default function ManagersSection({ ctx }) {
   const groups = useMemo(() => visibleGroups(), []);
   const visibleKeys = useMemo(() => groups.flatMap((g) => g.keys), [groups]);
   const presets = useMemo(() => PRESETS.filter((p) => anyEnabled(p.mods)), []);
-  const me = useMemo(() => readUser(), []);
   const warehouseModule = moduleEnabled("inventory");
   const deliveryModule = moduleEnabled("delivery");
 
