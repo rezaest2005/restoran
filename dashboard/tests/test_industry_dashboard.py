@@ -265,3 +265,19 @@ class SeederTests(Base):
         names = set(Food.all_objects.filter(business=self.b).values_list("name", flat=True))
         self.assertIn("مایع ظرفشویی ۴ لیتری", names)
         self.assertFalse(any("پیتزا" in n for n in names))
+
+
+class AnalyticsGatingTests(Base):
+    def test_chart_sections_only_for_present_modules(self):
+        self.only(["accounting"])
+        r = self.client_for(self.owner).get("/api/dashboard/analytics/")
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        self.assertEqual(body["sections"], [])
+        self.assertNotIn("posStats", body)
+        self.assertNotIn("invStats", body)
+        self.only(["pos"])
+        body = self.client_for(self.owner).get("/api/dashboard/analytics/").json()
+        self.assertEqual(body["sections"], ["pos"])
+        self.assertIn("posStats", body)
+        self.assertNotIn("invStats", body)
