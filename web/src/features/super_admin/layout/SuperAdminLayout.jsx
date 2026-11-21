@@ -113,6 +113,8 @@ export default function SuperAdminLayout() {
     <Box dir={isRtl ? "rtl" : "ltr"} sx={{
       minHeight: "100vh", bgcolor: C.bg,
       display: "flex", fontFamily: "Vazirmatn",
+      // nothing may widen the page sideways (sticky top bar still works: clip is not a scroll container)
+      overflowX: "clip",
     }}>
 
       <ShortcutsHelpDialog open={help} onClose={() => setHelp(false)} items={collectShortcuts()} />
@@ -132,6 +134,8 @@ export default function SuperAdminLayout() {
       {/* ── main content ── */}
       <Box sx={{
         flex: 1,
+        // minWidth 0: a wide child (tab strip, table) scrolls inside its own box instead of stretching the column
+        minWidth: 0,
         marginInlineStart: { xs: 0, md: "250px" },
         minHeight: "100vh",
         display: "flex",
@@ -150,18 +154,23 @@ export default function SuperAdminLayout() {
         />
 
         {/* ── body ── */}
-        <Box sx={{ flex: 1, p: { xs: 1.5, md: 3 } }}>
+        <Box sx={{ flex: 1, minWidth: 0, p: { xs: 1.5, sm: 2, md: 3 } }}>
 
           {/* تب‌ها */}
-          <Box sx={{
-            display: "flex", gap: 1, mb: 3,
-            overflowX: "auto", flexShrink: 0,
+          <Box role="tablist" sx={{
+            display: "flex", gap: 1, mb: { xs: 2, md: 3 },
+            overflowX: "auto", flexShrink: 0, minWidth: 0,
+            mx: { xs: -1.5, sm: 0 }, px: { xs: 1.5, sm: 0 }, pb: 0.5,
+            scrollbarWidth: "thin", WebkitOverflowScrolling: "touch",
           }}>
             {tabs.map((tab, i) => (
               <Button
                 key={i}
+                role="tab"
+                aria-selected={activeTab === i}
                 onClick={() => setActiveTab(i)}
                 sx={{
+                  flexShrink: 0, minHeight: 40,
                   textTransform: "none",
                   fontWeight: activeTab === i ? 700 : 500,
                   fontSize: 13,
@@ -179,7 +188,7 @@ export default function SuperAdminLayout() {
                 <NavIcon name={tab.icon} fontSize="inherit" sx={{ marginInlineEnd: 0.75, verticalAlign: "middle" }} />{tab.label}
                 {tab.badge > 0 && (
                   <Box component="span" sx={{
-                    ms: 1, minWidth: 20, height: 20, px: 0.75, borderRadius: 10, fontSize: 11, fontWeight: 700,
+                    marginInlineStart: 1, minWidth: 20, height: 20, px: 0.75, borderRadius: 10, fontSize: 11, fontWeight: 700,
                     display: "inline-flex", alignItems: "center", justifyContent: "center",
                     bgcolor: C.accentSoft, color: C.accentInk,
                   }}>

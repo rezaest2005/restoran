@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert, Box, Button, Chip, MenuItem, TextField, Typography } from "@mui/material";
+import { rsx } from "@shared/responsive";
 import superClient from "@super/api/super_client";
 
 const unwrap = (r) => r.data?.data ?? r.data;
@@ -60,7 +61,7 @@ export default function SubscriptionCard({ bid, C }) {
   const ends = state?.ends_at ? new Date(state.ends_at).toLocaleString(fa ? "fa-IR" : "en-GB", { dateStyle: "medium", timeStyle: "medium" }) : "";
 
   return (
-    <Box sx={{ border: `1px solid ${C.glassBorder}`, borderRadius: "12px", p: 2, mb: 3 }}>
+    <Box sx={{ border: `1px solid ${C.glassBorder}`, borderRadius: "12px", p: { xs: 1.5, sm: 2 }, mb: 3, minWidth: 0 }}>
       <Typography sx={{ fontWeight: 800, color: C.text, mb: 1 }}>{t("ui_sub.title")}</Typography>
       {msg && <Alert severity={msg.type} sx={{ mb: 1.5 }} onClose={() => setMsg(null)}>{msg.text}</Alert>}
       {state && (
@@ -73,17 +74,17 @@ export default function SubscriptionCard({ bid, C }) {
           ) : (
             <>
               <Typography dir="ltr" sx={{ fontWeight: 800, fontVariantNumeric: "tabular-nums" }}>{leftText(secondsLeft, fa, t)}</Typography>
-              <Typography sx={{ fontSize: 12, opacity: 0.8 }}>{t("ui_sub.ends")}: {ends}</Typography>
+              <Typography sx={{ fontSize: 12, opacity: 0.8, ...rsx.wrapText }}>{t("ui_sub.ends")}: {ends}</Typography>
             </>
           )}
         </Box>
       )}
-      <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center" }}>
-        <TextField select size="small" label={t("ui_sub.plan_label")} value={plan} onChange={(e) => setPlan(e.target.value)} sx={{ minWidth: 190 }}>
+      <Box sx={rsx.toolbar}>
+        <TextField select size="small" label={t("ui_sub.plan_label")} value={plan} onChange={(e) => setPlan(e.target.value)} sx={{ minWidth: { sm: 190 } }}>
           {PLANS.map((p) => <MenuItem key={p} value={p}>{t(`ui_sub.plan.${p}`)}</MenuItem>)}
         </TextField>
         {plan !== "unlimited" && plan !== "custom" && (
-          <TextField select size="small" label={t("ui_sub.mode_label")} value={mode} onChange={(e) => setMode(e.target.value)} sx={{ minWidth: 220 }}>
+          <TextField select size="small" label={t("ui_sub.mode_label")} value={mode} onChange={(e) => setMode(e.target.value)} sx={{ minWidth: { sm: 220 } }}>
             <MenuItem value="set">{t("ui_sub.mode_set")}</MenuItem>
             <MenuItem value="extend">{t("ui_sub.mode_extend")}</MenuItem>
           </TextField>

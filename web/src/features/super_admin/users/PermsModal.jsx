@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import { ResponsiveDialog } from "@shared/responsive";
 import { useTranslation } from "react-i18next";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Typography, Box, Checkbox, Chip, TextField, CircularProgress } from "@mui/material";
+import { DialogTitle, DialogContent, DialogActions, Button, Typography, Box, Checkbox, Chip, TextField, CircularProgress } from "@mui/material";
 import superClient from "@super/api/super_client";
 import {
   ALL_PERM_CODES,
@@ -80,7 +81,7 @@ export default function PermsModal({ open, onClose, userId, C }) {
   useRegisteredShortcuts(dialogBindings(t, { onConfirm: savePerms, onClose }), { enabled: open });
 
   return (
-    <Dialog
+    <ResponsiveDialog
       open={open}
       onClose={onClose}
       maxWidth="md"
@@ -105,9 +106,10 @@ export default function PermsModal({ open, onClose, userId, C }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          gap: 1,
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 }}>
           <Typography sx={{ fontSize: 18 }}>🔐</Typography>
           <Box>
             <Typography sx={{ fontSize: 15, fontWeight: 800, color: C.text }}>
@@ -266,7 +268,7 @@ export default function PermsModal({ open, onClose, userId, C }) {
                     <Box
                       sx={{
                         display: "grid",
-                        gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(3, 1fr)", md: "repeat(4, 1fr)" },
+                        gridTemplateColumns: { xs: "repeat(auto-fill, minmax(140px, 1fr))", sm: "repeat(3, minmax(0, 1fr))", md: "repeat(4, minmax(0, 1fr))" },
                         gap: 0.8,
                         px: 2,
                         pb: 1.5,
@@ -327,14 +329,14 @@ export default function PermsModal({ open, onClose, userId, C }) {
       {/* ── دکمه‌ها ── */}
       <DialogActions
         sx={{
-          px: 3,
+          px: { xs: 2, sm: 3 },
           pb: 2.5,
           pt: 1.5,
           borderTop: `1px solid ${C.glassBorder}`,
           justifyContent: "space-between",
         }}
       >
-        <Box sx={{ display: "flex", gap: 1 }}>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
           <Button
             onClick={() => setPerms([...ALL_PERM_CODES])}
             size="small"
@@ -351,7 +353,7 @@ export default function PermsModal({ open, onClose, userId, C }) {
           </Button>
         </Box>
 
-        <Box sx={{ display: "flex", gap: 1 }}>
+        <Box sx={{ display: "flex", gap: 1, marginInlineStart: "auto" }}>
           <Button
             onClick={onClose}
             sx={{ color: C.sub, textTransform: "none", borderRadius: "10px", fontSize: 12 }}
@@ -380,7 +382,7 @@ export default function PermsModal({ open, onClose, userId, C }) {
           </Button>
         </Box>
       </DialogActions>
-    </Dialog>
+    </ResponsiveDialog>
   );
 }
 

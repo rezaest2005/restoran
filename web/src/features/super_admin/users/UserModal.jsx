@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
+import { ResponsiveDialog } from "@shared/responsive";
 import { useTranslation } from "react-i18next";
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, TextField, Box, IconButton,
-  FormControl, InputLabel, Select, MenuItem, Typography, Chip,
+  DialogTitle, DialogContent, DialogActions, Button, TextField, Box, IconButton, FormControl, InputLabel, Select, MenuItem, Typography, Chip,
 } from "@mui/material";
 import superClient from "@super/api/super_client";
 import { ROLE_OPTIONS, ROLE_PERM_PRESETS } from "@super/common/superConfig";
@@ -99,7 +98,7 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
   useRegisteredShortcuts(dialogBindings(t, { onConfirm: handleSave, onClose }), { enabled: open });
 
   return (
-    <Dialog
+    <ResponsiveDialog
       open={open}
       onClose={onClose}
       fullWidth
@@ -119,13 +118,15 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
           color: C.text,
           fontWeight: 800,
           fontSize: 15,
+          paddingInlineEnd: 7,
           borderBottom: `1px solid ${C.glassBorder}`,
         }}
       >
         {editId ? t("ui_c.super.user.title_edit") : t("ui_c.super.user.title_new")}
         <IconButton
           onClick={onClose}
-          sx={{ position: "absolute", left: 8, top: 8, color: C.sub }}
+          aria-label={t("ui_resp.close")}
+          sx={{ position: "absolute", insetInlineEnd: 8, top: 8, color: C.sub }}
         >
           ×
         </IconButton>
@@ -309,6 +310,6 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
           {t("ui_c.super.save")}
         </Button>
       </DialogActions>
-    </Dialog>
+    </ResponsiveDialog>
   );
 }

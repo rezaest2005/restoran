@@ -10,7 +10,7 @@ export default function SuperTopBar({ isMobile, onMenuClick, toggleTheme, toggle
     color: C.text,
     border: `1px solid ${C.glassBorder}`,
     borderRadius: "8px",
-    width: 34, height: 34, flexShrink: 0,
+    width: { xs: 40, md: 34 }, height: { xs: 40, md: 34 }, flexShrink: 0,
   };
 
   return (
@@ -30,9 +30,10 @@ export default function SuperTopBar({ isMobile, onMenuClick, toggleTheme, toggle
         {isMobile && (
           <IconButton
             onClick={onMenuClick}
+            aria-label={t("ui_resp.open_menu")}
             sx={{
               color: C.text, flexShrink: 0,
-              width: 36, height: 36, borderRadius: "10px",
+              width: 40, height: 40, borderRadius: "10px",
               "&:hover": { bgcolor: C.oliveSubtle },
             }}
           >

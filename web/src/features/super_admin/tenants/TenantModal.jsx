@@ -1,7 +1,8 @@
 // web/src/features/super_admin/tenants/TenantModal.jsx
 import { useState, useEffect } from "react";
+import { ResponsiveDialog, formGrid } from "@shared/responsive";
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
+  DialogTitle, DialogContent, DialogActions,
   Button, Typography, Box, TextField, Alert,
 } from "@mui/material";
 import superClient from "@super/api/super_client";
@@ -159,7 +160,7 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
   useRegisteredShortcuts(dialogBindings(t, { onConfirm: handleSave, onClose }), { enabled: open });
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth
+    <ResponsiveDialog open={open} onClose={onClose} maxWidth="md" fullWidth
       slotProps={{
         paper: {
           sx: {
@@ -190,7 +191,7 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
         <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.text, mb: 1.5 }}>
           {t("ui_c.super.tenant.section_main")}
         </Typography>
-        <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+        <Box sx={formGrid(2)}>
           <TextField
             label={t("ui_c.super.tenant.f_name")}
             value={form.name}
@@ -245,7 +246,7 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
             {t("ui_c.super.tenant.section_dates")}
           </Typography>
           <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-            <Box sx={{ flex: "1 1 200px" }}>
+            <Box sx={{ flex: "1 1 200px", minWidth: 0 }}>
               <Typography sx={{ fontSize: 11, fontWeight: 600, color: C.sub, mb: 0.5 }}>
                 {t("ui_c.super.tenant.start")}
               </Typography>
@@ -258,7 +259,7 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
                 }}
               />
             </Box>
-            <Box sx={{ flex: "1 1 200px" }}>
+            <Box sx={{ flex: "1 1 200px", minWidth: 0 }}>
               <Typography sx={{ fontSize: 11, fontWeight: 600, color: C.sub, mb: 0.5 }}>
                 {t("ui_c.super.tenant.end")}
               </Typography>
@@ -278,7 +279,7 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
 
       {/* ═══ دکمه‌ها ═══ */}
       <DialogActions sx={{
-        px: 3, pb: 2.5, pt: 1.5,
+        px: { xs: 2, sm: 3 }, pb: 2.5, pt: 1.5,
         borderTop: `1px solid ${C.glassBorder}`,
       }}>
         <Button onClick={onClose} sx={{ color: C.sub, textTransform: "none", fontSize: 13 }}>
@@ -293,6 +294,6 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
           {loading ? "..." : editId ? t("ui_c.super.tenant.save_changes") : t("ui_c.super.tenant.create")}
         </Button>
       </DialogActions>
-    </Dialog>
+    </ResponsiveDialog>
   );
 }

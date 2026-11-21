@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import {
   Alert, Autocomplete, Box, Button, Chip, GlobalStyles, MenuItem, Switch, TextField, Typography,
 } from "@mui/material";
+import { rsx, formGrid } from "@shared/responsive";
 import { QRCodeSVG } from "qrcode.react";
 import superClient from "@super/api/super_client";
 
@@ -102,19 +103,19 @@ export default function QrPanel({ tenants, C }) {
         },
       }} />
       <Typography sx={{ fontWeight: 800, fontSize: 18, color: C.text, mb: 0.5 }}>{t("ui_qr.title")}</Typography>
-      <Typography sx={{ color: C.sub, fontSize: 13, mb: 2 }}>{t("ui_qr.intro")}</Typography>
+      <Typography sx={{ color: C.sub, fontSize: 13, mb: 2, ...rsx.wrapText }}>{t("ui_qr.intro")}</Typography>
       {msg && <Alert severity={msg.type} sx={{ mb: 2 }} onClose={() => setMsg(null)}>{msg.text}</Alert>}
 
-      <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", mb: 2 }}>
+      <Box sx={{ ...rsx.toolbar, alignItems: "flex-start", mb: 2 }}>
         <Autocomplete
-          size="small" sx={{ minWidth: 280 }} options={businesses} value={selected}
+          size="small" sx={{ minWidth: { sm: 280 } }} options={businesses} value={selected}
           getOptionLabel={(b) => `${b.name} (${b.slug})`}
           isOptionEqualToValue={(a, b) => a.business_id === b.business_id}
           onChange={(_, v) => { setRows([]); setEdits({}); setBid(v ? v.business_id : null); }}
           renderInput={(p) => <TextField {...p} label={t("ui_qr.pick_business")} />}
         />
         <TextField
-          size="small" sx={{ minWidth: 300, flex: 1 }} label={t("ui_qr.base_url")} value={base}
+          size="small" sx={{ minWidth: { sm: 300 }, flex: { sm: 1 } }} label={t("ui_qr.base_url")} value={base}
           onChange={(e) => setBase(e.target.value)} helperText={t("ui_qr.base_hint")}
           slotProps={{ htmlInput: { dir: "ltr" } }}
         />
@@ -124,10 +125,10 @@ export default function QrPanel({ tenants, C }) {
 
       {selected && (
         <>
-          <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, mb: 3 }}>
+          <Box sx={{ ...formGrid(2, "lg", 1.5), mb: 3 }}>
             <Box sx={box}>
               <Typography sx={{ fontWeight: 700, color: C.text, mb: 1 }}>{t("ui_qr.new_one")}</Typography>
-              <Box sx={{ display: "grid", gap: 1, gridTemplateColumns: "1fr 1fr" }}>
+              <Box sx={formGrid(2, "sm", 1)}>
                 <TextField size="small" label={t("ui_qr.label")} value={form.label} onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))} />
                 <TextField size="small" label={t("ui_qr.table")} value={form.table_number} onChange={(e) => setForm((f) => ({ ...f, table_number: e.target.value }))} />
                 <TextField select size="small" label={t("ui_qr.opens")} value={form.kind} onChange={(e) => setForm((f) => ({ ...f, kind: e.target.value }))}>
@@ -145,7 +146,7 @@ export default function QrPanel({ tenants, C }) {
 
             <Box sx={box}>
               <Typography sx={{ fontWeight: 700, color: C.text, mb: 1 }}>{t("ui_qr.bulk_title")}</Typography>
-              <Box sx={{ display: "grid", gap: 1, gridTemplateColumns: "1fr 1fr" }}>
+              <Box sx={formGrid(2, "sm", 1)}>
                 <TextField size="small" type="number" label={t("ui_qr.bulk_n")} value={bulk.n} onChange={(e) => setBulk((b) => ({ ...b, n: e.target.value }))}
                   slotProps={{ htmlInput: { min: 1, max: 200 } }} />
                 <TextField select size="small" label={t("ui_qr.opens")} value={bulk.kind} onChange={(e) => setBulk((b) => ({ ...b, kind: e.target.value }))}>
@@ -175,13 +176,13 @@ export default function QrPanel({ tenants, C }) {
               const r = cur(r0);
               const dirty = !!edits[r0.id];
               return (
-                <Box key={r0.id} sx={{ ...box, display: "grid", gap: 1.5, gridTemplateColumns: { xs: "1fr", md: "auto 1fr auto" }, alignItems: "center" }}>
+                <Box key={r0.id} sx={{ ...box, display: "grid", gap: 1.5, gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "auto minmax(0, 1fr) auto" }, alignItems: "center" }}>
                   <Box sx={{ bgcolor: "#fff", p: 0.75, borderRadius: 1, width: 96, height: 96, justifySelf: "center" }}>
                     <QRCodeSVG id={`qr-svg-${r0.id}`} value={link(r0)} size={128} level="M" marginSize={1} style={{ width: "100%", height: "100%" }}
                       role="img" aria-label={r0.label || r0.code} />
                   </Box>
 
-                  <Box sx={{ display: "grid", gap: 1, gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(4, 1fr)" }, minWidth: 0 }}>
+                  <Box sx={{ display: "grid", gap: 1, gridTemplateColumns: { xs: "repeat(2, minmax(0, 1fr))", sm: "repeat(4, minmax(0, 1fr))" }, minWidth: 0 }}>
                     <TextField size="small" label={t("ui_qr.label")} value={r.label} onChange={(e) => setEdit(r0.id, { label: e.target.value })} />
                     <TextField size="small" label={t("ui_qr.table")} value={r.table_number} onChange={(e) => setEdit(r0.id, { table_number: e.target.value })} />
                     <TextField select size="small" label={t("ui_qr.opens")} value={r.kind} onChange={(e) => setEdit(r0.id, { kind: e.target.value })}

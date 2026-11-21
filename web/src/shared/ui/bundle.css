@@ -53,3 +53,6 @@ body.kbd-alt .ks-alt-hint { display: inline-block !important; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+/* phones / tablets without a keyboard: the shortcut hint bar is noise, and it wraps into a tall block */
+@media (hover: none) and (pointer: coarse) { .ks-hintbar { display: none; } }
+.ks-hintbar .ks-hint-item { min-width: 0; overflow-wrap: anywhere; }
