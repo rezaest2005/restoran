@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next";
+import { ResponsiveDialog } from "@shared/responsive";
 import { useState, useEffect, useCallback } from "react";
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  Box, Typography, Button, TextField, Select, MenuItem, CircularProgress,
+  DialogTitle, DialogContent, DialogActions, Box, Typography, Button, TextField, Select, MenuItem, CircularProgress,
 } from "@mui/material";
 import {
   createTransfer,
@@ -149,7 +149,7 @@ export default function TransferModal({ open, onClose, warehouses: warehousesPro
   const dialogPaperSx = buildDialogPaperSx(C, isDark);
 
   return (
-    <Dialog
+    <ResponsiveDialog
       open={open}
       onClose={onClose}
       maxWidth="xs"
@@ -315,6 +315,6 @@ export default function TransferModal({ open, onClose, warehouses: warehousesPro
           {!saving && <KbdHint>Ctrl+D</KbdHint>}
         </Button>
       </DialogActions>
-    </Dialog>
+    </ResponsiveDialog>
   );
 }

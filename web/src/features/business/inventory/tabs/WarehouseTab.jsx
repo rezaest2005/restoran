@@ -1,20 +1,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { ResponsiveDialog } from "@shared/responsive";
 import { useTranslation } from "react-i18next";
 import {
-  Box,
-  Typography,
-  Button,
-  TextField,
-  Chip,
-  CircularProgress,
-  Select,
-  MenuItem,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  IconButton,
-  Divider,
+  Box, Typography, Button, TextField, Chip, CircularProgress, Select, MenuItem, DialogTitle, DialogContent, DialogActions, IconButton, Divider,
 } from "@mui/material";
 import { Add, Delete, Close, SwapHoriz } from "@mui/icons-material";
 import { getUnitLabel } from "../../../../shared/common/units";
@@ -744,7 +732,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
       {/* ═══════════════════════════════════════
            مودال حواله انتقال
       ════════════════════════════════════════ */}
-      <Dialog
+      <ResponsiveDialog
         open={transferOpen}
         onClose={closeTransfer}
         maxWidth="md"
@@ -1473,7 +1461,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
             {saving ? "..." : "💾 ثبت حواله (Ctrl+D)"}
           </Button>
         </DialogActions>
-      </Dialog>
+      </ResponsiveDialog>
     </Box>
   );
 }

@@ -1,8 +1,7 @@
 import { blurFocused } from "../common/focus";
+import { ResponsiveDialog } from "@shared/responsive";
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  Box, Typography, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, Chip, Button, IconButton,
+  DialogTitle, DialogContent, DialogActions, Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Button, IconButton,
 } from "@mui/material";
 import { Print, Edit, Delete, Close } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
@@ -38,7 +37,7 @@ export default function OrderDetailDialog({
   );
 
   return (
-    <Dialog
+    <ResponsiveDialog
       open={open} onClose={onClose} maxWidth="sm" fullWidth
       slotProps={{
         transition: { onExit: blurFocused }, paper: {
@@ -160,6 +159,6 @@ export default function OrderDetailDialog({
           {isRtl ? "حذف" : "Delete"}
         </Button>
       </DialogActions>
-    </Dialog>
+    </ResponsiveDialog>
   );
 }

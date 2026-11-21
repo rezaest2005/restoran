@@ -1,9 +1,8 @@
 import { useTranslation } from "react-i18next";
+import { ResponsiveDialog } from "@shared/responsive";
 import { useState, useEffect, useCallback } from "react";
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  Box, Typography, Button, TextField, Select, MenuItem,
-  CircularProgress,
+  DialogTitle, DialogContent, DialogActions, Box, Typography, Button, TextField, Select, MenuItem, CircularProgress,
 } from "@mui/material";
 import { createWaste, fetchRawMaterials, fetchStock } from "../api";
 import { buildInputSx, buildDialogPaperSx, UNIT_LABELS, useRegisteredShortcuts, dialogBindings, KbdHint } from "../common";
@@ -108,7 +107,7 @@ export default function WasteModal({ open, onClose, warehouse, C, isDark, onSucc
   const dialogPaperSx = buildDialogPaperSx(C, isDark);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth slotProps={{ paper: { sx: dialogPaperSx } }}>
+    <ResponsiveDialog open={open} onClose={onClose} maxWidth="xs" fullWidth slotProps={{ paper: { sx: dialogPaperSx } }}>
       <DialogTitle sx={{ fontSize: 15, fontWeight: 800, color: C.text }}>
         🗑 ثبت ضایعات — {warehouse?.name || ""}
       </DialogTitle>
@@ -183,6 +182,6 @@ export default function WasteModal({ open, onClose, warehouse, C, isDark, onSucc
           {!saving && <KbdHint>Ctrl+D</KbdHint>}
         </Button>
       </DialogActions>
-    </Dialog>
+    </ResponsiveDialog>
   );
 }

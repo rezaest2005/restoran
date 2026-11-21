@@ -1,6 +1,6 @@
 import { Box, Typography } from "@mui/material";
 
-export default function SectionHeader({ icon, title, subtitle, C, isRtl, delay = 0 }) {
+export default function SectionHeader({ icon, title, subtitle, C, delay = 0 }) {
   return (
     <Box sx={{ mb: 3, mt: 2, width: "100%", animation: `fadeUp 0.5s ease ${delay}s both` }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -17,9 +17,10 @@ export default function SectionHeader({ icon, title, subtitle, C, isRtl, delay =
         <Typography sx={{ 
           fontSize: 14, 
           color: C.sub, 
-          mt: 0.5, 
-          ml: isRtl ? 5 : 0,
-          mr: isRtl ? 0 : 5
+          mt: 0.5,
+          // indent under the title (logical property: correct in RTL and LTR)
+          paddingInlineStart: 5,
+          overflowWrap: "anywhere",
         }}>
           {subtitle}
         </Typography>
