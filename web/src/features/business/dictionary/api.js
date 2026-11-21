@@ -53,6 +53,9 @@ export const fetchFormula = (id) => client.get(`/api/formulas/${id}/`).then(unwr
 export const createFormula = (body) => client.post("/api/formulas/", body).then(unwrap);
 export const updateFormula = (id, body) => client.put(`/api/formulas/${id}/`, body).then(unwrap);
 export const deleteFormula = (id) => client.delete(`/api/formulas/${id}/`).then((r) => r.data);
+export const fetchFormulaAnalysis = (id) => client.get(`/api/formulas/${id}/analysis/`).then(unwrap);
+/** Deterministic "describe your process" parser: text -> draft stages + components. */
+export const parseProcess = (text) => client.post("/api/formulas/parse-process/", { text }).then(unwrap);
 
 /* ── Suppliers ──────────────────────────────── */
 export const fetchSuppliers = () =>

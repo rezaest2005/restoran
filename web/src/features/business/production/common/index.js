@@ -5,3 +5,4 @@ export { default as TableWrap } from "./TableWrap";
 export { default as ConfirmDialog } from "./ConfirmDialog";
 export { enterIsNative } from "./keys";
 export * from "./StockTable";
+export * from "./mrp";
