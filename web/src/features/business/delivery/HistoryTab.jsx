@@ -79,8 +79,8 @@ export default function HistoryTab({ ctx, drivers }) {
           <MenuItem value="">{t("ui_del.common.all")}</MenuItem>
           {drivers.map((x) => <MenuItem key={x.id} value={x.id}>{x.number ? `${x.number} — ` : ""}{x.name}</MenuItem>)}
         </TextField>
-        <TextField size="small" type="date" label={t("ui_act.from")} value={f.from} onChange={set("from")} sx={S.field} InputLabelProps={{ shrink: true }} />
-        <TextField size="small" type="date" label={t("ui_act.to")} value={f.to} onChange={set("to")} sx={S.field} InputLabelProps={{ shrink: true }} />
+        <TextField size="small" type="date" label={t("ui_act.from")} value={f.from} onChange={set("from")} sx={S.field} slotProps={{ inputLabel: { shrink: true } }} />
+        <TextField size="small" type="date" label={t("ui_act.to")} value={f.to} onChange={set("to")} sx={S.field} slotProps={{ inputLabel: { shrink: true } }} />
       </Box>
       {error && <Alert severity="error">{error}</Alert>}
       {tot && (

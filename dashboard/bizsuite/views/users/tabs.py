@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 # ═══════════════════════════════════════
 
 from ...features import (
-    ALL_FEATURE_KEYS as ALL_TAB_KEYS, licensed_features, user_features, user_ticked,
+    GRANTABLE_KEYS as ALL_TAB_KEYS, OWNER_ONLY_KEYS, licensed_features, user_features, user_ticked,
 )
 
 
@@ -54,7 +54,7 @@ def user_tabs_api(request):
             "dashboard_permissions": list(u.dashboard_permissions or []),
             "tabs": _get_normalized_tabs(u),       # ★ فیکس — نرمال‌شده
             # تب‌هایی که این کسب‌وکار اصلاً دارد (UI فقط همین‌ها را برای تیک‌زدن نشان می‌دهد)
-            "licensed": sorted(licensed_features(getattr(u, "business", None))),
+            "licensed": sorted(licensed_features(getattr(u, "business", None)) - OWNER_ONLY_KEYS),
         })
 
     # POST — فقط مدیر/مالک
@@ -84,7 +84,7 @@ def user_tabs_api(request):
     # فقط تب‌هایی داده می‌شود که (۱) کسب‌وکار دارد و (۲) خود دهنده‌ی دسترسی دارد.
     # (سوپرادمین هر چه در مجوز کسب‌وکار هست؛ مالک همه‌ی مجوز؛ مدیر فقط تب‌های خودش)
     biz = getattr(target, "business", None)
-    grantable = licensed_features(biz)
+    grantable = licensed_features(biz) - OWNER_ONLY_KEYS
     if not request.user.is_superuser:
         grantable &= user_features(request.user)
     wanted = tabs or {}

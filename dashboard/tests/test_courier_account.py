@@ -82,7 +82,7 @@ class CourierAccountTests(TestCase):
         self.assertEqual(u.role, "other")
         from bizsuite.features import user_features
         self.assertEqual(user_features(u), {"home"})                      # nothing ticked yet -> only the home page
-        u.tabs = {"pos": True, "activity": True}
+        u.tabs = {"pos": True, "orders": True}
         u.save()
-        self.assertTrue({"pos", "activity", "home"} <= user_features(User.objects.get(pk=u.pk)))
+        self.assertTrue({"pos", "orders", "home"} <= user_features(User.objects.get(pk=u.pk)))
         self.assertNotIn("accounting", user_features(User.objects.get(pk=u.pk)))
