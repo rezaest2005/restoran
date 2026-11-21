@@ -74,10 +74,6 @@ const TRANSPORT_ROLES = ["transport", "driver", "courier"];
 /** staff | transport | other — the three kinds of people you can add. */
 const personType = (role) => (TRANSPORT_ROLES.includes(role) ? "transport" : STAFF_ROLES.includes(role) ? "staff" : "other");
 
-const readUser = () => {
-  try { return JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "{}"); } catch { return {}; }
-};
-
 const EMPTY_FORM = { username: "", password: "", phone_number: "", first_name: "", last_name: "", role: "cashier" };
 const TYPE_ICON = { staff: "🧑‍💼", transport: "🚚", other: "🧩" };
 
