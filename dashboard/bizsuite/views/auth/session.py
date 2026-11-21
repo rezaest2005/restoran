@@ -35,6 +35,19 @@ def _get_business_modules(user):
     return None if live is None else sorted(live)
 
 
+def _get_business_profile(user):
+    """Business type, its words and whether the owner still has to run the setup wizard (see industries.py)."""
+    from ... import industries
+    biz = getattr(user, 'business', None)
+    if biz is None:
+        return {}
+    return {
+        'business_industry': biz.industry or '',
+        'business_terms': industries.terms_for(biz),
+        'setup_required': industries.is_setup_required(biz),
+    }
+
+
 # ═══════════════════════════════════════
 #  Login — JWT + Django session
 # ═══════════════════════════════════════
@@ -95,6 +108,7 @@ class LoginView(TokenObtainPairView):
         user_data['business_tabs'] = _get_business_tabs(user)
         user_data['business_modules'] = _get_business_modules(user)
         user_data['warehouse_access'] = access_payload(user)
+        user_data.update(_get_business_profile(user))
         if getattr(user, "business_id", None):
             from ...subscription import payload as _sub_payload
             user_data['subscription'] = _sub_payload(user.business)

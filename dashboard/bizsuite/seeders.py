@@ -1,19 +1,23 @@
 # bizsuite/seeders.py
+from .industries import SAMPLES, get_industry
 from .models import (
     Category, Food, RawMaterial,
     Warehouse, StockItem
 )
 from .tenancy import set_current_business
 
-def seed_sample_data(business):
+
+def seed_sample_data(business, industry=None):
     """
-    ایجاد داده‌های نمونه (فقط منو و انبار) بدون تراکنش مالی.
-    تراکنش‌ها توسط dashboard.py به صورت موقت (Fallback) نمایش داده می‌شوند.
+    ایجاد داده‌های نمونه (محصولات فروش و کالاهای انبار) متناسب با نوع کسب‌وکار، بدون تراکنش مالی.
+    نمونه‌ها در industries.SAMPLES تعریف شده‌اند؛ نوع ناشناخته = نمونه‌ی عمومی.
     """
     if not business:
         return False
 
     set_current_business(business)
+    key = get_industry(industry or business).key
+    sample = SAMPLES.get(key) or SAMPLES["other"]
 
     # ۱. ساخت انبار
     warehouse, _ = Warehouse.objects.get_or_create(
@@ -21,33 +25,21 @@ def seed_sample_data(business):
         defaults={"is_mother": True, "warehouse_type": "mother", "is_active": True}
     )
 
-    # ۲. دسته‌بندی‌ها و غذاها
-    cat1, _ = Category.objects.get_or_create(business=business, name="پیتزاها", defaults={"name_en": "Pizzas", "order": 1, "is_active": True})
-    cat2, _ = Category.objects.get_or_create(business=business, name="برگرها", defaults={"name_en": "Burgers", "order": 2, "is_active": True})
-    cat3, _ = Category.objects.get_or_create(business=business, name="نوشیدنی‌ها", defaults={"name_en": "Drinks", "order": 3, "is_active": True})
-
-    food_data = [
-        ("پیتزا پپرونی", "Pepperoni Pizza", cat1, 150000),
-        ("پیتزا قارچ", "Mushroom Pizza", cat1, 160000),
-        ("برگر کلاسیک", "Classic Burger", cat2, 120000),
-        ("برگر مخصوص", "Special Burger", cat2, 150000),
-        ("نوشابه", "Soda", cat3, 20000),
-    ]
-    for name, name_en, cat, price in food_data:
+    # ۲. دسته‌بندی‌ها و محصولات فروش
+    cats = []
+    for i, (name, name_en) in enumerate(sample["categories"], start=1):
+        cat, _ = Category.objects.get_or_create(
+            business=business, name=name, defaults={"name_en": name_en, "order": i, "is_active": True})
+        cats.append(cat)
+    for name, name_en, cat_index, price in sample["products"]:
         Food.objects.get_or_create(
             business=business, name=name,
-            defaults={"category": cat, "price": price, "final_price": price, "stock": 50, "is_available": True, "name_en": name_en}
+            defaults={"category": cats[cat_index], "price": price, "final_price": price, "stock": 50,
+                      "is_available": True, "name_en": name_en}
         )
 
-    # ۳. مواد اولیه (برای انبار)
-    mat_data = [
-        ("خمیر پیتزا", "kg", 20000, 10, 2),
-        ("پنیر موزارلا", "kg", 80000, 0.5, 2),  # کم موجود
-        ("گوشت چرخ‌کرده", "kg", 65000, 8, 3),
-        ("سس مخصوص", "l", 30000, 1.5, 2),       # کم موجود
-        ("پیاز", "kg", 10000, 15, 5),
-    ]
-    for name, unit, price, qty, min_stock in mat_data:
+    # ۳. کالاها / مواد اولیه (برای انبار) — بعضی عمداً کم‌موجود هستند تا هشدار داشبورد دیده شود
+    for name, unit, price, qty, min_stock in sample["materials"]:
         m, _ = RawMaterial.objects.get_or_create(
             business=business, name=name,
             defaults={"price": price, "unit": unit, "quantity": qty, "minimum_stock": min_stock}

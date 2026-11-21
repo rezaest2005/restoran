@@ -65,6 +65,15 @@ class Business(models.Model):
     subscription_started_at = models.DateTimeField("شروع اشتراک", null=True, blank=True)
     subscription_ends_at = models.DateTimeField("پایان اشتراک", null=True, blank=True, db_index=True)
 
+    # نوع کسب‌وکار (صنف) — پیش‌تنظیم‌ها در industries.py. خالی = هنوز ویزارد راه‌اندازی را تمام نکرده.
+    industry = models.CharField(
+        "نوع کسب‌وکار", max_length=30, default="", blank=True, db_index=True,
+        help_text="restaurant / retail / manufacturing / distribution / services / pharmacy / other",
+    )
+    # ماژول‌هایی که مالک در ویزارد گفت استفاده می‌کند، واژه‌های دلخواه، الگوی سرفصل حساب، چک‌لیست بسته‌شده و ...
+    industry_options = models.JSONField("تنظیمات صنف", default=dict, blank=True)
+    setup_completed_at = models.DateTimeField("پایان راه‌اندازی اولیه", null=True, blank=True)
+
     is_active = is_active_field(verbose_name="فعال")
     created_at = created_at_field(verbose_name="تاریخ ایجاد")
 

@@ -32,6 +32,14 @@ def _clean_phone(val):
 
 
 # ★ helper: آبجکت کامل tenant + business برای response
+def _clean_industry(value):
+    """Known preset key (see industries.py) or '' (owner picks it in the setup wizard)."""
+    from ...industries import ALIASES, INDUSTRY_BY_KEY
+    key = (value or '').strip().lower()
+    key = ALIASES.get(key, key) if key else ''
+    return key if key in INDUSTRY_BY_KEY else ''
+
+
 def _tenant_to_dict(tenant, business=None):
     if business is None:
         business = Business.objects.filter(tenant=tenant).first()
@@ -54,6 +62,8 @@ def _tenant_to_dict(tenant, business=None):
         ) or '',
         'disabled_features': list(business.disabled_features) if business else [],
         'subscription': subscription_payload(business) if business else None,
+        'industry': (business.industry if business else '') or '',
+        'setup_required': bool(business and business.setup_completed_at is None),
         'created_at': tenant.created_at.strftime('%Y/%m/%d'),
     }
 
@@ -149,6 +159,7 @@ def super_tenants_api(request):
                 slug=slug,
                 phone=data.get('phone', ''),
                 address=data.get('address', ''),
+                industry=_clean_industry(data.get('industry')),
             )
 
             if not owner.business:
@@ -197,6 +208,11 @@ def super_tenant_detail_api(request, pk):
             if 'username_prefix' in data:
                 business.username_prefix = (data['username_prefix'] or '').strip()
                 business.save(update_fields=['username_prefix'])
+
+            # نوع کسب‌وکار (صنف) — فقط واژه‌ها و پیشنهادها؛ مجوزها را تغییر نمی‌دهد
+            if 'industry' in data:
+                business.industry = _clean_industry(data['industry'])
+                business.save(update_fields=['industry'])
 
             # ★ تغییر slug
             if 'slug' in data:
