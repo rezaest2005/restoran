@@ -152,6 +152,13 @@ def super_user_detail_api(request, pk):
                 setattr(user, field, (data[field] or '').strip())
                 update_fields.append(field)
 
+        new_username = (data.get('username') or '').strip()
+        if new_username and new_username != user.username:
+            if User.objects.filter(username=new_username).exclude(pk=user.pk).exists():
+                return Response({'error': 'این نام کاربری قبلاً ثبت شده'}, status=status.HTTP_400_BAD_REQUEST)
+            user.username = new_username
+            update_fields.append('username')
+
         if 'phone_number' in data:
             user.phone_number = _clean_phone(data.get('phone_number'))
             update_fields.append('phone_number')

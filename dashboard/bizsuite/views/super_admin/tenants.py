@@ -201,6 +201,24 @@ def super_tenant_detail_api(request, pk):
                 setattr(tenant, field, data[field])
         if 'is_active' in data:
             tenant.is_active = bool(data['is_active'])
+
+        # نام کاربری و رمز مالک — همان‌طور که در فرم ویرایش فرستاده می‌شوند ذخیره شوند
+        owner = tenant.owner
+        owner_fields = []
+        new_username = (data.get('owner_username') or '').strip()
+        if new_username and new_username != owner.username:
+            if User.objects.filter(username=new_username).exclude(pk=owner.pk).exists():
+                return Response({'error': 'این نام کاربری قبلاً ثبت شده'}, status=status.HTTP_400_BAD_REQUEST)
+            owner.username = new_username
+            owner_fields.append('username')
+        new_password = data.get('owner_password') or ''
+        if new_password:
+            if len(new_password) < 4:
+                return Response({'error': 'رمز عبور باید حداقل ۴ کاراکتر باشد'}, status=status.HTTP_400_BAD_REQUEST)
+            owner.set_password(new_password)
+            owner_fields.append('password')
+        if owner_fields:
+            owner.save(update_fields=owner_fields)
         tenant.save()
 
         if business:

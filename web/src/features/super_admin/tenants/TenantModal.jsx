@@ -6,6 +6,7 @@ import {
   Button, Typography, Box, TextField, Alert,
 } from "@mui/material";
 import superClient from "@super/api/super_client";
+import { PasswordField } from "@shared/ui/AuthShell";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
 
 const fieldSx = {
@@ -218,9 +219,9 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
             helperText={fieldErrors.owner_username}
             sx={fieldSx}
           />
-          <TextField
+          <PasswordField
             label={editId ? t("ui_c.super.tenant.f_new_password") : t("ui_c.super.tenant.f_password")}
-            type="password"
+            autoComplete="new-password"
             value={form.owner_password}
             onChange={set("owner_password")}
             error={!!fieldErrors.owner_password}

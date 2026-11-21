@@ -5,6 +5,7 @@ import {
   DialogTitle, DialogContent, DialogActions, Button, TextField, Box, IconButton, FormControl, InputLabel, Select, MenuItem, Typography, Chip, Alert,
 } from "@mui/material";
 import superClient from "@super/api/super_client";
+import { PasswordField } from "@shared/ui/AuthShell";
 import { ROLE_OPTIONS, ROLE_PERM_PRESETS } from "@super/common/superConfig";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
 
@@ -148,12 +149,13 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
             onChange={(e) => setForm({ ...form, username: e.target.value })}
             sx={{ "& .MuiOutlinedInput-root": { bgcolor: C.inputBg, borderRadius: "10px" } }}
           />
-          <TextField
+          <PasswordField
             size="small"
             label={t("ui_c.super.user.password")}
-            type="password"
+            autoComplete="new-password"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
+            helperText={editId ? t("ui_c.super.tenant.pw_keep") : ""}
             sx={{ "& .MuiOutlinedInput-root": { bgcolor: C.inputBg, borderRadius: "10px" } }}
           />
           <Box sx={{ display: "flex", gap: 2 }}>
