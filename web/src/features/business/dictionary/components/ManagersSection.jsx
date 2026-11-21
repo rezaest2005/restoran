@@ -87,7 +87,6 @@ export default function ManagersSection({ ctx }) {
   const visibleKeys = useMemo(() => groups.flatMap((g) => g.keys), [groups]);
   const presets = useMemo(() => PRESETS.filter((p) => anyEnabled(p.mods)), []);
   const me = useMemo(() => readUser(), []);
-  const iAmOwner = me.role === "owner" || !!me.is_superuser;
   const warehouseModule = moduleEnabled("inventory");
   const deliveryModule = moduleEnabled("delivery");
 
@@ -348,7 +347,8 @@ export default function ManagersSection({ ctx }) {
     );
   };
 
-  const presetOptions = iAmOwner || form.role === "owner" ? [{ role: "owner", icon: "👑", tabs: "all" }, ...presets] : presets;
+  // the owner role belongs to the account purchaser only: shown when editing that owner, never offered for a new person
+  const presetOptions = form.role === "owner" ? [{ role: "owner", icon: "👑", tabs: "all" }, ...presets] : presets;
   // an edited user may hold a role that is not offered as a preset (e.g. its module was switched off): keep it visible
   const presetList = presetOptions.some((p) => p.role === form.role) || dialog?.type !== "staff"
     ? presetOptions : [...presetOptions, { role: form.role, icon: "•" }];

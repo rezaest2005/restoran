@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from ...models import Business, User
+from ...roles import business_has_owner, OWNER_EXISTS_MSG
 from .auth import IsSuperAdmin
 from .tenants import _clean_phone
 
@@ -97,6 +98,9 @@ def super_user_create_api(request):
         except (Business.DoesNotExist, ValueError, TypeError):
             return Response({'error': 'کسب‌وکار پیدا نشد'}, status=status.HTTP_404_NOT_FOUND)
 
+    if role == 'owner' and business and not data.get('allow_additional_owner')             and business_has_owner(business):
+        return Response({'error': OWNER_EXISTS_MSG}, status=status.HTTP_400_BAD_REQUEST)
+
     user = User.objects.create_user(username=username, password=password)
     user.first_name = data.get('first_name', '')
     user.last_name = data.get('last_name', '')
@@ -183,6 +187,12 @@ def super_user_detail_api(request, pk):
         if 'dashboard_permissions' in data:
             user.dashboard_permissions = data['dashboard_permissions']
             update_fields.append('dashboard_permissions')
+
+        if (user.role == 'owner' and not user.is_superuser and user.business_id
+                and ('role' in data or 'business_id' in data)
+                and not data.get('allow_additional_owner')
+                and business_has_owner(user.business, exclude_pk=user.pk)):
+            return Response({'error': OWNER_EXISTS_MSG}, status=status.HTTP_400_BAD_REQUEST)
 
         new_password = data.get('password')
         if new_password:

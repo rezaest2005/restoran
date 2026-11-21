@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from ...roles import (
     ROLE_CHOICES, get_user_role, get_user_permissions,
-    get_role_display, has_permission, normalize_role, ROLE_OWNER, ROLE_MANAGER, ROLE_TRANSPORT,
+    get_role_display, has_permission, normalize_role, ROLE_OWNER, ROLE_MANAGER, ROLE_TRANSPORT, business_has_owner, OWNER_EXISTS_MSG,
 )
 from ...transport_services import driver_data, ensure_driver_profile
 from ..common import UsersPerm, resolve_business
@@ -148,6 +148,8 @@ def create_user_api(request):
 
     if role == ROLE_OWNER and get_user_role(request.user) != ROLE_OWNER:
         return Response({"success": False, "error": "فقط مالک می‌تواند مالک تعیین کند."}, status=403)
+    if role == ROLE_OWNER and business_has_owner(business):
+        return Response({"success": False, "error": OWNER_EXISTS_MSG}, status=400)
 
     try:
         user = AuthUser.objects.create_user(
@@ -244,6 +246,10 @@ def user_update_role(request):
         target = _get_business_users_qs(request.user).get(id=user_id)
     except AuthUser.DoesNotExist:
         return Response({"error": "کاربر یافت نشد."}, status=404)
+
+    if (new_role == ROLE_OWNER and getattr(target, "role", "") != ROLE_OWNER
+            and business_has_owner(target.business, exclude_pk=target.pk)):
+        return Response({"error": OWNER_EXISTS_MSG}, status=400)
 
     old_role = getattr(target, "role", "")
     role_names = dict(ROLE_CHOICES)
