@@ -82,7 +82,7 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
         last_name: form.last_name,
         phone_number: form.phone_number,
         role: finalRole,
-        business_id: form.business_id,
+        business_id: form.business_id || null,
         dashboard_permissions: form.dashboard_permissions,
       };
 
@@ -278,9 +278,10 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
               label={t("ui_c.super.user.tenant")}
               sx={{ bgcolor: C.inputBg, borderRadius: "10px", fontSize: 13 }}
             >
-              {tenants?.map((t) => (
-                <MenuItem key={t.id} value={t.id}>
-                  {t.name}
+              <MenuItem value=""><em>{t("ui_resp.no_business")}</em></MenuItem>
+              {tenants?.filter((tn) => tn.business_id).map((tn) => (
+                <MenuItem key={tn.business_id} value={tn.business_id}>
+                  {tn.name}
                 </MenuItem>
               ))}
             </Select>

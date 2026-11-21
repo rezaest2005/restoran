@@ -87,15 +87,15 @@ def super_user_create_api(request):
         return Response({'error': 'نام کاربری و رمز عبور الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
     if not role:
         return Response({'error': 'نقش کاربر الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
-    if not business_id:
-        return Response({'error': 'کسب‌وکار الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
     if User.objects.filter(username=username).exists():
         return Response({'error': 'این نام کاربری قبلاً ثبت شده'}, status=status.HTTP_400_BAD_REQUEST)
 
-    try:
-        business = Business.objects.get(pk=business_id)
-    except Business.DoesNotExist:
-        return Response({'error': 'کسب‌وکار پیدا نشد'}, status=status.HTTP_404_NOT_FOUND)
+    business = None  # کسب‌وکار اختیاری است
+    if business_id:
+        try:
+            business = Business.objects.get(pk=business_id)
+        except (Business.DoesNotExist, ValueError, TypeError):
+            return Response({'error': 'کسب‌وکار پیدا نشد'}, status=status.HTTP_404_NOT_FOUND)
 
     user = User.objects.create_user(username=username, password=password)
     user.first_name = data.get('first_name', '')
@@ -172,11 +172,14 @@ def super_user_detail_api(request, pk):
             user.is_approved = bool(data['is_approved'])
             update_fields.append('is_approved')
         if 'business_id' in data:
-            try:
-                user.business = Business.objects.get(pk=data['business_id'])
-                update_fields.append('business')
-            except Business.DoesNotExist:
-                return Response({'error': 'کسب‌وکار پیدا نشد'}, status=status.HTTP_404_NOT_FOUND)
+            if data['business_id'] in (None, '', 0, '0'):
+                user.business = None  # کسب‌وکار اختیاری است
+            else:
+                try:
+                    user.business = Business.objects.get(pk=data['business_id'])
+                except (Business.DoesNotExist, ValueError, TypeError):
+                    return Response({'error': 'کسب‌وکار پیدا نشد'}, status=status.HTTP_404_NOT_FOUND)
+            update_fields.append('business')
         if 'dashboard_permissions' in data:
             user.dashboard_permissions = data['dashboard_permissions']
             update_fields.append('dashboard_permissions')

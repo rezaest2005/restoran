@@ -2,6 +2,7 @@
   "ui_resp": {
     "open_menu": "Open navigation",
     "close": "Close",
-    "actions": "Actions"
+    "actions": "Actions",
+    "no_business": "No business (optional)"
   }
 }
