@@ -469,3 +469,22 @@ class ChequeUndoTests(Base):
         self.assertEqual(bal(self.b, "1135"), D("100"))
         self.assertEqual(bal(self.b, "1136"), D("0"))
         self.assertTrue(trial_balance(self.b)["balanced"])
+
+
+class WizardHookTests(Base):
+    def test_public_names_for_industry_wizard(self):
+        import re
+
+        from bizsuite import accounting_services as svc
+        self.assertTrue({"service", "retail", "restaurant", "manufacturing", "distribution", "iran_standard"}
+                        <= set(svc.CHART_TEMPLATES))
+        biz = Business.objects.create(name="w", slug="acc-wiz")
+        self.assertGreater(svc.seed_chart_template(biz, "restaurant"), 0)
+        self.assertTrue(Account.all_objects.filter(business=biz, code="4111").exists())
+        self.assertGreaterEqual(svc.seed_chart_template(biz, "unknown-key"), 0)  # never raises
+        # user-visible labels stay industry neutral
+        bad = re.compile(r"رستوران|restaurant|غذا|آشپز|\bmenu\b|منو", re.I)
+        for key, tpl in svc.CHART_TEMPLATES.items():
+            self.assertNotRegex(tpl["fa"] + tpl["en"], bad)
+            for row in tpl["extra"]:
+                self.assertNotRegex(row[1] + row[2], bad)

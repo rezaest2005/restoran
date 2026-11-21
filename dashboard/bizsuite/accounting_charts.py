@@ -8,7 +8,8 @@
 هر قالب صنفی فقط حساب‌های اضافه‌ی خودش را به هسته می‌افزاید؛ اعمال قالب idempotent است و چیزی را حذف یا
 بازنویسی نمی‌کند، پس می‌شود بعداً هم قالب دیگری را رویش اعمال کرد.
 
-کلیدهای قالب (برای ویزارد صنف و API): general, service, retail, restaurant, manufacturing, distribution, iran_standard
+کلیدهای قالب (برای ویزارد صنف و API): general, service, retail, restaurant (پذیرایی), manufacturing, distribution,
+iran_standard
 """
 
 from __future__ import annotations
@@ -90,14 +91,15 @@ RETAIL_EXTRA = [
     ("1230", "دکوراسیون و تجهیزات فروشگاه", "Shop fit-out & fixtures", A, "1200", True, "fixed_asset"),
 ]
 
-RESTAURANT_EXTRA = [
-    ("4111", "فروش غذا", "Food sales", I, "4000", True, "sales"),
+# کلید قالب «restaurant» برای سازگاری با ویزارد صنف حفظ شده؛ برچسب‌ها خنثی‌اند (پذیرایی)
+HOSPITALITY_EXTRA = [
+    ("4111", "فروش اقلام پذیرایی", "Hospitality sales", I, "4000", True, "sales"),
     ("4112", "فروش نوشیدنی", "Beverage sales", I, "4000", True, "sales"),
     ("4121", "حق سرویس", "Service charge", I, "4000", True, "sales"),
-    ("5111", "بهای مواد غذایی مصرفی", "Food cost", X, "5000", True, "cogs"),
+    ("5111", "بهای مواد اولیه‌ی مصرفی", "Ingredients cost", X, "5000", True, "cogs"),
     ("5370", "کارمزد پلتفرم‌های سفارش آنلاین", "Online ordering platform fees", X, "5000", True, ""),
     ("5380", "هزینه بسته‌بندی و یک‌بارمصرف", "Packaging & disposables", X, "5000", True, ""),
-    ("1230", "تجهیزات آشپزخانه", "Kitchen equipment", A, "1200", True, "fixed_asset"),
+    ("1230", "تجهیزات آماده‌سازی و پذیرایی", "Preparation & service equipment", A, "1200", True, "fixed_asset"),
 ]
 
 MANUFACTURING_EXTRA = [
@@ -151,12 +153,17 @@ CHART_TEMPLATES = {
     "general": {"fa": "عمومی", "en": "General", "extra": []},
     "service": {"fa": "خدماتی", "en": "Service business", "extra": SERVICE_EXTRA},
     "retail": {"fa": "فروشگاهی", "en": "Retail shop", "extra": RETAIL_EXTRA},
-    "restaurant": {"fa": "رستوران و کافه", "en": "Restaurant & café", "extra": RESTAURANT_EXTRA},
+    "restaurant": {"fa": "پذیرایی و کافه", "en": "Hospitality & café", "extra": HOSPITALITY_EXTRA},
     "manufacturing": {"fa": "تولیدی", "en": "Manufacturing", "extra": MANUFACTURING_EXTRA},
     "distribution": {"fa": "پخش و بازرگانی", "en": "Distribution & trading", "extra": DISTRIBUTION_EXTRA},
     "iran_standard": {"fa": "استاندارد ایران", "en": "Iranian standard", "extra": IRAN_STANDARD_EXTRA},
 }
 CHART_TEMPLATE_KEYS = list(CHART_TEMPLATES)
+
+
+def seed_chart_template(business, key: str) -> int:
+    """نام عمومی برای ویزارد صنف: قالب را اعمال می‌کند؛ کلید ناشناخته = فقط هسته (هیچ‌وقت خطا نمی‌دهد)."""
+    return apply_chart_template(business, key if key in CHART_TEMPLATES else "general")
 
 
 def template_list():

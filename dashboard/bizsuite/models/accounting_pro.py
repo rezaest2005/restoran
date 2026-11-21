@@ -15,7 +15,7 @@ CHART_TEMPLATE_CHOICES = [
     ("general", "عمومی"),
     ("service", "خدماتی"),
     ("retail", "فروشگاهی"),
-    ("restaurant", "رستوران و کافه"),
+    ("restaurant", "پذیرایی و کافه"),
     ("manufacturing", "تولیدی"),
     ("distribution", "پخش و بازرگانی"),
     ("iran_standard", "استاندارد ایران"),

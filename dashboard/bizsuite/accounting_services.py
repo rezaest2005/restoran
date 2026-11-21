@@ -17,7 +17,10 @@ from django.db import IntegrityError, transaction
 from django.db.models import Max, Sum
 from django.utils import timezone
 
-from .accounting_charts import CORE_CHART, CORE_MARKER, seed_core_chart
+from .accounting_charts import (  # noqa: F401 — CHART_TEMPLATES/seed_chart_template are public API
+    CHART_TEMPLATE_KEYS, CHART_TEMPLATES, CORE_CHART, CORE_MARKER, apply_chart_template, seed_chart_template,
+    seed_core_chart,
+)
 from .models import Account, AccountingPeriod, Business, DetailAccount, FiscalYear, JournalEntry, JournalLine
 
 logger = logging.getLogger(__name__)
