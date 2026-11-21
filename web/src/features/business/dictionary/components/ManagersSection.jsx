@@ -24,7 +24,7 @@ import {
  * These ticks live under "Advanced" — a role preset fills them in for you.
  */
 const GROUPS = [
-  { id: "general", icon: "🏠", mods: null, tone: "primary", keys: ["home", "activity"] },
+  { id: "general", icon: "🏠", mods: null, tone: "primary", keys: ["home"] },
   { id: "pos", icon: "💰", mods: ["pos"], tone: "success", keys: ["pos", "pos_report", "pos_settings", "orders"] },
   { id: "inventory", icon: "📦", mods: ["inventory"], tone: "info", keys: ["inventory_invoice", "inventory_sales", "inventory_warehouse", "inventory_receiving", "inventory_purchase_list", "inventory_reports"] },
   { id: "production", icon: "🏭", mods: ["production"], tone: "warning", keys: ["kitchen", "recipes", "dictionary_recipe"] },

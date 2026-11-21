@@ -31,13 +31,14 @@ class Feature:
     name_fa: str
     name_en: str
     locked: bool = False    # can't be disabled by the super admin
+    owner_only: bool = False  # only the account owner (and super admins) — never grantable to anyone else
 
 
 FEATURES: list[Feature] = [
     Feature("home", None, "core", "صفحه اصلی", "Home", locked=True),
     Feature("dictionary_users", None, "core", "تعاریف: کاربران", "Definitions: users", locked=True),
     Feature("dictionary_customers", None, "core", "تعاریف: مشتریان", "Definitions: customers"),
-    Feature("activity", None, "core", "تاریخچه‌ی رویدادها", "Activity history"),
+    Feature("activity", None, "core", "تاریخچه‌ی رویدادها", "Activity history", owner_only=True),
 
     Feature("pos", "pos", "pos", "صندوق فروش", "Point of sale"),
     Feature("pos_report", "pos", "pos", "گزارش صندوق", "POS report"),
@@ -73,6 +74,8 @@ FEATURES: list[Feature] = [
 FEATURE_BY_KEY = {f.key: f for f in FEATURES}
 ALL_FEATURE_KEYS = [f.key for f in FEATURES]
 LOCKED_KEYS = {f.key for f in FEATURES if f.locked}
+OWNER_ONLY_KEYS = {f.key for f in FEATURES if f.owner_only}
+GRANTABLE_KEYS = [k for k in ALL_FEATURE_KEYS if k not in OWNER_ONLY_KEYS]
 DELIVERY_KEYS = [f.key for f in FEATURES if f.module == "delivery"]
 
 # Old stored values → current feature keys (so existing users keep their access).
@@ -191,14 +194,14 @@ def user_ticked(user) -> set[str]:
     role = getattr(user, "role", "")
     tabs = getattr(user, "tabs", None)
     if isinstance(tabs, dict) and tabs:
-        return {k for k, v in tabs.items() if v is True and k in FEATURE_BY_KEY} | \
-               expand([k for k, v in tabs.items() if v is True and k not in FEATURE_BY_KEY])
-    perms = getattr(user, "dashboard_permissions", None)
-    if perms:
-        return expand(perms) | {"home"}
-    if role in ("owner", "manager"):
-        return set(ALL_FEATURE_KEYS)
-    return set(ROLE_FEATURES.get(role, []))
+        out = {k for k, v in tabs.items() if v is True and k in FEATURE_BY_KEY} |               expand([k for k, v in tabs.items() if v is True and k not in FEATURE_BY_KEY])
+    elif getattr(user, "dashboard_permissions", None):
+        out = expand(user.dashboard_permissions) | {"home"}
+    elif role in ("owner", "manager"):
+        out = set(ALL_FEATURE_KEYS)
+    else:
+        out = set(ROLE_FEATURES.get(role, []))
+    return out - OWNER_ONLY_KEYS      # owner-only tabs can never be ticked for anyone
 
 
 def user_features(user) -> set[str]:
@@ -254,4 +257,4 @@ def catalog_for_super_admin():
     return [{
         "key": f.key, "module": f.module, "group": f.group, "locked": f.locked,
         "name_fa": f.name_fa, "name_en": f.name_en,
-    } for f in FEATURES]
+    } for f in FEATURES if not f.owner_only]

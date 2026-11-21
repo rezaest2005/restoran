@@ -7,6 +7,7 @@ from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
+from bizsuite.features import user_features
 from bizsuite.delivery_services import change_trip_status, create_trip, settle_driver_cash, update_stop
 from bizsuite.models import (
     ActivityLog, Business, Category, Driver, Food, LocationPing, Trip, TripStop, User,
@@ -154,14 +155,41 @@ class ActivityApiTests(Base):
         self.assertEqual([r["summary"] for r in self.client_for(self.other_owner).get("/api/activity/").json()["data"]["results"]],
                          ["مال کسب‌وکار دیگر"])
 
-    def test_only_people_with_the_tab_can_read_it(self):
+    def test_only_the_owner_and_super_admins_can_read_it(self):
+        self.assertEqual(self.client_for(self.owner).get("/api/activity/").status_code, 200)
+        self.assertEqual(self.client_for(self.owner).get("/api/activity/meta/").status_code, 200)
+        manager = User.objects.create_user(username="ac_m", password=P, role="manager", business=self.b)
+        custom = User.objects.create_user(username="ac_x", password=P, role="other", business=self.b)
+        # the old tab tick must not grant anything any more (legacy rows, any storage format)
+        for u in (self.cashier, manager, custom, self.duser):
+            for tabs, perms in (({}, []), ({"pos": True, "activity": True}, ["pos", "activity"]), ({"activity": True}, ["activity"])):
+                u.tabs, u.dashboard_permissions = tabs, perms
+                u.save()
+                c = self.client_for(u)
+                self.assertEqual(c.get("/api/activity/").status_code, 403, (u.role, tabs))
+                self.assertEqual(c.get("/api/activity/meta/").status_code, 403, (u.role, tabs))
+                self.assertNotIn("activity", user_features(User.objects.get(pk=u.pk)))
+        # the permission editor does not offer it and cannot grant it
+        o = self.client_for(self.owner)
+        self.assertNotIn("activity", o.get("/api/users/tabs/").json()["tabs"])
+        self.assertNotIn("activity", o.get("/api/users/tabs/").json()["licensed"])
+        o.post("/api/users/tabs/", {"user_id": self.cashier.id, "tabs": {"pos": True, "activity": True}}, format="json")
+        self.assertNotIn("activity", User.objects.get(pk=self.cashier.pk).tabs)
         self.assertEqual(self.client_for(self.cashier).get("/api/activity/").status_code, 403)
-        self.cashier.tabs = {"pos": True, "activity": True}
-        self.cashier.save()
-        self.assertEqual(self.client_for(self.cashier).get("/api/activity/").status_code, 200)
+
+    def test_super_admin_can_read_a_business_history(self):
+        self.seed()
+        root = User.objects.create_superuser(username="ac_root", password=P)
+        root.business = self.b
+        root.save()
+        r = self.client_for(root).get("/api/activity/")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.json()["data"]["results"]), 50)
+
+    def test_switched_off_by_the_super_admin_closes_it_for_the_owner(self):
         self.b.disabled_features = ["activity"]
         self.b.save()
-        self.assertEqual(self.client_for(self.owner).get("/api/activity/").status_code, 403)      # the super admin switched it off
+        self.assertEqual(self.client_for(self.owner).get("/api/activity/").status_code, 403)
 
     def test_sign_in_is_logged(self):
         r = APIClient().post("/api/auth/login/", {"username": "ac_o", "password": P}, format="json", HTTP_X_TENANT_SLUG="act-one")

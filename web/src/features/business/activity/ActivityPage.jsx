@@ -62,8 +62,8 @@ export default function ActivityPage() {
           <MenuItem value="">{t("ui_act.all")}</MenuItem>
           {meta.drivers.map((d) => <MenuItem key={d.id} value={d.id}>{d.number ? `${d.number} — ` : ""}{d.name}</MenuItem>)}
         </TextField>
-        <TextField size="small" type="date" label={t("ui_act.from")} value={f.from} onChange={set("from")} sx={S.field} InputLabelProps={{ shrink: true }} />
-        <TextField size="small" type="date" label={t("ui_act.to")} value={f.to} onChange={set("to")} sx={S.field} InputLabelProps={{ shrink: true }} />
+        <TextField size="small" type="date" label={t("ui_act.from")} value={f.from} onChange={set("from")} sx={S.field} slotProps={{ inputLabel: { shrink: true } }} />
+        <TextField size="small" type="date" label={t("ui_act.to")} value={f.to} onChange={set("to")} sx={S.field} slotProps={{ inputLabel: { shrink: true } }} />
       </Box>
 
       {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
