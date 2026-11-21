@@ -575,7 +575,8 @@ def earn_for_order(order):
         return 0
     member, _ = get_or_create_member(order.business, phone, order.customer_name)
     items = []
-    for it in order.items.select_related("food__category").all():
+    from .models import OrderItem
+    for it in OrderItem.all_objects.filter(order=order).select_related("food__category"):
         cat = getattr(getattr(it.food, "category", None), "name", "") if it.food_id else ""
         items.append({"name": it.item_name or (it.food.name if it.food_id else ""), "category": cat,
                       "quantity": it.quantity, "amount": int(it.price) * int(it.quantity)})
@@ -591,6 +592,7 @@ def earn_for_order(order):
 @transaction.atomic
 def earn_for_sales_invoice(invoice):
     """امتیاز فاکتور فروش (مشتریان عمده / B2B) — بر اساس موبایل مشتری تعریف‌شده. idempotent."""
+    from .models import SalesInvoiceItem
     customer = getattr(invoice, "customer", None)
     if customer is None or not _club_ready(invoice.business):
         return 0
@@ -609,7 +611,7 @@ def earn_for_sales_invoice(invoice):
         return 0
     items = [{"name": i.item_name, "quantity": max(1, int(i.quantity or 1)),
               "amount": int(Decimal(i.quantity or 0) * Decimal(i.unit_price or 0) - Decimal(i.discount or 0))}
-             for i in invoice.items.all()]
+             for i in SalesInvoiceItem.all_objects.filter(invoice=invoice)]
     try:
         with transaction.atomic():
             p = record_purchase(invoice.business, member, total, items=items,

@@ -68,8 +68,9 @@ class StandaloneTests(Base):
         cat = Category.all_objects.create(business=self.biz, name="نوشیدنی")
         food = Food.all_objects.create(business=self.biz, category=cat, name="قهوه", price=50000,
                                        final_price=50000, stock=10, is_available=True)
-        self.api.post("/api/club/rules/", {"name": "قهوه دوبل", "kind": "category", "match": "نوشیدنی",
-                                           "multiplier": "2"}, format="json")
+        r = self.api.post("/api/club/rules/", {"name": "قهوه دوبل", "kind": "category", "match": "نوشیدنی",
+                                               "multiplier": "2"}, format="json")
+        self.assertEqual(r.status_code, 201, r.content)
         o = Order.all_objects.create(business=self.biz, customer_name="علی", phone="09125550000",
                                      total_price=100000, payment_status="paid")
         OrderItem.all_objects.create(business=self.biz, order=o, food=food, item_name="قهوه", quantity=2,
@@ -93,8 +94,8 @@ class RulesAndTiersTests(Base):
         self.api.post("/api/club/tiers/", {"name": "طلایی", "min_value": 100, "multiplier": "2"}, format="json")
         m.refresh_from_db()
         self.assertEqual(m.tier.name, "طلایی")
-        p2 = self.buy(m, 100000)   # (10 + 2 + 15) * 2 = 54
-        self.assertEqual(p2.points_earned, 54)
+        p2 = self.buy(m, 100000)   # (10 base + 2 visit + 5 weekday) * 2 = 34
+        self.assertEqual(p2.points_earned, 34)
 
     def test_tier_auto_downgrade_with_rolling_window(self):
         self.api.put("/api/club/settings/", {"tier_basis": "spend", "tier_window_days": 30}, format="json")
@@ -245,7 +246,7 @@ class AnalyticsTests(Base):
         self.assertEqual([x["id"] for x in r], [lost.id])
         rep = self.api.get("/api/club/reports/?days=30").json()["data"]
         self.assertEqual(rep["members_total"], 3)
-        self.assertEqual(rep["purchases"], 5)
+        self.assertEqual(rep["purchases"], 6)
         self.assertEqual(rep["points_outstanding"], 30)
         self.assertEqual(rep["liability"], 30000)
         self.assertEqual(rep["repeat_rate"], 50.0)
@@ -298,3 +299,17 @@ class PublicPageTests(Base):
         self.assertEqual(api2.get("/api/club/coupons/").json()["data"], [])
         self.assertEqual(api2.post("/api/club/coupons/check/", {"code": "MINE", "amount": 5000},
                                    format="json").status_code, 400)
+
+
+class SalesInvoiceTests(Base):
+    def test_b2b_invoice_earns_once_and_links_customer(self):
+        from bizsuite.models import Customer, SalesInvoice, SalesInvoiceItem
+        cust = Customer.all_objects.create(business=self.biz, name="شرکت الف", phone="02144445555")
+        inv = SalesInvoice.all_objects.create(business=self.biz, customer=cust, total=2000000, discount=0,
+                                              paid_amount=2000000, invoice_number="S-9")
+        SalesInvoiceItem.all_objects.create(business=self.biz, invoice=inv, item_name="کارتن", quantity=10,
+                                            unit_price=200000)
+        self.assertEqual(cs.earn_for_sales_invoice(inv), 200)
+        self.assertEqual(cs.earn_for_sales_invoice(inv), 0)
+        m = LoyaltyMember.all_objects.get(business=self.biz, phone="02144445555")
+        self.assertEqual(m.customer_id, cust.id)

@@ -172,9 +172,9 @@ class SuperAdminAccessTests(ModuleBase):
         r = self.sup.post(self.url("plan/"), {"plan": "retail"}, format="json")
         self.assertEqual(r.status_code, 200, r.content)
         self.assertEqual(enabled_modules(self.biz), {"pos", "club", "inventory", "storefront"})
-        Plan.objects.filter(code="starter").update(modules=["club"])
+        Plan.objects.filter(code="starter").update(modules=["production"])
         r = self.sup.post(self.url("plan/"), {"plan": "starter"}, format="json")
-        self.assertEqual(enabled_modules(self.biz), {"pos", "club"})
+        self.assertEqual(enabled_modules(self.biz), {"production", "inventory"})
         self.assertEqual(self.sup.post(self.url("plan/"), {"plan": "none"}, format="json").status_code, 404)
 
     def test_plan_create_validates(self):
@@ -186,6 +186,6 @@ class SuperAdminAccessTests(ModuleBase):
         self.assertEqual(bad.status_code, 400)
 
     def test_apply_modules_service_raises(self):
-        apply_modules(self.biz, {c: {"is_enabled": False} for c in ("pos", "club")})
+        apply_modules(self.biz, {c: {"is_enabled": False} for c in ("inventory", "production")})
         with self.assertRaises(ModuleDependencyError):
-            apply_modules(self.biz, {"club": {"is_enabled": True}})
+            apply_modules(self.biz, {"production": {"is_enabled": True}})
