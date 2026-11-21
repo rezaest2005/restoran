@@ -8,10 +8,7 @@ import KbdHint from "@business/pos/common/KbdHint";
 import { TableWrap, ConfirmDialog, fmtMoney, fmtInt, num } from "@business/accounting/common";
 import { vehiclesApi, carriersApi, driversApi, setDriverShift, errMsg } from "./api";
 import { VEHICLE_KINDS } from "./common";
-import DriverLinkCard from "./DriverLinkCard";
 import TransportPersonDialog from "@business/dictionary/components/TransportPersonDialog";
-import CopyLink from "./CopyLink";
-import { appUrl } from "@shared/basePath";
 
 /** Generic edit dialog: `fields` = [{ key, label, type?: "text"|"number"|"select"|"switch", options? }]. */
 function EditDialog({ ctx, title, fields, initial, onClose, onSave }) {
@@ -204,10 +201,9 @@ export default function FleetTab({ ctx, vehicles, carriers, drivers, reloadFleet
 
   return (
     <Box>
-      <DriverLinkCard ctx={ctx} />
       <Alert severity="info" sx={{ mb: 2 }}>{t("ui_dh.transport.fleet_hint")}</Alert>
       {section("driver", t("ui_dh.transport.fleet_title"),
-        [t("ui_del.fleet.number"), t("ui_del.fleet.name"), t("ui_dh.transport.service"), t("ui_del.fleet.username"), t("ui_del.fleet.phone"), t("ui_del.fleet.pay_per_trip"), t("ui_del.fleet.link"), t("ui_del.fleet.shift"), t("ui_del.common.status")],
+        [t("ui_del.fleet.number"), t("ui_del.fleet.name"), t("ui_dh.transport.service"), t("ui_del.fleet.username"), t("ui_del.fleet.phone"), t("ui_del.fleet.pay_per_trip"), t("ui_del.fleet.shift"), t("ui_del.common.status")],
         drivers, (d) => (
           <TableRow key={d.id}>
             <TableCell sx={{ ...S.td, fontWeight: 800 }}>{d.number ? fmtInt(d.number, lang) : "—"}</TableCell>
@@ -216,9 +212,6 @@ export default function FleetTab({ ctx, vehicles, carriers, drivers, reloadFleet
             <TableCell sx={S.td} dir="ltr">{d.username || "—"}</TableCell>
             <TableCell sx={S.td} dir="ltr">{d.phone}</TableCell>
             <TableCell sx={S.td}>{fmtMoney(d.pay_per_trip, lang)}</TableCell>
-            <TableCell sx={S.td}>
-              <CopyLink url={appUrl(d.link_path)} label={t("ui_del.fleet.copy_link")} doneLabel={t("ui_del.ship.copied")} />
-            </TableCell>
             <TableCell sx={S.td}>
               <Button size="small" sx={S.link} onClick={() => toggleShift(d)}>
                 {d.on_shift ? t("ui_del.fleet.shift_end") : t("ui_del.fleet.shift_start")}

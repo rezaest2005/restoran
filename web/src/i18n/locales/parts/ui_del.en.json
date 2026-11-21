@@ -153,8 +153,6 @@
       "shift_end": "End shift",
       "delete_text": "Delete \"{{name}}\"?",
       "number": "No.",
-      "link": "Courier link",
-      "copy_link": "Copy link",
       "username": "Courier username",
       "password": "Password (to create or change)",
       "account_hint": "Enter a username and password and the courier's sign-in is created here; the courier signs in with them at the courier address."
@@ -268,15 +266,6 @@
       "shipment_no": "Shipment {{n}}",
       "where_now": "Where is it now?",
       "route": "Route and stops"
-    },
-    "drvlink": {
-      "title": "Courier sign-in link",
-      "hint": "This is the general courier sign-in address. Every courier also has a numbered address of their own (/business-name/bizsuite_driver/1, 2, ...) shown in the drivers table below. They sign in with the username and password you created for them.",
-      "copy": "Copy address",
-      "open": "Open",
-      "session": "The courier stays signed in while the app is open; after closing the app the sign-in page appears again.",
-      "button": "Courier sign-in link",
-      "close": "Close"
     },
     "hist": {
       "courier": "Courier",

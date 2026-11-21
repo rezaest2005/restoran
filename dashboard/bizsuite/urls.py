@@ -216,7 +216,6 @@ urlpatterns = [
     path("api/delivery/drivers/", dl_views.drivers, name="delivery_drivers"),
     path("api/delivery/drivers/<int:pk>/", dl_views.driver_detail, name="delivery_driver_detail"),
     path("api/delivery/drivers/<int:pk>/shift/", dl_views.driver_shift, name="delivery_driver_shift"),
-    path("api/business/slug/", business_settings.business_slug, name="business_slug"),
     path("api/business/subscription/", business_settings.business_subscription, name="business_subscription"),
     path("api/delivery/history/", dl_views.courier_history, name="delivery_history"),
     path("api/delivery/history/trips/<int:pk>/route/", dl_views.trip_route, name="delivery_trip_route"),

@@ -4,9 +4,6 @@ import {
   Accordion, AccordionSummary, AccordionDetails,
 } from "@mui/material";
 import { moduleEnabled, hasTab } from "@business/dashboard/access";
-import { appUrl } from "@shared/basePath";
-import CopyLink from "@business/delivery/CopyLink";
-import BusinessAddressCard from "./BusinessAddressCard";
 import TransportPersonDialog, { OptionCard } from "./TransportPersonDialog";
 import {
   SectionHeader, LoadState, FormDialog, ConfirmDialog, useRegisteredShortcuts, useRowCursor, cursorAttrs, cursorSx,
@@ -302,7 +299,6 @@ export default function ManagersSection({ ctx }) {
           {d.number && <Chip size="small" label={t("ui_dh.transport.number", { n: d.number })} sx={smallChip} />}
           <Chip size="small" label={t(`ui_dh.transport.services.${d.service || "both"}.title`)} sx={smallChip} />
           {d.vehicle && <Chip size="small" label={[t(`ui_del.vehicle_kind.${d.vehicle.kind}`), d.vehicle.plate].filter(Boolean).join(" · ")} sx={smallChip} />}
-          <CopyLink url={appUrl(d.link_path)} label={t("ui_dh.transport.copy_link")} doneLabel={t("ui_del.ship.copied")} />
         </>
       );
     }
@@ -383,10 +379,6 @@ export default function ManagersSection({ ctx }) {
           {shown.map(personRow)}
         </Box>
       </LoadState>
-
-      <Box sx={{ mt: 3 }}>
-        <BusinessAddressCard ctx={ctx} />
-      </Box>
 
       {/* step 1 — who are you adding? */}
       {picker && (

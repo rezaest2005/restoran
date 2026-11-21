@@ -1,4 +1,4 @@
-﻿"""آدرس‌ها: slug قابل‌ویرایش توسط مالک، شماره‌ی پیک‌ها (۱، ۲، ۳ …)، manifest هر پیک و جابه‌جایی پنل جنگو."""
+﻿"""آدرس‌ها: slug (فقط توسط ابرادمین قابل تغییر)، شماره‌ی پیک‌ها (۱، ۲، ۳ …)، manifest هر پیک و جابه‌جایی پنل جنگو."""
 
 from django.test import Client, TestCase, TransactionTestCase
 from rest_framework.test import APIClient
@@ -29,27 +29,32 @@ class Base(TestCase):
 
 
 class SlugTests(Base):
-    def test_owner_changes_slug_and_addresses_follow(self):
-        r = self.client_for(self.owner).put("/api/business/slug/", {"slug": "My-Shop_1"}, format="json")
-        self.assertEqual(r.status_code, 200, r.content)
-        self.a.refresh_from_db()
-        self.assertEqual(self.a.slug, "my-shop_1")                      # normalised to lower case
-
-    def test_only_the_owner_may_change_it(self):
-        self.assertEqual(self.client_for(self.cashier).put("/api/business/slug/", {"slug": "newname"}, format="json").status_code, 403)
-        self.assertEqual(self.client_for(self.cashier).get("/api/business/slug/").json()["data"]["slug"], "alpha")   # may read
-
-    def test_bad_reserved_and_taken_slugs_are_refused(self):
-        c = self.client_for(self.owner)
-        for bad in ("", "a", "has space", "ünï", "-start", "x" * 60, "admin", "api", "driver", "dashboard", "bizsuite_dashboard", "bizsuite_admin", "bizsuite_driver", "trade_dashboard", "ember", "beta"):
-            self.assertEqual(c.put("/api/business/slug/", {"slug": bad}, format="json").status_code, 400, bad)
+    def test_owner_can_no_longer_change_the_slug(self):
+        for method in ("get", "put", "post", "patch"):
+            for user in (self.owner, self.cashier):
+                r = getattr(self.client_for(user), method)("/api/business/slug/", {"slug": "newname"}, format="json")
+                self.assertIn(r.status_code, (404, 405), (method, r.status_code))
         self.a.refresh_from_db()
         self.assertEqual(self.a.slug, "alpha")
 
-    def test_keeping_my_own_slug_is_fine(self):
-        self.assertEqual(self.client_for(self.owner).put("/api/business/slug/", {"slug": "alpha"}, format="json").status_code, 200)
+    def test_super_admin_can_still_change_the_slug(self):
+        from bizsuite.views.super_admin.auth import _make_super_token
+        root = User.objects.create_superuser(username="ad_root", password=P)
+        root.is_approved = True
+        root.save()
+        from bizsuite.models import Tenant
+        tenant = Tenant.objects.create(name="الف", owner=self.owner)
+        Business.objects.filter(pk=self.a.pk).update(tenant=tenant)
+        c = APIClient()
+        c.credentials(HTTP_AUTHORIZATION="Token " + _make_super_token(root))
+        r = c.put(f"/api/super/tenants/{tenant.pk}/", {"slug": "renamed"}, format="json")
+        self.assertEqual(r.status_code, 200, r.content)
+        self.a.refresh_from_db()
+        self.assertEqual(self.a.slug, "renamed")
+        bad = c.put(f"/api/super/tenants/{tenant.pk}/", {"slug": "beta"}, format="json")
+        self.assertEqual(bad.status_code, 400)
 
-    def test_super_admin_uses_the_same_rules(self):
+    def test_slug_rules(self):
         self.assertFalse(validate_slug("admin")[0])
         self.assertFalse(validate_slug("beta")[0])
         self.assertTrue(validate_slug("beta", exclude_business_id=self.b.pk)[0])
@@ -76,13 +81,6 @@ class DriverNumberTests(Base):
         self.assertEqual(ca.delete(f"/api/delivery/drivers/{first['id']}/").status_code, 200)
         third = self.make(ca, "سه")
         self.assertEqual(third["number"], 3)                            # numbers are never reused
-
-    def test_slug_change_moves_the_courier_links_too(self):
-        ca = self.client_for(self.owner)
-        self.make(ca, "رضا")
-        ca.put("/api/business/slug/", {"slug": "newshop"}, format="json")
-        listed = self.client_for(self.owner).get("/api/delivery/drivers/").json()["data"]
-        self.assertEqual(listed[0]["link_path"], "/newshop/bizsuite_driver/1")
 
 
 class ManifestAndAdminTests(Base):
