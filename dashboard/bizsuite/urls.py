@@ -5,7 +5,9 @@ from django.urls import path, re_path
 from django.http import JsonResponse
 from . import views
 from .views import system as system_views
-from .views.dashboard import dashboard_analytics
+from .views.dashboard import (
+    business_checklist, business_setup, dashboard_analytics, dashboard_summary, industry_catalog,
+)
 from .views import storefront as sf_views
 from .views import delivery as dl_views
 from .views import catalog as cat_views
@@ -123,6 +125,10 @@ urlpatterns = [
 
     # ── Dashboard Analytics ─────────────────────────────────
     path("api/dashboard/analytics/", dashboard_analytics, name="dashboard_analytics"),
+    path("api/dashboard/summary/", dashboard_summary, name="dashboard_summary"),
+    path("api/business/industries/", industry_catalog, name="business_industries"),
+    path("api/business/setup/", business_setup, name="business_setup"),
+    path("api/business/setup/checklist/", business_checklist, name="business_checklist"),
 
     # ── POS ─────────────────────────────────────────────────
     path("api/pos/create-order/", _get_view("pos_create_order"), name="pos_create_order"),
