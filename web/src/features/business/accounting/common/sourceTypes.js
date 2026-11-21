@@ -19,3 +19,6 @@ export function sourceLabel(t, entry, fi = (x) => x) {
   if (version) s += ` (${t("ui_i.src.version", { n: fi(version) })})`;
   return s;
 }
+
+export const DETAIL_KINDS = ["person", "customer", "supplier", "employee", "project", "cost_center", "bank", "cash", "other"];
+export const CHEQUE_STATUSES = ["in_hand", "deposited", "cleared", "bounced", "returned", "endorsed"];

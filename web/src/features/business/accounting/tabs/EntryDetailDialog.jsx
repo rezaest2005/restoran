@@ -7,7 +7,7 @@ import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
 import {
   TableWrap, Money, ConfirmDialog, fmtDate, fmtInt, accName, sourceLabel, parseSource,
 } from "../common";
-import { fetchEntry, reverseEntry, errMsg } from "../api";
+import { fetchEntry, reverseEntry, postDraft, deleteDraft, errMsg } from "../api";
 
 export function SourceBadge({ entry, ctx }) {
   const { t, C, lang } = ctx;
@@ -16,12 +16,23 @@ export function SourceBadge({ entry, ctx }) {
   const [fg, bg] = base === "manual" ? [C.info, C.infoBg]
     : base === "reversal" ? [C.warning, C.warningBg]
     : version ? [C.muted, C.divider] : [C.accent, C.accentSubtle];
-  return <Chip size="small" label={sourceLabel(t, entry, fi)} sx={{ color: fg, bgcolor: bg, fontWeight: 700 }} />;
+  return (
+    <Box sx={{ display: "inline-flex", gap: 0.5, flexWrap: "wrap" }}>
+      {entry.status === "draft" && <StatusChip ctx={ctx} />}
+      <Chip size="small" label={sourceLabel(t, entry, fi)} sx={{ color: fg, bgcolor: bg, fontWeight: 700 }} />
+    </Box>
+  );
+}
+
+export function StatusChip({ ctx }) {
+  const { t, C } = ctx;
+  return <Chip size="small" label={t("acc2.entry.draft")} sx={{ color: C.warning, bgcolor: C.warningBg, fontWeight: 700 }} />;
 }
 
 /** Entry details with lines and a "Reverse" action. */
 export default function EntryDetailDialog({ ctx, id, onClose, onChanged }) {
-  const { t, C, S, lang, fullScreen, accById, notify, openDetail } = ctx;
+  const { t, C, S, lang, fullScreen, accById, notify, openDetail, openEditDraft } = ctx;
+  const [draftConfirm, setDraftConfirm] = useState(null); // "post" | "delete"
   const [entry, setEntry] = useState(null);
   const [error, setError] = useState("");
   const [confirm, setConfirm] = useState(false);
@@ -43,7 +54,27 @@ export default function EntryDetailDialog({ ctx, id, onClose, onChanged }) {
   const totalD = lines.reduce((s, l) => s + Number(l.debit || 0), 0);
   const totalC = lines.reduce((s, l) => s + Number(l.credit || 0), 0);
   const src = entry ? parseSource(entry.source_type) : null;
-  const canReverse = entry && src.base !== "reversal" && !src.version && !entry.reversed_by && !entry.reversed_by_id;
+  const isDraft = entry?.status === "draft";
+  const canReverse = entry && !isDraft && src.base !== "reversal" && !src.version && !entry.reversed_by && !entry.reversed_by_id;
+
+  const doDraftAction = async () => {
+    setBusy(true); setConfErr("");
+    try {
+      if (draftConfirm === "post") {
+        await postDraft(id);
+        notify(t("acc2.entry.posted_ok"));
+        setReloadTick((n) => n + 1);
+      } else {
+        await deleteDraft(id);
+        notify(t("acc2.entry.deleted_ok"));
+        onClose();
+      }
+      setDraftConfirm(null);
+      onChanged();
+    } catch (e) {
+      setConfErr(errMsg(e, t("ui_i.common.save_failed")));
+    } finally { setBusy(false); }
+  };
   const fi = (x) => fmtInt(x, lang);
 
   const doReverse = async () => {
@@ -64,12 +95,12 @@ export default function EntryDetailDialog({ ctx, id, onClose, onChanged }) {
     { combo: "Escape", label: t("shortcuts.close_dialog"), handler: onClose, scope: "dialog" },
     { combo: "Ctrl+D", label: t("ui_i.entry.reverse"), scope: "dialog",
       handler: () => { if (canReverse) setConfirm(true); else return false; return true; } },
-  ], { enabled: !confirm });
+  ], { enabled: !confirm && !draftConfirm });
 
   return (
     <Dialog open onClose={onClose} fullScreen={fullScreen} maxWidth="md" fullWidth slotProps={{ paper: { sx: S.dialogPaper } }}>
       <DialogTitle sx={{ fontWeight: 700, display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
-        {t("ui_i.entry.detail_title")} {entry ? fi(entry.number) : ""}
+        {t("ui_i.entry.detail_title")} {entry ? (entry.number ? fi(entry.number) : "") : ""}
         {entry && <SourceBadge entry={entry} ctx={ctx} />}
       </DialogTitle>
       <DialogContent dividers sx={{ borderColor: C.divider }}>
@@ -84,7 +115,9 @@ export default function EntryDetailDialog({ ctx, id, onClose, onChanged }) {
               </Box>
               <Box>
                 <Typography sx={{ color: C.muted, fontSize: 11 }}>{t("ui_i.common.number")}</Typography>
-                <Typography sx={{ color: C.text, fontWeight: 600, fontSize: 14 }}>{fi(entry.number)}</Typography>
+                <Typography sx={{ color: C.text, fontWeight: 600, fontSize: 14 }}>
+                  {entry.number ? fi(entry.number) : "—"}{entry.reference ? ` · ${entry.reference}` : ""}
+                </Typography>
               </Box>
               <Box sx={{ gridColumn: { xs: "1 / -1", sm: "auto" } }}>
                 <Typography sx={{ color: C.muted, fontSize: 11 }}>{t("ui_i.common.description")}</Typography>
@@ -112,6 +145,7 @@ export default function EntryDetailDialog({ ctx, id, onClose, onChanged }) {
               </Alert>
             )}
             {src.version && <Alert severity="info">{t("ui_i.entry.superseded")}</Alert>}
+            {isDraft && <Alert severity="warning">{t("acc2.entry.draft_note")}</Alert>}
 
             <TableWrap C={C}>
               <Table size="small" sx={{ minWidth: 640 }}>
@@ -119,6 +153,7 @@ export default function EntryDetailDialog({ ctx, id, onClose, onChanged }) {
                   <TableRow>
                     <TableCell sx={S.th}>{t("ui_i.common.code")}</TableCell>
                     <TableCell sx={S.th}>{t("ui_i.common.account")}</TableCell>
+                    <TableCell sx={S.th}>{t("acc2.details.detail")}</TableCell>
                     <TableCell sx={S.th}>{t("ui_i.common.memo")}</TableCell>
                     <TableCell sx={S.th}>{t("ui_i.common.cost_center")}</TableCell>
                     <TableCell sx={S.thNum}>{t("ui_i.common.debit")}</TableCell>
@@ -130,6 +165,7 @@ export default function EntryDetailDialog({ ctx, id, onClose, onChanged }) {
                     <TableRow key={i}>
                       <TableCell sx={S.td}><Box component="span" dir="ltr">{l.code}</Box></TableCell>
                       <TableCell sx={S.td}>{accName(accById[l.account_id], lang) || l.account}</TableCell>
+                      <TableCell sx={S.td}>{l.detail || "—"}</TableCell>
                       <TableCell sx={S.td}>{l.memo || "—"}</TableCell>
                       <TableCell sx={S.td}>{l.cost_center || "—"}</TableCell>
                       <TableCell sx={S.tdNum}><Money v={l.debit} lang={lang} C={C} zeroDash /></TableCell>
@@ -137,7 +173,7 @@ export default function EntryDetailDialog({ ctx, id, onClose, onChanged }) {
                     </TableRow>
                   ))}
                   <TableRow>
-                    <TableCell sx={{ ...S.td, fontWeight: 800 }} colSpan={4}>{t("ui_i.common.total")}</TableCell>
+                    <TableCell sx={{ ...S.td, fontWeight: 800 }} colSpan={5}>{t("ui_i.common.total")}</TableCell>
                     <TableCell sx={{ ...S.tdNum, fontWeight: 800 }}><Money v={totalD} lang={lang} C={C} /></TableCell>
                     <TableCell sx={{ ...S.tdNum, fontWeight: 800 }}><Money v={totalC} lang={lang} C={C} /></TableCell>
                   </TableRow>
@@ -149,6 +185,14 @@ export default function EntryDetailDialog({ ctx, id, onClose, onChanged }) {
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2, flexWrap: "wrap", gap: 1 }}>
         <Button variant="outlined" sx={S.ghost} onClick={onClose}>{t("ui_i.common.close")}</Button>
+        {isDraft && (
+          <>
+            <Button variant="outlined" sx={{ ...S.ghost, color: C.danger, borderColor: C.danger }}
+              onClick={() => { setConfErr(""); setDraftConfirm("delete"); }}>{t("ui_i.common.remove")}</Button>
+            <Button variant="outlined" sx={S.ghost} onClick={() => openEditDraft(entry)}>{t("acc2.common.edit")}</Button>
+            <Button sx={S.btn} onClick={() => { setConfErr(""); setDraftConfirm("post"); }}>{t("acc2.entry.post")}</Button>
+          </>
+        )}
         {canReverse && (
           <Button variant="outlined" sx={{ ...S.ghost, color: C.danger, borderColor: C.danger }}
             onClick={() => { setConfErr(""); setConfirm(true); }}>
@@ -157,6 +201,13 @@ export default function EntryDetailDialog({ ctx, id, onClose, onChanged }) {
         )}
       </DialogActions>
 
+      <ConfirmDialog
+        ctx={ctx} open={!!draftConfirm} danger={draftConfirm === "delete"} busy={busy} error={confErr}
+        title={draftConfirm === "post" ? t("acc2.entry.post") : t("ui_i.common.remove")}
+        text={draftConfirm === "post" ? t("acc2.entry.post_text") : t("acc2.entry.delete_text")}
+        confirmLabel={draftConfirm === "post" ? t("acc2.entry.post") : t("ui_i.common.remove")}
+        onClose={() => setDraftConfirm(null)} onConfirm={doDraftAction}
+      />
       <ConfirmDialog
         ctx={ctx} open={confirm} danger busy={busy} error={confErr}
         title={t("ui_i.entry.reverse_title")} text={t("ui_i.entry.reverse_text")}

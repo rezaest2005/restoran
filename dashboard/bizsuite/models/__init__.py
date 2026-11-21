@@ -61,6 +61,10 @@ from .accounting import (
     EXPENSE_CATEGORIES, EXPENSE_CATEGORY_KEYS, Account, CostCenter, JournalEntry, JournalLine, Payment,
     RecurringExpense,
 )
+from .accounting_pro import (
+    CHART_TEMPLATE_CHOICES, AccountingPeriod, AccountingSettings, BankStatementLine, Budget, BudgetLine, Cheque,
+    ChequeEvent, DetailAccount, FiscalYear, MoneyAccount, MoneyTransfer,
+)
 from .jobs import BackgroundJob
 from .modules import BusinessModule, Module, Plan
 from .storefront import (
@@ -91,5 +95,7 @@ __all__ = [
     "LoyaltyMessage", "LoyaltyPurchase", "LoyaltyReward", "LoyaltyTier", "LoyaltyWalletTransaction",
     "Feedback", "SupportMessage", "SupportTicket",
     "Account", "CostCenter", "JournalEntry", "JournalLine",
+    "CHART_TEMPLATE_CHOICES", "AccountingPeriod", "AccountingSettings", "BankStatementLine", "Budget", "BudgetLine",
+    "Cheque", "ChequeEvent", "DetailAccount", "FiscalYear", "MoneyAccount", "MoneyTransfer",
     "Carrier", "CashSettlement", "DeliveryZone", "Driver", "LocationPing", "StopEvent", "Trip", "TripStop", "Vehicle",
 ]
