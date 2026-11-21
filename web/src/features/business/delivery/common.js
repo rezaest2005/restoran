@@ -1,4 +1,3 @@
-import { appUrl } from "@shared/basePath";
 /** Status → palette colour keys shared by the delivery screens. */
 export const tripStatusColor = (C, s) => ({
   planned: C.muted, assigned: C.info, in_progress: C.warning, completed: C.success, cancelled: C.danger,
@@ -43,20 +42,6 @@ export const routeUrl = (stop) => {
   return `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
 };
 
-const readUser = () => {
-  try { return JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "{}"); } catch { return {}; }
-};
-
-/** The business slug (e.g. "zfc") the courier page lives under. */
-export function currentSlug() {
-  const u = readUser();
-  let remembered = "";
-  try { remembered = localStorage.getItem("tenant_slug") || ""; } catch { /* ignore */ }
-  return u.business_slug || remembered || "";
-}
-
-/** Courier address: <domain>/bizsuite_driver (no slug). After sign-in the app moves to <domain>/<slug>/bizsuite_driver/<number>. */
-export const driverUrl = () => appUrl("/bizsuite_driver");
 
 export const FAILURE_CODES = ["absent", "refused", "address", "closed", "damaged", "no_payment", "other"];
 export const PRIORITIES = [0, 1, 2];

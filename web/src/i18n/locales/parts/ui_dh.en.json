@@ -147,7 +147,6 @@
       "active": "Active",
       "created": "\"{{name}}\" was added.",
       "number": "No. {{n}}",
-      "copy_link": "Copy app link",
       "no_record": "No driver details for this account yet; press \"Edit\".",
       "module_off": "The Delivery module is not enabled for your business.",
       "fleet_title": "Drivers & couriers",

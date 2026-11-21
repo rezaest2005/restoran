@@ -15,7 +15,6 @@ import { vehiclesApi, carriersApi, driversApi, errMsg } from "./api";
 import DispatchTab from "./DispatchTab";
 import ShipmentsTab from "./ShipmentsTab";
 import PendingOrders from "./PendingOrders";
-import { DriverLinkDialog } from "./DriverLinkCard";
 import FleetTab from "./FleetTab";
 import CashTab from "./CashTab";
 import HistoryTab from "./HistoryTab";
@@ -57,7 +56,6 @@ export default function DispatchPage() {
   const [selectedId, setSelectedId] = useState(null);
   const [dialog, setDialog] = useState(null);   // { mode: "trip" | "shipment", initialStops? }
   const [helpOpen, setHelpOpen] = useState(false);
-  const [linkOpen, setLinkOpen] = useState(false);
   const [helpItems, setHelpItems] = useState([]);
   const [toast, setToast] = useState({ open: false, msg: "", sev: "success" });
   const notify = useCallback((msg, sev = "success") => setToast({ open: true, msg, sev }), []);
@@ -117,9 +115,6 @@ export default function DispatchPage() {
           <Typography sx={{ color: C.sub, fontSize: 13 }}>{t("ui_del.page.subtitle")}</Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-        <Button variant="outlined" sx={S.ghost} onClick={() => setLinkOpen(true)}>
-          {t("ui_del.drvlink.button")}
-        </Button>
         {canTrips && (
           <Button sx={S.btn} onClick={() => openNew(tab === "shipments" ? "shipment" : "trip")}>
             + {tab === "shipments" ? t("ui_del.ship.new") : t("ui_del.trip.new")}<KbdHint>F2</KbdHint>
@@ -173,7 +168,6 @@ export default function DispatchPage() {
         />
       )}
 
-      <DriverLinkDialog ctx={ctx} open={linkOpen} onClose={() => setLinkOpen(false)} />
 
       <ShortcutsHelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} items={helpItems} />
 

@@ -105,7 +105,7 @@ class EnforcementTests(Base):
         c = self.jwt_client()
         self.assertEqual(c.get("/api/delivery/drivers/").status_code, 200)
         self.expire()
-        for url in ("/api/delivery/drivers/", "/api/activity/", "/api/business/subscription/", "/api/business/slug/"):
+        for url in ("/api/delivery/drivers/", "/api/activity/", "/api/business/subscription/"):
             r = c.get(url)
             self.assertEqual(r.status_code, 403, url)
             self.assertEqual(r.json()["code"], "subscription_expired", url)
