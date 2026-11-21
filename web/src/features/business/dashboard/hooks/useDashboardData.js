@@ -14,7 +14,10 @@ import {
   MOCK_TOP_USED, MOCK_SLOW_MOVERS, MOCK_INV_WEEKLY,
 } from "../mocks/inventoryMockData";
 
-export function useDashboardData(serviceType = SERVICE_TYPES.BOTH) {
+/**
+ * Charts of the POS / inventory sections. `enabled` = false skips the request (the business has neither module).
+ */
+export function useDashboardData(serviceType = SERVICE_TYPES.BOTH, enabled = true) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [data, setData] = useState({});
@@ -23,6 +26,10 @@ export function useDashboardData(serviceType = SERVICE_TYPES.BOTH) {
 
   const fetchData = useCallback(async () => {
     if (abortRef.current) abortRef.current.abort();
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     const controller = new AbortController();
     abortRef.current = controller;
 
@@ -92,7 +99,7 @@ export function useDashboardData(serviceType = SERVICE_TYPES.BOTH) {
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
     fetchData();
