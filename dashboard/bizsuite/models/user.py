@@ -62,7 +62,7 @@ class User(AbstractUser):
         CASHIER = "cashier", "صندوقدار"
         KITCHEN = "kitchen", "خط تولید"
         WAREHOUSE = "warehouse", "انباردار"
-        DRIVER = "driver", "راننده"
+        TRANSPORT = "transport", "حمل‌ونقل (راننده / پیک)"
         CUSTOMER = "customer", "مشتری"
         OTHER = "other", "سایر"
 
@@ -152,6 +152,10 @@ class User(AbstractUser):
     @property
     def is_warehouse(self):
         return self.role == self.Role.WAREHOUSE
+
+    @property
+    def is_transport(self):
+        return self.role == self.Role.TRANSPORT
 
     @property
     def is_customer(self):

@@ -6,7 +6,7 @@ import logging
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
-from ...roles import ROLE_CHOICES, has_permission, ROLE_OWNER, ROLE_MANAGER
+from ...roles import ROLE_CHOICES, has_permission, normalize_role, ROLE_OWNER, ROLE_MANAGER, ROLE_TRANSPORT
 from ..common import UsersPerm, resolve_business
 from .base import (
     AuthUser,
@@ -62,7 +62,7 @@ def approve_user_api(request):
 
     data = request.data
     user_id = data.get("user_id")
-    role = data.get("role", "customer")
+    role = normalize_role(data.get("role", "customer"))
     raw_username = (data.get("username") or "").strip()
 
     if not user_id:
@@ -99,6 +99,9 @@ def approve_user_api(request):
         user.business = business
 
     user.save()
+    if role == ROLE_TRANSPORT:
+        from ...transport_services import ensure_driver_profile
+        ensure_driver_profile(user)
 
     return Response({
         "success": True,

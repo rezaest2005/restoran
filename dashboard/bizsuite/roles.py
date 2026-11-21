@@ -6,6 +6,7 @@ Manager  → مدیر — همه بخش‌ها منهای تنظیمات مال�
 Cashier  → صندوقدار — POS + فاکتور + سفارشات
 Kitchen  → خط تولید — تولید + موجودی + ضایعات
 Waiter   → گارسون — ثبت سفارش + مشاهده وضعیت
+Transport→ حمل‌ونقل — پیک سفارش‌ها و راننده‌ی بار/محصول (فقط برنامه‌ی راننده)
 Customer → مشتری — فقط مشاهده منو و باشگاه
 """
 
@@ -18,8 +19,23 @@ ROLE_KITCHEN  = "kitchen"
 ROLE_WAITER   = "waiter"
 ROLE_CUSTOMER = "customer"
 ROLE_WAREHOUSE = "warehouse"
-ROLE_DRIVER = "driver"
+ROLE_TRANSPORT = "transport"  # one role for everyone who moves things: order couriers AND cargo/unit drivers
 ROLE_OTHER = "other"        # any custom job title: the owner ticks exactly the tabs it needs
+
+# Legacy names of the transport role. The API still accepts them and stores ROLE_TRANSPORT.
+ROLE_DRIVER = "driver"
+ROLE_COURIER = "courier"
+ROLE_ALIASES = {ROLE_DRIVER: ROLE_TRANSPORT, ROLE_COURIER: ROLE_TRANSPORT}
+
+
+def normalize_role(role):
+    """Map legacy role names (driver / courier) to the current one; other values unchanged."""
+    role = (role or "").strip() if isinstance(role, str) else role
+    return ROLE_ALIASES.get(role, role)
+
+
+def is_transport_role(role) -> bool:
+    return normalize_role(role) == ROLE_TRANSPORT
 
 ROLE_CHOICES = [
     (ROLE_OWNER,    "مالک"),
@@ -28,7 +44,7 @@ ROLE_CHOICES = [
     (ROLE_KITCHEN,  "خط تولید"),
     (ROLE_WAITER,   "گارسون"),
     (ROLE_WAREHOUSE, "انباردار"),
-    (ROLE_DRIVER,   "راننده"),
+    (ROLE_TRANSPORT, "حمل‌ونقل (راننده / پیک)"),
     (ROLE_CUSTOMER, "مشتری"),
     (ROLE_OTHER,    "سایر"),
 ]
@@ -92,7 +108,7 @@ ROLE_PERMISSIONS = {
         "inventory.view", "inventory.edit", "inventory.usage_log",
         "suppliers.view", "recipes.view", "foods.view",
     ],
-    ROLE_DRIVER: [],
+    ROLE_TRANSPORT: [],
     ROLE_CUSTOMER: [
         "foods.view",
     ],
@@ -106,7 +122,7 @@ def get_user_role(user) -> str:
     if user.is_superuser:
         return ROLE_OWNER
     if hasattr(user, "role") and user.role:
-        return user.role
+        return normalize_role(user.role)
     return ""
 
 

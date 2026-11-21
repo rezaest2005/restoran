@@ -18,6 +18,7 @@ from .management import (
     user_toggle_active,
     user_delete,
 )
+from .transport import transport_people, transport_person_detail
 from .approvals import (
     admin_reset_password,
     approve_user_api,
@@ -39,4 +40,6 @@ __all__ = [
     "admin_reset_password",
     "approve_user_api",
     "reject_user_api",
+    "transport_people",
+    "transport_person_detail",
 ]

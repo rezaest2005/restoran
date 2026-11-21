@@ -16,8 +16,8 @@ import secrets
 from decimal import Decimal, InvalidOperation
 
 from django.core.cache import cache
-from django.db import IntegrityError, transaction
-from django.db.models import Max, Q
+from django.db import IntegrityError
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework.decorators import (
@@ -31,9 +31,10 @@ from ..delivery_services import (
     settle_driver_cash, uncollected_cash, update_stop, validate_coords,
 )
 from ..models import (
-    Carrier, CashSettlement, CostCenter, Driver, LocationPing, Trip, TripStop, User, Vehicle,
+    Carrier, CashSettlement, CostCenter, Driver, LocationPing, Trip, TripStop, Vehicle,
 )
 from ..modules import module_enabled
+from ..transport_services import driver_data, save_transport_person
 from ..utils import api_error, api_success
 from .common import StaffAuth, make_service_permission, server_error, staff_business
 from ..activity import audit
@@ -114,15 +115,7 @@ def _carrier_data(c):
             "notes": c.notes, "is_active": c.is_active}
 
 
-def _driver_data(d):
-    return {
-        "id": d.id, "number": d.number, "name": d.name, "phone": d.phone, "user_id": d.user_id,
-        "username": d.user.username if d.user_id else "",
-        "link_path": f"/{d.business.slug}/bizsuite_driver/{d.number}" if d.number else f"/{d.business.slug}/bizsuite_driver",
-        "carrier_id": d.carrier_id, "default_vehicle_id": d.default_vehicle_id,
-        "pay_per_trip": _f(d.pay_per_trip), "is_active": d.is_active, "on_shift": d.on_shift,
-        "last_lat": _f(d.last_lat), "last_lng": _f(d.last_lng), "last_seen": _local_dt(d.last_seen),
-    }
+_driver_data = driver_data   # one serializer for transport people (see transport_services)
 
 
 def _stop_data(s):
@@ -316,88 +309,19 @@ def carrier_detail(request, pk):
     return api_success(data=_carrier_data(c))
 
 
-def _driver_fields(r, d, drv=None):
-    name = str(d.get("name", drv.name if drv else "") or "").strip()
-    if not name:
-        raise ValueError("نام راننده الزامی است.")
-    out = {
-        "name": name[:200], "phone": str(d.get("phone", drv.phone if drv else "") or "")[:20],
-        "pay_per_trip": _dec(d.get("pay_per_trip", drv.pay_per_trip if drv else 0), "کارمزد") or Decimal("0"),
-        "is_active": _bool(d.get("is_active"), drv.is_active if drv else True),
-    }
-    if "carrier_id" in d or drv is None:
-        out["carrier"] = _obj(Carrier, d.get("carrier_id"), r)
-        if d.get("carrier_id") and out["carrier"] is None:
-            raise ValueError("حمل‌کننده پیدا نشد.")
-    if "default_vehicle_id" in d or drv is None:
-        out["default_vehicle"] = _obj(Vehicle, d.get("default_vehicle_id"), r)
-        if d.get("default_vehicle_id") and out["default_vehicle"] is None:
-            raise ValueError("خودرو پیدا نشد.")
-    if "user_id" in d or drv is None:
-        uid = d.get("user_id")
-        if uid in (None, ""):
-            out["user"] = None
-        else:
-            u = User.objects.filter(pk=uid, business=r).first() if str(uid).isdigit() else None
-            if u is None or u.role not in ("driver", "owner", "manager"):
-                raise ValueError("کاربر انتخابی معتبر نیست.")
-            if Driver.all_objects.filter(user=u).exclude(pk=drv.pk if drv else None).exists():
-                raise ValueError("این کاربر قبلاً به راننده دیگری متصل است.")
-            out["user"] = u
-    return out
-
-
-def _apply_driver_account(r, data, fields, name, drv=None):
-    """Courier sign-in made right in the fleet form: username + password create the courier's account
-    (or, when one is linked already, a filled password resets it). The username gets the business prefix."""
-    username = str(data.get("username") or "").strip()
-    password = str(data.get("password") or "")
-    user = fields["user"] if "user" in fields else (drv.user if drv is not None else None)
-    if user is not None:
-        if password:
-            if len(password) < 4:
-                raise ValueError("رمز باید حداقل ۴ کاراکتر باشد.")
-            user.set_password(password)
-            user.save(update_fields=["password"])
-        return
-    if not username and not password:
-        return
-    if not username or len(password) < 4:
-        raise ValueError("برای ساخت ورود پیک هم نام کاربری و هم رمز (حداقل ۴ کاراکتر) لازم است.")
-    from .users.base import _apply_prefix
-    final = _apply_prefix(username, r)
-    if User.objects.filter(username=final).exists():
-        raise ValueError(f"نام کاربری «{final}» قبلاً ثبت شده است.")
-    u = User.objects.create_user(username=final, password=password)
-    u.role = "driver"
-    u.business = r
-    u.first_name = (name or "")[:150]
-    u.is_approved = True
-    u.is_staff = False
-    u.is_superuser = False
-    u.tabs = {}
-    u.save()
-    fields["user"] = u
-
-
 @api_view(["GET", "POST"])
 @authentication_classes(StaffAuth)
 @permission_classes([DeliveryPerm])
-@audit("delivery", "driver", "پیک")
+@audit("delivery", "driver", "راننده / پیک")
 def drivers(request):
     r = staff_business(request)
     if r is None:
         return _no_business()
     if request.method == "GET":
-        qs = Driver.all_objects.filter(business=r).order_by("name")
+        qs = Driver.all_objects.filter(business=r).select_related("user", "default_vehicle", "business").order_by("name")
         return api_success(data=[_driver_data(d) for d in qs])
     try:
-        fields = _driver_fields(r, request.data)
-        with transaction.atomic():
-            type(r).objects.select_for_update().filter(pk=r.pk).first()
-            _apply_driver_account(r, request.data, fields, fields.get("name"))
-            top = Driver.all_objects.filter(business=r).aggregate(m=Max("number"))["m"] or 0
-            drv = Driver.all_objects.create(business=r, number=top + 1, **fields)
+        drv = save_transport_person(r, request.data)
     except ValueError as e:
         return api_error(str(e))
     except Exception as e:
@@ -408,7 +332,7 @@ def drivers(request):
 @api_view(["PUT", "DELETE"])
 @authentication_classes(StaffAuth)
 @permission_classes([DeliveryPerm])
-@audit("delivery", "driver", "پیک")
+@audit("delivery", "driver", "راننده / پیک")
 def driver_detail(request, pk):
     r = staff_business(request)
     if r is None:
@@ -422,12 +346,7 @@ def driver_detail(request, pk):
         drv.delete()
         return api_success(data={"id": pk})
     try:
-        with transaction.atomic():
-            fields = _driver_fields(r, request.data, drv)
-            _apply_driver_account(r, request.data, fields, fields.get("name") or drv.name, drv)
-            for k, val in fields.items():
-                setattr(drv, k, val)
-            drv.save()
+        drv = save_transport_person(r, request.data, drv)
     except ValueError as e:
         return api_error(str(e))
     except Exception as e:

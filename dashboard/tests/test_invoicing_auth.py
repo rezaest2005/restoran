@@ -99,11 +99,12 @@ class RolesAndTabsTests(TestCase):
     def setUp(self):
         clear_current_business()
 
-    def test_warehouse_and_driver_roles_are_valid(self):
-        from bizsuite.roles import ROLE_CHOICES
+    def test_warehouse_and_transport_roles_are_valid(self):
+        from bizsuite.roles import ROLE_CHOICES, normalize_role
         codes = {r[0] for r in ROLE_CHOICES}
         self.assertIn("warehouse", codes)
-        self.assertIn("driver", codes)
+        self.assertIn("transport", codes)
+        self.assertEqual(normalize_role("driver"), "transport")     # legacy name still accepted
 
     def test_tab_keys_include_kitchen_and_recipes(self):
         from bizsuite.views.users.tabs import ALL_TAB_KEYS

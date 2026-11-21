@@ -33,7 +33,7 @@ class CourierAccountTests(TestCase):
         self.assertEqual(d["number"], 1)
         self.assertTrue(d["username"].endswith("reza1"))
         u = User.objects.get(pk=d["user_id"])
-        self.assertEqual((u.role, u.business_id, u.is_approved), ("driver", self.b.id, True))
+        self.assertEqual((u.role, u.business_id, u.is_approved), ("transport", self.b.id, True))
         self.assertTrue(u.check_password("secret99"))
         self.assertEqual(Driver.all_objects.get(pk=d["id"]).user_id, u.id)
 

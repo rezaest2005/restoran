@@ -10,8 +10,9 @@ from rest_framework.response import Response
 
 from ...roles import (
     ROLE_CHOICES, get_user_role, get_user_permissions,
-    get_role_display, has_permission, ROLE_OWNER, ROLE_MANAGER,
+    get_role_display, has_permission, normalize_role, ROLE_OWNER, ROLE_MANAGER, ROLE_TRANSPORT,
 )
+from ...transport_services import driver_data, ensure_driver_profile
 from ..common import UsersPerm, resolve_business
 from .base import (
     AuthUser,
@@ -29,6 +30,14 @@ logger = logging.getLogger(__name__)
 #  لیست کاربران
 # ═══════════════════════════════════════
 
+def _driver_of(u):
+    try:
+        d = u.driver_profile
+    except Exception:
+        return None
+    return driver_data(d) if d is not None else None
+
+
 @api_view(["GET"])
 @permission_classes([UsersPerm])
 def user_management_api(request):
@@ -37,9 +46,10 @@ def user_management_api(request):
 
     users = _get_business_users_qs(request.user).order_by("-date_joined")
 
-    role_filter = request.GET.get("role")
+    role_filter = normalize_role(request.GET.get("role"))
     if role_filter:
         users = users.filter(role=role_filter)
+    users = users.select_related("driver_profile", "driver_profile__default_vehicle", "driver_profile__business")
 
     search = request.GET.get("search", "").strip()
     if search:
@@ -79,6 +89,8 @@ def user_management_api(request):
 
             # ★ فیکس — نرمال‌شده، همه کلیدها explicit
             "tabs": _get_normalized_tabs(u),
+            # transport people (and an owner who drives): their driver record — number, vehicle, app link
+            "driver": _driver_of(u),
         })
     return Response({
         "success": True,
@@ -103,7 +115,7 @@ def create_user_api(request):
     raw_username = (data.get("username") or "").strip()
     password = data.get("password") or ""
     phone = (data.get("phone_number") or "").strip()
-    role = data.get("role", "cashier")
+    role = normalize_role(data.get("role", "cashier"))
     first_name = (data.get("first_name") or "").strip()
     last_name = (data.get("last_name") or "").strip()
 
@@ -179,6 +191,8 @@ def create_user_api(request):
             update_fields.append("tabs")
 
         user.save(update_fields=update_fields)
+        if role == ROLE_TRANSPORT:
+            ensure_driver_profile(user)     # the driver app works right after sign-in
 
         prefix = ''
         if business:
@@ -211,7 +225,7 @@ def user_update_role(request):
         return Response({"error": "دسترسی ندارید."}, status=403)
 
     user_id = request.data.get("user_id")
-    new_role = request.data.get("role")
+    new_role = normalize_role(request.data.get("role"))
 
     if not user_id or not new_role:
         return Response({"error": "شناسه کاربر و نقش الزامی است."}, status=400)
@@ -237,6 +251,8 @@ def user_update_role(request):
     target.role = new_role
     target.is_staff = new_role in (ROLE_OWNER, ROLE_MANAGER)
     target.save(update_fields=["role", "is_staff"])
+    if new_role == ROLE_TRANSPORT:
+        ensure_driver_profile(target)
 
     return Response({
         "success": True,
@@ -279,6 +295,9 @@ def user_toggle_active(request):
 
     target.is_active = not target.is_active
     target.save(update_fields=["is_active"])
+    if normalize_role(target.role) == ROLE_TRANSPORT:
+        from ...models import Driver
+        Driver.all_objects.filter(user=target).update(is_active=target.is_active)
 
     status_text = "فعال" if target.is_active else "غیرفعال"
     return Response({

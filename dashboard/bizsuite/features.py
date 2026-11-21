@@ -147,7 +147,8 @@ ROLE_FEATURES: dict[str, list[str]] = {
     "warehouse": ["home", "inventory_invoice", "inventory_sales", "inventory_warehouse",
                   "inventory_receiving", "inventory_purchase_list", "inventory_reports",
                   "dictionary_items", "dictionary_suppliers", "dictionary_warehouses"],
-    "driver": [],
+    "transport": [],
+    "driver": [],     # legacy name of "transport"
     "customer": [],
 }
 
