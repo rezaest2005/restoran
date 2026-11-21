@@ -36,7 +36,7 @@ def _get_business_modules(user):
 
 
 def _get_business_profile(user):
-    """Business type, its words and whether the owner still has to run the setup wizard (see industries.py)."""
+    """Business type, its words (see industries.py)."""
     from ... import industries
     biz = getattr(user, 'business', None)
     if biz is None:
@@ -44,7 +44,6 @@ def _get_business_profile(user):
     return {
         'business_industry': biz.industry or '',
         'business_terms': industries.terms_for(biz),
-        'setup_required': industries.is_setup_required(biz),
     }
 
 

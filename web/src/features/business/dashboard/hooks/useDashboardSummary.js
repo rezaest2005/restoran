@@ -6,7 +6,7 @@ import { setBusinessTerms } from "../terms";
 const KEY = ["dashboard-summary"];
 
 /**
- * GET /api/dashboard/summary/ (KPIs of enabled modules only, alerts, onboarding checklist, industry + terms).
+ * GET /api/dashboard/summary/ (KPIs of enabled modules only, alerts, industry + terms).
  * Refreshes every minute; keeps the last good payload on a failed refresh.
  */
 export default function useDashboardSummary() {
@@ -26,7 +26,6 @@ export default function useDashboardSummary() {
     if (summary?.terms) {
       setBusinessTerms(summary.terms, {
         business_industry: summary.industry?.set ? summary.industry.key : "",
-        setup_required: !!summary.setup_required,
       });
     }
   }, [summary]);

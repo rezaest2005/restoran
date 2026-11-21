@@ -33,7 +33,7 @@ def _clean_phone(val):
 
 # ★ helper: آبجکت کامل tenant + business برای response
 def _clean_industry(value):
-    """Known preset key (see industries.py) or '' (owner picks it in the setup wizard)."""
+    """Known preset key (see industries.py) or '' (unset = neutral terms)."""
     from ...industries import ALIASES, INDUSTRY_BY_KEY
     key = (value or '').strip().lower()
     key = ALIASES.get(key, key) if key else ''
@@ -63,7 +63,6 @@ def _tenant_to_dict(tenant, business=None):
         'disabled_features': list(business.disabled_features) if business else [],
         'subscription': subscription_payload(business) if business else None,
         'industry': (business.industry if business else '') or '',
-        'setup_required': bool(business and business.setup_completed_at is None),
         'created_at': tenant.created_at.strftime('%Y/%m/%d'),
     }
 

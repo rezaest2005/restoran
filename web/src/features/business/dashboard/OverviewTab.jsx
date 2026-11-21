@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useCallback } from "react";
-import { Alert, Box, Button, Chip, Typography, CircularProgress } from "@mui/material";
+import React, { useMemo } from "react";
+import { Alert, Box, Typography, CircularProgress } from "@mui/material";
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import { useTranslation } from "react-i18next";
@@ -13,11 +13,7 @@ import PosSection from "./sections/PosSection";
 import InventorySection from "./sections/InventorySection";
 import KpiWidgets from "./home/KpiWidgets";
 import AlertsPanel from "./home/AlertsPanel";
-import OnboardingChecklist from "./home/OnboardingChecklist";
 import QuickActions from "./home/QuickActions";
-import SetupWizard from "./home/SetupWizard";
-import { setChecklistDismissed } from "./api";
-import { readUser } from "./access";
 import { buildColors } from "@shared/palette";
 import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
 import WebsiteCard from "./WebsiteCard";
@@ -53,22 +49,18 @@ class SectionErrorBoundary extends React.Component {
 /**
  * Main business home: works for every business type. Everything below the header comes from
  * /api/dashboard/summary/, which only contains modules the business has and the user may see:
- * alerts → getting-started checklist → KPI widgets (ordered by the business-type preset) → quick actions →
+ * alerts → KPI widgets (ordered by the business-type preset) → quick actions →
  * the detailed POS / inventory chart sections (only when those modules are present).
  */
 export default function OverviewTab() {
   const { mode } = useThemeMode();
-  const { isRtl, lang } = useLang();
+  const { isRtl } = useLang();
   const { t } = useTranslation();
   const isDark = mode === "dark";
   const fmt = useNumberFormat(isRtl);
   const C = useMemo(() => buildColors(isDark), [isDark]);
 
-  const user = useMemo(() => readUser(), []);
-  const isOwner = !!user && (user.role === "owner" || user.is_superuser);
-  const canHideChecklist = isOwner || user?.role === "manager";
-
-  const { summary, loading: summaryLoading, error: summaryError, reload, setSummary } = useDashboardSummary();
+  const { summary, loading: summaryLoading, error: summaryError } = useDashboardSummary();
   const data = summary?.data || {};
   const sectionType = summary
     ? (data.pos && data.inventory ? "both" : data.pos ? "pos" : data.inventory ? "inventory" : null)
@@ -76,21 +68,6 @@ export default function OverviewTab() {
   const { loading: chartsLoading, posData, inventoryData } = useDashboardData(sectionType || "both", !!sectionType);
   const showPos = !!sectionType && sectionType !== "inventory" && !!posData;
   const showInv = !!sectionType && sectionType !== "pos" && !!inventoryData;
-
-  const [wizardChoice, setWizardOpen] = useState(null); // null = not touched yet this visit
-
-  // the owner sees the setup wizard on his first visit until the business type is chosen ("later" closes it)
-  const wizardOpen = wizardChoice ?? (!!summary?.setup_required && isOwner);
-
-  const onWizardSaved = useCallback(() => {
-    setWizardOpen(false);
-    reload();
-  }, [reload]);
-
-  const hideChecklist = useCallback(() => {
-    setSummary((s) => (s ? { ...s, checklist: [], checklist_dismissed: true } : s));
-    setChecklistDismissed(true).catch(() => reload());
-  }, [reload, setSummary]);
 
   // ── شورتکات‌ها: Alt+Shift+N پرش به بخش · Ctrl+A/Ctrl+Z بخش بعدی/قبلی (F1 و Alt+N در هاب) ──
   const sections = useMemo(() => [
@@ -141,8 +118,6 @@ export default function OverviewTab() {
     );
   }
 
-  const industryName = summary?.industry?.set ? (lang === "en" ? summary.industry.name_en : summary.industry.name_fa) : "";
-
   return (
     <Box dir={isRtl ? "rtl" : "ltr"} sx={{
       width: "100%",
@@ -170,12 +145,6 @@ export default function OverviewTab() {
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", justifyContent: { xs: "center", sm: "flex-start" } }}>
             <Typography sx={{ fontSize: 13, color: C.sub }}>{t("dash.summary")}</Typography>
-            {industryName && (
-              <Chip size="small" label={industryName} variant="outlined"
-                onClick={isOwner ? () => setWizardOpen(true) : undefined}
-                title={isOwner ? t("ui_dash2.change_type") : t("ui_dash2.business_type")}
-                sx={{ fontWeight: 700 }} />
-            )}
           </Box>
         </Box>
         <Box sx={{
@@ -188,21 +157,12 @@ export default function OverviewTab() {
         </Box>
       </Box>
 
-      {summary?.setup_required && isOwner && !wizardOpen && (
-        <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}
-          action={<Button size="small" onClick={() => setWizardOpen(true)} sx={{ textTransform: "none" }}>{t("ui_dash2.setup_now")}</Button>}>
-          {t("ui_dash2.setup_banner")}
-        </Alert>
-      )}
-
       <WebsiteCard />
 
       <Box id="dash-sec-home" sx={{ scrollMarginTop: 72 }}>
         <SectionErrorBoundary name="Home">
           {summaryError && !summary && <Alert severity="warning" sx={{ mb: 2 }}>{t("dash.loading")}</Alert>}
           <AlertsPanel alerts={summary?.alerts} C={C} fmt={fmt} />
-          <OnboardingChecklist steps={summary?.checklist} C={C} canHide={canHideChecklist}
-            onHide={hideChecklist} onOpenWizard={isOwner ? () => setWizardOpen(true) : undefined} />
           <Box sx={{ mb: 1.5 }}>
             <Typography component="h2" sx={{ fontSize: 15, fontWeight: 800, color: C.text }}>{t("ui_dash2.kpi_title")}</Typography>
             <Typography sx={{ fontSize: 12, color: C.sub }}>{t("ui_dash2.kpi_sub")}</Typography>
@@ -234,7 +194,6 @@ export default function OverviewTab() {
         </Box>
       )}
 
-      <SetupWizard open={wizardOpen} onClose={() => setWizardOpen(false)} onSaved={onWizardSaved} />
     </Box>
   );
 }
