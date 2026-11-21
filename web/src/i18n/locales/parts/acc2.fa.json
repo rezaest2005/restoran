@@ -226,6 +226,10 @@
       "preset_month": "این ماه",
       "preset_season": "این فصل",
       "preset_year": "امسال"
+    },
+    "home": {
+      "cheques_due": "چک‌های سررسید این هفته",
+      "all_cheques": "همه‌ی چک‌ها"
     }
   }
 }

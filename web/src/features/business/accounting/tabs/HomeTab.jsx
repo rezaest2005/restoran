@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Box, Typography, Button, Alert, CircularProgress, Chip } from "@mui/material";
 import { fmtMoney, fmtDate } from "../common";
-import { fetchAutopilot, errMsg } from "../api";
+import { fetchAutopilot, fetchChequeReminders, errMsg } from "../api";
 import { CategoryIcon, ExpenseDialog, OpeningDialog, PaymentDialog, RecurringDialog } from "./QuickDialogs";
 
 /**
@@ -14,11 +14,16 @@ export default function HomeTab(ctx) {
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [dialog, setDialog] = useState(null);       // { type: "expense" | "in" | "out" | "fixed", partyId? }
+  const [dueCheques, setDueCheques] = useState([]);
 
   const load = useCallback(() => {
     fetchAutopilot().then((d) => { setData(d); setError(""); }).catch((e) => setError(errMsg(e, t("ui_i.common.load_failed"))));
   }, [t]);
   useEffect(() => { load(); }, [load, refreshKey]);
+  // cheques due within a week (or overdue) that are still in hand / in collection
+  useEffect(() => {
+    fetchChequeReminders().then((d) => setDueCheques(Array.isArray(d) ? d : [])).catch(() => {});
+  }, [refreshKey]);
 
   const done = () => { setDialog(null); notify(t("ui_acc.dialog.saved")); load(); bump(); };
   const n = (v) => fmtMoney(v, lang);
@@ -144,6 +149,20 @@ export default function HomeTab(ctx) {
           ))}
         </>
       ))}
+
+      {dueCheques.length > 0 && section(t("acc2.home.cheques_due"), (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+          {dueCheques.slice(0, 8).map((c) => (
+            <Box key={c.id} sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+              <Chip size="small" label={c.direction === "received" ? t("acc2.cheques.received") : t("acc2.cheques.issued")} />
+              <Typography sx={{ color: C.text, fontSize: 14, flex: 1, minWidth: 140 }}>{c.party} · {c.number}</Typography>
+              <Typography sx={{ color: C.sub, fontSize: 13 }}>{fmtDate(c.due_date, lang)}</Typography>
+              <Typography sx={{ color: C.text, fontWeight: 700 }}>{n(c.amount)}</Typography>
+            </Box>
+          ))}
+          <Box><Button sx={S.link} onClick={() => goTab("cheques")}>{t("acc2.home.all_cheques")}</Button></Box>
+        </Box>
+      ), { mt: 2 })}
 
       {dialog?.type === "expense" && <ExpenseDialog ctx={ctx} onClose={() => setDialog(null)} onSaved={done} />}
       {(dialog?.type === "in" || dialog?.type === "out") && <PaymentDialog ctx={ctx} kind={dialog.type} partyId={dialog.partyId} onClose={() => setDialog(null)} onSaved={done} />}

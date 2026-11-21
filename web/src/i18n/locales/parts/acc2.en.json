@@ -226,6 +226,10 @@
       "preset_month": "This month",
       "preset_season": "This season",
       "preset_year": "This year"
+    },
+    "home": {
+      "cheques_due": "Cheques due this week",
+      "all_cheques": "All cheques"
     }
   }
 }

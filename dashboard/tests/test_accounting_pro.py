@@ -452,3 +452,20 @@ class StandaloneApiTests(TestCase):
         self.assertEqual(r.status_code, 404)
         r = other.get("/api/accounting/details/")
         self.assertEqual(r.json()["data"], [])
+
+
+class ChequeUndoTests(Base):
+    def test_double_undo_never_unbalances(self):
+        party = create_detail(self.b, "p", kind="customer")
+        bank = create_money_account(self.b, "bank", "b")
+        ch = register_cheque(self.b, "received", party, "u1", 100, d(2026, 1, 1), d(2026, 1, 9))
+        ch = change_cheque_status(ch, "deposited", d(2026, 1, 9), money_account=bank)
+        ch = undo_cheque_status(ch)
+        self.assertEqual(ch.status, "in_hand")
+        with self.assertRaises(ValueError):  # the registration itself cannot be undone
+            undo_cheque_status(ch)
+        ch = change_cheque_status(ch, "deposited", d(2026, 1, 10), money_account=bank)
+        ch = undo_cheque_status(ch)
+        self.assertEqual(bal(self.b, "1135"), D("100"))
+        self.assertEqual(bal(self.b, "1136"), D("0"))
+        self.assertTrue(trial_balance(self.b)["balanced"])
