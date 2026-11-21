@@ -13,6 +13,7 @@ from .views.super_admin import modules as mod_views
 from .views.super_admin import qr as qr_super
 from .views import qr_redirect as qr_public
 from .views import accounting_auto as acc_auto
+from .views import accounting_pro as acc_pro
 from .views import business_settings
 from .views import activity as activity_views
 from .views.super_admin import support as sup_super
@@ -207,6 +208,39 @@ urlpatterns = [
     path("api/accounting/journal/", views.journal, name="accounting_journal"),
     path("api/accounting/journal/<int:pk>/", views.journal_detail, name="accounting_journal_detail"),
     path("api/accounting/journal/<int:pk>/reverse/", views.journal_reverse, name="accounting_journal_reverse"),
+    path("api/accounting/journal/<int:pk>/post/", views.journal_post, name="accounting_journal_post"),
+    path("api/accounting/settings/", acc_pro.settings_view, name="acc_settings"),
+    path("api/accounting/chart-templates/", acc_pro.chart_templates, name="acc_chart_templates"),
+    path("api/accounting/details/", acc_pro.details, name="acc_details"),
+    path("api/accounting/details/<int:pk>/", acc_pro.detail_item, name="acc_detail_item"),
+    path("api/accounting/fiscal-years/", acc_pro.fiscal_years, name="acc_fiscal_years"),
+    path("api/accounting/fiscal-years/<int:pk>/", acc_pro.fiscal_year_item, name="acc_fiscal_year_item"),
+    path("api/accounting/fiscal-years/<int:pk>/close/", acc_pro.fiscal_year_close, name="acc_fiscal_year_close"),
+    path("api/accounting/fiscal-years/<int:pk>/reopen/", acc_pro.fiscal_year_reopen, name="acc_fiscal_year_reopen"),
+    path("api/accounting/periods/<int:pk>/lock/", acc_pro.period_lock, name="acc_period_lock"),
+    path("api/accounting/money-accounts/", acc_pro.money_accounts, name="acc_money_accounts"),
+    path("api/accounting/money-accounts/<int:pk>/", acc_pro.money_account_item, name="acc_money_account_item"),
+    path("api/accounting/money-accounts/<int:pk>/reconcile/", acc_pro.reconcile_view, name="acc_reconcile"),
+    path("api/accounting/money-accounts/<int:pk>/statement/", acc_pro.statement_import, name="acc_statement_import"),
+    path("api/accounting/money-accounts/<int:pk>/auto-match/", acc_pro.statement_auto_match, name="acc_auto_match"),
+    path("api/accounting/statement-lines/<int:pk>/", acc_pro.statement_line_item, name="acc_statement_line"),
+    path("api/accounting/statement-lines/<int:pk>/match/", acc_pro.statement_line_match, name="acc_statement_match"),
+    path("api/accounting/transfers/", acc_pro.transfers, name="acc_transfers"),
+    path("api/accounting/transfers/<int:pk>/cancel/", acc_pro.transfer_cancel, name="acc_transfer_cancel"),
+    path("api/accounting/cheques/", acc_pro.cheques, name="acc_cheques"),
+    path("api/accounting/cheques/reminders/", acc_pro.cheque_reminders, name="acc_cheque_reminders"),
+    path("api/accounting/cheques/<int:pk>/", acc_pro.cheque_item, name="acc_cheque_item"),
+    path("api/accounting/cheques/<int:pk>/status/", acc_pro.cheque_status, name="acc_cheque_status"),
+    path("api/accounting/cheques/<int:pk>/undo/", acc_pro.cheque_undo, name="acc_cheque_undo"),
+    path("api/accounting/budgets/", acc_pro.budgets, name="acc_budgets"),
+    path("api/accounting/budgets/<int:pk>/", acc_pro.budget_item, name="acc_budget_item"),
+    path("api/accounting/vat-documents/", acc_pro.vat_document, name="acc_vat_document"),
+    path("api/accounting/reports/journal-book/", acc_pro.report_journal_book, name="acc_journal_book"),
+    path("api/accounting/reports/trial-balance-ext/", acc_pro.report_trial_balance_ext, name="acc_trial_ext"),
+    path("api/accounting/reports/cash-flow/", acc_pro.report_cash_flow, name="acc_cash_flow"),
+    path("api/accounting/reports/aging/", acc_pro.report_aging, name="acc_aging"),
+    path("api/accounting/reports/party-balances/", acc_pro.report_party_balances, name="acc_party_balances"),
+    path("api/accounting/reports/vat/", acc_pro.report_vat, name="acc_vat_report"),
     path("api/accounting/reports/trial-balance/", views.report_trial_balance, name="accounting_trial_balance"),
     path("api/accounting/reports/ledger/", views.report_ledger, name="accounting_ledger"),
     path("api/accounting/reports/income-statement/", views.report_income_statement, name="accounting_income_statement"),

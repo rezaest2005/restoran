@@ -53,6 +53,7 @@ from .accounting import (
     report_income_statement,
     report_balance_sheet,
     accounting_summary,
+    journal_post,
 )
 from .club import (
     club_settings,
@@ -229,4 +230,5 @@ __all__ = [
     "report_income_statement",
     "report_balance_sheet",
     "accounting_summary",
+    "journal_post",
 ]

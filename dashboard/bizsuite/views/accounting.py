@@ -5,7 +5,8 @@
   /api/accounting/accounts/<id>/            PUT / DELETE
   /api/accounting/cost-centers/             GET / POST
   /api/accounting/journal/                  GET (فیلتر) / POST (سند دستی)
-  /api/accounting/journal/<id>/             GET
+  /api/accounting/journal/<id>/             GET / PUT (فقط پیش‌نویس) / DELETE (فقط پیش‌نویس)
+  /api/accounting/journal/<id>/post/        POST (قطعی کردن پیش‌نویس)
   /api/accounting/journal/<id>/reverse/     POST
   /api/accounting/reports/trial-balance|ledger|income-statement|balance-sheet/
   /api/accounting/summary/                  GET (شاخص‌های داشبورد)
@@ -21,10 +22,10 @@ from rest_framework.decorators import api_view, authentication_classes, permissi
 
 from ..accounting_services import (
     BANK, CASH, DRIVER_CASH, INVENTORY, PAYABLE, RECEIVABLE,
-    balance_sheet, ensure_chart, income_statement, ledger, post_entry,
-    reverse_entry, trial_balance,
+    balance_sheet, delete_draft, ensure_chart, income_statement, ledger, post_draft, post_entry,
+    reverse_entry, save_draft, trial_balance,
 )
-from ..models import Account, CostCenter, JournalEntry, JournalLine
+from ..models import Account, CostCenter, DetailAccount, JournalEntry, JournalLine
 from ..utils import api_error, api_success
 from .common import StaffAuth, make_service_permission, staff_business
 from ..activity import audit
@@ -47,10 +48,12 @@ def _date(value, name):
 
 
 def _account_data(a):
+    level = "group" if a.parent_id is None else ("subsidiary" if a.is_postable else "ledger")
     return {
         "id": a.id, "code": a.code, "name": a.name, "name_en": a.name_en, "type": a.type,
         "type_display": a.get_type_display(), "parent_id": a.parent_id,
         "is_postable": a.is_postable, "is_system": a.is_system, "is_active": a.is_active,
+        "role": a.role, "level": level,
     }
 
 
@@ -58,19 +61,23 @@ def _entry_data(e, with_lines=False):
     data = {
         "id": e.id, "number": e.number, "date": e.date.isoformat(),
         "description": e.description, "source_type": e.source_type, "source_id": e.source_id,
-        "reversal_of": e.reversal_of_id,
+        "reversal_of": e.reversal_of_id, "status": e.status, "kind": e.kind, "reference": e.reference,
     }
     reversed_by = JournalEntry.all_objects.filter(reversal_of=e).values_list("id", flat=True).first()
     data["reversed_by"] = reversed_by
     data["is_reversed"] = reversed_by is not None
-    lines = list(JournalLine.all_objects.filter(entry=e).select_related("account", "cost_center"))
+    lines = list(JournalLine.all_objects.filter(entry=e).select_related("account", "cost_center", "detail"))
     data["total"] = _f(sum((l.debit for l in lines), Decimal("0")))
+    data["total_credit"] = _f(sum((l.credit for l in lines), Decimal("0")))
     if with_lines:
         data["lines"] = [
             {"id": l.id, "account_id": l.account_id, "code": l.account.code,
              "account": l.account.name, "debit": _f(l.debit), "credit": _f(l.credit),
              "memo": l.memo, "cost_center_id": l.cost_center_id,
-             "cost_center": l.cost_center.name if l.cost_center else ""}
+             "cost_center": l.cost_center.name if l.cost_center else "",
+             "detail_id": l.detail_id, "detail": l.detail.name if l.detail else "",
+             "detail_code": l.detail.code if l.detail else "",
+             "tax_base": _f(l.tax_base) if l.tax_base is not None else None}
             for l in lines
         ]
     return data
@@ -116,9 +123,10 @@ def accounts(request):
         if parent.is_postable:
             parent.is_postable = False
             parent.save(update_fields=["is_postable"])
+    role = str(d.get("role") or (parent.role if parent else "") or "")[:30]
     a = Account.objects.create(
         business=r, code=code[:20], name=name[:200], name_en=str(d.get("name_en") or "")[:200],
-        type=typ, parent=parent, is_postable=bool(d.get("is_postable", True)),
+        type=typ, parent=parent, is_postable=bool(d.get("is_postable", True)), role=role,
     )
     return api_success(data=_account_data(a), message="حساب ساخته شد.", status_code=201)
 
@@ -151,6 +159,8 @@ def account_detail(request, pk):
         a.name_en = str(d["name_en"] or "")[:200]
     if "is_active" in d:
         a.is_active = bool(d["is_active"])
+    if "role" in d and not a.is_system:
+        a.role = str(d["role"] or "")[:30]
     a.save()
     return api_success(data=_account_data(a), message="ذخیره شد.")
 
@@ -207,6 +217,12 @@ def journal(request):
         st = request.query_params.get("source_type")
         if st:
             qs = qs.filter(source_type=st)
+        status = request.query_params.get("status")
+        if status in ("draft", "posted"):
+            qs = qs.filter(status=status)
+        q_num = (request.query_params.get("number") or "").strip()
+        if q_num.isdigit():
+            qs = qs.filter(number=int(q_num))
         q = (request.query_params.get("q") or "").strip()
         if q:
             qs = qs.filter(Q(description__icontains=q) | Q(lines__memo__icontains=q)).distinct()
@@ -215,46 +231,97 @@ def journal(request):
         except ValueError:
             page = 1
         total = qs.count()
-        items = qs.order_by("-date", "-number")[(page - 1) * PAGE: page * PAGE]
+        items = qs.order_by("-date", "-number", "-id")[(page - 1) * PAGE: page * PAGE]
         return api_success(data={"total": total, "page": page, "page_size": PAGE,
                                  "results": [_entry_data(e) for e in items]})
 
     d = request.data
     try:
-        date = _date(d.get("date"), "تاریخ") or timezone.localdate()
-        raw = d.get("lines")
-        if not isinstance(raw, list):
-            raise ValueError("ردیف‌های سند الزامی است.")
-        lines = []
-        for ln in raw:
-            acc = Account.objects.filter(business=r, pk=ln.get("account_id")).first()
-            if acc is None:
-                raise ValueError("حساب یکی از ردیف‌ها پیدا نشد.")
-            cc = None
-            if ln.get("cost_center_id"):
-                cc = CostCenter.objects.filter(business=r, pk=ln["cost_center_id"]).first()
-                if cc is None:
-                    raise ValueError("مرکز هزینه پیدا نشد.")
-            lines.append({"account": acc, "debit": ln.get("debit") or 0,
-                          "credit": ln.get("credit") or 0, "memo": ln.get("memo", ""),
-                          "cost_center": cc})
-        entry = post_entry(r, lines, date=date, description=str(d.get("description") or ""),
-                           source_type="manual", source_id=None, user=request.user)
+        date, lines = _parse_entry(r, d)
+        if d.get("status") == "draft":
+            entry = save_draft(r, lines, date=date, description=str(d.get("description") or ""),
+                               reference=str(d.get("reference") or ""), user=request.user)
+            msg = "پیش‌نویس ذخیره شد."
+        else:
+            entry = post_entry(r, lines, date=date, description=str(d.get("description") or ""),
+                               reference=str(d.get("reference") or ""),
+                               source_type="manual", source_id=None, user=request.user)
+            msg = "سند ثبت شد."
     except (ValueError, InvalidOperation, TypeError) as exc:
         return api_error(str(exc) if isinstance(exc, ValueError) else "مبلغ ردیف نامعتبر است.")
-    return api_success(data=_entry_data(entry, with_lines=True), message="سند ثبت شد.",
-                       status_code=201)
+    return api_success(data=_entry_data(entry, with_lines=True), message=msg, status_code=201)
 
 
-@api_view(["GET"])
+def _parse_entry(r, d):
+    date = _date(d.get("date"), "تاریخ") or timezone.localdate()
+    raw = d.get("lines")
+    if not isinstance(raw, list):
+        raise ValueError("ردیف‌های سند الزامی است.")
+    lines = []
+    for ln in raw:
+        acc = Account.objects.filter(business=r, pk=ln.get("account_id")).first()
+        if acc is None:
+            raise ValueError("حساب یکی از ردیف‌ها پیدا نشد.")
+        cc = None
+        if ln.get("cost_center_id"):
+            cc = CostCenter.objects.filter(business=r, pk=ln["cost_center_id"]).first()
+            if cc is None:
+                raise ValueError("مرکز هزینه پیدا نشد.")
+        det = None
+        if ln.get("detail_id"):
+            det = DetailAccount.objects.filter(business=r, pk=ln["detail_id"]).first()
+            if det is None:
+                raise ValueError("حساب تفصیلی پیدا نشد.")
+        lines.append({"account": acc, "debit": ln.get("debit") or 0,
+                      "credit": ln.get("credit") or 0, "memo": ln.get("memo", ""),
+                      "cost_center": cc, "detail": det, "tax_base": ln.get("tax_base")})
+    return date, lines
+
+
+@api_view(["GET", "PUT", "DELETE"])
 @authentication_classes(StaffAuth)
 @permission_classes([AccountingPerm])
+@audit("accounting", "journal", "سند حسابداری")
 def journal_detail(request, pk):
     r = staff_business(request)
     if r is None:
         return _no_business()
     e = get_object_or_404(JournalEntry.objects.filter(business=r), pk=pk)
-    return api_success(data=_entry_data(e, with_lines=True))
+    if request.method == "GET":
+        return api_success(data=_entry_data(e, with_lines=True))
+    if request.method == "DELETE":
+        try:
+            delete_draft(e)
+        except ValueError as exc:
+            return api_error(str(exc))
+        return api_success(message="پیش‌نویس حذف شد.")
+    d = request.data
+    try:
+        date, lines = _parse_entry(r, d)
+        e = save_draft(r, lines, date=date, description=str(d.get("description") or ""),
+                       reference=str(d.get("reference") or ""), user=request.user, entry=e)
+        if d.get("post"):
+            e = post_draft(e, user=request.user)
+    except (ValueError, InvalidOperation, TypeError) as exc:
+        return api_error(str(exc) if isinstance(exc, ValueError) else "مبلغ ردیف نامعتبر است.")
+    e.refresh_from_db()
+    return api_success(data=_entry_data(e, with_lines=True), message="ذخیره شد.")
+
+
+@api_view(["POST"])
+@authentication_classes(StaffAuth)
+@permission_classes([AccountingPerm])
+@audit("accounting", "journal_post", "قطعی کردن سند")
+def journal_post(request, pk):
+    r = staff_business(request)
+    if r is None:
+        return _no_business()
+    e = get_object_or_404(JournalEntry.objects.filter(business=r), pk=pk)
+    try:
+        e = post_draft(e, user=request.user)
+    except ValueError as exc:
+        return api_error(str(exc))
+    return api_success(data=_entry_data(e, with_lines=True), message="سند قطعی شد.")
 
 
 @api_view(["POST"])
@@ -322,7 +389,8 @@ def report_ledger(request):
         acc = Account.objects.filter(business=r, pk=request.query_params.get("account") or 0).first()
         if acc is None:
             raise ValueError("حساب انتخاب نشده یا پیدا نشد.")
-        data = ledger(r, acc, d_from, d_to)
+        detail = request.query_params.get("detail") or None
+        data = ledger(r, acc, d_from, d_to, detail=int(detail) if detail and str(detail).isdigit() else None)
     except ValueError as exc:
         return api_error(str(exc))
     return api_success(data=_jsonable(data))
