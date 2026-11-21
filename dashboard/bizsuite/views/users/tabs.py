@@ -87,6 +87,8 @@ def user_tabs_api(request):
     grantable = licensed_features(biz) - OWNER_ONLY_KEYS
     if not request.user.is_superuser:
         grantable &= user_features(request.user)
+    if tabs and not isinstance(tabs, dict):
+        return Response({"success": False, "error": "فرمت تب‌ها نامعتبر است"}, status=400)
     wanted = tabs or {}
     normalized = {k: bool(wanted.get(k, False)) and k in grantable for k in ALL_TAB_KEYS}
     normalized["home"] = "home" in grantable
