@@ -141,6 +141,8 @@ urlpatterns = [
     path("api/production/materials/", views.production_materials, name="production_materials"),
     path("api/formulas/", views.formulas, name="formulas"),
     path("api/formulas/<int:pk>/", views.formula_detail, name="formula_detail"),
+    path("api/formulas/<int:pk>/analysis/", views.formula_analysis_view, name="formula_analysis"),
+    path("api/formulas/parse-process/", views.formula_parse_process, name="formula_parse_process"),
     # ── Catalog (Definitions) ──
     path("api/catalog/categories/", cat_views.categories, name="catalog_categories"),
     path("api/catalog/categories/<int:pk>/", cat_views.category_detail, name="catalog_category_detail"),
@@ -158,6 +160,10 @@ urlpatterns = [
     path("api/production/orders/<int:pk>/start/", views.production_order_start, name="production_order_start"),
     path("api/production/orders/<int:pk>/complete/", views.production_order_complete, name="production_order_complete"),
     path("api/production/orders/<int:pk>/cancel/", views.production_order_cancel, name="production_order_cancel"),
+    path("api/production/orders/<int:pk>/steps/<int:step_id>/start/", views.production_step_start, name="production_step_start"),
+    path("api/production/orders/<int:pk>/steps/<int:step_id>/complete/", views.production_step_complete, name="production_step_complete"),
+    path("api/production/orders/<int:pk>/steps/<int:step_id>/skip/", views.production_step_skip, name="production_step_skip"),
+    path("api/production/plan/", views.production_plan, name="production_plan"),
 
 
     # ── باشگاه مشتریان ──────────────────────────────────────
