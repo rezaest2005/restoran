@@ -96,3 +96,9 @@ export const fetchUserWarehouses = (id) =>
   client.get(`/api/inventory/users/${id}/warehouses/`).then(unwrap);
 export const saveUserWarehouses = (id, body) =>
   client.put(`/api/inventory/users/${id}/warehouses/`, body).then(unwrap);
+
+/* ── Transport people (one person type for order couriers and cargo / unit drivers) ── */
+/** { delivery_enabled, vehicles: [{ id, name, plate, kind }], services } */
+export const fetchTransportOptions = () => client.get("/api/users/transport/").then((r) => r.data);
+export const createTransportPerson = (body) => client.post("/api/users/transport/", body).then((r) => r.data);
+export const updateTransportPerson = (userId, body) => client.put(`/api/users/transport/${userId}/`, body).then((r) => r.data);

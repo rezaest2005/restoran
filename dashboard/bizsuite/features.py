@@ -65,9 +65,9 @@ FEATURES: list[Feature] = [
 
     Feature("delivery_dispatch", "delivery", "delivery", "ارسال و مأموریت‌ها", "Dispatch & trips"),
     Feature("delivery_shipments", "delivery", "delivery", "بارها و پیگیری", "Shipments & tracking"),
-    Feature("delivery_fleet", "delivery", "delivery", "ناوگان و رانندگان", "Fleet & drivers"),
-    Feature("delivery_cash", "delivery", "delivery", "صندوق پیک و تسویه", "Driver cash & settlement"),
-    Feature("delivery_history", "delivery", "delivery", "تاریخچه‌ی پیک‌ها", "Courier history"),
+    Feature("delivery_fleet", "delivery", "delivery", "رانندگان، پیک‌ها و وسایل نقلیه", "Transport people & vehicles"),
+    Feature("delivery_cash", "delivery", "delivery", "صندوق حمل‌ونقل و تسویه", "Transport cash & settlement"),
+    Feature("delivery_history", "delivery", "delivery", "تاریخچه‌ی مأموریت‌ها", "Trip history"),
 ]
 
 FEATURE_BY_KEY = {f.key: f for f in FEATURES}
