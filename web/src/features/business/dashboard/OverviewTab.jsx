@@ -1,15 +1,23 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { Box, Typography, CircularProgress } from "@mui/material";
+import React, { useState, useMemo, useCallback } from "react";
+import { Alert, Box, Button, Chip, Typography, CircularProgress } from "@mui/material";
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import { useTranslation } from "react-i18next";
 import i18n from "i18next";
 import { animations } from "./constants/animations";
 import useDashboardData from "./hooks/useDashboardData";
+import useDashboardSummary from "./hooks/useDashboardSummary";
+import { useNumberFormat } from "./common";
 
 import PosSection from "./sections/PosSection";
 import InventorySection from "./sections/InventorySection";
-import SharedSection from "./sections/SharedSection";
+import KpiWidgets from "./home/KpiWidgets";
+import AlertsPanel from "./home/AlertsPanel";
+import OnboardingChecklist from "./home/OnboardingChecklist";
+import QuickActions from "./home/QuickActions";
+import SetupWizard from "./home/SetupWizard";
+import { setChecklistDismissed } from "./api";
+import { readUser } from "./access";
 import { buildColors } from "@shared/palette";
 import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
 import WebsiteCard from "./WebsiteCard";
@@ -22,8 +30,8 @@ class SectionErrorBoundary extends React.Component {
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
   }
-  componentDidCatch(error, info) {
-    console.error(`🔴 خطا در ${this.props.name}:`, error);
+  componentDidCatch(error) {
+    console.error(`dashboard section ${this.props.name} failed:`, error);
   }
   render() {
     if (this.state.hasError) {
@@ -42,36 +50,54 @@ class SectionErrorBoundary extends React.Component {
   }
 }
 
+/**
+ * Main business home: works for every business type. Everything below the header comes from
+ * /api/dashboard/summary/, which only contains modules the business has and the user may see:
+ * alerts → getting-started checklist → KPI widgets (ordered by the business-type preset) → quick actions →
+ * the detailed POS / inventory chart sections (only when those modules are present).
+ */
 export default function OverviewTab() {
   const { mode } = useThemeMode();
   const { isRtl, lang } = useLang();
   const { t } = useTranslation();
   const isDark = mode === "dark";
-
-  const L = {
-    greeting: t("dash.greeting"),
-    summary: t("dash.summary"),
-    loading: t("dash.loading"),
-  };
-
-  const [mounted, setMounted] = useState(false);
-
-  // ✅ بدون serviceType — همیشه هر دو بخش
-  const { loading, posData, inventoryData } = useDashboardData("both");
-
-  useEffect(() => {
-    const tmr = setTimeout(() => setMounted(true), 80);
-    return () => clearTimeout(tmr);
-  }, []);
-
+  const fmt = useNumberFormat(isRtl);
   const C = useMemo(() => buildColors(isDark), [isDark]);
 
-  // ── میان‌برها: Alt+Shift+N پرش به بخش · Ctrl+A/Ctrl+Z بخش بعدی/قبلی (F1 و Alt+N در هاب) ──
+  const user = useMemo(() => readUser(), []);
+  const isOwner = !!user && (user.role === "owner" || user.is_superuser);
+  const canHideChecklist = isOwner || user?.role === "manager";
+
+  const { summary, loading: summaryLoading, error: summaryError, reload, setSummary } = useDashboardSummary();
+  const data = summary?.data || {};
+  const sectionType = summary
+    ? (data.pos && data.inventory ? "both" : data.pos ? "pos" : data.inventory ? "inventory" : null)
+    : null;
+  const { loading: chartsLoading, posData, inventoryData } = useDashboardData(sectionType || "both", !!sectionType);
+  const showPos = !!sectionType && sectionType !== "inventory" && !!posData;
+  const showInv = !!sectionType && sectionType !== "pos" && !!inventoryData;
+
+  const [wizardChoice, setWizardOpen] = useState(null); // null = not touched yet this visit
+
+  // the owner sees the setup wizard on his first visit until the business type is chosen ("later" closes it)
+  const wizardOpen = wizardChoice ?? (!!summary?.setup_required && isOwner);
+
+  const onWizardSaved = useCallback(() => {
+    setWizardOpen(false);
+    reload();
+  }, [reload]);
+
+  const hideChecklist = useCallback(() => {
+    setSummary((s) => (s ? { ...s, checklist: [], checklist_dismissed: true } : s));
+    setChecklistDismissed(true).catch(() => reload());
+  }, [reload, setSummary]);
+
+  // ── شورتکات‌ها: Alt+Shift+N پرش به بخش · Ctrl+A/Ctrl+Z بخش بعدی/قبلی (F1 و Alt+N در هاب) ──
   const sections = useMemo(() => [
-    posData && { id: "dash-sec-pos", label: t("ui_g.dash.sec_pos") },
-    inventoryData && { id: "dash-sec-inventory", label: t("ui_g.dash.sec_inventory") },
-    { id: "dash-sec-shared", label: t("ui_g.dash.sec_shared") },
-  ].filter(Boolean), [posData, inventoryData, t]);
+    { id: "dash-sec-home", label: t("ui_dash2.kpi_title") },
+    showPos && { id: "dash-sec-pos", label: t("ui_g.dash.sec_pos") },
+    showInv && { id: "dash-sec-inventory", label: t("ui_g.dash.sec_inventory") },
+  ].filter(Boolean), [showPos, showInv, t]);
 
   const currentSection = () => {
     let idx = 0;
@@ -95,7 +121,7 @@ export default function OverviewTab() {
       handler: () => jumpTo(i),
     })),
   ];
-  useRegisteredShortcuts(shortcuts, { enabled: !loading });
+  useRegisteredShortcuts(shortcuts, { enabled: !summaryLoading });
 
   const dateText = useMemo(() => {
     const now = new Date();
@@ -106,18 +132,16 @@ export default function OverviewTab() {
     });
   }, [t]);
 
-  if (loading) {
+  if (summaryLoading) {
     return (
-      <Box sx={{
-        display: "flex", flexDirection: "column",
-        justifyContent: "center", alignItems: "center",
-        height: "60vh", gap: 2,
-      }}>
+      <Box sx={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "60vh", gap: 2 }}>
         <CircularProgress sx={{ color: C.olive }} size={40} />
-        <Typography sx={{ fontSize: 13, color: C.sub }}>{L.loading}</Typography>
+        <Typography sx={{ fontSize: 13, color: C.sub }}>{t("dash.loading")}</Typography>
       </Box>
     );
   }
+
+  const industryName = summary?.industry?.set ? (lang === "en" ? summary.industry.name_en : summary.industry.name_fa) : "";
 
   return (
     <Box dir={isRtl ? "rtl" : "ltr"} sx={{
@@ -125,7 +149,6 @@ export default function OverviewTab() {
       px: { xs: 1.5, sm: 2, md: 2.5, xl: 3 },
       pb: 8,
       fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
-      opacity: 1,
       background: isDark
         ? "radial-gradient(ellipse at 15% 30%, color-mix(in srgb, var(--success) 5%, transparent) 0%, transparent 50%), radial-gradient(ellipse at 85% 70%, color-mix(in srgb, var(--danger) 5%, transparent) 0%, transparent 50%)"
         : "radial-gradient(ellipse at 15% 30%, color-mix(in srgb, var(--info) 5%, transparent) 0%, transparent 50%), radial-gradient(ellipse at 85% 70%, color-mix(in srgb, var(--primary) 5%, transparent) 0%, transparent 50%)",
@@ -139,13 +162,21 @@ export default function OverviewTab() {
         mb: 3, flexDirection: { xs: "column", sm: "row" }, gap: 1.5, pt: 1,
       }}>
         <Box sx={{ textAlign: { xs: "center", sm: isRtl ? "right" : "left" } }}>
-          <Typography sx={{
+          <Typography component="h1" sx={{
             fontSize: { xs: 19, md: 24 }, fontWeight: 900, color: C.text, mb: 0.5,
             fontFamily: "'Plus Jakarta Sans', 'Vazirmatn', sans-serif",
           }}>
-            {L.greeting} <span style={{ color: C.olive }}>👋</span>
+            {t("dash.greeting")} <span style={{ color: C.olive }}>👋</span>
           </Typography>
-          <Typography sx={{ fontSize: 13, color: C.sub }}>{L.summary}</Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", justifyContent: { xs: "center", sm: "flex-start" } }}>
+            <Typography sx={{ fontSize: 13, color: C.sub }}>{t("dash.summary")}</Typography>
+            {industryName && (
+              <Chip size="small" label={industryName} variant="outlined"
+                onClick={isOwner ? () => setWizardOpen(true) : undefined}
+                title={isOwner ? t("ui_dash2.change_type") : t("ui_dash2.business_type")}
+                sx={{ fontWeight: 700 }} />
+            )}
+          </Box>
         </Box>
         <Box sx={{
           display: "flex", alignItems: "center", gap: 1.5,
@@ -153,16 +184,40 @@ export default function OverviewTab() {
           borderRadius: 2, px: 2, py: 1,
         }}>
           <span style={{ fontSize: 16 }}>📅</span>
-          <Typography sx={{ fontSize: 13, fontWeight: 600, color: C.text }}>
-            {dateText}
-          </Typography>
+          <Typography sx={{ fontSize: 13, fontWeight: 600, color: C.text }}>{dateText}</Typography>
         </Box>
       </Box>
 
+      {summary?.setup_required && isOwner && !wizardOpen && (
+        <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}
+          action={<Button size="small" onClick={() => setWizardOpen(true)} sx={{ textTransform: "none" }}>{t("ui_dash2.setup_now")}</Button>}>
+          {t("ui_dash2.setup_banner")}
+        </Alert>
+      )}
+
       <WebsiteCard />
 
-      {/* ✅ بخش ۱: صندوق / فروش */}
-      {posData && (
+      <Box id="dash-sec-home" sx={{ scrollMarginTop: 72 }}>
+        <SectionErrorBoundary name="Home">
+          {summaryError && !summary && <Alert severity="warning" sx={{ mb: 2 }}>{t("dash.loading")}</Alert>}
+          <AlertsPanel alerts={summary?.alerts} C={C} fmt={fmt} />
+          <OnboardingChecklist steps={summary?.checklist} C={C} canHide={canHideChecklist}
+            onHide={hideChecklist} onOpenWizard={isOwner ? () => setWizardOpen(true) : undefined} />
+          <Box sx={{ mb: 1.5 }}>
+            <Typography component="h2" sx={{ fontSize: 15, fontWeight: 800, color: C.text }}>{t("ui_dash2.kpi_title")}</Typography>
+            <Typography sx={{ fontSize: 12, color: C.sub }}>{t("ui_dash2.kpi_sub")}</Typography>
+          </Box>
+          {summary && <KpiWidgets summary={summary} C={C} fmt={fmt} />}
+          <QuickActions summary={summary} C={C} />
+        </SectionErrorBoundary>
+      </Box>
+
+      {sectionType && chartsLoading && (
+        <Box sx={{ display: "grid", placeItems: "center", py: 4 }}><CircularProgress size={28} sx={{ color: C.olive }} /></Box>
+      )}
+
+      {/* بخش صندوق — فقط وقتی ماژول صندوق هست */}
+      {showPos && !chartsLoading && (
         <Box id="dash-sec-pos" sx={{ scrollMarginTop: 72 }}>
           <SectionErrorBoundary name="PosSection">
             <PosSection data={posData} />
@@ -170,8 +225,8 @@ export default function OverviewTab() {
         </Box>
       )}
 
-      {/* ✅ بخش ۲: انبار / موجودی */}
-      {inventoryData && (
+      {/* بخش انبار — فقط وقتی ماژول انبار هست */}
+      {showInv && !chartsLoading && (
         <Box id="dash-sec-inventory" sx={{ scrollMarginTop: 72 }}>
           <SectionErrorBoundary name="InventorySection">
             <InventorySection data={inventoryData} />
@@ -179,13 +234,7 @@ export default function OverviewTab() {
         </Box>
       )}
 
-      {/* ✅ بخش ۳: گزارش کلی */}
-      <Box id="dash-sec-shared" sx={{ scrollMarginTop: 72 }}>
-        <SectionErrorBoundary name="SharedSection">
-          <SharedSection />
-        </SectionErrorBoundary>
-      </Box>
-
+      <SetupWizard open={wizardOpen} onClose={() => setWizardOpen(false)} onSaved={onWizardSaved} />
     </Box>
   );
 }

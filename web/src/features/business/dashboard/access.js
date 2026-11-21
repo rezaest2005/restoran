@@ -3,7 +3,7 @@
  * business AND the user must hold the matching permission tab.
  * Mirrors the rules BusinessLayout uses for the sidebar.
  */
-function readUser() {
+export function readUser() {
   try {
     const raw = sessionStorage.getItem("user") || localStorage.getItem("user");
     return raw ? JSON.parse(raw) : null;

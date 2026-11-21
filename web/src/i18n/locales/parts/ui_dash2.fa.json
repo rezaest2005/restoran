@@ -1,0 +1,83 @@
+{
+  "ui_dash2": {
+    "term": {
+      "product": "محصول", "products": "محصولات", "order": "فاکتور", "orders": "فاکتورها",
+      "customer": "مشتری", "customers": "مشتریان", "category": "دسته‌بندی", "production": "تولید",
+      "production_place": "خط تولید", "formula": "فرمول", "spot": "محل تحویل", "item": "کالا",
+      "items": "کالاها", "sale": "فروش"
+    },
+    "business_type": "نوع کسب‌وکار",
+    "change_type": "تغییر نوع کسب‌وکار",
+    "setup_title": "راه‌اندازی کسب‌وکار",
+    "setup_intro": "سه قدم کوتاه تا داشبوردی که با کار شما جور است.",
+    "step_type": "نوع کسب‌وکار",
+    "step_modules": "بخش‌هایی که دارید",
+    "step_info": "اطلاعات پایه",
+    "modules_hint": "تیک بخش‌هایی را بزنید که استفاده می‌کنید. بخش‌های خریداری‌نشده به‌عنوان درخواست برای پشتیبانی ثبت می‌شوند.",
+    "not_licensed": "خریداری نشده — درخواست",
+    "suggested": "پیشنهادی",
+    "requires": "نیاز به: {{list}}",
+    "name": "نام کسب‌وکار",
+    "phone": "تلفن",
+    "address": "آدرس",
+    "next": "بعدی",
+    "back": "قبلی",
+    "finish": "پایان و ذخیره",
+    "later": "بعداً",
+    "saving": "در حال ذخیره…",
+    "saved": "راه‌اندازی ذخیره شد",
+    "save_failed": "ذخیره نشد",
+    "not_owner": "راه‌اندازی را فقط مالک کسب‌وکار می‌تواند انجام دهد.",
+    "setup_banner": "راه‌اندازی کسب‌وکار هنوز تمام نشده است.",
+    "setup_now": "راه‌اندازی",
+    "kpi_title": "نمای کلی امروز",
+    "kpi_sub": "فقط بخش‌هایی که کسب‌وکار شما دارد",
+    "no_modules": "هنوز بخشی برای نمایش فعال نیست. با پشتیبانی تماس بگیرید یا ماژول‌ها را فعال کنید.",
+    "w": {
+      "sales": "فروش امروز", "sales_sub": "{{count}} مورد · این ماه {{month}}",
+      "pos": "صندوق فروش", "pos_sub": "{{count}} مورد · میانگین {{avg}} · باز {{open}}",
+      "receivables": "مطالبات", "receivables_sub_ledger": "مانده‌ی حساب دریافتنی", "receivables_sub_inv": "{{count}} فاکتور تسویه‌نشده",
+      "cash": "نقد و بانک", "cash_sub": "صندوق {{cash}} · بانک {{bank}}", "cash_today": "دریافت امروز {{in}} · پرداخت {{out}}",
+      "deliveries": "ارسال‌ها", "deliveries_sub": "تحویل امروز {{done}} · در راه {{pending}}",
+      "on_time": "به‌موقع {{rate}}٪", "on_time_na": "زمان‌بندی ثبت نشده",
+      "club": "باشگاه مشتریان", "club_sub": "{{new}} عضو تازه این ماه · امتیاز باز {{points}}",
+      "inventory": "انبار", "inventory_sub": "{{items}} قلم · {{low}} کم‌موجود",
+      "production": "تولید", "production_sub": "در حال انجام {{running}} · برنامه {{planned}} · امروز تمام‌شده {{done}}"
+    },
+    "alerts_title": "هشدارها",
+    "alert": {
+      "subscription": "اشتراک داشبورد {{days}} روز دیگر تمام می‌شود.",
+      "subscription_today": "اشتراک داشبورد امروز تمام می‌شود.",
+      "low_stock": "{{count}} قلم کم‌موجود: {{items}}",
+      "unpaid_invoices": "{{count}} فاکتور تسویه‌نشده به مبلغ {{total}}",
+      "unpaid_overdue": "{{overdue}} مورد بیش از ۳۰ روز",
+      "late_deliveries": "{{count}} تحویل از زمان پیش‌بینی گذشته است.",
+      "failed_deliveries": "{{count}} تحویل امروز ناموفق بود.",
+      "negative_cash": "مانده‌ی صندوق منفی است: {{total}}"
+    },
+    "checklist_title": "شروع کار",
+    "checklist_progress": "{{done}} از {{total}} انجام شد",
+    "checklist_hide": "بستن چک‌لیست",
+    "checklist_show": "نمایش چک‌لیست شروع کار",
+    "step": {
+      "business_type": "نوع کسب‌وکار را انتخاب کنید",
+      "profile": "تلفن و آدرس کسب‌وکار را کامل کنید",
+      "logo": "لوگو بگذارید",
+      "staff": "اولین همکار را اضافه کنید",
+      "products": "اولین {{product}} را تعریف کنید",
+      "items": "کالاها و مواد را تعریف کنید",
+      "warehouse": "انبار بسازید",
+      "customers": "اولین {{customer}} را ثبت کنید",
+      "chart": "سرفصل حساب‌ها را آماده کنید",
+      "formula": "اولین {{formula}} را بنویسید",
+      "fleet": "راننده یا وسیله‌ی نقلیه اضافه کنید",
+      "club": "قوانین امتیاز باشگاه را تنظیم کنید"
+    },
+    "qa_title": "دسترسی سریع",
+    "qa": {
+      "pos": "فروش جدید", "sales_invoice": "فاکتور فروش", "purchase": "فاکتور خرید", "stock": "موجودی انبار",
+      "dispatch": "ارسال جدید", "club": "باشگاه مشتریان", "accounting": "حسابداری", "production": "دستور تولید",
+      "products": "تعریف {{products}}", "customers": "{{customers}}", "users": "کاربران", "activity": "تاریخچه"
+    }
+  }
+}
