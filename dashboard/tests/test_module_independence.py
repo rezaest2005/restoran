@@ -33,6 +33,7 @@ ENDPOINTS = {
 COMBOS = {
     "inventory_only": ["inventory"],
     "pos_club": ["pos", "club"],
+    "club_only": ["club"],
     "accounting_only": ["accounting"],
     "delivery_only": ["delivery"],
     "production_inventory": ["production", "inventory"],

@@ -19,6 +19,7 @@ import TrackingPage from "@business/delivery/TrackingPage";
 import QrMenu from "../features/public/QrMenu";
 import FeedbackPublicPage from "../features/public/feedback/FeedbackPublicPage";
 import StorefrontPage from "../features/public/storefront/StorefrontPage";
+import ClubPublicPage from "../features/public/club/ClubPublicPage";
 
 /** /bizsuite_dashboard/app/... -> /<slug>/bizsuite_dashboard/app/... using the signed-in user's business. */
 function ToSlug() {
@@ -42,6 +43,7 @@ function App() {
           <Route path="/" element={<StorefrontPage byHost />} />
           <Route path="/s/:slug" element={<StorefrontPage />} />
           <Route path="/f/:slug" element={<FeedbackPublicPage />} />
+          <Route path="/club/:slug" element={<ClubPublicPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/:slug/bizsuite_dashboard/login" element={<Login />} />
           <Route path="/bizsuite_dashboard/login" element={<Login />} />

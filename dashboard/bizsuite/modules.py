@@ -18,7 +18,7 @@ CATALOG = [
     {"code": "pos", "name_fa": "صندوق فروش", "name_en": "Point of sale",
      "price": 300000, "requires": [], "suggests": ["inventory"]},
     {"code": "club", "name_fa": "باشگاه مشتریان", "name_en": "Customer club",
-     "price": 150000, "requires": ["pos"], "suggests": []},
+     "price": 150000, "requires": [], "suggests": ["pos"]},
     {"code": "inventory", "name_fa": "انبار", "name_en": "Inventory",
      "price": 250000, "requires": [], "suggests": []},
     {"code": "production", "name_fa": "تولید و فرمولاسیون", "name_en": "Production",

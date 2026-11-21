@@ -72,6 +72,13 @@ def sales_invoice_list_create(request):
                 discount=i.get("discount", 0),
             )
         safe_post(post_sales_invoice, inv, request.user if request.user.is_authenticated else None)
+    if inv.customer_id:
+        try:  # customer club points for B2B / named customers (silent no-op when the club is off)
+            from ...club_services import earn_for_sales_invoice
+            earn_for_sales_invoice(inv)
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception("club earn failed for sales invoice %s", inv.pk)
     return JsonResponse(_invoice_dict(inv, detail=True), status=201)
 
 
