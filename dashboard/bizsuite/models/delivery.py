@@ -9,6 +9,8 @@
   TripStop — توقف (مقصد) با آدرس، مختصات، وصول پول در محل و لینک پیگیری مشتری
   LocationPing — موقعیت لحظه‌ای (از موبایل راننده یا ردیاب GPS)
   CashSettlement — تسویه‌ی پول وصول‌شده توسط راننده با صندوق
+  DeliveryZone — محدوده‌ی ارسال با هزینه (چندضلعی یا دایره)
+  StopEvent — خط زمانی وضعیت هر مقصد
 """
 
 import secrets
@@ -121,6 +123,39 @@ class Driver(TenantModel):
         return self.name
 
 
+class DeliveryZone(TenantModel):
+    """
+    محدوده‌ی ارسال با هزینه — برای هر صنعتی (پیک رستوران، مرسوله‌ی فروشگاه، بار کارخانه).
+    شکل: چندضلعی (polygon = [[lat, lng], ...]) یا دایره (مرکز + شعاع کیلومتر).
+    ایده‌ی «رایگان از مبلغ X به بالا» از قواعد قیمت‌گذاری حمل در Odoo گرفته شده (فقط ایده).
+    """
+
+    name = models.CharField("نام محدوده", max_length=100)
+    color = models.CharField("رنگ", max_length=9, blank=True, default="")
+    fee = models.DecimalField("هزینه‌ی ارسال", max_digits=14, decimal_places=2, default=0)
+    free_over = models.DecimalField("ارسال رایگان از مبلغ", max_digits=14, decimal_places=2,
+                                    null=True, blank=True)
+    eta_minutes = models.PositiveIntegerField("زمان وعده‌داده‌شده (دقیقه)", null=True, blank=True)
+    polygon = models.JSONField("چندضلعی", default=list, blank=True)
+    center_lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    center_lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    radius_km = models.DecimalField("شعاع (کیلومتر)", max_digits=7, decimal_places=2, null=True, blank=True)
+    sort_order = models.PositiveIntegerField("اولویت بررسی", default=0)
+    is_active = models.BooleanField("فعال", default=True)
+
+    class Meta:
+        verbose_name = "محدوده‌ی ارسال"
+        verbose_name_plural = "محدوده‌های ارسال"
+        ordering = ["sort_order", "name"]
+        constraints = [
+            models.UniqueConstraint(fields=["business", "name"], name="rms_zone_name_unique"),
+            models.CheckConstraint(condition=Q(fee__gte=0), name="rms_zone_fee_gte_0"),
+        ]
+
+    def __str__(self):
+        return self.name
+
+
 class Trip(TenantModel):
     class Status(models.TextChoices):
         PLANNED = "planned", "برنامه‌ریزی‌شده"
@@ -182,6 +217,13 @@ class TripStop(TenantModel):
         DELIVERED = "delivered", "تحویل داده شد"
         FAILED = "failed", "تحویل نشد"
 
+    class Priority(models.IntegerChoices):
+        NORMAL = 0, "عادی"
+        HIGH = 1, "مهم"
+        URGENT = 2, "فوری"
+
+    FAILURE_CODES = ("absent", "refused", "address", "closed", "damaged", "no_payment", "other")
+
     trip = models.ForeignKey(Trip, on_delete=models.CASCADE, related_name="stops")
     sequence = models.PositiveIntegerField("ترتیب", default=1)
     order = models.ForeignKey("Order", on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
@@ -208,6 +250,25 @@ class TripStop(TenantModel):
     delivered_at = models.DateTimeField(null=True, blank=True)
     settlement = models.ForeignKey("CashSettlement", on_delete=models.SET_NULL, null=True, blank=True,
                                    related_name="stops")
+    # ── مرسوله‌ی عمومی (هر صنعتی) ──
+    zone = models.ForeignKey(DeliveryZone, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    fee = models.DecimalField("هزینه‌ی ارسال این مقصد", max_digits=14, decimal_places=2, default=0)
+    packages = models.PositiveSmallIntegerField("تعداد بسته", default=1)
+    volume_m3 = models.DecimalField("حجم (مترمکعب)", max_digits=8, decimal_places=3, null=True, blank=True)
+    priority = models.PositiveSmallIntegerField("اولویت", choices=Priority.choices, default=Priority.NORMAL)
+    window_start = models.DateTimeField("بازه‌ی تحویل از", null=True, blank=True)
+    window_end = models.DateTimeField("بازه‌ی تحویل تا", null=True, blank=True)
+    instructions = models.CharField("توضیحات تحویل", max_length=500, blank=True, default="")
+    # ── رسید تحویل (POD) ──
+    require_otp = models.BooleanField("کد تحویل لازم است", default=False)
+    require_photo = models.BooleanField("عکس تحویل لازم است", default=False)
+    require_signature = models.BooleanField("امضای گیرنده لازم است", default=False)
+    otp_code = models.CharField("کد تحویل", max_length=8, blank=True, default="")
+    pod_photo = models.ImageField("عکس تحویل", upload_to="delivery/pod/%Y/%m/", blank=True)
+    pod_signature = models.ImageField("امضای گیرنده", upload_to="delivery/sign/%Y/%m/", blank=True)
+    recipient_name = models.CharField("نام تحویل‌گیرنده", max_length=120, blank=True, default="")
+    failure_code = models.CharField("علت عدم تحویل (کد)", max_length=20, blank=True, default="")
+    attempts = models.PositiveSmallIntegerField("تلاش‌های ناموفق", default=0)
 
     class Meta:
         verbose_name = "توقف"
@@ -220,6 +281,23 @@ class TripStop(TenantModel):
 
     def __str__(self):
         return f"{self.trip_id}#{self.sequence}"
+
+
+class StopEvent(TenantModel):
+    """خط زمانی هر مقصد: هر تغییر وضعیت با زمان، علت، مختصات و انجام‌دهنده."""
+
+    stop = models.ForeignKey(TripStop, on_delete=models.CASCADE, related_name="events")
+    status = models.CharField(max_length=20)
+    note = models.CharField(max_length=300, blank=True, default="")
+    actor = models.CharField(max_length=120, blank=True, default="")
+    lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    at = models.DateTimeField(db_index=True)
+
+    class Meta:
+        verbose_name = "رویداد مقصد"
+        verbose_name_plural = "رویدادهای مقصد"
+        ordering = ["at", "id"]
 
 
 class LocationPing(TenantModel):

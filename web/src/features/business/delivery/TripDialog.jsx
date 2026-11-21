@@ -1,17 +1,20 @@
 import { useState } from "react";
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Box, Button, TextField, Typography,
-  MenuItem, IconButton, Alert, CircularProgress,
+  MenuItem, IconButton, Alert, CircularProgress, Checkbox, FormControlLabel,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
 import KbdHint from "@business/pos/common/KbdHint";
-import { num, newKey } from "@business/accounting/common";
-import { createTrip, errMsg } from "./api";
+import { num, newKey, fmtMoney } from "@business/accounting/common";
+import { createTrip, quoteZone, errMsg } from "./api";
+import { PRIORITIES } from "./common";
 
 const blankStop = () => ({
   key: newKey(), customer_name: "", phone: "", address: "", lat: "", lng: "",
   reference: "", amount_due: "", weight_kg: "", cargo_description: "", order_id: null,
   invoice_id: null, purchase_id: null, cod: false, stop_type: "delivery",
+  packages: "", volume_m3: "", priority: 0, window_start: "", window_end: "", instructions: "", fee: "",
+  require_otp: false, require_photo: false, require_signature: false, more: false, quote: null,
 });
 
 const blankCargo = () => ({
@@ -24,7 +27,7 @@ const blankCargo = () => ({
  * initialStops: pre-filled stops (e.g. from the POS dispatch queue; those carry order_id).
  */
 export default function TripDialog({ ctx, drivers, vehicles, carriers, onClose, onSaved, mode = "trip", initialStops = null }) {
-  const { t, C, S, fullScreen } = ctx;
+  const { t, C, S, fullScreen, lang } = ctx;
   const shipment = mode === "shipment";
   const [cargo, setCargo] = useState(blankCargo);
   const [stops, setStops] = useState(() => (initialStops?.length
@@ -41,6 +44,14 @@ export default function TripDialog({ ctx, drivers, vehicles, carriers, onClose, 
   const removeStop = (key) => setStops((l) => (l.length > 1 ? l.filter((s) => s.key !== key) : l));
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
   const setC = (k) => (e) => setCargo((x) => ({ ...x, [k]: e.target.value }));
+
+  // which delivery zone (and fee) a stop falls in, once both coordinates are typed
+  const checkZone = (s) => {
+    if (s.lat === "" || s.lng === "" || !Number.isFinite(num(s.lat)) || !Number.isFinite(num(s.lng))) return;
+    quoteZone({ lat: num(s.lat), lng: num(s.lng), amount: s.amount_due === "" ? undefined : num(s.amount_due) })
+      .then((q) => setStop(s.key, { quote: q }))
+      .catch(() => setStop(s.key, { quote: null }));
+  };
 
   const submit = async () => {
     if (saving) return;
@@ -61,12 +72,20 @@ export default function TripDialog({ ctx, drivers, vehicles, carriers, onClose, 
       } : {}),
       stops: stops.map((s) => ({
         order_id: s.order_id || undefined, invoice_id: s.invoice_id || undefined, purchase_id: s.purchase_id || undefined,
-        cod: s.cod || undefined, stop_type: s.stop_type === "pickup" ? "pickup" : undefined,
+        cod: s.cod || undefined,
         cargo_description: s.cargo_description.trim(),
         customer_name: s.customer_name.trim(), phone: s.phone.trim(), address: s.address.trim(),
         lat: s.lat === "" ? null : num(s.lat), lng: s.lng === "" ? null : num(s.lng),
         reference: s.reference.trim(), amount_due: s.amount_due === "" ? 0 : num(s.amount_due),
         weight_kg: s.weight_kg === "" ? null : num(s.weight_kg),
+        packages: s.packages === "" ? undefined : num(s.packages),
+        volume_m3: s.volume_m3 === "" ? undefined : num(s.volume_m3),
+        priority: Number(s.priority) || 0,
+        window_start: s.window_start || undefined, window_end: s.window_end || undefined,
+        instructions: s.instructions.trim(), fee: s.fee === "" ? undefined : num(s.fee),
+        require_otp: s.require_otp || undefined, require_photo: s.require_photo || undefined,
+        require_signature: s.require_signature || undefined,
+        ...(s.stop_type === "pickup" ? { stop_type: "pickup" } : {}),
       })),
       driver_id: f.driver_id || null, vehicle_id: f.vehicle_id || null, carrier_id: f.carrier_id || null,
       delivery_fee: f.delivery_fee === "" ? 0 : num(f.delivery_fee),
@@ -145,10 +164,45 @@ export default function TripDialog({ ctx, drivers, vehicles, carriers, onClose, 
               <TextField size="small" label={t("ui_del.trip.reference")} value={s.reference} onChange={(e) => setStop(s.key, { reference: e.target.value })} sx={S.field} />
               <TextField size="small" label={t("ui_del.trip.amount_due")} value={s.amount_due} onChange={(e) => setStop(s.key, { amount_due: e.target.value })} sx={S.field} slotProps={{ htmlInput: { inputMode: "decimal" } }} />
               <TextField size="small" label={t("ui_del.trip.address")} value={s.address} onChange={(e) => setStop(s.key, { address: e.target.value })} sx={{ ...S.field, gridColumn: { xs: "1 / -1", sm: "span 2" } }} />
-              <TextField size="small" label={t("ui_del.trip.lat")} value={s.lat} onChange={(e) => setStop(s.key, { lat: e.target.value })} sx={S.field} slotProps={{ htmlInput: { dir: "ltr", inputMode: "decimal" } }} />
-              <TextField size="small" label={t("ui_del.trip.lng")} value={s.lng} onChange={(e) => setStop(s.key, { lng: e.target.value })} sx={S.field} slotProps={{ htmlInput: { dir: "ltr", inputMode: "decimal" } }} />
+              <TextField size="small" label={t("ui_del.trip.lat")} value={s.lat} onChange={(e) => setStop(s.key, { lat: e.target.value, quote: null })} onBlur={() => checkZone(s)} sx={S.field} slotProps={{ htmlInput: { dir: "ltr", inputMode: "decimal" } }} />
+              <TextField size="small" label={t("ui_del.trip.lng")} value={s.lng} onChange={(e) => setStop(s.key, { lng: e.target.value, quote: null })} onBlur={() => checkZone(s)} sx={S.field} slotProps={{ htmlInput: { dir: "ltr", inputMode: "decimal" } }} />
               <TextField size="small" label={t("ui_del.trip.weight")} value={s.weight_kg} onChange={(e) => setStop(s.key, { weight_kg: e.target.value })} sx={S.field} slotProps={{ htmlInput: { inputMode: "decimal" } }} />
             </Box>
+            {s.quote && (
+              <Typography sx={{ fontSize: 12, mt: 0.75, color: s.quote.deliverable ? C.success : C.danger }}>
+                {s.quote.zone_id
+                  ? t("dlv.stop.zone_fee", { zone: s.quote.zone_name, fee: fmtMoney(s.quote.fee, lang) })
+                  : s.quote.deliverable ? "" : t("dlv.stop.no_zone")}
+              </Typography>
+            )}
+            <Button size="small" onClick={() => setStop(s.key, { more: !s.more })} sx={{ mt: 0.5, color: C.primary, textTransform: "none", px: 0.5 }}>
+              {s.more ? t("dlv.stop.less") : t("dlv.stop.more")}
+            </Button>
+            {s.more && (
+              <Box sx={{ display: "grid", gap: 1, gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(4, 1fr)" }, mt: 1 }}>
+                <TextField select size="small" label={t("dlv.stop.type")} value={s.stop_type} onChange={(e) => setStop(s.key, { stop_type: e.target.value })} sx={S.field} disabled={!!s.purchase_id}>
+                  <MenuItem value="delivery">{t("dlv.stop.type_delivery")}</MenuItem>
+                  <MenuItem value="pickup">{t("dlv.stop.type_pickup")}</MenuItem>
+                </TextField>
+                <TextField select size="small" label={t("dlv.stop.priority")} value={s.priority} onChange={(e) => setStop(s.key, { priority: e.target.value })} sx={S.field}>
+                  {PRIORITIES.map((p) => <MenuItem key={p} value={p}>{t(`dlv.stop.priority_${p}`)}</MenuItem>)}
+                </TextField>
+                <TextField size="small" label={t("dlv.stop.packages")} value={s.packages} onChange={(e) => setStop(s.key, { packages: e.target.value })} sx={S.field} slotProps={{ htmlInput: { inputMode: "numeric", dir: "ltr" } }} />
+                <TextField size="small" label={t("dlv.stop.volume")} value={s.volume_m3} onChange={(e) => setStop(s.key, { volume_m3: e.target.value })} sx={S.field} slotProps={{ htmlInput: { inputMode: "decimal", dir: "ltr" } }} />
+                <TextField size="small" type="datetime-local" label={t("dlv.stop.window_start")} value={s.window_start} onChange={(e) => setStop(s.key, { window_start: e.target.value })} sx={{ ...S.field, gridColumn: { xs: "1 / -1", sm: "span 2" } }} slotProps={{ inputLabel: { shrink: true }, htmlInput: { dir: "ltr" } }} />
+                <TextField size="small" type="datetime-local" label={t("dlv.stop.window_end")} value={s.window_end} onChange={(e) => setStop(s.key, { window_end: e.target.value })} sx={{ ...S.field, gridColumn: { xs: "1 / -1", sm: "span 2" } }} slotProps={{ inputLabel: { shrink: true }, htmlInput: { dir: "ltr" } }} />
+                <TextField size="small" label={t("dlv.stop.fee")} value={s.fee} placeholder={s.quote?.zone_id ? String(s.quote.fee) : ""} onChange={(e) => setStop(s.key, { fee: e.target.value })} sx={S.field} slotProps={{ htmlInput: { inputMode: "decimal", dir: "ltr" } }} />
+                <TextField size="small" label={t("dlv.stop.instructions")} value={s.instructions} onChange={(e) => setStop(s.key, { instructions: e.target.value })} sx={{ ...S.field, gridColumn: { xs: "1 / -1", sm: "span 3" } }} />
+                <Box sx={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", flexWrap: "wrap", columnGap: 1 }}>
+                  <Typography sx={{ color: C.sub, fontSize: 12, fontWeight: 700 }}>{t("dlv.stop.proof")}:</Typography>
+                  {["require_otp", "require_photo", "require_signature"].map((k) => (
+                    <FormControlLabel key={k} sx={{ color: C.text, m: 0 }}
+                      control={<Checkbox size="small" checked={!!s[k]} onChange={(e) => setStop(s.key, { [k]: e.target.checked })} />}
+                      label={<Typography sx={{ fontSize: 13 }}>{t(`dlv.stop.${k}`)}</Typography>} />
+                  ))}
+                </Box>
+              </Box>
+            )}
           </Box>
         ))}
         <TextField size="small" fullWidth multiline minRows={2} label={t("ui_del.trip.notes")} value={f.notes} onChange={set("notes")} sx={S.field} />

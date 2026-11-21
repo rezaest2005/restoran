@@ -19,11 +19,18 @@ import { DriverLinkDialog } from "./DriverLinkCard";
 import FleetTab from "./FleetTab";
 import CashTab from "./CashTab";
 import HistoryTab from "./HistoryTab";
+import ZonesTab from "./ZonesTab";
+import ReportsTab from "./ReportsTab";
 import TripDialog from "./TripDialog";
 import HintBar from "@shared/ui/HintBar";
 
 // each tab is its own sellable feature; only the ones this account may use are shown
-const TAB_FEATURE = { dispatch: "delivery_dispatch", shipments: "delivery_shipments", fleet: "delivery_fleet", cash: "delivery_cash", history: "delivery_history" };
+// zones and reports ride on the fleet / history features (no new licence keys)
+const TAB_FEATURE = {
+  dispatch: "delivery_dispatch", shipments: "delivery_shipments", fleet: "delivery_fleet", zones: "delivery_fleet",
+  cash: "delivery_cash", history: "delivery_history", reports: "delivery_history",
+};
+const TAB_LABEL = { zones: "dlv.tabs.zones", reports: "dlv.tabs.reports" };
 const allowedTabs = () => Object.keys(TAB_FEATURE).filter((k) => hasTab(TAB_FEATURE[k]));
 
 export default function DispatchPage() {
@@ -77,7 +84,7 @@ export default function DispatchPage() {
   }, [canTrips, TAB_KEYS]);
 
   const ctx = { t, C, S, isRtl, lang, fullScreen, notify };
-  const tabs = TAB_KEYS.map((k) => ({ id: k, label: t(`ui_del.tabs.${k}`) }));
+  const tabs = TAB_KEYS.map((k) => ({ id: k, label: t(TAB_LABEL[k] || `ui_del.tabs.${k}`) }));
 
   useRegisteredShortcuts([
     helpBinding(t, () => {
@@ -97,7 +104,7 @@ export default function DispatchPage() {
     }),
     ...tabBindings(t, tabs, setTab),
     // on the fleet tab F2 is registered by the tab itself (new driver)
-    ...(canTrips ? [{ combo: "F2", label: t("ui_del.keys.new_trip"), handler: () => openNew(tab === "shipments" ? "shipment" : "trip"), when: tab !== "fleet" }] : []),
+    ...(canTrips ? [{ combo: "F2", label: t("ui_del.keys.new_trip"), handler: () => openNew(tab === "shipments" ? "shipment" : "trip"), when: tab !== "fleet" && tab !== "zones" }] : []),
   ]);
 
   return (
@@ -154,6 +161,8 @@ export default function DispatchPage() {
       )}
       {tab === "cash" && <CashTab ctx={ctx} refreshKey={refreshKey} bump={bump} />}
       {tab === "history" && <HistoryTab ctx={ctx} drivers={drivers} />}
+      {tab === "zones" && <ZonesTab ctx={ctx} />}
+      {tab === "reports" && <ReportsTab ctx={ctx} />}
 
       {dialog && (
         <TripDialog

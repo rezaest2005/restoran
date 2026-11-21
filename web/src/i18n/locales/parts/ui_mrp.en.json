@@ -89,7 +89,7 @@
     "templates_title": "Start from a template",
     "templates_hint": "Pick the closest one. It fills in stages and components; you can change everything afterwards. Components are matched to your items by name.",
     "tpl_counts": "{{stages}} stages · {{items}} components",
-    "tpl_restaurant": "Restaurant dish",
+    "tpl_restaurant": "Prepared meal",
     "tpl_bakery": "Bakery",
     "tpl_detergent": "Detergent / liquid soap",
     "tpl_cosmetics": "Cosmetics (cream)",

@@ -125,7 +125,7 @@ class ProductTests(CatalogBase):
         self.assertEqual(r.status_code, 201, r.content)
         url = r.json()["data"]["image"]
         self.assertTrue(url.endswith(".png"))
-        self.assertNotIn("a.png", url)
+        self.assertNotEqual(url.rsplit("/", 1)[-1], "a.png")
         gif = SimpleUploadedFile("a.gif", png_bytes("GIF"), content_type="image/gif")
         r = self.api.post("/api/catalog/products/", {"name": "gif", "category_id": self.cat.id, "price": 5, "image": gif},
                           format="multipart")

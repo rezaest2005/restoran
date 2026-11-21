@@ -12,7 +12,8 @@ import { buildColors } from "@shared/palette";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
 import { fmtMoney, fmtInt, num } from "@business/accounting/common";
 import { fetchDriverMe, setMyShift, setMyStopStatus, sendMyLocation, errMsg } from "./api";
-import { PAY_METHODS, routeUrl, fmtTime } from "./common";
+import { PAY_METHODS, FAILURE_CODES, routeUrl, fmtTime, photoToDataUrl } from "./common";
+import SignaturePad from "./SignaturePad";
 
 const SEND_EVERY_MS = 10000;
 const REFRESH_MS = 30000;
@@ -22,19 +23,19 @@ const OPEN_STOP = ["pending", "picked_up", "arrived"];
 
 function FailDialog({ t, C, onClose, onSubmit, busy }) {
   const [reason, setReason] = useState("");
-  const submit = () => { if (reason.trim() && !busy) onSubmit(reason.trim()); };
+  const [code, setCode] = useState("");
+  const submit = () => { if ((reason.trim() || code) && !busy) onSubmit(reason.trim(), code); };
   useRegisteredShortcuts(dialogBindings(t, {
     confirmLabel: t("ui_del.driver.fail_submit"), onConfirm: submit, onClose, enter: false,
   }));
-  const reasons = ["fail_absent", "fail_refused", "fail_address", "fail_other"];
   return (
     <Dialog open onClose={onClose} fullWidth maxWidth="xs" PaperProps={{ sx: { bgcolor: C.surface, color: C.text, backgroundImage: "none" } }}>
       <DialogTitle sx={{ fontWeight: 700 }}>{t("ui_del.driver.fail_title")}</DialogTitle>
       <DialogContent>
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2, mt: 0.5 }}>
-          {reasons.map((r) => (
-            <Chip key={r} label={t(`ui_del.driver.${r}`)} onClick={() => setReason(t(`ui_del.driver.${r}`))}
-              sx={{ fontSize: 14, height: 36, color: C.text, border: `1px solid ${C.divider}`, bgcolor: "transparent" }} />
+          {FAILURE_CODES.map((r) => (
+            <Chip key={r} label={t(`dlv.fail.${r}`)} onClick={() => setCode(r)}
+              sx={{ fontSize: 14, height: 36, color: code === r ? C.onPrimary : C.text, border: `1px solid ${code === r ? C.danger : C.divider}`, bgcolor: code === r ? C.danger : "transparent" }} />
           ))}
         </Box>
         <TextField
@@ -45,7 +46,7 @@ function FailDialog({ t, C, onClose, onSubmit, busy }) {
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button onClick={onClose} sx={{ color: C.sub, minHeight: 44 }}>{t("ui_del.common.cancel")}</Button>
-        <Button onClick={submit} disabled={!reason.trim() || busy} variant="contained"
+        <Button onClick={submit} disabled={(!reason.trim() && !code) || busy} variant="contained"
           sx={{ bgcolor: C.danger, color: C.onPrimary, minHeight: 44, fontWeight: 700, "&:hover": { bgcolor: C.danger } }}>
           {t("ui_del.driver.fail_submit")}
         </Button>
@@ -70,6 +71,7 @@ export default function DriverPage() {
   const [collected, setCollected] = useState("");
   const [method, setMethod] = useState("");
   const [formFor, setFormFor] = useState("");
+  const [proof, setProof] = useState({ otp: "", photo: "", signature: "", recipient: "" });
   const [geo, setGeo] = useState(() => ("geolocation" in navigator ? "pending" : "unsupported"));   // pending | on | denied | unsupported
   const [toast, setToast] = useState({ open: false, msg: "", sev: "success" });
   const lastPos = useRef(null);
@@ -160,6 +162,7 @@ export default function DriverPage() {
     setFormFor(formKey);
     setCollected(current && current.stop.amount_due ? String(current.stop.amount_due) : "");
     setMethod("");
+    setProof({ otp: "", photo: "", signature: "", recipient: "" });
   }
 
   const toggleShift = async () => {
@@ -192,7 +195,16 @@ export default function DriverPage() {
     if (next === "delivered") {
       if (!(amount >= 0)) { notify(t("ui_del.cash.amount_invalid"), "error"); return; }
       if (needsMethod) { notify(t("ui_del.driver.pick_method"), "warning"); return; }
-      act("delivered", { collected_amount: amount || 0, collected_method: amount > 0 ? method : "" });
+      const st = current.stop;
+      if ((st.require_otp && !proof.otp.trim()) || (st.require_photo && !proof.photo) || (st.require_signature && !proof.signature)) {
+        notify(t("dlv.driver.proof_missing"), "warning");
+        return;
+      }
+      act("delivered", {
+        collected_amount: amount || 0, collected_method: amount > 0 ? method : "",
+        otp_code: proof.otp.trim() || undefined, pod_photo: proof.photo || undefined,
+        pod_signature: proof.signature || undefined, recipient_name: proof.recipient.trim() || undefined,
+      });
     } else {
       act(next);
     }
@@ -261,6 +273,13 @@ export default function DriverPage() {
               </Button>
             )}
             <Typography sx={{ color: C.text, fontSize: 16, mt: 1 }}>{s.address || "—"}</Typography>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
+              {s.priority === 2 && <Chip size="small" label={t("dlv.driver.urgent")} sx={{ bgcolor: C.danger, color: C.onPrimary, fontWeight: 700 }} />}
+              {s.packages > 1 && <Chip size="small" label={t("dlv.driver.packages", { n: fmtInt(s.packages, lang) })} sx={{ fontWeight: 700 }} />}
+              {s.window_end && <Chip size="small" label={t("dlv.driver.window_by", { t: fmtTime(s.window_end, lang) })} sx={{ fontWeight: 700, color: C.warning, border: `1px solid ${C.warning}`, bgcolor: "transparent" }} />}
+            </Box>
+            {s.cargo_description && <Typography sx={{ color: C.sub, fontSize: 14, mt: 1 }}>📦 {s.cargo_description}</Typography>}
+            {s.instructions && <Typography sx={{ color: C.text, fontSize: 14, mt: 1, bgcolor: C.infoBg, borderRadius: 2, p: 1 }}>📝 {s.instructions}</Typography>}
             {s.eta && <Typography sx={{ color: C.sub, fontSize: 12, mt: 0.5 }}>{t("ui_del.dispatch.eta")}: {fmtTime(s.eta, lang)}</Typography>}
             <Button
               component="a" href={routeUrl(s)} target="_blank" rel="noreferrer" variant="outlined"
@@ -296,6 +315,36 @@ export default function DriverPage() {
             </Box>
           )}
 
+          {s.status === "arrived" && (
+            <Box sx={{ ...card, display: "grid", gap: 1.5 }}>
+              {s.require_otp && (
+                <TextField fullWidth value={proof.otp} onChange={(e) => setProof((p) => ({ ...p, otp: e.target.value.replace(/\D/g, "").slice(0, 8) }))}
+                  label={t("dlv.driver.otp")} helperText={t("dlv.driver.otp_help")}
+                  inputProps={{ inputMode: "numeric", dir: "ltr", style: { fontSize: 24, letterSpacing: 8, textAlign: "center" } }}
+                  sx={{ "& .MuiInputBase-root": { bgcolor: C.inputBg, color: C.text }, "& .MuiInputLabel-root, & .MuiFormHelperText-root": { color: C.sub } }} />
+              )}
+              {s.require_photo && (
+                <Button component="label" variant="outlined" sx={{ minHeight: 52, fontWeight: 700, borderRadius: 2, textTransform: "none", color: proof.photo ? C.success : C.primary, borderColor: proof.photo ? C.success : C.primary }}>
+                  📷 {proof.photo ? t("dlv.driver.photo_done") : t("dlv.driver.photo")}
+                  <input hidden type="file" accept="image/*" capture="environment" onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    e.target.value = "";
+                    if (f) photoToDataUrl(f).then((d) => setProof((p) => ({ ...p, photo: d }))).catch(() => notify(t("dlv.driver.photo_failed"), "error"));
+                  }} />
+                </Button>
+              )}
+              {proof.photo && <Box component="img" src={proof.photo} alt="" sx={{ width: "100%", maxHeight: 180, objectFit: "cover", borderRadius: 2 }} />}
+              {s.require_signature && (
+                <Box>
+                  <Typography sx={{ color: C.sub, fontSize: 13, mb: 0.5 }}>{t("dlv.driver.signature")}</Typography>
+                  <SignaturePad C={C} clearLabel={t("dlv.driver.clear")} onChange={(d) => setProof((p) => ({ ...p, signature: d }))} />
+                </Box>
+              )}
+              <TextField fullWidth size="small" value={proof.recipient} onChange={(e) => setProof((p) => ({ ...p, recipient: e.target.value }))}
+                label={t("dlv.driver.recipient")} sx={{ "& .MuiInputBase-root": { bgcolor: C.inputBg, color: C.text }, "& .MuiInputLabel-root": { color: C.sub } }} />
+            </Box>
+          )}
+
           <Button onClick={primary} disabled={busy} sx={bigBtn(C.btnGrad)}>
             {busy ? <CircularProgress size={28} color="inherit" /> : actionLabel}
           </Button>
@@ -312,7 +361,7 @@ export default function DriverPage() {
         </Box>
       )}
 
-      {failOpen && <FailDialog t={t} C={C} busy={busy} onClose={() => setFailOpen(false)} onSubmit={(r) => act("failed", { failure_reason: r })} />}
+      {failOpen && <FailDialog t={t} C={C} busy={busy} onClose={() => setFailOpen(false)} onSubmit={(r, code) => act("failed", { failure_reason: r, failure_code: code || undefined })} />}
 
       <Snackbar
         open={toast.open} autoHideDuration={3500} onClose={() => setToast((x) => ({ ...x, open: false }))}

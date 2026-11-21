@@ -132,6 +132,9 @@ PATH_FEATURES: list[tuple[str, list[str], list[str] | None]] = [
     ("/api/delivery/stops", _TRIP_TABS, None),
     ("/api/delivery/map", _TRIP_TABS + ["delivery_fleet"], None),
     ("/api/delivery/history", ["delivery_history"], None),
+    ("/api/delivery/reports", ["delivery_history"], None),
+    # dispatchers read zones (fee of a stop); the fleet tab and dispatchers may draw them
+    ("/api/delivery/zones", _TRIP_TABS + ["delivery_fleet"], ["delivery_fleet", "delivery_dispatch"]),
     ("/api/delivery/pending-orders", ["delivery_dispatch"], None),
     ("/api/delivery/dispatchable", ["delivery_dispatch"], None),
     ("/api/pos/update-food-price", ["pos_settings"], None),

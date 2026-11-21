@@ -181,6 +181,26 @@ export default function TrackingPage() {
             )}
           </Box>
 
+          {data.otp_code && (
+            <Box sx={{ ...card, textAlign: "center", border: `2px solid ${C.primary}` }}>
+              <Typography sx={{ color: C.sub, fontSize: 13 }}>{t("dlv.track.otp_title")}</Typography>
+              <Typography dir="ltr" sx={{ color: C.text, fontWeight: 900, fontSize: 40, letterSpacing: 10 }}>{data.otp_code}</Typography>
+              <Typography sx={{ color: C.sub, fontSize: 12 }}>{t("dlv.track.otp_help")}</Typography>
+            </Box>
+          )}
+
+          {(data.packages > 1 || data.window_end || data.recipient_name) && (
+            <Box sx={{ ...card, display: "grid", gap: 0.5 }}>
+              {data.packages > 1 && <Typography sx={{ color: C.text, fontSize: 14 }}>📦 {t("dlv.track.packages", { n: data.packages })}</Typography>}
+              {data.window_end && !done && (
+                <Typography sx={{ color: C.text, fontSize: 14 }}>
+                  {t("dlv.track.window")}: <b>{data.window_start ? `${fmtTime(data.window_start, lang)} – ` : ""}{fmtTime(data.window_end, lang)}</b>
+                </Typography>
+              )}
+              {data.recipient_name && <Typography sx={{ color: C.text, fontSize: 14 }}>{t("dlv.track.received_by", { name: data.recipient_name })}</Typography>}
+            </Box>
+          )}
+
           {(data.driver?.name || data.vehicle) && (
             <Box sx={card}>
               {data.driver?.name && (
@@ -207,6 +227,18 @@ export default function TrackingPage() {
             <Box sx={card}>
               <Typography sx={{ color: C.text, fontWeight: 700, mb: 1 }}>{t("ui_del.track.position")}</Typography>
               <LiveMap ctx={{ t, C }} points={points} stops={dest} />
+            </Box>
+          )}
+
+          {data.timeline?.length > 0 && (
+            <Box sx={card}>
+              <Typography sx={{ color: C.text, fontWeight: 700, mb: 1 }}>{t("dlv.track.timeline")}</Typography>
+              {data.timeline.map((e, i) => (
+                <Box key={i} sx={{ display: "flex", justifyContent: "space-between", gap: 1, py: 0.5, borderTop: i ? `1px solid ${C.divider}` : "none" }}>
+                  <Typography sx={{ color: stopStatusColor(C, e.status), fontWeight: 700, fontSize: 13 }}>{t(`ui_del.stop_status.${e.status}`, { defaultValue: e.status })}</Typography>
+                  <Typography sx={{ color: C.sub, fontSize: 12 }}>{fmtDateTime(e.at, lang)}</Typography>
+                </Box>
+              ))}
             </Box>
           )}
 

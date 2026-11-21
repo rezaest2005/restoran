@@ -59,3 +59,10 @@ export async function fetchTracking(token, signal) {
   }
   return body.data;
 }
+
+// zones, route ordering, reports
+export const zonesApi = crud("zones");
+export const quoteZone = (params) => client.get("/api/delivery/zones/quote/", { params: clean(params) }).then(unwrap);
+export const planRoute = (id) => client.get(`/api/delivery/trips/${id}/optimize/`).then(unwrap);
+export const applyRoute = (id) => client.post(`/api/delivery/trips/${id}/optimize/`).then(unwrap);
+export const fetchReport = (params) => client.get("/api/delivery/reports/", { params: clean(params) }).then(unwrap);

@@ -109,15 +109,19 @@ export default function CashTab({ ctx, refreshKey, bump }) {
               <TableRow>
                 <TableCell sx={S.th}>{t("ui_del.cash.driver")}</TableCell>
                 <TableCell sx={S.thNum}>{t("ui_del.cash.uncollected")}</TableCell>
+                <TableCell sx={S.thNum}>{t("dlv.cash.stops")}</TableCell>
+                <TableCell sx={S.th}>{t("dlv.cash.oldest")}</TableCell>
                 <TableCell sx={S.th} />
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.length === 0 && <TableRow><TableCell sx={{ ...S.td, color: C.muted }} colSpan={3}>{t("ui_del.common.empty")}</TableCell></TableRow>}
+              {rows.length === 0 && <TableRow><TableCell sx={{ ...S.td, color: C.muted }} colSpan={5}>{t("ui_del.common.empty")}</TableCell></TableRow>}
               {rows.map((r, i) => (
                 <TableRow key={r.driver_id} {...cursorProps(C, cursor.index === i)}>
                   <TableCell sx={S.td}>{r.driver_name}</TableCell>
                   <TableCell sx={S.tdNum}>{fmtMoney(r.uncollected, lang)}</TableCell>
+                  <TableCell sx={S.tdNum}>{r.stops ? r.stops.toLocaleString(lang === "fa" ? "fa-IR" : "en-US") : "—"}</TableCell>
+                  <TableCell sx={S.td}>{r.oldest ? fmtDateTime(r.oldest, lang) : "—"}</TableCell>
                   <TableCell sx={S.td} align="end">
                     <Button size="small" sx={S.link} disabled={!(r.uncollected > 0)} onClick={() => setSettle(r)}>{t("ui_del.cash.settle")}</Button>
                   </TableCell>
