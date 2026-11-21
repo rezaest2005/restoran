@@ -2,7 +2,7 @@ import { Navigate, useLocation } from "react-router-dom";
 
 export default function SuperProtectedRoute({ children }) {
   const location = useLocation();
-  const token = localStorage.getItem("super_token");
+  const token = sessionStorage.getItem("super_token");
 
   // اگه توکن نبود، کاربر رو بفرست به صفحه لاگین
   if (!token) {

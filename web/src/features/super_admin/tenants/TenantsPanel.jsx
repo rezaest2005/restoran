@@ -111,7 +111,7 @@ export default function TenantsPanel({
   /* ── ★ حذف کسب‌وکار ── */
   const handleDelete = async () => {
     try {
-      const token = localStorage.getItem("super_token") || "";
+      const token = sessionStorage.getItem("super_token") || "";
       const res = await fetch(`/api/super/tenants/${deleteModal.id}/`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` },
