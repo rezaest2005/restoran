@@ -184,3 +184,19 @@ def require_permission(permission: str):
             return view_func(request, *args, **kwargs)
         return wrapper
     return decorator
+
+def business_has_owner(business, exclude_pk=None) -> bool:
+    """True if the business already has an owner account (super admins don't count).
+
+    A business has exactly one owner: the person who bought the account.
+    """
+    if business is None:
+        return False
+    from .models import User
+    qs = User.objects.filter(business=business, role=ROLE_OWNER, is_superuser=False)
+    if exclude_pk:
+        qs = qs.exclude(pk=exclude_pk)
+    return qs.exists()
+
+
+OWNER_EXISTS_MSG = "این کسب‌وکار از قبل یک مالک دارد. نقش مالک فقط برای خریدار حساب است؛ برای همکار از نقش «مدیر» استفاده کنید."
