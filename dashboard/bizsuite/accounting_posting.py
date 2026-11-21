@@ -11,12 +11,23 @@ from decimal import Decimal
 from .models import InventoryMovement, JournalEntry, OrderItem, Payment, PurchaseInvoiceItem, SalesInvoiceItem
 from .accounting_services import (
     BANK, CASH, COGS, INVENTORY, OTHER_EXPENSE, PAYABLE, RECEIVABLE,
-    SALES, SALES_RETURNS, expense_account, post_entry, q2, reverse_by_source, reverse_entry,
+    SALES, SALES_RETURNS, expense_account, party_detail, post_entry, q2, reverse_by_source, reverse_entry,
 )
 
 WASTE = "5120"
 
 logger = logging.getLogger(__name__)
+
+
+def _customer_detail(obj):
+    """تفصیلی مشتری برای ردیف دریافتنی (اگر فاکتور به مشتری ثبت‌شده وصل باشد)."""
+    cid = getattr(obj, "customer_id", None)
+    return party_detail(obj.business, customer=obj.customer) if cid else None
+
+
+def _supplier_detail(obj):
+    sid = getattr(obj, "supplier_id", None)
+    return party_detail(obj.business, supplier=obj.supplier) if sid else None
 
 
 def _money_account(method: str) -> str:
@@ -71,7 +82,7 @@ def post_sales_invoice(inv, user=None):
                       "memo": f"فاکتور فروش {inv.invoice_number or inv.pk}"})
     if total - paid > 0:
         lines.append({"account": RECEIVABLE, "debit": total - paid,
-                      "memo": inv.customer_name or "مشتری"})
+                      "memo": inv.customer_name or "مشتری", "detail": _customer_detail(inv)})
     lines.append({"account": SALES, "credit": total})
     # از کوئری تازه می‌خوانیم تا prefetch قدیمی (بعد از ویرایش فاکتور) استفاده نشود
     items = SalesInvoiceItem.all_objects.filter(invoice_id=inv.pk)
@@ -95,7 +106,8 @@ def post_sales_return(ret, user=None):
     return post_entry(
         ret.business,
         [{"account": SALES_RETURNS, "debit": amount, "memo": ret.item_name},
-         {"account": refund, "credit": amount}],
+         {"account": refund, "credit": amount,
+          "detail": _customer_detail(inv) if (inv and refund == RECEIVABLE) else None}],
         date=ret.date, source_type="sales_return", source_id=ret.pk,
         description=f"مرجوعی فروش — {ret.item_name}", user=user,
     )
@@ -114,7 +126,8 @@ def post_purchase_invoice(inv, user=None):
     if paid > 0:
         lines.append({"account": CASH if inv.payment_method == "cash" else BANK, "credit": paid, "memo": inv.supplier_name})
     if total - paid > 0:
-        lines.append({"account": PAYABLE, "credit": total - paid, "memo": inv.supplier_name})
+        lines.append({"account": PAYABLE, "credit": total - paid, "memo": inv.supplier_name,
+                      "detail": _supplier_detail(inv)})
     return post_entry(
         inv.business, lines,
         date=inv.date, source_type="purchase_invoice", source_id=inv.pk,
@@ -128,7 +141,8 @@ def post_purchase_return(ret, user=None):
         return None
     return post_entry(
         ret.business,
-        [{"account": PAYABLE, "debit": amount, "memo": ret.item_name},
+        [{"account": PAYABLE, "debit": amount, "memo": ret.item_name,
+          "detail": _supplier_detail(ret.invoice) if getattr(ret, "invoice_id", None) else None},
          {"account": INVENTORY, "credit": amount}],
         date=ret.date, source_type="purchase_return", source_id=ret.pk,
         description=f"مرجوعی خرید — {ret.item_name}", user=user,
@@ -157,10 +171,12 @@ def post_payment(pay, user=None):
     money = BANK if pay.method == "bank" else CASH
     who = pay.party_name or (pay.customer.name if pay.customer_id else pay.supplier.name if pay.supplier_id else "")
     if pay.kind == Payment.Kind.RECEIPT:
-        lines = [{"account": money, "debit": amount, "memo": who}, {"account": RECEIVABLE, "credit": amount, "memo": who}]
+        lines = [{"account": money, "debit": amount, "memo": who},
+                 {"account": RECEIVABLE, "credit": amount, "memo": who, "detail": _customer_detail(pay)}]
         desc = f"دریافت از مشتری — {who}"
     else:
-        lines = [{"account": PAYABLE, "debit": amount, "memo": who}, {"account": money, "credit": amount, "memo": who}]
+        lines = [{"account": PAYABLE, "debit": amount, "memo": who, "detail": _supplier_detail(pay)},
+                 {"account": money, "credit": amount, "memo": who}]
         desc = f"پرداخت به تأمین‌کننده — {who}"
     return post_entry(pay.business, lines, date=pay.date, source_type="payment", source_id=pay.pk,
                       description=desc, user=user)

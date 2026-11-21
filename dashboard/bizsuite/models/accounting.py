@@ -31,6 +31,8 @@ class Account(TenantModel):
     )
     is_system = models.BooleanField("حساب سیستمی", default=False)
     is_active = models.BooleanField("فعال", default=True)
+    # نقش حساب برای گزارش‌ها و ثبت خودکار (صندوق، بانک، دریافتنی، مالیات ارزش افزوده …)؛ زیرحساب‌ها نقش والد را به ارث می‌برند
+    role = models.CharField("نقش", max_length=30, blank=True, default="", db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -77,9 +79,26 @@ class CostCenter(TenantModel):
 
 
 class JournalEntry(TenantModel):
-    """سند حسابداری. پس از ثبت قابل ویرایش نیست؛ فقط برگشت (ابطال) می‌شود."""
+    """
+    سند حسابداری. پیش‌نویس قابل ویرایش/حذف است؛ سند قطعی‌شده (posted) تغییر نمی‌کند و فقط با سند برگشتی ابطال می‌شود.
+    شماره‌ی سند هنگام قطعی‌شدن داده می‌شود (پیش‌نویس شماره ندارد).
+    """
 
-    number = models.PositiveIntegerField("شماره سند")
+    class Status(models.TextChoices):
+        DRAFT = "draft", "پیش‌نویس"
+        POSTED = "posted", "قطعی"
+
+    class Kind(models.TextChoices):
+        NORMAL = "normal", "عادی"
+        CLOSING = "closing", "بستن حساب‌های موقت"
+        CLOSING_PERM = "closing_perm", "اختتامیه"
+        OPENING_PERM = "opening_perm", "افتتاحیه"
+
+    number = models.PositiveIntegerField("شماره سند", null=True, blank=True)
+    status = models.CharField("وضعیت", max_length=10, choices=Status.choices, default=Status.POSTED, db_index=True)
+    kind = models.CharField("نوع سند", max_length=20, choices=Kind.choices, default=Kind.NORMAL, db_index=True)
+    reference = models.CharField("شماره عطف", max_length=60, blank=True, default="")
+    posted_at = models.DateTimeField("زمان قطعی‌شدن", null=True, blank=True)
     date = models.DateField("تاریخ", db_index=True)
     description = models.CharField("شرح", max_length=500, blank=True, default="")
     source_type = models.CharField("نوع منبع", max_length=30, blank=True, default="", db_index=True)
@@ -108,7 +127,13 @@ class JournalEntry(TenantModel):
         indexes = [models.Index(fields=["business", "date"])]
 
     def __str__(self):
-        return f"سند {self.number}"
+        return f"سند {self.number or ('پیش‌نویس ' + str(self.pk))}"
+
+    def delete(self, *args, **kwargs):
+        # سند قطعی هرگز حذف نمی‌شود؛ باید برگشت بخورد
+        if self.status == self.Status.POSTED:
+            raise ValueError("سند قطعی حذف نمی‌شود؛ از برگشت سند استفاده کنید.")
+        return super().delete(*args, **kwargs)
 
 
 class JournalLine(TenantModel):
@@ -120,6 +145,12 @@ class JournalLine(TenantModel):
     cost_center = models.ForeignKey(
         CostCenter, on_delete=models.SET_NULL, null=True, blank=True, related_name="lines",
     )
+    detail = models.ForeignKey(
+        "DetailAccount", on_delete=models.PROTECT, null=True, blank=True, related_name="lines",
+        verbose_name="حساب تفصیلی",
+    )
+    # مبلغ پایه‌ی مشمول مالیات (فقط روی ردیف‌های مالیات بر ارزش افزوده) — برای گزارش فصلی ارزش افزوده
+    tax_base = models.DecimalField("مبلغ مشمول مالیات", max_digits=16, decimal_places=2, null=True, blank=True)
 
     class Meta:
         verbose_name = "ردیف سند"
@@ -131,7 +162,7 @@ class JournalLine(TenantModel):
                 name="rms_journalline_one_side",
             ),
         ]
-        indexes = [models.Index(fields=["business", "account"])]
+        indexes = [models.Index(fields=["business", "account"]), models.Index(fields=["business", "detail"])]
 
 
 # ───────────────────────── autopilot (هزینه‌های ثابت و پرداخت‌ها) ─────────────────────────
