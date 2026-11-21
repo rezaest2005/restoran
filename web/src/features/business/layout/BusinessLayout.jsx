@@ -344,7 +344,7 @@ export default function BusinessLayout() {
                 <Box key={ii} component={Link} to={`${prefix}/${item.basePath}`}
                   title={comboFor(`${prefix}/${item.basePath}`)}
                   onClick={() => isMobile && setSidebarOpen(false)}
-                  sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1, borderRadius: "10px", textDecoration: "none", color: C.sub, transition: "all 0.2s ease", "&:hover": { bgcolor: C.oliveSubtle, color: C.olive } }}>
+                  sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1, minHeight: 40, borderRadius: "10px", textDecoration: "none", color: C.sub, transition: "all 0.2s ease", "&:hover": { bgcolor: C.oliveSubtle, color: C.olive } }}>
                   <NavIcon name={item.icon} />
                   <Typography sx={{ fontSize: 12.5, fontWeight: 500 }}>{t(item.labelKey)}</Typography>
                 </Box>
@@ -364,7 +364,7 @@ export default function BusinessLayout() {
   );
 
   return (
-    <Box dir={isRtl ? "rtl" : "ltr"} sx={{ minHeight: "100vh", bgcolor: C.bg, position: "relative", fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif", overflowX: "hidden" }}>
+    <Box dir={isRtl ? "rtl" : "ltr"} sx={{ minHeight: "100vh", bgcolor: C.bg, position: "relative", fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif", overflowX: "clip" }}>
       <style>{animations}</style>
       <Box sx={{ position: "fixed", inset: 0, zIndex: 0, background: C.bgWarm, pointerEvents: "none" }} />
       <Box sx={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: `radial-gradient(circle, ${isDark ? "color-mix(in srgb, var(--success) 6%, transparent)" : "color-mix(in srgb, var(--success) 6%, transparent)"} 1px, transparent 1px)`, backgroundSize: "36px 36px", pointerEvents: "none" }} />
@@ -387,7 +387,7 @@ export default function BusinessLayout() {
           anchor="left"
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
-          slotProps={{ paper: { sx: { width: 280, bgcolor: "transparent", border: "none" } } }}
+          slotProps={{ paper: { sx: { width: "min(280px, 85vw)", bgcolor: "transparent", border: "none" } } }}
         >
           {sidebarContent}
         </Drawer>
@@ -398,6 +398,7 @@ export default function BusinessLayout() {
         zIndex: 2,
         marginInlineStart: isMobile ? 0 : "260px",
         width: isMobile ? "100%" : "calc(100% - 260px)",
+        minWidth: 0,
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
@@ -408,7 +409,7 @@ export default function BusinessLayout() {
         }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0, flex: 1 }}>
             {isMobile && (
-              <IconButton onClick={() => setSidebarOpen(true)} size="small" sx={{ color: C.text, border: `1px solid ${C.glassBorder}`, borderRadius: "10px", bgcolor: C.glass, flexShrink: 0, width: 36, height: 36 }}>
+              <IconButton onClick={() => setSidebarOpen(true)} size="small" aria-label={t("ui_resp.open_menu")} sx={{ color: C.text, border: `1px solid ${C.glassBorder}`, borderRadius: "10px", bgcolor: C.glass, flexShrink: 0, width: 40, height: 40 }}>
                 <MenuIcon fontSize="small" />
               </IconButton>
             )}
@@ -418,13 +419,13 @@ export default function BusinessLayout() {
           </Box>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, md: 1 }, flexShrink: 0 }}>
-            <IconButton onClick={toggleTheme} size="small" sx={{ color: C.text, border: `1px solid ${C.glassBorder}`, borderRadius: "10px", bgcolor: C.glass, width: 34, height: 34, "&:hover": { bgcolor: C.oliveSubtle, borderColor: C.olive } }}>
+            <IconButton onClick={toggleTheme} size="small" sx={{ color: C.text, border: `1px solid ${C.glassBorder}`, borderRadius: "10px", bgcolor: C.glass, width: { xs: 40, md: 34 }, height: { xs: 40, md: 34 }, "&:hover": { bgcolor: C.oliveSubtle, borderColor: C.olive } }}>
               {isDark ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
             </IconButton>
-            <Box sx={{ display: "flex", border: `1px solid ${C.glassBorder}`, borderRadius: "10px", overflow: "hidden", bgcolor: C.glass, height: 34 }}>
+            <Box sx={{ display: "flex", border: `1px solid ${C.glassBorder}`, borderRadius: "10px", overflow: "hidden", bgcolor: C.glass, height: { xs: 40, md: 34 } }}>
               {["fa", "en"].map((lng) => (
                 <Button key={lng} onClick={() => { if (lang !== lng) toggleLang(); }} sx={{
-                  minWidth: "auto", py: 0, px: { xs: 0.8, md: 1.2 }, borderRadius: 0, fontSize: 10, fontWeight: lang === lng ? 700 : 500,
+                  minWidth: { xs: 40, md: "auto" }, minHeight: 0, py: 0, px: { xs: 0.8, md: 1.2 }, borderRadius: 0, fontSize: { xs: 12, md: 10 }, fontWeight: lang === lng ? 700 : 500,
                   color: lang === lng ? C.olive : C.sub, bgcolor: lang === lng ? C.oliveSubtle : "transparent",
                   boxShadow: "none", textTransform: "none", "&:hover": { bgcolor: C.oliveSubtle },
                 }}>
@@ -439,8 +440,9 @@ export default function BusinessLayout() {
 
         <Box sx={{
           flex: 1,
-          p: { xs: 2, md: 3 },
+          p: { xs: 1.5, sm: 2, md: 3 },
           width: "100%",
+          minWidth: 0,
           opacity: mounted ? 1 : 0,
           transition: "opacity 0.5s ease",
         }}>

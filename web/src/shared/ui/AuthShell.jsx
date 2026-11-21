@@ -42,11 +42,12 @@ export default function AuthShell({ title, subtitle, footer, children }) {
         </Tooltip>
       </Box>
 
-      <Box sx={{ flex: 1, display: "grid", placeItems: "center", px: 2, pb: 4 }}>
+      {/* minmax(0,1fr): the card may shrink below the hero's natural width on a 360px phone */}
+      <Box sx={{ flex: 1, display: "grid", gridTemplateColumns: "minmax(0, 1fr)", placeItems: "center", px: 2, pb: 4 }}>
         <Box
           component="main"
           sx={{
-            width: "100%", maxWidth: 420, p: { xs: 3, sm: 4 },
+            width: "100%", maxWidth: 420, minWidth: 0, p: { xs: 2.5, sm: 4 },
             bgcolor: "var(--surface)", border: "1px solid var(--line)",
             borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-sm)",
           }}
