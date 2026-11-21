@@ -5,22 +5,7 @@ import {
 import { blurFocused } from "@business/pos/common/focus";
 import { fmt } from "@business/production/common";
 import { parseProcess, errMsg } from "../../api";
-import { TEMPLATES, pick } from "./templates";
-
-/** Template → draft { industry, batch, stages, components } in the current language. */
-export const templateDraft = (tpl, lang) => ({
-  industry: tpl.key,
-  batch: tpl.batch,
-  stages: tpl.stages.map((s) => ({
-    name: pick(s.name, lang), workstation: pick(s.workstation, lang),
-    setup_minutes: s.setup_minutes ?? 0, run_minutes: s.run_minutes ?? 0, capacity: s.capacity ?? 0,
-    instructions: pick(s.instructions, lang), quality_check: pick(s.quality_check, lang),
-  })),
-  components: tpl.components.map((c) => ({
-    name: pick(c.name, lang), altNames: [c.name.fa, c.name.en], quantity: c.quantity, unit: c.unit,
-    type: c.type, stageIndex: c.stage,
-  })),
-});
+import { TEMPLATES, pick, templateDraft } from "./templates";
 
 /** Pick an industry template to start from. */
 export function TemplateDialog({ ctx, onClose, onApply }) {
