@@ -15,6 +15,8 @@ import {
 } from "./common";
 import LiveMap from "./LiveMap";
 import CopyLink from "./CopyLink";
+import StopExtras from "./StopExtras";
+import RouteDialog from "./RouteDialog";
 
 const MAP_POLL_MS = 15000;
 
@@ -40,6 +42,7 @@ export default function DispatchTab({ ctx, drivers, vehicles, refreshKey, select
   const [assign, setAssign] = useState({ driver_id: "", vehicle_id: "" });
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(null);
+  const [routeOpen, setRouteOpen] = useState(false);
 
   const loadList = useCallback(() => {
     fetchTrips({ status, driver_id: driverId, date })
@@ -111,6 +114,8 @@ export default function DispatchTab({ ctx, drivers, vehicles, refreshKey, select
 
   const mapStops = (detail?.stops || []).map((s) => ({ id: s.id, lat: s.lat, lng: s.lng, status: s.status }));
   const canAssign = detail && (detail.status === "planned" || detail.status === "assigned");
+  const canRoute = detail && !["completed", "cancelled"].includes(detail.status)
+    && detail.stops.filter((s) => s.lat != null && ["pending", "picked_up", "arrived"].includes(s.status)).length >= 2;
   const n = (v) => fmtMoney(v, lang);
 
   return (
@@ -223,6 +228,7 @@ export default function DispatchTab({ ctx, drivers, vehicles, refreshKey, select
                     {s.delivered_at && <span>{t("ui_del.dispatch.delivered_at")}: {fmtTime(s.delivered_at, lang)}</span>}
                   </Box>
                   {s.failure_reason && <Typography sx={{ color: C.danger, fontSize: 12, mt: 0.5 }}>{s.failure_reason}</Typography>}
+                  <StopExtras ctx={ctx} stop={s} />
                   <MuiLink href={withBase(`/t/${s.tracking_token}`)} target="_blank" rel="noreferrer" sx={{ fontSize: 11, color: C.primary }}>
                     {t("ui_del.dispatch.tracking_link")}
                   </MuiLink>
@@ -239,6 +245,11 @@ export default function DispatchTab({ ctx, drivers, vehicles, refreshKey, select
             </Box>
 
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+              {canRoute && (
+                <Button variant="outlined" sx={S.ghost} disabled={busy} onClick={() => setRouteOpen(true)}>
+                  🧭 {t("dlv.route.optimize")}
+                </Button>
+              )}
               {NEXT_TRIP[detail.status].map((s) => (
                 <Button
                   key={s} variant={s === "cancelled" ? "outlined" : "contained"} disabled={busy}
@@ -270,6 +281,11 @@ export default function DispatchTab({ ctx, drivers, vehicles, refreshKey, select
           ))}
         </Box>
       </Box>
+
+      {routeOpen && detail && (
+        <RouteDialog ctx={ctx} trip={detail} onClose={() => setRouteOpen(false)}
+          onApplied={() => { setRouteOpen(false); reload(); }} />
+      )}
 
       <ConfirmDialog
         ctx={ctx} open={!!confirm} busy={busy} danger={confirm === "cancelled"}

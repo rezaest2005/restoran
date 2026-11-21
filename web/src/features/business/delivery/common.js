@@ -57,3 +57,26 @@ export function currentSlug() {
 
 /** Courier address: <domain>/bizsuite_driver (no slug). After sign-in the app moves to <domain>/<slug>/bizsuite_driver/<number>. */
 export const driverUrl = () => appUrl("/bizsuite_driver");
+
+export const FAILURE_CODES = ["absent", "refused", "address", "closed", "damaged", "no_payment", "other"];
+export const PRIORITIES = [0, 1, 2];
+export const priorityColor = (C, p) => ({ 1: C.warning, 2: C.danger }[p] || C.muted);
+
+/** Shrink a camera photo to a JPEG data URL (max side `max` px) so it uploads fast on a mobile network. */
+export function photoToDataUrl(file, max = 1280, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * k);
+      canvas.height = Math.round(img.height * k);
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/jpeg", quality));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("image")); };
+    img.src = url;
+  });
+}
