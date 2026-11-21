@@ -1,9 +1,8 @@
 import { useTranslation } from "react-i18next";
+import { ResponsiveDialog } from "@shared/responsive";
 import { useState, useEffect, useCallback } from "react";
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
-  Box, Typography, Button, TextField, Select, MenuItem,
-  CircularProgress, IconButton,
+  DialogTitle, DialogContent, DialogActions, Box, Typography, Button, TextField, Select, MenuItem, CircularProgress, IconButton,
 } from "@mui/material";
 import { createReceiving, fetchRawMaterials, fetchSuppliers } from "../api";
 import { buildInputSx, buildDialogPaperSx, UNIT_LABELS, useRegisteredShortcuts, dialogBindings, KbdHint } from "../common";
@@ -108,7 +107,7 @@ export default function ReceiveModal({ open, onClose, warehouse, C, isDark, onSu
   const dialogPaperSx = buildDialogPaperSx(C, isDark);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth slotProps={{ paper: { sx: dialogPaperSx } }}>
+    <ResponsiveDialog open={open} onClose={onClose} maxWidth="sm" fullWidth slotProps={{ paper: { sx: dialogPaperSx } }}>
       <DialogTitle sx={{ fontSize: 15, fontWeight: 800, color: C.text }}>
         ➕ ورود کالا — {warehouse?.name || ""}
       </DialogTitle>
@@ -233,6 +232,6 @@ export default function ReceiveModal({ open, onClose, warehouse, C, isDark, onSu
           {!saving && <KbdHint>Ctrl+D</KbdHint>}
         </Button>
       </DialogActions>
-    </Dialog>
+    </ResponsiveDialog>
   );
 }

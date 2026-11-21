@@ -118,7 +118,32 @@ export function getDesignTokens(mode = 'light', direction = 'rtl') {
         defaultProps: { elevation: 0 },
         styleOverrides: { root: { borderRadius: radius.lg, border: `1px solid ${c.line}` } },
       },
-      MuiDialog: { styleOverrides: { paper: { borderRadius: radius.lg } } },
+      // phones: dialogs use (almost) the whole screen instead of a 64px-margin box; wide (md+) ones go full screen
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            borderRadius: radius.lg,
+            '@media (max-width:599.95px)': {
+              '&:not(.MuiDialog-paperFullScreen):not(.MuiDialog-paperWidthMd):not(.MuiDialog-paperWidthLg):not(.MuiDialog-paperWidthXl)': { margin: 12, maxHeight: 'calc(100% - 24px)', maxWidth: 'calc(100% - 24px)' },
+            },
+          },
+          paperFullWidth: {
+            '@media (max-width:599.95px)': {
+              width: 'calc(100% - 24px)',
+              '&.MuiDialog-paperWidthMd, &.MuiDialog-paperWidthLg, &.MuiDialog-paperWidthXl': { width: '100%' },
+            },
+          },
+          paperWidthMd: { '@media (max-width:599.95px)': { margin: 0, width: '100%', maxWidth: '100%', height: '100%', maxHeight: '100%', borderRadius: 0 } },
+          paperWidthLg: { '@media (max-width:599.95px)': { margin: 0, width: '100%', maxWidth: '100%', height: '100%', maxHeight: '100%', borderRadius: 0 } },
+          paperWidthXl: { '@media (max-width:599.95px)': { margin: 0, width: '100%', maxWidth: '100%', height: '100%', maxHeight: '100%', borderRadius: 0 } },
+        },
+      },
+      MuiDialogTitle: { styleOverrides: { root: { overflowWrap: 'anywhere' } } },
+      // action buttons wrap onto a second line instead of pushing the dialog wider than the phone
+      MuiDialogActions: { styleOverrides: { root: { flexWrap: 'wrap', gap: 8, '& > :not(style) ~ :not(style)': { marginInlineStart: 0 } } } },
+      // touch screens: icon buttons are at least 40×40 px
+      MuiIconButton: { styleOverrides: { root: { '@media (pointer: coarse)': { minWidth: 40, minHeight: 40 } } } },
+      MuiTableContainer: { styleOverrides: { root: { maxWidth: '100%', WebkitOverflowScrolling: 'touch' } } },
       MuiOutlinedInput: {
         styleOverrides: {
           root: { borderRadius: radius.md, minHeight: 40 },

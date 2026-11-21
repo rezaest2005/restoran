@@ -1,12 +1,9 @@
 import { blurFocused } from "../common/focus";
+import { ResponsiveDialog } from "@shared/responsive";
 import { appUrl } from "@shared/basePath";
 import { useRef, useState } from "react";
 import {
-  Dialog,
-  Box,
-  Typography,
-  Button,
-  CircularProgress,
+  Box, Typography, Button, CircularProgress,
 } from "@mui/material";
 import {
   CheckCircle,
@@ -331,7 +328,7 @@ export default function CheckoutDialog({
   };
 
   return (
-    <Dialog
+    <ResponsiveDialog
       open={open}
       onClose={isPaid ? undefined : onClose}
       maxWidth="xs"
@@ -817,6 +814,6 @@ export default function CheckoutDialog({
           )}
         </Box>
       </Box>
-    </Dialog>
+    </ResponsiveDialog>
   );
 }

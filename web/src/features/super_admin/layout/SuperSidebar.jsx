@@ -13,7 +13,7 @@ export default function SuperSidebar({ isMobile, open, onClose, currentUser, onL
 
   const content = (
     <Box dir={isRtl ? "rtl" : "ltr"} sx={{
-      width: 250, height: "100%", bgcolor: C.sidebarBg,
+      width: isMobile ? "min(280px, 85vw)" : 250, height: "100%", bgcolor: C.sidebarBg,
       display: "flex", flexDirection: "column",
       borderInlineEnd: `1px solid ${C.sidebarBorder}`,
     }}>
@@ -51,7 +51,7 @@ export default function SuperSidebar({ isMobile, open, onClose, currentUser, onL
                   onClick={isMobile ? onClose : undefined}
                   sx={{
                     display: "flex", alignItems: "center",
-                    gap: 1.5, px: 1.5, py: 1,
+                    gap: 1.5, px: 1.5, py: 1, minHeight: 40,
                     textDecoration: "none", borderRadius: "10px", mb: 0.5,
                     outline: "none", boxShadow: "none",
                     bgcolor: isActive ? C.oliveSubtle : "transparent",
@@ -61,7 +61,7 @@ export default function SuperSidebar({ isMobile, open, onClose, currentUser, onL
                   }}
                 >
                   <NavIcon name={item.icon} />
-                  <Typography sx={{ fontSize: 12.5, fontWeight: isActive ? 700 : 500, flex: 1 }}>
+                  <Typography sx={{ fontSize: 12.5, fontWeight: isActive ? 700 : 500, flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>
                     {t(item.labelKey)}
                   </Typography>
                   {item.badge && badges[item.badge] > 0 && (
@@ -120,7 +120,8 @@ export default function SuperSidebar({ isMobile, open, onClose, currentUser, onL
   if (isMobile) {
     return (
       <Drawer
-        anchor={isRtl ? "right" : "left"}
+        // MUI flips "left" to the right edge itself when the theme is RTL
+        anchor="left"
         open={open}
         onClose={onClose}
         slotProps={{

@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { ResponsiveDialog } from "@shared/responsive";
 import { useTranslation } from "react-i18next";
 import {
-  Box, Typography, Button, TextField, Chip, CircularProgress,
-  Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions,
-  IconButton, Divider,
+  Box, Typography, Button, TextField, Chip, CircularProgress, Select, MenuItem, DialogTitle, DialogContent, DialogActions, IconButton, Divider,
 } from "@mui/material";
 import { Add, Delete, Close, Receipt, Visibility } from "@mui/icons-material";
 import { getUnitLabel } from "../../../../shared/common/units";
@@ -409,7 +408,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
       {/* ═══════════════════════════════════════
            مودال فاکتور جدید
       ════════════════════════════════════════ */}
-      <Dialog open={dialogOpen} onClose={closeDialog} maxWidth="md" fullWidth
+      <ResponsiveDialog open={dialogOpen} onClose={closeDialog} maxWidth="md" fullWidth
         slotProps={{
           paper: {
             sx: {
@@ -715,12 +714,12 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
             "&.Mui-disabled": { bgcolor: C.muted, color: "var(--on-primary)", opacity: 0.4 },
           }}>💾 ثبت فاکتور (Ctrl+D)</Button>
         </DialogActions>
-      </Dialog>
+      </ResponsiveDialog>
 
       {/* ═══════════════════════════════════════
            مودال جزئیات فاکتور
       ════════════════════════════════════════ */}
-      <Dialog open={detailOpen} onClose={() => setDetailOpen(false)} maxWidth="sm" fullWidth
+      <ResponsiveDialog open={detailOpen} onClose={() => setDetailOpen(false)} maxWidth="sm" fullWidth
         slotProps={{
           paper: {
             sx: {
@@ -820,7 +819,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
             </DialogContent>
           </>
         )}
-      </Dialog>
+      </ResponsiveDialog>
     </Box>
   );
 }

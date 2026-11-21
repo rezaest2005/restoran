@@ -4,6 +4,7 @@ import {
   Alert, Box, Button, Checkbox, Chip, FormControlLabel, MenuItem, Switch, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, TextField, Typography,
 } from "@mui/material";
+import { rsx, formGrid } from "@shared/responsive";
 import superClient from "@super/api/super_client";
 import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
 import KbdHint from "@business/pos/common/KbdHint";
@@ -131,7 +132,7 @@ export default function ModulesPanel({ tenants, C }) {
 
       <Typography sx={{ fontWeight: 700, color: C.text, mb: 1 }}>{t("ui_k.mod.catalogue")}</Typography>
       <TableContainer sx={{ mb: 3, border: `1px solid ${C.glassBorder}`, borderRadius: "12px" }}>
-        <Table size="small">
+        <Table size="small" sx={{ minWidth: 560 }}>
           <TableHead><TableRow>
             {["code", "name", "price", "requires"].map((k) => <TableCell key={k} sx={{ ...cell, fontWeight: 700 }}>{t(`ui_k.mod.${k}`)}</TableCell>)}
           </TableRow></TableHead>
@@ -151,11 +152,11 @@ export default function ModulesPanel({ tenants, C }) {
         </Table>
       </TableContainer>
 
-      <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center", mb: 2 }}>
-        <TextField select size="small" label={t("ui_k.mod.business")} value={bid ?? ""} onChange={(e) => setBid(e.target.value)} sx={{ minWidth: 240 }}>
+      <Box sx={{ ...rsx.toolbar, gap: 2, mb: 2 }}>
+        <TextField select size="small" label={t("ui_k.mod.business")} value={bid ?? ""} onChange={(e) => setBid(e.target.value)} sx={{ minWidth: { sm: 240 }, maxWidth: { sm: 420 } }}>
           {businesses.map((b) => <MenuItem key={b.business_id} value={b.business_id}>{b.name} ({b.slug})</MenuItem>)}
         </TextField>
-        <TextField select size="small" label={t("ui_k.mod.plan")} value={plan} onChange={(e) => setPlan(e.target.value)} sx={{ minWidth: 200 }}
+        <TextField select size="small" label={t("ui_k.mod.plan")} value={plan} onChange={(e) => setPlan(e.target.value)} sx={{ minWidth: { sm: 200 } }}
           inputRef={planRef}>
           {plans.map((p) => <MenuItem key={p.code} value={p.code}>{fa ? p.name_fa : p.name_en} - {p.price_monthly.toLocaleString()}</MenuItem>)}
         </TextField>
@@ -168,7 +169,7 @@ export default function ModulesPanel({ tenants, C }) {
         <>
           {!state.managed && <Alert severity="info" sx={{ mb: 2 }}>{t("ui_k.mod.unmanaged")}</Alert>}
           <TableContainer sx={{ border: `1px solid ${C.glassBorder}`, borderRadius: "12px", mb: 2 }}>
-            <Table size="small">
+            <Table size="small" sx={{ minWidth: 860 }}>
               <TableHead><TableRow>
                 {["name", "enabled", "starts", "expires", "override", "effective"].map((k) => <TableCell key={k} sx={{ ...cell, fontWeight: 700 }}>{t(`ui_k.mod.${k}`)}</TableCell>)}
               </TableRow></TableHead>
@@ -205,7 +206,7 @@ export default function ModulesPanel({ tenants, C }) {
           </TableContainer>
           <Typography sx={{ fontWeight: 700, color: C.text, mb: 0.5 }}>{t("ui_k.mod.features_title")}</Typography>
           <Typography sx={{ color: C.sub, fontSize: 13, mb: 1.5 }}>{t("ui_k.mod.features_hint")}</Typography>
-          <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)" }, mb: 3 }}>
+          <Box sx={{ ...formGrid(2, "md", 1.5), mb: 3 }}>
             {Object.entries(featureGroups).map(([mod, list]) => {
               const live = mod === "core" || state.modules.find((m) => m.code === mod)?.is_live;
               const keys = list.filter((f) => !f.locked).map((f) => f.key);
@@ -222,9 +223,9 @@ export default function ModulesPanel({ tenants, C }) {
                     </Box>
                   </Box>
                   {list.map((f) => (
-                    <Box key={f.key} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <Typography sx={{ color: C.text, fontSize: 14 }}>
-                        {nameOf(f)} {f.locked && <Chip size="small" label={t("ui_k.mod.locked")} sx={{ ml: 0.5 }} />}
+                    <Box key={f.key} sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+                      <Typography sx={{ color: C.text, fontSize: 14, ...rsx.wrapText }}>
+                        {nameOf(f)} {f.locked && <Chip size="small" label={t("ui_k.mod.locked")} sx={{ marginInlineStart: 0.5 }} />}
                       </Typography>
                       <Switch size="small" checked={f.locked || !disabled.includes(f.key)} disabled={f.locked}
                         onChange={(e) => toggleFeature(f.key, e.target.checked)}

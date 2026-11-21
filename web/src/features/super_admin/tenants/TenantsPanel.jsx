@@ -4,8 +4,9 @@ import { useTranslation } from "react-i18next";
 import { useLang } from "@shared/contexts/LangContext";
 import {
   Box, Typography, Button, TextField, TableContainer, Table, TableHead,
-  TableRow, TableCell, TableBody, Chip, InputAdornment, useMediaQuery, useTheme,
+  TableRow, TableCell, TableBody, Chip, InputAdornment, ButtonBase,
 } from "@mui/material";
+import { useIsMobile, rsx } from "@shared/responsive";
 import { Add, Search, Edit, Delete, Storefront, Dashboard } from "@mui/icons-material";
 import TenantModal from "@super/tenants/TenantModal";
 import DeleteModal from "@super/common/DeleteModal";
@@ -16,18 +17,20 @@ import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
    ════════════════════════════════════════ */
 
 const ActionBtn = ({ icon, label, color, onClick, small }) => (
-  <Box
+  <ButtonBase
     onClick={onClick}
+    aria-label={label}
     sx={{
       display: "flex", flexDirection: "column", alignItems: "center", gap: 0.3,
-      cursor: "pointer", p: 0.5, borderRadius: "8px",
-      minWidth: small ? 45 : 55,
-      transition: "all 0.2s ease", "&:hover": { bgcolor: color + "15" },
+      p: 0.5, borderRadius: "8px",
+      // touch target: at least 44px on phones (the card variant), compact in the desktop table
+      minWidth: small ? 56 : 55, minHeight: small ? 44 : 40,
+      transition: "all 0.2s ease", "&:hover": { bgcolor: `color-mix(in srgb, ${color} 9%, transparent)` },
     }}
   >
     {icon}
-    <Typography sx={{ fontSize: small ? 8 : 9, fontWeight: 600, color }}>{label}</Typography>
-  </Box>
+    <Typography component="span" sx={{ fontSize: small ? 10 : 9, fontWeight: 600, color }}>{label}</Typography>
+  </ButtonBase>
 );
 
 /* ════════════════════════════════════════
@@ -40,8 +43,7 @@ export default function TenantsPanel({
   const { t } = useTranslation();
   const { isRtl } = useLang();
 
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const isMobile = useIsMobile();
 
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState({ open: false, editData: null });   // ★ editData object
@@ -146,7 +148,6 @@ export default function TenantsPanel({
         <Button
           onClick={() => setModal({ open: true, editData: null })}
           startIcon={<Add />}
-          size={isMobile ? "small" : "medium"}
           sx={{
             bgcolor: C.btnGrad, color: "var(--on-primary)", fontWeight: 700,
             textTransform: "none", borderRadius: "12px",
@@ -199,8 +200,8 @@ export default function TenantsPanel({
                 "&:hover": { borderColor: C.olive },
               }}
             >
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1, mb: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
                   <Box sx={{
                     width: 30, height: 30, borderRadius: "8px",
                     bgcolor: C.oliveSubtle, color: C.olive,
@@ -209,7 +210,7 @@ export default function TenantsPanel({
                   }}>
                     {tn.name?.charAt(0).toUpperCase()}
                   </Box>
-                  <Typography sx={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                  <Typography sx={{ fontSize: 13, fontWeight: 700, color: C.text, ...rsx.wrapText }}>
                     {tn.name}
                   </Typography>
                 </Box>
@@ -219,7 +220,7 @@ export default function TenantsPanel({
                   sx={{
                     bgcolor: tn.is_active ? (C.successBg || "color-mix(in srgb, var(--success) 13%, transparent)") : (C.dangerBg || "color-mix(in srgb, var(--danger) 13%, transparent)"),
                     color: tn.is_active ? (C.success || "var(--success)") : (C.danger || "var(--danger)"),
-                    fontWeight: 600, borderRadius: "8px", fontSize: 10, height: 22,
+                    fontWeight: 600, borderRadius: "8px", fontSize: 10, height: 22, flexShrink: 0,
                   }}
                 />
               </Box>
@@ -229,10 +230,10 @@ export default function TenantsPanel({
                   sx={{
                     bgcolor: C.glassBorder, color: C.sub,
                     borderRadius: "6px", fontFamily: "monospace",
-                    fontSize: 10, height: 20,
+                    fontSize: 10, height: 20, maxWidth: "100%",
                   }}
                 />
-                <Typography sx={{ fontSize: 11, color: C.muted }}>
+                <Typography sx={{ fontSize: 11, color: C.muted, ...rsx.wrapText }}>
                   {tn.owner_name || "—"}
                 </Typography>
               </Box>
@@ -270,8 +271,8 @@ export default function TenantsPanel({
         /* ════════════════════════════════════
            دسکتاپ: جدول
            ════════════════════════════════════ */
-        <TableContainer sx={{ ...glassCardSx, mb: selectedId ? 3 : 0 }}>
-          <Table size="small">
+        <TableContainer sx={{ ...glassCardSx, overflowX: "auto", mb: selectedId ? 3 : 0 }}>
+          <Table size="small" sx={{ minWidth: 720 }}>
             <TableHead>
               <TableRow sx={{ bgcolor: C.tableHeaderBg || C.oliveSubtle }}>
                 <TableCell sx={{ color: C.sub, fontWeight: 700, border: "none" }}>
