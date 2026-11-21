@@ -65,78 +65,37 @@ export const ROLE_OPTIONS = [
 //  کدهای دسترسی + برچسب‌ها ★ هماهنگ با داشبورد
 // ═══════════════════════════════════════
 
-export const ALL_PERM_CODES = [
-  // داشبورد
-  "home",
-  // انبار
-  "inventory_invoice", "inventory_sales", "inventory_warehouse",
-  "inventory_receiving", "inventory_purchase_list", "inventory_reports",
-  // تعاریف
-  "dictionary", "dictionary_menu", "dictionary_suppliers",
-  "dictionary_warehouses", "dictionary_customers",
-  "dictionary_managers", "dictionary_recipes",
-  // صندوق
-  "pos", "pos_report", "pos_settings", "orders",
-];
-
-export const PERM_LABELS = {
-  // داشبورد
-  home: "ui_c.super.perm.home",
-  // انبار
-  inventory_invoice: "ui_c.super.perm.inventory_invoice",
-  inventory_sales: "ui_c.super.perm.inventory_sales",
-  inventory_warehouse: "ui_c.super.perm.inventory_warehouse",
-  inventory_receiving: "ui_c.super.perm.inventory_receiving",
-  inventory_purchase_list: "ui_c.super.perm.inventory_purchase_list",
-  inventory_reports: "ui_c.super.perm.inventory_reports",
-  // تعاریف
-  dictionary: "ui_c.super.perm.dictionary",
-  dictionary_menu: "ui_c.super.perm.dictionary_menu",
-  dictionary_suppliers: "ui_c.super.perm.dictionary_suppliers",
-  dictionary_warehouses: "ui_c.super.perm.dictionary_warehouses",
-  dictionary_customers: "ui_c.super.perm.dictionary_customers",
-  dictionary_managers: "ui_c.super.perm.dictionary_managers",
-  dictionary_recipes: "ui_c.super.perm.dictionary_recipes",
-  // صندوق
-  pos: "ui_c.super.perm.pos",
-  pos_report: "ui_c.super.perm.pos_report",
-  pos_settings: "ui_c.super.perm.pos_settings",
-  orders: "ui_c.super.perm.orders",
-};
-
-// ═══════════════════════════════════════
-//  گروه‌بندی دسترسی‌ها ★ هماهنگ با ۳ بخش داشبورد
-// ═══════════════════════════════════════
-
+// Tab keys: exactly the server's feature keys (bizsuite/features.py FEATURES). The server rejects unknown keys.
 export const PERM_GROUPS = {
-  home: {
-    labelKey: "ui_c.super.group.home",
-    icon: "home",
-    codes: ["home"],
-  },
+  general: { labelKey: "ui_def.users.groups.general", codes: ["home", "activity"] },
+  pos: { labelKey: "ui_def.users.groups.pos", codes: ["pos", "pos_report", "pos_settings", "orders"] },
   inventory: {
-    labelKey: "ui_c.super.group.inventory",
-    icon: "inventory",
+    labelKey: "ui_def.users.groups.inventory",
     codes: [
       "inventory_invoice", "inventory_sales", "inventory_warehouse",
       "inventory_receiving", "inventory_purchase_list", "inventory_reports",
     ],
   },
-  dictionary: {
-    labelKey: "ui_c.super.group.dictionary",
-    icon: "menubook",
+  production: { labelKey: "ui_def.users.groups.production", codes: ["kitchen", "recipes", "dictionary_recipe"] },
+  definitions: {
+    labelKey: "ui_def.users.groups.definitions",
     codes: [
-      "dictionary", "dictionary_menu", "dictionary_suppliers",
-      "dictionary_warehouses", "dictionary_customers",
-      "dictionary_managers", "dictionary_recipes",
+      "dictionary_menu", "dictionary_items", "dictionary_suppliers", "dictionary_warehouses",
+      "dictionary_customers", "dictionary_users",
     ],
   },
-  pos: {
-    labelKey: "ui_c.super.group.pos",
-    icon: "pos",
-    codes: ["pos", "pos_report", "pos_settings", "orders"],
+  transport: {
+    labelKey: "ui_dh.groups.transport",
+    codes: ["delivery_dispatch", "delivery_shipments", "delivery_fleet", "delivery_cash", "delivery_history"],
   },
+  more: { labelKey: "ui_dh.groups.more", codes: ["club", "accounting", "feedback"] },
 };
+
+export const ALL_PERM_CODES = Object.values(PERM_GROUPS).flatMap((g) => g.codes);
+
+export const PERM_LABELS = Object.fromEntries(
+  ALL_PERM_CODES.map((k) => [k, ["kitchen", "recipes"].includes(k) ? `ui_dh.tabs.${k}` : `ui_def.users.tabs.${k}`]),
+);
 
 // ═══════════════════════════════════════
 //  پریست دسترسی‌ها per-role ★
@@ -158,8 +117,8 @@ export const ROLE_PERM_PRESETS = {
     descKey: "ui_c.super.preset.cashier.desc",
     perms: [
       "home",
-      "pos", "pos_report", "pos_settings", "orders",
-      "dictionary_menu",
+      "pos", "pos_report", "orders",
+      "dictionary_menu", "dictionary_customers",
     ],
   },
   kitchen: {
@@ -167,7 +126,7 @@ export const ROLE_PERM_PRESETS = {
     descKey: "ui_c.super.preset.kitchen.desc",
     perms: [
       "home",
-      "dictionary_menu", "dictionary_recipes",
+      "kitchen", "recipes", "dictionary_recipe",
       "orders",
     ],
   },
@@ -178,7 +137,7 @@ export const ROLE_PERM_PRESETS = {
       "home",
       "inventory_invoice", "inventory_sales", "inventory_warehouse",
       "inventory_receiving", "inventory_purchase_list", "inventory_reports",
-      "dictionary", "dictionary_suppliers", "dictionary_warehouses",
+      "dictionary_items", "dictionary_suppliers", "dictionary_warehouses",
     ],
   },
   customer: {

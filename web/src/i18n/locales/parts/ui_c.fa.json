@@ -233,6 +233,7 @@
         "active_of": "{{active}} از {{total}} دسترسی فعال",
         "all": "☑ همه",
         "none": "☐ هیچ",
+        "saved": "دسترسی‌ها ذخیره شد.",
         "title": "دسترسی‌ها — {{username}}"
       },
       "preset": {

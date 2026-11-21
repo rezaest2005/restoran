@@ -19,6 +19,40 @@ logger = logging.getLogger(__name__)
 #  API: لیست / ساخت / ویرایش / حذف کاربران
 # ═══════════════════════════════════════════
 
+def _clean_permissions(value):
+    """Validate a list of tab keys sent by the super-admin UI.
+
+    Returns ``(keys, error)``. ``keys`` are current feature keys (legacy service codes such as
+    ``dictionary`` are expanded); an unknown key is an error, never silently dropped.
+    """
+    from ...features import FEATURE_BY_KEY, LEGACY_EXPANSION, expand
+    if not isinstance(value, list):
+        return None, 'دسترسی‌ها باید یک لیست باشد.'
+    bad = [str(v) for v in value if v not in FEATURE_BY_KEY and v not in LEGACY_EXPANSION]
+    if bad:
+        return None, 'بخش‌های نامعتبر: ' + ', '.join(bad)
+    return sorted(expand(value)), None
+
+
+def _apply_permissions(user, keys):
+    """Store the ticked tabs the same way the business owner's screen does (User.tabs is the
+    source of truth read by features.user_ticked; dashboard_permissions mirrors it)."""
+    from ...features import ALL_FEATURE_KEYS
+    ticked = set(keys)
+    user.tabs = {k: (k in ticked) for k in ALL_FEATURE_KEYS}
+    user.dashboard_permissions = [k for k in ALL_FEATURE_KEYS if k in ticked]
+
+
+def _permissions_payload(user):
+    from ...features import ALL_FEATURE_KEYS, user_ticked
+    ticked = user_ticked(user)
+    return {
+        'dashboard_permissions': list(user.dashboard_permissions or []),
+        'tabs': {k: (k in ticked) for k in ALL_FEATURE_KEYS},
+        'effective_permissions': [k for k in ALL_FEATURE_KEYS if k in ticked],
+    }
+
+
 @api_view(["GET"])
 @permission_classes([IsSuperAdmin])
 def super_users_api(request):
@@ -64,7 +98,7 @@ def super_users_api(request):
         'business_id': u.business_id,
         'business_name': u.business.name if u.business else '',
         'dashboard_permissions': u.dashboard_permissions,
-        'effective_permissions': u.get_permissions(),
+        'effective_permissions': _permissions_payload(u)['effective_permissions'],
         'date_joined': u.date_joined.strftime('%Y/%m/%d'),
     } for u in users]
 
@@ -91,6 +125,12 @@ def super_user_create_api(request):
     if User.objects.filter(username=username).exists():
         return Response({'error': 'این نام کاربری قبلاً ثبت شده'}, status=status.HTTP_400_BAD_REQUEST)
 
+    perm_keys = None
+    if data.get('dashboard_permissions') is not None:
+        perm_keys, perm_err = _clean_permissions(data.get('dashboard_permissions'))
+        if perm_err:
+            return Response({'error': perm_err}, status=status.HTTP_400_BAD_REQUEST)
+
     business = None  # کسب‌وکار اختیاری است
     if business_id:
         try:
@@ -109,10 +149,8 @@ def super_user_create_api(request):
     user.business = business
     user.is_approved = True
     user.is_active = True
-
-    custom_perms = data.get('dashboard_permissions')
-    if custom_perms is not None:
-        user.dashboard_permissions = custom_perms
+    if perm_keys is not None:
+        _apply_permissions(user, perm_keys)
 
     user.save()
     return Response({
@@ -143,7 +181,8 @@ def super_user_detail_api(request, pk):
             'business_id': user.business_id,
             'business_name': user.business.name if user.business else '',
             'dashboard_permissions': user.dashboard_permissions,
-            'effective_permissions': user.get_permissions(),
+            'effective_permissions': _permissions_payload(user)['effective_permissions'],
+            'tabs': _permissions_payload(user)['tabs'],
             'date_joined': user.date_joined.strftime('%Y/%m/%d'),
         })
 
@@ -185,8 +224,11 @@ def super_user_detail_api(request, pk):
                     return Response({'error': 'کسب‌وکار پیدا نشد'}, status=status.HTTP_404_NOT_FOUND)
             update_fields.append('business')
         if 'dashboard_permissions' in data:
-            user.dashboard_permissions = data['dashboard_permissions']
-            update_fields.append('dashboard_permissions')
+            perm_keys, perm_err = _clean_permissions(data['dashboard_permissions'])
+            if perm_err:
+                return Response({'error': perm_err}, status=status.HTTP_400_BAD_REQUEST)
+            _apply_permissions(user, perm_keys)
+            update_fields += ['dashboard_permissions', 'tabs']
 
         if (user.role == 'owner' and not user.is_superuser and user.business_id
                 and ('role' in data or 'business_id' in data)
@@ -220,17 +262,15 @@ def super_user_permissions_api(request, pk):
     except User.DoesNotExist:
         return Response({'error': 'کاربر پیدا نشد'}, status=status.HTTP_404_NOT_FOUND)
 
-    data = request.data
-    permissions = data.get('dashboard_permissions', [])
-    valid_codes = [s[0] for s in User.DASHBOARD_SECTIONS]
-    cleaned = [p for p in permissions if p in valid_codes]
+    keys, err = _clean_permissions(request.data.get('dashboard_permissions', []))
+    if err:
+        return Response({'error': err}, status=status.HTTP_400_BAD_REQUEST)
 
-    user.dashboard_permissions = cleaned
-    user.save(update_fields=['dashboard_permissions'])
+    _apply_permissions(user, keys)
+    user.save(update_fields=['dashboard_permissions', 'tabs'])
 
     return Response({
         'ok': True,
-        'dashboard_permissions': user.dashboard_permissions,
-        'effective_permissions': user.get_permissions(),
+        **_permissions_payload(user),
         'msg': 'دسترسی‌ها بروزرسانی شد',
     })
