@@ -45,7 +45,9 @@ from .purchasing import (
     Supplier,
 )
 from .sales import Customer, Expense, SalesInvoice, SalesInvoiceItem, SalesReturn
-from .production import Formula, FormulaLine, ProductionOrder
+from .production import (
+    Formula, FormulaByProduct, FormulaLine, FormulaStage, ProductionOrder, ProductionOrderStep,
+)
 from .club import LoyaltyMember, LoyaltySettings, LoyaltyTransaction
 from .feedback import Feedback
 from .support import SupportMessage, SupportTicket
@@ -79,6 +81,7 @@ __all__ = [
     "PurchaseInvoice", "PurchaseInvoiceItem", "PurchaseReturn", "Supplier",
     "Customer", "Expense", "SalesInvoice", "SalesInvoiceItem", "SalesReturn",
     "Formula", "FormulaLine", "ProductionOrder",
+    "FormulaStage", "FormulaByProduct", "ProductionOrderStep",
     "LoyaltyMember", "LoyaltySettings", "LoyaltyTransaction",
     "Feedback", "SupportMessage", "SupportTicket",
     "Account", "CostCenter", "JournalEntry", "JournalLine",

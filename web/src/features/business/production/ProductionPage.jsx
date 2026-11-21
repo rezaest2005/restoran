@@ -5,7 +5,7 @@ import {
   Box, Typography, Button, Table, TableHead, TableBody, TableRow,
   TableCell, Chip, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, MenuItem, Alert, Snackbar, CircularProgress,
-  useMediaQuery, useTheme,
+  useMediaQuery, useTheme, Tabs, Tab,
 } from "@mui/material";
 import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
@@ -25,6 +25,8 @@ import {
   errMsg,
 } from "./api";
 import HintBar from "@shared/ui/HintBar";
+import PlannerTab from "./PlannerTab";
+import StepsPanel from "./StepsPanel";
 
 /* ───────── page ─────────
    Production only MAKES things: orders are created from formulas defined in
@@ -51,6 +53,8 @@ export default function ProductionPage() {
 
   // ── میان‌برها: F1 راهنما (F2 در جدول ثبت می‌شود) ──
   const [helpOpen, setHelpOpen] = useState(false);
+  const [tab, setTab] = useState("orders");
+  const [ordersKey, setOrdersKey] = useState(0);
   const pageShortcuts = [{ combo: "F1", label: t("shortcuts.help"), handler: () => setHelpOpen(true) }];
   useShortcuts(pageShortcuts);
   const helpItems = [
@@ -77,7 +81,16 @@ export default function ProductionPage() {
         )}
       </Box>
 
-      <OrdersTab {...ctx} />
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2, borderBottom: `1px solid ${C.divider}` }}
+        variant="scrollable" allowScrollButtonsMobile aria-label={t("ui_mrp.tabs_aria")}>
+        <Tab value="orders" label={t("ui_mrp.tab_orders")} sx={{ textTransform: "none", fontWeight: 700 }} />
+        <Tab value="planner" label={t("ui_mrp.tab_planner")} sx={{ textTransform: "none", fontWeight: 700 }} />
+      </Tabs>
+
+      {tab === "orders" && <OrdersTab key={ordersKey} {...ctx} />}
+      {tab === "planner" && (
+        <PlannerTab ctx={ctx} onOrdersCreated={() => { setOrdersKey((k) => k + 1); setTab("orders"); }} />
+      )}
 
       <ShortcutsHelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} items={helpItems} />
 
@@ -116,6 +129,7 @@ function OrdersTab(ctx) {
   const [actBusy, setActBusy] = useState(false);
   const [actErr, setActErr] = useState("");
   const [prodQty, setProdQty] = useState("");
+  const [scrapQty, setScrapQty] = useState("");
   const [cRaw, setCDataRaw] = useState(null); // {id, data}: order with per-line stock, for the complete dialog
 
   useShortcuts([{ combo: "F2", label: t("ui_g.prod.new_order"), handler: () => setCreating(true) }]);
@@ -139,7 +153,7 @@ function OrdersTab(ctx) {
   };
 
   const openAction = (type, order) => {
-    setActErr(""); setProdQty(String(order.planned_quantity ?? "")); setAction({ type, order });
+    setActErr(""); setProdQty(String(order.planned_quantity ?? "")); setScrapQty(""); setAction({ type, order });
   };
 
   const runAction = async () => {
@@ -150,7 +164,7 @@ function OrdersTab(ctx) {
     try {
       const fn = type === "start" ? () => startOrder(order.id)
         : type === "cancel" ? () => cancelOrder(order.id)
-        : () => completeOrder(order.id, num(prodQty));
+        : () => completeOrder(order.id, num(prodQty), num(scrapQty) > 0 ? { scrap_quantity: num(scrapQty) } : {});
       const updated = await fn();
       notify(t(`ui_e.orders.done_${type}`));
       setAction(null);
@@ -241,7 +255,7 @@ function OrdersTab(ctx) {
       )}
 
       {detail && (
-        <OrderDetailDialog ctx={ctx} detail={detail} StatusChip={StatusChip}
+        <OrderDetailDialog ctx={ctx} detail={detail} StatusChip={StatusChip} reloadList={load}
           onClose={() => setDetail(null)} openAction={openAction} actionOpen={!!action} />
       )}
 
@@ -273,6 +287,10 @@ function OrdersTab(ctx) {
             onChange={(e) => setProdQty(e.target.value)} sx={S.field}
             slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" }, input: { endAdornment: <Typography sx={{ color: C.muted, fontSize: 12 }}>{action?.order.output_unit}</Typography> } }} error={!(num(prodQty) > 0)}
              />
+          <TextField fullWidth size="small" type="number" label={t("ui_mrp.scrap_output")} value={scrapQty}
+            onChange={(e) => setScrapQty(e.target.value)} sx={{ ...S.field, mt: 2 }}
+            helperText={t("ui_mrp.scrap_output_hint")}
+            slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" }, input: { endAdornment: <Typography sx={{ color: C.muted, fontSize: 12 }}>{action?.order.output_unit}</Typography> } }} />
           {actErr && <Alert severity="error" sx={{ mt: 2 }}>{actErr}</Alert>}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, flexWrap: "wrap", gap: 1 }}>
@@ -402,7 +420,7 @@ function OrderCreateDialog({ ctx, onClose, onCreated }) {
   );
 }
 
-function OrderDetailDialog({ ctx, detail, StatusChip, onClose, openAction, actionOpen }) {
+function OrderDetailDialog({ ctx, detail, StatusChip, onClose, openAction, actionOpen, reloadList }) {
   const { t, C, S, fullScreen, lang } = ctx;
   const [order, setOrder] = useState(detail.data || null);
   const [error, setError] = useState("");
@@ -456,7 +474,14 @@ function OrderDetailDialog({ ctx, detail, StatusChip, onClose, openAction, actio
                 </Box>
               ))}
             </Box>
+            {order.status === "completed" && (order.operation_cost > 0 || order.scrap_quantity > 0) && (
+              <Typography sx={{ color: C.sub, fontSize: 13 }}>
+                {t("ui_mrp.cost_split", { material: fmt(order.material_cost), operation: fmt(order.operation_cost) })}
+                {order.scrap_quantity > 0 && ` · ${t("ui_mrp.scrap")}: ${fmt(order.scrap_quantity)} ${order.output_unit || ""}`}
+              </Typography>
+            )}
             {order.notes && <Typography sx={{ color: C.sub, fontSize: 13 }}>{order.notes}</Typography>}
+            <StepsPanel ctx={ctx} order={order} onChanged={(o) => { setOrder(o); reloadList?.(); }} />
 
             {order.lines && active && (
               <>
