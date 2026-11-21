@@ -6,7 +6,7 @@ import {
 } from "@mui/material";
 import superClient from "@super/api/super_client";
 import { PasswordField } from "@shared/ui/AuthShell";
-import { ROLE_OPTIONS, ROLE_PERM_PRESETS } from "@super/common/superConfig";
+import { ROLE_OPTIONS, ROLE_PERM_PRESETS, ALL_PERM_CODES } from "@super/common/superConfig";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
 
 export default function UserModal({ open, editId, onClose, tenants, C }) {
@@ -51,7 +51,7 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
           role: isPreset ? d.role : "other",
           customRole: isPreset ? "" : (d.role_display || d.role || ""),
           business_id: d.business_id || "",
-          dashboard_permissions: d.effective_permissions || d.dashboard_permissions || [],
+          dashboard_permissions: (d.effective_permissions || d.dashboard_permissions || []).filter((c) => ALL_PERM_CODES.includes(c)),
         });
       });
     }

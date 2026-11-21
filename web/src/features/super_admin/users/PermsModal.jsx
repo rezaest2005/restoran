@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ResponsiveDialog } from "@shared/responsive";
 import { useTranslation } from "react-i18next";
-import { DialogTitle, DialogContent, DialogActions, Button, Typography, Box, Checkbox, Chip, TextField, CircularProgress } from "@mui/material";
+import { DialogTitle, DialogContent, DialogActions, Button, Typography, Box, Checkbox, Chip, TextField, CircularProgress, Alert, Snackbar } from "@mui/material";
 import superClient from "@super/api/super_client";
 import {
   ALL_PERM_CODES,
@@ -11,6 +11,11 @@ import {
 } from "@super/common/superConfig";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
 
+const errorText = (err, fallback) => {
+  const d = err?.response?.data;
+  return (d && typeof d === "object" && (d.error || d.detail)) || fallback;
+};
+
 export default function PermsModal({ open, onClose, userId, C }) {
   const { t } = useTranslation();
   const [username, setUsername] = useState("");
@@ -19,21 +24,24 @@ export default function PermsModal({ open, onClose, userId, C }) {
   const [customRole, setCustomRole] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (open && userId) {
       setLoading(true);
+      setError("");
       superClient.get(`/api/super/users/${userId}/`).then((res) => {
         setUsername(res.data.username);
         const loadedPerms = res.data.effective_permissions || res.data.dashboard_permissions || [];
-        setPerms(loadedPerms);
+        setPerms(loadedPerms.filter((c) => ALL_PERM_CODES.includes(c)));
 
         const userRole = res.data.role || "other";
         const isPreset = Object.keys(ROLE_PERM_PRESETS).includes(userRole);
         setRole(isPreset ? userRole : "other");
         setCustomRole(isPreset ? "" : (res.data.role_display || userRole));
         setLoading(false);
-      }).catch(() => setLoading(false));
+      }).catch((err) => { setError(errorText(err, t("ui_c.super.login.unknown_error"))); setLoading(false); });
     }
   }, [open, userId]);
 
@@ -59,16 +67,20 @@ export default function PermsModal({ open, onClose, userId, C }) {
   };
 
   const savePerms = async () => {
+    if (saving || loading) return;
     setSaving(true);
+    setError("");
     try {
       const finalRole = role === "other" ? (customRole.trim().toLowerCase() || "other") : role;
 
       await superClient.put(`/api/super/users/${userId}/`, { role: finalRole });
       await superClient.put(`/api/super/users/${userId}/permissions/`, { dashboard_permissions: perms });
 
+      setSaved(true);
       onClose();
     } catch (err) {
       console.error("Save perms error:", err);
+      setError(errorText(err, t("ui_c.super.login.unknown_error")));
     } finally {
       setSaving(false);
     }
@@ -81,6 +93,10 @@ export default function PermsModal({ open, onClose, userId, C }) {
   useRegisteredShortcuts(dialogBindings(t, { onConfirm: savePerms, onClose }), { enabled: open });
 
   return (
+    <>
+    <Snackbar open={saved} autoHideDuration={3500} onClose={() => setSaved(false)} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
+      <Alert severity="success" variant="filled" onClose={() => setSaved(false)}>{t("ui_c.super.perms.saved")}</Alert>
+    </Snackbar>
     <ResponsiveDialog
       open={open}
       onClose={onClose}
@@ -134,6 +150,7 @@ export default function PermsModal({ open, onClose, userId, C }) {
       </DialogTitle>
 
       <DialogContent sx={{ pt: 2 }}>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{String(error)}</Alert>}
         {loading ? (
           <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
             <CircularProgress size={32} sx={{ color: C.olive }} />
@@ -383,6 +400,7 @@ export default function PermsModal({ open, onClose, userId, C }) {
         </Box>
       </DialogActions>
     </ResponsiveDialog>
+    </>
   );
 }
 

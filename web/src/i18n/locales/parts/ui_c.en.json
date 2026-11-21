@@ -233,6 +233,7 @@
         "active_of": "{{active}} of {{total}} permissions active",
         "all": "☑ All",
         "none": "☐ None",
+        "saved": "Access saved.",
         "title": "Permissions — {{username}}"
       },
       "preset": {
