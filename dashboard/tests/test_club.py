@@ -94,7 +94,9 @@ class ClubTests(TestCase):
         r = self.api.put("/api/club/settings/", {"earn_amount": 0}, format="json")
         self.assertEqual(r.status_code, 400)
         r = self.api.put("/api/club/settings/",
-                         {"silver_points": 100, "gold_points": 50}, format="json")
+                         {"at_risk_days": 200, "lost_days": 100}, format="json")
+        self.assertEqual(r.status_code, 400)
+        r = self.api.put("/api/club/settings/", {"redeem_max_percent": 150}, format="json")
         self.assertEqual(r.status_code, 400)
 
 

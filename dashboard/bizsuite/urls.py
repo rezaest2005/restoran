@@ -9,6 +9,8 @@ from .views.dashboard import dashboard_analytics
 from .views import storefront as sf_views
 from .views import delivery as dl_views
 from .views import catalog as cat_views
+from .views import club as club_views
+from .views import club_public as club_pub
 from .views.super_admin import modules as mod_views
 from .views.super_admin import qr as qr_super
 from .views import qr_redirect as qr_public
@@ -167,6 +169,29 @@ urlpatterns = [
     path("api/club/members/<int:pk>/adjust/", views.club_member_adjust, name="club_member_adjust"),
     path("api/club/lookup/", views.club_lookup, name="club_lookup"),
     path("api/club/redeem/", views.club_redeem, name="club_redeem"),
+    path("api/club/members/<int:pk>/wallet/", club_views.club_member_wallet, name="club_member_wallet"),
+    path("api/club/members/<int:pk>/reward/", club_views.club_member_reward, name="club_member_reward"),
+    path("api/club/purchases/", club_views.club_purchases, name="club_purchases"),
+    path("api/club/purchases/quote/", club_views.club_purchase_quote, name="club_purchase_quote"),
+    path("api/club/purchases/<int:pk>/void/", club_views.club_purchase_void, name="club_purchase_void"),
+    path("api/club/coupons/check/", club_views.club_coupon_check, name="club_coupon_check"),
+    path("api/club/tiers/", club_views.club_tiers, name="club_tiers"),
+    path("api/club/tiers/<int:pk>/", club_views.club_tier_detail, name="club_tier_detail"),
+    path("api/club/rules/", club_views.club_rules, name="club_rules"),
+    path("api/club/rules/<int:pk>/", club_views.club_rule_detail, name="club_rule_detail"),
+    path("api/club/rewards/", club_views.club_rewards, name="club_rewards"),
+    path("api/club/rewards/<int:pk>/", club_views.club_reward_detail, name="club_reward_detail"),
+    path("api/club/coupons/", club_views.club_coupons, name="club_coupons"),
+    path("api/club/coupons/<int:pk>/", club_views.club_coupon_detail, name="club_coupon_detail"),
+    path("api/club/campaigns/", club_views.club_campaigns, name="club_campaigns"),
+    path("api/club/campaigns/<int:pk>/", club_views.club_campaign_detail, name="club_campaign_detail"),
+    path("api/club/campaigns/<int:pk>/run/", club_views.club_campaign_run, name="club_campaign_run"),
+    path("api/club/messages/", club_views.club_messages, name="club_messages"),
+    path("api/club/reports/", club_views.club_reports, name="club_reports"),
+    path("api/club/run-daily/", club_views.club_run_daily, name="club_run_daily"),
+    path("api/public/club/<slug:slug>/", club_pub.public_club_info, name="public_club_info"),
+    path("api/public/club/<slug:slug>/lookup/", club_pub.public_club_lookup, name="public_club_lookup"),
+    path("api/public/club/<slug:slug>/join/", club_pub.public_club_join, name="public_club_join"),
 
     # ── حمل و تحویل ─────────────────────────────────────────
     path("api/delivery/vehicles/", dl_views.vehicles, name="delivery_vehicles"),

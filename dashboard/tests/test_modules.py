@@ -42,7 +42,9 @@ class CatalogueTests(ModuleBase):
         codes = {m["code"]: m for m in r}
         self.assertEqual(set(codes), {"pos", "club", "inventory", "production", "accounting",
                                       "delivery", "feedback", "storefront"})
-        self.assertEqual(codes["club"]["requires"], ["pos"])
+        self.assertEqual(codes["club"]["requires"], [])       # club works standalone (no POS)
+        self.assertIn("pos", codes["club"]["suggests"])
+        self.assertEqual(codes["production"]["requires"], ["inventory"])
         self.assertIn("accounting", codes["delivery"]["suggests"])
         self.assertTrue(all(k in codes["pos"] for k in ("name_fa", "name_en", "price_monthly", "is_core")))
 
@@ -63,10 +65,13 @@ class DependencyTests(ModuleBase):
         self.put({c: {"is_enabled": False} for c in
                   ("pos", "club", "inventory", "production", "accounting", "delivery",
                    "feedback", "storefront")})
-        r = self.put({"club": {"is_enabled": True}})
+        r = self.put({"production": {"is_enabled": True}})
         self.assertEqual(r.status_code, 409)
-        self.assertEqual(r.json()["errors"]["missing_requires"], {"club": ["pos"]})
-        self.assertFalse(module_enabled(self.biz, "club"))
+        self.assertEqual(r.json()["errors"]["missing_requires"], {"production": ["inventory"]})
+        self.assertFalse(module_enabled(self.biz, "production"))
+        r = self.put({"club": {"is_enabled": True}})       # standalone module
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertTrue(module_enabled(self.biz, "club"))
 
     def test_auto_requires_enables_prerequisites(self):
         self.put({c: {"is_enabled": False} for c in
@@ -77,10 +82,10 @@ class DependencyTests(ModuleBase):
         self.assertEqual(enabled_modules(self.biz), {"production", "inventory"})
 
     def test_disable_refused_while_dependents_enabled(self):
-        r = self.put({"pos": {"is_enabled": False}})
+        r = self.put({"inventory": {"is_enabled": False}})
         self.assertEqual(r.status_code, 409)
-        self.assertEqual(r.json()["errors"]["dependents"], {"pos": ["club"]})
-        r = self.put({"pos": {"is_enabled": False}, "club": {"is_enabled": False}})
+        self.assertEqual(r.json()["errors"]["dependents"], {"inventory": ["production"]})
+        r = self.put({"inventory": {"is_enabled": False}, "production": {"is_enabled": False}})
         self.assertEqual(r.status_code, 200)
 
     def test_unknown_module_rejected(self):
@@ -88,11 +93,11 @@ class DependencyTests(ModuleBase):
 
     def test_expired_prerequisite_disables_dependent(self):
         past = (timezone.now() - timedelta(days=1)).isoformat()
-        r = self.put({"pos": {"expires_at": past}})
+        r = self.put({"inventory": {"expires_at": past}})
         self.assertEqual(r.status_code, 200)
         live = enabled_modules(self.biz)
-        self.assertNotIn("pos", live)
-        self.assertNotIn("club", live)  # hard requirement not live
+        self.assertNotIn("inventory", live)
+        self.assertNotIn("production", live)  # hard requirement not live
         self.assertIn("accounting", live)
 
 

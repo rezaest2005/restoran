@@ -46,7 +46,11 @@ from .purchasing import (
 )
 from .sales import Customer, Expense, SalesInvoice, SalesInvoiceItem, SalesReturn
 from .production import Formula, FormulaLine, ProductionOrder
-from .club import LoyaltyMember, LoyaltySettings, LoyaltyTransaction
+from .club import (
+    LoyaltyCampaign, LoyaltyCampaignLog, LoyaltyCoupon, LoyaltyCouponUse, LoyaltyEarnRule,
+    LoyaltyMember, LoyaltyMessage, LoyaltyPurchase, LoyaltyReward, LoyaltySettings, LoyaltyTier,
+    LoyaltyTransaction, LoyaltyWalletTransaction,
+)
 from .feedback import Feedback
 from .support import SupportMessage, SupportTicket
 from .qr import QrLink
@@ -80,6 +84,8 @@ __all__ = [
     "Customer", "Expense", "SalesInvoice", "SalesInvoiceItem", "SalesReturn",
     "Formula", "FormulaLine", "ProductionOrder",
     "LoyaltyMember", "LoyaltySettings", "LoyaltyTransaction",
+    "LoyaltyCampaign", "LoyaltyCampaignLog", "LoyaltyCoupon", "LoyaltyCouponUse", "LoyaltyEarnRule",
+    "LoyaltyMessage", "LoyaltyPurchase", "LoyaltyReward", "LoyaltyTier", "LoyaltyWalletTransaction",
     "Feedback", "SupportMessage", "SupportTicket",
     "Account", "CostCenter", "JournalEntry", "JournalLine",
     "Carrier", "CashSettlement", "Driver", "LocationPing", "Trip", "TripStop", "Vehicle",
