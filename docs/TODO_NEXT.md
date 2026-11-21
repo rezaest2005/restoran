@@ -1,32 +1,22 @@
-# TODO next: support tickets and feedback
+# TODO next
 
-Status: everything planned for this feature is implemented and committed (fff0145, 5368485).
-Nothing is half-written and nothing was unwired. Backend suite: 305 passing.
-No browser was available, so the UI has never been seen running.
+Status (2026-11-21): seven feature branches merged into `web`: responsive panels, one Transport person type +
+guided Definitions hub, multi-level formulation with production line and planner, standalone accounting,
+generic delivery, standalone customer club, industry presets + setup wizard + module-aware home.
+Backend suite: 534 passing. Browser scenarios in `e2e/` (restaurant 14/14, detergent factory 17/17).
 
-## Backend (all done, covered by dashboard/tests/test_support.py)
-- GET/POST /api/support/tickets/  - done
-- GET /api/support/tickets/<id>/  - done
-- POST /api/support/tickets/<id>/messages/  - done
-- POST /api/support/tickets/<id>/resolve/  - done
-- GET /api/super/support/tickets/  - done
-- GET /api/super/support/tickets/<id>/  - done
-- POST /api/super/support/tickets/<id>/reply/  - done
-- POST /api/super/support/tickets/<id>/status/  - done
-- GET /api/super/support/summary/  - done
-- Migration: bizsuite/migrations/0005_support_tickets.py
+Migrations added: 0014_production_routing, 0015_delivery_zones_pod_timeline, 0016_unify_transport_roles,
+0017_club_loyalty_suite, 0018_business_industry, 0019_accounting_pro_ledger. Back up production before deploying.
 
-## Frontend (all done, unverified visually)
-- Business hub tab: web/src/features/business/support/ (SupportPage, NewTicketDialog, ThreadDialog, api.js, common.js, useLoad.js)
-- Feedback hub tab: web/src/features/business/feedback/
-- Public form /f/:slug: web/src/features/public/feedback/FeedbackPublicPage.jsx
-- Super admin tab: web/src/features/super_admin/support/ (SupportPanel, api.js); wired in layout/SuperAdminLayout.jsx and layout/SuperSidebar.jsx, nav in common/superConfig.js
-- Locale parts: ui_fb, ui_sup (fa/en)
-
-## Next steps, in order
-1. Manual browser pass at 360px and desktop, RTL and LTR, light and dark: public form, feedback tab, support tab, super admin Support tab.
-2. Check keyboard keys: F2, Ctrl+A/Ctrl+Z, Enter, Ctrl+D, Escape, F1, Alt+5 in the super admin.
-3. Check the 60 s badge polling in SuperAdminLayout and the sidebar badge.
-4. Confirm the storefront payload `slug` is the business slug (footer link to /f/<slug>).
-5. Optional: show a copyable public feedback link in the business feedback tab (needs the business slug on the user object).
-6. Optional: frontend tests; none exist for the new components.
+## Known gaps, in rough priority
+1. Formulation: the "complete order" dialog has no per-material actual-consumption editor (API supports it).
+2. Formulation: planner and orders use total stock / main warehouse; no warehouse choice. Box/pack units have no conversion.
+3. Formulation: per-unit analysis spreads the whole stage setup time over a batch of 1 when output quantity is 1,
+   so labour per unit looks high. Show it per typical batch size instead.
+4. Club: real SMS provider (`settings.CLUB_SMS_PROVIDER`), redeem points/coupons on the POS screen, reverse points when a POS order is cancelled.
+5. Delivery: road routing (now straight line x 1.3), split stops across drivers, draw zones on a map.
+6. Accounting: Excel import, voucher numbers per fiscal year, fixed assets, multi-currency, payroll, Iran e-invoice (سامانه مودیان).
+7. Dashboard: industry selector in the super-admin tenant form; use `useTerm()` on POS, Definitions and inventory pages.
+8. Dispatch driver picker does not filter by the transport person's service (orders / cargo).
+9. A React "unknown prop on a DOM element" dev warning appeared once during the setup wizard; not reproduced since.
+10. `npm run lint` still reports 77 older errors (none added by these branches).
