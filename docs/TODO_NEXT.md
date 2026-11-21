@@ -3,7 +3,7 @@
 Status (2026-11-21): seven feature branches merged into `web`: responsive panels, one Transport person type +
 guided Definitions hub, multi-level formulation with production line and planner, standalone accounting,
 generic delivery, standalone customer club, industry presets + setup wizard + module-aware home.
-Backend suite: 534 passing. Browser scenarios in `e2e/` (restaurant 14/14, detergent factory 17/17).
+Backend suite: 534 passing. Browser-tested for a restaurant and a detergent factory.
 
 Migrations added: 0014_production_routing, 0015_delivery_zones_pod_timeline, 0016_unify_transport_roles,
 0017_club_loyalty_suite, 0018_business_industry, 0019_accounting_pro_ledger. Back up production before deploying.
