@@ -61,7 +61,7 @@ from .storefront import (
     Storefront, StorefrontAsset, StorefrontRevision, StorefrontTemplate,
 )
 from .delivery import (
-    Carrier, CashSettlement, Driver, LocationPing, Trip, TripStop, Vehicle,
+    Carrier, CashSettlement, DeliveryZone, Driver, LocationPing, StopEvent, Trip, TripStop, Vehicle,
 )
 
 __all__ = [
@@ -82,5 +82,5 @@ __all__ = [
     "LoyaltyMember", "LoyaltySettings", "LoyaltyTransaction",
     "Feedback", "SupportMessage", "SupportTicket",
     "Account", "CostCenter", "JournalEntry", "JournalLine",
-    "Carrier", "CashSettlement", "Driver", "LocationPing", "Trip", "TripStop", "Vehicle",
+    "Carrier", "CashSettlement", "DeliveryZone", "Driver", "LocationPing", "StopEvent", "Trip", "TripStop", "Vehicle",
 ]
