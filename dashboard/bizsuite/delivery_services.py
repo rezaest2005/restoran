@@ -9,8 +9,8 @@
 """
 
 import logging
+import secrets
 from datetime import timedelta
-import math
 from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import transaction
@@ -22,15 +22,15 @@ from .accounting_services import (
     DRIVER_PAYABLE, RECEIVABLE, SALES, post_entry, q2,
 )
 from .accounting_posting import _accounting_on
+from .delivery_routing import haversine_km as _hav, optimize_order, schedule, zone_contains
 from .models import (
-    CashSettlement, Driver, LocationPing, Business, Trip, TripStop, Vehicle,
+    CashSettlement, DeliveryZone, Driver, LocationPing, Business, StopEvent, Trip, TripStop, Vehicle,
 )
 
 logger = logging.getLogger(__name__)
 
 AVG_SPEED_KMH = Decimal("25")      # برای تخمین ساده‌ی ETA تا زمان اتصال سرویس مسیریابی
 MAX_PING_AGE_SECONDS = 60 * 60 * 6
-EARTH_RADIUS_KM = 6371.0088
 
 TRIP_FLOW = {
     Trip.Status.PLANNED: {Trip.Status.ASSIGNED, Trip.Status.IN_PROGRESS, Trip.Status.CANCELLED},
@@ -47,6 +47,9 @@ STOP_FLOW = {
     TripStop.Status.DELIVERED: set(),
     TripStop.Status.FAILED: {TripStop.Status.PENDING},   # تلاش دوباره
 }
+MAX_ATTEMPTS = 3          # after this many failed attempts the stop stays failed (return to sender)
+OTP_DIGITS = 4
+MAX_POD_BYTES = 3 * 1024 * 1024
 
 
 # ═══════════════════════════════════════
@@ -54,11 +57,7 @@ STOP_FLOW = {
 # ═══════════════════════════════════════
 
 def haversine_km(lat1, lng1, lat2, lng2) -> float:
-    p1, p2 = math.radians(float(lat1)), math.radians(float(lat2))
-    dphi = p2 - p1
-    dl = math.radians(float(lng2) - float(lng1))
-    a = math.sin(dphi / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
-    return 2 * EARTH_RADIUS_KM * math.asin(math.sqrt(a))
+    return _hav(lat1, lng1, lat2, lng2)
 
 
 def validate_coords(lat, lng):
@@ -117,6 +116,146 @@ def purchase_is_dispatched(inv) -> bool:
     return _live_stops().filter(purchase_invoice_id=getattr(inv, "pk", inv)).exists()
 
 
+def find_zone(business, lat, lng):
+    """First active zone (by sort order) that contains the point, or None."""
+    if lat is None or lng is None:
+        return None
+    for z in DeliveryZone.all_objects.filter(business=business, is_active=True).order_by("sort_order", "name", "id"):
+        if zone_contains(z, lat, lng):
+            return z
+    return None
+
+
+def zone_fee(zone, order_amount=None):
+    """Fee of a zone for an order amount (free above ``free_over``)."""
+    if zone is None:
+        return Decimal("0.00")
+    if zone.free_over is not None and order_amount not in (None, "") and q2(order_amount) >= q2(zone.free_over):
+        return Decimal("0.00")
+    return q2(zone.fee)
+
+
+def quote(business, lat, lng, order_amount=None):
+    """Delivery quote for a point: {"zone": zone|None, "fee": Decimal, "deliverable": bool}."""
+    lat, lng = validate_coords(lat, lng)
+    zone = find_zone(business, lat, lng)
+    has_zones = DeliveryZone.all_objects.filter(business=business, is_active=True).exists()
+    return {"zone": zone, "fee": zone_fee(zone, order_amount), "deliverable": zone is not None or not has_zones}
+
+
+def new_otp():
+    return "".join(secrets.choice("0123456789") for _ in range(OTP_DIGITS))
+
+
+def _dt(v):
+    if v in (None, ""):
+        return None
+    if isinstance(v, str):
+        from django.utils.dateparse import parse_datetime
+        try:
+            d = parse_datetime(v)
+        except ValueError:
+            d = None
+        if d is None:
+            raise ValueError("زمان نامعتبر است.")
+        v = d
+    if timezone.is_naive(v):
+        v = timezone.make_aware(v)
+    return v
+
+
+def _generic_stop_fields(business, s, lat, lng):
+    """Packages, volume, priority, time window, zone & fee, proof-of-delivery requirements."""
+    def dec(key, label):
+        v = s.get(key)
+        if v in (None, ""):
+            return None
+        try:
+            d = Decimal(str(v))
+        except Exception:
+            raise ValueError(f"{label} نامعتبر است.")
+        if not d.is_finite() or d < 0:
+            raise ValueError(f"{label} نامعتبر است.")
+        return d
+    try:
+        packages = int(s.get("packages")) if s.get("packages") not in (None, "") else 1
+        priority = int(s.get("priority")) if s.get("priority") not in (None, "") else 0
+    except (TypeError, ValueError):
+        raise ValueError("تعداد بسته یا اولویت نامعتبر است.")
+    if not (1 <= packages <= 9999):
+        raise ValueError("تعداد بسته باید بین ۱ و ۹۹۹۹ باشد.")
+    if priority not in dict(TripStop.Priority.choices):
+        raise ValueError("اولویت نامعتبر است.")
+    w_start, w_end = _dt(s.get("window_start")), _dt(s.get("window_end"))
+    if w_start and w_end and w_end <= w_start:
+        raise ValueError("پایان بازه‌ی تحویل باید بعد از شروع آن باشد.")
+    zone = s.get("zone")
+    if zone is not None and zone.business_id != business.pk:
+        raise ValueError("محدوده متعلق به این کسب‌وکار نیست.")
+    if zone is None and lat is not None:
+        zone = find_zone(business, lat, lng)
+    fee = dec("fee", "هزینه‌ی ارسال")
+    if fee is None:
+        fee = zone_fee(zone, s.get("amount_due"))
+    if w_end is None and zone is not None and zone.eta_minutes:
+        w_end = timezone.now() + timedelta(minutes=zone.eta_minutes)     # the zone's promise
+    require_otp = bool(s.get("require_otp"))
+    return {
+        "zone": zone, "fee": q2(fee), "packages": packages, "volume_m3": dec("volume_m3", "حجم"),
+        "priority": priority, "window_start": w_start, "window_end": w_end,
+        "instructions": str(s.get("instructions") or "")[:500],
+        "require_otp": require_otp, "require_photo": bool(s.get("require_photo")),
+        "require_signature": bool(s.get("require_signature")),
+        "otp_code": new_otp() if require_otp else "",
+    }
+
+
+def add_event(stop, status, note="", actor="", lat=None, lng=None, at=None):
+    return StopEvent.all_objects.create(
+        business_id=stop.business_id, stop=stop, status=str(status)[:20], note=str(note or "")[:300],
+        actor=str(actor or "")[:120], lat=lat, lng=lng, at=at or timezone.now())
+
+
+def store_pod_image(stop, field, raw):
+    """Validate (png/jpg/webp by content, <=3MB), re-encode and attach a proof image. raw: bytes, file or data URL."""
+    import base64
+    import io
+    import uuid
+    from django.core.files.base import ContentFile
+    from PIL import Image, UnidentifiedImageError
+    if isinstance(raw, str):
+        data = raw.split(",", 1)[1] if raw.startswith("data:") else raw
+        if len(data) > MAX_POD_BYTES * 4 // 3 + 8:
+            raise ValueError("حجم تصویر زیاد است.")
+        try:
+            raw = base64.b64decode(data, validate=True)
+        except Exception:
+            raise ValueError("تصویر نامعتبر است.")
+    elif hasattr(raw, "read"):
+        raw = raw.read(MAX_POD_BYTES + 1)
+    if not raw or len(raw) > MAX_POD_BYTES:
+        raise ValueError("حجم تصویر زیاد است.")
+    try:
+        probe = Image.open(io.BytesIO(raw))
+        fmt = probe.format
+        probe.verify()
+        img = Image.open(io.BytesIO(raw))
+        if fmt not in ("PNG", "JPEG", "WEBP") or img.size[0] * img.size[1] > 40_000_000:
+            raise ValueError
+        img.load()
+    except (UnidentifiedImageError, OSError, SyntaxError, ValueError, Image.DecompressionBombError):
+        raise ValueError("تصویر نامعتبر است.")
+    img.thumbnail((1600, 1600))
+    buf = io.BytesIO()
+    if fmt == "PNG":
+        img.convert("RGBA").save(buf, "PNG", optimize=True)
+        ext = "png"
+    else:
+        img.convert("RGB").save(buf, "JPEG", quality=82, optimize=True)
+        ext = "jpg"
+    getattr(stop, field).save(f"{uuid.uuid4().hex}.{ext}", ContentFile(buf.getvalue()), save=False)
+
+
 @transaction.atomic
 def create_trip(business, stops, driver=None, vehicle=None, carrier=None, user=None, **fields):
     """
@@ -167,7 +306,8 @@ def create_trip(business, stops, driver=None, vehicle=None, carrier=None, user=N
         weight = s.get("weight_kg")
         if weight not in (None, ""):
             total_weight += Decimal(str(weight))
-        TripStop.all_objects.create(
+        extra = _generic_stop_fields(business, s, lat, lng)
+        stop = TripStop.all_objects.create(
             business=business, trip=trip, sequence=i, order=order, sales_invoice=sinv, purchase_invoice=pinv,
             stop_type="pickup" if pinv is not None or s.get("stop_type") == "pickup" else "delivery",
             reference=str(s.get("reference") or "")[:100],
@@ -175,13 +315,19 @@ def create_trip(business, stops, driver=None, vehicle=None, carrier=None, user=N
             customer_name=str(s.get("customer_name") or "")[:200],
             phone=str(s.get("phone") or "")[:20], address=str(s.get("address") or "")[:500],
             lat=lat, lng=lng, amount_due=due,
-            weight_kg=Decimal(str(weight)) if weight not in (None, "") else None,
+            weight_kg=Decimal(str(weight)) if weight not in (None, "") else None, **extra,
         )
+        add_event(stop, TripStop.Status.PENDING, note="created", actor=getattr(user, "username", "") or "")
     if vehicle and vehicle.capacity_kg and total_weight > vehicle.capacity_kg:
         raise ValueError(
             f"وزن بار ({total_weight} kg) از ظرفیت خودرو ({vehicle.capacity_kg} kg) بیشتر است."
         )
     _stops = list(TripStop.all_objects.filter(trip=trip).order_by("sequence"))
+    if not fields.get("delivery_fee"):
+        stop_fees = q2(sum((x.fee for x in _stops), Decimal("0")))
+        if stop_fees > 0:     # no trip fee given: the trip earns the sum of its stops' zone fees
+            trip.delivery_fee = stop_fees
+            trip.save(update_fields=["delivery_fee"])
     _act(business, "trip.created",
          f"مأموریت {_trip_label(trip)} ساخته شد — {len(_stops)} توقف" + (f" — پیک: {driver.name}" if driver else " — بدون پیک"),
          user=user, driver=driver, target=trip,
@@ -245,7 +391,8 @@ def change_trip_status(trip, new_status, user=None):
 
 @transaction.atomic
 def update_stop(stop, new_status, driver=None, collected_amount=None, collected_method="",
-                failure_reason="", lat=None, lng=None):
+                failure_reason="", lat=None, lng=None, failure_code="", otp_code="", recipient_name="",
+                pod_photo=None, pod_signature=None, user=None):
     """
     تغییر وضعیت توقف. اگر driver داده شود باید همان راننده‌ی مأموریت باشد.
     تحویل با وصول پول: collected_amount را با روش پرداخت بدهید.
@@ -258,6 +405,10 @@ def update_stop(stop, new_status, driver=None, collected_amount=None, collected_
         raise ValueError("مأموریت فعال نیست.")
     if new_status not in STOP_FLOW.get(stop.status, set()):
         raise ValueError("این تغییر وضعیت توقف مجاز نیست.")
+    if new_status == TripStop.Status.PENDING and stop.attempts >= MAX_ATTEMPTS:
+        raise ValueError(f"این مقصد {MAX_ATTEMPTS} بار ناموفق بوده است؛ مرسوله را برگشت بزنید یا مأموریت تازه بسازید.")
+    if failure_code and failure_code not in TripStop.FAILURE_CODES:
+        raise ValueError("کد علت عدم تحویل نامعتبر است.")
 
     # با اولین اقدام راننده، مأموریت شروع می‌شود
     if trip.status == Trip.Status.ASSIGNED:
@@ -276,18 +427,36 @@ def update_stop(stop, new_status, driver=None, collected_amount=None, collected_
             raise ValueError("روش وصول را مشخص کنید.")
         if amount > stop.amount_due * 3 and stop.amount_due > 0:
             raise ValueError("مبلغ وصول‌شده با مبلغ قابل وصول فاصله‌ی زیادی دارد.")
+        # proof of delivery (photo / signature / the code the recipient sees on the tracking link)
+        if stop.require_otp and not secrets.compare_digest(str(otp_code or "").strip(), stop.otp_code or ""):
+            raise ValueError("کد تحویل درست نیست.")
+        if stop.require_photo and not pod_photo and not stop.pod_photo:
+            raise ValueError("عکس تحویل لازم است.")
+        if stop.require_signature and not pod_signature and not stop.pod_signature:
+            raise ValueError("امضای گیرنده لازم است.")
+        if pod_photo:
+            store_pod_image(stop, "pod_photo", pod_photo)
+        if pod_signature:
+            store_pod_image(stop, "pod_signature", pod_signature)
+        stop.recipient_name = str(recipient_name or "").strip()[:120]
         stop.collected_amount = amount
         stop.collected_method = collected_method if amount > 0 else ""
         stop.delivered_at = now
         stop.arrived_at = stop.arrived_at or now
     elif new_status == TripStop.Status.FAILED:
-        if not failure_reason.strip():
+        if not failure_reason.strip() and not failure_code:
             raise ValueError("علت عدم تحویل را بنویسید.")
-        stop.failure_reason = failure_reason.strip()[:300]
+        stop.failure_reason = (failure_reason.strip() or failure_code)[:300]
+        stop.failure_code = failure_code or "other"
+        stop.attempts = stop.attempts + 1
     elif new_status == TripStop.Status.PENDING:
         stop.failure_reason = ""
+        stop.failure_code = ""
     stop.status = new_status
     stop.save()
+    _actor = (driver.name if driver is not None else "") or getattr(user, "username", "") or ""
+    add_event(stop, new_status, note=stop.failure_reason if new_status == TripStop.Status.FAILED else "",
+              actor=_actor, lat=lat, lng=lng, at=now)
 
     if lat is not None and lng is not None and trip.driver_id:
         record_ping(trip.driver, lat, lng, source=LocationPing.Source.PHONE)
@@ -300,7 +469,7 @@ def update_stop(stop, new_status, driver=None, collected_amount=None, collected_
     _act(trip.business, f"stop.{new_status}",
          f"{trip.driver.name if trip.driver else 'پیک'} {_label.get(new_status, new_status)} {_who}{_what}{_money}{_why} ({_trip_label(trip)})",
          user=(driver.user if driver is not None else None), driver=trip.driver, target=stop,
-         details={"trip": trip.number, "stop": stop.sequence, "type": stop.stop_type, "address": stop.address, "cargo": stop.cargo_description,
+         details={"trip": trip.number, "stop": stop.sequence, "type": stop.stop_type, "failure_code": stop.failure_code, "address": stop.address, "cargo": stop.cargo_description,
                   "collected": str(q2(stop.collected_amount)), "method": stop.collected_method, "reason": stop.failure_reason,
                   "lat": float(lat) if lat is not None else None, "lng": float(lng) if lng is not None else None})
     return stop
@@ -483,6 +652,135 @@ def post_trip_accounting(trip, user=None):
 
 
 # ═══════════════════════════════════════
+#  ترتیب مسیر (nearest-neighbour + 2-opt)
+# ═══════════════════════════════════════
+
+OPEN_STOP_STATUSES = (TripStop.Status.PENDING, TripStop.Status.PICKED_UP, TripStop.Status.ARRIVED)
+
+
+def _route_start(trip):
+    pos = last_position(trip)
+    if pos is not None:
+        return pos
+    if trip.origin_lat is not None and trip.origin_lng is not None:
+        return float(trip.origin_lat), float(trip.origin_lng)
+    return None
+
+
+def plan_route(trip):
+    """
+    Proposed order of the trip's open stops (finished stops stay first, in their order).
+    Returns {"order": [stop ids], "km_before", "km_after", "late": [ids that would miss their window], "etas"}.
+    """
+    stops = list(TripStop.all_objects.filter(trip=trip).order_by("sequence", "id"))
+    done = [s for s in stops if s.status not in OPEN_STOP_STATUSES]
+    open_ = [s for s in stops if s.status in OPEN_STOP_STATUSES]
+    start = _route_start(trip)
+    order, km_before, km_after = optimize_order(
+        [{"lat": s.lat, "lng": s.lng, "priority": s.priority} for s in open_], start)
+    planned = [open_[i] for i in order]
+    pts = [(float(s.lat), float(s.lng)) if s.lat is not None and s.lng is not None else None for s in planned]
+    etas = schedule(pts, start, timezone.now(), speed_kmh=float(AVG_SPEED_KMH))
+    late = [s.pk for s, eta in zip(planned, etas) if eta and s.window_end and eta > s.window_end]
+    return {"order": [s.pk for s in done + planned], "km_before": km_before, "km_after": km_after, "late": late,
+            "etas": {s.pk: eta for s, eta in zip(planned, etas) if eta}}
+
+
+@transaction.atomic
+def optimize_trip(trip, user=None):
+    """Apply :func:`plan_route`: renumber the stops and refresh their ETAs."""
+    trip = Trip.all_objects.select_for_update().get(pk=trip.pk)
+    if trip.status in (Trip.Status.COMPLETED, Trip.Status.CANCELLED):
+        raise ValueError("مسیر مأموریت بسته‌شده را نمی‌توان تغییر داد.")
+    plan = plan_route(trip)
+    for n, pk in enumerate(plan["order"], start=1):
+        TripStop.all_objects.filter(pk=pk, trip=trip).update(sequence=n)
+    for pk, eta in plan["etas"].items():
+        TripStop.all_objects.filter(pk=pk, trip=trip).update(eta=eta)
+    _act(trip.business, "trip.optimized",
+         f"مسیر {_trip_label(trip)} مرتب شد: {plan['km_before']} → {plan['km_after']} km",
+         user=user, driver=trip.driver, target=trip, details={"km_before": plan["km_before"], "km_after": plan["km_after"]})
+    return plan
+
+
+# ═══════════════════════════════════════
+#  گزارش
+# ═══════════════════════════════════════
+
+def delivery_report(business, d_from, d_to):
+    """
+    Small, readable numbers for a date range (by the trip's creation day, cancelled trips left out):
+    totals, success %, on-time % (delivered before the window end; failed stops with a window count as late;
+    stops without a window are not counted), per-driver rows, failed reasons, money by method, stops per zone.
+    """
+    stops = list(TripStop.all_objects.filter(
+        business=business, trip__created_at__date__gte=d_from, trip__created_at__date__lte=d_to,
+    ).exclude(trip__status=Trip.Status.CANCELLED).select_related("trip", "trip__driver", "zone"))
+
+    def blank():
+        return {"stops": 0, "delivered": 0, "failed": 0, "open": 0, "with_window": 0, "on_time": 0,
+                "collected": Decimal("0"), "cash_collected": Decimal("0"), "unsettled_cash": Decimal("0"),
+                "minutes": []}
+
+    total, per_driver, reasons, methods, zones = blank(), {}, {}, {}, {}
+    for s in stops:
+        drv = s.trip.driver
+        row = per_driver.setdefault(drv.pk if drv else 0, {"driver_id": drv.pk if drv else None,
+                                                           "driver_name": drv.name if drv else "", **blank()})
+        zname = s.zone.name if s.zone_id else ""
+        z = zones.setdefault(zname, {"zone": zname, "stops": 0, "fees": Decimal("0")})
+        z["stops"] += 1
+        z["fees"] += s.fee
+        for r in (total, row):
+            r["stops"] += 1
+            if s.status == TripStop.Status.DELIVERED:
+                r["delivered"] += 1
+                r["collected"] += s.collected_amount
+                if s.collected_method == "cash":
+                    r["cash_collected"] += s.collected_amount
+                    if s.settlement_id is None:
+                        r["unsettled_cash"] += s.collected_amount
+                if s.window_end:
+                    r["with_window"] += 1
+                    r["on_time"] += 1 if s.delivered_at and s.delivered_at <= s.window_end else 0
+                start = s.trip.assigned_at or s.trip.created_at
+                if s.delivered_at and start:
+                    r["minutes"].append(max(0.0, (s.delivered_at - start).total_seconds() / 60))
+            elif s.status == TripStop.Status.FAILED:
+                r["failed"] += 1
+                if s.window_end:
+                    r["with_window"] += 1
+            else:
+                r["open"] += 1
+        if s.status == TripStop.Status.FAILED:
+            code = s.failure_code or "other"
+            reasons[code] = reasons.get(code, 0) + 1
+        if s.status == TripStop.Status.DELIVERED and s.collected_amount > 0:
+            m = s.collected_method or "other"
+            methods[m] = methods.get(m, Decimal("0")) + s.collected_amount
+
+    def finish(r):
+        mins = r.pop("minutes")
+        closed = r["delivered"] + r["failed"]
+        r["success_pct"] = round(100 * r["delivered"] / closed, 1) if closed else None
+        r["on_time_pct"] = round(100 * r["on_time"] / r["with_window"], 1) if r["with_window"] else None
+        r["avg_minutes"] = round(sum(mins) / len(mins)) if mins else None
+        for k in ("collected", "cash_collected", "unsettled_cash"):
+            r[k] = float(q2(r[k]))
+        return r
+
+    return {
+        "from": d_from.isoformat(), "to": d_to.isoformat(),
+        "totals": finish(total),
+        "drivers": sorted((finish(r) for r in per_driver.values()), key=lambda r: (-r["delivered"], r["driver_name"])),
+        "failure_reasons": [{"code": k, "count": v} for k, v in sorted(reasons.items(), key=lambda kv: (-kv[1], kv[0]))],
+        "methods": [{"method": k, "amount": float(q2(v))} for k, v in sorted(methods.items())],
+        "zones": [{"zone": z["zone"], "stops": z["stops"], "fees": float(q2(z["fees"]))}
+                  for z in sorted(zones.values(), key=lambda z: (-z["stops"], z["zone"]))],
+    }
+
+
+# ═══════════════════════════════════════
 #  نمای عمومی پیگیری (مشتری)
 # ═══════════════════════════════════════
 
@@ -514,7 +812,16 @@ def public_tracking(token):
         "destination": {"lat": float(stop.lat), "lng": float(stop.lng)} if stop.lat is not None else None,
         "delivered_at": stop.delivered_at.isoformat() if stop.delivered_at else None,
         "failure_reason": stop.failure_reason if stop.status == TripStop.Status.FAILED else "",
+        "failure_code": stop.failure_code if stop.status == TripStop.Status.FAILED else "",
         "amount_due": float(stop.amount_due),
+        "packages": stop.packages,
+        "window_start": stop.window_start.isoformat() if stop.window_start else None,
+        "window_end": stop.window_end.isoformat() if stop.window_end else None,
+        # the recipient reads this code to the courier at the door (shown only while it is on the way)
+        "otp_code": stop.otp_code if stop.require_otp and stop.status in OPEN_STOP_STATUSES else "",
+        "recipient_name": stop.recipient_name if stop.status == TripStop.Status.DELIVERED else "",
+        "timeline": [{"status": e.status, "at": e.at.isoformat()}
+                     for e in StopEvent.all_objects.filter(stop=stop).order_by("at", "id")[:50]],
     }
 
 

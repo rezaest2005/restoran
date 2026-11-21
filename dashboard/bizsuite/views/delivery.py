@@ -8,6 +8,9 @@
   /api/delivery/driver/me|location|stops/<id>/status/  مسیرهای راننده
   /api/delivery/ping/                                  ردیاب GPS (X-Device-Key)
   /api/delivery/map/  settlements/  cash/
+  /api/delivery/zones/ (+<id>/, quote/)                محدوده‌های ارسال و استعلام هزینه
+  /api/delivery/trips/<id>/optimize/                   GET پیشنهاد ترتیب مسیر، POST اعمال
+  /api/delivery/reports/                               گزارش (به‌موقع، هر پیک، علت‌های ناموفق، وصولی)
   /api/delivery/track/<token>/                         عمومی
 """
 
@@ -17,7 +20,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
-from django.db.models import Max, Q
+from django.db.models import Max, Min, Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework.decorators import (
@@ -29,9 +32,11 @@ from ..delivery_services import (
     assign_trip, change_trip_status, create_trip, order_is_dispatched, public_tracking, purchase_is_dispatched,
     record_ping, sales_invoice_is_dispatched,
     settle_driver_cash, uncollected_cash, update_stop, validate_coords,
+    delivery_report, optimize_trip, plan_route, quote,
 )
+from ..delivery_routing import validate_polygon
 from ..models import (
-    Carrier, CashSettlement, CostCenter, Driver, LocationPing, Trip, TripStop, User, Vehicle,
+    Carrier, CashSettlement, CostCenter, DeliveryZone, Driver, LocationPing, Trip, TripStop, User, Vehicle,
 )
 from ..modules import module_enabled
 from ..utils import api_error, api_success
@@ -125,7 +130,32 @@ def _driver_data(d):
     }
 
 
-def _stop_data(s):
+def _file_url(f):
+    try:
+        return f.url if f else ""
+    except ValueError:
+        return ""
+
+
+def _stop_data(s, for_driver=False, with_events=False):
+    data = _stop_core(s)
+    data.update({
+        "zone_id": s.zone_id, "fee": _f(s.fee), "packages": s.packages, "volume_m3": _f(s.volume_m3),
+        "priority": s.priority, "window_start": _local_dt(s.window_start), "window_end": _local_dt(s.window_end),
+        "instructions": s.instructions, "require_otp": s.require_otp, "require_photo": s.require_photo,
+        "require_signature": s.require_signature, "recipient_name": s.recipient_name,
+        "failure_code": s.failure_code, "attempts": s.attempts,
+        "pod_photo": _file_url(s.pod_photo), "pod_signature": _file_url(s.pod_signature),
+        # the courier must not see the code: the recipient tells it at the door
+        "otp_code": "" if for_driver else s.otp_code,
+    })
+    if with_events:
+        data["events"] = [{"status": e.status, "note": e.note, "actor": e.actor, "at": _local_dt(e.at),
+                           "lat": _f(e.lat), "lng": _f(e.lng)} for e in s.events.all()]
+    return data
+
+
+def _stop_core(s):
     return {
         "id": s.id, "trip_id": s.trip_id, "sequence": s.sequence, "reference": s.reference,
         "customer_name": s.customer_name, "phone": s.phone, "address": s.address,
@@ -141,7 +171,7 @@ def _stop_data(s):
     }
 
 
-def _trip_data(t, with_stops=False, stops=None):
+def _trip_data(t, with_stops=False, stops=None, for_driver=False, with_events=False):
     if stops is None:
         stops = list(t.stops.all())
     due = sum((s.amount_due for s in stops), Decimal("0"))
@@ -165,8 +195,10 @@ def _trip_data(t, with_stops=False, stops=None):
             "driver_pay": _f(t.driver_pay), "carrier_cost": _f(t.carrier_cost),
         },
     }
+    data["totals"]["stop_fees"] = _f(sum((s.fee for s in stops), Decimal("0")))
+    data["packages"] = sum(s.packages for s in stops)
     if with_stops:
-        data["stops"] = [_stop_data(s) for s in stops]
+        data["stops"] = [_stop_data(s, for_driver=for_driver, with_events=with_events) for s in stops]
     return data
 
 
@@ -497,7 +529,15 @@ def _parse_stops(r, raw):
         if not isinstance(s, dict):
             raise ValueError("توقف نامعتبر است.")
         item = {k: s.get(k) for k in ("customer_name", "phone", "address", "lat", "lng",
-                                      "reference", "amount_due", "weight_kg", "cargo_description")}
+                                      "reference", "amount_due", "weight_kg", "cargo_description",
+                                      "packages", "volume_m3", "priority", "window_start", "window_end",
+                                      "instructions", "require_otp", "require_photo", "require_signature", "fee")}
+        item["stop_type"] = "pickup" if s.get("stop_type") == "pickup" else "delivery"
+        if s.get("zone_id"):
+            zone = _obj(DeliveryZone, s.get("zone_id"), r)
+            if zone is None:
+                raise ValueError("محدوده پیدا نشد.")
+            item["zone"] = zone
         item["amount_due"] = _dec(s.get("amount_due"), "مبلغ قابل وصول") or Decimal("0")
         if s.get("order_id"):
             from ..models import Order
@@ -681,10 +721,10 @@ def trip_detail(request, pk):
     r = staff_business(request)
     if r is None:
         return _no_business()
-    t = _trip_qs(r).filter(pk=pk).first()
+    t = _trip_qs(r).prefetch_related("stops__events").filter(pk=pk).first()
     if t is None:
         return api_error("مأموریت پیدا نشد.", status_code=404)
-    return api_success(data=_trip_data(t, with_stops=True))
+    return api_success(data=_trip_data(t, with_stops=True, with_events=True))
 
 
 @api_view(["POST"])
@@ -738,7 +778,7 @@ def trip_status(request, pk):
 #  توقف‌ها
 # ═══════════════════════════════════════
 
-def _apply_stop_update(stop, d, driver=None):
+def _apply_stop_update(stop, d, driver=None, user=None):
     new = d.get("status")
     if new not in dict(TripStop.Status.choices):
         raise ValueError("وضعیت نامعتبر است.")
@@ -755,7 +795,10 @@ def _apply_stop_update(stop, d, driver=None):
     return update_stop(
         stop, new, driver=driver, collected_amount=amount,
         collected_method=str(d.get("collected_method") or "")[:20],
-        failure_reason=str(d.get("failure_reason") or ""), lat=lat, lng=lng)
+        failure_reason=str(d.get("failure_reason") or ""), lat=lat, lng=lng,
+        failure_code=str(d.get("failure_code") or "")[:20], otp_code=str(d.get("otp_code") or "")[:8],
+        recipient_name=str(d.get("recipient_name") or ""),
+        pod_photo=d.get("pod_photo") or None, pod_signature=d.get("pod_signature") or None, user=user)
 
 
 @api_view(["POST"])
@@ -769,7 +812,7 @@ def stop_status(request, pk):
     if s is None:
         return api_error("توقف پیدا نشد.", status_code=404)
     try:
-        s = _apply_stop_update(s, request.data)
+        s = _apply_stop_update(s, request.data, user=request.user)
     except ValueError as e:
         return api_error(str(e))
     except Exception as e:
@@ -778,12 +821,42 @@ def stop_status(request, pk):
 
 
 # ═══════════════════════════════════════
+#  ترتیب مسیر
+# ═══════════════════════════════════════
+
+@api_view(["GET", "POST"])
+@authentication_classes(StaffAuth)
+@permission_classes([DeliveryPerm])
+def trip_optimize(request, pk):
+    """GET: proposed stop order (nothing saved). POST: apply it."""
+    r = staff_business(request)
+    if r is None:
+        return _no_business()
+    t = Trip.all_objects.filter(business=r, pk=pk).first()
+    if t is None:
+        return api_error("مأموریت پیدا نشد.", status_code=404)
+    try:
+        plan = plan_route(t) if request.method == "GET" else optimize_trip(t, user=request.user)
+    except ValueError as e:
+        return api_error(str(e))
+    except Exception as e:
+        return server_error(e)
+    data = {"order": plan["order"], "km_before": plan["km_before"], "km_after": plan["km_after"], "late": plan["late"]}
+    if request.method == "POST":
+        data["trip"] = _trip_data(_trip_qs(r).get(pk=pk), with_stops=True)
+    return api_success(data=data)
+
+
+# ═══════════════════════════════════════
 #  راننده
 # ═══════════════════════════════════════
 
 def _my_driver(request):
     u = request.user
-    return Driver.all_objects.filter(user=u, business=getattr(u, "business", None), is_active=True).first()
+    drv = Driver.all_objects.filter(user=u, business=getattr(u, "business", None), is_active=True).first()
+    if drv is not None:
+        staff_business(request)      # tenant for related managers (prefetched stops), as the JWT auth does
+    return drv
 
 
 @api_view(["GET"])
@@ -802,7 +875,7 @@ def driver_me(request):
         "driver": _driver_data(drv),
         "business": drv.business.name,
         "on_shift": drv.on_shift,
-        "trips": [_trip_data(t, with_stops=True) for t in qs],
+        "trips": [_trip_data(t, with_stops=True, for_driver=True) for t in qs],
         "uncollected_cash": _f(uncollected_cash(drv)),
     })
 
@@ -835,7 +908,7 @@ def driver_stop_status(request, pk):
         return api_error(str(e))
     except Exception as e:
         return server_error(e)
-    return api_success(data=_stop_data(s))
+    return api_success(data=_stop_data(s, for_driver=True))
 
 
 @api_view(["POST"])
@@ -985,11 +1058,18 @@ def cash_overview(request):
     r = staff_business(request)
     if r is None:
         return _no_business()
+    from django.db.models import Count, Sum
+    # unsettled cash per driver, with how many deliveries it came from and the oldest one (COD ageing)
+    agg = {row["trip__driver_id"]: row for row in TripStop.all_objects.filter(
+        business=r, status="delivered", settlement__isnull=True, collected_method="cash", collected_amount__gt=0,
+    ).values("trip__driver_id").annotate(n=Count("id"), total=Sum("collected_amount"), oldest=Min("delivered_at"))}
     rows = []
     for d in Driver.all_objects.filter(business=r).order_by("name"):
+        a = agg.get(d.id)
         amount = uncollected_cash(d)
         if amount > 0 or d.is_active:
-            rows.append({"driver_id": d.id, "driver_name": d.name, "uncollected": _f(amount)})
+            rows.append({"driver_id": d.id, "driver_name": d.name, "uncollected": _f(amount),
+                         "stops": a["n"] if a else 0, "oldest": _local_dt(a["oldest"]) if a else None})
     return api_success(data=rows)
 
 
@@ -1156,3 +1236,135 @@ def trip_route(request, pk):
         "stops": [{"sequence": s.sequence, "name": s.customer_name, "address": s.address, "lat": _f(s.lat), "lng": _f(s.lng),
                    "status": s.status, "arrived_at": _local_dt(s.arrived_at), "delivered_at": _local_dt(s.delivered_at)} for s in stops],
     })
+
+
+# ═══════════════════════════════════════
+#  محدوده‌های ارسال
+# ═══════════════════════════════════════
+
+def _zone_data(z):
+    return {
+        "id": z.id, "name": z.name, "color": z.color, "fee": _f(z.fee), "free_over": _f(z.free_over),
+        "eta_minutes": z.eta_minutes, "polygon": z.polygon or [], "center_lat": _f(z.center_lat),
+        "center_lng": _f(z.center_lng), "radius_km": _f(z.radius_km), "sort_order": z.sort_order,
+        "is_active": z.is_active, "shape": "polygon" if z.polygon else ("circle" if z.radius_km is not None else "none"),
+    }
+
+
+def _zone_fields(d, z=None):
+    def cur(k, default=None):
+        return d[k] if k in d else (getattr(z, k) if z else default)
+    name = str(cur("name", "") or "").strip()[:100]
+    if not name:
+        raise ValueError("نام محدوده الزامی است.")
+    polygon = validate_polygon(cur("polygon", []))
+    clat, clng = cur("center_lat"), cur("center_lng")
+    radius = _dec(cur("radius_km"), "شعاع")
+    if not polygon:
+        if clat in (None, "") or clng in (None, "") or radius is None or radius <= 0:
+            raise ValueError("برای محدوده یا چندضلعی بکشید یا مرکز و شعاع بدهید.")
+        clat, clng = validate_coords(clat, clng)
+    else:
+        clat = clng = radius = None
+    eta = cur("eta_minutes")
+    try:
+        eta = int(eta) if eta not in (None, "") else None
+        order = int(cur("sort_order", 0) or 0)
+    except (TypeError, ValueError):
+        raise ValueError("عدد نامعتبر است.")
+    if eta is not None and not (1 <= eta <= 60 * 24 * 14):
+        raise ValueError("زمان وعده نامعتبر است.")
+    color = str(cur("color", "") or "")[:9]
+    if color and not __import__("re").fullmatch(r"#[0-9a-fA-F]{3,8}", color):
+        raise ValueError("رنگ نامعتبر است.")
+    return {
+        "name": name, "color": color, "fee": _dec(cur("fee", 0), "هزینه") or Decimal("0"),
+        "free_over": _dec(cur("free_over"), "حد ارسال رایگان"), "eta_minutes": eta, "polygon": polygon,
+        "center_lat": clat, "center_lng": clng, "radius_km": radius, "sort_order": max(0, order),
+        "is_active": _bool(d.get("is_active"), z.is_active if z else True),
+    }
+
+
+@api_view(["GET", "POST"])
+@authentication_classes(StaffAuth)
+@permission_classes([DeliveryPerm])
+def zones(request):
+    r = staff_business(request)
+    if r is None:
+        return _no_business()
+    if request.method == "GET":
+        return api_success(data=[_zone_data(z) for z in DeliveryZone.all_objects.filter(business=r)])
+    try:
+        z = DeliveryZone.all_objects.create(business=r, **_zone_fields(request.data))
+    except ValueError as e:
+        return api_error(str(e))
+    except IntegrityError:
+        return api_error("محدوده‌ای با این نام وجود دارد.")
+    return api_success(data=_zone_data(z), status_code=201)
+
+
+@api_view(["PUT", "DELETE"])
+@authentication_classes(StaffAuth)
+@permission_classes([DeliveryPerm])
+def zone_detail(request, pk):
+    r = staff_business(request)
+    if r is None:
+        return _no_business()
+    z = DeliveryZone.all_objects.filter(business=r, pk=pk).first()
+    if z is None:
+        return api_error("محدوده پیدا نشد.", status_code=404)
+    if request.method == "DELETE":
+        z.delete()
+        return api_success(message="حذف شد.")
+    try:
+        with transaction.atomic():
+            for k, v in _zone_fields(request.data, z).items():
+                setattr(z, k, v)
+            z.save()
+    except ValueError as e:
+        return api_error(str(e))
+    except IntegrityError:
+        return api_error("محدوده‌ای با این نام وجود دارد.")
+    return api_success(data=_zone_data(z))
+
+
+@api_view(["GET"])
+@authentication_classes(StaffAuth)
+@permission_classes([DeliveryPerm])
+def zone_quote(request):
+    """?lat=&lng=&amount= -> which zone, the fee, and whether the point is served at all."""
+    r = staff_business(request)
+    if r is None:
+        return _no_business()
+    qp = request.query_params
+    try:
+        amount = _dec(qp.get("amount"), "مبلغ")
+        q = quote(r, qp.get("lat"), qp.get("lng"), amount)
+    except ValueError as e:
+        return api_error(str(e))
+    z = q["zone"]
+    return api_success(data={"zone_id": z.id if z else None, "zone_name": z.name if z else "",
+                             "fee": _f(q["fee"]), "deliverable": q["deliverable"],
+                             "eta_minutes": z.eta_minutes if z else None})
+
+
+# ═══════════════════════════════════════
+#  گزارش
+# ═══════════════════════════════════════
+
+@api_view(["GET"])
+@authentication_classes(StaffAuth)
+@permission_classes([DeliveryPerm])
+def reports(request):
+    r = staff_business(request)
+    if r is None:
+        return _no_business()
+    qp = request.query_params
+    try:
+        d_to = datetime.date.fromisoformat(qp["to"][:10]) if qp.get("to") else timezone.localdate()
+        d_from = datetime.date.fromisoformat(qp["from"][:10]) if qp.get("from") else d_to - datetime.timedelta(days=6)
+    except ValueError:
+        return api_error("تاریخ نامعتبر است.")
+    if d_from > d_to or (d_to - d_from).days > 366:
+        return api_error("بازه‌ی تاریخ نامعتبر است.")
+    return api_success(data=delivery_report(r, d_from, d_to))
