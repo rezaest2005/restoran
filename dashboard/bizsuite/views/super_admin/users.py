@@ -149,7 +149,7 @@ def super_user_detail_api(request, pk):
 
         for field in ('first_name', 'last_name'):
             if field in data:
-                setattr(user, field, data[field] or None)
+                setattr(user, field, (data[field] or '').strip())
                 update_fields.append(field)
 
         if 'phone_number' in data:

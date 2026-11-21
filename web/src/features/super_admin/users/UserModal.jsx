@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { ResponsiveDialog } from "@shared/responsive";
 import { useTranslation } from "react-i18next";
 import {
-  DialogTitle, DialogContent, DialogActions, Button, TextField, Box, IconButton, FormControl, InputLabel, Select, MenuItem, Typography, Chip,
+  DialogTitle, DialogContent, DialogActions, Button, TextField, Box, IconButton, FormControl, InputLabel, Select, MenuItem, Typography, Chip, Alert,
 } from "@mui/material";
 import superClient from "@super/api/super_client";
 import { ROLE_OPTIONS, ROLE_PERM_PRESETS } from "@super/common/superConfig";
@@ -10,6 +10,7 @@ import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutK
 
 export default function UserModal({ open, editId, onClose, tenants, C }) {
   const { t } = useTranslation();
+  const [saveError, setSaveError] = useState("");
   const [form, setForm] = useState({
     username: "",
     password: "",
@@ -66,6 +67,7 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
   };
 
   const handleSave = async () => {
+    setSaveError("");
     try {
       const finalRole =
         form.role === "other"
@@ -89,6 +91,8 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
       onClose();
     } catch (err) {
       console.error("Save user error:", err);
+      const d = err?.response?.data;
+      setSaveError((d && typeof d === "object" && (d.error || d.detail)) || t("ui_c.super.login.unknown_error"));
     }
   };
 
@@ -133,6 +137,7 @@ export default function UserModal({ open, editId, onClose, tenants, C }) {
       </DialogTitle>
 
       <DialogContent>
+        {saveError && <Alert severity="error" sx={{ mt: 1 }}>{String(saveError)}</Alert>}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 1.5 }}>
 
           {/* ── اطلاعات پایه ── */}
