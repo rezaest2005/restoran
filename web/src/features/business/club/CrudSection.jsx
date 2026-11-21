@@ -5,7 +5,7 @@ import {
   TextField, Typography,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/DeleteOutline";
+import DeleteIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
 import KbdHint from "@business/pos/common/KbdHint";
 import { TableWrap } from "../accounting/common";
