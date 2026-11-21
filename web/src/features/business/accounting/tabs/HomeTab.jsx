@@ -3,6 +3,7 @@ import { Box, Typography, Button, Alert, CircularProgress, Chip } from "@mui/mat
 import { fmtMoney, fmtDate } from "../common";
 import { fetchAutopilot, fetchChequeReminders, errMsg } from "../api";
 import { CategoryIcon, ExpenseDialog, OpeningDialog, PaymentDialog, RecurringDialog } from "./QuickDialogs";
+import { moduleEnabled } from "../../dashboard/access";
 
 /**
  * The accounting home page for people who are not accountants. Everything is grouped into plain sections
@@ -70,7 +71,7 @@ export default function HomeTab(ctx) {
           <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
             {stat(t("ui_acc.home.cash"), data.money.cash, data.money.cash < 0 ? C.danger : undefined)}
             {stat(t("ui_acc.home.bank"), data.money.bank, data.money.bank < 0 ? C.danger : undefined)}
-            {stat(t("ui_acc.home.inventory"), data.money.inventory)}
+            {(moduleEnabled("inventory") || Number(data.money.inventory) !== 0) && stat(t("ui_acc.home.inventory"), data.money.inventory)}
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mt: 1 }}>
             {(data.money.cash < 0 || data.money.bank < 0) && (

@@ -50,7 +50,8 @@ def to_int(value, name="مقدار", minimum=0, maximum=10**13):
 
 
 def get_settings(business):
-    obj, _ = LoyaltySettings.all_objects.get_or_create(business=business)
+    # A business that bought the club starts with it switched on; the owner can still turn it off in settings.
+    obj, _ = LoyaltySettings.all_objects.get_or_create(business=business, defaults={"is_active": True})
     return obj
 
 
