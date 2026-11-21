@@ -11,6 +11,8 @@ export default function MemberDialog({ ctx, onClose, onSaved }) {
   const { t, S, fullScreen } = ctx;
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
+  const [birth, setBirth] = useState("");
+  const [referral, setReferral] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -20,7 +22,9 @@ export default function MemberDialog({ ctx, onClose, onSaved }) {
     setBusy(true);
     setError("");
     try {
-      const m = await createMember({ phone: phone.trim(), name: name.trim() });
+      const m = await createMember({
+        phone: phone.trim(), name: name.trim(), birth_date: birth || null, referral_code: referral.trim(),
+      });
       onSaved(m);
     } catch (e) {
       setError(errMsg(e, t("ui_club.err.generic")));
@@ -44,6 +48,11 @@ export default function MemberDialog({ ctx, onClose, onSaved }) {
             onChange={(e) => setPhone(e.target.value)} slotProps={{ htmlInput: { dir: "ltr", inputMode: "tel" } }} />
           <TextField size="small" label={t("ui_club.member.name")} value={name} sx={S.field}
             onChange={(e) => setName(e.target.value)} />
+          <TextField size="small" type="date" label={t("ui_club2.md.birth_date")} value={birth} sx={S.field}
+            onChange={(e) => setBirth(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+          <TextField size="small" label={t("ui_club2.md.referral_code")} value={referral} sx={S.field}
+            helperText={t("ui_club2.md.referral_hint")} onChange={(e) => setReferral(e.target.value)}
+            slotProps={{ htmlInput: { dir: "ltr" } }} />
           {error && <Alert severity="error">{error}</Alert>}
         </Stack>
       </DialogContent>
