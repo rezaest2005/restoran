@@ -76,7 +76,8 @@ export default function CustomerSection({ ctx }) {
       <SectionHeader ctx={ctx} title={t("ui_def.customers.title")} subtitle={t("ui_def.customers.subtitle")}
         onNew={() => open(null)} newLabel={t("ui_def.customers.new")} search={q} onSearch={setQ} />
       <LoadState ctx={ctx} loading={loading && rows.length === 0} error={error} onRetry={load}
-        empty={!loading && shown.length === 0} emptyText={q ? t("ui_def.common.no_results") : t("ui_def.customers.empty")}>
+        empty={!loading && shown.length === 0} emptyText={q ? t("ui_def.common.no_results") : t("ui_def.customers.empty")}
+        emptyAction={q ? null : { label: t("ui_def.customers.new"), onClick: () => open(null), icon: "👥", hint: t("ui_dh.empty_hint.customers") }}>
         <TableWrap C={C}>
           <Table size="small" sx={{ minWidth: 680 }}>
             <TableHead>

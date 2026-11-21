@@ -79,7 +79,8 @@ export default function WarehouseSection({ ctx }) {
       <SectionHeader ctx={ctx} title={t("ui_def.warehouses.title")} subtitle={t("ui_def.warehouses.subtitle")}
         onNew={() => open(null)} newLabel={t("ui_def.warehouses.new")} search={q} onSearch={setQ} />
       <LoadState ctx={ctx} loading={loading && rows.length === 0} error={error} onRetry={load}
-        empty={!loading && shown.length === 0} emptyText={q ? t("ui_def.common.no_results") : t("ui_def.warehouses.empty")}>
+        empty={!loading && shown.length === 0} emptyText={q ? t("ui_def.common.no_results") : t("ui_def.warehouses.empty")}
+        emptyAction={q ? null : { label: t("ui_def.warehouses.new"), onClick: () => open(null), icon: "📦", hint: t("ui_dh.empty_hint.warehouses") }}>
         <TableWrap C={C}>
           <Table size="small" sx={{ minWidth: 700 }}>
             <TableHead>

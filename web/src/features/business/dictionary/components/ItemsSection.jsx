@@ -8,10 +8,14 @@ import ItemDialog from "./ItemDialog";
 
 const PAGE = 50;
 
-export default function ItemsSection({ ctx }) {
+/**
+ * Items & materials. With `productsOnly` it is the "Products for sale" view: finished goods only,
+ * and a new item starts as a finished good (same records, just a focused entry point).
+ */
+export default function ItemsSection({ ctx, productsOnly = false }) {
   const { t, C, S, notify } = ctx;
   const [q, setQ] = useState("");
-  const [kind, setKind] = useState("");
+  const [kind, setKind] = useState(productsOnly ? "finished" : "");
   const [pageState, setPageState] = useState({ key: "", page: 0 });
   const [editing, setEditing] = useState(null);
   const [del, setDel] = useState(null);
@@ -51,9 +55,10 @@ export default function ItemsSection({ ctx }) {
 
   return (
     <Box>
-      <SectionHeader ctx={ctx} title={t("ui_def.items.title")} subtitle={t("ui_def.items.subtitle")}
-        onNew={openNew} newLabel={t("ui_def.items.new")} search={q} onSearch={setQ}>
-        <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }} role="group" aria-label={t("ui_def.items.f_kind")}>
+      <SectionHeader ctx={ctx} title={productsOnly ? t("ui_dh.products.title") : t("ui_def.items.title")}
+        subtitle={productsOnly ? t("ui_dh.products.subtitle") : t("ui_def.items.subtitle")}
+        onNew={openNew} newLabel={productsOnly ? t("ui_dh.products.new") : t("ui_def.items.new")} search={q} onSearch={setQ}>
+        {!productsOnly && <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }} role="group" aria-label={t("ui_def.items.f_kind")}>
           {["", ...KINDS].map((k) => (
             <Chip key={k || "all"} clickable onClick={() => setKind(k)} aria-pressed={kind === k}
               label={k ? t(`ui_def.kinds.${k}`) : t("ui_def.common.all")}
@@ -63,11 +68,16 @@ export default function ItemsSection({ ctx }) {
                 border: `1px solid ${kind === k ? C.primary : C.glassBorder}`,
               }} />
           ))}
-        </Box>
+        </Box>}
       </SectionHeader>
 
       <LoadState ctx={ctx} loading={loading && rows.length === 0} error={error} onRetry={load}
-        empty={!loading && rows.length === 0} emptyText={dq || kind ? t("ui_def.common.no_results") : t("ui_def.items.empty")}>
+        empty={!loading && rows.length === 0}
+        emptyText={dq || (kind && !productsOnly) ? t("ui_def.common.no_results") : productsOnly ? t("ui_dh.products.empty") : t("ui_def.items.empty")}
+        emptyAction={dq || (kind && !productsOnly) ? null : {
+          label: productsOnly ? t("ui_dh.products.new") : t("ui_def.items.new"), onClick: openNew,
+          icon: productsOnly ? "🏷️" : "🧱", hint: t(productsOnly ? "ui_dh.empty_hint.products" : "ui_dh.empty_hint.items"),
+        }}>
         <TableWrap C={C}>
           <Table size="small" sx={{ minWidth: 980, opacity: loading ? 0.6 : 1 }}>
             <TableHead>
@@ -122,7 +132,7 @@ export default function ItemsSection({ ctx }) {
       </LoadState>
 
       {editing && (
-        <ItemDialog ctx={ctx} item={editing.id ? editing : null} onClose={() => setEditing(null)}
+        <ItemDialog ctx={ctx} item={editing.id ? editing : null} presetKind={productsOnly ? "finished" : "raw"} onClose={() => setEditing(null)}
           onSaved={(saved) => { notify(t("ui_def.items.saved", { name: saved?.name || "" }), "success"); setEditing(null); load(); }} />
       )}
       <ConfirmDialog ctx={ctx} open={!!del} danger busy={delBusy} error={delErr}

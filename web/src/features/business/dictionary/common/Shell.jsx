@@ -30,8 +30,29 @@ export function SectionHeader({ ctx, title, subtitle, onNew, newLabel, search, o
   );
 }
 
-/** loading / error (with retry) / empty / content. */
-export function LoadState({ ctx, loading, error, empty, emptyText, onRetry, children }) {
+/**
+ * Empty state with ONE clear call to action (e.g. "+ New warehouse").
+ * `hint` is an optional second line explaining why this matters.
+ */
+export function EmptyState({ ctx, icon = "✨", text, hint, actionLabel, onAction }) {
+  const { C, S } = ctx;
+  return (
+    <Box sx={{ textAlign: "center", py: { xs: 4, md: 6 }, px: 2, border: `1px dashed ${C.glassBorder}`, borderRadius: 3 }}>
+      <Typography aria-hidden="true" sx={{ fontSize: 34, lineHeight: 1, mb: 1 }}>{icon}</Typography>
+      <Typography sx={{ color: C.text, fontWeight: 700, fontSize: 14 }}>{text}</Typography>
+      {hint && <Typography sx={{ color: C.sub, fontSize: 12, mt: 0.5, maxWidth: 460, mx: "auto" }}>{hint}</Typography>}
+      {onAction && (
+        <Button sx={{ ...S.btn, mt: 2 }} onClick={onAction}>+ {actionLabel}</Button>
+      )}
+    </Box>
+  );
+}
+
+/**
+ * loading / error (with retry) / empty / content.
+ * With `emptyAction` ({ label, onClick, icon?, hint? }) the empty state shows a single call to action.
+ */
+export function LoadState({ ctx, loading, error, empty, emptyText, emptyAction, onRetry, children }) {
   const { t, C } = ctx;
   if (loading) {
     return <Box sx={{ textAlign: "center", py: 5 }}><CircularProgress size={28} sx={{ color: C.primary }} /></Box>;
@@ -45,6 +66,10 @@ export function LoadState({ ctx, loading, error, empty, emptyText, onRetry, chil
     );
   }
   if (empty) {
+    if (emptyAction) {
+      return <EmptyState ctx={ctx} icon={emptyAction.icon} text={emptyText} hint={emptyAction.hint}
+        actionLabel={emptyAction.label} onAction={emptyAction.onClick} />;
+    }
     return <Typography sx={{ color: C.muted, textAlign: "center", py: 5 }}>{emptyText}</Typography>;
   }
   return children;
