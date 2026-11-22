@@ -139,6 +139,9 @@ PATH_FEATURES: list[tuple[str, list[str], list[str] | None]] = [
     ("/api/delivery/pending-orders", ["delivery_dispatch"], None),
     ("/api/delivery/dispatchable", ["delivery_dispatch"], None),
     ("/api/pos/update-food-price", ["pos_settings"], None),
+    # card terminal: any POS user reads the settings and pays; changing them / testing needs the settings tab
+    ("/api/card-reader/settings", ["pos"], ["pos_settings"]),
+    ("/api/card-reader/test", ["pos_settings"], None),
     ("/api/inventory/reports", ["inventory_reports"], None),
     ("/api/inventory/purchase-suggestions", ["inventory_purchase_list"], None),
 ]

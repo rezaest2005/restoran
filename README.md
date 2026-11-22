@@ -74,7 +74,7 @@ Environment variables (see `.env.example` and `../deploy/restaurant/.env.example
 | `COOKIE_SECURE`, `SECURE_SSL_REDIRECT` | Set to `True` behind HTTPS |
 | `APP_NAME`, `APP_NAME_FA` | Optional product display name overrides |
 | `BOOTSTRAP_ADMIN_PASSWORD`, `BOOTSTRAP_SUPER_USERNAME`, `BOOTSTRAP_SUPER_PASSWORD`, `BOOTSTRAP_SYNC_PASSWORDS` | Initial users created by the `migrate` service |
-| `CARD_READER_IP`, `CARD_READER_PORT`, `CARD_READER_TIMEOUT` | Optional card terminal integration |
+| `CARD_READER_IP`, `CARD_READER_PORT`, `CARD_READER_TIMEOUT` | Optional DEFAULTS for the per-business card terminal settings (see docs/CARD_READER.md); also `CARD_READER_ALLOW_LOOPBACK` |
 | `PUBLIC_PASSWORD_RESET_ENABLED` | Enable public password reset (only after OTP is connected) |
 
 Never commit a real `.env` file.

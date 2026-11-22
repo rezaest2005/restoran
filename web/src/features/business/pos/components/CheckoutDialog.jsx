@@ -1,7 +1,7 @@
 import { blurFocused } from "../common/focus";
 import { ResponsiveDialog } from "@shared/responsive";
 import { appUrl } from "@shared/basePath";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Box, Typography, Button, CircularProgress,
 } from "@mui/material";
@@ -15,12 +15,16 @@ import {
   Payments,
   CreditCard,
   Language,
+  PointOfSale,
 } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
 import { appName } from "@shared/branding";
 import { buildTicketHtml, buildLabels, readBusinessName } from "../services/printService";
 import useShortcuts from "@shared/common/useShortcuts";
 import { KbdHint, formatMoney } from "../common";
+import useCardTerminal from "../hooks/useCardTerminal";
+import CardTerminalPanel from "./CardTerminalPanel";
+import { settleOrder, cancelUnpaidOrder } from "../services/cardTerminal";
 
 export default function CheckoutDialog({
   open,
@@ -28,6 +32,10 @@ export default function CheckoutDialog({
   C,
   isRtl,
   lastOrder,
+  pendingOrder,
+  cardSettings,
+  onPaid,
+  onOrderCancelled,
   defaultMethod,
   cart,
   cartTotal,
@@ -50,9 +58,15 @@ export default function CheckoutDialog({
     setPrevOpen(open);
     if (!open) setSel(null);
   }
-  const selKey = sel ?? (defaultMethod || "cash");
+  const cardEnabled = !!cardSettings?.enabled;
+  const selKey = sel ?? (cardEnabled ? "terminal" : (defaultMethod || "cash"));
+  const [working, setWorking] = useState(false);
+  const [panelError, setPanelError] = useState(null);
+  const terminal = useCardTerminal({ settings: cardSettings, onPaid: (order) => onPaid?.(order) });
+  const locked = !!pendingOrder && !isPaid;   // an unpaid order is being charged: the dialog cannot be dismissed by accident
 
   const paymentMethods = [
+    ...(cardEnabled ? [{ key: "terminal", icon: PointOfSale, labelFa: t("ui_card.checkout.action"), labelEn: t("ui_card.checkout.action"), hint: t("ui_card.checkout.hint") }] : []),
     { key: "cash", icon: Payments, labelFa: "پرداخت نقدی", labelEn: "Cash" },
     { key: "card", icon: CreditCard, labelFa: "کارت (ثبت دستی)", labelEn: "Card (recorded manually)" },
     {
@@ -67,13 +81,43 @@ export default function CheckoutDialog({
     setLocalError(null);
     setLocalSubmitting(true);
     try {
-      if (onSubmit) await onSubmit(method);
+      const res = onSubmit ? await onSubmit(method) : null;
+      if (method === "terminal" && res?.awaiting_payment) terminal.start(res);
     } catch (err) {
       setLocalError(err.message || "خطا در پرداخت");
     } finally {
       setLocalSubmitting(false);
     }
   };
+
+  const settleOther = async (method) => {
+    if (!pendingOrder) return;
+    setWorking(true);
+    setPanelError(null);
+    try {
+      const order = await settleOrder(pendingOrder.order_id, method, pendingOrder.driver_id);
+      terminal.reset();
+      onPaid?.(order);
+    } catch (err) {
+      setPanelError(err?.response?.data?.error || err.message);
+    } finally { setWorking(false); }
+  };
+
+  const cancelPending = async () => {
+    if (!pendingOrder) return;
+    setWorking(true);
+    setPanelError(null);
+    try {
+      await cancelUnpaidOrder(pendingOrder.order_id);
+      terminal.reset();
+      onOrderCancelled?.(pendingOrder);
+      onClose();
+    } catch (err) {
+      setPanelError(err?.response?.data?.error || err.message);
+    } finally { setWorking(false); }
+  };
+
+  const leavePending = () => { terminal.reset(); onClose(); };
 
   const moveMethod = (dir) => {
     const i = paymentMethods.findIndex((m) => m.key === selKey);
@@ -89,7 +133,7 @@ export default function CheckoutDialog({
   };
 
   useShortcuts(
-    isPaid
+    locked ? [] : isPaid
       ? [
         { combo: "Ctrl+D", label: t("ui_g.pos.print_receipt"), scope: "dialog", handler: () => handlePrint() },
         { combo: "Enter", label: t("shortcuts.confirm"), scope: "dialog", handler: confirmDialog },
@@ -274,6 +318,7 @@ export default function CheckoutDialog({
       total_price: lastOrder.total_price,
       payment_status: lastOrder.payment_status || "paid",
       payment_method: lastOrder.payment_method,
+      terminal: lastOrder.terminal || null,
       delivery_address: lastOrder.delivery_address,
       tracking_url: lastOrder.dispatch?.tracking_token ? appUrl("/t/" + lastOrder.dispatch.tracking_token) : "",
       items: (lastOrder.items || []).map((it) => ({
@@ -297,10 +342,20 @@ export default function CheckoutDialog({
     }, 400);
   };
 
+  // paid on the card terminal: the customer's receipt prints by itself
+  const autoPrinted = useRef(null);
+  useEffect(() => {
+    if (open && lastOrder?.terminal && autoPrinted.current !== lastOrder.order_id) {
+      autoPrinted.current = lastOrder.order_id;
+      handlePrint();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, lastOrder]);
+
   return (
     <ResponsiveDialog
       open={open}
-      onClose={isPaid ? undefined : onClose}
+      onClose={isPaid || locked ? undefined : onClose}
       maxWidth="xs"
       fullWidth
       slotProps={{
@@ -364,7 +419,7 @@ export default function CheckoutDialog({
             )}
           </Typography>
 
-          {!isPaid && (
+          {!isPaid && !locked && (
             <Box
               onClick={onClose}
               sx={{
@@ -387,8 +442,17 @@ export default function CheckoutDialog({
         </Box>
 
         <Box sx={{ px: 2.5, pt: 2.5, pb: 2.5 }}>
+          {/* ══════════ کارتخوان: سفارش ثبت شده و پرداخت‌نشده ══════════ */}
+          {locked && (
+            <CardTerminalPanel
+              order={pendingOrder} terminal={terminal} working={working} error={panelError}
+              onSettle={settleOther} onCancelOrder={cancelPending} onLeave={leavePending}
+              C={C} isRtl={isRtl}
+            />
+          )}
+
           {/* ══════════ حالت ۱: منتظر پرداخت ══════════ */}
-          {!isPaid && (
+          {!isPaid && !locked && (
             <>
               <Box
                 sx={{
@@ -535,9 +599,10 @@ export default function CheckoutDialog({
               </Typography>
 
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                {paymentMethods.map(({ key, icon: Icon, labelFa, labelEn }) => (
+                {paymentMethods.map(({ key, icon: Icon, labelFa, labelEn, hint }) => (
                   <Button
                     key={key}
+                    data-testid={`pay-${key}`}
                     onClick={() => handlePayment(key)}
                     disabled={busy}
                     sx={{
@@ -566,8 +631,14 @@ export default function CheckoutDialog({
                     ) : (
                       <Icon sx={{ fontSize: 20, color: C.olive }} />
                     )}
-                    {isRtl ? labelFa : labelEn}
-                   
+                    <Box component="span" sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", textAlign: "start" }}>
+                      {isRtl ? labelFa : labelEn}
+                      {hint && (
+                        <Typography component="span" sx={{ fontSize: 11, fontWeight: 500, color: C.sub, fontFamily: "'Vazirmatn', sans-serif" }}>
+                          {hint}
+                        </Typography>
+                      )}
+                    </Box>
                   </Button>
                 ))}
               </Box>
@@ -700,6 +771,28 @@ export default function CheckoutDialog({
                     <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.8, fontFamily: "'Vazirmatn', sans-serif" }}>
                       {t("ui_f.print.method")}: {t(`ui_f.print.method_${lastOrder.payment_method}`, { defaultValue: lastOrder.payment_method })}
                     </Typography>
+                  )}
+                  {lastOrder.terminal && (
+                    <Box sx={{ mt: 0.8 }} data-testid="terminal-receipt-info">
+                      <Typography sx={{ fontSize: 12, color: C.olive, fontWeight: 800, fontFamily: "'Vazirmatn', sans-serif" }}>
+                        {t("ui_card.checkout.paid")}
+                      </Typography>
+                      {lastOrder.terminal.trace_number && (
+                        <Typography sx={{ fontSize: 12, color: C.sub, fontFamily: "'Vazirmatn', sans-serif" }}>
+                          {t("ui_card.print.trace")}: <span dir="ltr">{lastOrder.terminal.trace_number}</span>
+                        </Typography>
+                      )}
+                      {lastOrder.terminal.ref_number && (
+                        <Typography sx={{ fontSize: 12, color: C.sub, fontFamily: "'Vazirmatn', sans-serif" }}>
+                          {t("ui_card.print.ref")}: <span dir="ltr">{lastOrder.terminal.ref_number}</span>
+                        </Typography>
+                      )}
+                      {lastOrder.terminal.card_masked && (
+                        <Typography sx={{ fontSize: 12, color: C.sub, fontFamily: "'Vazirmatn', sans-serif" }}>
+                          {t("ui_card.print.card")}: <span dir="ltr">{lastOrder.terminal.card_masked}</span>
+                        </Typography>
+                      )}
+                    </Box>
                   )}
                   {lastOrder.delivery_address && (
                     <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.8, fontFamily: "'Vazirmatn', sans-serif", overflowWrap: "anywhere" }}>

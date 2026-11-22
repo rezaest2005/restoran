@@ -16,7 +16,7 @@ from .views.super_admin import qr as qr_super
 from .views import qr_redirect as qr_public
 from .views import accounting_auto as acc_auto
 from .views import accounting_pro as acc_pro
-from .views import business_settings
+from .views import business_settings, card_reader
 from .views import activity as activity_views
 from .views.super_admin import support as sup_super
 from .views import support as sup_views
@@ -137,6 +137,18 @@ urlpatterns = [
     path("api/pos/day-summary/", _get_view("pos_day_summary"), name="pos_day_summary"),
     path("api/pos/close-pending/", _get_view("pos_close_all_pending"), name="pos_close_all_pending"),
     path("api/pos/update-food-price/", _get_view("pos_update_food_price"), name="pos_update_food_price"),
+    path("api/pos/orders/<int:order_id>/settle/", _get_view("pos_settle_order"), name="pos_settle_order"),
+    path("api/pos/orders/<int:order_id>/cancel-unpaid/", _get_view("pos_cancel_unpaid_order"), name="pos_cancel_unpaid_order"),
+    # ── Card terminal ───────────────────────────────────────
+    path("api/card-reader/settings/", card_reader.card_settings, name="card_settings"),
+    path("api/card-reader/test/", card_reader.card_test, name="card_test"),
+    path("api/card-reader/pay/", card_reader.card_pay, name="card_pay"),
+    path("api/card-reader/attempts/", card_reader.card_attempt_latest, name="card_attempt_latest"),
+    path("api/card-reader/attempts/<int:attempt_id>/", card_reader.card_attempt, name="card_attempt"),
+    path("api/card-reader/attempts/<int:attempt_id>/check/", card_reader.card_check, name="card_check"),
+    path("api/card-reader/attempts/<int:attempt_id>/cancel/", card_reader.card_cancel, name="card_cancel"),
+    path("api/card-reader/attempts/<int:attempt_id>/report/", card_reader.card_report, name="card_report"),
+    path("api/card-reader/attempts/<int:attempt_id>/resolve/", card_reader.card_resolve, name="card_resolve"),
     path("api/pos/online-orders/", _get_view("pos_online_orders"), name="pos_online_orders"),
     path("api/pos/online-orders/<int:order_id>/reject/", _get_view("pos_reject_online_order"), name="pos_reject_online_order"),
     path("api/menu/public/", _get_view("public_menu_api"), name="public_menu_api"),

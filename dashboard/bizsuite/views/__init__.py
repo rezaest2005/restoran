@@ -86,6 +86,8 @@ from .pos import (
     pos_day_summary,
     pos_close_all_pending,
     pos_update_food_price,
+    pos_settle_order,
+    pos_cancel_unpaid_order,
     pos_online_orders,
     pos_reject_online_order,
     public_menu_api,

@@ -5,6 +5,8 @@ from .orders import (
     pos_create_order,
     pos_close_all_pending,
     pos_update_food_price,
+    pos_settle_order,
+    pos_cancel_unpaid_order,
 )
 from .reports import (
     pos_daily_report,
@@ -21,6 +23,8 @@ __all__ = [
     "pos_create_order",
     "pos_close_all_pending",
     "pos_update_food_price",
+    "pos_settle_order",
+    "pos_cancel_unpaid_order",
     "pos_daily_report",
     "pos_daily_orders",
     "pos_day_summary",

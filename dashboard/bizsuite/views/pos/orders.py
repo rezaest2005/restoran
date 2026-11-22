@@ -12,7 +12,7 @@ from rest_framework.decorators import api_view, permission_classes
 
 from ...models import Order, OrderItem, Food
 from ...catalog_services import product_available_stock
-from ...order_services import StockError, reserve_product_stock
+from ...order_services import StockError, reserve_product_stock, restore_order_stock
 from ...club_services import earn_for_order
 from ...accounting_posting import post_pos_order, safe_post
 from ..common import (
@@ -77,6 +77,8 @@ def pos_create_order(request):
         order_type = str(data.get("order_type") or "").strip()[:20]
         delivery_address = str(data.get("delivery_address") or "").strip()[:500]
         cod = bool(data.get("cod"))
+        # card terminal: the order is created UNPAID first, the amount is sent to the terminal afterwards
+        defer = bool(data.get("defer_payment")) and source == "pos"
 
         if not items:
             return JsonResponse(
@@ -94,6 +96,11 @@ def pos_create_order(request):
             return JsonResponse(
                 {"success": False, "error": "برای سفارش پیک، آدرس تحویل را وارد کنید."}, status=400)
         cod = cod and is_delivery
+        if defer:
+            from ...card_terminal.services import get_settings as _card_cfg
+            if not _card_cfg(business).enabled:
+                return JsonResponse({"success": False, "error": "کارتخوان برای این کسب‌وکار فعال نیست."}, status=400)
+            payment_method, cod = "card", False
 
         validated_items = []
         stock_errors = []
@@ -159,7 +166,7 @@ def pos_create_order(request):
                 status="pending",
                 source=source,
                 payment_method=payment_method,
-                payment_status="paid" if (source == "pos" and not cod) else "pending",
+                payment_status="paid" if (source == "pos" and not cod and not defer) else "pending",
                 total_price=0,
                 order_type=order_type,
                 delivery_address=delivery_address if is_delivery else "",
@@ -216,7 +223,7 @@ def pos_create_order(request):
                       "type": order_type, "payment": order.payment_method, "customer": customer_name,
                       "address": delivery_address if is_delivery else ""})
         dispatch = None
-        if is_delivery:
+        if is_delivery and not defer:        # a card-terminal order is dispatched once it is paid
             dispatch = _auto_dispatch(
                 business, order, data.get("driver_id"), cod,
                 request.user if request.user.is_authenticated else None)
@@ -236,6 +243,7 @@ def pos_create_order(request):
             "phone": order.phone,
             "payment_method": order.payment_method,
             "payment_status": order.payment_status,
+            "awaiting_payment": defer,
             "order_type": order.order_type,
             "delivery_address": order.delivery_address,
             "msg": f"سفارش #{order.id} ثبت شد",
@@ -246,6 +254,80 @@ def pos_create_order(request):
     except Exception as exc:
         logger.exception("Error creating POS order")
         return server_error(exc, status=200)
+
+
+# ═══════════════════════════════════════
+#  سفارش پرداخت‌نشده‌ی صندوق (بعد از شکست کارتخوان): پرداخت با روش دیگر یا لغو
+# ═══════════════════════════════════════
+
+def _unpaid_pos_order(request, order_id):
+    """(business, order, error_response): a POS order of THIS business, still unpaid, with no open card attempt."""
+    from ...card_terminal.services import open_attempt_of
+    business = resolve_business(request)
+    if not business:
+        return None, None, no_business_response()
+    order = Order.all_objects.filter(business=business, pk=order_id, source="pos").first()
+    if order is None:
+        return business, None, JsonResponse({"success": False, "error": "سفارش پیدا نشد"}, status=404)
+    if order.status == "cancelled" or order.payment_status == "paid":
+        return business, None, JsonResponse(
+            {"success": False, "code": "order_not_payable", "error": "این سفارش پرداخت‌شده یا لغوشده است."}, status=409)
+    if open_attempt_of(order) is not None:
+        return business, None, JsonResponse(
+            {"success": False, "code": "attempt_open",
+             "error": "یک پرداخت کارتخوان برای این سفارش در جریان است؛ ابتدا آن را مشخص کنید."}, status=409)
+    return business, order, None
+
+
+@api_view(["POST"])
+@permission_classes([PosPerm])
+def pos_settle_order(request, order_id):
+    """Pay an unpaid POS order by cash / manual card / online (the terminal failed or the cashier chose another way)."""
+    from ...card_terminal.services import finalize_paid_order, receipt_payload
+    business, order, err = _unpaid_pos_order(request, order_id)
+    if err is not None:
+        return err
+    method = str(request.data.get("payment_method") or "cash")
+    if method not in ("cash", "card", "online"):
+        return JsonResponse({"success": False, "error": "روش پرداخت نامعتبر است."}, status=400)
+    try:
+        driver_id = int(request.data.get("driver_id") or 0) or None
+    except (TypeError, ValueError):
+        driver_id = None
+    user = request.user if request.user.is_authenticated else None
+    with transaction.atomic():
+        order = Order.all_objects.select_for_update().get(pk=order.pk)
+        if order.payment_status == "paid" or order.status == "cancelled":
+            return JsonResponse({"success": False, "code": "order_not_payable",
+                                 "error": "این سفارش پرداخت‌شده یا لغوشده است."}, status=409)
+        order.payment_method, order.payment_status = method, "paid"
+        order.save(update_fields=["payment_method", "payment_status"])
+    dispatch = finalize_paid_order(order, user, driver_id)
+    from ...activity import log as _log
+    _log(business, "pos", "order.settled", f"سفارش #{order.id} با {order.get_payment_method_display()} پرداخت شد",
+         actor=user, target=order, request=request, details={"payment": method})
+    return JsonResponse(receipt_payload(order, dispatch=dispatch))
+
+
+@api_view(["POST"])
+@permission_classes([PosPerm])
+def pos_cancel_unpaid_order(request, order_id):
+    """Cancel an unpaid POS order (its stock goes back). A paid order cannot be cancelled here."""
+    business, order, err = _unpaid_pos_order(request, order_id)
+    if err is not None:
+        return err
+    with transaction.atomic():
+        order = Order.all_objects.select_for_update().get(pk=order.pk)
+        if order.payment_status == "paid" or order.status == "cancelled":
+            return JsonResponse({"success": False, "code": "order_not_payable",
+                                 "error": "این سفارش پرداخت‌شده یا لغوشده است."}, status=409)
+        order.status = "cancelled"
+        order.save(update_fields=["status"])
+        restore_order_stock(order)
+    from ...activity import log as _log
+    _log(business, "pos", "order.cancelled_unpaid", f"سفارش پرداخت‌نشده‌ی #{order.id} لغو شد",
+         actor=request.user if request.user.is_authenticated else None, target=order, request=request)
+    return JsonResponse({"success": True, "order_id": order.id})
 
 
 # ═══════════════════════════════════════

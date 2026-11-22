@@ -41,10 +41,15 @@ else:
 
 AUTH_USER_MODEL = 'bizsuite.User'
 
-CARD_READER_IP = os.getenv('CARD_READER_IP', '192.168.1.100')
+# Card terminal: since the card terminal became a per-business setting (POS settings tab), these env values are only
+# DEFAULTS shown for a business that has not saved its own settings. See docs/CARD_READER.md.
+CARD_READER_IP = os.getenv('CARD_READER_IP', '127.0.0.1')
 CARD_READER_PORT = int(os.getenv('CARD_READER_PORT', '8080'))
-# timeout کوتاه برای تماس با کارتخوان تا worker گیر نکند
-CARD_READER_TIMEOUT = int(os.getenv('CARD_READER_TIMEOUT', '10'))
+# seconds the customer gets to swipe the card (default of the per-business setting)
+CARD_READER_TIMEOUT = int(os.getenv('CARD_READER_TIMEOUT', '90'))
+# server-side calls to a terminal/bridge may target loopback (server and bridge on the same machine). Set to false on a
+# shared cloud server so a tenant cannot aim the server at its own loopback services.
+CARD_READER_ALLOW_LOOPBACK = os.getenv('CARD_READER_ALLOW_LOOPBACK', 'true').lower() in ('1', 'true', 'yes')
 
 INSTALLED_APPS = [
     'django.contrib.admin',

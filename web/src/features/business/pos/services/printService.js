@@ -73,7 +73,13 @@ export function buildTicketHtml(order, kind, labels, opts = {}) {
     body += `<div class="tot"><span>${e(L.grandTotal)}</span><span>${e(fmt(total))} ${e(L.currency)}</span></div>`;
     body += `<div>${e(L.paymentStatus)}: ${o.payment_status === "paid" ? e(L.paid) : e(L.unpaid)}</div>`;
     const methodLabel = { cash: L.methodCash, card: L.methodCard, online: L.methodOnline }[o.payment_method];
-    if (methodLabel) body += `<div>${e(L.method)}: ${e(methodLabel)}</div>`;
+    if (o.terminal) {
+      // paid on the card terminal: show trace + reference + masked card (never a full card number)
+      body += `<div>${e(L.method)}: ${e(L.terminal)}</div>`;
+      if (o.terminal.trace_number) body += `<div>${e(L.trace)}: <span dir="ltr">${e(o.terminal.trace_number)}</span></div>`;
+      if (o.terminal.ref_number) body += `<div>${e(L.ref)}: <span dir="ltr">${e(o.terminal.ref_number)}</span></div>`;
+      if (o.terminal.card_masked) body += `<div>${e(L.card)}: <span dir="ltr">${e(o.terminal.card_masked)}</span></div>`;
+    } else if (methodLabel) body += `<div>${e(L.method)}: ${e(methodLabel)}</div>`;
     body += `<hr><div class="c">${e(L.thanks)}</div>`;
   }
 
@@ -114,7 +120,9 @@ export function buildLabels(t) {
     grandTotal: k("grand_total"), paymentStatus: k("payment_status"), paid: k("paid"),
     unpaid: k("unpaid"), currency: k("currency"), thanks: k("thanks"),
     method: k("method"), methodCash: k("method_cash"), methodCard: k("method_card"),
-    methodOnline: k("method_online"), address: k("address"), delivery: k("delivery"), tracking: k("tracking"),
+    methodOnline: k("method_online"),
+    terminal: t("ui_card.print.terminal"), trace: t("ui_card.print.trace"), ref: t("ui_card.print.ref"), card: t("ui_card.print.card"),
+    address: k("address"), delivery: k("delivery"), tracking: k("tracking"),
   };
 }
 

@@ -4,11 +4,13 @@ import client from "../../api/client"; // استفاده مستقیم از کل�
 export default function useCheckout() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [lastOrder, setLastOrder] = useState(null);
+  const [pendingOrder, setPendingOrder] = useState(null); // created but UNPAID (card terminal in progress)
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
   const openCheckout = useCallback(() => {
     setLastOrder(null);
+    setPendingOrder(null);
     setError(null);
     setCheckoutOpen(true);
   }, []);
@@ -16,6 +18,7 @@ export default function useCheckout() {
   const closeCheckout = useCallback(() => {
     setCheckoutOpen(false);
     setLastOrder(null);
+    setPendingOrder(null);
     setError(null);
   }, []);
 
@@ -27,6 +30,7 @@ export default function useCheckout() {
     orderType,
     paymentMethod,
     delivery,
+    deferPayment,
   }) => {
     try {
       setSubmitting(true);
@@ -51,6 +55,7 @@ export default function useCheckout() {
         table_id: tableId || null,
         source: "pos",
         payment_method: paymentMethod,
+        ...(deferPayment ? { defer_payment: true } : {}),
         order_type: orderType || "",
         ...(orderType === "delivery" && delivery ? {
           delivery_address: (delivery.address || "").trim(),
@@ -64,6 +69,12 @@ export default function useCheckout() {
       const res = await client.post("/api/pos/create-order/", payload);
       const data = res.data;
 
+      if (data.success && data.awaiting_payment) {
+        // card terminal: the order exists but is unpaid; the dialog now drives the terminal
+        const pending = { ...data, driver_id: delivery?.driverId || null };
+        setPendingOrder(pending);
+        return pending;
+      }
       if (data.success) {
         setLastOrder(data);
         return data;
@@ -80,9 +91,16 @@ export default function useCheckout() {
     }
   }, []);
 
+  const markPaid = useCallback((order) => {
+    setPendingOrder(null);
+    setLastOrder(order);
+  }, []);
+
   return {
     checkoutOpen,
     lastOrder,
+    pendingOrder,
+    markPaid,
     submitting,
     error,
     openCheckout,
