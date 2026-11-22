@@ -792,6 +792,7 @@ function FoodCard({
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
+                flexWrap: "wrap", // narrow card: the +/- stepper drops below the price instead of covering it
                 gap: 0.5,
               }}
             >
@@ -801,7 +802,6 @@ function FoodCard({
                   alignItems: "baseline",
                   gap: 0.6,
                   minWidth: 0,
-                  overflow: "hidden",
                 }}
               >
                 {hasServerDiscount && (

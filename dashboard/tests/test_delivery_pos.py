@@ -104,6 +104,56 @@ class PosDeliveryTests(Base):
         self.assertEqual(self.api.get("/api/delivery/pending-orders/").status_code, 403)
 
 
+class DeliveredClosesEverythingTests(Base):
+    """A courier handing over the last stop finishes the trip and closes the cashier order."""
+
+    def courier(self):
+        u = User.objects.create_user(username="dp-courier", password=P, role="transport", business=self.b, is_approved=True)
+        self.drv.user = u
+        self.drv.save()
+        c = APIClient()
+        c.force_authenticate(User.objects.get(pk=u.pk))
+        return c
+
+    def test_card_paid_order_is_delivered_without_cash_and_trip_completes(self):
+        res = self.order(payment_method="card", driver_id=self.drv.id)
+        me = self.courier()
+        stop = TripStop.all_objects.get(order_id=res["order_id"])
+        self.assertEqual(stop.amount_due, 0)
+        for st in ("picked_up", "arrived"):
+            self.assertEqual(me.post(f"/api/delivery/driver/stops/{stop.id}/status/", {"status": st}, format="json").status_code, 200)
+        r = me.post(f"/api/delivery/driver/stops/{stop.id}/status/",
+                    {"status": "delivered", "collected_amount": 0, "recipient_name": "علی"}, format="json")
+        self.assertEqual(r.status_code, 200, r.content)
+        stop.refresh_from_db()
+        self.assertEqual(stop.status, "delivered")
+        self.assertEqual(stop.trip.status, "completed")
+        self.assertIsNotNone(stop.trip.completed_at)
+        order = Order.all_objects.get(pk=res["order_id"])
+        self.assertEqual((order.status, order.payment_status, order.payment_method), ("delivered", "paid", "card"))
+
+    def test_cash_on_delivery_marks_order_paid_when_collected(self):
+        res = self.order(driver_id=self.drv.id, cod=True)
+        me = self.courier()
+        stop = TripStop.all_objects.get(order_id=res["order_id"])
+        r = me.post(f"/api/delivery/driver/stops/{stop.id}/status/",
+                    {"status": "delivered", "collected_amount": 2000, "collected_method": "cash"}, format="json")
+        self.assertEqual(r.status_code, 200, r.content)
+        order = Order.all_objects.get(pk=res["order_id"])
+        self.assertEqual((order.status, order.payment_status), ("delivered", "paid"))
+
+    def test_trip_stays_open_while_a_stop_failed(self):
+        res = self.order(driver_id=self.drv.id)
+        me = self.courier()
+        stop = TripStop.all_objects.get(order_id=res["order_id"])
+        r = me.post(f"/api/delivery/driver/stops/{stop.id}/status/",
+                    {"status": "failed", "failure_code": "absent"}, format="json")
+        self.assertEqual(r.status_code, 200, r.content)
+        stop.refresh_from_db()
+        self.assertEqual(stop.trip.status, "in_progress")   # retry is still possible
+        self.assertEqual(Order.all_objects.get(pk=res["order_id"]).status, "pending")
+
+
 class ShipmentTests(Base):
     def make(self, **kw):
         body = {

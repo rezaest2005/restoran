@@ -185,6 +185,7 @@
       "customer": "Customer",
       "open_route": "Open route",
       "to_collect": "Amount to collect",
+      "nothing_to_collect": "Already paid; nothing to collect.",
       "collected": "Amount collected",
       "pick_method": "Choose how you were paid.",
       "next_action": "Next action",

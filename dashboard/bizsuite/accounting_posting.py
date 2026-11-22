@@ -8,6 +8,8 @@
 import logging
 from decimal import Decimal
 
+from django.utils import timezone
+
 from .models import InventoryMovement, JournalEntry, OrderItem, Payment, PurchaseInvoiceItem, SalesInvoiceItem
 from .accounting_services import (
     BANK, CASH, COGS, INVENTORY, OTHER_EXPENSE, PAYABLE, RECEIVABLE,
@@ -202,7 +204,7 @@ def post_pos_order(order, user=None):
         lines.append({"account": INVENTORY, "credit": cost})
     return post_entry(
         order.business, lines,
-        date=order.created_at.date() if order.created_at else None,
+        date=timezone.localtime(order.created_at).date() if order.created_at else None,   # business-local day, not UTC
         source_type="pos_order", source_id=order.pk,
         description=f"فروش صندوق — سفارش #{order.pk}", user=user,
     )

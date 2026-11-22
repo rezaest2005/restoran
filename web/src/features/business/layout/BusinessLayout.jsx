@@ -259,6 +259,11 @@ export default function BusinessLayout() {
     return !(hasAnyTab(userTabs, item.anyTabs) && (!item.module || !userModules || userModules.includes(item.module)));
   }, [location.pathname, userTabs, userModules]);
 
+  // highlight the section being viewed (the home button used to look selected on every page)
+  const cleanPath = location.pathname.replace(/\/+$/, "");
+  const onHome = cleanPath === prefix || cleanPath === `${prefix}/dashboard`;
+  const onSection = (basePath) => cleanPath === `${prefix}/${basePath}` || cleanPath.startsWith(`${prefix}/${basePath}/`);
+
   const canSeeHome = useMemo(() => {
     if (!userTabs) return true;
     return userTabs.home === true;
@@ -317,7 +322,8 @@ export default function BusinessLayout() {
       {canSeeHome && (
         <Box sx={{ p: 1.5 }}>
           <Button component={Link} to={prefix} fullWidth title={comboFor(prefix)} onClick={() => isMobile && setSidebarOpen(false)}
-            sx={{ justifyContent: "flex-start", py: 1, px: 1.5, color: C.olive, fontSize: 13, fontWeight: 700, textTransform: "none", borderRadius: "10px", bgcolor: C.oliveSubtle, "&:hover": { bgcolor: C.oliveSubtle } }}>
+            aria-current={onHome ? "page" : undefined}
+            sx={{ justifyContent: "flex-start", py: 1, px: 1.5, color: onHome ? C.olive : C.sub, fontSize: 13, fontWeight: 700, textTransform: "none", borderRadius: "10px", bgcolor: onHome ? C.oliveSubtle : "transparent", "&:hover": { bgcolor: C.oliveSubtle } }}>
             <NavIcon name="home" sx={{ marginInlineEnd: 1 }} /> {t("rest.main_dashboard")}
           </Button>
         </Box>
@@ -344,7 +350,8 @@ export default function BusinessLayout() {
                 <Box key={ii} component={Link} to={`${prefix}/${item.basePath}`}
                   title={comboFor(`${prefix}/${item.basePath}`)}
                   onClick={() => isMobile && setSidebarOpen(false)}
-                  sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1, minHeight: 40, borderRadius: "10px", textDecoration: "none", color: C.sub, transition: "all 0.2s ease", "&:hover": { bgcolor: C.oliveSubtle, color: C.olive } }}>
+                  aria-current={onSection(item.basePath) ? "page" : undefined}
+                  sx={{ display: "flex", alignItems: "center", gap: 1.5, px: 1.5, py: 1, minHeight: 40, borderRadius: "10px", textDecoration: "none", color: onSection(item.basePath) ? C.olive : C.sub, bgcolor: onSection(item.basePath) ? C.oliveSubtle : "transparent", transition: "all 0.2s ease", "&:hover": { bgcolor: C.oliveSubtle, color: C.olive } }}>
                   <NavIcon name={item.icon} />
                   <Typography sx={{ fontSize: 12.5, fontWeight: 500 }}>{t(item.labelKey)}</Typography>
                 </Box>

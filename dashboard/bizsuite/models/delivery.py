@@ -84,7 +84,10 @@ class Vehicle(TenantModel):
         ]
 
     def __str__(self):
-        return f"{self.name} {self.plate}".strip()
+        # the quick-create form already puts the plate in the name; do not print it twice
+        if self.plate and self.plate not in self.name:
+            return f"{self.name} {self.plate}".strip()
+        return self.name
 
 
 class Driver(TenantModel):

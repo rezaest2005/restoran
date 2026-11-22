@@ -97,7 +97,7 @@ export default function HistoryTab({ ctx, drivers }) {
         {(d?.trips || []).map((tr) => (
           <Box key={tr.id} sx={{ bgcolor: C.surface, border: `1px solid ${C.divider}`, borderRadius: 2, p: 1.5 }}>
             <Box onClick={() => setOpen(open === tr.id ? null : tr.id)} sx={{ cursor: "pointer", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 1 }}>
-              <Typography sx={{ color: C.text, fontWeight: 700 }}>
+              <Typography component="div" sx={{ color: C.text, fontWeight: 700 }}>
                 #{tr.number || tr.id} — {tr.driver_name || t("ui_del.hist.no_courier")} <Chip size="small" label={tr.status_display} sx={{ mx: 1 }} />
               </Typography>
               <Typography sx={{ color: C.sub, fontSize: 12 }}>
