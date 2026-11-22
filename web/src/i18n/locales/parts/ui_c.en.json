@@ -271,7 +271,10 @@
         "col_price": "Price",
         "err_price": "Prices were not saved",
         "op": "Subscription",
-        "price_unset": "—"
+        "price_unset": "—",
+        "all_sections": "All sections",
+        "all_hint": "Type the four prices once and press 'Apply to all' to fill every section. Then change any section on its own if needed.",
+        "apply_all": "Apply to all"
       }
     }
   }

@@ -206,7 +206,6 @@ export default function UserModal({ open, editId, initialTab = 0, focusSub = fal
                 {t("ui_c.super.sub.change_price")}
               </Button>
             </Box>
-            <Box sx={{ mb: 1.5 }}><PriceSummary quote={quote} prices={prices} period={period} C={C} /></Box>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
               {Object.entries(PERM_GROUPS).map(([gid, g]) => {
                 const free = g.codes.filter((c) => !LOCKED_PERMS.includes(c));

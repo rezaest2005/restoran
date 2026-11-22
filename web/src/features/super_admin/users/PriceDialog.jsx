@@ -31,6 +31,14 @@ function PriceForm({ prices, onClose, C }) {
 
   const setPrice = (s, p) => (v) => setDraft((d) => ({ ...d, [s]: { ...(d[s] || {}), [p]: v } }));
 
+  // one set of four prices that can be copied to every section at once
+  const [all, setAll] = useState({});
+  const applyAll = () => setDraft((d) => {
+    const next = { ...d };
+    SECTIONS.forEach((s) => { next[s] = { ...(d[s] || {}), ...Object.fromEntries(PERIODS.map((p) => [p, all[p] || 0])) }; });
+    return next;
+  });
+
   const confirm = async () => {
     setSaving(true);
     setError("");
@@ -50,6 +58,23 @@ function PriceForm({ prices, onClose, C }) {
       <DialogContent>
         <Typography sx={{ fontSize: 12.5, color: C.sub, mb: 1.5 }}>{t("ui_c.super.sub.price_hint")}</Typography>
         {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
+        <Box data-testid="price-all" sx={{ border: `1px solid ${C.olive}`, bgcolor: C.oliveSubtle, borderRadius: "12px", p: 1.25, mb: 1.5 }}>
+          <Typography sx={{ fontWeight: 800, color: C.text, fontSize: 14 }}>{t("ui_c.super.sub.all_sections")}</Typography>
+          <Typography sx={{ fontSize: 12, color: C.sub, mb: 1 }}>{t("ui_c.super.sub.all_hint")}</Typography>
+          <Box sx={{ display: "grid", gap: 1.25, gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, mb: 1.25 }}>
+            {PERIODS.map((p) => (
+              <MoneyField
+                key={p} size="small" fa={fa} label={`${t(`ui_c.super.sub.${p}`)} (${t("ui_c.super.sub.toman")})`}
+                value={all[p] || 0} onChange={(v) => setAll((a) => ({ ...a, [p]: v }))}
+                sx={{ "& .MuiOutlinedInput-root": { bgcolor: C.inputBg, borderRadius: "10px" } }}
+                slotProps={{ htmlInput: { "data-testid": `price-all-${p}` } }}
+              />
+            ))}
+          </Box>
+          <Button variant="outlined" onClick={applyAll} data-testid="price-apply-all" sx={{ minHeight: 40, fontWeight: 700 }}>
+            {t("ui_c.super.sub.apply_all")}
+          </Button>
+        </Box>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
           {SECTIONS.map((s) => (
             <Box key={s} data-testid={`price-${s}`} sx={{ border: `1px solid ${C.glassBorder}`, borderRadius: "12px", p: 1.25 }}>
