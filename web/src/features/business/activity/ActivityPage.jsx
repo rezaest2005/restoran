@@ -11,7 +11,7 @@ const unwrap = (r) => r.data?.data ?? r.data;
 const clean = (p) => Object.fromEntries(Object.entries(p).filter(([, v]) => v !== "" && v != null));
 const fmt = (iso, lang) => {
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? "" : d.toLocaleString(lang === "fa" ? "fa-IR" : "en-GB", { dateStyle: "short", timeStyle: "medium" });
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleString(lang === "fa" ? "fa-IR" : "en-GB", { dateStyle: "short", timeStyle: "medium" }).replace(/,\s*/, " ");
 };
 
 export default function ActivityPage() {

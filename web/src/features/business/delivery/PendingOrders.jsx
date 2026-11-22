@@ -62,7 +62,7 @@ export default function PendingOrders({ ctx, refreshKey, onDispatch }) {
   return (
     <Box sx={{ ...S.card, mb: 2, borderColor: C.accent }}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, flexWrap: "wrap", mb: 0.5 }}>
-        <Typography sx={{ fontWeight: 800, color: C.text }}>
+        <Typography component="div" sx={{ fontWeight: 800, color: C.text }}>
           {t("ui_del.queue.title")} <Chip size="small" label={total} sx={{ ml: 0.5, bgcolor: C.accentSubtle, color: C.accent }} />
         </Typography>
         <Button sx={S.btn} disabled={chosen.length === 0} onClick={() => go(chosen)}>
@@ -79,7 +79,7 @@ export default function PendingOrders({ ctx, refreshKey, onDispatch }) {
               slotProps={{ input: { "aria-label": r.title } }} />
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography sx={{ color: C.text, fontSize: 13, fontWeight: 700 }}>
-                {r.title} {r.phone && <span dir="ltr">· {r.phone}</span>}
+                {r.title}{r.phone && <> · <bdi dir="ltr">{r.phone}</bdi></>}
               </Typography>
               <Typography sx={{ color: C.sub, fontSize: 12 }}>{r.address || t("ui_del.queue.no_address")}</Typography>
               {r.items && <Typography sx={{ color: C.sub, fontSize: 12 }}>{r.items}</Typography>}

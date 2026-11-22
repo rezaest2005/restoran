@@ -24,7 +24,7 @@ from .accounting_services import (
 from .accounting_posting import _accounting_on
 from .delivery_routing import haversine_km as _hav, optimize_order, schedule, zone_contains
 from .models import (
-    CashSettlement, DeliveryZone, Driver, LocationPing, Business, StopEvent, Trip, TripStop, Vehicle,
+    CashSettlement, DeliveryZone, Driver, LocationPing, Business, Order, StopEvent, Trip, TripStop, Vehicle,
 )
 
 logger = logging.getLogger(__name__)
@@ -361,6 +361,8 @@ def assign_trip(trip, driver, vehicle=None, user=None):
 @transaction.atomic
 def change_trip_status(trip, new_status, user=None):
     trip = Trip.all_objects.select_for_update().get(pk=trip.pk)
+    if new_status == Trip.Status.COMPLETED and trip.status == Trip.Status.COMPLETED:
+        return trip   # the last delivered stop already finished it; "complete" again is harmless
     if new_status not in TRIP_FLOW.get(trip.status, set()):
         raise ValueError("این تغییر وضعیت مجاز نیست.")
     if new_status == Trip.Status.IN_PROGRESS:
@@ -472,7 +474,24 @@ def update_stop(stop, new_status, driver=None, collected_amount=None, collected_
          details={"trip": trip.number, "stop": stop.sequence, "type": stop.stop_type, "failure_code": stop.failure_code, "address": stop.address, "cargo": stop.cargo_description,
                   "collected": str(q2(stop.collected_amount)), "method": stop.collected_method, "reason": stop.failure_reason,
                   "lat": float(lat) if lat is not None else None, "lng": float(lng) if lng is not None else None})
+    if new_status == TripStop.Status.DELIVERED:
+        _close_order_of_stop(stop)
+        # every stop handed over: the trip is finished (the courier has no "finish trip" button)
+        if not TripStop.all_objects.filter(trip=trip).exclude(status=TripStop.Status.DELIVERED).exists():
+            change_trip_status(trip, Trip.Status.COMPLETED, user=user)
     return stop
+
+
+def _close_order_of_stop(stop):
+    """A delivered stop closes its cashier order; cash collected at the door marks it paid."""
+    if not stop.order_id:
+        return
+    fields = {"status": "delivered"}
+    if stop.collected_amount > 0:
+        fields["payment_status"] = "paid"
+        if stop.collected_method in ("cash", "card", "online"):
+            fields["payment_method"] = stop.collected_method
+    Order.all_objects.filter(pk=stop.order_id, business=stop.business_id).exclude(status="cancelled").update(**fields)
 
 
 def refresh_etas(trip):

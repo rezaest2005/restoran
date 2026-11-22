@@ -779,7 +779,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
                 sx={{
                   position: "absolute", top: "100%", left: 0, right: 0, mt: 0.5, zIndex: 30,
                   maxHeight: 240, overflowY: "auto", borderRadius: "10px", p: 0.5,
-                  bgcolor: isDark ? "var(--ink)" : "var(--surface)",
+                  bgcolor: "var(--surface)",
                   border: `1px solid ${C.glassBorder}`,
                   boxShadow: "0 12px 32px color-mix(in srgb, var(--ink) 40%, transparent)",
                 }}

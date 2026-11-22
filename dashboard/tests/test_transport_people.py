@@ -78,6 +78,7 @@ class TransportPeopleTests(TestCase):
         self.assertEqual((d.name, d.service, d.phone, d.number), ("کریم رضایی", "cargo", "09121112233", 1))
         self.assertEqual(d.default_vehicle.kind, "truck")
         self.assertEqual(d.default_vehicle.plate, "12ع345")
+        self.assertEqual(str(d.default_vehicle).count("12ع345"), 1)   # plate not printed twice
         self.assertEqual(body["driver"]["link_path"], "/tp-factory/bizsuite_driver/1")
 
         # it shows up in Users & access with its driver record

@@ -34,9 +34,11 @@ export default function useCheckout() {
 
       // ★ مپ کردن دقیق آیتم‌ها به فرمتی که بک‌اند (pos.py) انتظار دارد
       const apiItems = items.map(item => ({
-        id: item.id,
-        food_id: item.id, // بک‌اند هر دو را چک می‌کند
-        quantity: item.qty || item.quantity || 1, // بک‌اند quantity می‌خواهد
+        // سبد با toOrderItems() می‌آید ({food_id, quantity, price})؛ شکل قدیمی سبد ({id, qty}) هم پذیرفته می‌شود
+        id: item.food_id ?? item.id,
+        food_id: item.food_id ?? item.id, // بک‌اند هر دو را چک می‌کند
+        item_name: item.item_name,
+        quantity: item.quantity || item.qty || 1, // بک‌اند quantity می‌خواهد
         price: item.effective_price || item.price || 0,
         is_manual: item.is_manual || false,
         is_ready: item.is_ready || false,

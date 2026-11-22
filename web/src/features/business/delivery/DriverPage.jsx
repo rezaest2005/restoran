@@ -188,7 +188,8 @@ export default function DriverPage() {
     } finally { setBusy(false); }
   };
 
-  const amount = num(collected);
+  // nothing typed = nothing collected (an order paid by card has no cash due, so the field is hidden)
+  const amount = String(collected).trim() === "" ? 0 : num(collected);
   const needsMethod = current?.stop.status === "arrived" && amount > 0 && !method;
   const primary = () => {
     const next = NEXT[current.stop.status];
@@ -289,6 +290,9 @@ export default function DriverPage() {
             </Button>
           </Box>
 
+          {!(s.amount_due > 0) && s.status === "arrived" && (
+            <Alert severity="success" sx={{ mt: 1.5 }}>{t("ui_del.driver.nothing_to_collect")}</Alert>
+          )}
           {s.amount_due > 0 && (
             <Box sx={card}>
               <Typography sx={{ color: C.sub, fontSize: 13 }}>{t("ui_del.driver.to_collect")}</Typography>

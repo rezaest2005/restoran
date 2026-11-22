@@ -32,7 +32,8 @@ export const fmtDateTime = (iso, lang) => {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString(lang === "fa" ? "fa-IR" : "en-GB", { dateStyle: "short", timeStyle: "short" });
+  // the "date, time" comma reorders the pieces in right-to-left text; a plain space reads correctly
+  return d.toLocaleString(lang === "fa" ? "fa-IR" : "en-GB", { dateStyle: "short", timeStyle: "short" }).replace(/,\s*/, " ");
 };
 
 /** Navigation URL for a stop: coordinates when known, else the address text. */

@@ -14,7 +14,8 @@ export const buildInputSx = (C) => ({
   "& .MuiInputBase-input::placeholder": { color: C.muted, opacity: 1 },
 });
 
-export const buildDialogPaperSx = (C, isDark) => ({
-  borderRadius: "16px", bgcolor: isDark ? "var(--ink)" : "var(--surface)",
+// the second argument (isDark) is kept for callers; --surface already follows the theme
+export const buildDialogPaperSx = (C) => ({
+  borderRadius: "16px", bgcolor: "var(--surface)",
   border: `1px solid ${C.glassBorder}`,
 });

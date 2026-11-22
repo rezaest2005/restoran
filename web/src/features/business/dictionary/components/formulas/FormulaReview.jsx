@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Box, Typography, Button, TextField, MenuItem, Alert, CircularProgress } from "@mui/material";
 import { fmt, fmtMinutes } from "@business/production/common";
+import CategoriesDialog from "../CategoriesDialog";
 import { fetchFormulaAnalysis, fetchCategories, createProduct, errMsg } from "../../api";
 
 function Stat({ C, label, value, sub, tone }) {
@@ -140,12 +141,19 @@ function SellPanel({ ctx, analysis, outputName, outputId, onDone }) {
   const [price, setPrice] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [manage, setManage] = useState(false);
+
+  const loadCats = () => fetchCategories()
+    .then((d) => {
+      const list = Array.isArray(d) ? d : d?.results || [];
+      setCats(list);
+      setCat((cur) => (list.some((c) => String(c.id) === cur) ? cur : list[0] ? String(list[0].id) : ""));
+    })
+    .catch(() => setCats([]));
 
   useEffect(() => {
     if (!open || cats) return;
-    fetchCategories()
-      .then((d) => { const list = Array.isArray(d) ? d : d?.results || []; setCats(list); if (list[0]) setCat(String(list[0].id)); })
-      .catch(() => setCats([]));
+    loadCats();
   }, [open, cats]);
 
   if (analysis.products?.length) {
@@ -189,9 +197,11 @@ function SellPanel({ ctx, analysis, outputName, outputId, onDone }) {
           <Button sx={S.btn} onClick={submit} disabled={busy || !cat}>
             {busy ? <CircularProgress size={18} color="inherit" /> : t("ui_mrp.sell_create")}
           </Button>
+          <Button variant="outlined" sx={{ ...S.ghost, justifySelf: "start" }} onClick={() => setManage(true)}>{t("ui_mrp.sell_categories")}</Button>
           {err && <Alert severity="error" sx={{ gridColumn: "1 / -1" }}>{err}</Alert>}
         </Box>
       )}
+      {manage && <CategoriesDialog ctx={ctx} categories={cats || []} onClose={() => setManage(false)} onChanged={loadCats} />}
     </Box>
   );
 }

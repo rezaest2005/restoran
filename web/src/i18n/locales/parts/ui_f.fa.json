@@ -53,6 +53,13 @@
       "payment_status": "پرداخت",
       "paid": "پرداخت‌شده",
       "unpaid": "پرداخت‌نشده",
+      "method": "روش پرداخت",
+      "method_cash": "نقد",
+      "method_card": "کارت",
+      "method_online": "آنلاین / انتقال",
+      "address": "آدرس تحویل",
+      "delivery": "ارسال با پیک",
+      "tracking": "پیگیری مسیر",
       "currency": "تومان",
       "thanks": "با تشکر از شما!"
     }

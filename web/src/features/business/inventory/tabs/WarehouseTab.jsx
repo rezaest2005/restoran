@@ -300,7 +300,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
     slotProps: {
       paper: {
         sx: {
-          bgcolor: isDark ? "var(--ink)" : "var(--surface)",
+          bgcolor: "var(--surface)",
           borderRadius: "10px",
           border: `1px solid ${soft(C.olive, "30")}`,
           boxShadow: "0 12px 40px color-mix(in srgb, var(--ink) 25%, transparent)",
@@ -741,7 +741,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
           paper: {
             sx: {
               borderRadius: "20px",
-              bgcolor: isDark ? "var(--ink)" : "var(--surface)",
+              bgcolor: "var(--surface)",
               border: `2px solid ${soft(C.olive, "40")}`,
               boxShadow: "0 24px 100px color-mix(in srgb, var(--ink) 50%, transparent)",
             },

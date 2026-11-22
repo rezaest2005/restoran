@@ -45,7 +45,7 @@ export function buildTicketHtml(order, kind, labels, opts = {}) {
       return `<tr><td class="q">${e(qty)}&times;</td><td class="n">${e(name(it))}</td></tr>`;
     }
     const price = Number(it.price) || 0;
-    return `<tr><td class="n">${e(name(it))}<div class="s">${e(qty)} &times; ${e(fmt(price))}</div></td>` +
+    return `<tr><td class="n">${e(name(it))}<div class="s"><span dir="ltr">${e(qty)} &times; ${e(fmt(price))}</span></div></td>` +
       `<td class="p">${e(fmt(price * qty))}</td></tr>`;
   }).join("");
 
@@ -67,9 +67,13 @@ export function buildTicketHtml(order, kind, labels, opts = {}) {
     if (o.table_number) body += `<div>${e(L.table)}: ${e(o.table_number)}</div>`;
     if (o.customer_name) body += `<div>${e(L.customer)}: ${e(o.customer_name)}</div>`;
     if (o.phone) body += `<div>${e(L.phone)}: <span dir="ltr">${e(o.phone)}</span></div>`;
+    if (o.tracking_url) body += `<div>${e(L.tracking)}: <span dir="ltr" class="addr">${e(o.tracking_url)}</span></div>`;
+    if (o.delivery_address) body += `<div>${e(L.delivery)}</div><div class="addr">${e(L.address)}: ${e(o.delivery_address)}</div>`;
     body += `<hr><table>${rows}</table><hr>`;
     body += `<div class="tot"><span>${e(L.grandTotal)}</span><span>${e(fmt(total))} ${e(L.currency)}</span></div>`;
     body += `<div>${e(L.paymentStatus)}: ${o.payment_status === "paid" ? e(L.paid) : e(L.unpaid)}</div>`;
+    const methodLabel = { cash: L.methodCash, card: L.methodCard, online: L.methodOnline }[o.payment_method];
+    if (methodLabel) body += `<div>${e(L.method)}: ${e(methodLabel)}</div>`;
     body += `<hr><div class="c">${e(L.thanks)}</div>`;
   }
 
@@ -85,6 +89,7 @@ export function buildTicketHtml(order, kind, labels, opts = {}) {
     `.prod td{font-size:16px;font-weight:700}.q{width:14mm;white-space:nowrap}` +
     `.p{text-align:${isRtl ? "left" : "right"};white-space:nowrap;padding-${isRtl ? "right" : "left"}:4px}` +
     `.s{font-size:10px;font-weight:400}` +
+    `.addr{word-break:break-word;overflow-wrap:anywhere}` +
     `.note{border:2px solid #000;padding:3px;font-size:14px;word-break:break-word}` +
     `.tot{display:flex;justify-content:space-between;font-weight:900;font-size:15px}` +
     `</style></head><body>${body}</body></html>`;
@@ -108,6 +113,8 @@ export function buildLabels(t) {
     qty: k("qty"), unitPrice: k("unit_price"), lineTotal: k("line_total"),
     grandTotal: k("grand_total"), paymentStatus: k("payment_status"), paid: k("paid"),
     unpaid: k("unpaid"), currency: k("currency"), thanks: k("thanks"),
+    method: k("method"), methodCash: k("method_cash"), methodCard: k("method_card"),
+    methodOnline: k("method_online"), address: k("address"), delivery: k("delivery"), tracking: k("tracking"),
   };
 }
 

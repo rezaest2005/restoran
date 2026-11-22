@@ -270,7 +270,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
     slotProps: {
       paper: {
         sx: {
-          bgcolor: isDark ? "var(--ink)" : "var(--surface)", borderRadius: "10px",
+          bgcolor: "var(--surface)", borderRadius: "10px",
           border: `1px solid ${soft(C.olive, "30")}`, boxShadow: "0 12px 40px color-mix(in srgb, var(--ink) 25%, transparent)",
           maxHeight: 200, overflowY: "auto",
           "& .MuiMenuItem-root": {
@@ -412,7 +412,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
         slotProps={{
           paper: {
             sx: {
-              borderRadius: "20px", bgcolor: isDark ? "var(--ink)" : "var(--surface)",
+              borderRadius: "20px", bgcolor: "var(--surface)",
               border: `2px solid ${soft(C.olive, "40")}`, boxShadow: "0 24px 100px color-mix(in srgb, var(--ink) 50%, transparent)",
             },
           },
@@ -723,7 +723,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
         slotProps={{
           paper: {
             sx: {
-              borderRadius: "16px", bgcolor: isDark ? "var(--ink)" : "var(--surface)",
+              borderRadius: "16px", bgcolor: "var(--surface)",
               border: `2px solid ${soft(C.olive, "30")}`,
             },
           },
