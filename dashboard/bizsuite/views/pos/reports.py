@@ -11,10 +11,17 @@ from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 
 from ...models import Order, OrderItem
-from ..common import PosPerm, resolve_business
+from ..common import PosPerm, action_denied, resolve_business
 from ..common import server_error
 
 logger = logging.getLogger(__name__)
+
+
+def _past_day_denied(request, day):
+    """Today is part of the report tab; any other day needs the 'previous days' permission."""
+    if day != timezone.localdate():
+        return action_denied(request, "pos_past_days")
+    return None
 
 
 # ═══════════════════════════════════════
@@ -31,6 +38,9 @@ def pos_daily_report(request):
             target_date = datetime.date.fromisoformat(date_str)
         else:
             target_date = timezone.localdate()
+        denied = _past_day_denied(request, target_date)
+        if denied:
+            return denied
 
         orders = Order.objects.filter(created_at__date=target_date)
         if business:
@@ -97,6 +107,9 @@ def pos_daily_orders(request):
             today = timezone.localdate()
     else:
         today = timezone.localdate()
+    denied = _past_day_denied(request, today)
+    if denied:
+        return denied
 
     qs = Order.objects.prefetch_related("items__food").filter(created_at__date=today)
     if business:
@@ -159,6 +172,9 @@ def pos_day_summary(request):
             return JsonResponse({"success": False, "error": "invalid date"}, status=400)
     else:
         target = timezone.localdate()
+    denied = _past_day_denied(request, target)
+    if denied:
+        return denied
 
     day_qs = Order.objects.filter(business=business, created_at__date=target)
     sales_qs = day_qs.exclude(status="cancelled")

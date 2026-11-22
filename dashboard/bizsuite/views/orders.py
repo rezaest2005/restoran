@@ -16,7 +16,7 @@ from ..models import Order
 from ..order_services import restore_order_stock
 from ..club_services import earn_for_order
 from ..accounting_posting import unpost
-from .common import PosPerm, resolve_business
+from .common import PosPerm, action_denied, resolve_business
 from .common import server_error
 from ..activity import audit
 
@@ -59,6 +59,11 @@ def order_change_status(request, pk):
             {"success": False, "error": f"وضعیت نامعتبر. مقادیر مجاز: {', '.join(valid_statuses)}"},
             status=400,
         )
+
+    if new_status == "cancelled":
+        denied = action_denied(request, "pos_cancel_order")
+        if denied:
+            return denied
 
     old_status = order.status
     allowed = VALID_TRANSITIONS.get(old_status, [])

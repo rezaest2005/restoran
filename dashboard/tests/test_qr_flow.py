@@ -1,4 +1,5 @@
 """QR ordering end to end: menu link -> public order -> cashier panel -> accept / reject."""
+from bizsuite.features import POS_ACTION_KEYS
 from django.core.cache import cache
 from django.test import TestCase
 from rest_framework.test import APIClient
@@ -21,7 +22,7 @@ class QrFlowTests(TestCase):
             stock=10, is_available=True)
         cls.cashier = User.objects.create_user(
             username="qrf-c", password="Pass12345!", role="cashier", business=cls.biz,
-            dashboard_permissions=["pos"])
+            dashboard_permissions=["pos", *POS_ACTION_KEYS])
         cls.owner = User.objects.create_user(
             username="qrf-o", password="Pass12345!", role="owner", business=cls.biz)
 

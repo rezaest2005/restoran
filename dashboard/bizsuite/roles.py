@@ -147,7 +147,10 @@ def get_user_permissions(user) -> list:
 
 
 def get_role_display(user) -> str:
-    """نام فارسی نقش کاربر."""
+    """نام فارسی نقش کاربر — عنوانی که مالک نوشته (اگر هست) وگرنه نام نقش."""
+    title = (getattr(user, "role_title", "") or "").strip()
+    if title:
+        return title
     role = get_user_role(user)
     display_map = dict(ROLE_CHOICES)
     return display_map.get(role, "نامشخص")

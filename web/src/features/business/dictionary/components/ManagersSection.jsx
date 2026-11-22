@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   Box, Typography, Button, TextField, Chip, Switch, FormControlLabel, Autocomplete, Alert, CircularProgress,
-  Accordion, AccordionSummary, AccordionDetails,
 } from "@mui/material";
 import { moduleEnabled, hasTab } from "@business/dashboard/access";
 import TransportPersonDialog, { OptionCard } from "./TransportPersonDialog";
@@ -18,11 +17,14 @@ import {
 /**
  * Permission tabs the server stores per user (ALL_TAB_KEYS), grouped by the module
  * that must be enabled for the business. `mods: null` = always available.
- * These ticks live under "Advanced" — a role preset fills them in for you.
+ * Nothing is pre-ticked: the account owner ticks exactly what each person needs (home is always granted).
+ * Only keys the owner himself holds (licence ∩ his own access) are listed, so he can't grant more than he has.
  */
+/** Cashier ACTIONS (server: features.POS_ACTION_KEYS): shown as their own row inside the POS section. */
+const POS_ACTIONS = ["pos_discount", "pos_price_edit", "pos_cancel_order", "pos_pay_cash", "pos_pay_card", "pos_past_days", "pos_close_day"];
 const GROUPS = [
   { id: "general", icon: "🏠", mods: null, tone: "primary", keys: ["home"] },
-  { id: "pos", icon: "💰", mods: ["pos"], tone: "success", keys: ["pos", "pos_report", "pos_settings", "orders"] },
+  { id: "pos", icon: "💰", mods: ["pos"], tone: "success", keys: ["pos", "pos_report", "pos_settings", "orders", ...POS_ACTIONS] },
   { id: "inventory", icon: "📦", mods: ["inventory"], tone: "info", keys: ["inventory_invoice", "inventory_sales", "inventory_warehouse", "inventory_receiving", "inventory_purchase_list", "inventory_reports"] },
   { id: "production", icon: "🏭", mods: ["production"], tone: "warning", keys: ["kitchen", "recipes", "dictionary_recipe"] },
   {
@@ -53,32 +55,19 @@ function visibleGroups() {
   })).filter((g) => anyEnabled(g.mods) && g.keys.length > 0);
 }
 
-/**
- * Staff role presets: picking one sets the role AND ticks its tabs (only tabs of enabled modules apply).
- * `mods` = shown only when one of these modules is on.
- */
-const PRESETS = [
-  { role: "manager", icon: "🧑‍💼", mods: null, tabs: "all" },
-  { role: "cashier", icon: "💰", mods: ["pos"], tabs: ["home", "pos", "pos_report", "orders", "dictionary_customers", "delivery_dispatch"] },
-  { role: "waiter", icon: "🙋", mods: ["pos"], tabs: ["home", "pos", "orders"] },
-  { role: "warehouse", icon: "📦", mods: ["inventory"], tabs: ["home", "inventory_invoice", "inventory_sales", "inventory_warehouse", "inventory_receiving", "inventory_purchase_list", "inventory_reports", "dictionary_items", "dictionary_suppliers", "dictionary_warehouses"] },
-  { role: "kitchen", icon: "🏭", mods: ["production"], tabs: ["home", "kitchen", "recipes", "dictionary_recipe", "dictionary_items", "inventory_warehouse"] },
-];
-const STAFF_ROLES = ["owner", ...PRESETS.map((p) => p.role)];
 const MANAGER_ROLES = ["owner", "manager"];
 const TRANSPORT_ROLES = ["transport", "driver", "courier"];
 
-/** staff | transport | other — the three kinds of people you can add. */
-const personType = (role) => (TRANSPORT_ROLES.includes(role) ? "transport" : STAFF_ROLES.includes(role) ? "staff" : "other");
+/** staff | transport — the two kinds of people you can add. */
+const personType = (role) => (TRANSPORT_ROLES.includes(role) ? "transport" : "staff");
 
-const EMPTY_FORM = { username: "", password: "", phone_number: "", first_name: "", last_name: "", role: "cashier" };
-const TYPE_ICON = { staff: "🧑‍💼", transport: "🚚", other: "🧩" };
+const EMPTY_FORM = { username: "", password: "", phone_number: "", first_name: "", last_name: "", role: "other", title: "" };
+const TYPE_ICON = { staff: "🧑‍💼", transport: "🚚" };
 
 export default function ManagersSection({ ctx }) {
   const { t, C, S, notify } = ctx;
   const groups = useMemo(() => visibleGroups(), []);
   const visibleKeys = useMemo(() => groups.flatMap((g) => g.keys), [groups]);
-  const presets = useMemo(() => PRESETS.filter((p) => anyEnabled(p.mods)), []);
   const warehouseModule = moduleEnabled("inventory");
   const deliveryModule = moduleEnabled("delivery");
 
@@ -91,7 +80,6 @@ export default function ManagersSection({ ctx }) {
   const [transport, setTransport] = useState(null);     // transport dialog: { user: null | row, options }
   const [form, setForm] = useState(EMPTY_FORM);
   const [tabs, setTabs] = useState({});
-  const [advanced, setAdvanced] = useState(false);
   const [whAll, setWhAll] = useState(true);
   const [whIds, setWhIds] = useState([]);
   const [whRes, setWhRes] = useState({ token: 0, list: [], error: "" });
@@ -108,7 +96,7 @@ export default function ManagersSection({ ctx }) {
   const [delErr, setDelErr] = useState("");
 
   const counts = useMemo(() => {
-    const c = { all: users.length, staff: 0, transport: 0, other: 0 };
+    const c = { all: users.length, staff: 0, transport: 0 };
     users.forEach((u) => { c[personType(u.role)] += 1; });
     return c;
   }, [users]);
@@ -124,20 +112,17 @@ export default function ManagersSection({ ctx }) {
   const roleLabel = (r) => t(`ui_dh.roles.${r}`, { defaultValue: t(`ui_def.users.roles.${r}`, { defaultValue: r }) });
   const groupLabel = (id) => t(`ui_dh.groups.${id}`, { defaultValue: t(`ui_def.users.groups.${id}`) });
 
-  const ticksFor = (tpl) => Object.fromEntries(visibleKeys.map((k) => [k, tpl === "all" ? true : tpl.includes(k)]));
+  // what a person is called: the title the owner typed, else the old role's name
+  const titleOf = (u) => u.role_title || roleLabel(u.role);
 
   /* ── open dialogs ─────────────────────────────── */
   const openStaff = (user, type) => {
     setTouched(false); setFormErr("");
-    const first = presets.find((p) => p.role === "cashier") || presets[0];
-    const role = user ? (user.role || "cashier") : type === "other" ? "other" : first.role;
     setForm(user ? {
       username: user.username, password: "", phone_number: user.phone_number || "",
-      first_name: user.first_name || "", last_name: user.last_name || "", role,
-    } : { ...EMPTY_FORM, role });
-    const preset = PRESETS.find((p) => p.role === role);
-    setTabs(user ? { ...user.tabs } : preset ? ticksFor(preset.tabs) : { home: true });
-    setAdvanced(type === "other");
+      first_name: user.first_name || "", last_name: user.last_name || "", role: user.role || "other", title: titleOf(user),
+    } : EMPTY_FORM);
+    setTabs(user ? { ...user.tabs, home: true } : { home: true });
     setWhAll(true); setWhIds([]);
     setSeq(seq + 1);
     setDialog({ user, type, token: seq + 1 });
@@ -182,15 +167,13 @@ export default function ManagersSection({ ctx }) {
   const whList = whRes.list;
   const whErr = whRes.error;
 
-  const pickPreset = (p) => {
-    setForm((f) => ({ ...f, role: p.role }));
-    if (p.tabs) setTabs((cur) => ({ ...cur, ...ticksFor(p.tabs) }));
-  };
-  const toggleKey = (k) => setTabs((s) => ({ ...s, [k]: !s[k] }));
+  const toggleKey = (k) => { if (k !== "home") setTabs((s) => ({ ...s, [k]: !s[k] })); };
   const toggleGroup = (g) => {
     const on = g.keys.every((k) => tabs[k]);
-    setTabs((s) => ({ ...s, ...Object.fromEntries(g.keys.map((k) => [k, !on])) }));
+    setTabs((s) => ({ ...s, ...Object.fromEntries(g.keys.map((k) => [k, k === "home" ? true : !on])) }));
   };
+  // helpers, not defaults: they only act when clicked
+  const setAllTicks = (on) => setTabs((s) => ({ ...s, ...Object.fromEntries(visibleKeys.map((k) => [k, k === "home" ? true : on])) }));
   const activeCount = visibleKeys.filter((k) => tabs[k]).length;
 
   const errs = {
@@ -207,11 +190,12 @@ export default function ManagersSection({ ctx }) {
     let created = false;
     try {
       if (editUser) {
-        if (form.role !== editUser.role) await updateUserRole({ user_id: editUser.id, role: form.role });
+        // only the label changes: the person keeps his role (and its privileges)
+        if (form.title.trim() !== titleOf(editUser)) await updateUserRole({ user_id: editUser.id, role_title: form.title.trim() });
       } else {
         const res = await createUser({
           username: form.username.trim(), password: form.password, phone_number: form.phone_number.trim(),
-          first_name: form.first_name.trim(), last_name: form.last_name.trim(), role: form.role,
+          first_name: form.first_name.trim(), last_name: form.last_name.trim(), role: "other", role_title: form.title.trim(),
         });
         userId = res.user_id;
         created = true;
@@ -319,7 +303,7 @@ export default function ManagersSection({ ctx }) {
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
             <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.text }}>{`${u.first_name || ""} ${u.last_name || ""}`.trim() || u.username}</Typography>
             <Typography dir="ltr" sx={{ fontSize: 12, color: C.sub }}>{u.username}</Typography>
-            <Chip size="small" label={roleLabel(u.role)} sx={{ color: C.primary, bgcolor: C.primarySubtle, fontWeight: 700 }} />
+            <Chip size="small" label={titleOf(u)} sx={{ color: C.primary, bgcolor: C.primarySubtle, fontWeight: 700 }} />
             {!u.is_active && <Chip size="small" label={t("ui_def.common.inactive")} sx={{ color: C.danger, bgcolor: C.dangerBg, fontWeight: 700 }} />}
           </Box>
           <Box sx={{ display: "flex", gap: 0.5, mt: 0.75, flexWrap: "wrap", alignItems: "center" }}>
@@ -338,11 +322,6 @@ export default function ManagersSection({ ctx }) {
     );
   };
 
-  // the owner role belongs to the account purchaser only: shown when editing that owner, never offered for a new person
-  const presetOptions = form.role === "owner" ? [{ role: "owner", icon: "👑", tabs: "all" }, ...presets] : presets;
-  // an edited user may hold a role that is not offered as a preset (e.g. its module was switched off): keep it visible
-  const presetList = presetOptions.some((p) => p.role === form.role) || dialog?.type !== "staff"
-    ? presetOptions : [...presetOptions, { role: form.role, icon: "•" }];
   const transportPerson = (u) => (u ? (u.driver || {
     name: `${u.first_name || ""} ${u.last_name || ""}`.trim() || u.username,
     phone: u.phone_number || "", user_id: u.id, username: u.username, is_active: u.is_active,
@@ -353,7 +332,7 @@ export default function ManagersSection({ ctx }) {
       <SectionHeader ctx={ctx} title={t("ui_dh.people.title")} subtitle={t("ui_dh.people.subtitle")}
         onNew={() => setPicker(true)} newLabel={t("ui_dh.people.new")} search={q} onSearch={setQ}>
         <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }} role="group" aria-label={t("ui_dh.people.filter")}>
-          {["all", "staff", "transport", "other"].map((k) => (
+          {["all", "staff", "transport"].map((k) => (
             <Chip key={k} clickable onClick={() => setFilter(k)} aria-pressed={filter === k}
               label={`${t(`ui_dh.people.filters.${k}`)} (${counts[k]})`}
               sx={{
@@ -381,7 +360,7 @@ export default function ManagersSection({ ctx }) {
           onSave={() => pickType("staff")} saveLabel={t("ui_dh.people.types.staff.title")}>
           <Typography sx={{ fontSize: 13, color: C.sub }}>{t("ui_dh.people.type_hint")}</Typography>
           <Box role="radiogroup" aria-label={t("ui_dh.people.type_title")} sx={{ display: "grid", gap: 1.25 }}>
-            {["staff", "transport", "other"].map((type) => (
+            {["staff", "transport"].map((type) => (
               <OptionCard key={type} ctx={ctx} icon={TYPE_ICON[type]} selected={false} onClick={() => pickType(type)}
                 disabled={type === "transport" && !deliveryModule}
                 title={t(`ui_dh.people.types.${type}.title`)}
@@ -418,91 +397,86 @@ export default function ManagersSection({ ctx }) {
               onChange={(e) => setForm({ ...form, phone_number: e.target.value })} slotProps={{ htmlInput: { dir: "ltr", inputMode: "tel" } }} />
           </Box>
 
-          {dialog.type === "staff" ? (
-            <>
-              <Typography sx={{ fontSize: 12, fontWeight: 800, color: C.primary, mt: 1 }}>{t("ui_dh.people.preset_title")}</Typography>
-              <Typography sx={{ fontSize: 12, color: C.sub, mt: -1 }}>{t("ui_dh.people.preset_hint")}</Typography>
-              <Box role="radiogroup" aria-label={t("ui_dh.people.preset_title")} sx={{ display: "grid", gap: 1, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "1fr 1fr 1fr" } }}>
-                {presetList.map((p) => (
-                  <OptionCard key={p.role} ctx={ctx} icon={p.icon} selected={form.role === p.role} onClick={() => pickPreset(p)}
-                    title={roleLabel(p.role)} hint={t(`ui_dh.people.presets.${p.role}`, { defaultValue: "" })} />
-                ))}
-              </Box>
-            </>
-          ) : (
-            <Alert severity="info" sx={{ py: 0 }}>{t("ui_dh.people.other_hint")}</Alert>
-          )}
+          <TextField label={t("ui_dh.people.job_title")} value={form.title} size="small" sx={S.field}
+            onChange={(e) => setForm({ ...form, title: e.target.value })} helperText={t("ui_dh.people.job_title_hint")}
+            slotProps={{ htmlInput: { maxLength: 60 } }} />
 
-          <Accordion disableGutters expanded={advanced} onChange={(_, v) => setAdvanced(v)}
-            sx={{ bgcolor: "transparent", boxShadow: "none", border: `1px solid ${C.glassBorder}`, borderRadius: "12px !important", "&:before": { display: "none" } }}>
-            <AccordionSummary expandIcon={<span aria-hidden="true" style={{ color: C.sub }}>▾</span>}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-                <Typography sx={{ fontSize: 13, fontWeight: 800, color: C.text }}>{t("ui_dh.people.advanced")}</Typography>
-                <Chip size="small" label={isManagerRole ? t("ui_dh.people.full_access") : t("ui_def.users.active_count", { active: activeCount, total: visibleKeys.length })}
-                  sx={{ fontWeight: 700, color: activeCount ? C.primary : C.muted, bgcolor: activeCount ? C.primarySubtle : C.divider }} />
-              </Box>
-            </AccordionSummary>
-            <AccordionDetails sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
-              <Typography sx={{ fontSize: 12, color: C.sub }}>{isManagerRole ? t("ui_def.users.role_manager_hint") : t("ui_def.users.access_hint")}</Typography>
-              {groups.map((g) => {
-                const color = tone(g.tone);
-                const on = g.keys.filter((k) => tabs[k]).length;
-                const all = on === g.keys.length;
-                return (
-                  <Box key={g.id} sx={{ border: `1px solid ${all ? color : C.glassBorder}`, borderRadius: 2, overflow: "hidden" }}>
-                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 1.5, py: 0.75, bgcolor: C.inputBg }}>
-                      <Typography sx={{ fontSize: 13, fontWeight: 800, color: C.text }}>
-                        <span aria-hidden="true">{g.icon}</span> {groupLabel(g.id)}
-                        <Typography component="span" sx={{ fontSize: 11, color: C.muted, marginInlineStart: 1 }}>{on}/{g.keys.length}</Typography>
-                      </Typography>
-                      <Switch size="small" checked={all} onChange={() => toggleGroup(g)} slotProps={{ input: { "aria-label": groupLabel(g.id) } }} />
-                    </Box>
-                    {g.id === "transport" && (
-                      <Typography sx={{ fontSize: 11, color: C.sub, px: 1.5, pt: 0.75 }}>{t("ui_dh.people.transport_group_hint")}</Typography>
-                    )}
-                    <Box sx={{ px: 1.5, py: 1, display: "flex", flexWrap: "wrap", gap: 0.75 }}>
-                      {g.keys.map((k) => (
-                        <Chip key={k} clickable onClick={() => toggleKey(k)} aria-pressed={!!tabs[k]}
-                          label={`${tabs[k] ? "✓ " : ""}${tabLabel(k)}`}
-                          sx={{
-                            fontWeight: tabs[k] ? 800 : 500, color: tabs[k] ? color : C.sub,
-                            bgcolor: tabs[k] ? C.primarySubtle : "transparent", border: `1px solid ${tabs[k] ? color : C.glassBorder}`,
-                          }} />
-                      ))}
-                    </Box>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mt: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 800, color: C.primary }}>{t("ui_dh.people.access_title")}</Typography>
+              <Chip size="small" label={t("ui_def.users.active_count", { active: activeCount, total: visibleKeys.length })}
+                sx={{ fontWeight: 700, color: activeCount > 1 ? C.primary : C.muted, bgcolor: activeCount > 1 ? C.primarySubtle : C.divider }} />
+            </Box>
+            <Box sx={{ display: "flex", gap: 0.75 }}>
+              <Button size="small" variant="outlined" onClick={() => setAllTicks(true)} sx={{ textTransform: "none" }}>{t("ui_dh.people.select_all")}</Button>
+              <Button size="small" variant="outlined" onClick={() => setAllTicks(false)} sx={{ textTransform: "none" }}>{t("ui_dh.people.select_none")}</Button>
+            </Box>
+          </Box>
+          <Typography sx={{ fontSize: 12, color: C.sub, mt: -1 }}>{isManagerRole ? t("ui_def.users.role_manager_hint") : t("ui_dh.people.access_hint")}</Typography>
+          {groups.map((g) => {
+            const color = tone(g.tone);
+            const on = g.keys.filter((k) => tabs[k]).length;
+            const all = on === g.keys.length;
+            const chip = (k) => (
+              <Chip key={k} clickable={k !== "home"} onClick={() => toggleKey(k)} aria-pressed={!!tabs[k]} disabled={k === "home"}
+                label={`${tabs[k] ? "✓ " : ""}${tabLabel(k)}`}
+                sx={{
+                  fontWeight: tabs[k] ? 800 : 500, color: tabs[k] ? color : C.sub,
+                  bgcolor: tabs[k] ? C.primarySubtle : "transparent", border: `1px solid ${tabs[k] ? color : C.glassBorder}`,
+                }} />
+            );
+            const actionKeys = g.keys.filter((k) => POS_ACTIONS.includes(k));
+            const tabKeys = g.keys.filter((k) => !POS_ACTIONS.includes(k));
+            return (
+              <Box key={g.id} sx={{ border: `1px solid ${all ? color : C.glassBorder}`, borderRadius: 2, overflow: "hidden" }}>
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 1.5, py: 0.75, bgcolor: C.inputBg }}>
+                  <Typography sx={{ fontSize: 13, fontWeight: 800, color: C.text }}>
+                    <span aria-hidden="true">{g.icon}</span> {groupLabel(g.id)}
+                    <Typography component="span" sx={{ fontSize: 11, color: C.muted, marginInlineStart: 1 }}>{on}/{g.keys.length}</Typography>
+                  </Typography>
+                  <Switch size="small" checked={all} onChange={() => toggleGroup(g)} slotProps={{ input: { "aria-label": groupLabel(g.id) } }} />
+                </Box>
+                {g.id === "transport" && (
+                  <Typography sx={{ fontSize: 11, color: C.sub, px: 1.5, pt: 0.75 }}>{t("ui_dh.people.transport_group_hint")}</Typography>
+                )}
+                <Box sx={{ px: 1.5, py: 1, display: "flex", flexWrap: "wrap", gap: 0.75 }}>{tabKeys.map(chip)}</Box>
+                {actionKeys.length > 0 && (
+                  <Box sx={{ px: 1.5, pb: 1 }}>
+                    <Typography sx={{ fontSize: 11, fontWeight: 700, color: C.sub, mb: 0.5 }}>{t("ui_dh.people.pos_actions")}</Typography>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>{actionKeys.map(chip)}</Box>
                   </Box>
-                );
-              })}
+                )}
+              </Box>
+            );
+          })}
 
-              {warehouseModule && (
-                <>
-                  <Typography sx={{ fontSize: 12, fontWeight: 800, color: C.primary, mt: 1 }}>{t("ui_def.users.section_warehouses")}</Typography>
-                  {isManagerRole ? (
-                    <Typography sx={{ fontSize: 12, color: C.muted }}>{t("ui_def.users.wh_manager_all")}</Typography>
-                  ) : whState === "loading" ? (
-                    <CircularProgress size={20} />
-                  ) : whState === "error" ? (
-                    <Alert severity="warning">{whErr}</Alert>
-                  ) : (
-                    <>
-                      <FormControlLabel sx={{ color: C.text, m: 0 }}
-                        control={<Switch checked={whAll} onChange={(e) => setWhAll(e.target.checked)} />}
-                        label={t("ui_def.users.wh_all")} />
-                      {!whAll && (
-                        <Autocomplete multiple size="small" options={whList} value={whList.filter((w) => whIds.includes(w.id))}
-                          onChange={(_, v) => setWhIds(v.map((w) => w.id))} getOptionLabel={(w) => w.name} isOptionEqualToValue={(a, b) => a.id === b.id}
-                          noOptionsText={t("ui_def.users.wh_none")}
-                          renderInput={(p) => (
-                            <TextField {...p} label={t("ui_def.users.wh_allowed")} sx={S.field}
-                              helperText={whIds.length === 0 ? t("ui_def.users.wh_empty_warning") : ""} />
-                          )} />
-                      )}
-                    </>
-                  )}
-                </>
-              )}
-            </AccordionDetails>
-          </Accordion>
+            {warehouseModule && (
+              <>
+                <Typography sx={{ fontSize: 12, fontWeight: 800, color: C.primary, mt: 1 }}>{t("ui_def.users.section_warehouses")}</Typography>
+                {isManagerRole ? (
+                  <Typography sx={{ fontSize: 12, color: C.muted }}>{t("ui_def.users.wh_manager_all")}</Typography>
+                ) : whState === "loading" ? (
+                  <CircularProgress size={20} />
+                ) : whState === "error" ? (
+                  <Alert severity="warning">{whErr}</Alert>
+                ) : (
+                  <>
+                    <FormControlLabel sx={{ color: C.text, m: 0 }}
+                      control={<Switch checked={whAll} onChange={(e) => setWhAll(e.target.checked)} />}
+                      label={t("ui_def.users.wh_all")} />
+                    {!whAll && (
+                      <Autocomplete multiple size="small" options={whList} value={whList.filter((w) => whIds.includes(w.id))}
+                        onChange={(_, v) => setWhIds(v.map((w) => w.id))} getOptionLabel={(w) => w.name} isOptionEqualToValue={(a, b) => a.id === b.id}
+                        noOptionsText={t("ui_def.users.wh_none")}
+                        renderInput={(p) => (
+                          <TextField {...p} label={t("ui_def.users.wh_allowed")} sx={S.field}
+                            helperText={whIds.length === 0 ? t("ui_def.users.wh_empty_warning") : ""} />
+                        )} />
+                    )}
+                  </>
+                )}
+              </>
+            )}
         </FormDialog>
       )}
 

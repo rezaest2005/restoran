@@ -76,6 +76,7 @@ def user_management_api(request):
             "is_approved": getattr(u, "is_approved", True),
             "role": getattr(u, "role", "cashier") or "cashier",
             "role_display": get_role_display(u),
+            "role_title": getattr(u, "role_title", "") or "",
             "is_active": u.is_active,
             "is_staff": u.is_staff,
             "date_joined": (
@@ -115,7 +116,9 @@ def create_user_api(request):
     raw_username = (data.get("username") or "").strip()
     password = data.get("password") or ""
     phone = (data.get("phone_number") or "").strip()
-    role = normalize_role(data.get("role", "cashier"))
+    role_title = " ".join(str(data.get("role_title") or "").split())[:60]
+    # a typed job title without a role = a custom person (role "other"); no role and no title = legacy default
+    role = normalize_role(data.get("role") or ("other" if role_title else "cashier"))
     first_name = (data.get("first_name") or "").strip()
     last_name = (data.get("last_name") or "").strip()
 
@@ -163,6 +166,8 @@ def create_user_api(request):
             user.last_name = last_name
         if hasattr(user, "role"):
             user.role = role
+        if role_title and role != ROLE_TRANSPORT:
+            user.role_title = role_title
         if hasattr(user, "phone_number") and phone:
             user.phone_number = phone
         if hasattr(user, "business") and business:
@@ -183,6 +188,7 @@ def create_user_api(request):
         ]
         if hasattr(user, "role"):
             update_fields.append("role")
+        update_fields.append("role_title")
         if hasattr(user, "phone_number"):
             update_fields.append("phone_number")
         if hasattr(user, "business"):
@@ -228,9 +234,22 @@ def user_update_role(request):
 
     user_id = request.data.get("user_id")
     new_role = normalize_role(request.data.get("role"))
+    title_sent = "role_title" in request.data
+    new_title = " ".join(str(request.data.get("role_title") or "").split())[:60]
 
-    if not user_id or not new_role:
+    if not user_id or not (new_role or title_sent):
         return Response({"error": "شناسه کاربر و نقش الزامی است."}, status=400)
+
+    if not new_role:      # only the typed job title changes; the role (and its privileges) stay
+        try:
+            target = _get_business_users_qs(request.user).get(id=user_id)
+        except (AuthUser.DoesNotExist, ValueError):
+            return Response({"error": "کاربر یافت نشد."}, status=404)
+        target.role_title = new_title
+        target.save(update_fields=["role_title"])
+        return Response({"success": True, "msg": f"عنوان «{target.username}» ذخیره شد.",
+                         "user": {"id": target.id, "username": target.username, "role": target.role,
+                                  "role_title": target.role_title, "role_display": get_role_display(target)}})
 
     valid_roles = [r[0] for r in ROLE_CHOICES]
     if new_role not in valid_roles:
@@ -256,7 +275,9 @@ def user_update_role(request):
 
     target.role = new_role
     target.is_staff = new_role in (ROLE_OWNER, ROLE_MANAGER)
-    target.save(update_fields=["role", "is_staff"])
+    if title_sent or new_role != old_role:
+        target.role_title = new_title if title_sent else ""
+    target.save(update_fields=["role", "is_staff", "role_title"])
     if new_role == ROLE_TRANSPORT:
         ensure_driver_profile(target)
 
@@ -272,6 +293,7 @@ def user_update_role(request):
             "username": target.username,
             "role": new_role,
             "role_display": get_role_display(target),
+            "role_title": target.role_title,
         },
     })
 

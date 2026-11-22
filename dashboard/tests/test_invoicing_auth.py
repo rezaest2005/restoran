@@ -1,5 +1,6 @@
 """احراز هویت و جداسازی کسب‌وکارها در endpointهای فاکتور/مشتری/هزینه + نقش‌ها و تب‌ها."""
 
+from bizsuite.features import POS_ACTION_KEYS
 from django.test import Client, TestCase
 from rest_framework.test import APIClient
 
@@ -27,7 +28,7 @@ class InvoicingAuthTests(TestCase):
         cls.ub = User.objects.create_user(username="ub", password="Pass12345!", role="owner", business=cls.b)
         cls.cashier = User.objects.create_user(
             username="cs", password="Pass12345!", role="cashier", business=cls.a,
-            dashboard_permissions=["pos"])
+            dashboard_permissions=["pos", *POS_ACTION_KEYS])
         cls.nobiz = User.objects.create_user(username="nb", password="Pass12345!", role="owner")
         cls.cust_b = Customer.all_objects.create(business=cls.b, name="مشتری ب", phone="0911")
 

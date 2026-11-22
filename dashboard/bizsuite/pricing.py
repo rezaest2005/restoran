@@ -13,7 +13,8 @@ PERIODS = ("monthly", "quarterly", "semiannual", "yearly")
 
 # Section -> its tabs. Mirrors PERM_GROUPS in web/src/features/super_admin/common/superConfig.js (general is free).
 SECTIONS = {
-    "pos": ["pos", "pos_report", "pos_settings", "orders"],
+    "pos": ["pos", "pos_report", "pos_settings", "orders", "pos_discount", "pos_price_edit", "pos_cancel_order",
+            "pos_pay_cash", "pos_pay_card", "pos_past_days", "pos_close_day"],
     "inventory": ["inventory_invoice", "inventory_sales", "inventory_warehouse", "inventory_receiving",
                   "inventory_purchase_list", "inventory_reports"],
     "production": ["kitchen", "recipes", "dictionary_recipe"],

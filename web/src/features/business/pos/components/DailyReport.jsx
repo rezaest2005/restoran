@@ -225,12 +225,13 @@ export default function DailyReport({
   onNextDay,
   onGoToday,
   analytics,
+  pastDays = true,
 }) {
   const { t } = useTranslation();
   // Ctrl+Z روز قبل · Ctrl+A روز بعد
   useShortcuts([
-    { combo: "Ctrl+Z", label: t("shortcuts.prev"), handler: () => onPrevDay?.() },
-    { combo: "Ctrl+A", label: t("shortcuts.next"), handler: () => (isToday ? false : onNextDay?.()) },
+    { combo: "Ctrl+Z", label: t("shortcuts.prev"), when: pastDays, handler: () => onPrevDay?.() },
+    { combo: "Ctrl+A", label: t("shortcuts.next"), when: pastDays, handler: () => (isToday ? false : onNextDay?.()) },
   ]);
   const statusInfo = (s) =>
     ({
@@ -387,7 +388,7 @@ export default function DailyReport({
           <Box
             onClick={onPrevDay}
             sx={{
-              display: "flex",
+              display: pastDays ? "flex" : "none",
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
@@ -426,6 +427,7 @@ export default function DailyReport({
             size="small"
             value={isRtl ? toJalaliString(selectedDate) : selectedDate} // ★ نمایش شمسی
             readOnly={isRtl} // ★ فقط خواندنی در حالت فارسی
+            disabled={!pastDays}
             onChange={(e) => {
               const v = e.target.value;
               if (v === todayStr()) onGoToday();
@@ -461,7 +463,7 @@ export default function DailyReport({
           <Box
             onClick={onNextDay}
             sx={{
-              display: "flex",
+              display: pastDays ? "flex" : "none",
               flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",

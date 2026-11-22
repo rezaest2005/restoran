@@ -54,6 +54,8 @@ SERVICE_MODULE = {
 # per-user tab keys used by the dashboard UI
 TAB_MODULE = {
     "pos": "pos", "pos_report": "pos", "pos_settings": "pos", "orders": "pos",
+    "pos_discount": "pos", "pos_price_edit": "pos", "pos_cancel_order": "pos", "pos_pay_cash": "pos",
+    "pos_pay_card": "pos", "pos_past_days": "pos", "pos_close_day": "pos",
     "inventory_invoice": "inventory", "inventory_sales": "inventory",
     "inventory_warehouse": "inventory", "inventory_receiving": "inventory",
     "inventory_purchase_list": "inventory", "inventory_reports": "inventory",

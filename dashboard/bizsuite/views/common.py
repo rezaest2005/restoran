@@ -53,6 +53,20 @@ MaterialsPerm = make_service_permission("kitchen", "recipes")
 DictionaryPerm = IsAuthenticated
 
 
+def action_denied(request, key):
+    """403 JsonResponse unless the signed-in user holds the POS action permission ``key``.
+
+    Same chain as the tabs: licence (super admin) ∩ what the owner ticked. Returns None when allowed.
+    """
+    from ..features import FEATURE_BY_KEY, has_feature
+    if has_feature(request.user, key):
+        return None
+    return JsonResponse({
+        "success": False, "code": "permission_denied", "permission": key,
+        "error": f"دسترسی «{FEATURE_BY_KEY[key].name_fa}» برای شما فعال نیست.",
+    }, status=403)
+
+
 # ═══════════════════════════════════════
 #  تشخیص کسب‌وکار
 # ═══════════════════════════════════════

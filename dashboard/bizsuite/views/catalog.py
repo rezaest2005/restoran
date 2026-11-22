@@ -18,6 +18,7 @@ from .. import catalog_services as svc
 from ..models import (
     Category, Food, Formula, FormulaLine, InventoryMovement, RawMaterial, UNIT_CHOICES, Warehouse,
 )
+from ..features import can_edit_price
 from ..modules import module_enabled
 from ..utils import api_error, api_success
 from ..warehouse_access import is_manager_level
@@ -370,6 +371,14 @@ def product_detail(request, pk):
     if request.method == "DELETE":
         f.delete()
         return api_success(message="محصول حذف شد.")
+    if ("price" in request.data or "final_price" in request.data) and not can_edit_price(request.user):
+        try:
+            changed = (_money(request.data.get("price", f.price), "") != f.price
+                       or _money(request.data.get("final_price", f.final_price) or 0, "") != (f.final_price or 0))
+        except ValueError:
+            changed = True
+        if changed:
+            return api_error("دسترسی «تغییر قیمت محصول در صندوق» برای شما فعال نیست.", 403)
     try:
         with transaction.atomic():
             _apply_product(business, f, request.data, request.FILES)

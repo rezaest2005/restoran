@@ -4,6 +4,7 @@ import { DragIndicator } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
 import useShortcuts from "@shared/common/useShortcuts";
 import CategoryDiscountButton from "./CategoryDiscountButton";
+import usePosAccess from "../hooks/usePosAccess";
 import { isDiscountActive, formatDiscountLabel } from "../common/discount";
 
 // ★ تابع ساخت لیبل برای تمیزتر شدن JSX
@@ -27,6 +28,7 @@ function CategoryBar({
   const [ordered, setOrdered] = useState([]);
   const [dragIdx, setDragIdx] = useState(null);
   const { t } = useTranslation();
+  const { canDiscount } = usePosAccess();
   const scrollRef = useRef(null);
 
   const STORAGE_KEY = "pos_cat_order";
@@ -201,13 +203,15 @@ function CategoryBar({
               }}
             />
 
-            <CategoryDiscountButton
-              categoryName={cat}
-              categoryDiscount={discount}
-              onApply={onCategoryDiscount}
-              C={C}
-              isRtl={isRtl}
-            />
+            {canDiscount && (
+              <CategoryDiscountButton
+                categoryName={cat}
+                categoryDiscount={discount}
+                onApply={onCategoryDiscount}
+                C={C}
+                isRtl={isRtl}
+              />
+            )}
           </Box>
         );
       })}

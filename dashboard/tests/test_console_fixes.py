@@ -1,4 +1,5 @@
 """Smoke checks for formerly-500 URLs."""
+from bizsuite.features import POS_ACTION_KEYS
 from django.core.cache import cache
 from django.test import TestCase
 from rest_framework.test import APIClient
@@ -17,10 +18,10 @@ class ConsoleFixTests(TestCase):
         # legacy owner whose saved tab list is stale
         cls.owner = User.objects.create_user(
             username="cfowner", password="Pass12345!", role="owner", business=cls.biz,
-            dashboard_permissions=["pos", "accounting"])
+            dashboard_permissions=["pos", "accounting", *POS_ACTION_KEYS])
         cls.manager = User.objects.create_user(
             username="cfmgr", password="Pass12345!", role="manager", business=cls.biz,
-            dashboard_permissions=["pos"])
+            dashboard_permissions=["pos", *POS_ACTION_KEYS])
         cls.nobiz = User.objects.create_user(username="cfnobiz", password="Pass12345!", role="owner")
         cls.root = User.objects.create_superuser(username="cfroot", password="Pass12345!")
 

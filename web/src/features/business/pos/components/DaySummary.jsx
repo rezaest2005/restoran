@@ -61,14 +61,14 @@ function TopList({ rows, field, isRtl, lang, C, money }) {
 }
 
 /** End-of-day summary (from /api/pos/day-summary/) with a print button. */
-export default function DaySummary({ date, isToday, onPrevDay, onNextDay, onGoToday, C, isRtl, lang }) {
+export default function DaySummary({ date, isToday, onPrevDay, onNextDay, onGoToday, C, isRtl, lang, pastDays = true }) {
   const { t } = useTranslation();
   const { summary: s, loading, error, reload } = useDaySummary(date);
   const dn = (v) => (isRtl ? toPersianDigits(formatMoney(v)) : formatMoney(v));
 
   useShortcuts([
-    { combo: "Ctrl+Z", label: t("shortcuts.prev"), handler: () => onPrevDay?.() },
-    { combo: "Ctrl+A", label: t("shortcuts.next"), handler: () => (isToday ? false : onNextDay?.()) },
+    { combo: "Ctrl+Z", label: t("shortcuts.prev"), when: pastDays, handler: () => onPrevDay?.() },
+    { combo: "Ctrl+A", label: t("shortcuts.next"), when: pastDays, handler: () => (isToday ? false : onNextDay?.()) },
   ]);
 
   const labels = useMemo(() => ({
@@ -100,11 +100,11 @@ export default function DaySummary({ date, isToday, onPrevDay, onNextDay, onGoTo
         <Typography sx={{ fontWeight: 800, fontSize: 16, color: C.text, fontFamily: FONT, flex: "1 1 auto" }}>
           {t("ui_pos2.summary.title")}
         </Typography>
-        <IconButton size="small" onClick={onPrevDay} aria-label={t("shortcuts.prev")} sx={{ color: C.sub }}><Prev /></IconButton>
+        {pastDays && <IconButton size="small" onClick={onPrevDay} aria-label={t("shortcuts.prev")} sx={{ color: C.sub }}><Prev /></IconButton>}
         <Typography sx={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: FONT, direction: "ltr", minWidth: 86, textAlign: "center" }}>
           {date}
         </Typography>
-        <IconButton size="small" onClick={onNextDay} disabled={isToday} aria-label={t("shortcuts.next")} sx={{ color: C.sub }}><Next /></IconButton>
+        {pastDays && <IconButton size="small" onClick={onNextDay} disabled={isToday} aria-label={t("shortcuts.next")} sx={{ color: C.sub }}><Next /></IconButton>}
         {!isToday && (
           <IconButton size="small" onClick={onGoToday} aria-label={t("ui_pos2.summary.today")} sx={{ color: C.primary }}><Today /></IconButton>
         )}

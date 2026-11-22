@@ -1,3 +1,4 @@
+from bizsuite.features import POS_ACTION_KEYS
 from decimal import Decimal
 
 from django.test import TestCase
@@ -46,7 +47,7 @@ class InventoryFlowTests(TestCase):
             username="mgr2", password="Pass12345!", role="manager", business=cls.r2)
         cls.limited = User.objects.create_user(
             username="lim", password="Pass12345!", role="manager", business=cls.r1,
-            dashboard_permissions=["pos"])
+            dashboard_permissions=["pos", *POS_ACTION_KEYS])
 
     def setUp(self):
         clear_current_business()

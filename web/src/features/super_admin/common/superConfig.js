@@ -27,10 +27,15 @@ export const NAV_SECTIONS = [
 //  کدهای دسترسی + برچسب‌ها ★ هماهنگ با داشبورد
 // ═══════════════════════════════════════
 
+// cashier ACTION permissions (server: features.POS_ACTION_KEYS); they live in the POS section next to its tabs
+export const POS_ACTIONS = [
+  "pos_discount", "pos_price_edit", "pos_cancel_order", "pos_pay_cash", "pos_pay_card", "pos_past_days", "pos_close_day",
+];
+
 // Tab keys: exactly the server's feature keys (bizsuite/features.py FEATURES). The server rejects unknown keys.
 export const PERM_GROUPS = {
   general: { labelKey: "ui_def.users.groups.general", codes: ["home"] },
-  pos: { labelKey: "ui_def.users.groups.pos", codes: ["pos", "pos_report", "pos_settings", "orders"] },
+  pos: { labelKey: "ui_def.users.groups.pos", codes: ["pos", "pos_report", "pos_settings", "orders", ...POS_ACTIONS] },
   inventory: {
     labelKey: "ui_def.users.groups.inventory",
     codes: [

@@ -32,7 +32,7 @@
       "products": "Finished goods you sell or deliver. They are the same stock items, just shown here on their own.",
       "barcodes": "Make barcodes for items and products and print labels. This step is optional.",
       "customers": "Customers you invoice, give credit to or deliver to.",
-      "users": "Everyone who signs in: staff (with a ready-made role), drivers or couriers (driver app only), or a custom role."
+      "users": "Everyone who signs in: staff (you write the title and tick the access yourself) and drivers or couriers (driver app only)."
     },
     "empty_hint": {
       "warehouses": "Stock can't be recorded without a warehouse. Start with one.",
@@ -72,28 +72,21 @@
       "subtitle": "Everyone who signs in. Pick the kind of person first; only the fields that kind needs are shown.",
       "new": "New person",
       "filter": "Kind of person",
-      "filters": { "all": "All", "staff": "Staff", "transport": "Transport", "other": "Other" },
+      "filters": { "all": "All", "staff": "Staff", "transport": "Transport" },
       "type_title": "Who are you adding?",
       "type_hint": "The kind of person decides what is needed. You can edit it later.",
       "types": {
-        "staff": { "title": "Staff member", "hint": "Manager, sales & till, warehouse, production… pick a ready-made role and access is set for you." },
-        "transport": { "title": "Driver or courier (transport)", "hint": "Order couriers and cargo / product drivers alike. They only see the driver app; set their vehicle right here." },
-        "other": { "title": "Custom role", "hint": "For any other job: tick exactly the sections they need." }
+        "staff": { "title": "Staff member", "hint": "Write the job title yourself and tick exactly the sections and actions they need." },
+        "transport": { "title": "Driver or courier (transport)", "hint": "Order couriers and cargo / product drivers alike. They only see the driver app; set their vehicle right here." }
       },
       "new_staff": "New staff member",
-      "new_other": "Person with a custom role",
-      "preset_title": "Role",
-      "preset_hint": "Picking a role ticks the right access for you. Open \"Advanced access\" for fine changes.",
-      "presets": {
-        "owner": "Full access, including settings and users.",
-        "manager": "Every section and every warehouse.",
-        "cashier": "Till, orders, daily report and customers.",
-        "waiter": "Take orders and follow their status.",
-        "warehouse": "Purchasing, receiving, stock, transfers and stock reports.",
-        "kitchen": "Production, formulas and material stock."
-      },
-      "other_hint": "Tick below only the sections this person needs.",
-      "advanced": "Advanced access",
+      "job_title": "Title / role",
+      "job_title_hint": "Write any title you like; it is only a label and grants nothing.",
+      "access_title": "Access",
+      "access_hint": "Nothing is ticked in advance. Tick only what this person needs; you can only give what you have yourself.",
+      "select_all": "All",
+      "select_none": "None",
+      "pos_actions": "Till actions",
       "full_access": "Full access",
       "transport_group_hint": "These ticks are for office staff who manage deliveries. Add the drivers and couriers themselves as \"Driver or courier\"."
     },
