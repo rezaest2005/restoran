@@ -116,15 +116,8 @@ Conventions: F2 new, F3 secondary new, Ctrl+D save/confirm, Ctrl+A next, Ctrl+Z 
 
 - `ModulesPanel.jsx`: `Ctrl+D`, `Ctrl+A`, `Ctrl+Z`, `F2`
 
-## features/super_admin/tenants
-
-- `ServicesPanel.jsx`: `Ctrl+D`, `Escape`
-- `TenantModal.jsx`: `Ctrl+D`, `Enter`, `Escape`
-- `TenantsPanel.jsx`: `F2`, `Ctrl+A`, `Ctrl+Z`, `Enter`, `Delete`
-
 ## features/super_admin/users
 
-- `PermsModal.jsx`: `Ctrl+D`, `Enter`, `Escape`
 - `UserModal.jsx`: `Ctrl+D`, `Enter`, `Escape`
 - `UsersPanel.jsx`: `F2`
 

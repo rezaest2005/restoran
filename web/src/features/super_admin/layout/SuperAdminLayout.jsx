@@ -7,7 +7,6 @@ import { useSuperAdmin } from "@super/hooks/useSuperAdmin";
 import { getSuperColors } from "@super/common/superConfig";
 import SuperSidebar from "@super/layout/SuperSidebar";
 import SuperTopBar from "@super/layout/SuperTopBar";
-import TenantsPanel from "@super/tenants/TenantsPanel";
 import UsersPanel from "@super/users/UsersPanel";
 import ModulesPanel from "@super/modules/ModulesPanel";
 import QrPanel from "@super/qr/QrPanel";
@@ -15,7 +14,7 @@ import StorefrontPanel from "@super/storefront/StorefrontPanel";
 import SupportPanel from "@super/support/SupportPanel";
 import { fetchSupportSummary } from "@super/support/api";
 import {
-  Box, Button, Snackbar, Alert, useMediaQuery, useTheme,
+  Box, Button, Snackbar, Alert, useMediaQuery, useTheme, GlobalStyles,
   Dialog, DialogTitle, DialogContent, DialogActions, Typography,
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
@@ -58,7 +57,7 @@ export default function SuperAdminLayout() {
   }, [refreshSupport]);
 
   const {
-    stats, tenants, loadTenants, users, loadUsers,
+    tenants, loadTenants, users, loadUsers,
     toast, setToast,
   } = useSuperAdmin();
 
@@ -78,7 +77,6 @@ export default function SuperAdminLayout() {
 
   /* ── تب‌ها ── */
   const tabs = [
-    { id: "tenants", label: t("super.tab.tenants"), icon: "tenants" },
     { id: "users", label: t("super.tab.users"), icon: "users" },
     { id: "modules", label: t("ui_k.mod.title"), icon: "modules" },
     { id: "storefront", label: t("ui_sfa.tab"), icon: "website" },
@@ -116,6 +114,12 @@ export default function SuperAdminLayout() {
       // nothing may widen the page sideways (sticky top bar still works: clip is not a scroll container)
       overflowX: "clip",
     }}>
+
+      {/* every dialog / drawer of the admin panel scrolls with an invisible scrollbar (they are portalled out of this tree) */}
+      <GlobalStyles styles={{
+        ".MuiDialog-paper, .MuiDialogContent-root, .MuiDrawer-paper": { scrollbarWidth: "none", msOverflowStyle: "none" },
+        ".MuiDialog-paper::-webkit-scrollbar, .MuiDialogContent-root::-webkit-scrollbar, .MuiDrawer-paper::-webkit-scrollbar": { display: "none" },
+      }} />
 
       <ShortcutsHelpDialog open={help} onClose={() => setHelp(false)} items={collectShortcuts()} />
 
@@ -201,27 +205,18 @@ export default function SuperAdminLayout() {
 
           {/* محتوا */}
           {activeTab === 0 && (
-            <TenantsPanel
-              tenants={tenants}
-              stats={stats}
-              loadTenants={loadTenants}
-              C={C}
-              t={t}
-            />
-          )}
-          {activeTab === 1 && (
             <UsersPanel
               users={users}
-              tenants={tenants}
               loadUsers={loadUsers}
+              onChanged={loadTenants}
               C={C}
               t={t}
             />
           )}
-          {activeTab === 2 && <ModulesPanel tenants={tenants} C={C} />}
-          {activeTab === 3 && <StorefrontPanel tenants={tenants} />}
-          {activeTab === 4 && <QrPanel tenants={tenants} C={C} />}
-          {activeTab === 5 && <SupportPanel C={C} tenants={tenants} onChanged={refreshSupport} />}
+          {activeTab === 1 && <ModulesPanel tenants={tenants} C={C} />}
+          {activeTab === 2 && <StorefrontPanel tenants={tenants} />}
+          {activeTab === 3 && <QrPanel tenants={tenants} C={C} />}
+          {activeTab === 4 && <SupportPanel C={C} tenants={tenants} onChanged={refreshSupport} />}
         </Box>
         <HintBar items={[{ keys: "Alt+R", label: t("ui_l.super.refresh") }, { keys: "Alt+T", label: t("ui_l.super.toggle_theme") }, { keys: "Alt+G", label: t("ui_l.super.toggle_lang") }, { keys: "Alt+L", label: t("ui_l.super.logout") }]} />
       </Box>

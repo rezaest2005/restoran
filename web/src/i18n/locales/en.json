@@ -100,20 +100,6 @@
     "nav": {
       "management": "Management",
       "dashboard": "Dashboard",
-      "business": "Business",
-      "main_dashboard": "Main Dashboard",
-      "dictionary": "Dictionary",
-      "food_menu": "Product catalogue",
-      "pos": "POS",
-      "orders": "Orders",
-      "warehouse": "Warehouse",
-      "purchase_invoice": "Purchase Invoice",
-      "raw_materials": "Raw Materials",
-      "semi_finished": "Semi-Finished",
-      "ready_materials": "Ready Materials",
-      "usage_log": "Usage Log",
-      "recipes": "Formulations",
-      "kitchen": "Production Line",
       "customers": "Customers",
       "loyalty": "Loyalty",
       "customer_list": "Customer List",
@@ -131,49 +117,7 @@
       "expiring": "Expiring Soon"
     },
     "tab": {
-      "tenants": "Businesses",
       "users": "Users"
-    },
-    "tenants": {
-      "title": "Businesses",
-      "search": "Search...",
-      "new": "New Business",
-      "edit": "Edit Business",
-      "empty": "No businesses found",
-      "services_count": "services",
-      "slug_hint": "Unique identifier for business URL",
-      "password_no_change": "No change",
-      "password": "Password",
-      "col": {
-        "name": "Name",
-        "slug": "Slug",
-        "owner": "Owner",
-        "phone": "Phone",
-        "services": "Services",
-        "subscription": "Subscription",
-        "status": "Status",
-        "actions": "Actions",
-        "period": "Period",
-        "start": "Start Date",
-        "end": "End Date"
-      },
-      "field": {
-        "name": "Business Name",
-        "slug": "Slug (English)",
-        "owner_username": "Owner Username",
-        "password": "Password",
-        "owner_name": "Owner Name",
-        "phone": "Phone",
-        "address": "Address",
-        "start_date": "Subscription Start Date",
-        "end_date": "Subscription End Date",
-        "subscription_title": "Subscription Details"
-      },
-      "placeholder": {
-        "name": "e.g. Mali Aria Business",
-        "owner_name": "e.g. Ali Mohammadi",
-        "address": "Tehran, Valiasr St..."
-      }
     },
     "services": {
       "title": "Services",
@@ -253,21 +197,6 @@
       "warehouse": "Warehouse",
       "ready": "Ready",
       "reports": "Reports"
-    },
-    "role": {
-      "owner": "Owner",
-      "manager": "Manager",
-      "cashier": "Cashier",
-      "kitchen": "Production Line",
-      "warehouse": "Warehouse",
-      "customer": "Customer"
-    },
-    "badge": {
-      "expired": "Expired",
-      "valid": "Valid",
-      "active": "Active",
-      "inactive": "Inactive",
-      "admin": "Admin"
     },
     "action": {
       "edit": "Edit",
