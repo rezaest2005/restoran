@@ -2,7 +2,7 @@
 Business subscription: one exact moment (to the second) after which the whole dashboard is closed.
 
   unlimited   no end date
-  monthly     30 days     quarterly  90 days     semiannual  180 days     yearly  365 days
+  monthly     1 calendar month   quarterly  3 months   semiannual  6 months   yearly  12 months
   custom      an exact date and time chosen by the super admin
 
 The end is fixed when the plan is applied (now + the period, seconds included). "extend" adds the period to the current
@@ -11,12 +11,12 @@ authentication) asks ``is_expired`` live, so the dashboard closes at that very s
 """
 from __future__ import annotations
 
-from datetime import timedelta
+import calendar
 
 from django.utils import timezone
 
 UNLIMITED = "unlimited"
-PLAN_DAYS = {"monthly": 30, "quarterly": 90, "semiannual": 180, "yearly": 365}
+PLAN_MONTHS = {"monthly": 1, "quarterly": 3, "semiannual": 6, "yearly": 12}
 PLAN_CHOICES = [
     (UNLIMITED, "بدون تاریخ"),
     ("monthly", "یک‌ماهه"),
@@ -27,6 +27,16 @@ PLAN_CHOICES = [
 ]
 PLAN_LABELS = dict(PLAN_CHOICES)
 MESSAGE = "اشتراک شما به پایان رسیده است. برای تمدید با پشتیبانی تماس بگیرید."
+
+
+def add_months(moment, months):
+    """Same wall-clock time ``months`` calendar months later (the day is clamped: 31 Jan + 1 month = 28/29 Feb)."""
+    local = timezone.localtime(moment)
+    index = local.year * 12 + (local.month - 1) + months
+    year, month = divmod(index, 12)
+    month += 1
+    day = min(local.day, calendar.monthrange(year, month)[1])
+    return local.replace(year=year, month=month, day=day)
 
 
 def is_expired(business, now=None) -> bool:
@@ -56,11 +66,11 @@ def apply(business, plan, mode="set", ends_at=None, now=None):
     if plan == UNLIMITED:
         business.subscription_plan, business.subscription_ends_at = UNLIMITED, None
         business.subscription_started_at = None
-    elif plan in PLAN_DAYS:
+    elif plan in PLAN_MONTHS:
         base = now
         if mode == "extend" and business.subscription_ends_at and business.subscription_ends_at > now:
             base = business.subscription_ends_at
-        business.subscription_ends_at = base + timedelta(days=PLAN_DAYS[plan])
+        business.subscription_ends_at = add_months(base, PLAN_MONTHS[plan])
         business.subscription_plan = plan
         if mode != "extend" or business.subscription_started_at is None:
             business.subscription_started_at = now

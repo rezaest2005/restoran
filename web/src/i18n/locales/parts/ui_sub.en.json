@@ -4,10 +4,10 @@
     "plan_label": "Subscription type",
     "plan": {
       "unlimited": "No end date (unlimited)",
-      "monthly": "Monthly (30 days)",
-      "quarterly": "3 months (90 days)",
-      "semiannual": "6 months (180 days)",
-      "yearly": "Yearly (365 days)",
+      "monthly": "Monthly (1 month)",
+      "quarterly": "3 months",
+      "semiannual": "6 months",
+      "yearly": "Yearly (12 months)",
       "custom": "Exact date and time"
     },
     "mode_label": "Calculation",

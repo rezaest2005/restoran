@@ -304,6 +304,7 @@ urlpatterns = [
     path("api/super/stats/", views.super_stats_api, name="super_stats_api"),
     path("api/super/tenants/", views.super_tenants_api, name="super_tenants_api"),
     path("api/super/users/", views.super_users_api, name="super_users_api"),
+    path("api/super/section-prices/", views.super_section_prices_api, name="super_section_prices"),
     path("api/super/users/create/", views.super_user_create_api, name="super_user_create"),
     path("api/super/users/<int:pk>/", views.super_user_detail_api, name="super_user_detail"),
 

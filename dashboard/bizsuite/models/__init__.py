@@ -21,7 +21,7 @@ from .common import (
     unit_field,
     updated_at_field,
 )
-from .business import Business, Tenant, _invalidate_business_cache
+from .business import Business, SectionPriceList, Tenant, _invalidate_business_cache
 from .user import (
     DASHBOARD_SECTIONS,
     User,
@@ -78,7 +78,7 @@ __all__ = [
     "UNIT_CHOICES", "UNIT_MAX_LENGTH", "DecimalSafeEncoder", "check_constraint",
     "created_at_field", "description_field", "is_active_field", "name_field",
     "phone_field", "price_field", "qty_field", "unit_field", "updated_at_field",
-    "Business", "Tenant", "DASHBOARD_SECTIONS", "User",
+    "Business", "SectionPriceList", "Tenant", "DASHBOARD_SECTIONS", "User",
     "validate_dashboard_permissions",
     "BarcodeSequence", "Category", "Food", "set_food_final_price",
     "Order", "OrderItem", "set_order_item_price",

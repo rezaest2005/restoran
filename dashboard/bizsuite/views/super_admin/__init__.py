@@ -24,6 +24,7 @@ from .tenants import (
 )
 from .users import (
     super_users_api,
+    super_section_prices_api,
     super_user_create_api,
     super_user_detail_api,
 )
@@ -47,6 +48,7 @@ __all__ = [
     "super_stats_api",
     "super_tenants_api",
     "super_users_api",
+    "super_section_prices_api",
     "super_user_create_api",
     "super_user_detail_api",
 ]
