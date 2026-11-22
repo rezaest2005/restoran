@@ -1,7 +1,7 @@
 """Saving a user's access (tabs) must persist and read back — from Definitions → Users & access
 and from the super-admin panel — for every tab key the UI can send."""
 
-from bizsuite.features import ALL_FEATURE_KEYS, user_ticked
+from bizsuite.features import GRANTABLE_KEYS, OWNER_ONLY_KEYS, user_ticked
 from rest_framework.test import APIClient
 
 from bizsuite.models import User
@@ -9,8 +9,9 @@ from bizsuite.views.super_admin.auth import _make_super_token
 from tests.test_features import FeatureBase
 
 # The groups the two screens render (ManagersSection GROUPS / superConfig PERM_GROUPS).
+# Owner-only tabs (activity history) are deliberately not offered: nobody but the account owner can hold them.
 UI_KEYS = [
-    "home", "activity", "pos", "pos_report", "pos_settings", "orders",
+    "home", "pos", "pos_report", "pos_settings", "orders",
     "inventory_invoice", "inventory_sales", "inventory_warehouse", "inventory_receiving",
     "inventory_purchase_list", "inventory_reports", "kitchen", "recipes", "dictionary_recipe",
     "dictionary_menu", "dictionary_items", "dictionary_suppliers", "dictionary_warehouses",
@@ -25,7 +26,8 @@ class BusinessAccessSaveTests(FeatureBase):
         self.sell("pos", "inventory", "production", "delivery", "club", "accounting", "feedback")
 
     def test_every_ui_key_is_a_server_key(self):
-        self.assertEqual(sorted(UI_KEYS), sorted(ALL_FEATURE_KEYS))
+        self.assertEqual(sorted(UI_KEYS), sorted(GRANTABLE_KEYS))
+        self.assertEqual(OWNER_ONLY_KEYS, {"activity"})
 
     def test_owner_saves_every_tab_and_reads_it_back(self):
         self.sell_all()
@@ -35,7 +37,7 @@ class BusinessAccessSaveTests(FeatureBase):
         listed = {u["id"]: u for u in c.get("/api/users/management/").json()["users"]}[self.cashier.id]
         self.assertTrue(all(listed["tabs"][k] for k in UI_KEYS), listed["tabs"])
         self.cashier.refresh_from_db()
-        self.assertEqual(user_ticked(self.cashier), set(ALL_FEATURE_KEYS))
+        self.assertEqual(user_ticked(self.cashier), set(GRANTABLE_KEYS))
         # and unticking everything also sticks
         c.post("/api/users/tabs/", {"user_id": self.cashier.id, "tabs": {k: False for k in UI_KEYS}}, format="json")
         self.cashier.refresh_from_db()
@@ -77,7 +79,7 @@ class SuperAdminAccessSaveTests(FeatureBase):
         got = c.get(f"/api/super/users/{self.cashier.id}/").json()
         self.assertEqual(sorted(got["effective_permissions"]), sorted(UI_KEYS))
         self.cashier.refresh_from_db()
-        self.assertEqual(user_ticked(self.cashier), set(ALL_FEATURE_KEYS))
+        self.assertEqual(user_ticked(self.cashier), set(GRANTABLE_KEYS))
 
     def test_overrides_previous_tabs(self):
         """A user who already has a tabs dict (set from the business screen) must follow the super-admin save."""
