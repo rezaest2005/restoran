@@ -17,6 +17,8 @@ import {
   Language,
 } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
+import { appName } from "@shared/branding";
+import { buildTicketHtml, buildLabels, readBusinessName } from "../services/printService";
 import useShortcuts from "@shared/common/useShortcuts";
 import { KbdHint, formatMoney } from "../common";
 
@@ -41,7 +43,7 @@ export default function CheckoutDialog({
 
   const error = externalError || localError;
   const busy = submitting || localSubmitting;
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [sel, setSel] = useState(null); // روش انتخاب‌شده با کیبورد؛ null = پیش‌فرض
   const [prevOpen, setPrevOpen] = useState(open);
   if (prevOpen !== open) {
@@ -252,67 +254,35 @@ export default function CheckoutDialog({
     </Box>
   );
 
+  // رسید با همان قالب ۸۰ میلی‌متری سرویس چاپ (نام کسب‌وکار، روش پرداخت، آدرس تحویل)
   const handlePrint = () => {
     if (!lastOrder) return;
-    const itemsHtml = (lastOrder.items || [])
-      .map(
-        (item) =>
-          `<tr>
-        <td style="padding:8px 6px;font-size:13px;font-weight:700;text-align:right;">${item.name}</td>
-        <td style="padding:8px 6px;font-size:13px;font-weight:700;text-align:center;">${item.quantity}</td>
-        <td style="padding:8px 6px;font-size:13px;font-weight:800;text-align:left;direction:ltr;">${(item.line_total || item.price * item.quantity).toLocaleString()}</td>
-      </tr>`,
-      )
-      .join("");
-
-    const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="utf-8"/>
-      <style>
-        *{margin:0;padding:0;box-sizing:border-box;}
-        body{font-family:'Vazirmatn',Tahoma,sans-serif;width:300px;margin:20px auto;}
-        .r{border:2px solid var(--ink);border-radius:12px;padding:20px;}
-        .h{text-align:center;margin-bottom:14px;}
-        .h h2{font-size:18px;font-weight:900;margin-bottom:4px;}
-        .h .s{font-size:11px;color:var(--ink-muted);}
-        .d{border-top:2px dashed var(--ink-muted);margin:12px 0;}
-        .ir{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-muted);margin:3px 0;}
-        .ir b{color:var(--ink);}
-        table{width:100%;border-collapse:collapse;margin:8px 0;}
-        thead th{font-size:11px;font-weight:800;color:var(--ink);padding:6px;border-bottom:2px solid var(--ink);text-align:center;}
-        thead th:first-child{text-align:right;}
-        thead th:last-child{text-align:left;}
-        tbody td{padding:6px;font-size:12px;border-bottom:1px dashed var(--ink-muted);}
-        .tb{background:var(--surface);border:2px solid var(--ink);border-radius:10px;padding:12px;display:flex;justify-content:space-between;align-items:center;margin-top:12px;}
-        .tl{font-size:14px;font-weight:800;}
-        .ta{font-size:20px;font-weight:900;}
-        .f{text-align:center;margin-top:14px;font-size:11px;color:var(--ink-muted);}
-      </style>
-    </head><body>
-      <div class="r">
-        <div class="h">
-          <h2>رسید پرداخت</h2>
-          <div class="s">سفارش #${lastOrder.order_id}</div>
-          <div class="s">${lastOrder.created_at}</div>
-        </div>
-        <div class="d"></div>
-        <div class="ir"><span>مشتری</span><b>${lastOrder.customer_name || "مشتری"}</b></div>
-        ${lastOrder.phone ? `<div class="ir"><span>تلفن</span><b>${lastOrder.phone}</b></div>` : ""}
-        ${lastOrder.dispatch?.tracking_token ? `<div class="ir"><span>پیگیری مسیر</span><b dir="ltr">${appUrl("/t/" + lastOrder.dispatch.tracking_token)}</b></div>` : ""}
-        <div class="d"></div>
-        <table>
-          <thead><tr><th>نام کالا</th><th>تعداد</th><th>فی</th></tr></thead>
-          <tbody>${itemsHtml}</tbody>
-        </table>
-        <div class="d"></div>
-        <div class="tb">
-          <span class="tl">جمع کل:</span>
-          <span class="ta">${lastOrder.total_price?.toLocaleString()} تومان</span>
-        </div>
-        <div class="f">
-          <div>• • • •</div>
-          <div style="margin-top:6px;">از خرید شما متشکریم</div>
-        </div>
-      </div>
-    </body></html>`;
+    const lang = String(i18n.language || "fa").startsWith("en") ? "en" : "fa";
+    let when = lastOrder.created_at;
+    try {
+      if (lastOrder.created_at_iso) {
+        when = new Intl.DateTimeFormat(lang === "en" ? "en-GB" : "fa-IR-u-ca-persian-nu-latn", {
+          year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false,
+        }).format(new Date(lastOrder.created_at_iso)).replace(",", "");
+      }
+    } catch { /* keep server text */ }
+    const order = {
+      id: lastOrder.order_id,
+      created_at: when,
+      customer_name: lastOrder.customer_name,
+      phone: lastOrder.phone,
+      total_price: lastOrder.total_price,
+      payment_status: lastOrder.payment_status || "paid",
+      payment_method: lastOrder.payment_method,
+      delivery_address: lastOrder.delivery_address,
+      tracking_url: lastOrder.dispatch?.tracking_token ? appUrl("/t/" + lastOrder.dispatch.tracking_token) : "",
+      items: (lastOrder.items || []).map((it) => ({
+        food_name: it.name, name_en: it.name_en, quantity: it.quantity, price: it.price,
+      })),
+    };
+    const html = buildTicketHtml(order, "receipt", buildLabels(t), {
+      lang, isRtl, businessName: lastOrder.business_name || readBusinessName() || appName(lang),
+    });
 
     const iframe = iframeRef.current;
     if (!iframe) return;
@@ -725,6 +695,16 @@ export default function CheckoutDialog({
                         {lastOrder.phone}
                       </Typography>
                     </Box>
+                  )}
+                  {lastOrder.payment_method && (
+                    <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.8, fontFamily: "'Vazirmatn', sans-serif" }}>
+                      {t("ui_f.print.method")}: {t(`ui_f.print.method_${lastOrder.payment_method}`, { defaultValue: lastOrder.payment_method })}
+                    </Typography>
+                  )}
+                  {lastOrder.delivery_address && (
+                    <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.8, fontFamily: "'Vazirmatn', sans-serif", overflowWrap: "anywhere" }}>
+                      {t("ui_f.print.address")}: {lastOrder.delivery_address}
+                    </Typography>
                   )}
                 </Box>
 

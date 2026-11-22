@@ -71,6 +71,18 @@ class PosDeliveryTests(Base):
         t = self.client.get(f"/api/delivery/track/{stop.public_token}/").json()["data"]
         self.assertEqual(t["kind"], "stop")
 
+    def test_response_carries_what_the_receipt_prints(self):
+        """رسید چاپی: نام کسب‌وکار، روش پرداخت، آدرس و ساعت محلی (نه UTC)."""
+        from django.utils import timezone
+        res = self.order(payment_method="card")
+        self.assertEqual(res["business_name"], "الف")
+        self.assertEqual(res["payment_method"], "card")
+        self.assertEqual(res["payment_status"], "paid")
+        self.assertEqual(res["delivery_address"], "تهران، خیابان آزادی")
+        self.assertEqual(res["phone"], "0912")
+        order = Order.all_objects.get(pk=res["order_id"])
+        self.assertEqual(res["created_at"], timezone.localtime(order.created_at).strftime("%Y-%m-%d %H:%M"))
+
     def test_foreign_driver_is_not_used(self):
         res = self.order(driver_id=self.foreign_drv.id)
         self.assertTrue(res["success"])

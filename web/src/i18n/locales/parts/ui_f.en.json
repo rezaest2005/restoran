@@ -53,6 +53,13 @@
       "payment_status": "Payment",
       "paid": "Paid",
       "unpaid": "Unpaid",
+      "method": "Payment method",
+      "method_cash": "Cash",
+      "method_card": "Card",
+      "method_online": "Online / transfer",
+      "address": "Delivery address",
+      "delivery": "Courier delivery",
+      "tracking": "Track delivery",
       "currency": "Toman",
       "thanks": "Thank you!"
     }

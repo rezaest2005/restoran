@@ -229,7 +229,15 @@ def pos_create_order(request):
             "customer_name_en": order.customer_name_en,
             "total_price": int(order.total_price),
             "items": order_items,
-            "created_at": order.created_at.strftime("%Y-%m-%d %H:%M"),
+            # ساعت محلی کسب‌وکار (نه UTC) تا روی رسید درست چاپ شود
+            "created_at": timezone.localtime(order.created_at).strftime("%Y-%m-%d %H:%M"),
+            "created_at_iso": timezone.localtime(order.created_at).isoformat(),
+            "business_name": business.name,
+            "phone": order.phone,
+            "payment_method": order.payment_method,
+            "payment_status": order.payment_status,
+            "order_type": order.order_type,
+            "delivery_address": order.delivery_address,
             "msg": f"سفارش #{order.id} ثبت شد",
         })
 
