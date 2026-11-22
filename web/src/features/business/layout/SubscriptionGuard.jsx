@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Box, Typography, Dialog, DialogTitle, DialogContent, DialogActions, Button } from "@mui/material";
 import { useLang } from "@shared/contexts/LangContext";
 import client from "../api/client";
+import { countdownParts, durationText, formatPart } from "./countdown";
 
 const DAY = 86400;
 const readStored = () => {
@@ -17,14 +18,6 @@ const everySeconds = (left) => {
   if (left <= 7 * DAY) return 3600;
   return 0;
 };
-
-function formatLeft(left, lang) {
-  const nf = new Intl.NumberFormat(lang === "fa" ? "fa-IR" : "en", { minimumIntegerDigits: 2, useGrouping: false });
-  const days = Math.floor(left / DAY);
-  const rest = left % DAY;
-  const hms = [Math.floor(rest / 3600), Math.floor((rest % 3600) / 60), rest % 60].map((n) => nf.format(n)).join(":");
-  return { days, hms };
-}
 
 /**
  * Subscription countdown above the dashboard.
@@ -89,11 +82,20 @@ export default function SubscriptionGuard({ C, onLogout }) {
   if (!sub || sub.unlimited || endMs == null) return null;
 
   const left = Math.max(0, Math.floor((endMs - (now + offset)) / 1000));
-  const { days, hms } = formatLeft(left, lang);
-  const nfDays = new Intl.NumberFormat(lang === "fa" ? "fa-IR" : "en").format(days);
-  const timeText = days > 0 ? `${nfDays} ${t("ui_sub.days")} ${t("ui_sub.and")} ${hms}` : hms;
+  const parts = countdownParts(left);
+  const unitName = (u, n) => t(`ui_sub.unit.${u}`, { count: n });
+  const timeText = durationText(left, lang, (u) => unitName(u, parts.find((p) => p.unit === u).value));
   const tone = left <= DAY ? C.danger : left <= 7 * DAY ? C.warning : C.info;
-  const endText = new Date(endMs).toLocaleString(lang === "fa" ? "fa-IR" : "en-GB", { dateStyle: "medium", timeStyle: "medium" });
+  const loc = lang === "fa" ? "fa-IR" : "en-GB";
+  const endDate = new Date(endMs);
+  const dir = lang === "fa" ? "rtl" : "ltr";
+  // date and clock are separate isolated pieces so their order and digits never depend on bidi mixing
+  const endNode = (
+    <bdi dir={dir}>
+      <bdi dir={dir}>{endDate.toLocaleDateString(loc, { dateStyle: "medium" })}</bdi>{lang === "fa" ? "، " : ", "}
+      <bdi dir="ltr">{endDate.toLocaleTimeString(loc, { hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" })}</bdi>
+    </bdi>
+  );
 
   return (
     <>
@@ -103,12 +105,22 @@ export default function SubscriptionGuard({ C, onLogout }) {
         bgcolor: `color-mix(in srgb, ${tone} 13%, transparent)`, color: tone,
         borderBottom: `1px solid color-mix(in srgb, ${tone} 35%, transparent)`,
       }}>
-        <Typography sx={{ fontWeight: 800, fontSize: 13 }}>
-          {t("ui_sub.left_label")}{" "}
-          <Box component="span" dir="ltr" sx={{ fontVariantNumeric: "tabular-nums", fontSize: 15 }}>{timeText}</Box>
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", columnGap: 1.5, rowGap: 0.5 }}>
+          <Typography sx={{ fontWeight: 800, fontSize: 13 }}>{t("ui_sub.left_label")}</Typography>
+          <Box dir={lang === "fa" ? "rtl" : "ltr"} role="timer" sx={{ display: "inline-flex", gap: 0.75 }}>
+            {parts.map((p) => (
+              <Box key={p.unit} sx={{
+                display: "inline-flex", flexDirection: "column", alignItems: "center", minWidth: 46, px: 0.75, py: 0.25,
+                borderRadius: 1, bgcolor: `color-mix(in srgb, ${tone} 14%, transparent)`,
+              }}>
+                <bdi dir="ltr" style={{ fontWeight: 800, fontSize: 16, lineHeight: 1.25, fontVariantNumeric: "tabular-nums" }}>{formatPart(p, lang)}</bdi>
+                <bdi style={{ fontSize: 11, lineHeight: 1.2, opacity: 0.9 }}>{unitName(p.unit, p.value)}</bdi>
+              </Box>
+            ))}
+          </Box>
+        </Box>
         <Typography sx={{ fontSize: 12, opacity: 0.9 }}>
-          {left <= 7 * DAY ? t("ui_sub.warn") : `${t("ui_sub.ends")}: ${endText}`}
+          {left <= 7 * DAY ? t("ui_sub.warn") : <>{t("ui_sub.ends")}: {endNode}</>}
         </Typography>
       </Box>
 
@@ -116,7 +128,7 @@ export default function SubscriptionGuard({ C, onLogout }) {
         <DialogTitle sx={{ fontWeight: 800, color: tone }}>{t("ui_sub.remind_title")}</DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 1.5 }}>{t("ui_sub.remind_text", { time: timeText })}</Typography>
-          <Typography sx={{ fontSize: 13, opacity: 0.8 }}>{t("ui_sub.ends")}: {endText}</Typography>
+          <Typography sx={{ fontSize: 13, opacity: 0.8 }}>{t("ui_sub.ends")}: {endNode}</Typography>
         </DialogContent>
         <DialogActions>
           <Button variant="contained" onClick={() => setRemind(false)}>{t("ui_sub.ok")}</Button>
@@ -128,7 +140,7 @@ export default function SubscriptionGuard({ C, onLogout }) {
           <Box sx={{ maxWidth: 460 }}>
             <Typography sx={{ fontWeight: 900, fontSize: 26, color: C.danger, mb: 1.5 }}>{t("ui_sub.expired_title")}</Typography>
             <Typography sx={{ mb: 1 }}>{t("ui_sub.expired_text")}</Typography>
-            <Typography sx={{ fontSize: 13, opacity: 0.75, mb: 3 }}>{t("ui_sub.ended_at")}: {endText}</Typography>
+            <Typography sx={{ fontSize: 13, opacity: 0.75, mb: 3 }}>{t("ui_sub.ended_at")}: {endNode}</Typography>
             <Button variant="contained" onClick={onLogout}>{t("ui_sub.logout")}</Button>
           </Box>
         </Box>
