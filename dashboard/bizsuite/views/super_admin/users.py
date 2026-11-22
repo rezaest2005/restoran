@@ -16,6 +16,10 @@ from rest_framework.response import Response
 from ...features import access_of, apply_access, clean_access, sellable_keys
 from ...models import Tenant, User
 from ...modules import ModuleDependencyError
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
+
+from ... import pricing, subscription as sub
 from ...subscription import apply_dates, dates_of
 from .auth import IsSuperAdmin
 from .tenants import _clean_phone, create_customer_account, delete_tenant_cascade
@@ -54,6 +58,8 @@ def _row(u):
         'business_name': b.name if b else '',
         'slug': b.slug if b else '',
         'date_joined': u.date_joined.strftime('%Y/%m/%d'),
+        'subscription': sub.payload(b) if b else None,
+        'price': b.subscription_price if b else None,
     }
 
 
@@ -64,6 +70,7 @@ def _detail(u):
         'is_approved': u.is_approved,
         'access': access_of(b),
         'sellable': sellable_keys(),
+        'quote': pricing.quote(access_of(b)) if b else None,
         **(dates_of(b) if b else {'start_date': '', 'end_date': ''}),
     }
 
@@ -79,12 +86,27 @@ def _apply_business_fields(user, data):
             apply_access(business, keys)
         except ModuleDependencyError as exc:
             raise _Abort(_err(str(exc), status.HTTP_409_CONFLICT))
-    if 'start_date' in data or 'end_date' in data:
+    plan = data.get('subscription')
+    if isinstance(plan, dict) and plan.get('plan'):
+        mode = plan.get('mode') or 'set'
+        if mode not in ('set', 'extend'):
+            raise _Abort(_err('mode must be set or extend'))
+        if plan['plan'] not in pricing.PERIODS:
+            raise _Abort(_err('اشتراک باید ماهانه، ۳ ماهه، ۶ ماهه یا سالانه باشد.'))
+        try:
+            sub.apply(business, plan['plan'], mode)
+        except ValueError as exc:
+            raise _Abort(_err(str(exc)))
+    elif 'start_date' in data or 'end_date' in data:
         current = dates_of(business)
         try:
             apply_dates(business, data.get('start_date', current['start_date']), data.get('end_date', current['end_date']))
         except ValueError as exc:
             raise _Abort(_err(str(exc)))
+    if ('access' in data or plan) and business.subscription_plan in pricing.PERIODS:
+        # snapshot of what this combination costs for the period now in force
+        business.subscription_price = pricing.total_for(access_of(business), business.subscription_plan)
+        business.save(update_fields=['subscription_price'])
 
 
 @api_view(["GET"])
@@ -213,3 +235,16 @@ def super_user_detail_api(request, pk):
             delete_tenant_cascade(tenant)
         User.objects.filter(pk=user.pk).delete()
     return Response({'ok': True, 'msg': f'مشتری «{username}» حذف شد'})
+
+
+@api_view(["GET", "PUT"])
+@permission_classes([IsSuperAdmin])
+def super_section_prices_api(request):
+    """The global price list (Toman): {section: {monthly, quarterly, semiannual, yearly}}. Product owner only."""
+    from ...models import SectionPriceList
+    if request.method == "PUT":
+        prices, err = pricing.clean_prices(request.data.get('prices'))
+        if err:
+            return _err(err)
+        SectionPriceList.objects.update_or_create(pk=1, defaults={'prices': prices})
+    return Response({'periods': list(pricing.PERIODS), 'sections': list(pricing.SECTIONS), 'prices': pricing.load_prices()})

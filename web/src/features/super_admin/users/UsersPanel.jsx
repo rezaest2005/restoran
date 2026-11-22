@@ -4,18 +4,22 @@ import {
   Box, Typography, Button, TextField, Table, TableHead, TableRow, TableCell, TableBody, Chip, Menu, MenuItem,
   ListItemIcon, ListItemText,
 } from "@mui/material";
-import { Dashboard, ArrowDropDown, LockOpen, Edit, Delete } from "@mui/icons-material";
+import { Dashboard, ArrowDropDown, LockOpen, Edit, Delete, EventRepeat } from "@mui/icons-material";
 import UserModal from "@super/users/UserModal";
 import DeleteModal from "@super/common/DeleteModal";
 import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
 import { ResponsiveTable, rsx } from "@shared/responsive";
 import { withBase } from "@shared/basePath";
 import superClient from "@super/api/super_client";
+import { subStatus, formatMoney } from "@super/common/money";
 
+// latin text (username, phone) keeps its own direction but sits at the START of the cell, under its header
+const Ltr = ({ children }) => <Box component="span" dir="ltr" sx={{ display: "inline-block", unicodeBidi: "isolate", maxWidth: "100%", overflowWrap: "anywhere" }}>{children}</Box>;
 const personName = (u) => [u.first_name, u.last_name].filter(Boolean).join(" ");
 
 export default function UsersPanel({ users, loadUsers, onChanged, C }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const fa = i18n.language !== "en";
   const [modal, setModal] = useState({ open: false, editId: null, tab: 0 });
   const [deleteModal, setDeleteModal] = useState({ open: false, id: null, name: "" });
   const [menu, setMenu] = useState({ anchor: null, user: null });
@@ -48,7 +52,7 @@ export default function UsersPanel({ users, loadUsers, onChanged, C }) {
 
   // quick links first (open the customer's dashboard), then the Operations menu
   const actions = (u) => (
-    <Box sx={{ display: "flex", gap: 0.75, alignItems: "center", flexWrap: "wrap" }}>
+    <Box sx={{ display: "flex", gap: 0.75, alignItems: "center", flexWrap: { xs: "wrap", md: "nowrap" } }}>
       <Button
         size="small" variant="outlined" onClick={() => openDashboard(u)} disabled={!u.slug}
         startIcon={<Dashboard fontSize="small" />} data-testid={`open-dashboard-${u.id}`}
@@ -67,6 +71,11 @@ export default function UsersPanel({ users, loadUsers, onChanged, C }) {
     </Box>
   );
 
+  const subChip = (u) => {
+    const st = subStatus(u.subscription, t, fa);
+    return <Chip size="small" color={st.color} label={st.label} data-testid={`sub-${u.id}`} sx={{ maxWidth: "100%" }} />;
+  };
+  const priceOf = (u) => (u.price ? `${formatMoney(u.price, fa)} ${t("ui_c.super.sub.toman")}` : "—");
   const role = <Chip label={t("ui_c.super.cust.role")} size="small" sx={{ flexShrink: 0 }} />;
 
   return (
@@ -86,7 +95,7 @@ export default function UsersPanel({ users, loadUsers, onChanged, C }) {
       </Box>
 
       <ResponsiveTable
-        minWidth={640}
+        minWidth={1000}
         sx={{ bgcolor: C.glass, borderRadius: 2, border: `1px solid ${C.glassBorder}` }}
         cards={(
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
@@ -96,8 +105,12 @@ export default function UsersPanel({ users, loadUsers, onChanged, C }) {
                   <Typography sx={{ color: C.text, fontWeight: 700, ...rsx.wrapText }}>{personName(u) || u.username}</Typography>
                   {role}
                 </Box>
-                <Typography dir="ltr" sx={{ color: C.sub, fontSize: 13, textAlign: "start", ...rsx.wrapText }}>{u.username}</Typography>
-                {u.phone_number && <Typography dir="ltr" sx={{ color: C.sub, fontSize: 13, textAlign: "start", mb: 0.5 }}>{u.phone_number}</Typography>}
+                <Typography sx={{ color: C.sub, fontSize: 13, ...rsx.wrapText }}><Ltr>{u.username}</Ltr></Typography>
+                {u.phone_number && <Typography sx={{ color: C.sub, fontSize: 13, mb: 0.5 }}><Ltr>{u.phone_number}</Ltr></Typography>}
+                <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap", mt: 0.5 }}>
+                  {subChip(u)}
+                  <Typography sx={{ fontSize: 13, color: C.sub }}>{priceOf(u)}</Typography>
+                </Box>
                 <Box sx={{ mt: 1 }}>{actions(u)}</Box>
               </Box>
             ))}
@@ -105,26 +118,34 @@ export default function UsersPanel({ users, loadUsers, onChanged, C }) {
           </Box>
         )}
       >
-        <Table size="small">
+        <Table size="small" sx={{ tableLayout: "fixed", minWidth: 1000, "& th, & td": { textAlign: "start", verticalAlign: "middle", px: 1.5, overflow: "hidden" } }}>
+          <colgroup>
+            <col style={{ width: "12%" }} /><col style={{ width: "10%" }} /><col style={{ width: "11%" }} /><col style={{ width: "13%" }} />
+            <col style={{ width: "13%" }} /><col style={{ width: "11%" }} /><col style={{ width: "30%" }} />
+          </colgroup>
           <TableHead><TableRow sx={{ bgcolor: C.tableHeaderBg }}>
             <TableCell sx={{ color: C.sub }}>{t("ui_c.super.cust.col_name")}</TableCell>
             <TableCell sx={{ color: C.sub }}>{t("ui_c.super.user.username")}</TableCell>
             <TableCell sx={{ color: C.sub }}>{t("ui_c.super.user.phone")}</TableCell>
+            <TableCell sx={{ color: C.sub }}>{t("ui_c.super.sub.col_sub")}</TableCell>
+            <TableCell sx={{ color: C.sub }}>{t("ui_c.super.sub.col_price")}</TableCell>
             <TableCell sx={{ color: C.sub }}>{t("ui_c.super.cust.role")}</TableCell>
-            <TableCell sx={{ color: C.sub, textAlign: "end" }}>{t("ui_c.super.users.actions")}</TableCell>
+            <TableCell sx={{ color: C.sub }}>{t("ui_c.super.users.actions")}</TableCell>
           </TableRow></TableHead>
           <TableBody>
             {users.map((u) => (
               <TableRow key={u.id} hover>
-                <TableCell sx={{ color: C.text, fontWeight: 600 }}>{personName(u) || "—"}</TableCell>
-                <TableCell dir="ltr" sx={{ color: C.text, textAlign: "start" }}>{u.username}</TableCell>
-                <TableCell dir="ltr" sx={{ color: C.sub, textAlign: "start" }}>{u.phone_number || "—"}</TableCell>
+                <TableCell sx={{ color: C.text, fontWeight: 600, overflowWrap: "anywhere" }}>{personName(u) || "—"}</TableCell>
+                <TableCell sx={{ color: C.text }}><Ltr>{u.username}</Ltr></TableCell>
+                <TableCell sx={{ color: C.sub }}>{u.phone_number ? <Ltr>{u.phone_number}</Ltr> : "—"}</TableCell>
+                <TableCell>{subChip(u)}</TableCell>
+                <TableCell sx={{ color: C.text, fontSize: 13 }}>{priceOf(u)}</TableCell>
                 <TableCell>{role}</TableCell>
-                <TableCell sx={{ whiteSpace: "nowrap", "& > div": { justifyContent: "flex-end", flexWrap: "nowrap" } }}>{actions(u)}</TableCell>
+                <TableCell>{actions(u)}</TableCell>
               </TableRow>
             ))}
             {users.length === 0 && (
-              <TableRow><TableCell colSpan={5} sx={{ textAlign: "center", color: C.muted, py: 4, border: "none" }}>{t("ui_c.super.cust.empty")}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} sx={{ textAlign: "center !important", color: C.muted, py: 4, border: "none" }}>{t("ui_c.super.cust.empty")}</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
@@ -140,6 +161,10 @@ export default function UsersPanel({ users, loadUsers, onChanged, C }) {
           <ListItemIcon sx={{ color: C.olive, minWidth: 36 }}><LockOpen fontSize="small" /></ListItemIcon>
           <ListItemText>{t("ui_c.super.users.perms")}</ListItemText>
         </MenuItem>
+        <MenuItem sx={{ minHeight: 40 }} onClick={pick((u) => setModal({ open: true, editId: u.id, tab: 0, focusSub: true }))} data-testid="op-sub">
+          <ListItemIcon sx={{ color: C.olive, minWidth: 36 }}><EventRepeat fontSize="small" /></ListItemIcon>
+          <ListItemText>{t("ui_c.super.sub.op")}</ListItemText>
+        </MenuItem>
         <MenuItem sx={{ minHeight: 40 }} onClick={pick((u) => setModal({ open: true, editId: u.id, tab: 0 }))} data-testid="op-edit">
           <ListItemIcon sx={{ color: C.olive, minWidth: 36 }}><Edit fontSize="small" /></ListItemIcon>
           <ListItemText>{t("ui_c.super.users.edit")}</ListItemText>
@@ -154,6 +179,7 @@ export default function UsersPanel({ users, loadUsers, onChanged, C }) {
         open={modal.open}
         editId={modal.editId}
         initialTab={modal.tab}
+        focusSub={!!modal.focusSub}
         onClose={(saved) => { setModal({ open: false, editId: null, tab: 0 }); if (saved) refresh(); }}
         C={C}
       />

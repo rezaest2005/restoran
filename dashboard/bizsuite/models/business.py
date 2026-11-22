@@ -64,6 +64,8 @@ class Business(models.Model):
     )
     subscription_started_at = models.DateTimeField("شروع اشتراک", null=True, blank=True)
     subscription_ends_at = models.DateTimeField("پایان اشتراک", null=True, blank=True, db_index=True)
+    # snapshot of the price (Toman) that was quoted when the period was last applied; no invoicing
+    subscription_price = models.BigIntegerField("قیمت اشتراک (تومان)", null=True, blank=True)
 
     # نوع کسب‌وکار (صنف) — پیش‌تنظیم‌ها در industries.py. خالی = هنوز ویزارد راه‌اندازی را تمام نکرده.
     industry = models.CharField(
@@ -131,3 +133,12 @@ class Tenant(models.Model):
     @property
     def monthly_revenue(self):
         return sum(ts.price for ts in self._live_services())
+
+
+class SectionPriceList(models.Model):
+    """The single global price list of the dashboard sections (row pk=1): {section: {period: Toman}}."""
+    prices = models.JSONField("قیمت‌ها", default=dict, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "لیست قیمت بخش‌ها"

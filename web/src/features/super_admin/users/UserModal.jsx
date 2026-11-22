@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { ResponsiveDialog, formGrid } from "@shared/responsive";
 import { useTranslation } from "react-i18next";
 import {
@@ -8,10 +8,14 @@ import {
 import superClient from "@super/api/super_client";
 import EditablePassword from "@super/common/EditablePassword";
 import { PERM_GROUPS, PERM_LABELS, ALL_PERM_CODES, LOCKED_PERMS } from "@super/common/superConfig";
+import { quoteFor } from "@super/common/money";
+import SubscriptionSection from "./SubscriptionSection";
+import PriceSummary from "./PriceSummary";
+import PriceDialog from "./PriceDialog";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
 
 const EMPTY = {
-  username: "", password: "", first_name: "", last_name: "", phone_number: "", start_date: "", end_date: "",
+  username: "", password: "", first_name: "", last_name: "", phone_number: "",
 };
 
 function errorText(err, fallback) {
@@ -22,10 +26,10 @@ function errorText(err, fallback) {
 /**
  * Customer form. Everything made here is a customer (the person who bought the account = the business owner);
  * saving a new one creates the user, tenant and business in one step on the server.
- *   tab «Info»: login + personal data + subscription dates
+ *   tab «Info»: login + personal data + subscription (one of four periods; start from now or extend) + price
  *   tab «Access»: the dashboard sections and tabs the customer bought (ticking a section ticks all its tabs)
  */
-export default function UserModal({ open, editId, initialTab = 0, onClose, C }) {
+export default function UserModal({ open, editId, initialTab = 0, focusSub = false, onClose, C }) {
   const { t } = useTranslation();
   const [tab, setTab] = useState(0);
   const [saveError, setSaveError] = useState("");
@@ -35,17 +39,26 @@ export default function UserModal({ open, editId, initialTab = 0, onClose, C }) 
   const [access, setAccess] = useState([...ALL_PERM_CODES]);
   // Access is only sent when the admin touched it, so a new account keeps the defaults of a plain tenant
   const [accessDirty, setAccessDirty] = useState(false);
-  // dates as loaded: sent only when changed, so saving other fields never rewrites the exact subscription end
-  const [origDates, setOrigDates] = useState({ start_date: "", end_date: "" });
+  // subscription: the period picked in this form (null = leave as is), how to apply it, and the state as loaded
+  const [period, setPeriod] = useState(null);
+  const [mode, setMode] = useState("set");
+  const [current, setCurrent] = useState(null);
+  // the global price list (Toman per section and period) and its editor
+  const [prices, setPrices] = useState({});
+  const [priceOpen, setPriceOpen] = useState(false);
+  const subRef = useRef(null);
 
   useEffect(() => {
     if (!open) return undefined;
     setTab(initialTab);
     setSaveError("");
     setAccessDirty(false);
+    setPeriod(null);
+    setCurrent(null);
+    setMode("set");
+    superClient.get("/api/super/section-prices/").then((r) => setPrices(r.data.prices || {})).catch(() => {});
     if (!editId) {
       setForm(EMPTY);
-      setOrigDates({ start_date: "", end_date: "" });
       setAccess([...ALL_PERM_CODES]);
       return undefined;
     }
@@ -60,10 +73,9 @@ export default function UserModal({ open, editId, initialTab = 0, onClose, C }) 
         first_name: d.first_name || "",
         last_name: d.last_name || "",
         phone_number: d.phone_number || "",
-        start_date: d.start_date || "",
-        end_date: d.end_date || "",
       });
-      setOrigDates({ start_date: d.start_date || "", end_date: d.end_date || "" });
+      setCurrent(d.subscription || null);
+      setMode(d.subscription && !d.subscription.unlimited && !d.subscription.expired ? "extend" : "set");
       setAccess((d.access || []).filter((c) => ALL_PERM_CODES.includes(c)));
     }).catch((err) => {
       if (alive) setSaveError(errorText(err, t("ui_c.super.login.unknown_error")));
@@ -71,6 +83,11 @@ export default function UserModal({ open, editId, initialTab = 0, onClose, C }) 
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editId, initialTab]);
+
+  // «اشتراک» from the Operations menu: scroll the subscription section into view once the form has loaded
+  useEffect(() => {
+    if (open && focusSub && !loading && tab === 0) subRef.current?.scrollIntoView({ block: "center" });
+  }, [open, focusSub, loading, tab]);
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
   const changeAccess = (fn) => { setAccess(fn); setAccessDirty(true); };
@@ -84,6 +101,7 @@ export default function UserModal({ open, editId, initialTab = 0, onClose, C }) 
   const setAll = (on) => changeAccess(() => (on ? [...ALL_PERM_CODES] : [...LOCKED_PERMS]));
 
   const ticked = useMemo(() => new Set([...access, ...LOCKED_PERMS]), [access]);
+  const quote = useMemo(() => quoteFor(PERM_GROUPS, ticked, LOCKED_PERMS, prices), [ticked, prices]);
 
   const handleSave = async () => {
     if (saving || loading) return;
@@ -97,10 +115,7 @@ export default function UserModal({ open, editId, initialTab = 0, onClose, C }) 
       last_name: form.last_name,
       phone_number: form.phone_number,
     };
-    if (form.start_date !== origDates.start_date || form.end_date !== origDates.end_date) {
-      payload.start_date = form.start_date;
-      payload.end_date = form.end_date;
-    }
+    if (period) payload.subscription = { plan: period, mode: editId ? mode : "set" };
     if (!editId) payload.username = form.username.trim();
     if (form.password) payload.password = form.password;
     if (accessDirty) payload.access = access;
@@ -174,20 +189,10 @@ export default function UserModal({ open, editId, initialTab = 0, onClose, C }) 
               size="small" label={t("ui_c.super.user.phone")} value={form.phone_number} onChange={set("phone_number")} sx={fieldSx}
               slotProps={{ htmlInput: { dir: "ltr", style: { textAlign: "start" }, inputMode: "tel" } }}
             />
-            <Box sx={{ bgcolor: C.oliveSubtle, borderRadius: "12px", p: 1.5 }}>
-              <Typography sx={{ fontSize: 13, fontWeight: 800, color: C.olive, mb: 1.25 }}>{t("ui_c.super.cust.dates")}</Typography>
-              <Box sx={formGrid(2, "sm", 1.5)}>
-                <TextField
-                  size="small" type="date" label={t("ui_c.super.cust.start")} value={form.start_date} onChange={set("start_date")}
-                  sx={fieldSx} slotProps={{ inputLabel: { shrink: true }, htmlInput: { dir: "ltr" } }}
-                />
-                <TextField
-                  size="small" type="date" label={t("ui_c.super.cust.end")} value={form.end_date} onChange={set("end_date")}
-                  sx={fieldSx} slotProps={{ inputLabel: { shrink: true }, htmlInput: { dir: "ltr" } }}
-                  helperText={t("ui_c.super.cust.end_hint")}
-                />
-              </Box>
+            <Box ref={subRef}>
+            <SubscriptionSection current={current} isNew={!editId} period={period} setPeriod={setPeriod} mode={mode} setMode={setMode} C={C} />
             </Box>
+            <PriceSummary quote={quote} prices={prices} period={period} C={C} />
           </Box>
         ) : (
           <Box sx={{ mt: 1 }}>
@@ -197,7 +202,11 @@ export default function UserModal({ open, editId, initialTab = 0, onClose, C }) 
               </Typography>
               <Button size="small" onClick={() => setAll(true)} sx={{ minHeight: 40 }}>{t("ui_c.super.cust.all")}</Button>
               <Button size="small" onClick={() => setAll(false)} sx={{ minHeight: 40 }}>{t("ui_c.super.cust.none")}</Button>
+              <Button size="small" variant="outlined" onClick={() => setPriceOpen(true)} data-testid="change-price" sx={{ minHeight: 40, fontWeight: 700 }}>
+                {t("ui_c.super.sub.change_price")}
+              </Button>
             </Box>
+            <Box sx={{ mb: 1.5 }}><PriceSummary quote={quote} prices={prices} period={period} C={C} /></Box>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
               {Object.entries(PERM_GROUPS).map(([gid, g]) => {
                 const free = g.codes.filter((c) => !LOCKED_PERMS.includes(c));
@@ -255,6 +264,7 @@ export default function UserModal({ open, editId, initialTab = 0, onClose, C }) 
           {t("ui_c.super.save")}
         </Button>
       </DialogActions>
+      <PriceDialog open={priceOpen} prices={prices} C={C} onClose={(saved) => { setPriceOpen(false); if (saved) setPrices(saved); }} />
     </ResponsiveDialog>
   );
 }
