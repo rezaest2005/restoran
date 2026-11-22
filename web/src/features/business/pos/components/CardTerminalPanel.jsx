@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Box, Typography, Button, CircularProgress, LinearProgress, TextField, Alert } from "@mui/material";
-import { CreditCard, Payments, Language, Replay, Cancel, Search, CheckCircle, ErrorOutline, WarningAmber } from "@mui/icons-material";
+import { CreditCard, Payments, Language, Replay, Cancel, Search, CheckCircle, Error as ErrorOutline, WarningAmber } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
 import { formatMoney } from "../common";
 
