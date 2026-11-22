@@ -7,7 +7,7 @@ exec gunicorn core.wsgi:application \
     --workers "${GUNICORN_WORKERS:-4}" \
     --worker-class gthread \
     --threads "${GUNICORN_THREADS:-8}" \
-    --timeout "${GUNICORN_TIMEOUT:-30}" \
+    --timeout "${GUNICORN_TIMEOUT:-330}" \
     --graceful-timeout 20 \
     --max-requests 1000 \
     --max-requests-jitter 100 \
