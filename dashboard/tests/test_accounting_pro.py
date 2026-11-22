@@ -376,8 +376,7 @@ class StandaloneApiTests(TestCase):
         cls.stranger = User.objects.create_user(username="accx", password="Pass12345!", role="owner",
                                                 business=cls.other)
         apply_modules(cls.biz, {c: {"is_enabled": c == "accounting"} for c in
-                                ["pos", "club", "inventory", "production", "accounting", "delivery", "feedback",
-                                 "storefront"]}, auto_requires=False)
+                                ["pos", "club", "inventory", "production", "accounting", "delivery", "feedback"]}, auto_requires=False)
 
     def setUp(self):
         clear_current_business()

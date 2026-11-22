@@ -18,7 +18,6 @@ def new_qr_code() -> str:
 class QrLink(TenantModel):
     class Kind(models.TextChoices):
         MENU = "menu", "منوی QR داخلی"
-        STOREFRONT = "storefront", "وب‌سایت منتشرشده"
         CUSTOM = "custom", "آدرس دلخواه"
 
     code = models.CharField(max_length=16, unique=True, default=new_qr_code, db_index=True)

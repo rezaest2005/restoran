@@ -63,10 +63,6 @@ class RedirectTests(QrBase):
         apply_modules(self.b, {m["code"]: {"is_enabled": m["code"] == "delivery"} for m in CATALOG})
         self.assertEqual(self.client.get(q["path"]).status_code, 404)     # menu needs the POS module
 
-    def test_storefront_kind_needs_a_published_site(self):
-        q = self.make(kind="storefront")
-        self.assertEqual(self.client.get(q["path"]).status_code, 404)
-
 
 class AdminApiTests(QrBase):
     def test_bulk_tables_and_listing_is_per_business(self):

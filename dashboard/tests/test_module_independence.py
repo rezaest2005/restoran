@@ -17,7 +17,7 @@ from bizsuite.models import (
 from bizsuite.modules import apply_modules, ensure_catalog, module_enabled
 from bizsuite.tenancy import clear_current_business
 
-ALL = ["pos", "club", "inventory", "production", "accounting", "delivery", "feedback", "storefront"]
+ALL = ["pos", "club", "inventory", "production", "accounting", "delivery", "feedback"]
 
 # module -> main endpoints (GET)
 ENDPOINTS = {
@@ -27,7 +27,6 @@ ENDPOINTS = {
     "accounting": ["/api/accounting/summary/", "/api/accounting/accounts/"],
     "production": ["/api/formulas/", "/api/production/orders/"],
     "feedback": ["/api/feedback/list/"],
-    "storefront": ["/api/storefront/mine/summary/"],
 }
 
 COMBOS = {

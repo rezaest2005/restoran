@@ -8,7 +8,6 @@ from .views import system as system_views
 from .views.dashboard import (
     dashboard_analytics, dashboard_summary,
 )
-from .views import storefront as sf_views
 from .views import delivery as dl_views
 from .views import catalog as cat_views
 from .views import club as club_views
@@ -319,27 +318,7 @@ urlpatterns = [
     path("api/super/businesses/<int:business_id>/modules/", mod_views.super_business_modules_api, name="super_business_modules"),
     path("api/super/businesses/<int:business_id>/plan/", mod_views.super_business_plan_api, name="super_business_plan"),
     path("api/super/businesses/<int:business_id>/subscription/", mod_views.super_business_subscription_api, name="super_business_subscription"),
-    path("api/super/storefront/templates/", sf_views.super_storefront_templates, name="super_sf_templates"),
-    path("api/super/storefront/templates/<int:pk>/", sf_views.super_storefront_template_detail, name="super_sf_template_detail"),
-    path("api/super/storefront/business/<int:business_id>/template/", sf_views.super_storefront_set_template, name="super_sf_set_template"),
 
-    path("api/super/storefront/business/<int:business_id>/domain/", sf_views.super_storefront_domain, name="super_sf_domain"),
-    path("api/super/storefront/<int:business_id>/", sf_views.super_storefront_draft, name="super_sf_draft"),
-    path("api/super/storefront/<int:business_id>/publish/", sf_views.super_storefront_publish, name="super_sf_publish"),
-    path("api/super/storefront/<int:business_id>/unpublish/", sf_views.super_storefront_unpublish, name="super_sf_unpublish"),
-    path("api/super/storefront/<int:business_id>/apply-template/", sf_views.super_storefront_apply_template, name="super_sf_apply_template"),
-    path("api/super/storefront/<int:business_id>/preview-token/", sf_views.super_storefront_preview_token, name="super_sf_preview_token"),
-    path("api/super/storefront/<int:business_id>/revisions/", sf_views.super_storefront_revisions, name="super_sf_revisions"),
-    path("api/super/storefront/<int:business_id>/assets/", sf_views.super_storefront_assets, name="super_sf_assets"),
-    path("api/super/storefront/<int:business_id>/revisions/<int:pk>/restore/", sf_views.super_storefront_restore, name="super_sf_restore"),
-    path("api/super/storefront/<int:business_id>/domain/", sf_views.super_storefront_domain, name="super_sf_domain_short"),
-
-    # ── Storefront (no-code website) ──
-    path("api/storefront/mine/summary/", sf_views.storefront_mine_summary, name="storefront_mine_summary"),
-    path("api/storefront/by-host/", sf_views.storefront_by_host, name="storefront_by_host"),
-    path("api/storefront/<slug:slug>/club/join/", sf_views.storefront_club_join, name="storefront_club_join"),
-    path("api/storefront/<slug:slug>/preview/", sf_views.storefront_preview, name="storefront_preview"),
-    path("api/storefront/<slug:slug>/", sf_views.storefront_public, name="storefront_public"),
 
     # ── Invoicing API ───────────────────────────────────────
     path("api/invoicing/customers/", customer_list_create, name="inv_customers"),

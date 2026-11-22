@@ -29,15 +29,13 @@ CATALOG = [
      "price": 200000, "requires": [], "suggests": ["accounting"]},
     {"code": "feedback", "name_fa": "نظرسنجی", "name_en": "Feedback",
      "price": 50000, "requires": [], "suggests": []},
-    {"code": "storefront", "name_fa": "وب‌سایت", "name_en": "Storefront",
-     "price": 100000, "requires": [], "suggests": []},
 ]
 
 PLANS = [
     {"code": "starter", "name_fa": "پایه", "name_en": "Starter",
      "price": 300000, "modules": ["pos"]},
     {"code": "retail", "name_fa": "فروشگاهی", "name_en": "Retail",
-     "price": 650000, "modules": ["pos", "club", "inventory", "storefront"]},
+     "price": 650000, "modules": ["pos", "club", "inventory"]},
     {"code": "full", "name_fa": "کامل", "name_en": "Full",
      "price": 1400000, "modules": [m["code"] for m in CATALOG]},
 ]
@@ -52,7 +50,6 @@ SERVICE_MODULE = {
     "accounting": "accounting",
     "delivery": "delivery",
     "feedback": "feedback",
-    "storefront": "storefront",
 }
 # per-user tab keys used by the dashboard UI
 TAB_MODULE = {
@@ -61,7 +58,7 @@ TAB_MODULE = {
     "inventory_warehouse": "inventory", "inventory_receiving": "inventory",
     "inventory_purchase_list": "inventory", "inventory_reports": "inventory",
     "club": "club", "accounting": "accounting", "delivery": "delivery",
-    "feedback": "feedback", "storefront": "storefront",
+    "feedback": "feedback",
     "kitchen": "production", "recipes": "production", "dictionary_recipe": "production",
 }
 

@@ -46,22 +46,9 @@ Rename note (one-time): the package, app label and tenant model were previously 
 industry. They were renamed to neutral names and, because all data at that time was test data, the
 migration history was replaced by a single fresh `0001_initial`. The old history remains in git history only.
 
-## Storefront (no-code public page)
-
-`StorefrontTemplate` (global presets), `Storefront` (one per business: draft `theme`/`sections`, published
-snapshot in `published_data`), `StorefrontRevision`, `StorefrontAsset`. All content is validated JSON
-(`bizsuite/storefront_services.py`); nothing from a business is executed or rendered as HTML.
-
-- Public page: `{PLATFORM_PUBLIC_URL}/s/<slug>`; API `GET /api/storefront/<slug>/` returns published data only.
-- Custom domain: `Storefront.custom_domain` (unique hostname). `StorefrontDomainMiddleware` (first in the chain)
-  maps an exact Host match of a *published* storefront to it and serves the storefront payload at `/`
-  (`/api/storefront/by-host/`). Other hosts are untouched; platform hosts cannot be claimed.
-- The storefront preset is stored as template data (`restaurant_classic`, display name "Classic"); the former sample app was removed.
-- Club sign-up from the page: `POST /api/storefront/<slug>/club/join/` (needs published page + club module).
-
 ## Modules and subscriptions
 
-`Module` catalogue (pos, club, inventory, production, accounting, delivery, feedback, storefront) with hard
+`Module` catalogue (pos, club, inventory, production, accounting, delivery, feedback) with hard
 `requires` edges, `BusinessModule` per business (enabled, starts_at, expires_at, price_override) and optional
 `Plan`. A business with no `BusinessModule` rows is unmanaged: every module is on (legacy behaviour).
 `bizsuite.modules.module_enabled(business, code)` is used by the service permission check

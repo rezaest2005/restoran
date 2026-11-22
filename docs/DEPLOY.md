@@ -58,7 +58,7 @@ for example `/biz`:
 | `/bizsuite_admin/login` (super admin), `/bizsuite_dashboard/login` and `/<slug>/bizsuite_dashboard/login`, `/bizsuite_driver` and `/<slug>/bizsuite_driver/1`, `/m/<slug>`, `/q/<code>` | `/biz/api/...`, `/biz/assets/...`, `/biz/media/...`, `/biz/static/...`, `/biz/sw.js` |
 
 1. In `../deploy/restaurant/.env` set `URL_PREFIX=/biz` and a free `PORT` (for example `8200`). Also `ALLOWED_HOSTS`,
-   `CSRF_TRUSTED_ORIGINS=https://<domain>`, `CORS_ALLOWED_ORIGINS=https://<domain>`, `PLATFORM_PUBLIC_URL=https://<domain>`.
+   `CSRF_TRUSTED_ORIGINS=https://<domain>`, `CORS_ALLOWED_ORIGINS=https://<domain>`.
 2. Rebuild (the prefix is baked into the web image): `./deploy.sh restaurant`.
 3. In the reverse proxy (`../deploy/router/Caddyfile` already has these rules), send the hidden prefix **with the prefix stripped** and the page paths **as they are**.
    With Caddy (put both blocks before the blocks of the other applications):

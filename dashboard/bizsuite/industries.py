@@ -89,7 +89,7 @@ INDUSTRIES: list[Industry] = [
     Industry(
         "retail", "فروشگاه خرده‌فروشی", "Retail shop",
         "صندوق فروش با بارکد، انبار، باشگاه مشتریان", "Barcode point of sale, stock, loyalty club",
-        "store", ("pos", "inventory", "club", "accounting", "storefront"),
+        "store", ("pos", "inventory", "club", "accounting"),
         "retail", ("unit", "pack", "box", "kg", "dozen"),
         ("sales", "pos", "inventory", "club", "cash", "receivables", "deliveries", "production"),
         {"order": _t("فاکتور فروش", "Sale receipt"), "orders": _t("فاکتورهای فروش", "Sale receipts"),

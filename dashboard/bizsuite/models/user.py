@@ -32,7 +32,6 @@ DASHBOARD_SECTIONS = [
     ("dictionary", "دیکشنری"),
     ("users", "مدیریت کاربران"),
     ("feedback", "ثبت نظرات"),
-    ("storefront", "وب‌سایت"),  # legacy: kept so stored lists stay valid; editor is super-admin only
 ]
 
 

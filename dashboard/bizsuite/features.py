@@ -91,7 +91,6 @@ LEGACY_EXPANSION = {
     "semi_finished": ["dictionary_items"],
     "ready_materials": ["dictionary_items"],
     "usage_log": ["inventory_reports"],
-    "storefront": [],
 }
 
 # Backend "service codes" (used by view decorators) → features that unlock them (any-of).
@@ -117,7 +116,6 @@ SERVICE_FEATURES: dict[str, list[str]] = {
     "semi_finished": ["dictionary_items", "inventory_warehouse"],
     "ready_materials": ["dictionary_items", "inventory_warehouse"],
     "usage_log": ["inventory_reports", "inventory_warehouse"],
-    "storefront": [],
 }
 
 # Extra, finer requirement checked by URL prefix on top of the service check.
