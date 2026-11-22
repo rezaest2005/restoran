@@ -440,52 +440,94 @@ class LoyaltyDashboardSerializer(serializers.Serializer):
 # ══════════════════════════════════════════════════════════════════════════════
 
 
+class LoginError(Exception):
+    """A refused sign-in: ``error`` is the Persian text, ``code`` is what the SPA translates (web login.errors.*)."""
+
+    def __init__(self, code, message, **extra):
+        super().__init__(message)
+        self.body = {"error": message, "code": code, **extra}
+
+
+LOGIN_MESSAGES = {
+    "invalid_credentials": "نام کاربری یا رمز عبور اشتباه است.",
+    "inactive": "حساب کاربری غیرفعال است. با مدیر سیستم تماس بگیرید.",
+    "pending": "حساب شما هنوز توسط مدیر تأیید نشده است.",
+    "no_business": "هیچ کسب‌وکاری به این حساب اختصاص داده نشده است. با مدیر سیستم تماس بگیرید.",
+    "business_inactive": "کسب‌وکار این حساب غیرفعال شده است. با پشتیبانی تماس بگیرید.",
+    "customer_account": "این حساب «مشتری» است و به داشبورد دسترسی ندارد. با مدیر سیستم تماس بگیرید.",
+}
+
+
+def _clean(value, limit):
+    """NUL bytes make PostgreSQL raise (a 500); an enormous value is pointless. Both are dropped here."""
+    return str(value).replace("\x00", "")[:limit] if value is not None else ""
+
+
+def find_login_user(username="", phone="", slug=""):
+    """
+    The account being signed into, or None. Exact username first; then (a) the business prefix of the slug in the
+    address (an owner typing "user1" for the stored "zuser1"), (b) a case-insensitive match when it is unambiguous
+    (phone keyboards capitalise the first letter).
+    """
+    if phone:
+        return User.objects.filter(phone_number=phone).first()
+    if not username:
+        return None
+    candidates = [username]
+    if slug:
+        prefix = (Business.objects.filter(slug=slug).values_list("username_prefix", flat=True).first() or "")
+        if prefix and not username.startswith(prefix):
+            candidates.append(prefix + username)
+    for name in candidates:
+        user = User.objects.filter(username=name).first()
+        if user:
+            return user
+    for name in candidates:
+        found = list(User.objects.filter(username__iexact=name)[:2])
+        if len(found) == 1:
+            return found[0]
+    return None
+
+
 class CustomTokenObtainSerializer(TokenObtainPairSerializer):
+    """
+    Checks the password ONCE (PBKDF2 is deliberately slow, ~1 s: the old code hashed twice) and refuses with a
+    specific, translatable reason. Tokens are issued by LoginView, so none are made here.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["phone_number"] = serializers.CharField(required=False)
         self.fields["password"] = serializers.CharField(write_only=True)
+        self.fields["slug"] = serializers.CharField(required=False, allow_blank=True)
 
     def validate(self, attrs):
-        username = attrs.get("username")
-        phone = attrs.get("phone_number")
-        password = attrs.get("password")
+        username = _clean(attrs.get("username"), 150).strip()
+        phone = _clean(attrs.get("phone_number"), 20).strip()
+        password = _clean(attrs.get("password"), 1024)
 
         if not username and not phone:
-            raise serializers.ValidationError(
-                {"error": "نام کاربری یا شماره موبایل الزامی است."}
-            )
+            raise LoginError("missing_fields", "نام کاربری و رمز عبور الزامی است.")
 
-        user = None
-        if phone:
-            user = User.objects.filter(phone_number=phone).first()
-            if user:
-                attrs["username"] = user.username
-        elif username:
-            user = User.objects.filter(username=username).first()
-
+        user = find_login_user(username, phone, _clean(attrs.get("slug"), 50).strip())
         if not user or not user.check_password(password):
-            raise serializers.ValidationError(
-                {"error": "نام کاربری یا رمز عبور اشتباه است."}
-            )
+            raise LoginError("invalid_credentials", LOGIN_MESSAGES["invalid_credentials"])
 
+        # the password is right from here on, so naming the exact reason leaks nothing
         if not user.is_active:
-            raise serializers.ValidationError({"error": "حساب کاربری غیرفعال است."})
+            raise LoginError("inactive", LOGIN_MESSAGES["inactive"])
+        if not user.is_approved and not user.is_superuser:
+            raise LoginError("pending", LOGIN_MESSAGES["pending"], pending=True)
+        if not user.is_superuser:
+            if not user.business_id:
+                raise LoginError("no_business", LOGIN_MESSAGES["no_business"])
+            if not user.business.is_active:
+                raise LoginError("business_inactive", LOGIN_MESSAGES["business_inactive"])
+            if user.role == User.Role.CUSTOMER:
+                raise LoginError("customer_account", LOGIN_MESSAGES["customer_account"])
 
-        if not user.is_approved:
-            raise serializers.ValidationError(
-                {
-                    "error": "حساب شما هنوز توسط مدیر تأیید نشده است.",
-                    "pending": True,
-                }
-            )
-
-        data = super().validate(attrs)
-        data["user"] = UserDetailSerializer(user).data
-        data["message"] = "ورود موفقیت‌آمیز بود."
-        data["success"] = True
-        return data
+        self.user = user
+        return {}
 
     @classmethod
     def get_token(cls, user):
