@@ -3,6 +3,11 @@
     "open_menu": "Open navigation",
     "close": "Close",
     "actions": "Actions",
-    "no_business": "No business (optional)"
+    "no_business": "No business (optional)",
+    "edit": "Edit",
+    "cancel_edit": "Cancel",
+    "new_password": "New password",
+    "pw_saved_hint": "A password is set. Press Edit to change it.",
+    "pw_new_hint": "Type the new password, then press Save."
   }
 }

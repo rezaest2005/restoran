@@ -54,6 +54,8 @@ def _tenant_to_dict(tenant, business=None):
             (tenant.owner.get_full_name() or tenant.owner.username)
             if tenant.owner else '?'
         ),
+        'owner_username': tenant.owner.username if tenant.owner else '',
+        'owner_full_name': (tenant.owner.get_full_name() if tenant.owner else '') or '',
         'phone': tenant.phone or '',
         'address': tenant.address or '',
         'is_active': tenant.is_active,
@@ -250,6 +252,17 @@ def super_tenant_detail_api(request, pk):
     elif request.method == "DELETE":
         name = tenant.name
         with transaction.atomic():
-            Business.objects.filter(tenant=tenant).delete()
+            # کاربران و کسب‌وکار و مستأجر به‌هم «محافظت‌شده» وصل‌اند؛ پس اول کاربران را از کسب‌وکار جدا می‌کنیم،
+            # بعد کسب‌وکار و مستأجر را حذف می‌کنیم و در آخر حساب‌های خودِ این کسب‌وکار (نه مدیر کل) را پاک می‌کنیم.
+            businesses = list(Business.objects.filter(tenant=tenant))
+            user_qs = User.objects.filter(business__in=businesses)
+            account_ids = list(user_qs.filter(is_superuser=False).values_list('pk', flat=True))
+            owner_id = tenant.owner_id
+            if owner_id and not tenant.owner.is_superuser:
+                account_ids.append(owner_id)
+            user_qs.update(business=None)
+            for b in businesses:
+                b.delete()
             tenant.delete()
+            User.objects.filter(pk__in=set(account_ids), is_superuser=False).delete()
         return Response({'ok': True, 'msg': f'کسب‌وکار «{name}» حذف شد'})

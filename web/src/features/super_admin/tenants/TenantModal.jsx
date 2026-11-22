@@ -6,7 +6,7 @@ import {
   Button, Typography, Box, TextField, Alert,
 } from "@mui/material";
 import superClient from "@super/api/super_client";
-import { PasswordField } from "@shared/ui/AuthShell";
+import EditablePassword from "@super/common/EditablePassword";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
 
 const fieldSx = {
@@ -43,7 +43,7 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
           slug: editData.slug || "",
           owner_username: editData.owner_username || "",
           owner_password: "",
-          owner_name: editData.owner_name || "",
+          owner_name: editData.owner_full_name || "",
           phone: editData.phone || "",
           address: editData.address || "",
           start_date: editData.start_date || "",
@@ -112,8 +112,9 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
         payload.owner_name = form.owner_name.trim();
       } else {
         payload.owner_name = form.owner_name.trim();
-        // رمز فقط اگه پر شده باشه
-        if (form.owner_password && form.owner_password.length >= 4) {
+        payload.owner_username = form.owner_username.trim();
+        // رمز فقط اگه پر شده باشه (سرور طول را بررسی می‌کند و خطا را برمی‌گرداند)
+        if (form.owner_password) {
           payload.owner_password = form.owner_password;
         }
       }
@@ -219,13 +220,13 @@ export default function TenantModal({ open, onClose, editData, onSave, C, t }) {
             helperText={fieldErrors.owner_username}
             sx={fieldSx}
           />
-          <PasswordField
-            label={editId ? t("ui_c.super.tenant.f_new_password") : t("ui_c.super.tenant.f_password")}
-            autoComplete="new-password"
+          <EditablePassword
+            key={editId || "new"}
+            canEdit={!!editId}
+            label={t("ui_c.super.tenant.f_password")}
             value={form.owner_password}
-            onChange={set("owner_password")}
-            error={!!fieldErrors.owner_password}
-            helperText={fieldErrors.owner_password || (editId ? t("ui_c.super.tenant.pw_keep") : t("ui_c.super.tenant.pw_min"))}
+            onChange={(v) => setForm((f) => ({ ...f, owner_password: v }))}
+            helperText={fieldErrors.owner_password || t("ui_c.super.tenant.pw_min")}
             sx={fieldSx}
           />
           <TextField label={t("ui_c.super.tenant.f_owner_name")} value={form.owner_name} onChange={set("owner_name")} sx={fieldSx} />
