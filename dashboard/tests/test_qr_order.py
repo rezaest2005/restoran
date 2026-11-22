@@ -1,3 +1,4 @@
+from bizsuite.features import POS_ACTION_KEYS
 from django.core.cache import cache
 from django.test import TestCase
 from rest_framework.test import APIClient
@@ -26,7 +27,7 @@ class QrOrderTests(TestCase):
             final_price=7000, stock=5, is_available=True)
         cls.cashier = User.objects.create_user(
             username="cash1", password="Pass12345!", role="cashier",
-            business=cls.r1, dashboard_permissions=["pos"])
+            business=cls.r1, dashboard_permissions=["pos", *POS_ACTION_KEYS])
 
     def setUp(self):
         cache.clear()

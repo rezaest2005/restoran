@@ -10,6 +10,7 @@ import { setOrderStatus, rejectOnlineOrder } from "../api";
 import { printTicket } from "../services/printService";
 import useShortcuts from "@shared/common/useShortcuts";
 import { FONT } from "../common/constants";
+import usePosAccess from "../hooks/usePosAccess";
 import { formatMoney } from "../common/format";
 
 const MAX_ACCEPTED = 20;
@@ -29,6 +30,7 @@ export default function IncomingOrders({
   accepted, setAccepted, onToast, C, glassCardSx, isRtl, lang,
 }) {
   const { t } = useTranslation();
+  const { canCancel } = usePosAccess();
   const [busy, setBusy] = useState({});
   const [errors, setErrors] = useState({});
   const [confirmId, setConfirmId] = useState(null);
@@ -90,7 +92,7 @@ export default function IncomingOrders({
       handler: () => accept(targetOrder) },
     { combo: "Ctrl+A", label: t("ui_g.pos.next_order"), handler: () => moveFocus(1) },
     { combo: "Ctrl+Z", label: t("ui_g.pos.prev_order"), handler: () => moveFocus(-1) },
-    { combo: "Delete", label: t("ui_g.pos.reject_focused"), when: !!targetOrder && !busy[targetOrder.id],
+    { combo: "Delete", label: t("ui_g.pos.reject_focused"), when: canCancel && !!targetOrder && !busy[targetOrder.id],
       handler: () => setConfirmId(targetOrder.id) },
   ]);
 
@@ -169,10 +171,12 @@ export default function IncomingOrders({
                 {t("ui_f.incoming.accept")}
                
               </Button>
-              <Button variant="outlined" disabled={pending} onClick={() => setConfirmId(o.id)}
-                sx={{ ...btnBase, color: C.burgundy, borderColor: C.burgundy }}>
-                {t("ui_f.incoming.reject")}
-              </Button>
+              {canCancel && (
+                <Button variant="outlined" disabled={pending} onClick={() => setConfirmId(o.id)}
+                  sx={{ ...btnBase, color: C.burgundy, borderColor: C.burgundy }}>
+                  {t("ui_f.incoming.reject")}
+                </Button>
+              )}
             </>
           )}
         </Box>

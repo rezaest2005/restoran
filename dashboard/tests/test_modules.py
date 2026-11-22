@@ -1,3 +1,4 @@
+from bizsuite.features import POS_ACTION_KEYS
 from datetime import timedelta
 
 from django.test import TestCase
@@ -140,7 +141,7 @@ class ExpiryAndEnforcementTests(ModuleBase):
     def test_tab_visible_only_if_module_and_user_tab(self):
         cashier = User.objects.create_user(
             username="mc1", password="Pass12345!", role="cashier", business=self.biz,
-            dashboard_permissions=["pos"])
+            dashboard_permissions=["pos", "pos_report", *POS_ACTION_KEYS])
         c = APIClient()
         c.force_authenticate(cashier)
         self.assertEqual(c.get("/api/pos/daily-report/").status_code, 200)

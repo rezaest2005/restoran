@@ -21,6 +21,7 @@ import { appName } from "@shared/branding";
 import { buildTicketHtml, buildLabels, readBusinessName } from "../services/printService";
 import useShortcuts from "@shared/common/useShortcuts";
 import { KbdHint, formatMoney } from "../common";
+import usePosAccess, { canUseMethod } from "../hooks/usePosAccess";
 
 export default function CheckoutDialog({
   open,
@@ -44,6 +45,7 @@ export default function CheckoutDialog({
   const error = externalError || localError;
   const busy = submitting || localSubmitting;
   const { t, i18n } = useTranslation();
+  const posAccess = usePosAccess();
   const [sel, setSel] = useState(null); // روش انتخاب‌شده با کیبورد؛ null = پیش‌فرض
   const [prevOpen, setPrevOpen] = useState(open);
   if (prevOpen !== open) {
@@ -52,7 +54,7 @@ export default function CheckoutDialog({
   }
   const selKey = sel ?? (defaultMethod || "cash");
 
-  const paymentMethods = [
+  const allMethods = [
     { key: "cash", icon: Payments, labelFa: "پرداخت نقدی", labelEn: "Cash" },
     { key: "card", icon: CreditCard, labelFa: "کارت (ثبت دستی)", labelEn: "Card (recorded manually)" },
     {
@@ -62,6 +64,7 @@ export default function CheckoutDialog({
       labelEn: "Online / transfer (recorded manually)",
     },
   ];
+  const paymentMethods = allMethods.filter((m) => canUseMethod(posAccess, m.key)); // only what this user may take
 
   const handlePayment = async (method) => {
     setLocalError(null);
@@ -76,6 +79,7 @@ export default function CheckoutDialog({
   };
 
   const moveMethod = (dir) => {
+    if (!paymentMethods.length) return;
     const i = paymentMethods.findIndex((m) => m.key === selKey);
     const n = (Math.max(i, 0) + dir + paymentMethods.length) % paymentMethods.length;
     setSel(paymentMethods[n].key);

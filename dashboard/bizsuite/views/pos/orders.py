@@ -17,6 +17,7 @@ from ...club_services import earn_for_order
 from ...accounting_posting import post_pos_order, safe_post
 from ..common import (
     PosPerm,
+    action_denied,
     no_business_response,
     resolve_business,
 )
@@ -95,6 +96,11 @@ def pos_create_order(request):
                 {"success": False, "error": "برای سفارش پیک، آدرس تحویل را وارد کنید."}, status=400)
         cod = cod and is_delivery
 
+        # taking money: cash and card/online are separate permissions (every order records how it is paid)
+        denied = action_denied(request, "pos_pay_cash" if payment_method == "cash" else "pos_pay_card")
+        if denied:
+            return denied
+
         validated_items = []
         stock_errors = []
 
@@ -126,6 +132,17 @@ def pos_create_order(request):
 
             if db_price <= 0:
                 db_price = int(item.get("price", 0))
+
+            # a line sold below the product's price is a discount: only with the discount permission
+            try:
+                asked = int(item.get("price"))
+            except (TypeError, ValueError):
+                asked = None
+            if asked is not None and 0 <= asked < db_price:
+                denied = action_denied(request, "pos_discount")
+                if denied:
+                    return denied
+                db_price = asked
 
             # بررسی موجودی
             available = product_available_stock(food)
@@ -256,6 +273,9 @@ def pos_create_order(request):
 @permission_classes([PosPerm])
 @audit("pos", "close_pending", "بستن سفارش‌های معلق")
 def pos_close_all_pending(request):
+    denied = action_denied(request, "pos_close_day")
+    if denied:
+        return denied
     today = timezone.localdate()
     business = resolve_business(request)
 

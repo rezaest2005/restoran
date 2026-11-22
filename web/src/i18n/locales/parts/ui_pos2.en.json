@@ -1,5 +1,6 @@
 {
   "ui_pos2": {
+    "no_payment_permission": "You have no permission to take payments. Ask the account owner.",
     "tabs": { "orders": "Orders", "summary": "Day summary" },
     "summary": {
       "title": "Day summary",

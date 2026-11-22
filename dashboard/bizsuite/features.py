@@ -45,6 +45,14 @@ FEATURES: list[Feature] = [
     Feature("pos_settings", "pos", "pos", "تنظیمات صندوق", "POS settings"),
     Feature("orders", "pos", "pos", "سفارش‌ها", "Orders"),
     Feature("dictionary_menu", "pos", "pos", "تعاریف: محصولات فروش", "Definitions: products"),
+    # fine-grained cashier ACTIONS (same licence -> owner ticks -> employee chain as the tabs above)
+    Feature("pos_discount", "pos", "pos", "اعمال تخفیف در صندوق", "Apply discounts at the till"),
+    Feature("pos_price_edit", "pos", "pos", "تغییر قیمت محصول در صندوق", "Change product prices at the till"),
+    Feature("pos_cancel_order", "pos", "pos", "لغو یا رد سفارش", "Cancel or reject orders"),
+    Feature("pos_pay_cash", "pos", "pos", "دریافت وجه نقد", "Take cash payments"),
+    Feature("pos_pay_card", "pos", "pos", "ثبت پرداخت کارتی و آنلاین", "Record card and online payments"),
+    Feature("pos_past_days", "pos", "pos", "مشاهده‌ی روزهای قبل در گزارش", "View previous days in the report"),
+    Feature("pos_close_day", "pos", "pos", "بستن سفارش‌های باز روز", "Close the day's open orders"),
 
     Feature("inventory_invoice", "inventory", "inventory", "فاکتور خرید", "Purchase invoices"),
     Feature("inventory_sales", "inventory", "inventory", "فاکتور فروش", "Sales invoices"),
@@ -70,6 +78,10 @@ FEATURES: list[Feature] = [
     Feature("delivery_cash", "delivery", "delivery", "صندوق حمل‌ونقل و تسویه", "Transport cash & settlement"),
     Feature("delivery_history", "delivery", "delivery", "تاریخچه‌ی مأموریت‌ها", "Trip history"),
 ]
+
+# the cashier action permissions (subset of FEATURES, all in the POS section)
+POS_ACTION_KEYS = ["pos_discount", "pos_price_edit", "pos_cancel_order", "pos_pay_cash", "pos_pay_card",
+                   "pos_past_days", "pos_close_day"]
 
 FEATURE_BY_KEY = {f.key: f for f in FEATURES}
 ALL_FEATURE_KEYS = [f.key for f in FEATURES]
@@ -138,7 +150,10 @@ PATH_FEATURES: list[tuple[str, list[str], list[str] | None]] = [
     ("/api/delivery/zones", _TRIP_TABS + ["delivery_fleet"], ["delivery_fleet", "delivery_dispatch"]),
     ("/api/delivery/pending-orders", ["delivery_dispatch"], None),
     ("/api/delivery/dispatchable", ["delivery_dispatch"], None),
-    ("/api/pos/update-food-price", ["pos_settings"], None),
+    ("/api/pos/update-food-price", ["pos_price_edit"], None),
+    ("/api/pos/daily-report", ["pos_report"], None),
+    ("/api/pos/daily-orders", ["pos_report"], None),
+    ("/api/pos/day-summary", ["pos_report"], None),
     ("/api/inventory/reports", ["inventory_reports"], None),
     ("/api/inventory/purchase-suggestions", ["inventory_purchase_list"], None),
 ]
@@ -146,7 +161,7 @@ PATH_FEATURES: list[tuple[str, list[str], list[str] | None]] = [
 # Default tabs when an account has none ticked yet (by role).
 ROLE_FEATURES: dict[str, list[str]] = {
     "cashier": ["home", "pos", "pos_report", "orders", "dictionary_menu", "dictionary_customers",
-                "delivery_dispatch"],
+                "delivery_dispatch"] + POS_ACTION_KEYS,
     "kitchen": ["home", "kitchen", "recipes", "orders", "dictionary_recipe"],
     "warehouse": ["home", "inventory_invoice", "inventory_sales", "inventory_warehouse",
                   "inventory_receiving", "inventory_purchase_list", "inventory_reports",
@@ -222,6 +237,22 @@ def user_features(user) -> set[str]:
     out = user_ticked(user) & lic
     out.add("home") if "home" in lic else None
     return out
+
+
+def has_feature(user, key: str) -> bool:
+    """True when ``key`` is in the user's effective features (licence ∩ owner's grant)."""
+    return key in user_features(user)
+
+
+def can_edit_price(user) -> bool:
+    """Changing a product's price: the POS price action, or the products Definitions tab.
+
+    People without any POS tab (inventory-only accounts) keep editing products as before.
+    """
+    if getattr(user, "is_superuser", False):
+        return True
+    feats = user_features(user)
+    return bool({"pos_price_edit", "dictionary_menu"} & feats) or "pos" not in feats
 
 
 def service_allowed(user, service_codes, path: str | None = None, method: str = "GET") -> bool:

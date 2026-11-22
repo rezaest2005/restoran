@@ -99,8 +99,8 @@ class ApiEnforcementTests(FeatureBase):
         self.assertEqual(c.get("/api/delivery/vehicles/").status_code, 403)
         self.assertEqual(c.get("/api/delivery/trips/").status_code, 403)
 
-    def test_pos_price_edit_needs_pos_settings_tab(self):
-        self.sell("pos", disabled=["pos_settings"])
+    def test_pos_price_edit_needs_its_licence(self):
+        self.sell("pos", disabled=["pos_price_edit"])
         r = self.api(self.owner).post("/api/pos/update-food-price/", {"food_id": 1, "price": 5}, format="json")
         self.assertEqual(r.status_code, 403)
 

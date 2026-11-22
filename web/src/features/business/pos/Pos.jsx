@@ -14,6 +14,7 @@ import useCheckout from "./hooks/useCheckout";
 import useDailyReport from "./hooks/useDailyReport";
 import useAnalytics from "./hooks/useAnalytics";
 import useBarcodeScanner from "./hooks/useBarcodeScanner";
+import usePosAccess, { canUseMethod } from "./hooks/usePosAccess";
 import { lookupBarcode } from "./api";
 import client from "../api/client";
 import { moduleEnabled, hasTab } from "@business/dashboard/access";
@@ -70,6 +71,10 @@ export default function Pos() {
   const { toast, showToast, closeToast } = useToast();
   const [mainTab, setMainTab] = useState(NAV_ITEMS[0]?.key || "pos");
   const canEditPos = hasTab("pos_settings");
+  const posAccess = usePosAccess();
+  // the method the checkout opens on must be one this cashier may take (cash first, then card/online)
+  const methodOk = (m) => canUseMethod(posAccess, m);
+  const startMethod = methodOk(paymentMethod) ? paymentMethod : ["cash", "card", "online"].find(methodOk);
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
   const [qrOpen, setQrOpen] = useState(false);
   const [accepted, setAccepted] = useState([]);
@@ -232,6 +237,10 @@ export default function Pos() {
     }
     if (requireCustomer && !custName.trim()) {
       showToast(t("ui_c.pos.customer_required"), "warning");
+      return;
+    }
+    if (!startMethod) {
+      showToast(t("ui_pos2.no_payment_permission"), "warning");
       return;
     }
     setMobileCartOpen(false);
@@ -659,7 +668,7 @@ export default function Pos() {
                 <DaySummary
                   date={selectedDate} isToday={isToday}
                   onPrevDay={goPrevDay} onNextDay={goNextDay} onGoToday={goToday}
-                  C={C} isRtl={isRtl} lang={lang}
+                  C={C} isRtl={isRtl} lang={lang} pastDays={posAccess.canPastDays}
                 />
               ) : (
                 <DailyReport
@@ -675,6 +684,7 @@ export default function Pos() {
                   onNextDay={goNextDay}
                   onGoToday={goToday}
                   analytics={analytics}
+                  pastDays={posAccess.canPastDays}
                 />
               )}
             </Box>
@@ -709,7 +719,7 @@ export default function Pos() {
         C={C}
         isRtl={isRtl}
         lastOrder={lastOrder}
-        defaultMethod={paymentMethod}
+        defaultMethod={startMethod || paymentMethod}
         cart={cart}
         cartTotal={cartTotal}
         onSubmit={handlePayment}

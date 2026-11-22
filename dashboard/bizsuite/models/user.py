@@ -71,6 +71,10 @@ class User(AbstractUser):
     role = models.CharField(
         "نقش", max_length=20, choices=Role.choices, default=Role.CUSTOMER, db_index=True
     )
+    role_title = models.CharField(
+        "عنوان شغلی", max_length=60, blank=True, default="",
+        help_text="عنوانی که مالک خودش نوشته؛ اگر پر باشد به‌جای نام نقش نمایش داده می‌شود",
+    )
     business = models.ForeignKey(
         Business,
         on_delete=models.CASCADE,

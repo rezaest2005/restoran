@@ -15,6 +15,7 @@ from tests.test_features import FeatureBase
 # Owner-only tabs (activity history) are deliberately not offered: nobody but the account owner can hold them.
 UI_KEYS = [
     "home", "pos", "pos_report", "pos_settings", "orders",
+    "pos_discount", "pos_price_edit", "pos_cancel_order", "pos_pay_cash", "pos_pay_card", "pos_past_days", "pos_close_day",
     "inventory_invoice", "inventory_sales", "inventory_warehouse", "inventory_receiving",
     "inventory_purchase_list", "inventory_reports", "kitchen", "recipes", "dictionary_recipe",
     "dictionary_menu", "dictionary_items", "dictionary_suppliers", "dictionary_warehouses",

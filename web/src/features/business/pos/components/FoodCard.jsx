@@ -3,6 +3,7 @@ import { Box, Typography, IconButton } from "@mui/material";
 import { CameraAlt, Add, Remove, PushPin, PushPinOutlined, Percent, AttachMoney } from "@mui/icons-material";
 
 import { updateProduct, uploadProductImage } from "../api";
+import usePosAccess from "../hooks/usePosAccess";
 
 function FoodCard({
   food = {},
@@ -21,6 +22,7 @@ function FoodCard({
   cartQty = 0, // 2. تعداد از سبد خرید (پدر) دریافت می‌شود
 }) {
   const [price, setPrice] = useState(food.price || 0);
+  const { canEditPrice } = usePosAccess(); // price/discount edits are a price change: needs pos_price_edit
   const [discount, setDiscount] = useState(0);
   const [discountMode, setDiscountMode] = useState("percent");
   const [imageUrl, setImageUrl] = useState(food.image || null);
@@ -125,7 +127,7 @@ function FoodCard({
     setSaving(true);
     try {
       const finalPrice = effectivePrice;
-      const payload = { price, final_price: finalPrice };
+      const payload = canEditPrice ? { price, final_price: finalPrice } : {};
       if (stock !== "" && !food.linked) payload.stock = Number(stock);
 
       await updateProduct(food.id, payload);
@@ -502,6 +504,7 @@ function FoodCard({
               <input
                 type="text"
                 value={price ? formatNum(price) : ""}
+                disabled={!canEditPrice}
                 onChange={(e) => {
                   const raw = e.target.value.replace(/,/g, "");
                   if (/^\d*$/.test(raw)) setPrice(raw === "" ? 0 : Number(raw));
@@ -550,6 +553,7 @@ function FoodCard({
               <input
                 type="text"
                 value={discount ? formatNum(discount) : ""}
+                disabled={!canEditPrice}
                 onChange={(e) => {
                   const raw = e.target.value.replace(/,/g, "");
                   if (/^\d*$/.test(raw)) {
