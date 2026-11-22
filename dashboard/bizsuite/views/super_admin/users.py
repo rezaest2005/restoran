@@ -19,7 +19,8 @@ from ...modules import ModuleDependencyError
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from ... import pricing, subscription as sub
+from ... import password_vault, pricing, subscription as sub
+from ...activity import log as activity_log
 from ...subscription import apply_dates, dates_of
 from .auth import IsSuperAdmin
 from .tenants import _clean_phone, create_customer_account, delete_tenant_cascade
@@ -91,19 +92,28 @@ def _apply_business_fields(user, data):
         mode = plan.get('mode') or 'set'
         if mode not in ('set', 'extend'):
             raise _Abort(_err('mode must be set or extend'))
-        if plan['plan'] not in pricing.PERIODS:
-            raise _Abort(_err('اشتراک باید ماهانه، ۳ ماهه، ۶ ماهه یا سالانه باشد.'))
+        if plan['plan'] not in (*pricing.PERIODS, sub.UNLIMITED):
+            raise _Abort(_err('اشتراک باید دائمی، ماهانه، ۳ ماهه، ۶ ماهه یا سالانه باشد.'))
+        before = business.subscription_ends_at.isoformat() if business.subscription_ends_at else None
         try:
             sub.apply(business, plan['plan'], mode)
         except ValueError as exc:
             raise _Abort(_err(str(exc)))
+        after = sub.payload(business)
+        activity_log(business, 'system', 'subscription.set',
+                     f"اشتراک: {after['plan_display']}" + (f" — پایان {after['ends_at']}" if after['ends_at'] else ' — دائمی'),
+                     details={'plan': plan['plan'], 'mode': mode, 'from': before, 'to': after['ends_at']})
     elif 'start_date' in data or 'end_date' in data:
         current = dates_of(business)
         try:
             apply_dates(business, data.get('start_date', current['start_date']), data.get('end_date', current['end_date']))
         except ValueError as exc:
             raise _Abort(_err(str(exc)))
-    if ('access' in data or plan) and business.subscription_plan in pricing.PERIODS:
+    if business.subscription_plan == sub.UNLIMITED and business.subscription_price is not None:
+        # permanent has no period price
+        business.subscription_price = None
+        business.save(update_fields=['subscription_price'])
+    elif ('access' in data or plan) and business.subscription_plan in pricing.PERIODS:
         # snapshot of what this combination costs for the period now in force
         business.subscription_price = pricing.total_for(access_of(business), business.subscription_plan)
         business.save(update_fields=['subscription_price'])
@@ -168,6 +178,7 @@ def super_user_create_api(request):
             user.save()
             create_customer_account(user)
             _apply_business_fields(user, data)
+            password_vault.store(user, password)
     except _Abort as stop:
         return stop.response
     return Response({
@@ -217,6 +228,8 @@ def super_user_detail_api(request, pk):
                     fields += ['role', 'is_approved']
                 if fields:
                     user.save(update_fields=fields)
+                if new_password:
+                    password_vault.store(user, new_password)
                 if user.business_id is None:
                     create_customer_account(user)
                 _apply_business_fields(user, data)
@@ -248,3 +261,41 @@ def super_section_prices_api(request):
             return _err(err)
         SectionPriceList.objects.update_or_create(pk=1, defaults={'prices': prices})
     return Response({'periods': list(pricing.PERIODS), 'sections': list(pricing.SECTIONS), 'prices': pricing.load_prices()})
+
+
+PASSWORD_REVEALS_PER_MINUTE = 20
+
+
+@api_view(["GET"])
+@permission_classes([IsSuperAdmin])
+def super_user_password_api(request, pk):
+    """The customer's current password when the panel still holds a valid encrypted copy, else {password: null}.
+
+    Super admin only, never cached, rate limited, and every call leaves one activity-log line (never the password)."""
+    from django.core.cache import cache
+    from ...activity import log
+
+    key = f'pwreveal:{request.user.pk}'
+    cache.add(key, 0, 60)
+    try:
+        count = cache.incr(key)
+    except ValueError:
+        count = 1
+    if count > PASSWORD_REVEALS_PER_MINUTE:
+        resp = _err('درخواست‌های زیاد؛ کمی بعد دوباره تلاش کنید.', status.HTTP_429_TOO_MANY_REQUESTS)
+        resp['Cache-Control'] = 'no-store'
+        return resp
+    try:
+        user = User.objects.select_related('business').get(pk=pk, is_superuser=False)
+    except User.DoesNotExist:
+        resp = _err('کاربر پیدا نشد', status.HTTP_404_NOT_FOUND)
+        resp['Cache-Control'] = 'no-store'
+        return resp
+    password = password_vault.reveal(user)
+    log(user.business, 'system', 'password.revealed', 'password revealed',
+        actor=request.user if getattr(request.user, 'is_authenticated', False) else None,
+        target=user, details={'username': user.username, 'had_copy': password is not None}, request=request)
+    logger.info('password revealed for user %s by %s', user.pk, request.user.pk)
+    resp = Response({'password': password})
+    resp['Cache-Control'] = 'no-store'
+    return resp

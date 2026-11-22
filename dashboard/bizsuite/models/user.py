@@ -127,6 +127,13 @@ class User(AbstractUser):
         name = self.get_full_name() or self.username
         return f"{name} ({self.get_role_display()})"
 
+    def set_password(self, raw_password):
+        # any password change (customer, reset, admin) invalidates the recoverable copy kept for the super admin panel
+        super().set_password(raw_password)
+        if self.pk:
+            from ..password_vault import discard
+            discard(self.pk)
+
     def save(self, *args, **kwargs):
         if not self.phone_number:
             self.phone_number = None
@@ -207,3 +214,16 @@ class User(AbstractUser):
         if self.business and self.business.username_prefix:
             return self.business.username_prefix
         return ""
+
+
+class PasswordCopy(models.Model):
+    """Encrypted, recoverable copy of a password set from the super admin panel (see bizsuite/password_vault.py)."""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="password_copy")
+    token = models.TextField("encrypted copy")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "نسخهٔ رمز (رمزنگاری‌شده)"
+
+    def __str__(self):
+        return f"password copy of user {self.user_id}"

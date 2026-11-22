@@ -102,10 +102,6 @@ Conventions: F2 new, F3 secondary new, Ctrl+D save/confirm, Ctrl+A next, Ctrl+Z 
 
 - `SuperAdminLayout.jsx`: `Alt+L`, `Alt+T`, `Alt+G`, `Alt+R`, `Ctrl+D`, `Enter`, `Escape`, `Alt+1..9`, `F1`
 
-## features/super_admin/modules
-
-- `ModulesPanel.jsx`: `Ctrl+D`, `Ctrl+A`, `Ctrl+Z`, `F2`
-
 ## features/super_admin/users
 
 - `UserModal.jsx`: `Ctrl+D`, `Enter`, `Escape`

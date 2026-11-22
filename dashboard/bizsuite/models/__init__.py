@@ -24,6 +24,7 @@ from .common import (
 from .business import Business, SectionPriceList, Tenant, _invalidate_business_cache
 from .user import (
     DASHBOARD_SECTIONS,
+    PasswordCopy,
     User,
     _ALL_SECTIONS,
     validate_dashboard_permissions,
@@ -78,7 +79,7 @@ __all__ = [
     "UNIT_CHOICES", "UNIT_MAX_LENGTH", "DecimalSafeEncoder", "check_constraint",
     "created_at_field", "description_field", "is_active_field", "name_field",
     "phone_field", "price_field", "qty_field", "unit_field", "updated_at_field",
-    "Business", "SectionPriceList", "Tenant", "DASHBOARD_SECTIONS", "User",
+    "Business", "SectionPriceList", "Tenant", "DASHBOARD_SECTIONS", "User", "PasswordCopy",
     "validate_dashboard_permissions",
     "BarcodeSequence", "Category", "Food", "set_food_final_price",
     "Order", "OrderItem", "set_order_item_price",

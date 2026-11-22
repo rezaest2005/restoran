@@ -8,7 +8,6 @@ import { getSuperColors } from "@super/common/superConfig";
 import SuperSidebar from "@super/layout/SuperSidebar";
 import SuperTopBar from "@super/layout/SuperTopBar";
 import UsersPanel from "@super/users/UsersPanel";
-import ModulesPanel from "@super/modules/ModulesPanel";
 import QrPanel from "@super/qr/QrPanel";
 import SupportPanel from "@super/support/SupportPanel";
 import { fetchSupportSummary } from "@super/support/api";
@@ -77,7 +76,6 @@ export default function SuperAdminLayout() {
   /* ── تب‌ها ── */
   const tabs = [
     { id: "users", label: t("super.tab.users"), icon: "users" },
-    { id: "modules", label: t("ui_k.mod.title"), icon: "modules" },
     { id: "qr", label: t("ui_qr.tab"), icon: "qr" },
     { id: "support", label: t("ui_sup.admin_tab"), icon: "support", badge: supportWaiting },
   ];
@@ -211,9 +209,8 @@ export default function SuperAdminLayout() {
               t={t}
             />
           )}
-          {activeTab === 1 && <ModulesPanel tenants={tenants} C={C} />}
-          {activeTab === 2 && <QrPanel tenants={tenants} C={C} />}
-          {activeTab === 3 && <SupportPanel C={C} tenants={tenants} onChanged={refreshSupport} />}
+          {activeTab === 1 && <QrPanel tenants={tenants} C={C} />}
+          {activeTab === 2 && <SupportPanel C={C} tenants={tenants} onChanged={refreshSupport} />}
         </Box>
         <HintBar items={[{ keys: "Alt+R", label: t("ui_l.super.refresh") }, { keys: "Alt+T", label: t("ui_l.super.toggle_theme") }, { keys: "Alt+G", label: t("ui_l.super.toggle_lang") }, { keys: "Alt+L", label: t("ui_l.super.logout") }]} />
       </Box>

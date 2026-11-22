@@ -7,6 +7,12 @@
     "cancel_edit": "Cancel",
     "new_password": "New password",
     "pw_saved_hint": "A password is set. Press Edit to change it.",
-    "pw_new_hint": "Type the new password, then press Save."
+    "pw_new_hint": "Type the new password, then press Save.",
+    "pw_reveal": "Show current password",
+    "pw_hide": "Hide password",
+    "pw_copy": "Copy password",
+    "pw_copied": "Copied",
+    "pw_unknown": "The customer changed the password or it was never stored; press Edit to set a new one.",
+    "pw_reveal_failed": "Could not show the password."
   }
 }
