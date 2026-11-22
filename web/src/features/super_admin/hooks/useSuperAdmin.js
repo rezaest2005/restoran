@@ -28,13 +28,11 @@ export const useSuperAdmin = () => {
     catch (err) { if (err.response?.status === 401 || err.response?.status === 403) navigate("/super/login"); }
   }, [navigate]);
 
-  const loadUsers = useCallback(async (page = 1, search = "", restId = "", role = "") => {
+  const loadUsers = useCallback(async (page = 1, search = "") => {
     setUsersLoading(true); setUsersPage(page);
     try {
       let params = `?page=${page}`;
       if (search) params += `&search=${encodeURIComponent(search)}`;
-      if (restId) params += `&business_id=${restId}`;
-      if (role) params += `&role=${role}`;
       const { data } = await superClient.get(`/api/super/users/${params}`);
       setUsers(data.users || []); setUsersPages(data.pages || 1);
     } catch (err) { if (err.response?.status === 401 || err.response?.status === 403) navigate("/super/login"); } 

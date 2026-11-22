@@ -97,20 +97,6 @@
     "nav": {
       "management": "مدیریت",
       "dashboard": "داشبورد",
-      "business": "کسب‌وکار",
-      "main_dashboard": "داشبورد اصلی",
-      "dictionary": "دیکشنری",
-      "food_menu": "کاتالوگ محصولات",
-      "pos": "صندوق",
-      "orders": "سفارشات",
-      "warehouse": "انبار",
-      "purchase_invoice": "فاکتور خرید",
-      "raw_materials": "مواد اولیه",
-      "semi_finished": "نیمه‌ساخته",
-      "ready_materials": "مواد آماده",
-      "usage_log": "تاریخچه مصرف",
-      "recipes": "فرمولاسیون",
-      "kitchen": "خط تولید",
       "customers": "مشتریان",
       "loyalty": "باشگاه مشتریان",
       "customer_list": "لیست مشتریان",
@@ -128,49 +114,7 @@
       "expiring": "در حال انقضا"
     },
     "tab": {
-      "tenants": "کسب‌وکارها",
       "users": "کاربران"
-    },
-    "tenants": {
-      "title": "کسب‌وکارها",
-      "search": "جستجو...",
-      "new": "کسب‌وکار جدید",
-      "edit": "ویرایش کسب‌وکار",
-      "empty": "کسب‌وکاری یافت نشد",
-      "services_count": "سرویس",
-      "slug_hint": "شناسه یکتا برای آدرس کسب‌وکار",
-      "password_no_change": "بدون تغییر",
-      "password": "رمز عبور",
-      "col": {
-        "name": "نام",
-        "slug": "اسلاگ",
-        "owner": "مالک",
-        "phone": "تلفن",
-        "services": "سرویس‌ها",
-        "subscription": "اشتراک",
-        "status": "وضعیت",
-        "actions": "عملیات",
-        "period": "دوره",
-        "start": "تاریخ شروع",
-        "end": "تاریخ پایان"
-      },
-      "field": {
-        "name": "نام کسب‌وکار",
-        "slug": "اسلاگ (انگلیسی)",
-        "owner_username": "نام کاربری مالک",
-        "password": "رمز عبور",
-        "owner_name": "نام مالک",
-        "phone": "تلفن",
-        "address": "آدرس",
-        "start_date": "تاریخ شروع اشتراک",
-        "end_date": "تاریخ پایان اشتراک",
-        "subscription_title": "اطلاعات اشتراک"
-      },
-      "placeholder": {
-        "name": "مثال: کسب‌وکار م آریا",
-        "owner_name": "مثال: علی محمدی",
-        "address": "تهران، خیابان ولیعصر..."
-      }
     },
     "services": {
       "title": "سرویس‌ها",
@@ -250,21 +194,6 @@
       "warehouse": "انبار",
       "ready": "آماده",
       "reports": "گزارشات"
-    },
-    "role": {
-      "owner": "مالک",
-      "manager": "مدیر",
-      "cashier": "صندوق‌دار",
-      "kitchen": "کارکنان تولید",
-      "warehouse": "انباردار",
-      "customer": "مشتری"
-    },
-    "badge": {
-      "expired": "منقضی",
-      "valid": "معتبر",
-      "active": "فعال",
-      "inactive": "غیرفعال",
-      "admin": "مدیر"
     },
     "action": {
       "edit": "ویرایش",

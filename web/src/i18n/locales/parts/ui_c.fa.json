@@ -189,19 +189,10 @@
     },
     "super": {
       "cancel": "انصراف",
-      "custom_job": "نام شغل سفارشی",
-      "custom_job_ph": "مثلاً: منشی، حسابدار، نظافتچی...",
       "delete": {
         "confirm": "آیا از حذف «{{name}}» مطمئن هستید؟ این عمل قابل بازگشت نیست.",
         "confirm_btn": "حذف شود",
-        "tenant_title": "حذف کسب‌وکار",
-        "user_title": "حذف کاربر"
-      },
-      "group": {
-        "dictionary": "📖 تعاریف",
-        "home": "🏠 داشبورد",
-        "inventory": "📦 انبار",
-        "pos": "💰 صندوق"
+        "user_title": "حذف مشتری"
       },
       "list_sep": "، ",
       "login": {
@@ -209,127 +200,45 @@
         "enter_credentials": "نام کاربری و رمز عبور را وارد کنید",
         "unknown_error": "خطای ناشناخته"
       },
-      "perm": {
-        "dictionary": "دیکشنری",
-        "dictionary_customers": "مشتریان",
-        "dictionary_managers": "مدیران",
-        "dictionary_menu": "کاتالوگ محصولات",
-        "dictionary_recipes": "فرمولاسیون‌ها",
-        "dictionary_suppliers": "تأمین‌کنندگان",
-        "dictionary_warehouses": "انبارها",
-        "home": "داشبورد اصلی",
-        "inventory_invoice": "ثبت فاکتور خرید",
-        "inventory_purchase_list": "لیست خرید",
-        "inventory_receiving": "تحویل بار",
-        "inventory_reports": "گزارشات",
-        "inventory_sales": "ثبت فاکتور فروش",
-        "inventory_warehouse": "انبار",
-        "orders": "سفارشات",
-        "pos": "صندوق فروش",
-        "pos_report": "گزارش روز صندوق",
-        "pos_settings": "تنظیمات صندوق"
-      },
-      "perms": {
-        "active_of": "{{active}} از {{total}} دسترسی فعال",
-        "all": "☑ همه",
-        "none": "☐ هیچ",
-        "saved": "دسترسی‌ها ذخیره شد.",
-        "title": "دسترسی‌ها — {{username}}"
-      },
-      "preset": {
-        "cashier": {
-          "desc": "فقط بخش صندوق + کاتالوگ",
-          "label": "💰 صندوقدار"
-        },
-        "customer": {
-          "desc": "فقط مشاهده کاتالوگ",
-          "label": "🧑 مشتری"
-        },
-        "kitchen": {
-          "desc": "فرمولاسیون + کاتالوگ + سفارشات",
-          "label": "🏭 خط تولید"
-        },
-        "manager": {
-          "desc": "همه به‌جز مدیریت کاربران",
-          "label": "👤 مدیر"
-        },
-        "other": {
-          "desc": "نام شغل + دسترسی دلخواه",
-          "label": "📝 سایر (سفارشی)"
-        },
-        "owner": {
-          "desc": "دسترسی کامل",
-          "label": "👑 مالک"
-        },
-        "warehouse": {
-          "desc": "فقط بخش انبار + تعاریف",
-          "label": "📦 انباردار"
-        }
-      },
-      "role_job": "🎭 نقش / شغل",
-      "role_other": "سایر (سفارشی)",
       "save": "ذخیره",
       "services": {
         "save_error": "خطا در ذخیره",
         "saved": "ذخیره شد"
       },
-      "tenant": {
-        "active_count": "{{n}}/{{total}} فعال",
-        "chip_all": "🟢 همه",
-        "chip_none": "🧹 هیچ",
-        "create": "ساخت کسب‌وکار",
-        "deselect_all": "☒ لغو همه",
-        "end": "پایان",
-        "err_check_fields": "لطفاً فیلدها را بررسی کنید",
-        "err_name": "نام کسب‌وکار الزامی است",
-        "err_owner_password": "رمز عبور باید حداقل ۴ کاراکتر باشد",
-        "err_owner_username": "نام کاربری مالک الزامی است",
-        "err_server": "خطا در ارتباط با سرور",
-        "err_slug": "Slug الزامی است",
-        "err_slug_format": "فقط حروف کوچک انگلیسی، عدد و خط تیره",
-        "f_address": "آدرس",
-        "f_name": "نام کسب‌وکار *",
-        "f_new_password": "رمز عبور جدید (اختیاری)",
-        "f_owner_name": "نام مالک",
-        "f_owner_username": "نام کاربری مالک *",
-        "f_password": "رمز عبور *",
-        "f_phone": "تلفن",
-        "f_slug": "Slug (آدرس) *",
-        "perms_hint": "تب‌هایی که این کسب‌وکار می‌تواند ببیند را انتخاب کنید",
-        "pw_keep": "برای عدم تغییر خالی بگذارید",
-        "pw_min": "حداقل ۴ کاراکتر",
-        "save_changes": "ذخیره تغییرات",
-        "section_dates": "📅 تاریخ اشتراک",
-        "section_main": "📋 اطلاعات اصلی",
-        "section_perms": "🔐 تب‌ها و دسترسی‌ها",
-        "select_all": "☑ انتخاب همه",
-        "slug_hint": "مثال: test1, demo-co",
-        "start": "شروع",
-        "title_edit": "✏️ ویرایش کسب‌وکار",
-        "title_new": "➕ ساخت کسب‌وکار جدید"
-      },
       "user": {
-        "auto_perms": "🔐 دسترسی‌های خودکار ({{n}} مورد)",
         "first_name": "نام",
         "last_name": "نام خانوادگی",
         "password": "رمز عبور",
-        "perms_tip": "💡 برای تغییر تک‌تک دسترسی‌ها، بعد از ایجاد از دکمه «دسترسی‌ها» استفاده کنید",
         "phone": "شماره تلفن",
-        "tenant": "کسب‌وکار",
         "title_edit": "✏️ ویرایش کاربر",
         "title_new": "➕ کاربر جدید",
         "username": "نام کاربری"
       },
       "users": {
         "actions": "عملیات",
-        "all": "همه",
         "delete": "حذف",
         "edit": "ویرایش",
         "new": "کاربر جدید",
         "perms": "دسترسی‌ها",
-        "role": "نقش",
         "search": "جستجو...",
         "title": "کاربران"
+      },
+      "cust": {
+        "tab_info": "اطلاعات",
+        "tab_access": "دسترسی‌ها",
+        "role": "مشتری",
+        "dates": "تاریخ اشتراک",
+        "start": "تاریخ شروع",
+        "end": "تاریخ پایان",
+        "end_hint": "خالی = بدون تاریخ پایان؛ داشبورد در پایان همان روز بسته می‌شود",
+        "pw_min": "حداقل ۴ کاراکتر",
+        "err_username": "نام کاربری الزامی است",
+        "err_password": "رمز عبور باید حداقل ۴ کاراکتر باشد",
+        "access_hint": "بخش‌ها و تب‌هایی که مشتری خریده است — {{n}} از {{total}} تب فعال",
+        "all": "همه",
+        "none": "هیچ",
+        "empty": "مشتری‌ای پیدا نشد",
+        "col_name": "نام"
       }
     }
   }

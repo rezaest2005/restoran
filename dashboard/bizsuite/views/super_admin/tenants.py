@@ -1,29 +1,21 @@
 """
-سوپر ادمین — کسب‌وکارها (tenant) و آمار
+سوپر ادمین — آمار، فهرست حساب‌ها (برای پنل‌های ماژول/QR/پشتیبانی) و کمک‌های ساخت/حذف حساب مشتری.
+
+A "customer" is the person who bought an account: a user with role ``owner`` + a tenant + a business. The Users page
+of the admin panel creates all three in one step through ``create_customer_account``.
 """
 import logging
-import re
 
 from django.db import transaction
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework import status
 
 from ...models import Business, Tenant, User
-from ...subscription import payload as subscription_payload
+from ...subscription import apply_dates, dates_of, payload as subscription_payload
 from .auth import IsSuperAdmin
-from ..common import server_error
 
 logger = logging.getLogger(__name__)
-
-
-_SLUG_RE = re.compile(r'^[a-zA-Z0-9_-]+$')
-
-
-def _validate_slug(slug, exclude_business_id=None):
-    from ...slugs import validate_slug
-    return validate_slug(slug, exclude_business_id)
 
 
 def _clean_phone(val):
@@ -31,13 +23,43 @@ def _clean_phone(val):
     return v if v else None
 
 
-# ★ helper: آبجکت کامل tenant + business برای response
-def _clean_industry(value):
-    """Known preset key (see industries.py) or '' (unset = neutral terms)."""
-    from ...industries import ALIASES, INDUSTRY_BY_KEY
-    key = (value or '').strip().lower()
-    key = ALIASES.get(key, key) if key else ''
-    return key if key in INDUSTRY_BY_KEY else ''
+def customer_label(user):
+    """Business name of a new account: the person's full name, else the username."""
+    return (user.get_full_name() or '').strip() or user.username
+
+
+def create_customer_account(user, start_date=None, end_date=None):
+    """Give ``user`` (role owner) a tenant and a business so they can sign in and see a dashboard.
+
+    Call inside ``transaction.atomic()``. The slug is generated from the username and made unique.
+    Modules are left unmanaged (everything on) — exactly what creating a tenant has always done.
+    """
+    from ...slugs import unique_slug
+    name = customer_label(user)
+    tenant = Tenant.objects.create(name=name, owner=user, phone=user.phone_number or '')
+    business = Business.objects.create(tenant=tenant, name=name, slug=unique_slug(user.username), phone=user.phone_number or '')
+    user.business = business
+    user.save(update_fields=['business'])
+    if start_date or end_date:
+        apply_dates(business, start_date, end_date)
+    return tenant, business
+
+
+def delete_tenant_cascade(tenant):
+    """Remove a tenant with its business(es) and every account of that business (never a super admin)."""
+    with transaction.atomic():
+        # users, business and tenant point at each other with PROTECT: detach the users first, then delete
+        businesses = list(Business.objects.filter(tenant=tenant))
+        user_qs = User.objects.filter(business__in=businesses)
+        account_ids = list(user_qs.filter(is_superuser=False).values_list('pk', flat=True))
+        owner_id = tenant.owner_id
+        if owner_id and not tenant.owner.is_superuser:
+            account_ids.append(owner_id)
+        user_qs.update(business=None)
+        for b in businesses:
+            b.delete()
+        tenant.delete()
+        User.objects.filter(pk__in=set(account_ids), is_superuser=False).delete()
 
 
 def _tenant_to_dict(tenant, business=None):
@@ -55,214 +77,30 @@ def _tenant_to_dict(tenant, business=None):
             if tenant.owner else '?'
         ),
         'owner_username': tenant.owner.username if tenant.owner else '',
-        'owner_full_name': (tenant.owner.get_full_name() if tenant.owner else '') or '',
-        'phone': tenant.phone or '',
-        'address': tenant.address or '',
         'is_active': tenant.is_active,
-        'username_prefix': (
-            business.username_prefix if business else ''
-        ) or '',
         'disabled_features': list(business.disabled_features) if business else [],
         'subscription': subscription_payload(business) if business else None,
-        'industry': (business.industry if business else '') or '',
         'created_at': tenant.created_at.strftime('%Y/%m/%d'),
     }
 
-
-# ═══════════════════════════════════════════
-#  API: آمار کلی سیستم
-# ═══════════════════════════════════════════
 
 @api_view(["GET"])
 @permission_classes([IsSuperAdmin])
 def super_stats_api(request):
     tenants = Tenant.objects.all()
-    total = tenants.count()
-    active = tenants.filter(is_active=True).count()
-    total_users = User.objects.filter(is_active=True).count()
-
     return Response({
-        'total_tenants': total,
-        'active_tenants': active,
-        'total_users': total_users,
+        'total_tenants': tenants.count(),
+        'active_tenants': tenants.filter(is_active=True).count(),
+        'total_users': User.objects.filter(is_active=True).count(),
     })
 
 
-# ═══════════════════════════════════════════
-#  API: CRUD کسب‌وکارها
-# ═══════════════════════════════════════════
-
-@api_view(["GET", "POST"])
+@api_view(["GET"])
 @permission_classes([IsSuperAdmin])
 def super_tenants_api(request):
-    if request.method == "GET":
-        tenants = Tenant.objects.select_related('owner').all()
-
-        search = request.GET.get('search', '').strip()
-        if search:
-            tenants = tenants.filter(name__icontains=search)
-
-        is_active = request.GET.get('active')
-        if is_active is not None:
-            tenants = tenants.filter(is_active=is_active.lower() == 'true')
-
-        data = []
-        for t in tenants:
-            business = Business.objects.filter(tenant=t).first()
-            data.append(_tenant_to_dict(t, business))
-
-        return Response({'tenants': data})
-
-    # POST — ساخت کسب‌وکار جدید
-    data = request.data
-    owner_username = (data.get('owner_username') or '').strip()
-    tenant_name = (data.get('name') or '').strip()
-    slug = (data.get('slug') or '').strip()
-
-    if not owner_username:
-        return Response({'error': 'نام کاربری مالک الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
-    if not tenant_name:
-        return Response({'error': 'نام کسب‌وکار الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
-
-    valid, msg = _validate_slug(slug)
-    if not valid:
-        return Response({'error': msg}, status=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        with transaction.atomic():
-            owner, created = User.objects.get_or_create(
-                username=owner_username,
-                defaults={
-                    'first_name': data.get('owner_name', ''),
-                    'is_approved': True,
-                    'role': 'owner',
-                },
-            )
-            if created:
-                owner.first_name = data.get('owner_name', '')
-                owner.phone_number = _clean_phone(data.get('owner_phone'))
-                owner.role = 'owner'
-                owner.is_approved = True
-                owner.set_password(data.get('owner_password', 'changeme123'))
-                owner.save()
-
-            tenant = Tenant.objects.create(
-                name=tenant_name,
-                owner=owner,
-                phone=data.get('phone', ''),
-                address=data.get('address', ''),
-                is_active=data.get('is_active', True),
-            )
-
-            business = Business.objects.create(
-                tenant=tenant,
-                name=tenant_name,
-                slug=slug,
-                phone=data.get('phone', ''),
-                address=data.get('address', ''),
-                industry=_clean_industry(data.get('industry')),
-            )
-
-            if not owner.business:
-                owner.business = business
-                owner.save(update_fields=['business'])
-
-        return Response({
-            'ok': True,
-            'tenant_id': tenant.id,
-            'slug': slug,
-            'dashboard_url': f'/{slug}/bizsuite_dashboard/app/',
-            'msg': f'کسب‌وکار «{tenant.name}» با شناسه «{slug}» ساخته شد',
-        }, status=status.HTTP_201_CREATED)
-
-    except Exception as e:
-        logger.exception('Error creating tenant')
-        return server_error(e)
-
-
-@api_view(["GET", "PUT", "DELETE"])
-@permission_classes([IsSuperAdmin])
-def super_tenant_detail_api(request, pk):
-    try:
-        tenant = Tenant.objects.select_related('owner').get(pk=pk)
-    except Tenant.DoesNotExist:
-        return Response({'error': 'کسب‌وکار پیدا نشد'}, status=status.HTTP_404_NOT_FOUND)
-
-    business = Business.objects.filter(tenant=tenant).first()
-
-    if request.method == "GET":
-        # ★ استفاده از helper — شامل dashboard_permissions
-        return Response(_tenant_to_dict(tenant, business))
-
-    elif request.method == "PUT":
-        data = request.data
-
-        for field in ('name', 'phone', 'address'):
-            if field in data:
-                setattr(tenant, field, data[field])
-        if 'is_active' in data:
-            tenant.is_active = bool(data['is_active'])
-
-        # نام کاربری و رمز مالک — همان‌طور که در فرم ویرایش فرستاده می‌شوند ذخیره شوند
-        owner = tenant.owner
-        owner_fields = []
-        new_username = (data.get('owner_username') or '').strip()
-        if new_username and new_username != owner.username:
-            if User.objects.filter(username=new_username).exclude(pk=owner.pk).exists():
-                return Response({'error': 'این نام کاربری قبلاً ثبت شده'}, status=status.HTTP_400_BAD_REQUEST)
-            owner.username = new_username
-            owner_fields.append('username')
-        new_password = data.get('owner_password') or ''
-        if new_password:
-            if len(new_password) < 4:
-                return Response({'error': 'رمز عبور باید حداقل ۴ کاراکتر باشد'}, status=status.HTTP_400_BAD_REQUEST)
-            owner.set_password(new_password)
-            owner_fields.append('password')
-        if owner_fields:
-            owner.save(update_fields=owner_fields)
-        tenant.save()
-
-        if business:
-            # ★ ذخیره username_prefix
-            if 'username_prefix' in data:
-                business.username_prefix = (data['username_prefix'] or '').strip()
-                business.save(update_fields=['username_prefix'])
-
-            # نوع کسب‌وکار (صنف) — فقط واژه‌ها و پیشنهادها؛ مجوزها را تغییر نمی‌دهد
-            if 'industry' in data:
-                business.industry = _clean_industry(data['industry'])
-                business.save(update_fields=['industry'])
-
-            # ★ تغییر slug
-            if 'slug' in data:
-                new_slug = (data['slug'] or '').strip()
-                if new_slug != business.slug:
-                    valid, msg = _validate_slug(new_slug, exclude_business_id=business.pk)
-                    if not valid:
-                        return Response({'error': msg}, status=status.HTTP_400_BAD_REQUEST)
-                    business.slug = new_slug
-                    business.save(update_fields=['slug'])
-
-        return Response({
-            'ok': True,
-            'msg': f'کسب‌وکار «{tenant.name}» بروزرسانی شد',
-            'disabled_features': list(business.disabled_features) if business else [],
-        })
-
-    elif request.method == "DELETE":
-        name = tenant.name
-        with transaction.atomic():
-            # کاربران و کسب‌وکار و مستأجر به‌هم «محافظت‌شده» وصل‌اند؛ پس اول کاربران را از کسب‌وکار جدا می‌کنیم،
-            # بعد کسب‌وکار و مستأجر را حذف می‌کنیم و در آخر حساب‌های خودِ این کسب‌وکار (نه مدیر کل) را پاک می‌کنیم.
-            businesses = list(Business.objects.filter(tenant=tenant))
-            user_qs = User.objects.filter(business__in=businesses)
-            account_ids = list(user_qs.filter(is_superuser=False).values_list('pk', flat=True))
-            owner_id = tenant.owner_id
-            if owner_id and not tenant.owner.is_superuser:
-                account_ids.append(owner_id)
-            user_qs.update(business=None)
-            for b in businesses:
-                b.delete()
-            tenant.delete()
-            User.objects.filter(pk__in=set(account_ids), is_superuser=False).delete()
-        return Response({'ok': True, 'msg': f'کسب‌وکار «{name}» حذف شد'})
+    """Read-only list of customer accounts (the modules / QR / support panels pick a business from it)."""
+    tenants = Tenant.objects.select_related('owner').all()
+    search = request.GET.get('search', '').strip()
+    if search:
+        tenants = tenants.filter(name__icontains=search)
+    return Response({'tenants': [_tenant_to_dict(t) for t in tenants]})

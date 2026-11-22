@@ -17,19 +17,15 @@ from .auth import (
     super_admin_logout_api,
 )
 from .tenants import (
-    _SLUG_RE,
-    _validate_slug,
     _clean_phone,
     _tenant_to_dict,
     super_stats_api,
     super_tenants_api,
-    super_tenant_detail_api,
 )
 from .users import (
     super_users_api,
     super_user_create_api,
     super_user_detail_api,
-    super_user_permissions_api,
 )
 
 __all__ = [
@@ -46,15 +42,11 @@ __all__ = [
     "super_admin_page",
     "super_admin_login_api",
     "super_admin_logout_api",
-    "_SLUG_RE",
-    "_validate_slug",
     "_clean_phone",
     "_tenant_to_dict",
     "super_stats_api",
     "super_tenants_api",
-    "super_tenant_detail_api",
     "super_users_api",
     "super_user_create_api",
     "super_user_detail_api",
-    "super_user_permissions_api",
 ]

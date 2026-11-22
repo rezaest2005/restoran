@@ -11,11 +11,9 @@ from .super_admin import (
     super_admin_logout_api,
     super_stats_api,
     super_tenants_api,
-    super_tenant_detail_api,
     super_users_api,
     super_user_create_api,
     super_user_detail_api,
-    super_user_permissions_api,
     IsSuperAdmin,
 )
 
@@ -149,11 +147,9 @@ __all__ = [
     "super_admin_logout_api",
     "super_stats_api",
     "super_tenants_api",
-    "super_tenant_detail_api",
     "super_users_api",
     "super_user_create_api",
     "super_user_detail_api",
-    "super_user_permissions_api",
     "IsSuperAdmin",
     # Auth
     "LoginView",

@@ -189,19 +189,10 @@
     },
     "super": {
       "cancel": "Cancel",
-      "custom_job": "Custom job title",
-      "custom_job_ph": "e.g. Secretary, Accountant, Cleaner...",
       "delete": {
         "confirm": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
         "confirm_btn": "Delete",
-        "tenant_title": "Delete Business",
-        "user_title": "Delete User"
-      },
-      "group": {
-        "dictionary": "📖 Definitions",
-        "home": "🏠 Dashboard",
-        "inventory": "📦 Warehouse",
-        "pos": "💰 Cashier"
+        "user_title": "Delete customer"
       },
       "list_sep": ", ",
       "login": {
@@ -209,127 +200,45 @@
         "enter_credentials": "Enter your username and password",
         "unknown_error": "Unknown error"
       },
-      "perm": {
-        "dictionary": "Dictionary",
-        "dictionary_customers": "Customers",
-        "dictionary_managers": "Managers",
-        "dictionary_menu": "Product catalogue",
-        "dictionary_recipes": "Formulations",
-        "dictionary_suppliers": "Suppliers",
-        "dictionary_warehouses": "Warehouses",
-        "home": "Main Dashboard",
-        "inventory_invoice": "Purchase Invoice Entry",
-        "inventory_purchase_list": "Purchase List",
-        "inventory_receiving": "Goods Receiving",
-        "inventory_reports": "Reports",
-        "inventory_sales": "Sales Invoice Entry",
-        "inventory_warehouse": "Warehouse",
-        "orders": "Orders",
-        "pos": "Cashier",
-        "pos_report": "Cashier Daily Report",
-        "pos_settings": "Cashier Settings"
-      },
-      "perms": {
-        "active_of": "{{active}} of {{total}} permissions active",
-        "all": "☑ All",
-        "none": "☐ None",
-        "saved": "Access saved.",
-        "title": "Permissions — {{username}}"
-      },
-      "preset": {
-        "cashier": {
-          "desc": "Cashier section + catalogue only",
-          "label": "💰 Cashier"
-        },
-        "customer": {
-          "desc": "View catalogue only",
-          "label": "🧑 Customer"
-        },
-        "kitchen": {
-          "desc": "Formulation + catalogue + orders",
-          "label": "🏭 Production Line"
-        },
-        "manager": {
-          "desc": "Everything except user management",
-          "label": "👤 Manager"
-        },
-        "other": {
-          "desc": "Job title + custom access",
-          "label": "📝 Other (custom)"
-        },
-        "owner": {
-          "desc": "Full access",
-          "label": "👑 Owner"
-        },
-        "warehouse": {
-          "desc": "Warehouse + definitions only",
-          "label": "📦 Warehouse Keeper"
-        }
-      },
-      "role_job": "🎭 Role / Job",
-      "role_other": "Other (custom)",
       "save": "Save",
       "services": {
         "save_error": "Error while saving",
         "saved": "Saved"
       },
-      "tenant": {
-        "active_count": "{{n}}/{{total}} active",
-        "chip_all": "🟢 All",
-        "chip_none": "🧹 None",
-        "create": "Create business",
-        "deselect_all": "☒ Deselect all",
-        "end": "End",
-        "err_check_fields": "Please check the fields",
-        "err_name": "Business name is required",
-        "err_owner_password": "Password must be at least 4 characters",
-        "err_owner_username": "Owner username is required",
-        "err_server": "Server connection error",
-        "err_slug": "Slug is required",
-        "err_slug_format": "Only lowercase English letters, digits and hyphens",
-        "f_address": "Address",
-        "f_name": "Business name *",
-        "f_new_password": "New password (optional)",
-        "f_owner_name": "Owner name",
-        "f_owner_username": "Owner username *",
-        "f_password": "Password *",
-        "f_phone": "Phone",
-        "f_slug": "Slug (address) *",
-        "perms_hint": "Select the tabs this business can see",
-        "pw_keep": "Leave empty to keep unchanged",
-        "pw_min": "At least 4 characters",
-        "save_changes": "Save changes",
-        "section_dates": "📅 Subscription Dates",
-        "section_main": "📋 Main Information",
-        "section_perms": "🔐 Tabs & Permissions",
-        "select_all": "☑ Select all",
-        "slug_hint": "Example: test1, demo-co",
-        "start": "Start",
-        "title_edit": "✏️ Edit Business",
-        "title_new": "➕ Create New Business"
-      },
       "user": {
-        "auto_perms": "🔐 Automatic permissions ({{n}})",
         "first_name": "First name",
         "last_name": "Last name",
         "password": "Password",
-        "perms_tip": "💡 To adjust permissions individually, use the \"Permissions\" button after creating the user",
         "phone": "Phone number",
-        "tenant": "Business",
         "title_edit": "✏️ Edit User",
         "title_new": "➕ New User",
         "username": "Username"
       },
       "users": {
         "actions": "Actions",
-        "all": "All",
         "delete": "Delete",
         "edit": "Edit",
         "new": "New User",
         "perms": "Permissions",
-        "role": "Role",
         "search": "Search...",
         "title": "Users"
+      },
+      "cust": {
+        "tab_info": "Info",
+        "tab_access": "Access",
+        "role": "Customer",
+        "dates": "Subscription dates",
+        "start": "Start date",
+        "end": "End date",
+        "end_hint": "Empty = no end date; the dashboard closes at the end of that day",
+        "pw_min": "At least 4 characters",
+        "err_username": "Username is required",
+        "err_password": "Password must be at least 4 characters",
+        "access_hint": "The sections and tabs the customer bought - {{n}} of {{total}} tabs on",
+        "all": "All",
+        "none": "None",
+        "empty": "No customers found",
+        "col_name": "Name"
       }
     }
   }
