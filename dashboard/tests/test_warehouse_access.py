@@ -291,12 +291,8 @@ class SystemServicesTests(Base):
 class ModuleOffTests(Base):
     def test_inventory_module_off_is_403(self):
         ensure_catalog()
-        admin = User.objects.create_superuser(username="wsu", password="x")
-        sup = APIClient()
-        sup.credentials(HTTP_AUTHORIZATION="Token " + _make_super_token(admin))
-        r = sup.put(f"/api/super/businesses/{self.b.id}/modules/",
-                    {"modules": {"inventory": {"is_enabled": False}, "production": {"is_enabled": False}}}, format="json")
-        self.assertEqual(r.status_code, 200, r.content)
+        from bizsuite.modules import apply_modules
+        apply_modules(self.b, {"inventory": {"is_enabled": False}, "production": {"is_enabled": False}})
         c = client(self.mgr)
         self.assertEqual(c.get("/api/inventory/network/").status_code, 403)
         self.assertEqual(c.get("/api/inventory/stock/").status_code, 403)

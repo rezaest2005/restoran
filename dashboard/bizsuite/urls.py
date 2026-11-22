@@ -12,7 +12,6 @@ from .views import delivery as dl_views
 from .views import catalog as cat_views
 from .views import club as club_views
 from .views import club_public as club_pub
-from .views.super_admin import modules as mod_views
 from .views.super_admin import qr as qr_super
 from .views import qr_redirect as qr_public
 from .views import accounting_auto as acc_auto
@@ -307,16 +306,11 @@ urlpatterns = [
     path("api/super/section-prices/", views.super_section_prices_api, name="super_section_prices"),
     path("api/super/users/create/", views.super_user_create_api, name="super_user_create"),
     path("api/super/users/<int:pk>/", views.super_user_detail_api, name="super_user_detail"),
+    path("api/super/users/<int:pk>/password/", views.super_user_password_api, name="super_user_password"),
 
-    path("api/super/modules/", mod_views.super_modules_api, name="super_modules"),
     path("api/super/qr/", qr_super.super_qr_links, name="super_qr_links"),
     path("api/super/qr/<int:pk>/", qr_super.super_qr_detail, name="super_qr_detail"),
     re_path(r"^q/(?P<code>[A-Za-z0-9]{4,16})/?$", qr_public.qr_redirect, name="qr_redirect"),
-    path("api/super/plans/", mod_views.super_plans_api, name="super_plans"),
-    path("api/super/features/", mod_views.super_features_api, name="super_features"),
-    path("api/super/businesses/<int:business_id>/modules/", mod_views.super_business_modules_api, name="super_business_modules"),
-    path("api/super/businesses/<int:business_id>/plan/", mod_views.super_business_plan_api, name="super_business_plan"),
-    path("api/super/businesses/<int:business_id>/subscription/", mod_views.super_business_subscription_api, name="super_business_subscription"),
 
 
     # ── Invoicing API ───────────────────────────────────────

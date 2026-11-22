@@ -8,7 +8,7 @@ import {
 import superClient from "@super/api/super_client";
 import EditablePassword from "@super/common/EditablePassword";
 import { PERM_GROUPS, PERM_LABELS, ALL_PERM_CODES, LOCKED_PERMS } from "@super/common/superConfig";
-import { quoteFor } from "@super/common/money";
+import { quoteFor, PERIODS } from "@super/common/money";
 import SubscriptionSection from "./SubscriptionSection";
 import PriceSummary from "./PriceSummary";
 import PriceDialog from "./PriceDialog";
@@ -43,6 +43,8 @@ export default function UserModal({ open, editId, initialTab = 0, focusSub = fal
   const [period, setPeriod] = useState(null);
   const [mode, setMode] = useState("set");
   const [current, setCurrent] = useState(null);
+  // the period whose price is DISPLAYED (flipping it never changes the subscription); null = follow the subscription
+  const [viewPeriod, setViewPeriod] = useState(null);
   // the global price list (Toman per section and period) and its editor
   const [prices, setPrices] = useState({});
   const [priceOpen, setPriceOpen] = useState(false);
@@ -54,6 +56,7 @@ export default function UserModal({ open, editId, initialTab = 0, focusSub = fal
     setSaveError("");
     setAccessDirty(false);
     setPeriod(null);
+    setViewPeriod(null);
     setCurrent(null);
     setMode("set");
     superClient.get("/api/super/section-prices/").then((r) => setPrices(r.data.prices || {})).catch(() => {});
@@ -102,6 +105,20 @@ export default function UserModal({ open, editId, initialTab = 0, focusSub = fal
 
   const ticked = useMemo(() => new Set([...access, ...LOCKED_PERMS]), [access]);
   const quote = useMemo(() => quoteFor(PERM_GROUPS, ticked, LOCKED_PERMS, prices), [ticked, prices]);
+  // the final price is always shown: the flipped period, else the picked one, else the customer's own period, else monthly
+  const shownPeriod = viewPeriod
+    || (PERIODS.includes(period) ? period : (PERIODS.includes(current?.plan) ? current.plan : "monthly"));
+  const pickPeriod = (p) => { setPeriod(p); setViewPeriod(null); };
+  const priceLine = (testId) => (
+    <PriceSummary
+      quote={quote} prices={prices} period={shownPeriod} onPeriod={setViewPeriod} permanent={period === "unlimited"}
+      onChangePrice={() => setPriceOpen(true)} C={C} testId={testId}
+    />
+  );
+  const revealPassword = async () => {
+    const res = await superClient.get(`/api/super/users/${editId}/password/`);
+    return res.data?.password ?? null;
+  };
 
   const handleSave = async () => {
     if (saving || loading) return;
@@ -180,6 +197,7 @@ export default function UserModal({ open, editId, initialTab = 0, focusSub = fal
               key={editId || "new"} canEdit={!!editId} size="small" label={t("ui_c.super.user.password")}
               value={form.password} onChange={(v) => setForm((f) => ({ ...f, password: v }))} sx={fieldSx}
               helperText={editId ? undefined : t("ui_c.super.cust.pw_min")}
+              onReveal={editId ? revealPassword : undefined}
             />
             <Box sx={formGrid(2, "sm", 2)}>
               <TextField size="small" label={t("ui_c.super.user.first_name")} value={form.first_name} onChange={set("first_name")} sx={fieldSx} />
@@ -190,14 +208,15 @@ export default function UserModal({ open, editId, initialTab = 0, focusSub = fal
               slotProps={{ htmlInput: { dir: "ltr", style: { textAlign: "start" }, inputMode: "tel" } }}
             />
             <Box ref={subRef}>
-            <SubscriptionSection current={current} isNew={!editId} period={period} setPeriod={setPeriod} mode={mode} setMode={setMode} C={C} />
+            <SubscriptionSection current={current} isNew={!editId} period={period} setPeriod={pickPeriod} mode={mode} setMode={setMode} C={C} />
             </Box>
-            <PriceSummary quote={quote} prices={prices} period={period} C={C} />
+            {priceLine("price-summary")}
           </Box>
         ) : (
           <Box sx={{ mt: 1 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
-              <Typography sx={{ fontSize: 12.5, color: C.sub, flex: "1 1 200px", minWidth: 0 }}>
+            <Box sx={{ position: "sticky", top: -20, zIndex: 3, bgcolor: C.glass, mx: -1, px: 1, pt: 2.5, pb: 1, mb: 1.5, borderBottom: `1px solid ${C.glassBorder}` }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1 }}>
+              <Typography sx={{ fontSize: 12.5, color: C.sub, flex: "1 1 200px", minWidth: 0, display: { xs: "none", sm: "block" } }}>
                 {t("ui_c.super.cust.access_hint", { n: ticked.size, total: ALL_PERM_CODES.length })}
               </Typography>
               <Button size="small" onClick={() => setAll(true)} sx={{ minHeight: 40 }}>{t("ui_c.super.cust.all")}</Button>
@@ -205,6 +224,8 @@ export default function UserModal({ open, editId, initialTab = 0, focusSub = fal
               <Button size="small" variant="outlined" onClick={() => setPriceOpen(true)} data-testid="change-price" sx={{ minHeight: 40, fontWeight: 700 }}>
                 {t("ui_c.super.sub.change_price")}
               </Button>
+            </Box>
+            {priceLine("price-summary-access")}
             </Box>
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
               {Object.entries(PERM_GROUPS).map(([gid, g]) => {

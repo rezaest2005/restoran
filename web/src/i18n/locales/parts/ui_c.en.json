@@ -250,7 +250,7 @@
         "mode_set_hint": "The period is counted from this moment.",
         "current": "Current subscription",
         "ends": "Ends",
-        "unlimited": "Unlimited",
+        "unlimited": "Permanent",
         "expired": "Expired",
         "left_days": "{{n}} days left",
         "left_hours": "Less than a day left",
@@ -274,7 +274,12 @@
         "price_unset": "—",
         "all_sections": "All sections",
         "all_hint": "Type the four prices once and press 'Apply to all' to fill every section. Then change any section on its own if needed.",
-        "apply_all": "Apply to all"
+        "apply_all": "Apply to all",
+        "final_price": "Final price",
+        "price_not_set": "No prices set",
+        "permanent_hint": "No end date; the dashboard stays open for good.",
+        "permanent_price": "Permanent (no period price)",
+        "view_period": "Show the price for"
       }
     }
   }

@@ -142,7 +142,7 @@ class EnforcementTests(Base):
         c = APIClient()
         c.force_authenticate(other_owner)
         self.assertEqual(c.get("/api/delivery/drivers/").status_code, 200)
-        self.assertEqual(self.sup().get(f"/api/super/businesses/{self.b.id}/subscription/").status_code, 200)
+        self.assertEqual(self.sup().get("/api/super/users/").status_code, 200)
 
     def test_login_and_session_carry_the_countdown(self):
         sub.apply(self.b, "yearly")
@@ -156,34 +156,12 @@ class EnforcementTests(Base):
         self.assertEqual(poll["ends_at"], s["ends_at"])
 
 
-class SuperAdminApiTests(Base):
-    def test_set_extend_unlimited_and_custom_through_the_api(self):
-        url = f"/api/super/businesses/{self.b.id}/subscription/"
-        r = self.sup().post(url, {"plan": "quarterly"}, format="json").json()["data"]
-        self.assertEqual((r["plan"], r["unlimited"], r["expired"]), ("quarterly", False, False))
-        self.assertAlmostEqual(r["seconds_left"], (sub.add_months(timezone.now(), 3) - timezone.now()).total_seconds(), delta=5)
-        ext = self.sup().post(url, {"plan": "monthly", "mode": "extend"}, format="json").json()["data"]
-        self.assertAlmostEqual(ext["seconds_left"], (sub.add_months(sub.add_months(timezone.now(), 3), 1) - timezone.now()).total_seconds(), delta=5)
-        cu = self.sup().post(url, {"plan": "custom", "ends_at": "2030-01-01T10:20:30+00:00"}, format="json").json()["data"]
-        self.assertTrue(cu["ends_at"].startswith("2030-01-01T10:20:30"))
-        un = self.sup().post(url, {"plan": "unlimited"}, format="json").json()["data"]
-        self.assertTrue(un["unlimited"])
-        self.assertEqual(self.sup().get(url).json()["data"]["plan"], "unlimited")
-
-    def test_validation_and_permissions(self):
-        url = f"/api/super/businesses/{self.b.id}/subscription/"
-        self.assertEqual(self.sup().post(url, {"plan": "custom"}, format="json").status_code, 400)
-        self.assertEqual(self.sup().post(url, {"plan": "weekly"}, format="json").status_code, 400)
-        self.assertEqual(self.sup().post(url, {"plan": "monthly", "mode": "x"}, format="json").status_code, 400)
-        self.assertEqual(self.sup().post("/api/super/businesses/999999/subscription/", {"plan": "monthly"}, format="json").status_code, 404)
-        self.assertIn(self.staff().post(url, {"plan": "unlimited"}, format="json").status_code, (401, 403))      # a business owner cannot renew himself
-        self.assertIsNone(Business.objects.get(pk=self.b.pk).subscription_ends_at)
-
-    def test_changes_are_logged_and_listed(self):
+class SubscriptionLogTests(Base):
+    def test_changes_made_in_the_customer_form_are_logged_and_listed(self):
         from bizsuite.models import Tenant
         t = Tenant.objects.create(name="kfc", owner=self.owner)
         Business.objects.filter(pk=self.b.pk).update(tenant=t)
-        self.sup().post(f"/api/super/businesses/{self.b.id}/subscription/", {"plan": "yearly"}, format="json")
+        self.sup().put(f"/api/super/users/{self.owner.id}/", {"subscription": {"plan": "yearly"}}, format="json")
         row = ActivityLog.all_objects.get(business=self.b, action="subscription.set")
         self.assertEqual(row.details["plan"], "yearly")
         listing = self.sup().get("/api/super/tenants/").json()
@@ -226,9 +204,35 @@ class CustomerFormPlanTests(Base):
                          sub.add_months(datetime.datetime.fromisoformat(first), 3))
         r = self.sup().put(url, {"subscription": {"plan": "monthly", "mode": "set"}}, format="json").json()
         self.months_ahead(r["subscription"]["ends_at"], 1)
-        # the form offers the four periods only
-        for bad in ({"plan": "custom", "ends_at": "2031-05-06T07:08:09+00:00"}, {"plan": "unlimited"}):
-            self.assertEqual(self.sup().put(url, {"subscription": bad}, format="json").status_code, 400)
+        # the form offers permanent + the four periods only
+        bad = {"plan": "custom", "ends_at": "2031-05-06T07:08:09+00:00"}
+        self.assertEqual(self.sup().put(url, {"subscription": bad}, format="json").status_code, 400)
+
+    def test_period_to_permanent_and_back_clears_the_price_snapshot(self):
+        self.sup().put("/api/super/section-prices/", {"prices": {"pos": {"monthly": 100, "yearly": 900}}}, format="json")
+        uid = self.create(access=["pos"], subscription={"plan": "monthly"}).json()["user_id"]
+        url = f"/api/super/users/{uid}/"
+        d = self.sup().get(url).json()
+        self.assertEqual((d["price"], d["subscription"]["plan"]), (100, "monthly"))
+        r = self.sup().put(url, {"subscription": {"plan": "unlimited", "mode": "set"}}, format="json")
+        self.assertEqual(r.status_code, 200, r.content)
+        d = r.json()
+        self.assertTrue(d["subscription"]["unlimited"])
+        self.assertIsNone(d["subscription"]["ends_at"])
+        self.assertIsNone(d["price"])
+        # editing the tabs of a permanent customer keeps it permanent and unpriced
+        d = self.sup().put(url, {"access": ["pos", "orders"]}, format="json").json()
+        self.assertEqual((d["subscription"]["plan"], d["price"]), ("unlimited", None))
+        # permanent -> a period starts it from now and prices it
+        d = self.sup().put(url, {"subscription": {"plan": "yearly", "mode": "extend"}}, format="json").json()
+        self.months_ahead(d["subscription"]["ends_at"], 12)
+        self.assertEqual(d["price"], 900)
+
+    def test_create_can_be_permanent_explicitly(self):
+        r = self.create(subscription={"plan": "unlimited"})
+        self.assertEqual(r.status_code, 201, r.content)
+        d = self.sup().get(f"/api/super/users/{r.json()['user_id']}/").json()
+        self.assertTrue(d["subscription"]["unlimited"])
 
     def test_bad_plan_rolls_back_the_whole_create(self):
         r = self.create(subscription={"plan": "weekly"})
@@ -295,3 +299,25 @@ class SectionPriceTests(Base):
         from bizsuite.features import LOCKED_KEYS, sellable_keys
         covered = {c for codes in pricing.SECTIONS.values() for c in codes} | LOCKED_KEYS
         self.assertEqual(set(sellable_keys()) - covered, set())
+
+
+class QuoteAllTabsTests(Base):
+    """Backend-independent proof of the 'apply to all' + 'select all' scenario."""
+
+    def test_apply_to_all_and_every_tab_ticked_is_sections_times_price(self):
+        from bizsuite import pricing
+        from bizsuite.features import sellable_keys
+        one = {"monthly": 120000, "quarterly": 330000, "semiannual": 600000, "yearly": 1100000}
+        prices = {s: dict(one) for s in pricing.SECTIONS}
+        self.assertEqual(self.sup().put("/api/super/section-prices/", {"prices": prices}, format="json").status_code, 200)
+        q = pricing.quote(sellable_keys())
+        self.assertEqual(sorted(q["sections"]), sorted(pricing.SECTIONS))
+        n = len(pricing.SECTIONS)
+        self.assertEqual(q["totals"], {p: n * one[p] for p in pricing.PERIODS})
+        self.assertGreater(q["totals"]["monthly"], 0)
+        r = self.sup().post("/api/super/users/create/", {"username": "full", "password": "pw1234",
+                            "access": sellable_keys(), "subscription": {"plan": "monthly"}}, format="json")
+        self.assertEqual(r.status_code, 201, r.content)
+        d = self.sup().get(f"/api/super/users/{r.json()['user_id']}/").json()
+        self.assertEqual(d["quote"]["totals"]["monthly"], n * 120000)
+        self.assertEqual(d["price"], n * 120000)

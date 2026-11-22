@@ -255,14 +255,6 @@ def service_allowed(user, service_codes, path: str | None = None, method: str = 
     return True
 
 
-def catalog_for_super_admin():
-    """Static catalogue for the licence editor: modules → features."""
-    return [{
-        "key": f.key, "module": f.module, "group": f.group, "locked": f.locked,
-        "name_fa": f.name_fa, "name_en": f.name_en,
-    } for f in FEATURES if not f.owner_only]
-
-
 # -- what the super admin sells to a customer (the Access tab of the customer form) --
 
 def sellable_keys() -> list[str]:

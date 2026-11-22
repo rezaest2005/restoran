@@ -132,34 +132,6 @@ class TabsApiTests(FeatureBase):
         self.assertFalse(self.cashier.tabs["kitchen"])
 
 
-class SuperAdminLicenceTests(FeatureBase):
-    def setUp(self):
-        super().setUp()
-        self.sup = APIClient()
-        self.sup.credentials(HTTP_AUTHORIZATION="Token " + _make_super_token(self.root))
-
-    def test_set_disabled_features_and_reject_unknown(self):
-        url = f"/api/super/businesses/{self.biz.id}/modules/"
-        ok = self.sup.put(url, {"disabled_features": ["pos_settings", "accounting"]}, format="json")
-        self.assertEqual(ok.status_code, 200, ok.content)
-        self.biz.refresh_from_db()
-        self.assertEqual(self.biz.disabled_features, ["accounting", "pos_settings"])
-        bad = self.sup.put(url, {"disabled_features": ["nope"]}, format="json")
-        self.assertEqual(bad.status_code, 400)
-        self.assertEqual(self.sup.get(url).json()["data"]["disabled_features"], ["accounting", "pos_settings"])
-
-    def test_catalogue_endpoint_lists_features(self):
-        r = self.sup.get("/api/super/features/")
-        self.assertEqual(r.status_code, 200)
-        keys = {f["key"] for f in r.json()["data"]}
-        self.assertIn("delivery_shipments", keys)
-
-    def test_staff_cannot_use_super_endpoints(self):
-        r = self.api(self.owner).put(f"/api/super/businesses/{self.biz.id}/modules/",
-                                     {"disabled_features": []}, format="json")
-        self.assertIn(r.status_code, (401, 403))
-
-
 class EndToEndTickTests(FeatureBase):
     """سناریوی کاربر: تیک سوپرادمین ← داشبورد نشان می‌دهد؛ بی‌تیک ← نه منو، نه API."""
 
@@ -171,26 +143,29 @@ class EndToEndTickTests(FeatureBase):
         c = self.api(user)
         return set(c.get("/api/auth/me/").json()["data"]["business_tabs"])
 
+    def set_disabled(self, keys):
+        self.biz.disabled_features = sorted(keys)
+        self.biz.save(update_fields=["disabled_features"])
+
     def test_super_admin_tick_untick_changes_menu_and_api_together(self):
-        sup = APIClient()
-        sup.credentials(HTTP_AUTHORIZATION="Token " + _make_super_token(self.root))
-        url = f"/api/super/businesses/{self.biz.id}/modules/"
+        from bizsuite.modules import apply_modules
         mods = {m: {"is_enabled": m in ("delivery", "pos")} for m in
                 ("pos", "club", "inventory", "production", "accounting", "delivery", "feedback")}
-        sup.put(url, {"modules": mods, "disabled_features": []}, format="json")
+        apply_modules(self.biz, mods)
+        self.set_disabled([])
         clear_current_business()
         self.assertIn("delivery_cash", self.tabs_of(self.owner))
         self.assertEqual(self.api(self.owner).get("/api/delivery/cash/").status_code, 200)
 
         # سوپرادمین تیک «صندوق پیک» را برمی‌دارد
-        sup.put(url, {"disabled_features": ["delivery_cash"]}, format="json")
+        self.set_disabled(["delivery_cash"])
         clear_current_business()
         self.assertNotIn("delivery_cash", self.tabs_of(self.owner))
         self.assertEqual(self.api(self.owner).get("/api/delivery/cash/").status_code, 403)
         self.assertIn("delivery_fleet", self.tabs_of(self.owner))     # بقیه سر جای خود
 
         # دوباره تیک می‌زند
-        sup.put(url, {"disabled_features": []}, format="json")
+        self.set_disabled([])
         clear_current_business()
         self.assertIn("delivery_cash", self.tabs_of(self.owner))
         self.assertEqual(self.api(self.owner).get("/api/delivery/cash/").status_code, 200)

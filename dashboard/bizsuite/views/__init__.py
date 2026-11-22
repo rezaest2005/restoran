@@ -15,6 +15,7 @@ from .super_admin import (
     super_section_prices_api,
     super_user_create_api,
     super_user_detail_api,
+    super_user_password_api,
     IsSuperAdmin,
 )
 
@@ -152,6 +153,7 @@ __all__ = [
     "super_section_prices_api",
     "super_user_create_api",
     "super_user_detail_api",
+    "super_user_password_api",
     "IsSuperAdmin",
     # Auth
     "LoginView",
