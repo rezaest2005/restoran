@@ -176,7 +176,7 @@ class EndToEndTickTests(FeatureBase):
         sup.credentials(HTTP_AUTHORIZATION="Token " + _make_super_token(self.root))
         url = f"/api/super/businesses/{self.biz.id}/modules/"
         mods = {m: {"is_enabled": m in ("delivery", "pos")} for m in
-                ("pos", "club", "inventory", "production", "accounting", "delivery", "feedback", "storefront")}
+                ("pos", "club", "inventory", "production", "accounting", "delivery", "feedback")}
         sup.put(url, {"modules": mods, "disabled_features": []}, format="json")
         clear_current_business()
         self.assertIn("delivery_cash", self.tabs_of(self.owner))

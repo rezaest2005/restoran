@@ -10,7 +10,7 @@ import superClient from "@super/api/super_client";
 
 const LAST_KEY = "super_qr_business";
 const BASE_KEY = "super_qr_base";
-const KINDS = ["menu", "storefront", "custom"];
+const KINDS = ["menu", "custom"];
 const kindKey = (k) => (k === "menu" ? "ordering" : k);
 const unwrap = (r) => r.data?.data ?? r.data;
 const errText = (e, fb) => e?.response?.data?.error || e?.response?.data?.message || fb;

@@ -18,7 +18,7 @@ from bizsuite.models import (
 from bizsuite.modules import apply_modules, ensure_catalog
 from bizsuite.tenancy import clear_current_business
 
-ALL = ["pos", "club", "inventory", "production", "accounting", "delivery", "feedback", "storefront"]
+ALL = ["pos", "club", "inventory", "production", "accounting", "delivery", "feedback"]
 
 
 class Base(TestCase):

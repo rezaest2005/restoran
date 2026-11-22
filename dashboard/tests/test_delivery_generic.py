@@ -20,7 +20,7 @@ from bizsuite.modules import apply_modules, ensure_catalog
 from bizsuite.tenancy import clear_current_business
 
 P = "Pass12345!"
-ALL = ["pos", "club", "inventory", "production", "accounting", "delivery", "feedback", "storefront"]
+ALL = ["pos", "club", "inventory", "production", "accounting", "delivery", "feedback"]
 MEDIA = tempfile.mkdtemp(prefix="dlv-pod-")
 
 

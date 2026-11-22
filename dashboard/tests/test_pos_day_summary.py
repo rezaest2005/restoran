@@ -63,6 +63,6 @@ class DaySummaryTests(TestCase):
 
     def test_permission(self):
         self.assertEqual(APIClient().get(URL).status_code in (401, 403), True)
-        codes = ["pos", "club", "inventory", "production", "accounting", "delivery", "feedback", "storefront"]
+        codes = ["pos", "club", "inventory", "production", "accounting", "delivery", "feedback"]
         apply_modules(self.b, {c: {"is_enabled": False} for c in codes}, auto_requires=False)
         self.assertEqual(self.api.get(URL).status_code, 403)

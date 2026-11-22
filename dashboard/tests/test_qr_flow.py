@@ -1,16 +1,15 @@
-"""QR ordering end to end: storefront link -> public order -> cashier panel -> accept / reject."""
+"""QR ordering end to end: menu link -> public order -> cashier panel -> accept / reject."""
 from django.core.cache import cache
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from rest_framework.test import APIClient
 
 from bizsuite.models import Business, Category, Food, Order, User
 from bizsuite.modules import apply_modules, ensure_catalog
 from bizsuite.tenancy import clear_current_business
 
-ALL = ["pos", "club", "inventory", "production", "accounting", "delivery", "feedback", "storefront"]
+ALL = ["pos", "club", "inventory", "production", "accounting", "delivery", "feedback"]
 
 
-@override_settings(PLATFORM_PUBLIC_URL="https://app.example.com")
 class QrFlowTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -76,7 +75,7 @@ class QrFlowTests(TestCase):
         self.assertEqual(r.status_code, 400)
 
     def test_modules_off_blocks_public_ordering_and_menu(self):
-        apply_modules(self.biz, {c: {"is_enabled": c == "storefront"} for c in ALL})
+        apply_modules(self.biz, {c: {"is_enabled": c == "feedback"} for c in ALL})
         self.assertEqual(self.place().status_code, 404)
         self.assertEqual(Order.all_objects.count(), 0)
         r = self.anon.get("/api/menu/public/?business_slug=qrf-one")
@@ -87,39 +86,8 @@ class QrFlowTests(TestCase):
     def test_pos_alone_is_enough_for_qr_ordering(self):
         apply_modules(self.biz, {c: {"is_enabled": c == "pos"} for c in ALL})
         self.assertEqual(self.place().status_code, 201)
-        self.assertEqual(self.anon.get("/api/menu/public/?business_slug=qrf-one").status_code, 200)
+        res = self.anon.get("/api/menu/public/?business_slug=qrf-one")
+        self.assertEqual(res.status_code, 200)
+        self.assertNotIn("stock", res.json()["results"][0])   # public menu never leaks stock/cost
+        self.assertNotIn("cost", res.json()["results"][0])
 
-
-    def _super(self):
-        from bizsuite.views.super_admin.auth import _make_super_token
-        admin = User.objects.create_superuser(username="qrsuper", password="Pass12345!")
-        c = APIClient()
-        c.credentials(HTTP_AUTHORIZATION="Token " + _make_super_token(admin))
-        return c
-
-    def test_storefront_preset_links_to_qr_page_and_menu(self):
-        owner = self._super()
-        base = f"/api/super/storefront/{self.biz.id}/"
-        owner.post(base + "publish/")
-        slug = owner.get(base).json()["data"]["slug"]
-        pub = self.anon.get(f"/api/storefront/{slug}/").json()
-        self.assertEqual(pub["menu_slug"], "qrf-one")  # SPA links to /m/qrf-one
-        menu = [s for s in pub["sections"] if s["type"] == "menu"][0]
-        self.assertTrue(menu["data"]["order_enabled"])
-        addr = owner.get(base).json()["data"]["addresses"]
-        self.assertEqual(addr["qr_order_url"], "https://app.example.com/m/qrf-one")
-        # the public menu the page calls works for the same slug
-        res = self.anon.get("/api/menu/public/?business_slug=qrf-one").json()
-        self.assertEqual(res["results"][0]["name"], "محصول")
-        self.assertNotIn("stock", res["results"][0])
-        self.assertNotIn("cost", res["results"][0])
-
-    def test_storefront_without_pos_hides_menu_section(self):
-        owner = self._super()
-        base = f"/api/super/storefront/{self.biz.id}/"
-        owner.post(base + "publish/")
-        slug = owner.get(base).json()["data"]["slug"]
-        apply_modules(self.biz, {c: {"is_enabled": c == "storefront"} for c in ALL})
-        pub = self.anon.get(f"/api/storefront/{slug}/").json()
-        self.assertNotIn("menu", [s["type"] for s in pub["sections"]])
-        self.assertNotIn("menu_slug", pub)

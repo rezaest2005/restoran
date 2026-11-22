@@ -41,7 +41,7 @@ class CatalogueTests(ModuleBase):
         r = self.sup.get("/api/super/modules/").json()["data"]
         codes = {m["code"]: m for m in r}
         self.assertEqual(set(codes), {"pos", "club", "inventory", "production", "accounting",
-                                      "delivery", "feedback", "storefront"})
+                                      "delivery", "feedback"})
         self.assertEqual(codes["club"]["requires"], [])       # club works standalone (no POS)
         self.assertIn("pos", codes["club"]["suggests"])
         self.assertEqual(codes["production"]["requires"], ["inventory"])
@@ -64,7 +64,7 @@ class DependencyTests(ModuleBase):
     def test_enable_refuses_with_clear_list(self):
         self.put({c: {"is_enabled": False} for c in
                   ("pos", "club", "inventory", "production", "accounting", "delivery",
-                   "feedback", "storefront")})
+                   "feedback")})
         r = self.put({"production": {"is_enabled": True}})
         self.assertEqual(r.status_code, 409)
         self.assertEqual(r.json()["errors"]["missing_requires"], {"production": ["inventory"]})
@@ -76,7 +76,7 @@ class DependencyTests(ModuleBase):
     def test_auto_requires_enables_prerequisites(self):
         self.put({c: {"is_enabled": False} for c in
                   ("pos", "club", "inventory", "production", "accounting", "delivery",
-                   "feedback", "storefront")})
+                   "feedback")})
         r = self.put({"production": {"is_enabled": True}}, auto_requires=True)
         self.assertEqual(r.status_code, 200, r.content)
         self.assertEqual(enabled_modules(self.biz), {"production", "inventory"})
@@ -144,7 +144,7 @@ class ExpiryAndEnforcementTests(ModuleBase):
         self.assertNotIn("accounting", data["business_tabs"])      # unsold module -> no tab
         self.assertIn("pos", data["business_tabs"])
         self.assertNotIn("accounting", data["business_modules"])
-        self.assertIn("storefront", data["business_modules"])
+        self.assertIn("pos", data["business_modules"])
 
 
 class SuperAdminAccessTests(ModuleBase):
@@ -158,7 +158,7 @@ class SuperAdminAccessTests(ModuleBase):
     def test_price_summary_with_override(self):
         self.put({c: {"is_enabled": c in ("pos", "accounting")} for c in
                   ("pos", "club", "inventory", "production", "accounting", "delivery",
-                   "feedback", "storefront")})
+                   "feedback")})
         base = business_state(self.biz)["total_monthly"]
         r = self.put({"pos": {"price_override": 1000}})
         self.assertEqual(r.status_code, 200)
@@ -171,7 +171,7 @@ class SuperAdminAccessTests(ModuleBase):
     def test_apply_plan_enables_bundle_with_prerequisites(self):
         r = self.sup.post(self.url("plan/"), {"plan": "retail"}, format="json")
         self.assertEqual(r.status_code, 200, r.content)
-        self.assertEqual(enabled_modules(self.biz), {"pos", "club", "inventory", "storefront"})
+        self.assertEqual(enabled_modules(self.biz), {"pos", "club", "inventory"})
         Plan.objects.filter(code="starter").update(modules=["production"])
         r = self.sup.post(self.url("plan/"), {"plan": "starter"}, format="json")
         self.assertEqual(enabled_modules(self.biz), {"production", "inventory"})

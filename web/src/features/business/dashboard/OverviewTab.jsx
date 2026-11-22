@@ -16,7 +16,6 @@ import AlertsPanel from "./home/AlertsPanel";
 import QuickActions from "./home/QuickActions";
 import { buildColors } from "@shared/palette";
 import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
-import WebsiteCard from "./WebsiteCard";
 
 class SectionErrorBoundary extends React.Component {
   constructor(props) {
@@ -156,8 +155,6 @@ export default function OverviewTab() {
           <Typography sx={{ fontSize: 13, fontWeight: 600, color: C.text }}>{dateText}</Typography>
         </Box>
       </Box>
-
-      <WebsiteCard />
 
       <Box id="dash-sec-home" sx={{ scrollMarginTop: 72 }}>
         <SectionErrorBoundary name="Home">

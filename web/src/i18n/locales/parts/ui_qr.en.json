@@ -2,7 +2,7 @@
   "ui_qr": {
     "tab": "QR codes",
     "title": "Customer QR codes",
-    "intro": "Every QR holds a short permanent link. You choose where it leads here and can change it any time — no reprinting. It can open the built-in QR ordering page, the published website, or any address you give (for example a page you built in Elementor).",
+    "intro": "Every QR holds a short permanent link. You choose where it leads here and can change it any time — no reprinting. It can open the built-in QR ordering page or any address you give (for example a page you built in Elementor).",
     "pick_business": "Business",
     "pick_hint": "Pick a business.",
     "base_url": "Main domain printed in the QR",
@@ -17,7 +17,6 @@
     "bulk_n": "Number of tables",
     "bulk_create": "Create QR for all tables",
     "kind": {
-      "storefront": "Published website",
       "custom": "Custom address (e.g. an Elementor page)",
       "ordering": "Built-in QR ordering page (customer orders)"
     },

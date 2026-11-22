@@ -74,12 +74,6 @@ Conventions: F2 new, F3 secondary new, Ctrl+D save/confirm, Ctrl+A next, Ctrl+Z 
 - `common/ConfirmDialog.jsx`: `Enter`, `Ctrl+D`
 - `ProductionPage.jsx`: `F1`, `Alt+1`, `Alt+2`, `F2`, `Ctrl+D`, `F3`, `Enter`, `Escape`
 
-## features/business/storefront
-
-- `FieldEditor.jsx`: `F3`
-- `RevisionsTab.jsx`: `Ctrl+D`, `Enter`, `Escape`
-- `StorefrontEditor.jsx`: `ArrowDown`, `ArrowUp`, `Enter`, `Ctrl+D`, `Escape`, `F2`, `Alt+ArrowUp`, `Alt+ArrowDown`, `Alt+H`, `Delete`, `Ctrl+A`, `Ctrl+Z`, `Ctrl+Shift+P`, `Alt+M`, `Alt+1..9`
-
 ## features/business/users
 
 - `Users.jsx`: `F2`, `Enter`, `Delete`, `Ctrl+D`, `Escape`, `F1`
@@ -91,10 +85,6 @@ Conventions: F2 new, F3 secondary new, Ctrl+D save/confirm, Ctrl+A next, Ctrl+Z 
 ## features/public/QrMenu.jsx
 
 - `features/public/QrMenu.jsx`: `F2`, `Ctrl+D`, `/`
-
-## features/public/storefront
-
-- `StorefrontRenderer.jsx`: `Alt+B`
 
 ## features/public/TableQrDialog.jsx
 
@@ -146,8 +136,6 @@ These components have click handlers but register no shortcuts themselves (they 
 - `features/business/pos/components/FoodCard.jsx`
 - `features/business/pos/components/OrderTypeSelector.jsx`
 - `features/business/pos/components/PosHeader.jsx`
-- `features/business/storefront/AddressesTab.jsx`
-- `features/business/storefront/ThemeTab.jsx`
 - `features/public/ProductCard.jsx`
 - `features/super_admin/layout/SuperSidebar.jsx`
 - `features/super_admin/layout/SuperTopBar.jsx`
