@@ -152,12 +152,17 @@ class LoginMessages(TestCase):
             self.assertEqual(self.login().status_code, 200)
         self.assertEqual(m.call_count, 1)
 
-    def test_admin_created_user_without_business_gets_a_clear_message(self):
-        """POST /api/super/users/create/ may leave the business empty: that account must say so at sign-in."""
+    def test_owner_without_a_business_gets_a_clear_message(self):
+        """An old owner row with no business (created before the admin form made one) must say so at sign-in."""
+        User.objects.create_user(username="orphan1", password="secret123", role="owner", is_approved=True)
+        self.refused(self.login("orphan1", password="secret123"), "no_business")
+
+    def test_customer_created_in_the_admin_panel_signs_in(self):
+        """POST /api/super/users/create/ builds the user together with its business, so sign-in just works."""
         from bizsuite.views.super_admin.auth import _make_super_token
         root = User.objects.create_superuser(username="root", password=P, is_approved=True)
         c = APIClient()
         c.credentials(HTTP_AUTHORIZATION="Token " + _make_super_token(root))
-        r = c.post("/api/super/users/create/", {"username": "user1", "password": "secret123", "role": "owner"}, format="json")
+        r = c.post("/api/super/users/create/", {"username": "user1", "password": "secret123"}, format="json")
         self.assertEqual(r.status_code, 201, r.content)
-        self.refused(self.login("user1", password="secret123"), "no_business")
+        self.assertEqual(self.login("user1", password="secret123").status_code, 200)
