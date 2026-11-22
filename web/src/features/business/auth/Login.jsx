@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Box, TextField, Button, Alert, CircularProgress } from "@mui/material";
@@ -8,10 +8,18 @@ import AuthShell, { PasswordField } from "@shared/ui/AuthShell";
 
 /** Business sign-in. The layout lives in AuthShell; this file only holds the login flow. */
 export default function Login() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const te = (k) => i18n.exists(k);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { slug } = useParams(); // tenant slug from the address (e.g. /cafe/bizsuite_dashboard/login)
+
+  // While the person types, fetch the dashboard shell in the background so it is already here after sign-in
+  useEffect(() => {
+    const warm = () => { import("@business/layout/BusinessLayout").catch(() => {}); import("@business/dashboard/dashboard").catch(() => {}); };
+    const id = window.requestIdleCallback ? window.requestIdleCallback(warm, { timeout: 3000 }) : setTimeout(warm, 1500);
+    return () => (window.cancelIdleCallback ? window.cancelIdleCallback(id) : clearTimeout(id));
+  }, []);
 
   const [username, setUsername] = useState(() => searchParams.get("username") || "");
   const [password, setPassword] = useState("");
@@ -35,6 +43,7 @@ export default function Login() {
     setSuccess("");
     try {
       const id = { username: username.trim() };
+      if (slug) id.slug = slug; // lets the server apply that business's username prefix
       const { data } = await authApi.login({ ...id, password });
 
       // ★ ذخیره توکن‌ها
@@ -64,12 +73,7 @@ export default function Login() {
       sessionStorage.setItem("demo_logins_remaining", data.user.demo_logins_remaining || 0);
       sessionStorage.setItem("session_alive", "1");
 
-      await authApi.setSession({
-        access_token: data.access,
-        user_id: data.user.id,
-      });
-      setSuccess(t("login.success"));
-
+      // the login response already opened the server session (cookie): no second round trip is needed
       // ★ مسیر بر اساس نقش
       const bslug = data.user.business_slug || slug || "";
       const base = bslug ? `/${bslug}/bizsuite_dashboard/app` : "/bizsuite_dashboard/app";
@@ -84,17 +88,19 @@ export default function Login() {
         driver: bslug ? `/${bslug}/bizsuite_driver` : "/bizsuite_driver",
         transport: bslug ? `/${bslug}/bizsuite_driver` : "/bizsuite_driver",
       };
-      setTimeout(() => {
-        if (data.user.is_superuser) navigate("/bizsuite_admin/app");
-        else navigate(routes[data.user.role] || base);
-      }, 500);
+      if (data.user.is_superuser) navigate("/bizsuite_admin/app");
+      else if (!bslug) { // nowhere to go: say so instead of bouncing back to this page
+        sessionStorage.clear();
+        setError(t("ui_a.login.errors.no_slug"));
+      } else navigate(routes[data.user.role] || base);
     } catch (err) {
-      if (err.response?.data?.code === "subscription_expired") {
-        setError(err.response.data.error);
+      const code = err.response?.data?.code;
+      if (code && code !== "invalid_credentials" && te(`ui_a.login.errors.${code}`)) {
+        setError(t(`ui_a.login.errors.${code}`));
       } else if (err.response?.status === 400 || err.response?.status === 401) {
-        setError(
-          t("ui_a.login.invalid_credentials"),
-        );
+        setError(t("ui_a.login.invalid_credentials"));
+      } else if (err.response?.status === 429) {
+        setError(t("ui_a.login.errors.rate_limited"));
       } else {
         setError(t("login.errorServer"));
       }

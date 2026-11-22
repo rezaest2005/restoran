@@ -22,6 +22,18 @@
     },
     "login": {
       "invalid_credentials": "Invalid username or password.",
+      "errors": {
+        "inactive": "This account is disabled. Contact your administrator.",
+        "pending": "Your account has not been approved by the administrator yet.",
+        "no_business": "No business is assigned to this account. Contact your administrator.",
+        "business_inactive": "This account's business has been disabled. Contact support.",
+        "customer_account": "This is a customer account and has no dashboard access. Contact your administrator.",
+        "subscription_expired": "Your subscription has ended. Contact support to renew.",
+        "rate_limited": "Too many attempts. Wait 5 minutes and try again.",
+        "missing_fields": "Please enter username and password.",
+        "server_error": "Internal error while signing in. Try again in a moment.",
+        "no_slug": "Your account has no business address. Contact your administrator."
+      },
       "switch_lang": "فارسی"
     },
     "dashboard": {

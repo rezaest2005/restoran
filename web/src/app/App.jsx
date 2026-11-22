@@ -1,25 +1,28 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@shared/contexts/ThemeContext";
 import { LangProvider } from "@shared/contexts/LangContext";
 import Login from "@business/auth/Login";
-import SuperLogin from "@super/auth/SuperLogin";
-import SuperAdmin from "@super/layout/SuperAdminLayout";
-import SuperProtectedRoute from "@super/auth/SuperProtectedRoute";
 import ProtectedRoute from "@business/auth/ProtectedRoute";
-import BusinessLayout from "@business/layout/BusinessLayout";
-import Dashboard from "@business/dashboard/dashboard";
-import Pos from "@business/pos/Pos";
-import Dictionary from "@business/dictionary/Dictionary";
-import InventoryPage from "@business/inventory/InventoryPage";
-import ProductionPage from "@business/production/ProductionPage";
-import DispatchPage from "@business/delivery/DispatchPage";
-import ActivityPage from "@business/activity/ActivityPage";
-import DriverPage from "@business/delivery/DriverPage";
-import TrackingPage from "@business/delivery/TrackingPage";
-import QrMenu from "../features/public/QrMenu";
-import FeedbackPublicPage from "../features/public/feedback/FeedbackPublicPage";
-import StorefrontPage from "../features/public/storefront/StorefrontPage";
-import ClubPublicPage from "../features/public/club/ClubPublicPage";
+
+// Only the sign-in page is in the first download; every other screen is fetched when its address is opened.
+const SuperLogin = lazy(() => import("@super/auth/SuperLogin"));
+const SuperAdmin = lazy(() => import("@super/layout/SuperAdminLayout"));
+const SuperProtectedRoute = lazy(() => import("@super/auth/SuperProtectedRoute"));
+const BusinessLayout = lazy(() => import("@business/layout/BusinessLayout"));
+const Dashboard = lazy(() => import("@business/dashboard/dashboard"));
+const Pos = lazy(() => import("@business/pos/Pos"));
+const Dictionary = lazy(() => import("@business/dictionary/Dictionary"));
+const InventoryPage = lazy(() => import("@business/inventory/InventoryPage"));
+const ProductionPage = lazy(() => import("@business/production/ProductionPage"));
+const DispatchPage = lazy(() => import("@business/delivery/DispatchPage"));
+const ActivityPage = lazy(() => import("@business/activity/ActivityPage"));
+const DriverPage = lazy(() => import("@business/delivery/DriverPage"));
+const TrackingPage = lazy(() => import("@business/delivery/TrackingPage"));
+const QrMenu = lazy(() => import("../features/public/QrMenu"));
+const FeedbackPublicPage = lazy(() => import("../features/public/feedback/FeedbackPublicPage"));
+const StorefrontPage = lazy(() => import("../features/public/storefront/StorefrontPage"));
+const ClubPublicPage = lazy(() => import("../features/public/club/ClubPublicPage"));
 
 /** /bizsuite_dashboard/app/... -> /<slug>/bizsuite_dashboard/app/... using the signed-in user's business. */
 function ToSlug() {
@@ -39,6 +42,7 @@ function App() {
   return (
     <ThemeProvider>
       <LangProvider>
+        <Suspense fallback={<div style={{ minHeight: "100vh" }} />}>
         <Routes>
           <Route path="/" element={<StorefrontPage byHost />} />
           <Route path="/s/:slug" element={<StorefrontPage />} />
@@ -109,6 +113,7 @@ function App() {
 
           <Route path="*" element={<Navigate to="/bizsuite_dashboard" replace />} />
         </Routes>
+        </Suspense>
       </LangProvider>
     </ThemeProvider>
   );

@@ -6,12 +6,13 @@ from django.contrib.auth import login as django_login
 from django.core.cache import cache
 
 from rest_framework import permissions, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from ...serializers import CustomTokenObtainSerializer, UserDetailSerializer
+from ...serializers import CustomTokenObtainSerializer, LoginError, UserDetailSerializer
 from ...utils import api_error, api_success
 from ...warehouse_access import access_payload
 
@@ -62,12 +63,29 @@ class LoginView(TokenObtainPairView):
         attempts = cache.get(cache_key, 0)
         if attempts >= 5:
             return Response(
-                {"error": "تلاش‌های زیاد. ۵ دقیقه صبر کنید."},
+                {"error": "تلاش‌های زیاد. ۵ دقیقه صبر کنید.", "code": "rate_limited"},
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
         cache.set(cache_key, attempts + 1, 300)
 
-        serializer = self.get_serializer(data=request.data)
+        try:
+            return self._sign_in(request, cache_key)
+        except LoginError as e:
+            return Response(e.body, status=status.HTTP_400_BAD_REQUEST)
+        except ValidationError:  # a missing username / password field
+            return Response({"error": "نام کاربری و رمز عبور الزامی است.", "code": "missing_fields"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        except Exception:
+            # a sign-in must never end in a bare 500 page: log the real cause, answer in the SPA's own format
+            logger.exception("login failed unexpectedly")
+            return Response(
+                {"error": "خطای داخلی هنگام ورود. چند لحظه بعد دوباره تلاش کنید.", "code": "server_error"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    def _sign_in(self, request, cache_key):
+        data = request.data if hasattr(request.data, "get") else {}
+        serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         user = serializer.user
 
@@ -94,9 +112,12 @@ class LoginView(TokenObtainPairView):
         # JWT بساز
         refresh = RefreshToken.for_user(user)
         if getattr(user, "business_id", None):
-            from ...activity import log as _log
-            _log(user.business, "auth", "login", f"ورود به سامانه: {user.get_full_name() or user.username} ({user.get_role_display()})",
-                 actor=user, request=request, details={"ua": request.META.get("HTTP_USER_AGENT", "")[:150]})
+            try:
+                from ...activity import log as _log
+                _log(user.business, "auth", "login", f"ورود به سامانه: {user.get_full_name() or user.username} ({user.get_role_display()})",
+                     actor=user, request=request, details={"ua": request.META.get("HTTP_USER_AGENT", "")[:150]})
+            except Exception:
+                logger.exception("login activity log failed")
 
         # ★ ریست شمارنده بعد از لاگین موفق
         cache.delete(cache_key)
