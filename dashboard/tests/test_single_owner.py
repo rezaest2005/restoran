@@ -38,11 +38,11 @@ class SingleOwnerTests(TestCase):
         return User.objects.filter(business=biz, role="owner").count()
 
     def test_creating_a_business_makes_exactly_one_owner(self):
-        r = self.sup().post("/api/super/tenants/", {
-            "name": "Resto", "slug": "so-resto", "owner_username": "so_new_owner", "owner_password": "Sup3r-Secret-9",
+        r = self.sup().post("/api/super/users/create/", {
+            "username": "so_new_owner", "password": "Sup3r-Secret-9",
         }, format="json")
         self.assertEqual(r.status_code, 201, r.content)
-        biz = Business.objects.get(slug="so-resto")
+        biz = Business.objects.get(pk=r.json()["business_id"])
         self.assertEqual(User.objects.filter(business=biz).count(), 1)
         self.assertEqual(self.owners(biz), 1)
 
@@ -57,25 +57,6 @@ class SingleOwnerTests(TestCase):
         self.assertEqual(r.status_code, 400, r.content)
         self.assertEqual(User.objects.get(pk=self.staff.pk).role, "cashier")
 
-    def test_super_admin_user_form_refuses_a_second_owner(self):
-        r = self.sup().post("/api/super/users/create/", {
-            "username": "user1", "password": "secret99", "role": "owner", "business_id": self.b.pk}, format="json")
-        self.assertEqual(r.status_code, 400, r.content)
-        self.assertFalse(User.objects.filter(username="user1").exists())
-        r = self.sup().put(f"/api/super/users/{self.staff.pk}/", {"role": "owner"}, format="json")
-        self.assertEqual(r.status_code, 400, r.content)
-        self.assertEqual(self.owners(self.b), 1)
-
-    def test_super_admin_can_still_set_an_owner(self):
-        # a business without an owner, or an explicit override
-        r = self.sup().post("/api/super/users/create/", {
-            "username": "so_first", "password": "secret99", "role": "owner", "business_id": self.o.pk}, format="json")
-        self.assertEqual(r.status_code, 201, r.content)
-        r = self.sup().post("/api/super/users/create/", {
-            "username": "so_extra", "password": "secret99", "role": "owner", "business_id": self.o.pk,
-            "allow_additional_owner": True}, format="json")
-        self.assertEqual(r.status_code, 201, r.content)
-
     def test_editing_the_owner_itself_still_works(self):
-        r = self.sup().put(f"/api/super/users/{self.owner.pk}/", {"first_name": "Ali", "role": "owner"}, format="json")
+        r = self.sup().put(f"/api/super/users/{self.owner.pk}/", {"first_name": "Ali"}, format="json")
         self.assertEqual(r.status_code, 200, r.content)

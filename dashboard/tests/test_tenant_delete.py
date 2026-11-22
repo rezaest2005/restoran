@@ -17,18 +17,18 @@ class TenantDeleteTests(TestCase):
         self.api.credentials(HTTP_AUTHORIZATION="Token " + _make_super_token(self.root))
 
     def make(self, slug, owner):
-        r = self.api.post("/api/super/tenants/", {
-            "name": slug, "slug": slug, "owner_username": owner, "owner_password": "Sup3r-Secret-9",
-        }, format="json")
+        r = self.api.post("/api/super/users/create/", {"username": owner, "password": "Sup3r-Secret-9"}, format="json")
         self.assertEqual(r.status_code, 201, r.content)
-        return Tenant.objects.get(business__slug=slug) if hasattr(Tenant, "business") else Tenant.objects.get(name=slug)
+        b = Business.objects.get(pk=r.json()["business_id"])
+        Business.objects.filter(pk=b.pk).update(slug=slug)
+        return b.tenant, User.objects.get(username=owner)
 
     def test_delete_removes_business_owner_and_staff_but_not_others(self):
-        keep = self.make("td-keep", "td_keep_owner")
-        gone = self.make("td-gone", "td_gone_owner")
+        keep, _ = self.make("td-keep", "td_keep_owner")
+        gone, gone_owner = self.make("td-gone", "td_gone_owner")
         b = Business.objects.get(slug="td-gone")
         User.objects.create_user(username="td_gone_staff", password=P, role="cashier", business=b, is_approved=True)
-        r = self.api.delete(f"/api/super/tenants/{gone.pk}/")
+        r = self.api.delete(f"/api/super/users/{gone_owner.pk}/")
         self.assertEqual(r.status_code, 200, r.content)
         self.assertFalse(Business.objects.filter(slug="td-gone").exists())
         self.assertFalse(Tenant.objects.filter(pk=gone.pk).exists())
@@ -38,10 +38,10 @@ class TenantDeleteTests(TestCase):
         self.assertTrue(User.objects.filter(username="td_root", is_superuser=True).exists())
 
     def test_delete_never_removes_a_super_admin_attached_to_the_business(self):
-        t = self.make("td-sup", "td_sup_owner")
+        t, sup_owner = self.make("td-sup", "td_sup_owner")
         b = Business.objects.get(slug="td-sup")
         User.objects.filter(pk=self.root.pk).update(business=b)
-        r = self.api.delete(f"/api/super/tenants/{t.pk}/")
+        r = self.api.delete(f"/api/super/users/{sup_owner.pk}/")
         self.assertEqual(r.status_code, 200, r.content)
         root = User.objects.get(pk=self.root.pk)
         self.assertTrue(root.is_superuser)

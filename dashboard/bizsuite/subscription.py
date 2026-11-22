@@ -74,3 +74,41 @@ def apply(business, plan, mode="set", ends_at=None, now=None):
         raise ValueError("نوع اشتراک نامعتبر است.")
     business.save(update_fields=["subscription_plan", "subscription_started_at", "subscription_ends_at"])
     return business
+
+
+def _day(value):
+    """'YYYY-MM-DD' (or empty) -> date, or ValueError."""
+    from datetime import date
+    value = (value or "").strip() if isinstance(value, str) else value
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(str(value)[:10])
+    except ValueError as exc:
+        raise ValueError("تاریخ نامعتبر است.") from exc
+
+
+def dates_of(business) -> dict:
+    """Start / end as plain local dates (what the customer form shows)."""
+    def local(dt):
+        return timezone.localtime(dt).date().isoformat() if dt else ""
+    return {"start_date": local(business.subscription_started_at), "end_date": local(business.subscription_ends_at)}
+
+
+def apply_dates(business, start_date, end_date):
+    """Set the subscription from two calendar days. The dashboard closes at the end of the end day;
+    no end day = unlimited. Raises ValueError for a bad date or an end before the start."""
+    start, end = _day(start_date), _day(end_date)
+    if start and end and end < start:
+        raise ValueError("تاریخ پایان نباید قبل از تاریخ شروع باشد.")
+    tz = timezone.get_current_timezone()
+    from datetime import datetime, time
+    business.subscription_started_at = timezone.make_aware(datetime.combine(start, time.min), tz) if start else None
+    if end:
+        business.subscription_ends_at = timezone.make_aware(datetime.combine(end, time(23, 59, 59)), tz)
+        business.subscription_plan = "custom"
+    else:
+        business.subscription_ends_at = None
+        business.subscription_plan = UNLIMITED
+    business.save(update_fields=["subscription_plan", "subscription_started_at", "subscription_ends_at"])
+    return business

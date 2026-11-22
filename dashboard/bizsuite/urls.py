@@ -304,11 +304,9 @@ urlpatterns = [
     path("api/super/logout/", views.super_admin_logout_api, name="super_admin_logout_api"),
     path("api/super/stats/", views.super_stats_api, name="super_stats_api"),
     path("api/super/tenants/", views.super_tenants_api, name="super_tenants_api"),
-    path("api/super/tenants/<int:pk>/", views.super_tenant_detail_api, name="super_tenant_detail_api"),
     path("api/super/users/", views.super_users_api, name="super_users_api"),
     path("api/super/users/create/", views.super_user_create_api, name="super_user_create"),
     path("api/super/users/<int:pk>/", views.super_user_detail_api, name="super_user_detail"),
-    path("api/super/users/<int:pk>/permissions/", views.super_user_permissions_api, name="super_user_permissions"),
 
     path("api/super/modules/", mod_views.super_modules_api, name="super_modules"),
     path("api/super/qr/", qr_super.super_qr_links, name="super_qr_links"),

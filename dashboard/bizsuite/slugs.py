@@ -29,3 +29,15 @@ def validate_slug(slug, exclude_business_id=None):
     if qs.exists():
         return False, f"شناسه‌ی «{slug}» قبلاً استفاده شده است."
     return True, slug
+
+
+def unique_slug(base, fallback="biz"):
+    """A valid, unused slug derived from ``base`` (a username or a name): lower-case letters, digits, - and _."""
+    stem = re.sub(r"[^a-z0-9_-]+", "-", (base or "").strip().lower()).strip("-_")[:40] or fallback
+    if not stem[0].isalnum():
+        stem = fallback + stem
+    candidate, n = stem, 1
+    while len(candidate) < 2 or not validate_slug(candidate)[0]:
+        n += 1
+        candidate = f"{stem}-{n}"
+    return candidate

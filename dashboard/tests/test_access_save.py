@@ -1,7 +1,10 @@
 """Saving a user's access (tabs) must persist and read back — from Definitions → Users & access
 and from the super-admin panel — for every tab key the UI can send."""
 
-from bizsuite.features import GRANTABLE_KEYS, OWNER_ONLY_KEYS, user_ticked
+from bizsuite.features import (
+    ALL_FEATURE_KEYS, GRANTABLE_KEYS, OWNER_ONLY_KEYS, licensed_features, user_features, user_ticked,
+)
+from bizsuite.modules import enabled_modules
 from rest_framework.test import APIClient
 
 from bizsuite.models import User
@@ -65,63 +68,82 @@ class BusinessAccessSaveTests(FeatureBase):
 
 
 class SuperAdminAccessSaveTests(FeatureBase):
+    """The Access tab of the customer form: ticked tabs = what the customer bought."""
+
     def super_client(self):
         c = APIClient()
         c.credentials(HTTP_AUTHORIZATION="Token " + _make_super_token(self.root))
         return c
 
-    def test_save_every_ui_key_and_read_back(self):
-        c = self.super_client()
-        url = f"/api/super/users/{self.cashier.id}/permissions/"
-        r = c.put(url, {"dashboard_permissions": UI_KEYS}, format="json")
+    def put(self, keys, **extra):
+        return self.super_client().put(f"/api/super/users/{self.owner.id}/", {"access": keys, **extra}, format="json")
+
+    def read(self):
+        return self.super_client().get(f"/api/super/users/{self.owner.id}/").json()["access"]
+
+    def test_every_key_saved_reads_back_and_drives_the_licence(self):
+        r = self.put(UI_KEYS)
         self.assertEqual(r.status_code, 200, r.content)
-        self.assertEqual(sorted(r.json()["dashboard_permissions"]), sorted(UI_KEYS))
-        got = c.get(f"/api/super/users/{self.cashier.id}/").json()
-        self.assertEqual(sorted(got["effective_permissions"]), sorted(UI_KEYS))
-        self.cashier.refresh_from_db()
-        self.assertEqual(user_ticked(self.cashier), set(GRANTABLE_KEYS))
+        self.assertEqual(sorted(r.json()["access"]), sorted(UI_KEYS))
+        self.assertEqual(sorted(self.read()), sorted(UI_KEYS))
+        self.biz.refresh_from_db()
+        self.assertEqual(self.biz.disabled_features, [])
+        self.assertEqual(licensed_features(self.biz), set(ALL_FEATURE_KEYS))
 
-    def test_overrides_previous_tabs(self):
-        """A user who already has a tabs dict (set from the business screen) must follow the super-admin save."""
-        self.cashier.tabs = {"pos": True, "orders": True}
-        self.cashier.save()
-        c = self.super_client()
-        r = c.put(f"/api/super/users/{self.cashier.id}/permissions/",
-                  {"dashboard_permissions": ["home", "inventory_reports"]}, format="json")
+    def test_ticked_tabs_enable_their_module_and_unticked_are_off(self):
+        r = self.put(["home", "pos", "orders"])
         self.assertEqual(r.status_code, 200, r.content)
-        self.cashier.refresh_from_db()
-        self.assertEqual(user_ticked(self.cashier), {"home", "inventory_reports"})
+        self.assertEqual(sorted(self.read()), ["dictionary_users", "home", "orders", "pos"])
+        self.biz.refresh_from_db()
+        lic = licensed_features(self.biz)
+        self.assertIn("pos", lic)
+        self.assertNotIn("pos_report", lic)       # module is on but this tab was not bought
+        self.assertNotIn("accounting", lic)       # module off
+        self.assertNotIn("inventory_invoice", lic)
+        self.assertEqual(live(self.biz), {"pos"})
+        # the owner really sees it: only the bought tabs are in effect
+        self.assertEqual(user_features(self.owner), {"home", "dictionary_users", "pos", "orders", "activity"})
 
-    def test_each_key_alone_and_empty(self):
-        c = self.super_client()
-        url = f"/api/super/users/{self.keeper.id}/permissions/"
-        for k in UI_KEYS:
-            self.assertEqual(c.put(url, {"dashboard_permissions": [k]}, format="json").status_code, 200, k)
-            self.keeper.refresh_from_db()
-            self.assertEqual(user_ticked(self.keeper), {k}, k)
-        c.put(url, {"dashboard_permissions": []}, format="json")
-        self.keeper.refresh_from_db()
-        self.assertEqual(user_ticked(self.keeper), set())
+    def test_requires_are_switched_on_and_untick_all_switches_a_module_off(self):
+        self.put(["kitchen"])      # production requires inventory
+        self.assertEqual(live(self.biz), {"production", "inventory"})
+        self.assertEqual(sorted(self.read()), ["dictionary_users", "home", "kitchen"])
+        self.put(["pos"])
+        self.assertEqual(live(self.biz), {"pos"})
+        self.assertEqual(sorted(self.read()), ["dictionary_users", "home", "pos"])
 
-    def test_unknown_key_is_an_error_not_silently_dropped(self):
-        c = self.super_client()
-        r = c.put(f"/api/super/users/{self.cashier.id}/permissions/",
-                  {"dashboard_permissions": ["pos", "no_such_tab"]}, format="json")
+    def test_locked_always_on_and_owner_only_never_sold(self):
+        self.put([])
+        self.assertEqual(sorted(self.read()), ["dictionary_users", "home"])
+        self.put(["activity", "pos"])
+        self.assertNotIn("activity", self.read())
+        self.biz.refresh_from_db()
+        self.assertNotIn("activity", self.biz.disabled_features)
+
+    def test_unknown_key_is_an_error_and_changes_nothing(self):
+        self.put(["pos"])
+        r = self.put(["pos", "accounting", "no_such_tab"])
         self.assertEqual(r.status_code, 400)
         self.assertIn("no_such_tab", r.json()["error"])
+        self.assertEqual(sorted(self.read()), ["dictionary_users", "home", "pos"])
+        self.assertEqual(self.put("pos").status_code, 400)
 
-    def test_user_edit_and_create_store_permissions(self):
-        c = self.super_client()
-        r = c.put(f"/api/super/users/{self.cashier.id}/",
-                  {"role": "cashier", "dashboard_permissions": ["home", "delivery_dispatch"]}, format="json")
+    def test_save_without_access_leaves_the_licence_alone(self):
+        self.put(["pos"])
+        r = self.super_client().put(f"/api/super/users/{self.owner.id}/", {"first_name": "Ali"}, format="json")
         self.assertEqual(r.status_code, 200, r.content)
-        self.cashier.refresh_from_db()
-        self.assertEqual(user_ticked(self.cashier), {"home", "delivery_dispatch"})
-        r = c.post("/api/super/users/create/", {
-            "username": "newperm", "password": "Pass12345!", "role": "cashier",
-            "business_id": self.biz.id, "dashboard_permissions": ["kitchen", "club"]}, format="json")
-        self.assertEqual(r.status_code, 201, r.content)
-        self.assertEqual(user_ticked(User.objects.get(username="newperm")), {"kitchen", "club"})
-        r = c.put(f"/api/super/users/{self.cashier.id}/", {"dashboard_permissions": ["bogus"]}, format="json")
-        self.assertEqual(r.status_code, 400)
+        self.assertEqual(sorted(self.read()), ["dictionary_users", "home", "pos"])
 
+    def test_expired_subscription_does_not_change_what_is_shown(self):
+        self.put(["pos"])
+        r = self.put(["pos"], start_date="2020-01-01", end_date="2020-02-01")
+        self.assertEqual(r.status_code, 200, r.content)
+        self.assertEqual(sorted(self.read()), ["dictionary_users", "home", "pos"])   # shown as bought even when expired
+        got = r.json()
+        self.assertEqual((got["start_date"], got["end_date"]), ("2020-01-01", "2020-02-01"))
+
+
+def live(business):
+    """Live modules that own tabs (a module that sells no tab is not part of the Access tab)."""
+    from bizsuite.features import FEATURES
+    return enabled_modules(business) & {f.module for f in FEATURES if f.module}

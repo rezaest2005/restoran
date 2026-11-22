@@ -177,6 +177,11 @@ def licensed_features(business) -> set[str]:
     from .subscription import is_expired
     if is_expired(business):          # subscription ended: nothing is licensed, every tab and API closes at that second
         return set()
+    return sold_features(business)
+
+
+def sold_features(business) -> set[str]:
+    """What the business bought (modules + tabs), ignoring whether the subscription is still running."""
     live = enabled_modules(business)   # None = unmanaged -> every module is live
     disabled = set(getattr(business, "disabled_features", None) or []) - LOCKED_KEYS
     out = set()
@@ -258,3 +263,49 @@ def catalog_for_super_admin():
         "key": f.key, "module": f.module, "group": f.group, "locked": f.locked,
         "name_fa": f.name_fa, "name_en": f.name_en,
     } for f in FEATURES if not f.owner_only]
+
+
+# -- what the super admin sells to a customer (the Access tab of the customer form) --
+
+def sellable_keys() -> list[str]:
+    """Tabs the super admin can switch on/off (owner-only tabs belong to every owner, always)."""
+    return [f.key for f in FEATURES if f.key not in OWNER_ONLY_KEYS]
+
+
+def clean_access(value):
+    """(sorted feature keys, None) or (None, error). Unknown keys are an error; locked tabs are always on."""
+    if not isinstance(value, list) or any(not isinstance(k, str) for k in value):
+        return None, "access must be a list of tab keys"
+    bad = [k for k in value if k not in FEATURE_BY_KEY]
+    if bad:
+        return None, "unknown tabs: " + ", ".join(bad)
+    return sorted((set(value) - OWNER_ONLY_KEYS) | LOCKED_KEYS), None
+
+
+def access_of(business) -> list[str]:
+    """Exactly what ``apply_access`` saved: the sellable tabs the customer has (subscription end ignored)."""
+    if business is None:
+        return []
+    sellable = set(sellable_keys())
+    sold = sold_features(business)
+    return [k for k in ALL_FEATURE_KEYS if k in sellable and k in sold]
+
+
+def apply_access(business, keys):
+    """Save the tabs the customer bought.
+
+    A module is switched on when any of its tabs is ticked (its prerequisites are switched on with it) and off
+    when none is; every unticked tab is also written to ``disabled_features`` so the read-back is exact.
+    Modules that own no tab (nothing to tick) are left as they are.
+    """
+    from django.db import transaction
+    from .modules import apply_modules
+    ticked = set(keys) | LOCKED_KEYS
+    with transaction.atomic():
+        changes = {}
+        for code in {f.module for f in FEATURES if f.module}:
+            changes[code] = {"is_enabled": any(f.key in ticked for f in FEATURES if f.module == code)}
+        apply_modules(business, changes, auto_requires=True)
+        business.disabled_features = sorted(set(sellable_keys()) - ticked)
+        business.save(update_fields=["disabled_features"])
+    return access_of(business)

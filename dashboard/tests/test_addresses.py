@@ -37,23 +37,6 @@ class SlugTests(Base):
         self.a.refresh_from_db()
         self.assertEqual(self.a.slug, "alpha")
 
-    def test_super_admin_can_still_change_the_slug(self):
-        from bizsuite.views.super_admin.auth import _make_super_token
-        root = User.objects.create_superuser(username="ad_root", password=P)
-        root.is_approved = True
-        root.save()
-        from bizsuite.models import Tenant
-        tenant = Tenant.objects.create(name="الف", owner=self.owner)
-        Business.objects.filter(pk=self.a.pk).update(tenant=tenant)
-        c = APIClient()
-        c.credentials(HTTP_AUTHORIZATION="Token " + _make_super_token(root))
-        r = c.put(f"/api/super/tenants/{tenant.pk}/", {"slug": "renamed"}, format="json")
-        self.assertEqual(r.status_code, 200, r.content)
-        self.a.refresh_from_db()
-        self.assertEqual(self.a.slug, "renamed")
-        bad = c.put(f"/api/super/tenants/{tenant.pk}/", {"slug": "beta"}, format="json")
-        self.assertEqual(bad.status_code, 400)
-
     def test_slug_rules(self):
         self.assertFalse(validate_slug("admin")[0])
         self.assertFalse(validate_slug("beta")[0])

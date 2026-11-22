@@ -1,56 +1,90 @@
 """
-سوپر ادمین — مدیریت کاربران
+سوپر ادمین — مشتریان (کاربران پنل ادمین)
+
+Every user made here is a CUSTOMER: the person who bought an account, i.e. the business owner. Creating one builds the
+whole account (user + tenant + business) in one transaction, so the customer can always sign in and see a dashboard.
+The "access" list is what the customer bought: it drives the business's modules and ``disabled_features``.
 """
 import logging
 
+from django.db import transaction
+from django.db.models import Q
+from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework import status
 
-from ...models import Business, User
-from ...roles import business_has_owner, OWNER_EXISTS_MSG
+from ...features import access_of, apply_access, clean_access, sellable_keys
+from ...models import Tenant, User
+from ...modules import ModuleDependencyError
+from ...subscription import apply_dates, dates_of
 from .auth import IsSuperAdmin
-from .tenants import _clean_phone
+from .tenants import _clean_phone, create_customer_account, delete_tenant_cascade
 
 logger = logging.getLogger(__name__)
 
-
-# ═══════════════════════════════════════════
-#  API: لیست / ساخت / ویرایش / حذف کاربران
-# ═══════════════════════════════════════════
-
-def _clean_permissions(value):
-    """Validate a list of tab keys sent by the super-admin UI.
-
-    Returns ``(keys, error)``. ``keys`` are current feature keys (legacy service codes such as
-    ``dictionary`` are expanded); an unknown key is an error, never silently dropped.
-    """
-    from ...features import FEATURE_BY_KEY, LEGACY_EXPANSION, expand
-    if not isinstance(value, list):
-        return None, 'دسترسی‌ها باید یک لیست باشد.'
-    bad = [str(v) for v in value if v not in FEATURE_BY_KEY and v not in LEGACY_EXPANSION]
-    if bad:
-        return None, 'بخش‌های نامعتبر: ' + ', '.join(bad)
-    return sorted(expand(value)), None
+MIN_PASSWORD = 4
 
 
-def _apply_permissions(user, keys):
-    """Store the ticked tabs the same way the business owner's screen does (User.tabs is the
-    source of truth read by features.user_ticked; dashboard_permissions mirrors it)."""
-    from ...features import ALL_FEATURE_KEYS
-    ticked = set(keys)
-    user.tabs = {k: (k in ticked) for k in ALL_FEATURE_KEYS}
-    user.dashboard_permissions = [k for k in ALL_FEATURE_KEYS if k in ticked]
+class _Abort(Exception):
+    """Roll the transaction back and answer with ``response``."""
+
+    def __init__(self, response):
+        super().__init__("aborted")
+        self.response = response
 
 
-def _permissions_payload(user):
-    from ...features import ALL_FEATURE_KEYS, user_ticked
-    ticked = user_ticked(user)
+def _err(msg, code=status.HTTP_400_BAD_REQUEST):
+    return Response({'error': msg}, status=code)
+
+
+def _customers():
+    return User.objects.select_related('business').filter(role='owner', is_superuser=False)
+
+
+def _row(u):
+    b = u.business
     return {
-        'dashboard_permissions': list(user.dashboard_permissions or []),
-        'tabs': {k: (k in ticked) for k in ALL_FEATURE_KEYS},
-        'effective_permissions': [k for k in ALL_FEATURE_KEYS if k in ticked],
+        'id': u.id,
+        'username': u.username,
+        'first_name': u.first_name or '',
+        'last_name': u.last_name or '',
+        'phone_number': u.phone_number or '',
+        'is_active': u.is_active,
+        'business_id': u.business_id,
+        'business_name': b.name if b else '',
+        'slug': b.slug if b else '',
+        'date_joined': u.date_joined.strftime('%Y/%m/%d'),
     }
+
+
+def _detail(u):
+    b = u.business
+    return {
+        **_row(u),
+        'is_approved': u.is_approved,
+        'access': access_of(b),
+        'sellable': sellable_keys(),
+        **(dates_of(b) if b else {'start_date': '', 'end_date': ''}),
+    }
+
+
+def _apply_business_fields(user, data):
+    """Access + subscription dates from the form (only what was sent); raises _Abort on a bad value."""
+    business = user.business
+    if 'access' in data:
+        keys, err = clean_access(data.get('access'))
+        if err:
+            raise _Abort(_err(err))
+        try:
+            apply_access(business, keys)
+        except ModuleDependencyError as exc:
+            raise _Abort(_err(str(exc), status.HTTP_409_CONFLICT))
+    if 'start_date' in data or 'end_date' in data:
+        current = dates_of(business)
+        try:
+            apply_dates(business, data.get('start_date', current['start_date']), data.get('end_date', current['end_date']))
+        except ValueError as exc:
+            raise _Abort(_err(str(exc)))
 
 
 @api_view(["GET"])
@@ -65,46 +99,19 @@ def super_users_api(request):
     except (TypeError, ValueError):
         page_size = 20
 
+    qs = _customers().order_by('-date_joined')
     search = request.GET.get('search', '').strip()
-    business_id = request.GET.get('business_id')
-
-    qs = User.objects.select_related('business').all().order_by('-date_joined')
-
     if search:
-        from django.db.models import Q
         qs = qs.filter(
-            Q(username__icontains=search)
-            | Q(first_name__icontains=search)
-            | Q(last_name__icontains=search)
-            | Q(phone_number__icontains=search),
+            Q(username__icontains=search) | Q(first_name__icontains=search)
+            | Q(last_name__icontains=search) | Q(phone_number__icontains=search)
+            | Q(business__name__icontains=search),
         )
-    if business_id:
-        qs = qs.filter(business_id=business_id)
-
     total = qs.count()
     start = (page - 1) * page_size
-    users = qs[start:start + page_size]
-
-    data = [{
-        'id': u.id,
-        'username': u.username,
-        'first_name': u.first_name or '',
-        'last_name': u.last_name or '',
-        'phone_number': u.phone_number or '',
-        'role': u.role,
-        'role_display': u.get_role_display(),
-        'is_active': u.is_active,
-        'is_superuser': u.is_superuser,
-        'business_id': u.business_id,
-        'business_name': u.business.name if u.business else '',
-        'dashboard_permissions': u.dashboard_permissions,
-        'effective_permissions': _permissions_payload(u)['effective_permissions'],
-        'date_joined': u.date_joined.strftime('%Y/%m/%d'),
-    } for u in users]
-
     return Response({
-        'users': data, 'total': total, 'page': page,
-        'page_size': page_size,
+        'users': [_row(u) for u in qs[start:start + page_size]],
+        'total': total, 'page': page, 'page_size': page_size,
         'pages': (total + page_size - 1) // page_size,
     })
 
@@ -112,50 +119,38 @@ def super_users_api(request):
 @api_view(["POST"])
 @permission_classes([IsSuperAdmin])
 def super_user_create_api(request):
+    """Create a customer: user (owner) + tenant + business, atomically."""
     data = request.data
     username = (data.get('username') or '').strip()
     password = data.get('password') or ''
-    role = (data.get('role') or '').strip()
-    business_id = data.get('business_id')
-
     if not username or not password:
-        return Response({'error': 'نام کاربری و رمز عبور الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
-    if not role:
-        return Response({'error': 'نقش کاربر الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
+        return _err('نام کاربری و رمز عبور الزامی است')
+    if len(password) < MIN_PASSWORD:
+        return _err('رمز عبور باید حداقل ۴ کاراکتر باشد')
     if User.objects.filter(username=username).exists():
-        return Response({'error': 'این نام کاربری قبلاً ثبت شده'}, status=status.HTTP_400_BAD_REQUEST)
+        return _err('این نام کاربری قبلاً ثبت شده')
+    if data.get('access') is not None:
+        _, err = clean_access(data.get('access'))
+        if err:
+            return _err(err)
 
-    perm_keys = None
-    if data.get('dashboard_permissions') is not None:
-        perm_keys, perm_err = _clean_permissions(data.get('dashboard_permissions'))
-        if perm_err:
-            return Response({'error': perm_err}, status=status.HTTP_400_BAD_REQUEST)
-
-    business = None  # کسب‌وکار اختیاری است
-    if business_id:
-        try:
-            business = Business.objects.get(pk=business_id)
-        except (Business.DoesNotExist, ValueError, TypeError):
-            return Response({'error': 'کسب‌وکار پیدا نشد'}, status=status.HTTP_404_NOT_FOUND)
-
-    if role == 'owner' and business and not data.get('allow_additional_owner')             and business_has_owner(business):
-        return Response({'error': OWNER_EXISTS_MSG}, status=status.HTTP_400_BAD_REQUEST)
-
-    user = User.objects.create_user(username=username, password=password)
-    user.first_name = data.get('first_name', '')
-    user.last_name = data.get('last_name', '')
-    user.phone_number = _clean_phone(data.get('phone_number'))
-    user.role = role
-    user.business = business
-    user.is_approved = True
-    user.is_active = True
-    if perm_keys is not None:
-        _apply_permissions(user, perm_keys)
-
-    user.save()
+    try:
+        with transaction.atomic():
+            user = User.objects.create_user(username=username, password=password)
+            user.first_name = (data.get('first_name') or '').strip()
+            user.last_name = (data.get('last_name') or '').strip()
+            user.phone_number = _clean_phone(data.get('phone_number'))
+            user.role = 'owner'
+            user.is_approved = True
+            user.is_active = True
+            user.save()
+            create_customer_account(user)
+            _apply_business_fields(user, data)
+    except _Abort as stop:
+        return stop.response
     return Response({
-        'ok': True, 'user_id': user.id,
-        'msg': f'کاربر «{user.username}» ساخته شد',
+        'ok': True, 'user_id': user.id, 'business_id': user.business_id, 'slug': user.business.slug,
+        'msg': f'مشتری «{user.username}» ساخته شد',
     }, status=status.HTTP_201_CREATED)
 
 
@@ -165,112 +160,56 @@ def super_user_detail_api(request, pk):
     try:
         user = User.objects.select_related('business').get(pk=pk)
     except User.DoesNotExist:
-        return Response({'error': 'کاربر پیدا نشد'}, status=status.HTTP_404_NOT_FOUND)
+        return _err('کاربر پیدا نشد', status.HTTP_404_NOT_FOUND)
 
     if request.method == "GET":
-        return Response({
-            'id': user.id, 'username': user.username,
-            'first_name': user.first_name or '',
-            'last_name': user.last_name or '',
-            'phone_number': user.phone_number or '',
-            'role': user.role,
-            'role_display': user.get_role_display(),
-            'is_active': user.is_active,
-            'is_approved': user.is_approved,
-            'is_superuser': user.is_superuser,
-            'business_id': user.business_id,
-            'business_name': user.business.name if user.business else '',
-            'dashboard_permissions': user.dashboard_permissions,
-            'effective_permissions': _permissions_payload(user)['effective_permissions'],
-            'tabs': _permissions_payload(user)['tabs'],
-            'date_joined': user.date_joined.strftime('%Y/%m/%d'),
-        })
+        return Response(_detail(user))
 
-    elif request.method == "PUT":
+    if user.is_superuser:
+        return _err('مدیر کل از اینجا قابل ویرایش یا حذف نیست', status.HTTP_403_FORBIDDEN)
+
+    if request.method == "PUT":
         data = request.data
-        update_fields = []
-
+        new_password = data.get('password') or ''
+        if new_password and len(new_password) < MIN_PASSWORD:
+            return _err('رمز عبور باید حداقل ۴ کاراکتر باشد')
+        fields = []
         for field in ('first_name', 'last_name'):
             if field in data:
                 setattr(user, field, (data[field] or '').strip())
-                update_fields.append(field)
-
-        new_username = (data.get('username') or '').strip()
-        if new_username and new_username != user.username:
-            if User.objects.filter(username=new_username).exclude(pk=user.pk).exists():
-                return Response({'error': 'این نام کاربری قبلاً ثبت شده'}, status=status.HTTP_400_BAD_REQUEST)
-            user.username = new_username
-            update_fields.append('username')
-
+                fields.append(field)
         if 'phone_number' in data:
             user.phone_number = _clean_phone(data.get('phone_number'))
-            update_fields.append('phone_number')
-        if 'role' in data:
-            user.role = data['role']
-            update_fields.append('role')
+            fields.append('phone_number')
         if 'is_active' in data:
             user.is_active = bool(data['is_active'])
-            update_fields.append('is_active')
-        if 'is_approved' in data:
-            user.is_approved = bool(data['is_approved'])
-            update_fields.append('is_approved')
-        if 'business_id' in data:
-            if data['business_id'] in (None, '', 0, '0'):
-                user.business = None  # کسب‌وکار اختیاری است
-            else:
-                try:
-                    user.business = Business.objects.get(pk=data['business_id'])
-                except (Business.DoesNotExist, ValueError, TypeError):
-                    return Response({'error': 'کسب‌وکار پیدا نشد'}, status=status.HTTP_404_NOT_FOUND)
-            update_fields.append('business')
-        if 'dashboard_permissions' in data:
-            perm_keys, perm_err = _clean_permissions(data['dashboard_permissions'])
-            if perm_err:
-                return Response({'error': perm_err}, status=status.HTTP_400_BAD_REQUEST)
-            _apply_permissions(user, perm_keys)
-            update_fields += ['dashboard_permissions', 'tabs']
-
-        if (user.role == 'owner' and not user.is_superuser and user.business_id
-                and ('role' in data or 'business_id' in data)
-                and not data.get('allow_additional_owner')
-                and business_has_owner(user.business, exclude_pk=user.pk)):
-            return Response({'error': OWNER_EXISTS_MSG}, status=status.HTTP_400_BAD_REQUEST)
-
-        new_password = data.get('password')
+            fields.append('is_active')
         if new_password:
             user.set_password(new_password)
-            update_fields.append('password')
+            fields.append('password')
+        try:
+            with transaction.atomic():
+                if user.business_id is None:
+                    # an owner without a business could never sign in: build the account now
+                    user.role, user.is_approved = 'owner', True
+                    fields += ['role', 'is_approved']
+                if fields:
+                    user.save(update_fields=fields)
+                if user.business_id is None:
+                    create_customer_account(user)
+                _apply_business_fields(user, data)
+        except _Abort as stop:
+            return stop.response
+        user.refresh_from_db()
+        return Response({'ok': True, 'msg': f'مشتری «{user.username}» بروزرسانی شد', **_detail(user)})
 
-        if update_fields:
-            user.save(update_fields=update_fields)
-
-        return Response({'ok': True, 'msg': f'کاربر «{user.username}» بروزرسانی شد'})
-
-    elif request.method == "DELETE":
-        if user.is_superuser:
-            return Response({'error': 'نمی‌توان مدیر کل را حذف کرد'}, status=status.HTTP_403_FORBIDDEN)
-        username = user.username
-        user.delete()
-        return Response({'ok': True, 'msg': f'کاربر «{username}» حذف شد'})
-
-
-@api_view(["PUT"])
-@permission_classes([IsSuperAdmin])
-def super_user_permissions_api(request, pk):
-    try:
-        user = User.objects.get(pk=pk)
-    except User.DoesNotExist:
-        return Response({'error': 'کاربر پیدا نشد'}, status=status.HTTP_404_NOT_FOUND)
-
-    keys, err = _clean_permissions(request.data.get('dashboard_permissions', []))
-    if err:
-        return Response({'error': err}, status=status.HTTP_400_BAD_REQUEST)
-
-    _apply_permissions(user, keys)
-    user.save(update_fields=['dashboard_permissions', 'tabs'])
-
-    return Response({
-        'ok': True,
-        **_permissions_payload(user),
-        'msg': 'دسترسی‌ها بروزرسانی شد',
-    })
+    # DELETE: the whole account goes (business, tenant, staff), not just the login
+    username = user.username
+    tenants = {t.pk: t for t in Tenant.objects.filter(owner=user)}
+    if user.business and user.business.tenant_id:
+        tenants.setdefault(user.business.tenant_id, user.business.tenant)
+    with transaction.atomic():
+        for tenant in tenants.values():
+            delete_tenant_cascade(tenant)
+        User.objects.filter(pk=user.pk).delete()
+    return Response({'ok': True, 'msg': f'مشتری «{username}» حذف شد'})
