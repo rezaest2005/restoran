@@ -68,12 +68,13 @@ from .accounting_pro import (
 )
 from .jobs import BackgroundJob
 from .modules import BusinessModule, Module, Plan
+from .card_terminal import CardPaymentAttempt, CardTerminalSettings
 from .delivery import (
     Carrier, CashSettlement, DeliveryZone, Driver, LocationPing, StopEvent, Trip, TripStop, Vehicle,
 )
 
 __all__ = [
-    "BusinessModule", "Module", "Plan",
+    "BusinessModule", "Module", "Plan", "CardPaymentAttempt", "CardTerminalSettings",
     "QrLink", "ActivityLog", "Payment", "RecurringExpense", "EXPENSE_CATEGORIES", "EXPENSE_CATEGORY_KEYS",
     "BackgroundJob",
     "UNIT_CHOICES", "UNIT_MAX_LENGTH", "DecimalSafeEncoder", "check_constraint",

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Box, Typography, Drawer, Badge } from "@mui/material";
-import { Storefront, Assessment, ShoppingCart, Notifications, QrCode2 } from "@mui/icons-material";
+import { Storefront, Assessment, ShoppingCart, Notifications, QrCode2, CreditCard } from "@mui/icons-material";
 import { useParams } from "react-router-dom";
 import TableQrDialog from "@/features/public/TableQrDialog";
 import { useTranslation } from "react-i18next";
@@ -11,6 +11,8 @@ import usePosSettings from "./hooks/usePosSettings";
 import useFoods from "./hooks/useFoods";
 import useCart from "./hooks/useCart";
 import useCheckout from "./hooks/useCheckout";
+import useCardReaderSettings from "./hooks/useCardReaderSettings";
+import CardTerminalSettings from "./components/CardTerminalSettings";
 import useDailyReport from "./hooks/useDailyReport";
 import useAnalytics from "./hooks/useAnalytics";
 import useBarcodeScanner from "./hooks/useBarcodeScanner";
@@ -37,11 +39,12 @@ import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 import { buildGlassCardSx, useToast, ToastSnackbar, formatMoney } from "./common";
 import HintBar from "@shared/ui/HintBar";
 
-const NAV_FEATURE = { pos: "pos", report: "pos_report", incoming: "orders" };
+const NAV_FEATURE = { pos: "pos", report: "pos_report", incoming: "orders", settings: "pos_settings" };
 const NAV_ALL = [
   { key: "pos", icon: Storefront, labelKey: "ui_c.pos.nav_pos" },
   { key: "report", icon: Assessment, labelKey: "ui_c.pos.nav_report" },
   { key: "incoming", icon: Notifications, labelKey: "ui_f.incoming.nav" },
+  { key: "settings", icon: CreditCard, labelKey: "ui_card.nav" },
 ];
 // only the sections this user was given (sold + ticked)
 const NAV_ITEMS = NAV_ALL.filter((n) => hasTab(NAV_FEATURE[n.key]));
@@ -119,9 +122,10 @@ export default function Pos() {
   } = useCart();
 
   const {
-    checkoutOpen, lastOrder, submitting, error,
-    openCheckout, closeCheckout, submitOrder,
+    checkoutOpen, lastOrder, pendingOrder, submitting, error,
+    openCheckout, closeCheckout, submitOrder, markPaid,
   } = useCheckout();
+  const { cardSettings, setCardSettings } = useCardReaderSettings();
 
   const {
     orders: dailyOrders, loading: reportLoading,
@@ -251,7 +255,8 @@ export default function Pos() {
     const items = toOrderItems();
     const result = await submitOrder({
       items, customerName: custName, phone: custPhone,
-      orderType, paymentMethod: method, delivery,
+      orderType, paymentMethod: method === "terminal" ? "card" : method, delivery,
+      deferPayment: method === "terminal",
     });
     
     if (result) {
@@ -262,6 +267,7 @@ export default function Pos() {
       setDelivery({ address: "", driverId: "", cod: false });
       reloadReport();
       const dp = result.dispatch;
+      if (result.awaiting_payment) return result;      // card terminal: the toast comes once it is paid
       showToast(
         dp
           ? (dp.queued
@@ -272,6 +278,14 @@ export default function Pos() {
       );
     }
     return result;
+  };
+
+  // card terminal approved (or the cashier settled another way): the order is paid
+  const handleTerminalPaid = (order) => {
+    markPaid(order);
+    reload();
+    reloadReport();
+    showToast(t("ui_c.pos.order_saved", { id: order.order_id }), "success");
   };
 
   // ── میان‌برهای کیبورد صفحه‌ی صندوق ──
@@ -698,6 +712,13 @@ export default function Pos() {
           </Box>
         )}
 
+        {mainTab === "settings" && (
+          <CardTerminalSettings
+            settings={cardSettings} onSaved={setCardSettings}
+            C={C} glassCardSx={glassCardSx}
+          />
+        )}
+
         {mainTab === "incoming" && (
           <IncomingOrders
             {...incoming}
@@ -719,6 +740,10 @@ export default function Pos() {
         C={C}
         isRtl={isRtl}
         lastOrder={lastOrder}
+        pendingOrder={pendingOrder}
+        cardSettings={cardSettings}
+        onPaid={handleTerminalPaid}
+        onOrderCancelled={() => { reload(); reloadReport(); }}
         defaultMethod={startMethod || paymentMethod}
         cart={cart}
         cartTotal={cartTotal}
