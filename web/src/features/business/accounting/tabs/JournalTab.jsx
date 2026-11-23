@@ -4,7 +4,7 @@ import {
   Alert, CircularProgress, Pagination,
 } from "@mui/material";
 import { useRegisteredShortcuts, onEnter } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import {
   TableWrap, Money, SOURCE_TYPES, fmtDate, fmtInt, useRowCursor, cursorBindings, cursorProps,
 } from "../common";

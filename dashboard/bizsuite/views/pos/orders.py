@@ -13,8 +13,7 @@ from rest_framework.decorators import api_view, permission_classes
 from ...models import Order, OrderItem, Food
 from ...catalog_services import product_available_stock
 from ...order_services import StockError, reserve_product_stock, restore_order_stock
-from ...club_services import earn_for_order
-from ...accounting_posting import post_pos_order, safe_post
+from ... import events
 from ..common import (
     PosPerm,
     action_denied,
@@ -25,39 +24,6 @@ from ..common import server_error
 from ...activity import audit
 
 logger = logging.getLogger(__name__)
-
-
-# ═══════════════════════════════════════
-#  ارسال خودکار سفارش پیک
-# ═══════════════════════════════════════
-
-def _auto_dispatch(business, order, driver_id, cod, user):
-    """
-    سفارش پیک را برای ارسال آماده می‌کند. اگر راننده انتخاب شده، همان‌جا مأموریت (و لینک پیگیری)
-    می‌سازد؛ وگرنه سفارش در «سفارش‌های منتظر پیک» می‌ماند. خطا هرگز سفارش را خراب نمی‌کند.
-    """
-    if not driver_id:
-        return {"queued": True}
-    try:
-        from ...delivery_services import create_trip
-        from ...models import Driver
-        driver = Driver.all_objects.filter(business=business, pk=driver_id, is_active=True).first()
-        if driver is None:
-            return {"queued": True, "error": "راننده پیدا نشد؛ سفارش در صف ارسال ماند."}
-        trip = create_trip(
-            business,
-            [{"customer_name": order.customer_name, "phone": order.phone,
-              "address": order.delivery_address, "order": order,
-              "reference": f"#{order.pk}",
-              "amount_due": order.total_price if cod else 0}],
-            driver=driver, user=user,
-        )
-        stop = trip.stops.model.all_objects.filter(trip=trip).first()
-        return {"queued": False, "trip_id": trip.pk, "trip_number": trip.number,
-                "tracking_token": stop.public_token if stop else None}
-    except Exception:
-        logger.exception("auto dispatch failed for order %s", order.pk)
-        return {"queued": True, "error": "ثبت مأموریت ناموفق بود؛ سفارش در صف ارسال ماند."}
 
 
 # ═══════════════════════════════════════
@@ -225,11 +191,7 @@ def pos_create_order(request):
             order.recalculate_total()
 
         if order.payment_status == "paid":
-            try:
-                earn_for_order(order)
-            except Exception:
-                logger.exception("club earn failed for order %s", order.pk)
-            safe_post(post_pos_order, order, request.user if request.user.is_authenticated else None)
+            events.publish("pos_order.paid", order=order, user=request.user if request.user.is_authenticated else None)
 
         from ...activity import log as _log
         _log(business, "pos", "order.created",
@@ -241,9 +203,9 @@ def pos_create_order(request):
                       "address": delivery_address if is_delivery else ""})
         dispatch = None
         if is_delivery and not defer:        # a card-terminal order is dispatched once it is paid
-            dispatch = _auto_dispatch(
-                business, order, data.get("driver_id"), cod,
-                request.user if request.user.is_authenticated else None)
+            dispatch = events.first(events.publish(
+                "pos_order.dispatch_requested", order=order, driver_id=data.get("driver_id"), cod=cod,
+                user=request.user if request.user.is_authenticated else None))
 
         return JsonResponse({
             "success": True,

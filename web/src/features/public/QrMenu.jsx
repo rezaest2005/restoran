@@ -13,7 +13,7 @@ import { useLang } from "@shared/contexts/LangContext";
 import ProductCard, { formatPrice } from "./ProductCard";
 import CartSheet from "./CartSheet";
 import useShortcuts from "@shared/common/useShortcuts";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 
 const TABLE_RE = /^[\p{L}\p{N} -]{1,20}$/u;
 

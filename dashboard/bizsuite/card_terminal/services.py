@@ -447,18 +447,13 @@ def resolve_manually(attempt, outcome, trace_number="", ref_number="", user=None
 
 def finalize_paid_order(order, user=None, driver_id=None):
     """Everything that follows a payment: club points, accounting entry, courier dispatch. Returns the dispatch dict."""
-    from ..accounting_posting import post_pos_order, safe_post
-    from ..club_services import earn_for_order
-    try:
-        earn_for_order(order)
-    except Exception:
-        logger.exception("club earn failed for order %s", order.pk)
-    safe_post(post_pos_order, order, user if getattr(user, "pk", None) else None)
+    from .. import events
+    user = user if getattr(user, "pk", None) else None
+    events.publish("pos_order.paid", order=order, user=user)
     if order.order_type == "delivery" and order.delivery_address:
-        from ..delivery_services import order_is_dispatched
-        from ..views.pos.orders import _auto_dispatch
-        if not order_is_dispatched(order):
-            return _auto_dispatch(order.business, order, driver_id, False, user if getattr(user, "pk", None) else None)
+        return events.first(events.publish(
+            "pos_order.dispatch_requested", order=order, driver_id=driver_id, cod=False, user=user,
+            skip_if_dispatched=True))
     return None
 
 
@@ -466,12 +461,8 @@ def dispatch_info(order):
     """Courier hand-over state of a delivery order, in the shape the checkout screen already knows."""
     if order.order_type != "delivery" or not order.delivery_address or order.payment_status != "paid":
         return None
-    from ..models import TripStop
-    stop = TripStop.all_objects.filter(order_id=order.pk).select_related("trip").first()
-    if stop is None:
-        return {"queued": True}
-    return {"queued": False, "trip_id": stop.trip_id, "trip_number": stop.trip.number,
-            "tracking_token": stop.public_token}
+    from ..delivery_services import order_dispatch_state
+    return order_dispatch_state(order)
 
 
 def receipt_payload(order, attempt=None, dispatch=None) -> dict:

@@ -21,7 +21,7 @@ from .accounting_services import (
     BANK, CARRIER_PAYABLE, CASH, CASH_DIFF, DELIVERY_COST, DELIVERY_REVENUE, DRIVER_CASH,
     DRIVER_PAYABLE, RECEIVABLE, SALES, post_entry, q2,
 )
-from .accounting_posting import _accounting_on
+from .modules import module_enabled
 from .delivery_routing import haversine_km as _hav, optimize_order, schedule, zone_contains
 from .models import (
     CashSettlement, DeliveryZone, Driver, LocationPing, Business, Order, StopEvent, Trip, TripStop, Vehicle,
@@ -593,7 +593,7 @@ def settle_driver_cash(driver, received_amount, user=None, deposit_account=CASH,
         lines.append({"account": DRIVER_CASH, "credit": expected, "memo": driver.name})
     if diff > 0:       # اضافی
         lines.append({"account": CASH_DIFF, "credit": diff, "memo": "اضافی تسویه"})
-    if len(lines) >= 2 and _accounting_on(business=driver.business):
+    if len(lines) >= 2 and module_enabled(driver.business, "accounting"):
         post_entry(driver.business, lines, source_type="driver_settlement", source_id=st.pk,
                    description=f"تسویه‌ی نقدی راننده {driver.name}", user=user)
     _act(driver.business, "cash.settled", f"تسویه‌ی نقدی با {driver.name}: انتظار {expected}، دریافت {received}"
@@ -615,7 +615,7 @@ def post_trip_accounting(trip, user=None):
       - کارمزد راننده → هزینه‌ی حمل / بدهی به راننده
       - هزینه‌ی حمل‌کننده‌ی بیرونی → هزینه / بدهی به حمل‌کننده
     """
-    if not _accounting_on(business=trip.business):
+    if not module_enabled(trip.business, "accounting"):
         return None  # accounting module off: delivery works without posting
     trip = Trip.all_objects.select_for_update().get(pk=trip.pk)
     if trip.accounted:
@@ -885,3 +885,51 @@ def public_shipment_tracking(token):
             "failure_reason": s.failure_reason if s.status == TripStop.Status.FAILED else "",
         } for s in stops],
     }
+
+
+# ───────────────────────── order hand-over (event: pos_order.dispatch_requested) ─────────────────────────
+
+def order_dispatch_state(order):
+    """Courier hand-over state of an order in the shape the checkout screen knows."""
+    stop = TripStop.all_objects.filter(order_id=order.pk).select_related("trip").first()
+    if stop is None:
+        return {"queued": True}
+    return {"queued": False, "trip_id": stop.trip_id, "trip_number": stop.trip.number,
+            "tracking_token": stop.public_token}
+
+
+def auto_dispatch_order(business, order, driver_id, cod, user, skip_if_dispatched=False):
+    """
+    سفارش پیک را برای ارسال آماده می‌کند. اگر راننده انتخاب شده، همان‌جا مأموریت (و لینک پیگیری)
+    می‌سازد؛ وگرنه سفارش در «سفارش‌های منتظر پیک» می‌ماند. خطا هرگز سفارش را خراب نمی‌کند.
+    """
+    if skip_if_dispatched and order_is_dispatched(order):
+        return None
+    if not driver_id:
+        return {"queued": True}
+    try:
+        driver = Driver.all_objects.filter(business=business, pk=driver_id, is_active=True).first()
+        if driver is None:
+            return {"queued": True, "error": "راننده پیدا نشد؛ سفارش در صف ارسال ماند."}
+        trip = create_trip(
+            business,
+            [{"customer_name": order.customer_name, "phone": order.phone,
+              "address": order.delivery_address, "order": order,
+              "reference": f"#{order.pk}",
+              "amount_due": order.total_price if cod else 0}],
+            driver=driver, user=user,
+        )
+        stop = trip.stops.model.all_objects.filter(trip=trip).first()
+        return {"queued": False, "trip_id": trip.pk, "trip_number": trip.number,
+                "tracking_token": stop.public_token if stop else None}
+    except Exception:
+        logger.exception("auto dispatch failed for order %s", order.pk)
+        return {"queued": True, "error": "ثبت مأموریت ناموفق بود؛ سفارش در صف ارسال ماند."}
+
+
+def register_events():
+    from . import events
+    events.subscribe(
+        "pos_order.dispatch_requested",
+        lambda order, driver_id=None, cod=False, user=None, skip_if_dispatched=False: auto_dispatch_order(
+            order.business, order, driver_id, cod, user, skip_if_dispatched))

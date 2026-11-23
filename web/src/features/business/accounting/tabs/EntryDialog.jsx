@@ -5,7 +5,7 @@ import {
   TableRow, TableCell,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import { AccountPicker, DetailPicker, TableWrap, Money, num, round2, newKey, todayISO } from "../common";
 import { createEntry, updateDraft, errMsg } from "../api";
 

@@ -8,7 +8,7 @@ import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import { buildColors } from "@shared/palette";
 import { useRegisteredShortcuts, onEnter } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import {
   useStyles, TableWrap, useRowCursor, cursorBindings, cursorProps, fmtInt,
 } from "../accounting/common";

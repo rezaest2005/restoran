@@ -266,3 +266,51 @@ POSTERS = {
         post_purchase_return, post_expense, post_pos_order, post_stock_waste, post_payment,
     )
 }
+
+
+# ───────────────────────── events (subscribed in apps.ready) ─────────────────────────
+# Other modules publish business facts; accounting turns them into journal entries. Each handler is exactly
+# the call the publisher used to make directly (safe_post/repost/unpost never raise).
+
+from . import events, jobs  # noqa: E402
+
+
+@jobs.register("post_accounting")
+def post_accounting(payload):
+    """Retry an automatic accounting posting that failed inside a request."""
+    from . import models as m
+
+    poster = POSTERS.get(payload.get("poster"))
+    model = getattr(m, payload.get("model", ""), None)
+    if poster is None or model is None:
+        raise ValueError(f"invalid post_accounting payload: {payload}")
+    obj = model.all_objects.get(pk=payload["pk"])
+    user = None
+    if payload.get("user_id"):
+        user = m.User.objects.filter(pk=payload["user_id"]).first()
+    poster(obj, user=user)  # idempotent per (source_type, source_id)
+
+
+def _post_on(poster):
+    return lambda obj, user=None: safe_post(poster, obj, user)
+
+
+def _unpost_on(source_type, reason):
+    return lambda obj, user=None: unpost(obj.business, source_type, obj.pk, user=user, reason=reason)
+
+
+def register_events():
+    events.subscribe("pos_order.paid", lambda order, user=None: safe_post(post_pos_order, order, user))
+    events.subscribe("pos_order.cancelled",
+                     lambda order, user=None: unpost(order.business, "pos_order", order.pk, user=user, reason="لغو سفارش"))
+    events.subscribe("stock_waste.recorded", lambda movement, user=None: safe_post(post_stock_waste, movement, user))
+    events.subscribe("sales_invoice.created", _post_on(post_sales_invoice))
+    events.subscribe("sales_invoice.updated",
+                     lambda obj, user=None: repost(obj, "sales_invoice", post_sales_invoice, user))
+    events.subscribe("sales_invoice.deleted", _unpost_on("sales_invoice", "حذف فاکتور"))
+    events.subscribe("sales_return.created", _post_on(post_sales_return))
+    events.subscribe("sales_return.deleted", _unpost_on("sales_return", "حذف مرجوعی"))
+    events.subscribe("purchase_return.created", _post_on(post_purchase_return))
+    events.subscribe("purchase_return.deleted", _unpost_on("purchase_return", "حذف مرجوعی"))
+    events.subscribe("expense.created", _post_on(post_expense))
+    events.subscribe("expense.deleted", _unpost_on("expense", "حذف هزینه"))

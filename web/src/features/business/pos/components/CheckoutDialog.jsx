@@ -1,4 +1,4 @@
-import { blurFocused } from "../common/focus";
+import { blurFocused } from "@shared/common/focus";
 import { ResponsiveDialog } from "@shared/responsive";
 import { appUrl } from "@shared/basePath";
 import { useEffect, useRef, useState } from "react";

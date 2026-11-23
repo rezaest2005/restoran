@@ -4,7 +4,7 @@ import {
   DialogContent, DialogActions, TextField, MenuItem, FormControlLabel, Switch, Alert, Chip, CircularProgress,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import { TableWrap, ConfirmDialog, fmtMoney, fmtInt, num } from "@business/accounting/common";
 import { vehiclesApi, carriersApi, driversApi, setDriverShift, errMsg } from "./api";
 import { VEHICLE_KINDS } from "./common";

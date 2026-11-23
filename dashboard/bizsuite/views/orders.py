@@ -14,8 +14,7 @@ from rest_framework.decorators import api_view, permission_classes
 from ..models import Order
 
 from ..order_services import restore_order_stock
-from ..club_services import earn_for_order
-from ..accounting_posting import unpost
+from .. import events
 from .common import PosPerm, action_denied, resolve_business
 from .common import server_error
 from ..activity import audit
@@ -85,14 +84,10 @@ def order_change_status(request, pk):
 
             if new_status == 'cancelled':
                 restore_order_stock(order)
-                unpost(order.business, 'pos_order', order.pk, user=request.user,
-                       reason='لغو سفارش')
+                events.publish("pos_order.cancelled", order=order, user=request.user)
 
             if new_status == 'delivered':
-                try:
-                    earn_for_order(order)
-                except Exception:
-                    logger.exception('club earn failed for order %s', order.pk)
+                events.publish("pos_order.delivered", order=order)
 
         return JsonResponse({
             "success": True,

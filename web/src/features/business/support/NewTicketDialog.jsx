@@ -3,7 +3,7 @@ import {
   Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import { createTicket } from "./api";
 import { CATEGORIES, PRIORITIES, errMsg } from "./common";
 

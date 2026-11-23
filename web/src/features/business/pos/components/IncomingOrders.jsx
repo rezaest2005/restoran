@@ -1,4 +1,4 @@
-import { blurFocused } from "../common/focus";
+import { blurFocused } from "@shared/common/focus";
 import { useState } from "react";
 import {
   Box, Typography, Button, Chip, Switch, FormControlLabel, IconButton, Tooltip,

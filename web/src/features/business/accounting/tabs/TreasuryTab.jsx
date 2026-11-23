@@ -4,7 +4,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Alert, CircularProgress, Tabs, Tab,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import { TableWrap, Money, fmtDate, fmtInt, num, todayISO, parseCsv } from "../common";
 import {
   fetchMoneyAccounts, createMoneyAccount, updateMoneyAccount, fetchTransfers, createTransfer, cancelTransfer,

@@ -15,7 +15,7 @@ from ...models import Order, Food, Business
 from ...modules import module_enabled
 from ...tenancy import set_current_business
 from ...order_services import restore_order_stock
-from ...accounting_posting import unpost
+from ... import events
 from ..common import PosPerm, action_denied, resolve_business
 from ...activity import audit
 
@@ -201,7 +201,7 @@ def pos_reject_online_order(request, order_id):
         order.confirmed_at = timezone.now()
         order.save(update_fields=["status", "confirmed_by", "confirmed_at"])
         restore_order_stock(order)
-        unpost(order.business, "pos_order", order.pk, user=request.user, reason="لغو سفارش")
+        events.publish("pos_order.cancelled", order=order, user=request.user)
 
     return JsonResponse({
         "success": True,

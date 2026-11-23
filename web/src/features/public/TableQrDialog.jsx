@@ -1,10 +1,10 @@
-import { blurFocused } from "@/features/business/pos/common/focus";
+import { blurFocused } from "@shared/common/focus";
 import { useMemo, useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Typography, Box, GlobalStyles } from "@mui/material";
 import { QRCodeSVG } from "qrcode.react";
 import { useTranslation } from "react-i18next";
 import useShortcuts from "@shared/common/useShortcuts";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 
 /** Props: { open: boolean, onClose: () => void, slug: string } */
 export default function TableQrDialog({ open, onClose, slug }) {

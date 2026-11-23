@@ -4,7 +4,7 @@ import {
   MenuItem, IconButton, Alert, CircularProgress, Checkbox, FormControlLabel,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import { num, newKey, fmtMoney } from "@business/accounting/common";
 import { createTrip, quoteZone, errMsg } from "./api";
 import { PRIORITIES } from "./common";

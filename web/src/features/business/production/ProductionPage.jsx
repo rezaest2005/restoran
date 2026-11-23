@@ -13,8 +13,8 @@ import { buildColors } from "@shared/palette";
 import useShortcuts from "@shared/common/useShortcuts";
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 import { moduleEnabled, hasTab } from "@business/dashboard/access";
-import KbdHint from "@business/pos/common/KbdHint";
-import { blurFocused } from "@business/pos/common/focus";
+import KbdHint from "@shared/common/KbdHint";
+import { blurFocused } from "@shared/common/focus";
 import {
   num, fmt, fmtDate, STATUSES, useStyles, TableWrap, ConfirmDialog, enterIsNative,
   ReadyBanner, RequirementsTable,
