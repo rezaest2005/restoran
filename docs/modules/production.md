@@ -52,7 +52,7 @@ Core: always allowed.
 
 Declared business modules: inventory, catalog
 
-Re-tested together with it (dependents / event partners): accounting, card_terminal, catalog, club, dashboard, delivery, pos, qr
+Re-tested together with it (dependents / event partners): accounting, card_terminal, catalog, club, dashboard, delivery, pos, qr, sync
 
 ## Frontend
 - `web/src/features/business/production`

@@ -143,6 +143,13 @@ MODULES: dict[str, dict] = {
         "files": ["card_terminal/", "models/card_terminal.py", "views/card_reader.py"],
         "frontend": [], "tests": ["test_card_terminal"], "public_api": ["card_terminal/services.py"],
     },
+    "sync": {
+        "tier": BUSINESS, "title_fa": "همگام‌سازی محلی (داده روی دستگاه مشتری)",
+        "title_en": "Local-first sync (change log, pull/push)",
+        "files": ["sync/"],
+        "frontend": ["shared/sync"], "tests": ["test_sync_changelog", "test_sync_push"],
+        "public_api": [],
+    },
     "support": {
         "tier": BUSINESS, "title_fa": "پشتیبانی", "title_en": "Support tickets",
         "files": ["models/support.py", "views/support.py", "views/super_admin/support.py"],
@@ -178,6 +185,8 @@ DEPENDS_ON: dict[str, list[str]] = {
     "catalog": ["inventory", "production"],
     "qr": ["pos", "catalog"],
     "card_terminal": ["pos", "delivery"],
+    # sync reads the catalog/customers/orders and applies pushed orders through the POS order logic
+    "sync": ["pos", "catalog", "inventory"],
     "support": [],
     "dashboard": ["pos", "inventory", "accounting", "delivery", "club", "production"],
 }

@@ -42,7 +42,7 @@ Core: always allowed.
 
 Declared business modules: pos, delivery
 
-Re-tested together with it (dependents / event partners): accounting, club, dashboard, delivery, pos, qr
+Re-tested together with it (dependents / event partners): accounting, club, dashboard, delivery, pos, qr, sync
 
 ## Frontend
 - none

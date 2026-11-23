@@ -43,7 +43,7 @@ Core: always allowed.
 
 Declared business modules: inventory, production
 
-Re-tested together with it (dependents / event partners): accounting, card_terminal, club, dashboard, delivery, pos, production, qr
+Re-tested together with it (dependents / event partners): accounting, card_terminal, club, dashboard, delivery, pos, production, qr, sync
 
 ## Frontend
 - none

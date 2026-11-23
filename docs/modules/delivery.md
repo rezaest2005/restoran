@@ -55,7 +55,7 @@ Core: always allowed.
 
 Declared business modules: accounting, pos
 
-Re-tested together with it (dependents / event partners): accounting, card_terminal, club, dashboard, pos, qr
+Re-tested together with it (dependents / event partners): accounting, card_terminal, club, dashboard, pos, qr, sync
 
 ## Frontend
 - `web/src/features/business/delivery`
