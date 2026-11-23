@@ -5,7 +5,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings, onEnter } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import {
   TableWrap, ConfirmDialog, accName, ACCOUNT_TYPES, fmtInt, useRowCursor, cursorBindings, cursorProps,
 } from "../common";

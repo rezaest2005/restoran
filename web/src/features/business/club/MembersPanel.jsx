@@ -4,7 +4,7 @@ import {
   TextField, Typography,
 } from "@mui/material";
 import { useRegisteredShortcuts, onEnter } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import { TableWrap, fmtInt, fmtDate, useRowCursor, cursorBindings, cursorProps, downloadCsv } from "../accounting/common";
 import { fetchMembers, crud, errMsg } from "./api";
 import TierBadge from "./TierBadge";

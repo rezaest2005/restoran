@@ -4,7 +4,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Alert, CircularProgress, Switch, FormControlLabel,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings, onEnter } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import { TableWrap, Money, DETAIL_KINDS, useRowCursor, cursorBindings, cursorProps } from "../common";
 import { createDetail, updateDetail, deleteDetail, errMsg } from "../api";
 

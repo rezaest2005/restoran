@@ -1,4 +1,4 @@
-import { blurFocused } from "../common/focus";
+import { blurFocused } from "@shared/common/focus";
 import { ResponsiveDialog } from "@shared/responsive";
 import {
   DialogTitle, DialogContent, DialogActions, Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Button, IconButton,

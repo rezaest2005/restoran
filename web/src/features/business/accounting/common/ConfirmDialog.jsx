@@ -2,7 +2,7 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Typography, Button, Alert, CircularProgress,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 
 /** Confirm dialog: Enter / Ctrl+D confirm, Escape cancels. `children` = extra content (e.g. a reason field). */
 export default function ConfirmDialog({

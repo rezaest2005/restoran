@@ -3,7 +3,7 @@ import {
   Alert, Box, Button, CircularProgress, FormControlLabel, MenuItem, Switch, TextField, Typography,
 } from "@mui/material";
 import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import { fmtInt } from "../accounting/common";
 import { fetchSettings, saveSettings, runDaily, errMsg } from "./api";
 import CrudSection from "./CrudSection";

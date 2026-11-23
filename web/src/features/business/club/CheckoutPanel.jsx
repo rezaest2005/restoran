@@ -3,7 +3,7 @@ import {
   Alert, Box, Button, Chip, CircularProgress, Divider, Stack, TextField, Typography,
 } from "@mui/material";
 import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import { fmtInt } from "../accounting/common";
 import { lookupMember, quotePurchase, createPurchase, errMsg } from "./api";
 import TierBadge from "./TierBadge";

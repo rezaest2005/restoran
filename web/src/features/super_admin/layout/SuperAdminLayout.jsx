@@ -18,7 +18,7 @@ import {
 import { useTranslation } from "react-i18next";
 import superClient from "@super/api/super_client";
 import { collectShortcuts, useRegisteredShortcuts, tabBindings, helpBinding, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 import HintBar from "@shared/ui/HintBar";
 

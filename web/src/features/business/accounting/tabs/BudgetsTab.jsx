@@ -4,7 +4,7 @@ import {
   IconButton, LinearProgress,
 } from "@mui/material";
 import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import { TableWrap, Money, AccountPicker, ReportActions, accName, fmtDate, num, newKey, todayISO, ConfirmDialog } from "../common";
 import { fetchBudgets, createBudget, fetchBudget, updateBudget, deleteBudget, errMsg } from "../api";
 

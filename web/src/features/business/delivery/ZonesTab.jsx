@@ -4,7 +4,7 @@ import {
   CircularProgress, Switch, FormControlLabel, Chip,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import { fmtMoney, fmtInt, num, ConfirmDialog } from "@business/accounting/common";
 import { zonesApi, quoteZone, errMsg } from "./api";
 

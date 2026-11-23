@@ -8,7 +8,7 @@ import {
   useRegisteredShortcuts, tabBindings, helpBinding, collectShortcuts,
 } from "@shared/common/shortcutKit";
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import { useStyles } from "@business/accounting/common";
 import { hasTab } from "@business/dashboard/access";
 import { vehiclesApi, carriersApi, driversApi, errMsg } from "./api";

@@ -4,7 +4,7 @@ import {
   Alert, CircularProgress, ToggleButton, ToggleButtonGroup,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import { AccountPicker, DetailPicker, Money, num, round2, todayISO } from "../common";
 import { createVatDocument, fetchMoneyAccounts, fetchAccSettings, errMsg } from "../api";
 

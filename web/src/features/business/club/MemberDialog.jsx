@@ -3,7 +3,7 @@ import {
   Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import { createMember, errMsg } from "./api";
 
 /** Add a member (phone + name). Ctrl+D / Enter save, Escape closes. */

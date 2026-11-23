@@ -2,8 +2,8 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Typography, Button, Alert, CircularProgress,
 } from "@mui/material";
 import useShortcuts from "@shared/common/useShortcuts";
-import KbdHint from "@business/pos/common/KbdHint";
-import { blurFocused } from "@business/pos/common/focus";
+import KbdHint from "@shared/common/KbdHint";
+import { blurFocused } from "@shared/common/focus";
 
 /** Confirm dialog: Enter / Ctrl+D confirm, Escape cancels (MUI). */
 export default function ConfirmDialog({ ctx, open, title, text, confirmLabel, danger, busy, error, onClose, onConfirm }) {

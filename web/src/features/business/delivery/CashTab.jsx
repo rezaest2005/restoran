@@ -4,7 +4,7 @@ import {
   DialogContent, DialogActions, TextField, MenuItem, Alert, CircularProgress,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import {
   TableWrap, fmtMoney, num, useRowCursor, cursorBindings, cursorProps,
 } from "@business/accounting/common";

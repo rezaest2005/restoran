@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Alert, CircularProgress,
 } from "@mui/material";
-import { blurFocused } from "@business/pos/common/focus";
+import { blurFocused } from "@shared/common/focus";
 import { fmt } from "@business/production/common";
 import { parseProcess, errMsg } from "../../api";
 import { TEMPLATES, pick, templateDraft } from "./templates";

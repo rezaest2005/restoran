@@ -10,7 +10,7 @@ import LocalGasStation from "@mui/icons-material/LocalGasStation";
 import Build from "@mui/icons-material/Build";
 import MoreHoriz from "@mui/icons-material/MoreHoriz";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import { fetchCustomers, fetchSuppliers } from "@business/dictionary/api";
 import { CATEGORY_KEYS, todayISO, num } from "../common";
 import { createExpense, createPayment, createRecurring, saveOpening, errMsg } from "../api";

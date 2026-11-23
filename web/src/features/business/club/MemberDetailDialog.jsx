@@ -4,7 +4,7 @@ import {
   Stack, Switch, Tab, Table, TableBody, TableCell, TableHead, TableRow, Tabs, TextField, Typography,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@business/pos/common/KbdHint";
+import KbdHint from "@shared/common/KbdHint";
 import { TableWrap, fmtInt, fmtDate } from "../accounting/common";
 import {
   fetchMember, adjustMember, updateMember, walletMember, redeemReward, voidPurchase, crud, errMsg,

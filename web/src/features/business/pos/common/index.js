@@ -4,4 +4,4 @@ export * from "./constants";
 export { buildGlassCardSx } from "./glassCardSx";
 export { default as useToast } from "./useToast";
 export { default as ToastSnackbar } from "./ToastSnackbar";
-export { default as KbdHint } from "./KbdHint";
+export { default as KbdHint } from "@shared/common/KbdHint";
