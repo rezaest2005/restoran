@@ -107,20 +107,5 @@ def run_next():
     return job
 
 
-# ───────────────────────── handlers ─────────────────────────
-
-@register("post_accounting")
-def post_accounting(payload):
-    """Retry an automatic accounting posting that failed inside a request."""
-    from . import accounting_posting as ap
-    from . import models as m
-
-    poster = ap.POSTERS.get(payload.get("poster"))
-    model = getattr(m, payload.get("model", ""), None)
-    if poster is None or model is None:
-        raise ValueError(f"invalid post_accounting payload: {payload}")
-    obj = model.all_objects.get(pk=payload["pk"])
-    user = None
-    if payload.get("user_id"):
-        user = m.User.objects.filter(pk=payload["user_id"]).first()
-    poster(obj, user=user)  # idempotent per (source_type, source_id)
+# Job handlers are registered by the module that owns them (``@jobs.register`` in that module's file,
+# imported from ``AppConfig.ready``): accounting_posting (post_accounting), club_campaigns (club_*).

@@ -13,7 +13,7 @@ from ...models import (
     SalesInvoice,
     SalesReturn,
 )
-from ...accounting_posting import post_expense, post_purchase_return, safe_post, unpost
+from ... import events
 from ...activity import audit
 
 
@@ -47,7 +47,7 @@ def purchase_return_list_create(request):
         reason=d.get("reason", ""),
         date=d.get("date", timezone.localdate()),
     )
-    safe_post(post_purchase_return, r, request.user if request.user.is_authenticated else None)
+    events.publish("purchase_return.created", obj=r, user=request.user if request.user.is_authenticated else None)
     return JsonResponse({"id": r.pk}, status=201)
 
 
@@ -55,7 +55,7 @@ def purchase_return_list_create(request):
 @audit("inventory", "purchase_return", "مرجوعی خرید")
 def purchase_return_delete(request, pk):
     for r in PurchaseReturn.objects.filter(pk=pk):
-        unpost(r.business, "purchase_return", r.pk, user=request.user, reason="حذف مرجوعی")
+        events.publish("purchase_return.deleted", obj=r, user=request.user)
     PurchaseReturn.objects.filter(pk=pk).delete()
     return JsonResponse({}, status=204)
 
@@ -95,7 +95,7 @@ def expense_list_create(request):
         date=d.get("date", timezone.localdate()),
         note=d.get("note", ""),
     )
-    safe_post(post_expense, e, request.user if request.user.is_authenticated else None)
+    events.publish("expense.created", obj=e, user=request.user if request.user.is_authenticated else None)
     return JsonResponse({"id": e.pk}, status=201)
 
 
@@ -103,7 +103,7 @@ def expense_list_create(request):
 @audit("accounting", "expense", "هزینه")
 def expense_delete(request, pk):
     for e in Expense.objects.filter(pk=pk):
-        unpost(e.business, "expense", e.pk, user=request.user, reason="حذف هزینه")
+        events.publish("expense.deleted", obj=e, user=request.user)
     Expense.objects.filter(pk=pk).delete()
     return JsonResponse({}, status=204)
 

@@ -702,3 +702,12 @@ def redeem_reward(member, reward, user=None):
     return create_coupon(member.business, kind=kind, value=reward.value, member=member, title=reward.name,
                          prefix="R", usage_limit=1, valid_days=reward.valid_days or None, reward=reward,
                          max_discount=reward.max_discount)
+
+
+# ───────────────────────── events (subscribed in apps.ready) ─────────────────────────
+
+def register_events():
+    from . import events
+    events.subscribe("pos_order.paid", lambda order, user=None: earn_for_order(order))
+    events.subscribe("pos_order.delivered", lambda order: earn_for_order(order))
+    events.subscribe("sales_invoice.finalized", lambda obj: earn_for_sales_invoice(obj))
