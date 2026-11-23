@@ -40,9 +40,16 @@ export function SyncConflictsDialog({ open, onClose }) {
   const { t } = useTranslation();
   const { engine, rev } = useSync();
   const [rows, setRows] = useState([]);
+  const [seen, setSeen] = useState(false);
   useEffect(() => {
     if (!open || !engine) return;
-    engine.outbox().then((r) => setRows(r.filter((x) => x.status === "conflict" || x.status === "rejected")));
+    engine.outbox().then((r) => {
+      const bad = r.filter((x) => x.status === "conflict" || x.status === "rejected");
+      setRows(bad);
+      if (bad.length) setSeen(true);
+      else if (seen) { setSeen(false); onClose(); }       // everything fixed: close by itself
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, engine, rev?.outbox]);
   const act = (id, a) => engine.resolve(id, a);
   return (
@@ -54,7 +61,7 @@ export function SyncConflictsDialog({ open, onClose }) {
         <Stack spacing={1.5}>
           {rows.map((r) => (
             <Box key={r.id} data-testid="sync-conflict" sx={{ border: 1, borderColor: "divider", borderRadius: 2, p: 1.5 }}>
-              <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5, flexWrap: "wrap" }}>
+              <Stack direction="row" spacing={1} sx={{ mb: 0.5, flexWrap: "wrap", alignItems: "center" }}>
                 <Typography sx={{ fontWeight: 700 }}>{localNumber(r)}</Typography>
                 <SyncBadge state={r.status} />
                 <Typography variant="body2" color="text.secondary">{(r.snapshot?.total ?? 0).toLocaleString()}</Typography>
@@ -141,7 +148,7 @@ export function SyncStatus({ client, isOwner }) {
           {isOwner && (
             <>
               <Divider sx={{ my: 1 }} />
-              <Stack direction="row" alignItems="center" justifyContent="space-between">
+              <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", gap: 1 }}>
                 <Box><Typography sx={{ fontWeight: 700, fontSize: 13 }}>{t("sync.owner_switch")}</Typography>
                   <Typography variant="caption" color="text.secondary">{t("sync.owner_switch_hint")}</Typography></Box>
                 <Switch data-testid="sync-owner-switch" checked={s.enabled} disabled={enabledBusy} onChange={(e) => toggle(e.target.checked)} />
@@ -156,7 +163,7 @@ export function SyncStatus({ client, isOwner }) {
 }
 
 const Row = ({ k, v }) => (
-  <Stack direction="row" justifyContent="space-between" sx={{ fontSize: 13 }}>
+  <Stack direction="row" sx={{ fontSize: 13, justifyContent: "space-between", gap: 1 }}>
     <span style={{ opacity: 0.7 }}>{k}</span><b>{v}</b>
   </Stack>
 );

@@ -26,6 +26,7 @@ export function createEngine({ client, businessId, userId }) {
   let nextTryAt = 0;
   let channel = null;
   let destroyed = false;
+  let lastStatusAt = 0;
   const listeners = new Set();
 
   let state = {
@@ -189,14 +190,15 @@ export function createEngine({ client, businessId, userId }) {
     if (old.length) { await store.batch(old.map((r) => ({ store: "outbox", del: r.id }))); bump("outbox"); }
   }
 
-  async function runSync({ manual = false } = {}) {
+  async function runSync({ manual = false, full = false } = {}) {
     if (syncing) return syncing;
     if (!manual && Date.now() < nextTryAt) return null;
     if (typeof navigator !== "undefined" && !navigator.onLine) { set({ online: false }); return null; }
     syncing = (async () => {
       set({ syncing: true, online: true });
       try {
-        await status();
+        // the (cheap) status call only runs at start, on reconnect, on 'sync now' and every 5 minutes
+        if (full || !lastStatusAt || Date.now() - lastStatusAt > 300000) { await status(); lastStatusAt = Date.now(); }
         if (!meta.enabled) return;
         await push();
         await pull();
@@ -231,6 +233,7 @@ export function createEngine({ client, businessId, userId }) {
 
     async init() {
       store = makeStore(await openDb(name));
+      if (destroyed) { store.close(); store = null; throw new Error("destroyed"); }   // (React strict mode mounts twice)
       const m = await store.get("meta", "state");
       if (m) meta = { ...meta, ...m, clock: { ...meta.clock, ...(m.clock || {}) } };
       for (const r of await store.getAll("outbox")) {           // interrupted push: safe to resend (idempotent)
@@ -251,7 +254,7 @@ export function createEngine({ client, businessId, userId }) {
     start() {
       if (running || destroyed) return;
       running = true;
-      const onOnline = () => { set({ online: true }); fails = 0; nextTryAt = 0; runSync({ manual: true }); };
+      const onOnline = () => { set({ online: true }); fails = 0; nextTryAt = 0; runSync({ manual: true, full: true }); };
       const onOffline = () => set({ online: false });
       const onVisible = () => { if (document.visibilityState === "visible") runSync(); };
       window.addEventListener("online", onOnline);
@@ -263,7 +266,7 @@ export function createEngine({ client, businessId, userId }) {
         window.removeEventListener("offline", onOffline);
         document.removeEventListener("visibilitychange", onVisible);
       };
-      runSync({ manual: true });
+      runSync({ manual: true, full: true });
     },
 
     stop() {
@@ -272,7 +275,7 @@ export function createEngine({ client, businessId, userId }) {
       api._off?.();
     },
 
-    syncNow: () => { fails = 0; nextTryAt = 0; return runSync({ manual: true }); },
+    syncNow: () => { fails = 0; nextTryAt = 0; return runSync({ manual: true, full: true }); },
     list: (entity) => store.getAll(entity),
     outbox: async () => (await store.getAll("outbox")).sort((a, b) => b.createdAt - a.createdAt),
     isLocalFirstReady: () => state.ready && state.enabled && !!meta.clock.syncWall && (meta.cursor || "0") !== "0"

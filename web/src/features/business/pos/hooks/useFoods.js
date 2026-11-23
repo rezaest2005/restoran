@@ -45,7 +45,7 @@ export default function useFoods(useDictionary, isRtl) {
       setLoading(false);
       return;
     }
-    if (local) { sync.syncNow(); return; }   // the sync engine keeps the local copy fresh
+    if (local) return;   // the sync engine keeps the local copy fresh
     ctrlRef.current?.abort();
     const ctrl = new AbortController();
     ctrlRef.current = ctrl;
@@ -63,7 +63,6 @@ export default function useFoods(useDictionary, isRtl) {
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [useDictionary, local]);
 
   usePolling(load, REFRESH_MS, !!useDictionary && !local);

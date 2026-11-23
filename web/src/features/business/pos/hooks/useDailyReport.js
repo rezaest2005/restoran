@@ -42,7 +42,7 @@ export default function useDailyReport(enabled = true) {
   }, [local, localOrders.rows, localProducts.rows, outbox.rows, selectedDate]);
 
   const load = useCallback(async () => {
-    if (local) { sync.syncNow(); return; }
+    if (local) return;   // the sync engine keeps the local copy fresh
     ctrlRef.current?.abort();
     const ctrl = new AbortController();
     ctrlRef.current = ctrl;
@@ -60,7 +60,6 @@ export default function useDailyReport(enabled = true) {
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, local]);
 
   usePolling(load, REFRESH_MS, enabled && !local);

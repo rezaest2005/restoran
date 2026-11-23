@@ -42,7 +42,7 @@ export function SyncProvider({ client, children }) {
       eng.subscribe(setState);
       eng.start();
       cleanOthers(dbNameFor(id.businessId, id.userId));
-    }).catch((e) => { console.warn("[sync] local storage unavailable, using the server only:", e?.message); });
+    }).catch((e) => { if (dead) return; console.warn("[sync] local storage unavailable, using the server only:", e?.message); });
     return () => { dead = true; eng?.destroy(); eng = null; setEngine(null); setState(null); };
   }, [client]);
 
