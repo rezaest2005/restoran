@@ -286,3 +286,26 @@ def dependents(name: str) -> set[str]:
                 todo.append(src)
     out |= event_edges().get(name, set()) - {name}  # direct event partners (publishers/subscribers)
     return out
+
+
+# URL prefixes (urls.py) served by each module — used by the module cards and the docs; longest prefix wins.
+URLS: dict[str, list[str]] = {
+    "core": ["api/health/", "api/app/", "api/business/"],
+    "users": ["api/auth/", "api/users/"],
+    "licensing": [],
+    "activity": ["api/activity/"],
+    "superadmin": ["api/super/"],
+    "catalog": ["api/catalog/", "api/menu/"],
+    "pos": ["api/pos/", "api/orders/", "dashboard/orders/"],
+    "inventory": ["api/inventory/", "api/invoicing/", "api/raw-materials/", "api/suppliers/", "api/warehouse-json/"],
+    "production": ["api/production/", "api/formulas/"],
+    "accounting": ["api/accounting/"],
+    "delivery": ["api/delivery/"],
+    "club": ["api/club/", "api/public/club/"],
+    "feedback": ["api/feedback/"],
+    "qr": ["api/super/qr/"],
+    "card_terminal": ["api/card-reader/"],
+    "support": ["api/support/", "api/super/support/"],
+    "dashboard": ["api/dashboard/"],
+    "root": [],
+}
