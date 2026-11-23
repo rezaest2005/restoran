@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
-import { Box, Typography, Drawer, Badge } from "@mui/material";
+import { Box, Typography, Drawer, Badge, Alert, Button } from "@mui/material";
 import { Storefront, Assessment, ShoppingCart, Notifications, QrCode2, CreditCard } from "@mui/icons-material";
 import { useParams } from "react-router-dom";
 import TableQrDialog from "@/features/public/TableQrDialog";
@@ -34,6 +34,7 @@ import DaySummary from "./components/DaySummary";
 import IncomingOrders from "./components/IncomingOrders";
 import useIncomingOrders from "./hooks/useIncomingOrders";
 import { buildColors } from "@shared/palette";
+import { useSync, SyncConflictsDialog } from "@shared/sync";
 import useShortcuts from "@shared/common/useShortcuts";
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 import { buildGlassCardSx, useToast, ToastSnackbar, formatMoney } from "./common";
@@ -57,6 +58,8 @@ const ORDER_TYPES = [
 
 export default function Pos() {
   const { mode } = useThemeMode();
+  const sync = useSync();
+  const [conflictsOpen, setConflictsOpen] = useState(false);
   const { isRtl, lang } = useLang();
   const { t } = useTranslation();
   const params = useParams();
@@ -185,7 +188,8 @@ export default function Pos() {
     if (!code) return;
     setSearch("");
     try {
-      const p = await lookupBarcode(code);
+      const localHit = sync.active ? allFoods.find((f) => f.barcode && String(f.barcode) === code) : null;
+      const p = localHit || await lookupBarcode(code);
       if (!p) throw new Error("empty");
       if (p.is_available === false) {
         beepError();
@@ -215,7 +219,7 @@ export default function Pos() {
         "error",
       );
     }
-  }, [allFoods, setSearch, showToast, t]);
+  }, [allFoods, setSearch, showToast, t, sync.active]);
 
   useBarcodeScanner({ enabled: mainTab === "pos" && !!useDictionary, onScan: handleScan });
 
@@ -453,6 +457,14 @@ export default function Pos() {
           </Box>
         )}
       </Box>
+
+      {sync.active && sync.conflicts > 0 && (
+        <Alert severity="error" sx={{ borderRadius: 0, flexShrink: 0 }} data-testid="sync-conflict-banner"
+          action={<Button color="inherit" size="small" onClick={() => setConflictsOpen(true)}>{t("sync.conflicts")}</Button>}>
+          {t("sync.conflict_title")}: {sync.conflicts}
+        </Alert>
+      )}
+      <SyncConflictsDialog open={conflictsOpen} onClose={() => setConflictsOpen(false)} />
 
       {/* ═══ محتوای اصلی ═══ */}
       <Box sx={{

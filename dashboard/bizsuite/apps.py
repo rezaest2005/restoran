@@ -14,3 +14,5 @@ class BizsuiteConfig(AppConfig):
         club_services.register_events()
         accounting_posting.register_events()
         delivery_services.register_events()
+        # local-first sync: change-log models + signal hooks (new package, observes only)
+        from .sync import models as _sync_models, signals as _sync_signals  # noqa: F401

@@ -24,6 +24,7 @@ import useShortcuts from "@shared/common/useShortcuts";
 import { KbdHint, formatMoney } from "../common";
 import usePosAccess, { canUseMethod } from "../hooks/usePosAccess";
 import useCardTerminal from "../hooks/useCardTerminal";
+import { useSync } from "@shared/sync";
 import CardTerminalPanel from "./CardTerminalPanel";
 import { settleOrder, cancelUnpaidOrder } from "../services/cardTerminal";
 
@@ -61,6 +62,8 @@ export default function CheckoutDialog({
     if (!open) setSel(null);
   }
   const cardEnabled = !!cardSettings?.enabled;
+  const sync = useSync();
+  const terminalOffline = cardEnabled && sync.active && !sync.online;   // the card terminal needs the server
   const [working, setWorking] = useState(false);
   const [panelError, setPanelError] = useState(null);
   const terminal = useCardTerminal({ settings: cardSettings, onPaid: (order) => onPaid?.(order) });
@@ -605,12 +608,17 @@ export default function CheckoutDialog({
               </Typography>
 
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                {terminalOffline && (
+                  <Typography data-testid="terminal-offline-note" sx={{ fontSize: 12, color: "warning.main", fontWeight: 700, mb: 0.5 }}>
+                    {t("sync.offline_terminal")}
+                  </Typography>
+                )}
                 {paymentMethods.map(({ key, icon: Icon, labelFa, labelEn, hint }) => (
                   <Button
                     key={key}
                     data-testid={`pay-${key}`}
                     onClick={() => handlePayment(key)}
-                    disabled={busy}
+                    disabled={busy || (key === "terminal" && terminalOffline)}
                     sx={{
                       bgcolor: selKey === key ? `${C.olive}15` : `${C.olive}08`,
                       color: C.text,

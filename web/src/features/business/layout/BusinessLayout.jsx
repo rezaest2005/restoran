@@ -15,6 +15,8 @@ import { appName } from "@shared/branding";
 import NavIcon from "@shared/ui/NavIcon";
 import { BrandSquare } from "@shared/ui/BrandMark";
 import SubscriptionGuard from "./SubscriptionGuard";
+import client from "../api/client";
+import { SyncProvider, SyncStatus, LogoutGuardDialog, useLogoutGuard, useSync } from "@shared/sync";
 import LogoutIcon from "@mui/icons-material/Logout";
 import LockIcon from "@mui/icons-material/Lock";
 import MenuIcon from "@mui/icons-material/Menu";
@@ -139,6 +141,13 @@ const ROLE_TABS_FALLBACK = {
   },
 };
 
+function isOwnerUser() {
+  try {
+    const u = JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "null");
+    return !!u && (u.role === "owner" || u.is_superuser === true);
+  } catch { return false; }
+}
+
 // ═══════ ماژول‌های فعال کسب‌وکار (null = همه) ═══════
 function getUserModules() {
   try {
@@ -161,6 +170,14 @@ function hasAnyTab(userTabs, requiredTabs) {
 ═══════════════════════════════════════ */
 
 export default function BusinessLayout() {
+  return (
+    <SyncProvider client={client}>
+      <BusinessLayoutInner />
+    </SyncProvider>
+  );
+}
+
+function BusinessLayoutInner() {
   const { mode, toggleTheme } = useThemeMode();
   const { isRtl, toggleLang, lang } = useLang();
   const { t, i18n } = useTranslation();
@@ -294,7 +311,11 @@ export default function BusinessLayout() {
   const comboFor = (to) => navTargets.find((n) => n.to === to)?.combo;
 
 
-  const handleLogout = () => {
+  const logoutGuard = useLogoutGuard();
+  const { ready: syncReady } = useSync();
+  const [logoutAsk, setLogoutAsk] = useState(null);   // { unsynced, wipe } while the "unsent orders" question is open
+
+  const finishLogout = () => {
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
     localStorage.removeItem("user");
@@ -306,6 +327,15 @@ export default function BusinessLayout() {
     sessionStorage.removeItem("session_alive");
     sessionStorage.removeItem("demo_logins_remaining");
     navigate(slug ? `/${slug}/bizsuite_dashboard/login` : "/bizsuite_dashboard/login");
+  };
+
+  // local copy: sync once more, warn about unsent orders, then wipe this device's data
+  const handleLogout = async () => {
+    if (!syncReady) { finishLogout(); return; }
+    const g = await logoutGuard();
+    if (g.unsynced > 0) { setLogoutAsk(g); return; }
+    await g.wipe();
+    finishLogout();
   };
 
   const sidebarContent = (
@@ -426,6 +456,7 @@ export default function BusinessLayout() {
           </Box>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, md: 1 }, flexShrink: 0 }}>
+            <SyncStatus client={client} isOwner={isOwnerUser()} />
             <IconButton onClick={toggleTheme} size="small" sx={{ color: C.text, border: `1px solid ${C.glassBorder}`, borderRadius: "10px", bgcolor: C.glass, width: { xs: 40, md: 34 }, height: { xs: 40, md: 34 }, "&:hover": { bgcolor: C.oliveSubtle, borderColor: C.olive } }}>
               {isDark ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
             </IconButton>
@@ -461,6 +492,13 @@ export default function BusinessLayout() {
           ) : <Outlet />}
         </Box>
       </Box>
+
+      <LogoutGuardDialog
+        open={!!logoutAsk} unsynced={logoutAsk?.unsynced || 0}
+        onCancel={() => setLogoutAsk(null)}
+        onKeep={async () => { await logoutAsk.wipe({ keepOutbox: true }); setLogoutAsk(null); finishLogout(); }}
+        onDiscard={async () => { await logoutAsk.wipe({ keepOutbox: false }); setLogoutAsk(null); finishLogout(); }}
+      />
 
       <ShortcutsHelpDialog open={helpOpen} onClose={() => setHelpOpen(false)} items={layoutShortcuts} />
 

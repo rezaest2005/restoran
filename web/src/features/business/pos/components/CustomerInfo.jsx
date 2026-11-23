@@ -1,4 +1,5 @@
-import { Box, TextField } from "@mui/material";
+import { Autocomplete, Box, TextField } from "@mui/material";
+import { useSync, useLocalList } from "@shared/sync";
 import { PersonAdd, Phone } from "@mui/icons-material";
 
 export default function CustomerInfo({
@@ -10,6 +11,26 @@ export default function CustomerInfo({
   C,
   isRtl,
 }) {
+  const sync = useSync();
+  const customers = useLocalList("customer");
+  const useLocal = !!sync.active && customers.rows.length > 0;
+  const nameInput = (params) => (
+    <TextField
+      {...params}
+      fullWidth
+      size="small"
+      label={isRtl ? "نام مشتری" : "Customer name"}
+      required={requireCustomer}
+      sx={inputSx}
+      slotProps={{
+        ...params.slotProps,
+        input: {
+          ...params.slotProps?.input,
+          startAdornment: (<><PersonAdd sx={{ color: C.muted, fontSize: 16, mr: 0.5 }} />{params.slotProps?.input?.startAdornment}</>),
+        },
+      }}
+    />
+  );
   const inputSx = {
     "& .MuiOutlinedInput-root": {
       borderRadius: "12px",
@@ -30,6 +51,22 @@ export default function CustomerInfo({
 
   return (
     <Box sx={{ display: "flex", gap: 1, mb: 1.5 }}>
+      {useLocal ? (
+        <Autocomplete
+          freeSolo fullWidth size="small" data-testid="customer-autocomplete"
+          options={customers.rows.filter((c) => c.is_active !== false)}
+          getOptionLabel={(o) => (typeof o === "string" ? o : o.name)}
+          filterOptions={(opts, { inputValue }) => {
+            const q = inputValue.trim().toLowerCase();
+            if (!q) return [];
+            return opts.filter((c) => c.name.toLowerCase().includes(q) || (c.phone || "").includes(q)).slice(0, 8);
+          }}
+          inputValue={custName}
+          onInputChange={(_e, v, reason) => { if (reason !== "reset") setCustName(v); }}
+          onChange={(_e, v) => { if (v && typeof v === "object") { setCustName(v.name); if (v.phone) setCustPhone(v.phone); } }}
+          renderInput={nameInput}
+        />
+      ) : (
       <TextField
         fullWidth
         size="small"
@@ -46,6 +83,7 @@ export default function CustomerInfo({
           },
         }}
       />
+      )}
       <TextField
         fullWidth
         size="small"

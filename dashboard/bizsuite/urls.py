@@ -1,7 +1,7 @@
 """
 Business Management System — URLs (★ نسخه v12 — session-check)
 """
-from django.urls import path, re_path
+from django.urls import include, path, re_path
 from django.http import JsonResponse
 from . import views
 from .views import system as system_views
@@ -65,6 +65,7 @@ def _get_view(name):
 
 
 urlpatterns = [
+    path("api/sync/", include("bizsuite.sync.urls")),
     path("api/app/info/", system_views.app_info, name="app_info"),
     path("api/health/", system_views.health, name="health"),
     path("", views.root_redirect, name="root_redirect"),

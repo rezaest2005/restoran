@@ -1,7 +1,11 @@
 import { useState, useCallback } from "react";
+import i18n from "i18next";
 import client from "../../api/client"; // استفاده مستقیم از کلاینت
+import { useSync, buildLocalOrder, receiptOf } from "@shared/sync";
+import { readBusinessName } from "../services/printService";
 
 export default function useCheckout() {
+  const sync = useSync();
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [lastOrder, setLastOrder] = useState(null);
   const [pendingOrder, setPendingOrder] = useState(null); // created but UNPAID (card terminal in progress)
@@ -35,6 +39,31 @@ export default function useCheckout() {
     try {
       setSubmitting(true);
       setError(null);
+
+      // local-first: the order is saved on this device with a client UUID and sent in the background.
+      // The card terminal needs the server, so it stays online-only.
+      if (sync.active) {
+        if (deferPayment && !sync.online) {
+          setError(i18n.t("sync.offline_terminal"));
+          return null;
+        }
+        if (!deferPayment) {
+          try {
+            const products = await sync.engine.list("product");
+            const { payload, snapshot } = buildLocalOrder({
+              items, products, businessName: readBusinessName(),
+              form: { customerName, phone, tableId, orderType, paymentMethod, delivery },
+            });
+            const row = await sync.engine.enqueueOrder(payload, snapshot);
+            const data = receiptOf(row);
+            setLastOrder(data);
+            return data;
+          } catch (err) {
+            setError(err?.code === "locked" ? i18n.t("sync.locked_cannot_sell") : (err?.message || "error"));
+            return null;
+          }
+        }
+      }
 
       // ★ مپ کردن دقیق آیتم‌ها به فرمتی که بک‌اند (pos.py) انتظار دارد
       const apiItems = items.map(item => ({
@@ -89,7 +118,7 @@ export default function useCheckout() {
     } finally {
       setSubmitting(false);
     }
-  }, []);
+  }, [sync.active, sync.online, sync.engine]);
 
   const markPaid = useCallback((order) => {
     setPendingOrder(null);
