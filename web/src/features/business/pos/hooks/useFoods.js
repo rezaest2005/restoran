@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { fetchProducts, fetchCategories, updateProduct } from "../api";
 import usePolling from "../common/usePolling";
+import { useSync, useLocalList } from "@shared/sync";
 
 const REFRESH_MS = 15000;
 
@@ -10,12 +11,31 @@ const REFRESH_MS = 15000;
  * the tab is visible so all terminals stay in step.
  */
 export default function useFoods(useDictionary, isRtl) {
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [serverProducts, setProducts] = useState([]);
+  const [serverCategories, setCategories] = useState([]);
+  const [serverLoading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeCat, setActiveCat] = useState("all");
   const ctrlRef = useRef(null);
+
+  // local-first: when this business works from the local copy, products/categories come from the device
+  const sync = useSync();
+  const localProducts = useLocalList("product");
+  const localCategories = useLocalList("category");
+  const local = !!sync.active && !!useDictionary;
+
+  const { products, categories, loading } = useMemo(() => {
+    if (!local) return { products: serverProducts, categories: serverCategories, loading: serverLoading };
+    const catOrder = new Map(localCategories.rows.map((c) => [c.id, c]));
+    const sorted = [...localProducts.rows].sort((a, b) =>
+      ((catOrder.get(a.category_id)?.order ?? 0) - (catOrder.get(b.category_id)?.order ?? 0))
+      || ((a.order ?? 0) - (b.order ?? 0)) || String(a.name).localeCompare(String(b.name)));
+    return {
+      products: sorted.map((p) => ({ ...p, category: catOrder.get(p.category_id)?.name || "" })),
+      categories: [...localCategories.rows].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+      loading: !localProducts.loaded,
+    };
+  }, [local, serverProducts, serverCategories, serverLoading, localProducts.rows, localProducts.loaded, localCategories.rows]);
 
   const catField = isRtl === false ? "category_name_en" : "category_name";
 
@@ -25,6 +45,7 @@ export default function useFoods(useDictionary, isRtl) {
       setLoading(false);
       return;
     }
+    if (local) { sync.syncNow(); return; }   // the sync engine keeps the local copy fresh
     ctrlRef.current?.abort();
     const ctrl = new AbortController();
     ctrlRef.current = ctrl;
@@ -42,9 +63,10 @@ export default function useFoods(useDictionary, isRtl) {
     } finally {
       if (!ctrl.signal.aborted) setLoading(false);
     }
-  }, [useDictionary]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useDictionary, local]);
 
-  usePolling(load, REFRESH_MS, !!useDictionary);
+  usePolling(load, REFRESH_MS, !!useDictionary && !local);
   useEffect(() => () => ctrlRef.current?.abort(), []);
 
   // Catalog product -> POS food (adds the category name keys the cart/discounts use).

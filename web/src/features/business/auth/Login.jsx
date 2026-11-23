@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Box, TextField, Button, Alert, CircularProgress } from "@mui/material";
 import { authApi } from "@business/api/auth";
 import useShortcuts from "@shared/common/useShortcuts";
+import { purgeSyncedDatabases } from "@shared/sync";
 import AuthShell, { PasswordField } from "@shared/ui/AuthShell";
 
 /** Business sign-in. The layout lives in AuthShell; this file only holds the login flow. */
@@ -13,6 +14,9 @@ export default function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { slug } = useParams(); // tenant slug from the address (e.g. /cafe/bizsuite_dashboard/login)
+
+  // a signed-out browser keeps no local business data (copies that still hold unsent orders are kept for their owner)
+  useEffect(() => { purgeSyncedDatabases().catch(() => {}); }, []);
 
   // While the person types, fetch the dashboard shell in the background so it is already here after sign-in
   useEffect(() => {

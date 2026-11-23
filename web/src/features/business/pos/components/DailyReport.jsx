@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { SyncBadge } from "@shared/sync";
 import {
   Box,
   Typography,
@@ -866,6 +867,7 @@ export default function DailyReport({
                   >
                     <TableCell sx={{ fontWeight: 800, color: C.olive }}>
                       #{isRtl ? toPersianDigits(o.id) : o.id}
+                      {o.sync_state && <Box component="span" sx={{ marginInlineStart: 0.8 }}><SyncBadge state={o.sync_state} /></Box>}
                     </TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>
                       {getCustomerName(o, isRtl, t)}
