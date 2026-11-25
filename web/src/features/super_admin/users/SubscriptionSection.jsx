@@ -25,9 +25,8 @@ export default function SubscriptionSection({ current, isNew, period, setPeriod,
       <Typography sx={{ fontSize: 13, fontWeight: 800, color: C.olive, mb: 1 }}>{t("ui_c.super.sub.title")}</Typography>
       {!isNew && (
         <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap", mb: 1.25 }}>
-          <Typography sx={{ fontSize: 12.5, color: C.sub }}>{t("ui_c.super.sub.current")}:</Typography>
           <Chip size="small" color={status.color} label={status.label} data-testid="sub-current" />
-          {ends && <Typography sx={{ fontSize: 12.5, color: C.sub }}>{t("ui_c.super.sub.ends")}: {ends}</Typography>}
+          {ends && <Typography sx={{ fontSize: 12.5, color: C.sub }}>{ends}</Typography>}
         </Box>
       )}
       <ToggleButton
@@ -41,11 +40,7 @@ export default function SubscriptionSection({ current, isNew, period, setPeriod,
       >
         <AllInclusive fontSize="small" />
         {t("ui_c.super.sub.unlimited")}
-        <Typography component="span" sx={{ fontSize: 11.5, fontWeight: 500, opacity: 0.85, display: { xs: "none", sm: "inline" } }}>
-          — {t("ui_c.super.sub.permanent_hint")}
-        </Typography>
       </ToggleButton>
-      <Typography sx={{ fontSize: 12.5, color: C.sub, mb: 0.75 }}>{t("ui_c.super.sub.pick")}</Typography>
       <ToggleButtonGroup
         exclusive fullWidth value={picked} onChange={(_, v) => setPeriod(v)} aria-label={t("ui_c.super.sub.title")}
         sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(4, 1fr)" }, gap: 0.75, "& .MuiToggleButton-root": { borderRadius: "10px !important", border: `1px solid ${C.glassBorder} !important`, minHeight: 44, fontWeight: 700, textTransform: "none", color: C.text } }}
@@ -62,14 +57,8 @@ export default function SubscriptionSection({ current, isNew, period, setPeriod,
             <ToggleButton value="set" data-testid="mode-set">{t("ui_c.super.sub.mode_set")}</ToggleButton>
             <ToggleButton value="extend" data-testid="mode-extend">{t("ui_c.super.sub.mode_extend")}</ToggleButton>
           </ToggleButtonGroup>
-          <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.5 }}>
-            {t(mode === "extend" ? "ui_c.super.sub.mode_extend_hint" : "ui_c.super.sub.mode_set_hint")}
-          </Typography>
         </>
       )}
-      <Typography sx={{ fontSize: 12, color: C.sub, mt: 1 }}>
-        {period ? "" : t(isNew ? "ui_c.super.sub.new_hint" : "ui_c.super.sub.none_chosen")}
-      </Typography>
     </Box>
   );
 }

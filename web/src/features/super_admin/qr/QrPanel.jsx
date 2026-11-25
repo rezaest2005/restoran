@@ -102,8 +102,6 @@ export default function QrPanel({ tenants, C }) {
           "#qr-print-sheet": { position: "absolute", left: 0, top: 0, width: "100%" },
         },
       }} />
-      <Typography sx={{ fontWeight: 800, fontSize: 18, color: C.text, mb: 0.5 }}>{t("ui_qr.title")}</Typography>
-      <Typography sx={{ color: C.sub, fontSize: 13, mb: 2, ...rsx.wrapText }}>{t("ui_qr.intro")}</Typography>
       {msg && <Alert severity={msg.type} sx={{ mb: 2 }} onClose={() => setMsg(null)}>{msg.text}</Alert>}
 
       <Box sx={{ ...rsx.toolbar, alignItems: "flex-start", mb: 2 }}>
@@ -116,12 +114,10 @@ export default function QrPanel({ tenants, C }) {
         />
         <TextField
           size="small" sx={{ minWidth: { sm: 300 }, flex: { sm: 1 } }} label={t("ui_qr.base_url")} value={base}
-          onChange={(e) => setBase(e.target.value)} helperText={t("ui_qr.base_hint")}
+          onChange={(e) => setBase(e.target.value)}
           slotProps={{ htmlInput: { dir: "ltr" } }}
         />
       </Box>
-
-      {!selected && <Alert severity="info">{t("ui_qr.pick_hint")}</Alert>}
 
       {selected && (
         <>

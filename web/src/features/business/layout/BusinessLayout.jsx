@@ -20,6 +20,7 @@ import { SyncProvider, SyncStatus, LogoutGuardDialog, useLogoutGuard, useSync } 
 import LogoutIcon from "@mui/icons-material/Logout";
 import LockIcon from "@mui/icons-material/Lock";
 import MenuIcon from "@mui/icons-material/Menu";
+import KeyboardOutlinedIcon from "@mui/icons-material/KeyboardOutlined";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 
@@ -29,7 +30,6 @@ import DarkModeIcon from "@mui/icons-material/DarkMode";
 
 const NAV_SECTIONS = [
   {
-    titleKey: "rest.nav_management",
     items: [
       {
         icon: "pos", labelKey: "rest.nav_pos", basePath: "pos",
@@ -38,7 +38,6 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    titleKey: "rest.nav_inventory",
     items: [
       {
         icon: "inventory", labelKey: "rest.nav_inventory", basePath: "inventory",
@@ -47,7 +46,6 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    titleKey: "ui_e.nav_production",
     items: [
       {
         icon: "production", labelKey: "ui_e.nav_production", basePath: "production",
@@ -56,7 +54,6 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    titleKey: "ui_del.nav",
     items: [
       {
         icon: "delivery", labelKey: "ui_del.nav", basePath: "delivery",
@@ -65,7 +62,6 @@ const NAV_SECTIONS = [
     ],
   },
   {
-    titleKey: "rest.nav_system",
     items: [
       { icon: "list", labelKey: "ui_act.title", basePath: "activity", anyTabs: ["activity"] },
       {
@@ -300,7 +296,7 @@ function BusinessLayoutInner() {
   }, [canSeeHome, filteredSections, prefix]);
 
   const layoutShortcuts = [
-    { combo: "F1", label: t("shortcuts.help"), handler: () => setHelpOpen(true) },
+    { combo: "F1", label: t("shortcuts.title"), handler: () => setHelpOpen(true) },
     ...navTargets.map((n) => ({
       combo: n.combo,
       label: t("ui_g.layout.nav_n", { name: t(n.labelKey) }),
@@ -344,7 +340,6 @@ function BusinessLayoutInner() {
         <BrandSquare />
         <Box>
           <Typography sx={{ fontWeight: 800, fontSize: 16, color: C.text }}>{appName(i18n.language)}</Typography>
-          <Typography sx={{ fontSize: 9, color: C.muted, fontWeight: 600, letterSpacing: "0.15em", textTransform: "uppercase" }}>{t("rest.panel_sub")}</Typography>
         </Box>
       </Box>
       <Divider sx={{ borderColor: C.sidebarBorder, mx: 2 }} />
@@ -366,16 +361,10 @@ function BusinessLayoutInner() {
             <Typography sx={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>
               {t("ui_a.layout.no_access")}
             </Typography>
-            <Typography sx={{ fontSize: 10, color: C.muted, mt: 0.5 }}>
-              {t("ui_a.layout.contact_admin")}
-            </Typography>
           </Box>
         ) : (
           filteredSections.map((section, si) => (
-            <Box key={si} sx={{ mb: 2 }}>
-              <Typography sx={{ fontSize: 9, fontWeight: 700, color: C.muted, letterSpacing: "0.15em", textTransform: "uppercase", px: 1.5, mb: 0.5 }}>
-                {section.titleKey ? t(section.titleKey) : section.title}
-              </Typography>
+            <Box key={si} sx={{ mb: 1.5 }}>
               {section.items.map((item, ii) => (
                 <Box key={ii} component={Link} to={`${prefix}/${item.basePath}`}
                   title={comboFor(`${prefix}/${item.basePath}`)}
@@ -450,14 +439,19 @@ function BusinessLayoutInner() {
                 <MenuIcon fontSize="small" />
               </IconButton>
             )}
-            <Typography component={Link} to={prefix} sx={{ fontSize: { xs: 13, md: 14 }, color: C.olive, textDecoration: "none", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <Typography component={Link} to={prefix} sx={{ display: { md: "none" }, fontSize: { xs: 13, md: 14 }, color: C.olive, textDecoration: "none", fontWeight: 800, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {t("rest.breadcrumb_dashboard")}
             </Typography>
           </Box>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, md: 1 }, flexShrink: 0 }}>
             <SyncStatus client={client} isOwner={isOwnerUser()} />
-            <IconButton onClick={toggleTheme} size="small" sx={{ color: C.text, border: `1px solid ${C.glassBorder}`, borderRadius: "10px", bgcolor: C.glass, width: { xs: 40, md: 34 }, height: { xs: 40, md: 34 }, "&:hover": { bgcolor: C.oliveSubtle, borderColor: C.olive } }}>
+            <IconButton onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "F1", bubbles: true, cancelable: true }))}
+              size="small" title={`${t("shortcuts.title")} (F1)`} aria-label={t("shortcuts.title")}
+              sx={{ color: C.text, border: `1px solid ${C.glassBorder}`, borderRadius: "10px", bgcolor: C.glass, width: { xs: 40, md: 34 }, height: { xs: 40, md: 34 }, "&:hover": { bgcolor: C.oliveSubtle, borderColor: C.olive } }}>
+              <KeyboardOutlinedIcon fontSize="small" />
+            </IconButton>
+            <IconButton onClick={toggleTheme} size="small" aria-label={t(isDark ? "login.lightMode" : "login.darkMode")} title={t(isDark ? "login.lightMode" : "login.darkMode")} sx={{ color: C.text, border: `1px solid ${C.glassBorder}`, borderRadius: "10px", bgcolor: C.glass, width: { xs: 40, md: 34 }, height: { xs: 40, md: 34 }, "&:hover": { bgcolor: C.oliveSubtle, borderColor: C.olive } }}>
               {isDark ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
             </IconButton>
             <Box sx={{ display: "flex", border: `1px solid ${C.glassBorder}`, borderRadius: "10px", overflow: "hidden", bgcolor: C.glass, height: { xs: 40, md: 34 } }}>
@@ -486,8 +480,8 @@ function BusinessLayoutInner() {
         }}>
           {routeBlocked ? (
             <Box sx={{ textAlign: "center", py: 8 }}>
-              <Typography sx={{ fontWeight: 800, fontSize: 18, mb: 1 }}>{t("ui_def.common.no_access")}</Typography>
-              <Button component={Link} to={prefix + "/dashboard"} variant="outlined">{t("ui_def.common.back_home")}</Button>
+              <Typography sx={{ fontWeight: 800, fontSize: 18, mb: 1 }}>{t("ui_a.layout.no_access")}</Typography>
+              <Button component={Link} to={prefix + "/dashboard"} variant="outlined">{t("rest.main_dashboard")}</Button>
             </Box>
           ) : <Outlet />}
         </Box>

@@ -31,14 +31,10 @@
     "super": {
       "logout": "Log out",
       "logout_title": "Log out?",
-      "logout_text": "You will be signed out of the admin panel.",
-      "toggle_theme": "Toggle light / dark theme",
-      "toggle_lang": "Toggle language",
-      "refresh": "Refresh data",
+      "toggle_theme": "Theme",
+      "toggle_lang": "Language",
+      "refresh": "Refresh",
       "login_submit": "Sign in"
-    },
-    "public": {
-      "go_dashboard": "Go to dashboard (signed-in users)"
     }
   }
 }

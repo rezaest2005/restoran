@@ -13,14 +13,13 @@ import SupportPanel from "@super/support/SupportPanel";
 import { fetchSupportSummary } from "@super/support/api";
 import {
   Box, Button, Snackbar, Alert, useMediaQuery, useTheme, GlobalStyles,
-  Dialog, DialogTitle, DialogContent, DialogActions, Typography,
+  Dialog, DialogTitle, DialogActions,
 } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import superClient from "@super/api/super_client";
 import { collectShortcuts, useRegisteredShortcuts, tabBindings, helpBinding, dialogBindings } from "@shared/common/shortcutKit";
 import KbdHint from "@shared/common/KbdHint";
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
-import HintBar from "@shared/ui/HintBar";
 
 /** The super admin who signed in (written by the sign-in page). */
 const readSuperUser = () => {
@@ -82,7 +81,7 @@ export default function SuperAdminLayout() {
   const tabs = [
     { id: "users", label: t("super.tab.users"), icon: "users" },
     { id: "qr", label: t("ui_qr.tab"), icon: "qr" },
-    { id: "support", label: t("ui_sup.admin_tab"), icon: "support", badge: supportWaiting },
+    { id: "support", label: t("ui_sup.tab"), icon: "support", badge: supportWaiting },
   ];
   const tabParam = searchParams.get("tab");
   const found = tabs.findIndex((x) => x.id === tabParam);
@@ -154,6 +153,7 @@ export default function SuperAdminLayout() {
           toggleTheme={toggleTheme}
           toggleLang={toggleLang}
           onRefresh={() => { loadTenants(); loadUsers(1); }}
+          onHelp={() => setHelp(true)}
           C={C}
           t={t}
         />
@@ -217,14 +217,12 @@ export default function SuperAdminLayout() {
           {activeTab === 1 && <QrPanel tenants={tenants} C={C} />}
           {activeTab === 2 && <SupportPanel C={C} tenants={tenants} onChanged={refreshSupport} />}
         </Box>
-        <HintBar items={[{ keys: "Alt+R", label: t("ui_l.super.refresh") }, { keys: "Alt+T", label: t("ui_l.super.toggle_theme") }, { keys: "Alt+G", label: t("ui_l.super.toggle_lang") }, { keys: "Alt+L", label: t("ui_l.super.logout") }]} />
       </Box>
 
       <Dialog open={logoutOpen} onClose={() => setLogoutOpen(false)} maxWidth="xs" fullWidth dir={isRtl ? "rtl" : "ltr"}>
         <DialogTitle>{t("ui_l.super.logout_title")}</DialogTitle>
-        <DialogContent><Typography>{t("ui_l.super.logout_text")}</Typography></DialogContent>
         <DialogActions>
-          <Button onClick={() => setLogoutOpen(false)}>{t("shortcuts.close_dialog")}</Button>
+          <Button onClick={() => setLogoutOpen(false)}>{t("ui_c.super.cancel")}</Button>
           <Button variant="contained" onClick={() => { setLogoutOpen(false); handleLogout(); }}>
             {t("ui_l.super.logout")} <KbdHint>Enter</KbdHint>
           </Button>

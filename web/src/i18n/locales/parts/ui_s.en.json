@@ -1,16 +1,16 @@
 {
   "shortcuts": {
-    "title": "Keyboard shortcuts",
+    "title": "Shortcuts",
     "close": "Close",
-    "empty": "No shortcuts are defined for this page.",
-    "help": "Shortcut help",
+    "empty": "None",
+    "help": "Shortcuts",
     "new": "New",
     "new_secondary": "New (secondary)",
-    "save": "Save / Submit",
+    "save": "Save",
     "next": "Next item",
     "prev": "Previous item",
     "confirm": "Confirm",
-    "close_dialog": "Close / Cancel",
+    "close_dialog": "Close",
     "search": "Search",
     "tab_n": "Tab {{n}}"
   }

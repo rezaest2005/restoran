@@ -196,7 +196,6 @@ export default function UserModal({ open, editId, initialTab = 0, focusSub = fal
             <EditablePassword
               key={editId || "new"} canEdit={!!editId} size="small" label={t("ui_c.super.user.password")}
               value={form.password} onChange={(v) => setForm((f) => ({ ...f, password: v }))} sx={fieldSx}
-              helperText={editId ? undefined : t("ui_c.super.cust.pw_min")}
               onReveal={editId ? revealPassword : undefined}
             />
             <Box sx={formGrid(2, "sm", 2)}>
@@ -216,8 +215,8 @@ export default function UserModal({ open, editId, initialTab = 0, focusSub = fal
           <Box sx={{ mt: 1 }}>
             <Box sx={{ position: "sticky", top: -20, zIndex: 3, bgcolor: C.glass, mx: -1, px: 1, pt: 2.5, pb: 1, mb: 1.5, borderBottom: `1px solid ${C.glassBorder}` }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1 }}>
-              <Typography sx={{ fontSize: 12.5, color: C.sub, flex: "1 1 200px", minWidth: 0, display: { xs: "none", sm: "block" } }}>
-                {t("ui_c.super.cust.access_hint", { n: ticked.size, total: ALL_PERM_CODES.length })}
+              <Typography dir="ltr" sx={{ fontSize: 12.5, color: C.sub, flex: "1 1 60px", minWidth: 0, textAlign: "start" }}>
+                {ticked.size}/{ALL_PERM_CODES.length}
               </Typography>
               <Button size="small" onClick={() => setAll(true)} sx={{ minHeight: 40 }}>{t("ui_c.super.cust.all")}</Button>
               <Button size="small" onClick={() => setAll(false)} sx={{ minHeight: 40 }}>{t("ui_c.super.cust.none")}</Button>

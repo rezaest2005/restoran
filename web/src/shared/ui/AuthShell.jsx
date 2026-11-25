@@ -12,13 +12,12 @@ import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import { appName } from "@shared/branding";
 import { BrandSquare } from "@shared/ui/BrandMark";
-import LoginHero from "@shared/ui/LoginHero";
 
 /**
- * Shared sign-in layout (business + super admin): flat design-system background, one centred card,
- * language and theme buttons in the corner. No decoration, no blue — colours come only from tokens.
+ * Shared sign-in layout (business + super admin): one centred card with the logo, the fields and one button;
+ * language and theme buttons in the corner. No decoration, no text besides labels.
  */
-export default function AuthShell({ title, subtitle, footer, children }) {
+export default function AuthShell({ title, children }) {
   const { t, i18n } = useTranslation();
   const { mode, toggleTheme } = useThemeMode();
   const { toggleLang, isRtl } = useLang();
@@ -52,22 +51,14 @@ export default function AuthShell({ title, subtitle, footer, children }) {
             borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow-sm)",
           }}
         >
-          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1.25, mb: 3, textAlign: "center" }}>
-            <LoginHero width={340} />
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
-              <BrandSquare size={24} />
-              <Typography sx={{ fontWeight: 800, fontSize: 14, color: "var(--ink-muted)" }}>{appName(i18n.language)}</Typography>
-            </Box>
-            <Typography component="h1" sx={{ fontWeight: 800, fontSize: 22, lineHeight: 1.5 }}>{title}</Typography>
-            {subtitle && <Typography sx={{ color: "var(--ink-muted)", fontSize: 14, lineHeight: 1.8 }}>{subtitle}</Typography>}
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1, mb: 3, textAlign: "center" }}>
+            <BrandSquare size={48} />
+            <Typography component="h1" sx={{ fontWeight: 800, fontSize: 20, lineHeight: 1.5 }}>{title || appName(i18n.language)}</Typography>
           </Box>
           {children}
         </Box>
       </Box>
 
-      {footer && (
-        <Typography sx={{ textAlign: "center", color: "var(--ink-muted)", fontSize: 12, pb: 2 }}>{footer}</Typography>
-      )}
     </Box>
   );
 }

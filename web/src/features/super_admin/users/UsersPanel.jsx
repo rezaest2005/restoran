@@ -76,12 +76,10 @@ export default function UsersPanel({ users, loadUsers, onChanged, C }) {
     return <Chip size="small" color={st.color} label={st.label} data-testid={`sub-${u.id}`} sx={{ maxWidth: "100%" }} />;
   };
   const priceOf = (u) => (u.price ? `${formatMoney(u.price, fa)} ${t("ui_c.super.sub.toman")}` : "—");
-  const role = <Chip label={t("ui_c.super.cust.role")} size="small" sx={{ flexShrink: 0 }} />;
 
   return (
     <Box>
-      <Box sx={{ ...rsx.wrapRow, justifyContent: "space-between", gap: 1.5, mb: 2 }}>
-        <Typography variant="h5" sx={{ color: C.text, fontSize: { xs: 18, md: 24 }, fontWeight: 800 }}>{t("ui_c.super.users.title")}</Typography>
+      <Box sx={{ ...rsx.wrapRow, justifyContent: "flex-end", gap: 1.5, mb: 2 }}>
         <Button
           onClick={() => setModal({ open: true, editId: null, tab: 0 })}
           sx={{ bgcolor: C.btnGrad, color: "var(--on-primary)", minHeight: 40 }}
@@ -103,7 +101,6 @@ export default function UsersPanel({ users, loadUsers, onChanged, C }) {
               <Box key={u.id} sx={{ bgcolor: C.glass, border: `1px solid ${C.glassBorder}`, borderRadius: 2, p: 1.5 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, justifyContent: "space-between", mb: 0.5 }}>
                   <Typography sx={{ color: C.text, fontWeight: 700, ...rsx.wrapText }}>{personName(u) || u.username}</Typography>
-                  {role}
                 </Box>
                 <Typography sx={{ color: C.sub, fontSize: 13, ...rsx.wrapText }}><Ltr>{u.username}</Ltr></Typography>
                 {u.phone_number && <Typography sx={{ color: C.sub, fontSize: 13, mb: 0.5 }}><Ltr>{u.phone_number}</Ltr></Typography>}
@@ -120,8 +117,8 @@ export default function UsersPanel({ users, loadUsers, onChanged, C }) {
       >
         <Table size="small" sx={{ tableLayout: "fixed", minWidth: 1000, "& th, & td": { textAlign: "start", verticalAlign: "middle", px: 1.5, overflow: "hidden" } }}>
           <colgroup>
-            <col style={{ width: "12%" }} /><col style={{ width: "10%" }} /><col style={{ width: "11%" }} /><col style={{ width: "13%" }} />
-            <col style={{ width: "13%" }} /><col style={{ width: "11%" }} /><col style={{ width: "30%" }} />
+            <col style={{ width: "15%" }} /><col style={{ width: "12%" }} /><col style={{ width: "14%" }} />
+            <col style={{ width: "14%" }} /><col style={{ width: "14%" }} /><col style={{ width: "31%" }} />
           </colgroup>
           <TableHead><TableRow sx={{ bgcolor: C.tableHeaderBg }}>
             <TableCell sx={{ color: C.sub }}>{t("ui_c.super.cust.col_name")}</TableCell>
@@ -129,7 +126,6 @@ export default function UsersPanel({ users, loadUsers, onChanged, C }) {
             <TableCell sx={{ color: C.sub }}>{t("ui_c.super.user.phone")}</TableCell>
             <TableCell sx={{ color: C.sub }}>{t("ui_c.super.sub.col_sub")}</TableCell>
             <TableCell sx={{ color: C.sub }}>{t("ui_c.super.sub.col_price")}</TableCell>
-            <TableCell sx={{ color: C.sub }}>{t("ui_c.super.cust.role")}</TableCell>
             <TableCell sx={{ color: C.sub }}>{t("ui_c.super.users.actions")}</TableCell>
           </TableRow></TableHead>
           <TableBody>
@@ -140,12 +136,11 @@ export default function UsersPanel({ users, loadUsers, onChanged, C }) {
                 <TableCell sx={{ color: C.sub }}>{u.phone_number ? <Ltr>{u.phone_number}</Ltr> : "—"}</TableCell>
                 <TableCell>{subChip(u)}</TableCell>
                 <TableCell sx={{ color: C.text, fontSize: 13 }}>{priceOf(u)}</TableCell>
-                <TableCell>{role}</TableCell>
                 <TableCell>{actions(u)}</TableCell>
               </TableRow>
             ))}
             {users.length === 0 && (
-              <TableRow><TableCell colSpan={7} sx={{ textAlign: "center !important", color: C.muted, py: 4, border: "none" }}>{t("ui_c.super.cust.empty")}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} sx={{ textAlign: "center !important", color: C.muted, py: 4, border: "none" }}>{t("ui_c.super.cust.empty")}</TableCell></TableRow>
             )}
           </TableBody>
         </Table>

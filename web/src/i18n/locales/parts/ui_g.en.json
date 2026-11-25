@@ -18,7 +18,7 @@
       "focus_search": "Focus search box"
     },
     "layout": {
-      "nav_n": "Go to: {{name}}"
+      "nav_n": "{{name}}"
     },
     "dash": {
       "next_section": "Next section",

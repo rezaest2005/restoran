@@ -60,7 +60,6 @@ export default function EditablePassword({ canEdit, value, onChange, label, help
         <TextField
           size={size} fullWidth disabled label={label} type={showing ? "text" : "password"}
           value={showing ? revealed.text : "********"} sx={sx}
-          helperText={revealed && revealed.text == null ? undefined : t("ui_resp.pw_saved_hint")}
           slotProps={{
             htmlInput: { dir: "ltr", style: { textAlign: "start" }, "data-testid": "password-field" },
             input: {
@@ -102,7 +101,7 @@ export default function EditablePassword({ canEdit, value, onChange, label, help
     <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start", flexWrap: "wrap" }}>
       <Box sx={{ flex: "1 1 220px", minWidth: 0 }}>
         <PasswordField size={size} label={t("ui_resp.new_password")} autoComplete="new-password" autoFocus value={value}
-          onChange={(e) => onChange(e.target.value)} helperText={t("ui_resp.pw_new_hint")} sx={sx} />
+          onChange={(e) => onChange(e.target.value)} sx={sx} />
       </Box>
       <Button variant="outlined" size="small" onClick={() => { onChange(""); setChanging(false); }}
         sx={{ minHeight: 40, fontWeight: 700 }}>

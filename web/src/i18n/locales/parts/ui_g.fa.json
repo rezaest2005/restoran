@@ -18,7 +18,7 @@
       "focus_search": "رفتن به کادر جستجو"
     },
     "layout": {
-      "nav_n": "رفتن به: {{name}}"
+      "nav_n": "{{name}}"
     },
     "dash": {
       "next_section": "بخش بعدی",

@@ -30,15 +30,11 @@
     },
     "super": {
       "logout": "خروج",
-      "logout_title": "خروج از حساب؟",
-      "logout_text": "از پنل مدیریت خارج می‌شوید.",
-      "toggle_theme": "تغییر تم روشن/تیره",
-      "toggle_lang": "تغییر زبان",
-      "refresh": "به‌روزرسانی داده‌ها",
+      "logout_title": "خروج؟",
+      "toggle_theme": "تم",
+      "toggle_lang": "زبان",
+      "refresh": "به‌روزرسانی",
       "login_submit": "ورود"
-    },
-    "public": {
-      "go_dashboard": "رفتن به داشبورد (کاربران واردشده)"
     }
   }
 }
