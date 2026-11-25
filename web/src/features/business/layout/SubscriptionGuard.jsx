@@ -119,16 +119,13 @@ export default function SubscriptionGuard({ C, onLogout }) {
             ))}
           </Box>
         </Box>
-        <Typography sx={{ fontSize: 12, opacity: 0.9 }}>
-          {left <= 7 * DAY ? t("ui_sub.warn") : <>{t("ui_sub.ends")}: {endNode}</>}
-        </Typography>
+        {left > 7 * DAY && <Typography sx={{ fontSize: 12, opacity: 0.9 }}>{endNode}</Typography>}
       </Box>
 
       <Dialog open={remind && !over} onClose={() => setRemind(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ fontWeight: 800, color: tone }}>{t("ui_sub.remind_title")}</DialogTitle>
         <DialogContent>
-          <Typography sx={{ mb: 1.5 }}>{t("ui_sub.remind_text", { time: timeText })}</Typography>
-          <Typography sx={{ fontSize: 13, opacity: 0.8 }}>{t("ui_sub.ends")}: {endNode}</Typography>
+          <Typography>{t("ui_sub.remind_text", { time: timeText })}</Typography>
         </DialogContent>
         <DialogActions>
           <Button variant="contained" onClick={() => setRemind(false)}>{t("ui_sub.ok")}</Button>
@@ -139,8 +136,7 @@ export default function SubscriptionGuard({ C, onLogout }) {
         <Box sx={{ minHeight: "100%", display: "grid", placeItems: "center", textAlign: "center", p: 3 }}>
           <Box sx={{ maxWidth: 460 }}>
             <Typography sx={{ fontWeight: 900, fontSize: 26, color: C.danger, mb: 1.5 }}>{t("ui_sub.expired_title")}</Typography>
-            <Typography sx={{ mb: 1 }}>{t("ui_sub.expired_text")}</Typography>
-            <Typography sx={{ fontSize: 13, opacity: 0.75, mb: 3 }}>{t("ui_sub.ended_at")}: {endNode}</Typography>
+            <Typography sx={{ mb: 3 }}>{t("ui_sub.expired_text")}</Typography>
             <Button variant="contained" onClick={onLogout}>{t("ui_sub.logout")}</Button>
           </Box>
         </Box>

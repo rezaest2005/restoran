@@ -75,7 +75,7 @@ export default function ProtectedRoute({ children }) {
         display: "flex", justifyContent: "center", alignItems: "center",
         height: "100vh", fontFamily: "'Vazirmatn', sans-serif", color: "var(--success)"
       }}>
-        <div>...در حال بررسی</div>
+        <div aria-busy="true">…</div>
       </div>
     );
   }

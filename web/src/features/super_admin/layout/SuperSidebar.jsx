@@ -24,23 +24,14 @@ export default function SuperSidebar({ isMobile, open, onClose, currentUser, onL
           <Typography sx={{ fontWeight: 800, fontSize: 15, color: C.text }}>
             {t("super.panel_title")}
           </Typography>
-          <Typography sx={{ fontSize: 9, color: C.muted, fontWeight: 600 }}>
-            SaaS Admin
-          </Typography>
         </Box>
       </Box>
       <Divider sx={{ borderColor: C.sidebarBorder, mx: 2 }} />
 
       {/* nav */}
       <Box sx={{ flex: 1, overflowY: "auto", py: 1, px: 1.5 }}>
-        {NAV_SECTIONS.map(sec => (
-          <Box key={sec.titleKey} sx={{ mb: 2 }}>
-            <Typography sx={{
-              px: 2, mb: 1, fontSize: 10, color: C.muted,
-              fontWeight: 700, textTransform: "uppercase",
-            }}>
-              {t(sec.titleKey)}
-            </Typography>
+        {NAV_SECTIONS.map((sec, si) => (
+          <Box key={si} sx={{ mb: 1.5 }}>
             {sec.items.map(item => {
               const isActive = location.pathname + location.search === item.path;
               return (
@@ -92,9 +83,6 @@ export default function SuperSidebar({ isMobile, open, onClose, currentUser, onL
           <Box>
             <Typography sx={{ fontSize: 13, fontWeight: 700, color: C.text }}>
               {currentUser?.username || "—"}
-            </Typography>
-            <Typography sx={{ fontSize: 10, color: C.muted }}>
-              {t("super.admin_role")}
             </Typography>
           </Box>
         </Box>

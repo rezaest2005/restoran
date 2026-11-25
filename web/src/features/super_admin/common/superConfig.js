@@ -7,13 +7,11 @@ import { buildColors } from "@shared/palette";
 
 export const NAV_SECTIONS = [
   {
-    titleKey: "super.nav.management",
     items: [
       { icon: "dashboard", labelKey: "super.nav.dashboard", path: "/bizsuite_admin" },
     ],
   },
   {
-    titleKey: "super.nav.customers",
     items: [
       { icon: "club", labelKey: "super.nav.loyalty", path: "/dashboard/loyalty" },
       { icon: "users", labelKey: "super.nav.customer_list", path: "/dashboard/loyalty/customers" },

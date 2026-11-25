@@ -1,35 +1,21 @@
 {
   "ui_sub": {
-    "title": "Dashboard subscription",
-    "plan_label": "Subscription type",
-    "plan": {
-      "unlimited": "No end date (unlimited)",
-      "monthly": "Monthly (1 month)",
-      "quarterly": "3 months",
-      "semiannual": "6 months",
-      "yearly": "Yearly (12 months)",
-      "custom": "Exact date and time"
+    "left_label": "Subscription",
+    "unit": {
+      "d_one": "day",
+      "d_other": "days",
+      "h_one": "hour",
+      "h_other": "hours",
+      "m_one": "minute",
+      "m_other": "minutes",
+      "s_one": "second",
+      "s_other": "seconds"
     },
-    "mode_label": "Calculation",
-    "mode_set": "From this moment",
-    "mode_extend": "Extend from the current end",
-    "custom_label": "Subscription end (to the second)",
-    "apply": "Apply",
-    "saved": "Subscription saved.",
-    "need_date": "Enter the end date and time.",
-    "no_end": "No end date; the dashboard never closes.",
-    "expired": "Expired",
-    "ends": "Subscription ends",
-    "ended_at": "Subscription ended",
-    "hint": "The end is fixed to the second at the moment you apply it. As soon as it is reached the dashboard and every sign-in of that business close.",
-    "left_label": "Subscription time left:",
-    "unit": {"d_one": "day", "d_other": "days", "h_one": "hour", "h_other": "hours", "m_one": "minute", "m_other": "minutes", "s_one": "second", "s_other": "seconds"},
-    "warn": "Your subscription is about to end; renew it so the dashboard does not close.",
     "remind_title": "Subscription ending",
-    "remind_text": "Only {{time}} is left on your subscription. After that the dashboard and every user sign-in (including couriers) close. Contact support to renew.",
-    "ok": "Got it",
-    "expired_title": "Your subscription has ended",
-    "expired_text": "Your dashboard is closed. Contact support to renew, then sign in again.",
-    "logout": "Sign out"
+    "remind_text": "{{time}} left. Contact support to renew.",
+    "ok": "OK",
+    "expired_title": "Subscription ended",
+    "expired_text": "Contact support to renew.",
+    "logout": "Log out"
   }
 }

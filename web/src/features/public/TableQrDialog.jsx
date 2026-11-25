@@ -29,7 +29,6 @@ export default function TableQrDialog({ open, onClose, slug }) {
       }} />
       <DialogTitle>{t("ui_d.table_qr.title")}</DialogTitle>
       <DialogContent>
-        <Typography variant="body2" sx={{ mb: 2 }}>{t("ui_d.table_qr.hint")}</Typography>
         <TextField
           type="number" size="small" label={t("ui_d.table_qr.count_label")} value={raw}
           onChange={(e) => setRaw(e.target.value)}

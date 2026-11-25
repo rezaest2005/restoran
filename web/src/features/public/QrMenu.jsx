@@ -234,8 +234,6 @@ export default function QrMenu() {
           </IconButton>
         </Box>
 
-        {needTable && <Alert severity="info" sx={{ mt: 2 }}>{t("ui_d.qr.no_table_notice")}</Alert>}
-
         <TextField
           fullWidth size="small" value={search} onChange={(e) => setSearch(e.target.value)}
           placeholder={t("ui_d.qr.search_placeholder")}
@@ -258,8 +256,7 @@ export default function QrMenu() {
         <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 1.25 }}>
           {status === "loading" && (
             <Box sx={{ textAlign: "center", py: 6 }}>
-              <CircularProgress sx={{ color: C.primary }} />
-              <Typography sx={{ color: C.sub, mt: 1 }}>{t("ui_d.qr.loading")}</Typography>
+              <CircularProgress sx={{ color: C.primary }} aria-label={t("ui_d.qr.loading")} />
             </Box>
           )}
           {status === "notfound" && <Alert severity="warning">{t("ui_d.qr.not_found")}</Alert>}

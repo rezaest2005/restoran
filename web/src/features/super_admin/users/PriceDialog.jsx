@@ -56,15 +56,13 @@ function PriceForm({ prices, onClose, C }) {
     <>
       <DialogTitle sx={{ color: C.text, fontWeight: 800, fontSize: 15 }}>{t("ui_c.super.sub.price_title")}</DialogTitle>
       <DialogContent>
-        <Typography sx={{ fontSize: 12.5, color: C.sub, mb: 1.5 }}>{t("ui_c.super.sub.price_hint")}</Typography>
         {error && <Alert severity="error" sx={{ mb: 1.5 }}>{error}</Alert>}
         <Box data-testid="price-all" sx={{ border: `1px solid ${C.olive}`, bgcolor: C.oliveSubtle, borderRadius: "12px", p: 1.25, mb: 1.5 }}>
           <Typography sx={{ fontWeight: 800, color: C.text, fontSize: 14 }}>{t("ui_c.super.sub.all_sections")}</Typography>
-          <Typography sx={{ fontSize: 12, color: C.sub, mb: 1 }}>{t("ui_c.super.sub.all_hint")}</Typography>
           <Box sx={{ display: "grid", gap: 1.25, gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, mb: 1.25 }}>
             {PERIODS.map((p) => (
               <MoneyField
-                key={p} size="small" fa={fa} label={`${t(`ui_c.super.sub.${p}`)} (${t("ui_c.super.sub.toman")})`}
+                key={p} size="small" fa={fa} label={t(`ui_c.super.sub.${p}`)}
                 value={all[p] || 0} onChange={(v) => setAll((a) => ({ ...a, [p]: v }))}
                 sx={{ "& .MuiOutlinedInput-root": { bgcolor: C.inputBg, borderRadius: "10px" } }}
                 slotProps={{ htmlInput: { "data-testid": `price-all-${p}` } }}
@@ -82,7 +80,7 @@ function PriceForm({ prices, onClose, C }) {
               <Box sx={{ display: "grid", gap: 1.25, gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" } }}>
                 {PERIODS.map((p) => (
                   <MoneyField
-                    key={p} size="small" fa={fa} label={`${t(`ui_c.super.sub.${p}`)} (${t("ui_c.super.sub.toman")})`}
+                    key={p} size="small" fa={fa} label={t(`ui_c.super.sub.${p}`)}
                     value={draft[s]?.[p] || 0} onChange={setPrice(s, p)}
                     sx={{ "& .MuiOutlinedInput-root": { bgcolor: C.inputBg, borderRadius: "10px" } }}
                     slotProps={{ htmlInput: { "data-testid": `price-${s}-${p}` } }}
@@ -99,7 +97,7 @@ function PriceForm({ prices, onClose, C }) {
           onClick={confirm} disabled={saving} data-testid="price-confirm"
           sx={{ bgcolor: C.btnGrad, color: "var(--on-primary)", fontWeight: 700, borderRadius: "10px", px: 3, minHeight: 40 }}
         >
-          {t("ui_c.super.sub.confirm")}
+          {t("ui_c.super.save")}
         </Button>
       </DialogActions>
     </>

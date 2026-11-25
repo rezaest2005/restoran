@@ -1,20 +1,8 @@
-import { useTranslation } from "react-i18next";
-
 /**
- * نوار میان‌بر پایین صفحه (۴ تا ۶ مورد).
- * items: [{ keys: "F2", label: "..." }]
+ * The permanent shortcut bar is gone: the list of shortcuts opens on F1 or from the keyboard icon in the top bar,
+ * and the shortcuts themselves keep working. Pages still render <HintBar items=.../>; it draws nothing.
  */
-export default function HintBar({ items = [] }) {
-  const { t } = useTranslation();
-  if (!items.length) return null;
-  return (
-    <div className="ks-hintbar" role="note" aria-label={t("ui_design.hint_bar")}>
-      {items.slice(0, 6).map((it) => (
-        <span key={it.keys + it.label} className="ks-hint-item">
-          <kbd dir="ltr">{it.keys}</kbd>
-          <span>{it.label}</span>
-        </span>
-      ))}
-    </div>
-  );
+// eslint-disable-next-line no-unused-vars
+export default function HintBar(props) {
+  return null;
 }

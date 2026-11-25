@@ -20,13 +20,13 @@ export default function PriceSummary({ quote, prices, period, onPeriod, permanen
     >
       {permanent ? (
         <Typography data-testid="price-total" sx={{ fontSize: 14, fontWeight: 800, color: C.text }}>
-          <Box component="span" sx={{ color: C.olive }}>{t("ui_c.super.sub.final_price")}: </Box>
+          <Box component="span" sx={{ color: C.olive }}>{t("ui_c.super.sub.price")}: </Box>
           {t("ui_c.super.sub.unlimited")}
         </Typography>
       ) : !hasPrices ? (
         <>
           <Typography data-testid="price-total" sx={{ fontSize: 14, fontWeight: 800, color: C.text }}>
-            <Box component="span" sx={{ color: C.olive }}>{t("ui_c.super.sub.final_price")}: </Box>
+            <Box component="span" sx={{ color: C.olive }}>{t("ui_c.super.sub.price")}: </Box>
             {t("ui_c.super.sub.price_not_set")}
           </Typography>
           {onChangePrice && (
@@ -39,7 +39,7 @@ export default function PriceSummary({ quote, prices, period, onPeriod, permanen
       ) : (
         <Typography data-testid="price-total" sx={{ fontSize: 14, fontWeight: 800, color: C.text, minWidth: 0 }}>
           <Box component="span" sx={{ color: C.olive }}>
-            {`${t("ui_c.super.sub.final_price")} (${t(`ui_c.super.sub.${period}`)}): `}
+            {`${t("ui_c.super.sub.price")}: `}
           </Box>
           <Box component="span" sx={{ fontSize: 17 }}>
             {`${formatMoney(quote.totals[period], fa)} ${t("ui_c.super.sub.toman")}`}

@@ -93,16 +93,8 @@ export default function SuperLogin() {
     },
   ]);
 
-  // Enter submits natively (the fields live in a <form>); Ctrl+D submits too.
-  useRegisteredShortcuts([
-    {
-      combo: "Ctrl+D", label: t("ui_l.super.login_submit"),
-      handler: () => { if (!loading) handleLogin({ preventDefault() {}, stopPropagation() {} }); },
-    },
-  ]);
-
   return (
-    <AuthShell title={t("superLogin.title")} subtitle={t("superLogin.subtitle")} footer={t("superLogin.secure_connection")}>
+    <AuthShell title={t("superLogin.title")}>
       <Box component="form" onSubmit={handleLogin} noValidate sx={{ display: "grid", gap: 2 }}>
         {error && <Alert severity="error" role="alert">{error}</Alert>}
 

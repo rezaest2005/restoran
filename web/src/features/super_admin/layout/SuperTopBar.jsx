@@ -1,8 +1,8 @@
 import { Box, Typography, IconButton, Button, Tooltip } from "@mui/material";
-import { LightMode, DarkMode, Language, Refresh, Menu } from "@mui/icons-material";
+import { LightMode, DarkMode, Language, Refresh, Menu, KeyboardOutlined } from "@mui/icons-material";
 import { useLang } from "@shared/contexts/LangContext";
 
-export default function SuperTopBar({ isMobile, onMenuClick, toggleTheme, toggleLang, onRefresh, C, t }) {
+export default function SuperTopBar({ isMobile, onMenuClick, toggleTheme, toggleLang, onRefresh, onHelp, C, t }) {
   const { isRtl } = useLang();
   const isDark = C.bg === "var(--ink)";
 
@@ -54,6 +54,13 @@ export default function SuperTopBar({ isMobile, onMenuClick, toggleTheme, toggle
         display: "flex", gap: { xs: 0.5, md: 1 },
         alignItems: "center", flexShrink: 0,
       }}>
+        {onHelp && (
+          <Tooltip title={`${t("shortcuts.title")} (F1)`} arrow>
+            <IconButton onClick={onHelp} aria-label={t("shortcuts.title")} sx={iconBtnSx}>
+              <KeyboardOutlined fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        )}
         <Tooltip title={`${isDark ? t("super.lightMode") : t("super.darkMode")} (Alt+T)`} arrow>
           <IconButton onClick={toggleTheme} sx={iconBtnSx}>
             {isDark ? <LightMode fontSize="small" /> : <DarkMode fontSize="small" />}

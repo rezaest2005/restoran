@@ -29,7 +29,6 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
 
   // Enter submits the form; Ctrl+D submits from any field
   useShortcuts([
@@ -44,7 +43,6 @@ export default function Login() {
     }
     setLoading(true);
     setError("");
-    setSuccess("");
     try {
       const id = { username: username.trim() };
       if (slug) id.slug = slug; // lets the server apply that business's username prefix
@@ -114,10 +112,9 @@ export default function Login() {
   };
 
   return (
-    <AuthShell title={t("login.welcomeTitle")} subtitle={t("login.welcomeSub")} footer={t("login.tagline")}>
+    <AuthShell>
       <Box component="form" onSubmit={handleSubmit} noValidate sx={{ display: "grid", gap: 2 }}>
         {error && <Alert severity="error" role="alert">{error}</Alert>}
-        {success && <Alert severity="success">{success}</Alert>}
 
         <TextField
           fullWidth autoFocus label={t("login.username")}

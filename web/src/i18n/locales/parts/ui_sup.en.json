@@ -1,7 +1,6 @@
 {
   "ui_sup": {
     "tab": "Support",
-    "admin_tab": "پشتیبانی / Support",
     "cat": {
       "bug": "Problem / error",
       "question": "Question",
@@ -54,11 +53,8 @@
     },
     "adm": {
       "business": "Business",
-      "search": "Search (subject or text)",
+      "search": "Search",
       "set_status": "Change status",
-      "status_changed": "Status changed.",
-      "reply_ok": "Reply sent.",
-      "waiting": "Awaiting reply",
       "prev": "Previous",
       "next": "Next",
       "page_n": "Page {{a}} of {{b}}",

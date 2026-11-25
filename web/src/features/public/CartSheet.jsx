@@ -92,7 +92,7 @@ export default function CartSheet({
           onChange={(e) => onPhone(e.target.value)} slotProps={{ htmlInput: { maxLength: 20, inputMode: "tel" } }} />
         <TextField label={t("ui_d.qr.note_label")} value={note} size="small" sx={fieldSx} multiline minRows={2}
           onChange={(e) => onNote(e.target.value)}
-          helperText={`${note.length}/300`} slotProps={{ htmlInput: { maxLength: 300 } }} />
+          slotProps={{ htmlInput: { maxLength: 300 } }} />
 
         {error && <Alert severity="error">{error}</Alert>}
 
@@ -103,7 +103,6 @@ export default function CartSheet({
               {formatPrice(total)} {t("ui_d.qr.currency")}
             </Typography>
           </Box>
-          <Typography sx={{ color: C.muted, fontSize: 11 }}>{t("ui_d.qr.price_note")}</Typography>
         </Box>
 
         <Button
@@ -116,7 +115,7 @@ export default function CartSheet({
             "&.Mui-disabled": { opacity: 0.5, color: C.onPrimary },
           }}
         >
-          {submitting ? (<><CircularProgress size={18} sx={{ color: C.onPrimary, mx: 1 }} />{t("ui_d.qr.submitting")}</>) : <>{t("ui_d.qr.submit")}<KbdHint>Ctrl+D</KbdHint></>}
+          {submitting ? (<CircularProgress size={22} sx={{ color: C.onPrimary }} aria-label={t("ui_d.qr.submitting")} />) : <>{t("ui_d.qr.submit")}<KbdHint>Ctrl+D</KbdHint></>}
         </Button>
       </Box>
     </Drawer>
