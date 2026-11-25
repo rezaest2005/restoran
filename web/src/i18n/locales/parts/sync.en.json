@@ -1,17 +1,17 @@
 {
   "sync": {
-    "online": "Online",
-    "offline": "Offline",
+    "online": "Internet connected",
+    "offline": "No internet",
     "syncing": "Sending",
-    "pending_n": "Waiting: {{n}}",
-    "sync_now": "Sync",
-    "conflicts": "Review",
+    "pending_n": "{{n}} not sent yet",
+    "sync_now": "Send now",
+    "conflicts": "Problem orders",
     "close": "Close",
     "locked_grace": "Connect to the internet to continue.",
     "locked_subscription": "Subscription ended.",
     "clock_back": "Device clock is set back.",
-    "local_mode": "Local mode",
-    "local_mode_hint": "Turns on or off for all devices",
+    "local_mode": "Save on this device",
+    "local_mode_hint": "If off, you cannot sell without internet.",
     "badge_pending": "Not sent",
     "badge_synced": "Sent",
     "badge_conflict": "Needs a fix",
@@ -39,6 +39,8 @@
     "offline_terminal": "The card terminal needs internet.",
     "locked_cannot_sell": "Connect to the internet to take orders.",
     "saved_offline": "Saved; will be sent later.",
-    "local_number": "Local number"
+    "local_number": "Local number",
+    "explain": "If the internet goes down, your sales are saved on this device and sent automatically when it is back.",
+    "last_sent": "Last sent: {{when}}"
   }
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Popover, Stack, Switch, Tooltip, Typography,
+  Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Popover, Stack, Switch, Tooltip, Typography,
 } from "@mui/material";
 import { useSync } from "./syncContext";
 import { localNumber } from "./localOrders";
@@ -116,17 +116,29 @@ export function SyncStatus({ client, isOwner }) {
   };
   const last = ago(s.lastSyncAt, i18n.language, now);
 
+  // everything fine (online, nothing waiting, no problem): only a small dot; words and a number appear when needed
+  const calm = !offline && !bad && s.pending === 0 && !s.clockTampered && s.errors.length === 0 && !s.syncing;
+  const open = (e) => { setNow(Date.now()); setAnchor(e.currentTarget); };
   return (
     <>
-      <Chip data-testid="sync-status" size="small" variant="outlined" icon={<Dot c={dot} />} label={label}
-        aria-label={word} onClick={(e) => { setNow(Date.now()); setAnchor(e.currentTarget); }} />
+      {calm ? (
+        <Tooltip title={word}>
+          <IconButton data-testid="sync-status" size="small" aria-label={word} onClick={open} sx={{ width: 32, height: 32 }}>
+            <Box component="span" sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: dot }} />
+          </IconButton>
+        </Tooltip>
+      ) : (
+        <Chip data-testid="sync-status" size="small" variant="outlined" icon={<Dot c={dot} />} label={label}
+          aria-label={word} onClick={open} />
+      )}
       <Popover open={!!anchor} anchorEl={anchor} onClose={() => setAnchor(null)} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         transformOrigin={{ vertical: "top", horizontal: "center" }}>
         <Stack spacing={1} sx={{ p: 1.5, width: "min(240px, 92vw)" }} data-testid="sync-popover">
           <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", gap: 1 }}>
             <Typography sx={{ fontWeight: 700 }}>{word}</Typography>
-            {last && <Typography variant="caption" color="text.secondary">{last}</Typography>}
           </Stack>
+          <Typography variant="body2" color="text.secondary" data-testid="sync-explain">{t("sync.explain")}</Typography>
+          {last && <Typography variant="caption" color="text.secondary">{t("sync.last_sent", { when: last })}</Typography>}
           {s.pending > 0 && <Typography variant="body2">{t("sync.pending_n", { n: s.pending })}</Typography>}
           {s.locked && <Typography variant="body2" color="error">{s.lockReason === "subscription" ? t("sync.locked_subscription") : t("sync.locked_grace")}</Typography>}
           {s.clockTampered && <Typography variant="body2" color="warning.main">{t("sync.clock_back")}</Typography>}

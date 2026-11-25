@@ -10,7 +10,8 @@ def _int(name, default):
 
 
 def default_enabled() -> bool:
-    return os.environ.get("LOCAL_FIRST_DEFAULT", "false").strip().lower() in ("1", "true", "yes", "on")
+    """Local mode is on for every business unless LOCAL_FIRST_DEFAULT=false or the owner switched it off."""
+    return os.environ.get("LOCAL_FIRST_DEFAULT", "true").strip().lower() in ("1", "true", "yes", "on")
 
 
 MAX_PUSH_ITEMS = _int("SYNC_MAX_PUSH_ITEMS", 100)

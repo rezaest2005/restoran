@@ -32,7 +32,7 @@
 - **Push**: `POST /api/sync/push/` — دسته‌ای از mutationها `{id (UUID کلاینت), key (کلید idempotency), type, payload}`؛ نتیجهٔ هر مورد: `ok | duplicate | conflict | rejected | error`. هر mutation با **همان view/سرویس موجود** اجرا می‌شود (اعتبارسنجی، موجودی، سند حسابداری، امتیاز باشگاه، مجوزهای عملیاتی صندوق مثل تخفیف/پرداخت نقدی، و محافظ اشتراک). جمع و قیمت کلاینت هرگز پذیرفته نمی‌شود.
 - **Idempotency**: جدول `SyncReceipt` با یکتایی `(business, key)`؛ ارسال دوباره = نتیجهٔ ذخیره‌شده (`duplicate`)، نه سفارش دوم. همین UUID با کلید دیگر هم سفارش دوم نمی‌سازد. رسید در همان تراکنش ثبت سفارش نهایی می‌شود.
 - **محدودیت‌ها**: ۱۰۰ mutation و ۵۱۲ کیلوبایت در هر push، ۲۰۰ ردیف در هر سفارش، ۶۰ push و ۱۲۰ pull در دقیقه برای هر کاربر (۴۲۹ با `Retry-After`). همه با env قابل تنظیم‌اند.
-- **کلیدهای بازگشایی**: `LOCAL_FIRST_DEFAULT` (env، پیش‌فرض خاموش) و کلید هر کسب‌وکار (`POST /api/sync/settings/` برای مالک). خاموش = رفتار قدیمی بدون هیچ تغییر.
+- **کلیدهای بازگشایی**: `LOCAL_FIRST_DEFAULT` (env، پیش‌فرض روشن) و کلید هر کسب‌وکار (`POST /api/sync/settings/` برای مالک). خاموش = رفتار قدیمی بدون هیچ تغییر؛ برای خاموش‌کردن همه `LOCAL_FIRST_DEFAULT=false`.
 
 ### سیاست تعارض (Conflict)
 
@@ -143,4 +143,4 @@
 
 **Security:** one IndexedDB per user+business, wiped on logout (with a warning and a "keep unsent orders" option), cleaned on the sign-in page, 72 h offline grace that cannot be extended by setting the clock back (max-seen-time guard), no at-rest encryption in phase 1 (rationale and options in section 3; owner decision), no balances or accounting data on the device, `navigator.storage.persist()` requested.
 
-**Rollout:** off by default (`LOCAL_FIRST_DEFAULT`, per-business switch for the owner); when off nothing changes. Known limits: no service worker yet (cannot cold-start the app offline), only the POS slice is converted, bulk `update()` paths are not logged.
+**Rollout:** ON by default (`LOCAL_FIRST_DEFAULT=false` turns it off for everyone; the owner can switch his own business off); when off nothing changes. Known limits: no service worker yet (cannot cold-start the app offline), only the POS slice is converted, bulk `update()` paths are not logged.
