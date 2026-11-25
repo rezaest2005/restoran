@@ -27,17 +27,13 @@ import "@shared/ui/bundle.css";
 import "./index.css";
 import { installAltHint } from "@shared/ui/altHint";
 import { installApiPrefix } from "@shared/apiPrefix";
-import { BASE } from "@shared/basePath";
+import { ensureOwnWorker, removeOldSiteWideWorker } from "@shared/ownWorker";
 installApiPrefix();
 
-// Older builds installed a service worker for the whole site. Only the courier pages may have one now, so remove ours
-// everywhere else (a worker of ANOTHER application on this domain is never touched: only our own script address matches).
-if ("serviceWorker" in navigator && !window.location.pathname.includes("/bizsuite_driver")) {
-  navigator.serviceWorker.getRegistrations().then((list) => list.forEach((r) => {
-    const url = (r.active || r.waiting || r.installing)?.scriptURL || "";
-    if (url === `${window.location.origin}${BASE}/sw.js` && !r.scope.includes("/bizsuite_driver")) r.unregister();
-  })).catch(() => {});
-}
+// Older builds installed a service worker for the whole site: remove ours (a worker of ANOTHER application on this domain
+// is never touched). The courier pages have their own scoped worker (DriverPage.jsx); every other page of this app gets
+// the do-nothing worker registered for ITS scope so a foreign site-wide worker cannot answer our API calls from its cache.
+removeOldSiteWideWorker();
 installAltHint();
 
 const syncTitle = () => { document.title = appName(i18n.language); };
@@ -50,12 +46,15 @@ const queryClient = new QueryClient({
   },
 });
 
-ReactDOM.createRoot(document.getElementById("root")).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
-    </QueryClientProvider>
-  </React.StrictMode>
-);
+// The first API call must not reach a foreign worker: wait (at most a few seconds) until our own worker controls the page.
+ensureOwnWorker().finally(() => {
+  ReactDOM.createRoot(document.getElementById("root")).render(
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </QueryClientProvider>
+    </React.StrictMode>
+  );
+});
