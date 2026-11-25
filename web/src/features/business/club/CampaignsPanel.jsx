@@ -42,7 +42,7 @@ export default function CampaignsPanel({ ctx }) {
         ...["amount", "percent", "free_item"].map((k) => ({ value: k, labelKey: `ui_club2.kind.${k}` }))] },
     { key: "coupon_value", type: "number", label: "ui_club2.coupon.value", when: (f) => !!f.coupon_kind },
     { key: "coupon_valid_days", type: "number", label: "ui_club2.reward.valid_days", when: (f) => !!f.coupon_kind },
-    { key: "message", type: "multiline", label: "ui_club2.camp.message", hint: "ui_club2.camp.message_hint" },
+    { key: "message", type: "multiline", label: "ui_club2.camp.message" },
     { key: "is_active", type: "bool", label: "ui_club2.active" },
   ];
 
@@ -50,7 +50,7 @@ export default function CampaignsPanel({ ctx }) {
 
   return (
     <>
-      <CrudSection ctx={ctx} kind="campaigns" title={t("ui_club2.camp.title")} hint={t("ui_club2.camp.hint")}
+      <CrudSection ctx={ctx} kind="campaigns" title={t("ui_club2.camp.title")}
         fields={fields}
         defaults={{ kind: "birthday", inactivity_days: 60, bonus_points: 0, coupon_kind: "", coupon_valid_days: 14,
           is_active: true, segment: "at_risk" }}
@@ -67,7 +67,6 @@ export default function CampaignsPanel({ ctx }) {
 
       <Box sx={S.card}>
         <Typography sx={{ color: C.text, fontWeight: 800, mb: 0.5 }}>{t("ui_club2.msg.title")}</Typography>
-        <Typography sx={{ color: C.muted, fontSize: 12, mb: 1 }}>{t("ui_club2.msg.hint")}</Typography>
         {msgs == null ? <Box sx={{ textAlign: "center", py: 3 }}><CircularProgress size={24} /></Box>
           : msgs.length === 0 ? <Typography sx={{ color: C.muted, textAlign: "center", py: 2 }}>{t("ui_club2.none")}</Typography>
             : (

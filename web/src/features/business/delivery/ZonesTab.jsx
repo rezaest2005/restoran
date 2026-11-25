@@ -4,7 +4,6 @@ import {
   CircularProgress, Switch, FormControlLabel, Chip,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import { fmtMoney, fmtInt, num, ConfirmDialog } from "@business/accounting/common";
 import { zonesApi, quoteZone, errMsg } from "./api";
 
@@ -124,7 +123,7 @@ function ZoneDialog({ ctx, zone, onClose, onSaved }) {
               <TextField size="small" label={t("dlv.zones.radius")} value={f.radius_km} onChange={set("radius_km")} sx={S.field} slotProps={ltr} />
             </>
           ) : (
-            <TextField size="small" multiline minRows={4} label={t("dlv.zones.polygon")} helperText={t("dlv.zones.polygon_help")}
+            <TextField size="small" multiline minRows={4} label={t("dlv.zones.polygon")}
               value={f.polygonText} onChange={set("polygonText")} sx={{ ...S.field, gridColumn: "1 / -1" }} slotProps={{ htmlInput: { dir: "ltr" } }} />
           )}
           <Box sx={{ display: "flex", gap: 0.75, alignItems: "center", flexWrap: "wrap", gridColumn: "1 / -1" }}>
@@ -141,7 +140,7 @@ function ZoneDialog({ ctx, zone, onClose, onSaved }) {
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button variant="outlined" sx={S.ghost} onClick={onClose} disabled={saving}>{t("ui_del.common.cancel")}</Button>
         <Button variant="contained" sx={S.btn} onClick={submit} disabled={saving || !f.name.trim()}>
-          {saving ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_del.trip.submit")}<KbdHint>Ctrl+D</KbdHint></>}
+          {saving ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_del.trip.submit")}</>}
         </Button>
       </DialogActions>
     </Dialog>
@@ -188,9 +187,8 @@ export default function ZonesTab({ ctx }) {
       <Box sx={S.card}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
           <Typography sx={{ fontWeight: 800, color: C.text, flex: 1 }}>{t("dlv.zones.title")}</Typography>
-          <Button sx={S.btn} onClick={() => setEdit("new")}>+ {t("dlv.zones.new")}<KbdHint>F2</KbdHint></Button>
+          <Button sx={S.btn} onClick={() => setEdit("new")}>+ {t("dlv.zones.new")}</Button>
         </Box>
-        <Typography sx={{ color: C.sub, fontSize: 12.5, mb: 1.5 }}>{t("dlv.zones.intro")}</Typography>
         {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
         {loading && <CircularProgress size={22} />}
         {!loading && zones.length === 0 && <Typography sx={{ color: C.muted, fontSize: 13 }}>{t("dlv.zones.empty")}</Typography>}

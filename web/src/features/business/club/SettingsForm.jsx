@@ -3,7 +3,6 @@ import {
   Alert, Box, Button, CircularProgress, FormControlLabel, MenuItem, Switch, TextField, Typography,
 } from "@mui/material";
 import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import { fmtInt } from "../accounting/common";
 import { fetchSettings, saveSettings, runDaily, errMsg } from "./api";
 import CrudSection from "./CrudSection";
@@ -72,7 +71,7 @@ export default function SettingsForm({ ctx, onSaved }) {
 
   const field = (k) => (k === "tier_basis" ? (
     <TextField key={k} select size="small" label={t("ui_club2.set.tier_basis")} value={form[k]} sx={S.field}
-      onChange={set(k)} helperText={t("ui_club2.set.tier_basis_hint")}>
+      onChange={set(k)}>
       <MenuItem value="points">{t("ui_club2.set.basis_points")}</MenuItem>
       <MenuItem value="spend">{t("ui_club2.set.basis_spend")}</MenuItem>
     </TextField>
@@ -80,15 +79,13 @@ export default function SettingsForm({ ctx, onSaved }) {
     <TextField key={k} size="small" type="number" value={form[k] ?? ""} sx={S.field} onChange={set(k)}
       label={t(["earn_amount", "redeem_value", "min_redeem_points", "welcome_points"].includes(k)
         ? `ui_club.settings.${k}` : `ui_club2.set.${k}`)}
-      helperText={t(["earn_amount", "redeem_value", "min_redeem_points", "welcome_points"].includes(k)
-        ? `ui_club.settings.${k}_hint` : `ui_club2.set.${k}_hint`)}
       slotProps={{ htmlInput: { min: 0, dir: "ltr" } }} />
   ));
 
   const tierFields = [
     { key: "name", type: "text", label: "ui_club2.tier.name" },
-    { key: "min_value", type: "number", label: "ui_club2.tier.min_value", hint: "ui_club2.tier.min_value_hint" },
-    { key: "multiplier", type: "number", step: 0.1, label: "ui_club2.tier.multiplier", hint: "ui_club2.tier.multiplier_hint" },
+    { key: "min_value", type: "number", label: "ui_club2.tier.min_value" },
+    { key: "multiplier", type: "number", step: 0.1, label: "ui_club2.tier.multiplier" },
     { key: "color", type: "text", label: "ui_club2.tier.color", ltr: true },
     { key: "perks", type: "text", label: "ui_club2.tier.perks" },
   ];
@@ -97,12 +94,12 @@ export default function SettingsForm({ ctx, onSaved }) {
     { key: "name", type: "text", label: "ui_club2.rule.name" },
     { key: "kind", type: "select", label: "ui_club2.rule.kind",
       options: ruleKinds.map((k) => ({ value: k, labelKey: `ui_club2.rule.k_${k}` })) },
-    { key: "match", type: "text", label: "ui_club2.rule.match", hint: "ui_club2.rule.match_hint",
+    { key: "match", type: "text", label: "ui_club2.rule.match",
       when: (f) => ["product", "category"].includes(f.kind) },
     { key: "min_amount", type: "number", label: "ui_club2.rule.min_amount", when: (f) => f.kind === "min_amount" },
     { key: "weekdays", type: "weekdays", label: "ui_club2.rule.weekdays", when: (f) => f.kind === "weekday" },
-    { key: "multiplier", type: "number", step: 0.1, label: "ui_club2.rule.multiplier", hint: "ui_club2.rule.multiplier_hint" },
-    { key: "bonus_points", type: "number", label: "ui_club2.rule.bonus_points", hint: "ui_club2.rule.bonus_points_hint" },
+    { key: "multiplier", type: "number", step: 0.1, label: "ui_club2.rule.multiplier" },
+    { key: "bonus_points", type: "number", label: "ui_club2.rule.bonus_points" },
     { key: "starts_on", type: "date", label: "ui_club2.rule.starts_on" },
     { key: "ends_on", type: "date", label: "ui_club2.rule.ends_on" },
     { key: "is_active", type: "bool", label: "ui_club2.active" },
@@ -124,7 +121,6 @@ export default function SettingsForm({ ctx, onSaved }) {
             {t("ui_club2.set.public_url")}: <a href={publicUrl} target="_blank" rel="noreferrer" dir="ltr">{publicUrl}</a>
           </Alert>
         )}
-        {form.sms_enabled && <Alert severity="warning" sx={{ mt: 1 }}>{t("ui_club2.set.sms_note")}</Alert>}
         {GROUPS.map((g) => (
           <Box key={g.id} sx={{ mt: 2.5 }}>
             <Typography sx={{ color: C.text, fontWeight: 800, mb: 1.5 }}>{t(`ui_club2.set.group_${g.id}`)}</Typography>
@@ -136,13 +132,13 @@ export default function SettingsForm({ ctx, onSaved }) {
         {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", mt: 2 }}>
           <Button sx={S.btn} onClick={save} disabled={busy}>
-            {busy ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_club.settings.save")}<KbdHint>Ctrl+D</KbdHint></>}
+            {busy ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_club.settings.save")}</>}
           </Button>
           <Button variant="outlined" sx={S.ghost} onClick={daily}>{t("ui_club2.run_daily")}</Button>
         </Box>
       </Box>
 
-      <CrudSection ctx={ctx} kind="tiers" title={t("ui_club2.tier.title")} hint={t("ui_club2.tier.hint")}
+      <CrudSection ctx={ctx} kind="tiers" title={t("ui_club2.tier.title")}
         fields={tierFields} defaults={{ multiplier: 1, min_value: 0 }} onChanged={onSaved}
         columns={[
           { label: t("ui_club2.tier.name"), render: (r) => <TierBadge tier={r} C={C} /> },
@@ -151,7 +147,7 @@ export default function SettingsForm({ ctx, onSaved }) {
           { label: t("ui_club2.tier.perks"), render: (r) => r.perks || "—" },
         ]} />
 
-      <CrudSection ctx={ctx} kind="rules" title={t("ui_club2.rule.title")} hint={t("ui_club2.rule.hint")}
+      <CrudSection ctx={ctx} kind="rules" title={t("ui_club2.rule.title")}
         fields={ruleFields} defaults={{ kind: "category", multiplier: 1, bonus_points: 0, is_active: true }}
         columns={[
           { label: t("ui_club2.rule.name"), render: (r) => r.name },

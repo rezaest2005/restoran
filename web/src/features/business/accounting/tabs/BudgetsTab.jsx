@@ -4,7 +4,6 @@ import {
   IconButton, LinearProgress,
 } from "@mui/material";
 import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import { TableWrap, Money, AccountPicker, ReportActions, accName, fmtDate, num, newKey, todayISO, ConfirmDialog } from "../common";
 import { fetchBudgets, createBudget, fetchBudget, updateBudget, deleteBudget, errMsg } from "../api";
 
@@ -99,7 +98,7 @@ export default function BudgetsTab(ctx) {
             </Button>
             <Box sx={{ flex: 1 }} />
             <Button variant="outlined" sx={S.ghost} onClick={() => setEditing(null)}>{t("ui_i.common.cancel")}</Button>
-            <Button sx={S.btn} onClick={save} disabled={!editing.name.trim()}>{t("ui_i.common.save")}<KbdHint>Ctrl+D</KbdHint></Button>
+            <Button sx={S.btn} onClick={save} disabled={!editing.name.trim()}>{t("ui_i.common.save")}</Button>
           </Box>
         </Box>
       ) : (
@@ -114,7 +113,7 @@ export default function BudgetsTab(ctx) {
             {data && <ReportActions ctx={ctx} getRows={rowsForExport} filename={`budget-${data.id}-${todayISO()}`} />}
             {data && <Button variant="outlined" sx={S.ghost} onClick={startEdit}>{t("acc2.common.edit")}</Button>}
             {data && <Button variant="outlined" sx={{ ...S.ghost, color: C.danger }} onClick={() => setConfirmDel(true)}>{t("ui_i.common.remove")}</Button>}
-            <Button sx={S.btn} onClick={startNew}>{t("acc2.budgets.new")}<KbdHint>F2</KbdHint></Button>
+            <Button sx={S.btn} onClick={startNew}>{t("acc2.budgets.new")}</Button>
           </Box>
           {!data ? (
             <Typography sx={{ color: C.muted, textAlign: "center", py: 4 }}>{t("acc2.budgets.empty")}</Typography>

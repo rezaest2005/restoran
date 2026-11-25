@@ -27,7 +27,6 @@ import SettingsTab from "./tabs/SettingsTab";
 import VatDocumentDialog from "./tabs/VatDocumentDialog";
 import EntryDialog from "./tabs/EntryDialog";
 import EntryDetailDialog from "./tabs/EntryDetailDialog";
-import HintBar from "@shared/ui/HintBar";
 
 // the first three are the simple screens (the system keeps the books); the rest are for an accountant
 const TAB_KEYS = [
@@ -139,7 +138,6 @@ export default function AccountingPage({ embedded = false }) {
           <Typography sx={{ color: C.text, fontWeight: 800, fontSize: { xs: 18, sm: 22 }, mb: 0.5 }}>
             {t("ui_i.page.title")}
           </Typography>
-          <Typography sx={{ color: C.sub, fontSize: 13, mb: 2 }}>{t("ui_i.page.subtitle")}</Typography>
         </>
       )}
 
@@ -200,7 +198,6 @@ export default function AccountingPage({ embedded = false }) {
           {toast.msg}
         </Alert>
       </Snackbar>
-      {!embedded && <HintBar items={[{ keys: "F2", label: t("ui_design.hint_new") }, { keys: "F3", label: t("ui_design.hint_add_line") }, { keys: "Ctrl+D", label: t("ui_design.hint_save") }, { keys: "Esc", label: t("ui_design.hint_close") }]} />}
     </Box>
   );
 }

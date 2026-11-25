@@ -4,7 +4,6 @@ import {
   DialogContent, DialogActions, TextField, MenuItem, Alert, CircularProgress,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import {
   TableWrap, fmtMoney, num, useRowCursor, cursorBindings, cursorProps,
 } from "@business/accounting/common";
@@ -70,7 +69,7 @@ function SettleDialog({ ctx, row, onClose, onDone }) {
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button variant="outlined" sx={S.ghost} onClick={onClose} disabled={saving}>{t("ui_del.common.cancel")}</Button>
         <Button variant="contained" sx={S.btn} onClick={submit} disabled={saving}>
-          {saving ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_del.cash.settle")}<KbdHint>Ctrl+D</KbdHint></>}
+          {saving ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_del.cash.settle")}</>}
         </Button>
       </DialogActions>
     </Dialog>

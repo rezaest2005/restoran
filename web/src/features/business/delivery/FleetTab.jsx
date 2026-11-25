@@ -4,7 +4,6 @@ import {
   DialogContent, DialogActions, TextField, MenuItem, FormControlLabel, Switch, Alert, Chip, CircularProgress,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import { TableWrap, ConfirmDialog, fmtMoney, fmtInt, num } from "@business/accounting/common";
 import { vehiclesApi, carriersApi, driversApi, setDriverShift, errMsg } from "./api";
 import { VEHICLE_KINDS } from "./common";
@@ -68,7 +67,7 @@ function EditDialog({ ctx, title, fields, initial, onClose, onSave }) {
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button variant="outlined" sx={S.ghost} onClick={onClose} disabled={saving}>{t("ui_del.common.cancel")}</Button>
         <Button variant="contained" sx={S.btn} onClick={submit} disabled={saving}>
-          {saving ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_del.common.save")}<KbdHint>Ctrl+D</KbdHint></>}
+          {saving ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_del.common.save")}</>}
         </Button>
       </DialogActions>
     </Dialog>
@@ -201,7 +200,6 @@ export default function FleetTab({ ctx, vehicles, carriers, drivers, reloadFleet
 
   return (
     <Box>
-      <Alert severity="info" sx={{ mb: 2 }}>{t("ui_dh.transport.fleet_hint")}</Alert>
       {section("driver", t("ui_dh.transport.fleet_title"),
         [t("ui_del.fleet.number"), t("ui_del.fleet.name"), t("ui_dh.transport.service"), t("ui_del.fleet.username"), t("ui_del.fleet.phone"), t("ui_del.fleet.pay_per_trip"), t("ui_del.fleet.shift"), t("ui_del.common.status")],
         drivers, (d) => (

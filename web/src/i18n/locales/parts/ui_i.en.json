@@ -1,9 +1,7 @@
 {
   "ui_i": {
-    "nav_accounting": "Accounting",
     "page": {
-      "title": "Accounting",
-      "subtitle": "Journal entries, chart of accounts and financial reports"
+      "title": "Accounting"
     },
     "tabs": {
       "overview": "Overview",
@@ -43,21 +41,21 @@
       "close": "Close",
       "edit": "Edit",
       "delete": "Delete",
-      "remove": "Remove line",
-      "load_failed": "Failed to load data",
-      "save_failed": "Failed to save",
+      "remove": "Remove",
+      "load_failed": "Could not load",
+      "save_failed": "Not saved",
       "no_match": "No match",
-      "pick_account": "Search by account code or name",
+      "pick_account": "Code or name",
       "from": "From",
       "to": "To",
       "search": "Search",
       "all": "All",
-      "none": "None",
+      "none": "—",
       "date": "Date",
       "description": "Description",
       "number": "Number",
       "source": "Source",
-      "memo": "Line memo",
+      "memo": "Memo",
       "cost_center": "Cost center",
       "account": "Account",
       "code": "Code",
@@ -78,69 +76,55 @@
     },
     "overview": {
       "balanced": "Books are balanced",
-      "not_balanced": "Books are NOT balanced",
-      "balanced_hint": "Total debits equal total credits across all entries.",
-      "not_balanced_hint": "Total debits and credits differ; please review the entries.",
-      "kpi_cash": "Cash",
-      "kpi_bank": "Bank",
-      "kpi_receivable": "Receivables",
-      "kpi_payable": "Payables",
-      "kpi_inventory": "Inventory",
-      "kpi_month_income": "Income this month",
-      "kpi_month_expense": "Expenses this month",
-      "kpi_month_profit": "Profit this month",
-      "kpi_driver_cash": "Cash held by drivers / agents",
-      "recent": "Latest entries"
+      "not_balanced": "Books are NOT balanced"
     },
     "accounts": {
-      "search": "Search by code or name",
+      "search": "Code or name",
       "new": "New account",
       "new_title": "Add account",
       "edit_title": "Edit account",
-      "empty": "No accounts found",
+      "empty": "No accounts",
       "kind": "Kind",
       "group": "Group",
       "system": "System",
-      "name_en": "English name (optional)",
-      "parent": "Parent account (optional)",
-      "parent_hint": "Only group accounts of the same type are listed",
-      "postable": "Accepts entries",
-      "postable_hint": "Group accounts cannot be used in journal entries",
-      "system_hint": "This is a system account: only its name and status can change, and it cannot be deleted.",
-      "saved": "Account saved",
-      "deleted": "Account deleted",
+      "name_en": "English name",
+      "parent": "Parent",
+      "postable": "Postable",
+      "system_hint": "System account: name and status only",
+      "saved": "Saved",
+      "deleted": "Deleted",
       "delete_title": "Delete account",
-      "delete_text": "Delete account \"{{name}}\"? Accounts that have entries cannot be deleted; deactivate them instead."
+      "delete_text": "Delete \"{{name}}\"? If it has entries, deactivate it instead."
     },
     "journal": {
-      "empty": "No entries found"
+      "empty": "No entries"
     },
     "entry": {
       "new": "New entry",
-      "new_title": "New journal entry",
+      "new_title": "New entry",
       "add_line": "Add line",
       "submit": "Post entry",
-      "saved": "Entry posted",
+      "saved": "Saved",
       "is_balanced": "balanced",
       "not_balanced": "not balanced",
-      "min_lines": "At least two complete, balanced lines are required.",
-      "detail_title": "Entry no.",
+      "min_lines": "Two balanced lines needed",
+      "detail_title": "Entry",
       "details": "Details",
       "open": "Open",
-      "reverse": "Reverse entry",
+      "reverse": "Reverse",
       "reverse_title": "Reverse entry",
-      "reverse_text": "A mirror entry will be posted and the original stays untouched. Continue?",
-      "reason": "Reason (optional)",
-      "reversed_ok": "Entry reversed",
-      "reversal_of": "Reversal of entry #{{id}}",
-      "reversed_by": "This entry was reversed by entry #{{id}}",
-      "superseded": "This version has been superseded by a newer one."
+      "reverse_text": "A reversing entry is posted. Continue?",
+      "reason": "Reason",
+      "reversed_ok": "Reversed",
+      "reversal_of": "Reversal of #{{id}}",
+      "reversed_by": "Reversed by #{{id}}",
+      "superseded": "Old version"
     },
     "ledger": {
-      "pick": "Pick an account to see its ledger",
+      "pick": "Pick an account",
       "opening": "Opening balance",
       "closing": "Closing balance",
-      "empty": "No activity in this period"
+      "empty": "No activity"
     },
     "reports": {
       "trial": "Trial balance",
@@ -168,7 +152,7 @@
     "keys": {
       "new_entry": "New journal entry",
       "new_account": "New account",
-      "add_line": "Add a line to the entry",
+      "add_line": "Add line",
       "open_row": "Open the selected row"
     }
   }

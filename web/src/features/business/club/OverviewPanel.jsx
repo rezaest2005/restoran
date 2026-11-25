@@ -88,7 +88,6 @@ export default function OverviewPanel({ ctx, onSegment }) {
         </Box>
         <Box sx={S.card}>
           <Typography sx={{ color: C.text, fontWeight: 800, mb: 0.5 }}>{t("ui_club2.ov.rfm")}</Typography>
-          <Typography sx={{ color: C.muted, fontSize: 12, mb: 1.5 }}>{t("ui_club2.ov.rfm_hint")}</Typography>
           <Bars C={C} rows={RFM.filter((k) => d.rfm[k]).map((k) => ({
             key: k, label: t(`ui_club2.rfm.${k}`), value: d.rfm[k], text: n(d.rfm[k]),
           }))} />

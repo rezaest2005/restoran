@@ -4,7 +4,6 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Alert, CircularProgress, Switch, FormControlLabel,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings, onEnter } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import { TableWrap, Money, DETAIL_KINDS, useRowCursor, cursorBindings, cursorProps } from "../common";
 import { createDetail, updateDetail, deleteDetail, errMsg } from "../api";
 
@@ -32,7 +31,6 @@ export default function DetailsTab(ctx) {
 
   return (
     <Box sx={S.card}>
-      <Typography sx={{ color: C.sub, fontSize: 13, mb: 1.5 }}>{t("acc2.details.intro")}</Typography>
       <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center", mb: 2 }}>
         <TextField size="small" label={t("ui_i.common.search")} value={q} onChange={(e) => setQ(e.target.value)}
           sx={{ ...S.field, flex: 1, minWidth: { xs: "100%", sm: 220 } }} />
@@ -42,7 +40,7 @@ export default function DetailsTab(ctx) {
           {DETAIL_KINDS.map((k) => <MenuItem key={k} value={k}>{t(`acc2.detail_kinds.${k}`)}</MenuItem>)}
         </TextField>
         <Button variant="outlined" sx={S.ghost} onClick={() => goTab("reports")}>{t("acc2.details.balances")}</Button>
-        <Button sx={S.btn} onClick={() => setEdit({})}>{t("acc2.details.new")}<KbdHint>F2</KbdHint></Button>
+        <Button sx={S.btn} onClick={() => setEdit({})}>{t("acc2.details.new")}</Button>
       </Box>
       {rows.length === 0 ? (
         <Typography sx={{ color: C.muted, textAlign: "center", py: 4 }}>{t("acc2.details.empty")}</Typography>
@@ -123,7 +121,7 @@ function DetailDialog({ ctx, item, onClose, onSaved }) {
         <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
           <TextField size="small" label={t("ui_i.common.name")} value={f.name} onChange={set("name")} sx={S.field} autoFocus required />
           <TextField size="small" label={t("ui_i.common.code")} value={f.code} onChange={set("code")} sx={S.field}
-            disabled={!isNew} helperText={isNew ? t("acc2.details.code_auto") : ""} slotProps={{ htmlInput: { dir: "ltr" } }} />
+            disabled={!isNew} slotProps={{ htmlInput: { dir: "ltr" } }} />
           <TextField select size="small" label={t("acc2.details.kind")} value={f.kind} onChange={set("kind")} sx={S.field} disabled={!isNew}>
             {DETAIL_KINDS.map((k) => <MenuItem key={k} value={k}>{t(`acc2.detail_kinds.${k}`)}</MenuItem>)}
           </TextField>
@@ -144,7 +142,7 @@ function DetailDialog({ ctx, item, onClose, onSaved }) {
         <Box sx={{ flex: 1 }} />
         <Button variant="outlined" sx={S.ghost} onClick={onClose} disabled={busy}>{t("ui_i.common.cancel")}</Button>
         <Button sx={S.btn} onClick={save} disabled={busy || !f.name.trim()}>
-          {busy ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_i.common.save")}<KbdHint>Ctrl+D</KbdHint></>}
+          {busy ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_i.common.save")}</>}
         </Button>
       </DialogActions>
     </Dialog>

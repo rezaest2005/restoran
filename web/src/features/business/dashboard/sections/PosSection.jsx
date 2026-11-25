@@ -26,11 +26,8 @@ export default function PosSection({ data }) {
     activeCustomers: t("dash.activeCustomers"),
     avgTime: t("dash.avgTime"),
     secSales: t("dash.secSales"),
-    secSalesDesc: t("dash.secSalesDesc"),
     secTime: t("dash.secTime"),
-    secTimeDesc: t("dash.secTimeDesc"),
     secMenu: t("dash.secMenu"),
-    secMenuDesc: t("dash.secMenuDesc"),
     tuman: t("dash.tuman"),
     min: t("dash.min"),
   };
@@ -58,7 +55,6 @@ export default function PosSection({ data }) {
     <Box sx={{ width: "100%", mb: 6 }}>
       
       {/* === آمار کلی === */}
-      <SectionHeader icon="📊" title={L.todaySales} subtitle={L.secSalesDesc} C={C} isRtl={isRtl} delay={0.05} />
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 5, width: "100%" }}>
         {stats.map((stat, i) => (
           <Box key={i} sx={{ flexGrow: 1, flexBasis: { xs: "100%", sm: "calc(50% - 12px)", md: "calc(25% - 18px)" }, minWidth: "220px" }}>
@@ -81,7 +77,7 @@ export default function PosSection({ data }) {
       </Box>
 
       {/* === تحلیل فروش === */}
-      <SectionHeader icon="📈" title={L.secSales} subtitle={L.secSalesDesc} C={C} isRtl={isRtl} delay={0.2} />
+      <SectionHeader title={L.secSales} C={C} isRtl={isRtl} delay={0.2} />
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "2fr 1fr" }, gap: 3, mb: 5, width: "100%" }}>
         <GlassCard C={C} sx={{ p: 3, width: "100%", height: 500, overflow: "visible" }}>
           <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>{t("ui_b.dashPos.weeklyTrend")}</Typography>
@@ -127,7 +123,7 @@ export default function PosSection({ data }) {
       </Box>
 
       {/* === الگو زمانی === */}
-      <SectionHeader icon="🔥" title={L.secTime} subtitle={L.secTimeDesc} C={C} isRtl={isRtl} delay={0.4} />
+      <SectionHeader title={L.secTime} C={C} isRtl={isRtl} delay={0.4} />
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "2fr 1fr" }, gap: 3, mb: 5, width: "100%" }}>
         <GlassCard C={C} sx={{ p: 3, width: "100%", height: 500, overflow: "visible" }}>
           <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>{t("ui_b.dashPos.peakHours")}</Typography>
@@ -161,7 +157,7 @@ export default function PosSection({ data }) {
       </Box>
 
       {/* === منو === */}
-      <SectionHeader icon="🍽️" title={L.secMenu} subtitle={L.secMenuDesc} C={C} isRtl={isRtl} delay={0.6} />
+      <SectionHeader title={L.secMenu} C={C} isRtl={isRtl} delay={0.6} />
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 3, mb: 5, width: "100%" }}>
         <GlassCard C={C} sx={{ p: 3, width: "100%", minHeight: 450, overflow: "hidden" }}>
           <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>{t("ui_b.dashPos.topProducts")}</Typography>

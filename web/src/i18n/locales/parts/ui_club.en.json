@@ -3,15 +3,15 @@
     "tab_members": "Members",
     "tab_settings": "Club settings",
     "section_n": "Section {{n}}",
-    "search": "Search (phone or name)",
-    "open_row": "Open selected member",
-    "empty": "No members yet.",
+    "search": "Search",
+    "open_row": "Open member",
+    "empty": "No members",
     "close": "Close",
-    "tier": { "member": "Member", "silver": "Silver", "gold": "Gold" },
+    "tier": { "member": "Member" },
     "member": {
       "new": "New member",
       "save": "Add member",
-      "saved": "Member added.",
+      "saved": "Saved",
       "detail": "Member details",
       "name": "Name",
       "phone": "Phone",
@@ -20,14 +20,12 @@
       "lifetime": "Lifetime points"
     },
     "adjust": {
-      "title": "Manual points adjustment",
+      "title": "Adjust points",
       "points": "Points (+/-)",
-      "hint": "Positive or negative number",
       "note": "Note",
       "apply": "Apply"
     },
     "history": {
-      "title": "Transaction history",
       "empty": "No transactions yet.",
       "date": "Date",
       "kind": "Type",
@@ -49,12 +47,12 @@
       "gold_points": "Gold tier threshold",
       "gold_points_hint": "Must not be lower than the silver threshold.",
       "save": "Save settings",
-      "saved": "Settings saved."
+      "saved": "Saved"
     },
     "err": {
-      "generic": "Could not reach the server.",
-      "phone_required": "Enter a phone number.",
-      "points_invalid": "Points must be a non-zero whole number."
+      "generic": "Connection failed",
+      "phone_required": "Enter a phone number",
+      "points_invalid": "Points must be a non-zero whole number"
     }
   }
 }

@@ -6,10 +6,7 @@ import { CategoryIcon, ExpenseDialog, OpeningDialog, PaymentDialog, RecurringDia
 import { moduleEnabled } from "../../dashboard/access";
 
 /**
- * The accounting home page for people who are not accountants. Everything is grouped into plain sections
- * (your money · this month · who owes you · who you owe · fixed monthly costs) and the four things a
- * business owner actually does are one click away. The books are kept by the system.
- */
+/** Accounting home for non-accountants: money, month, who owes whom, fixed costs. */
 export default function HomeTab(ctx) {
   const { t, C, S, lang, refreshKey, bump, notify, goTab } = ctx;
   const [data, setData] = useState(null);
@@ -54,7 +51,6 @@ export default function HomeTab(ctx) {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <Alert severity="info" icon={false} sx={{ py: 0.5 }}>{t("ui_acc.home.auto_note")}</Alert>
       {!data.balanced && <Alert severity="warning">{t("ui_acc.home.unbalanced")}</Alert>}
 
       <Box sx={{ display: "grid", gap: 1, gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" } }}>

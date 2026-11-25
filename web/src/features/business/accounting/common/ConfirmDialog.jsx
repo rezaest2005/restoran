@@ -2,7 +2,6 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Typography, Button, Alert, CircularProgress,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 
 /** Confirm dialog: Enter / Ctrl+D confirm, Escape cancels. `children` = extra content (e.g. a reason field). */
 export default function ConfirmDialog({
@@ -35,7 +34,7 @@ export default function ConfirmDialog({
             ? { bgcolor: C.text, color: C.bg, textTransform: "none", fontWeight: 700, minHeight: 40, "&:hover": { bgcolor: C.text, opacity: 0.85 } }
             : S.btn}
         >
-          {busy ? <CircularProgress size={18} color="inherit" /> : <>{confirmLabel}{!danger && <KbdHint>Ctrl+D</KbdHint>}</>}
+          {busy ? <CircularProgress size={18} color="inherit" /> : confirmLabel}
         </Button>
       </DialogActions>
     </Dialog>

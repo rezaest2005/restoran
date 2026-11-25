@@ -4,7 +4,6 @@ import {
   MenuItem, Stack, TextField, Typography,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import { STATUSES, errMsg, statusColor, fmtStamp } from "./common";
 
 /**
@@ -113,9 +112,6 @@ export default function ThreadDialog({ ctx, id, api, admin = false, onClose, onC
             <TextField multiline minRows={3} maxRows={8} value={text} sx={S.field}
               placeholder={t("ui_sup.common.reply_ph")} onChange={(e) => setText(e.target.value)}
               slotProps={{ htmlInput: { maxLength: 4000 } }} />
-            {!admin && ticket.status === "resolved" && (
-              <Typography sx={{ color: C.muted, fontSize: 12 }}>{t("ui_sup.biz.reopen_note")}</Typography>
-            )}
             {admin && (
               <TextField select size="small" label={t("ui_sup.adm.set_status")} value={ticket.status} sx={{ ...S.field, maxWidth: 240 }}
                 disabled={busy}
@@ -135,7 +131,7 @@ export default function ThreadDialog({ ctx, id, api, admin = false, onClose, onC
         )}
         <Box sx={{ flex: 1 }} />
         <Button variant="outlined" sx={S.ghost} onClick={onClose}>{t("ui_sup.common.close")}</Button>
-        <Button sx={S.btn} onClick={send} disabled={busy || !ticket}>{t("ui_sup.common.send")}<KbdHint>Ctrl+D</KbdHint></Button>
+        <Button sx={S.btn} onClick={send} disabled={busy || !ticket}>{t("ui_sup.common.send")}</Button>
       </DialogActions>
     </Dialog>
   );

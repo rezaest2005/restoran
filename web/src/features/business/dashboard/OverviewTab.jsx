@@ -33,7 +33,7 @@ class SectionErrorBoundary extends React.Component {
       return (
         <Box sx={{ p: 3, m: 2, borderRadius: 3, border: "2px solid var(--danger)", background: "color-mix(in srgb, var(--danger) 15%, transparent)" }}>
           <Typography sx={{ fontSize: 16, fontWeight: 800, color: "var(--danger)" }}>
-            ⚠️ {i18n.t("ui_a.dashboard.error_in", { name: this.props.name })}
+            {i18n.t("ui_a.dashboard.error_in", { name: this.props.name })}
           </Typography>
           <Typography sx={{ fontSize: 12, color: "var(--danger)", fontFamily: "monospace", mt: 1 }}>
             {this.state.error?.message}
@@ -130,40 +130,15 @@ export default function OverviewTab() {
     }}>
       <style>{animations}</style>
 
-      {/* ── هدر ── */}
-      <Box sx={{
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        mb: 3, flexDirection: { xs: "column", sm: "row" }, gap: 1.5, pt: 1,
-      }}>
-        <Box sx={{ textAlign: { xs: "center", sm: isRtl ? "right" : "left" } }}>
-          <Typography component="h1" sx={{
-            fontSize: { xs: 19, md: 24 }, fontWeight: 900, color: C.text, mb: 0.5,
-            fontFamily: "'Plus Jakarta Sans', 'Vazirmatn', sans-serif",
-          }}>
-            {t("dash.greeting")} <span style={{ color: C.olive }}>👋</span>
-          </Typography>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", justifyContent: { xs: "center", sm: "flex-start" } }}>
-            <Typography sx={{ fontSize: 13, color: C.sub }}>{t("dash.summary")}</Typography>
-          </Box>
-        </Box>
-        <Box sx={{
-          display: "flex", alignItems: "center", gap: 1.5,
-          bgcolor: C.glass, border: `1px solid ${C.glassBorder}`,
-          borderRadius: 2, px: 2, py: 1,
-        }}>
-          <span style={{ fontSize: 16 }}>📅</span>
-          <Typography sx={{ fontSize: 13, fontWeight: 600, color: C.text }}>{dateText}</Typography>
-        </Box>
+      <Box sx={{ display: "flex", justifyContent: isRtl ? "flex-start" : "flex-end", mb: 2, pt: 1 }}>
+        <Typography sx={{ fontSize: 13, fontWeight: 600, color: C.sub }}>{dateText}</Typography>
       </Box>
 
       <Box id="dash-sec-home" sx={{ scrollMarginTop: 72 }}>
         <SectionErrorBoundary name="Home">
           {summaryError && !summary && <Alert severity="warning" sx={{ mb: 2 }}>{t("dash.loading")}</Alert>}
           <AlertsPanel alerts={summary?.alerts} C={C} fmt={fmt} />
-          <Box sx={{ mb: 1.5 }}>
-            <Typography component="h2" sx={{ fontSize: 15, fontWeight: 800, color: C.text }}>{t("ui_dash2.kpi_title")}</Typography>
-            <Typography sx={{ fontSize: 12, color: C.sub }}>{t("ui_dash2.kpi_sub")}</Typography>
-          </Box>
+          <Typography component="h2" sx={{ fontSize: 15, fontWeight: 800, color: C.text, mb: 1.5 }}>{t("ui_dash2.kpi_title")}</Typography>
           {summary && <KpiWidgets summary={summary} C={C} fmt={fmt} />}
           <QuickActions summary={summary} C={C} />
         </SectionErrorBoundary>

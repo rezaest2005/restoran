@@ -4,7 +4,6 @@ import {
   Alert, CircularProgress, ToggleButton, ToggleButtonGroup,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import { AccountPicker, DetailPicker, Money, num, round2, todayISO } from "../common";
 import { createVatDocument, fetchMoneyAccounts, fetchAccSettings, errMsg } from "../api";
 
@@ -115,7 +114,7 @@ export default function VatDocumentDialog({ ctx, onClose, onSaved }) {
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button variant="outlined" sx={S.ghost} onClick={onClose} disabled={saving}>{t("ui_i.common.cancel")}</Button>
         <Button sx={S.btn} onClick={submit} disabled={saving || !valid}>
-          {saving ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_i.entry.submit")}<KbdHint>Ctrl+D</KbdHint></>}
+          {saving ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_i.entry.submit")}</>}
         </Button>
       </DialogActions>
     </Dialog>

@@ -7,7 +7,6 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import { TableWrap } from "../accounting/common";
 import { crud, errMsg } from "./api";
 
@@ -50,7 +49,7 @@ function FieldInput({ f, value, onChange, t, S, C }) {
   if (f.type === "select") {
     return (
       <TextField select size="small" label={label} value={value ?? ""} sx={S.field}
-        helperText={f.hint ? t(f.hint) : undefined} onChange={(e) => onChange(e.target.value)}>
+        title={f.hint ? t(f.hint) : undefined} onChange={(e) => onChange(e.target.value)}>
         {f.options.map((o) => (
           <MenuItem key={String(o.value)} value={o.value}>{o.label ?? t(o.labelKey)}</MenuItem>
         ))}
@@ -61,7 +60,7 @@ function FieldInput({ f, value, onChange, t, S, C }) {
   return (
     <TextField size="small" type={type} label={label} value={value ?? ""} sx={S.field}
       multiline={f.type === "multiline"} minRows={f.type === "multiline" ? 2 : undefined}
-      helperText={f.hint ? t(f.hint) : undefined} onChange={(e) => onChange(e.target.value)}
+      title={f.hint ? t(f.hint) : undefined} onChange={(e) => onChange(e.target.value)}
       slotProps={{
         inputLabel: ["date", "datetime"].includes(f.type) ? { shrink: true } : undefined,
         htmlInput: f.type === "number" ? { dir: "ltr", min: 0, step: f.step || 1 } : f.ltr ? { dir: "ltr" } : undefined,
@@ -122,7 +121,7 @@ function Editor({ ctx, kind, fields, row, defaults, onClose, onSaved }) {
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button variant="outlined" sx={S.ghost} onClick={onClose} disabled={busy}>{t("ui_club.close")}</Button>
         <Button sx={S.btn} onClick={save} disabled={busy}>
-          {busy ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_club2.save")}<KbdHint>Ctrl+D</KbdHint></>}
+          {busy ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_club2.save")}</>}
         </Button>
       </DialogActions>
     </Dialog>
@@ -133,7 +132,7 @@ function Editor({ ctx, kind, fields, row, defaults, onClose, onSaved }) {
  * List + add/edit/delete for one club catalogue (`kind`).
  * `columns`: [{label, render(row), num}], `fields`: editor spec, `actions(row, reload)`: extra row buttons.
  */
-export default function CrudSection({ ctx, kind, title, hint, fields, columns, defaults = {}, actions, onChanged }) {
+export default function CrudSection({ ctx, kind, title, fields, columns, defaults = {}, actions, onChanged }) {
   const { t, C, S, notify } = ctx;
   const [rows, setRows] = useState(null);
   const [error, setError] = useState("");
@@ -163,7 +162,6 @@ export default function CrudSection({ ctx, kind, title, hint, fields, columns, d
         <Typography sx={{ color: C.text, fontWeight: 800, flex: 1 }}>{title}</Typography>
         <Button sx={S.btn} onClick={() => setEditing("new")}>{t("ui_club2.add")}</Button>
       </Box>
-      {hint && <Typography sx={{ color: C.muted, fontSize: 12, mb: 1 }}>{hint}</Typography>}
       {error && <Alert severity="error" sx={{ mb: 1 }}>{error}</Alert>}
       {rows == null ? (
         <Box sx={{ textAlign: "center", py: 3 }}><CircularProgress size={24} /></Box>

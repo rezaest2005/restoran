@@ -3,7 +3,6 @@ import {
   Alert, Button, CircularProgress, Dialog, DialogActions, DialogContent, DialogTitle, Stack, TextField,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import { createMember, errMsg } from "./api";
 
 /** Add a member (phone + name). Ctrl+D / Enter save, Escape closes. */
@@ -50,8 +49,7 @@ export default function MemberDialog({ ctx, onClose, onSaved }) {
             onChange={(e) => setName(e.target.value)} />
           <TextField size="small" type="date" label={t("ui_club2.md.birth_date")} value={birth} sx={S.field}
             onChange={(e) => setBirth(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
-          <TextField size="small" label={t("ui_club2.md.referral_code")} value={referral} sx={S.field}
-            helperText={t("ui_club2.md.referral_hint")} onChange={(e) => setReferral(e.target.value)}
+          <TextField size="small" label={t("ui_club2.md.referral_code")} value={referral} sx={S.field} onChange={(e) => setReferral(e.target.value)}
             slotProps={{ htmlInput: { dir: "ltr" } }} />
           {error && <Alert severity="error">{error}</Alert>}
         </Stack>
@@ -61,7 +59,7 @@ export default function MemberDialog({ ctx, onClose, onSaved }) {
           {t("ui_club.close")}
         </Button>
         <Button sx={S.btn} onClick={submit} disabled={busy}>
-          {busy ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_club.member.save")}<KbdHint>Ctrl+D</KbdHint></>}
+          {busy ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_club.member.save")}</>}
         </Button>
       </DialogActions>
     </Dialog>

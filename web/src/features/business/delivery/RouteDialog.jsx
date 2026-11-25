@@ -62,7 +62,6 @@ export default function RouteDialog({ ctx, trip, onClose, onApplied }) {
                 );
               })}
             </Box>
-            <Typography sx={{ color: C.muted, fontSize: 11, mt: 1.5 }}>{t("dlv.route.note")}</Typography>
           </>
         )}
       </DialogContent>

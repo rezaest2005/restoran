@@ -5,7 +5,6 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings, onEnter } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import {
   TableWrap, ConfirmDialog, accName, ACCOUNT_TYPES, fmtInt, useRowCursor, cursorBindings, cursorProps,
 } from "../common";
@@ -79,7 +78,7 @@ export default function AccountsTab(ctx) {
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, gap: 1, flexWrap: "wrap" }}>
         <TextField size="small" value={q} onChange={(e) => { setQ(e.target.value); cursor.reset(); }}
           placeholder={t("ui_i.accounts.search")} sx={{ ...S.field, minWidth: { xs: "100%", sm: 260 } }} />
-        <Button sx={S.btn} onClick={() => setEditing({})}>{t("ui_i.accounts.new")}<KbdHint>F2</KbdHint></Button>
+        <Button sx={S.btn} onClick={() => setEditing({})}>{t("ui_i.accounts.new")}</Button>
       </Box>
 
       {groups.length === 0 ? (
@@ -221,8 +220,7 @@ function AccountDialog({ ctx, account, onClose, onSaved }) {
                 {ACCOUNT_TYPES.map((x) => <MenuItem key={x} value={x}>{t(`ui_i.types.${x}`)}</MenuItem>)}
               </TextField>
               <TextField select size="small" label={t("ui_i.accounts.parent")} value={parentId} sx={S.field}
-                onChange={(e) => setParentId(e.target.value)}
-                helperText={t("ui_i.accounts.parent_hint")} slotProps={{ select: { displayEmpty: true } }}>
+                onChange={(e) => setParentId(e.target.value)} slotProps={{ select: { displayEmpty: true } }}>
                 <MenuItem value="">{t("ui_i.common.none")}</MenuItem>
                 {parents.map((p) => (
                   <MenuItem key={p.id} value={String(p.id)}>{p.code} — {accName(p, lang)}</MenuItem>
@@ -230,10 +228,7 @@ function AccountDialog({ ctx, account, onClose, onSaved }) {
               </TextField>
               <FormControlLabel
                 control={<Switch checked={postable} onChange={(e) => setPostable(e.target.checked)} />}
-                label={<Box>
-                  <Typography sx={{ color: C.text, fontSize: 14 }}>{t("ui_i.accounts.postable")}</Typography>
-                  <Typography sx={{ color: C.muted, fontSize: 12 }}>{t("ui_i.accounts.postable_hint")}</Typography>
-                </Box>}
+                label={<Typography sx={{ color: C.text, fontSize: 14 }}>{t("ui_i.accounts.postable")}</Typography>}
               />
             </>
           )}
@@ -248,7 +243,7 @@ function AccountDialog({ ctx, account, onClose, onSaved }) {
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button variant="outlined" sx={S.ghost} onClick={onClose} disabled={saving}>{t("ui_i.common.cancel")}</Button>
         <Button sx={S.btn} onClick={submit} disabled={saving}>
-          {saving ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_i.common.save")}<KbdHint>Ctrl+D</KbdHint></>}
+          {saving ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_i.common.save")}</>}
         </Button>
       </DialogActions>
     </Dialog>
