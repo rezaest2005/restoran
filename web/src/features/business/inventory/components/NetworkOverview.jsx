@@ -31,9 +31,8 @@ export default function NetworkOverview({ rows, C }) {
   return (
     <Box sx={{ mb: 2.5 }}>
       <Typography sx={{ fontSize: F(13), fontWeight: 800, color: C.text }}>
-        🌐 {t("ui_net.network_title")}
+        {t("ui_net.network_title")}
       </Typography>
-      <Typography sx={{ fontSize: F(10), color: C.sub, mb: 1 }}>{t("ui_net.network_hint")}</Typography>
       <Box
         sx={{
           display: "grid",

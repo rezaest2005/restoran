@@ -350,11 +350,11 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
       return;
     }
     if (!f.invoice_date) {
-      notify("تاریخ فاکتور معتبر نیست (مثال: ۱۴۰۵/۰۸/۰۳)", "warning");
+      notify("تاریخ درست نیست", "warning");
       return;
     }
     if (valid.length === 0) {
-      notify("حداقل یک قلم با کالا و تعداد وارد کنید", "warning");
+      notify("یک قلم با تعداد وارد کنید", "warning");
       return;
     }
     if (savingRef.current) return;
@@ -368,7 +368,6 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
     const address = f.sup_address.trim();
     const fullName = supFullName(first, last);
     let sup = null;
-    let newSupplier = false;
 
     if (fullName || mobile || address) {
       const list = readJSON(LS_SUPPLIERS, []);
@@ -401,7 +400,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
         if (!fullName) {
           savingRef.current = false;
           setSaving(false);
-          notify("برای تأمین‌کننده‌ی جدید، نام را وارد کنید", "warning");
+          notify("نام تأمین‌کننده را وارد کنید", "warning");
           return;
         }
         sup = {
@@ -418,7 +417,6 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
         const next = [...list, sup];
         writeJSON(LS_SUPPLIERS, next);
         setSuppliers(next);
-        newSupplier = true;
       }
     }
 
@@ -459,7 +457,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
     });
 
     notify(
-      `فاکتور «${invoice.invoice_number}» ثبت شد ✅${newSupplier ? ` — تأمین‌کننده‌ی «${sup.name}» هم به لیست اضافه شد` : ""}`,
+      `فاکتور «${invoice.invoice_number}» ثبت شد`,
       "success"
     );
 
@@ -642,7 +640,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
         <Box>
           <Typography sx={{ fontSize: F(15), fontWeight: 800, color: C.text }}>
-            🧾 ثبت فاکتور خرید
+            ثبت فاکتور خرید
           </Typography>
           <Typography sx={{ fontSize: F(12), color: C.sub, mt: 0.2 }}>
             {invoices.length} فاکتور ثبت شده
@@ -654,7 +652,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
             <Refresh sx={{ fontSize: 16 }} />
           </IconButton>
           <Button onClick={() => (showForm ? closeForm() : openForm())} sx={btnSx}>
-            {showForm ? "✖ بستن فرم" : "➕ فاکتور جدید"}
+            {showForm ? "بستن" : "فاکتور جدید"}
           </Button>
         </Box>
       </Box>
@@ -691,7 +689,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
                 onChange={(e) => setForm({ ...form, warehouse_id: e.target.value })} sx={selectSx}>
                 {warehouses.map((w) => (
                   <MenuItem key={w.id} value={w.id} sx={{ fontSize: F(11) }}>
-                    {w.name} {w.is_mother ? "⭐" : ""}
+                    {w.name}
                   </MenuItem>
                 ))}
               </Select>
@@ -719,18 +717,14 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 0.8 }}>
-              <Typography sx={{ fontSize: F(12), fontWeight: 800, color: C.text }}>👤 تأمین‌کننده</Typography>
+              <Typography sx={{ fontSize: F(12), fontWeight: 800, color: C.text }}>تأمین‌کننده</Typography>
               {form.supplier_id ? (
-                <Chip size="small" label="✓ از لیست تأمین‌کنندگان"
+                <Chip size="small" label="ثبت‌شده"
                   sx={{ height: 20, fontSize: F(10), fontWeight: 700, borderRadius: "5px", bgcolor: C.oliveSubtle, color: C.olive }} />
               ) : hasTypedSupplier ? (
-                <Chip size="small" label="🆕 جدید — با ذخیره‌ی فاکتور به لیست تأمین‌کنندگان اضافه می‌شود"
+                <Chip size="small" label="جدید"
                   sx={{ height: 20, fontSize: F(10), fontWeight: 700, borderRadius: "5px", ...blueChip }} />
-              ) : (
-                <Typography sx={{ fontSize: F(10), color: C.sub, opacity: 0.85 }}>
-                  اختیاری — با ↑ ↓ لیست تأمین‌کنندگان را ببینید
-                </Typography>
-              )}
+              ) : null}
             </Box>
 
             <Box sx={{
@@ -807,20 +801,17 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
                       </Typography>
                       {p.mobile && (
                         <Typography sx={{ fontSize: F(11), fontWeight: 700, color: C.text, fontFamily: "monospace" }}>
-                          📞 {p.mobile}
+                          {p.mobile}
                         </Typography>
                       )}
                       {p.address && (
                         <Typography sx={{ fontSize: F(11), color: C.text, opacity: 0.85 }}>
-                          📍 {p.address}
+                          {p.address}
                         </Typography>
                       )}
                     </Box>
                   );
                 })}
-                <Typography sx={{ fontSize: F(10), color: C.sub, opacity: 0.8, px: 1.2, pt: 0.5, pb: 0.3 }}>
-                  ↑ ↓ برای انتخاب — Enter برای تأیید — Esc برای بستن
-                </Typography>
               </Box>
             )}
           </Box>
@@ -1007,7 +998,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
           <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, mt: 1.5 }}>
             <Button onClick={closeForm} sx={cancelBtnSx}>انصراف (Esc)</Button>
             <Button onClick={handleSave} disabled={saving || validItems.length === 0} sx={btnSx}>
-              {saving ? <CircularProgress size={14} sx={{ color: "var(--on-primary)" }} /> : "💾 ذخیره"}
+              {saving ? <CircularProgress size={14} sx={{ color: "var(--on-primary)" }} /> : "ذخیره"}
               {!saving && <KbdHint>Ctrl+D</KbdHint>}
             </Button>
           </Box>
@@ -1054,18 +1045,14 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
       {/* ═══════════ لیست فاکتورها ═══════════ */}
       {invoices.length === 0 ? (
         <Box sx={{ textAlign: "center", py: 5 }}>
-          <Typography sx={{ fontSize: 32, mb: 0.5 }}>🧾</Typography>
           <Typography sx={{ fontSize: F(13), fontWeight: 700, color: C.text }}>
-            هنوز فاکتوری ثبت نشده
-          </Typography>
-          <Typography sx={{ fontSize: F(12), color: C.sub, mt: 0.3 }}>
-            F2 بزنید یا روی «فاکتور جدید» کلیک کنید
+            فاکتوری نیست
           </Typography>
         </Box>
       ) : (
         <Box>
           <Typography sx={{ fontSize: F(12), fontWeight: 700, color: C.text, mb: 1 }}>
-            📋 فاکتورهای ثبت‌شده ({invoices.length})
+            فاکتورهای ثبت‌شده ({invoices.length})
           </Typography>
 
           <Box sx={{ display: "flex", flexDirection: "column", gap: 0.8 }}>
@@ -1091,7 +1078,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
                       <Typography sx={{ fontSize: F(11), fontWeight: 800, color: C.text, fontFamily: "monospace" }}>
                         {inv.invoice_number}
                       </Typography>
-                      <Chip size="small" label={`📅 ${fmtDate(inv.invoice_date || inv.created_at)}`}
+                      <Chip size="small" label={`${fmtDate(inv.invoice_date || inv.created_at)}`}
                         sx={{
                           height: 20, fontSize: F(10), fontWeight: 700,
                           borderRadius: "5px", bgcolor: C.inputBg, color: C.sub,
@@ -1107,7 +1094,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
                       )}
                       {inv.supplier_mobile && (
                         <Typography sx={{ fontSize: F(11), color: C.sub, fontFamily: "monospace" }}>
-                          📞 {inv.supplier_mobile}
+                          {inv.supplier_mobile}
                         </Typography>
                       )}
                       <Chip size="small" label={`${inv.items_count} قلم`}
@@ -1133,7 +1120,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
 
                   {inv.supplier_address && (
                     <Typography sx={{ fontSize: F(11), color: C.muted, mt: 0.5, pr: 3 }}>
-                      📍 {inv.supplier_address}
+                      {inv.supplier_address}
                     </Typography>
                   )}
 
@@ -1166,7 +1153,7 @@ export default function PurchaseInvoiceTab({ C: CBase, isDark, showToast }) {
 
                   {inv.description && (
                     <Typography sx={{ fontSize: F(11), color: C.muted, mt: 0.5, pr: 3 }}>
-                      📝 {inv.description}
+                      {inv.description}
                     </Typography>
                   )}
                 </Box>

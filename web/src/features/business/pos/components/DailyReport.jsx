@@ -18,7 +18,6 @@ import {
 import {
   Refresh,
   Today,
-  BarChart as BarChartIcon,
   ChevronRight,
   ChevronLeft,
 } from "@mui/icons-material";
@@ -369,7 +368,6 @@ export default function DailyReport({
             gap: 1,
           }}
         >
-          <BarChartIcon sx={{ fontSize: 22, color: C.olive }} />
           {t("ui_c.daily.report_analytics")}
         </Typography>
 
@@ -563,7 +561,7 @@ export default function DailyReport({
           {/* ★ استفاده از fmtDate با پشتیبانی از زبان‌ها */}
           {isToday
             ? t("ui_c.daily.today")
-            : `📅 ${fmtDate(selectedDate, isRtl)}`}
+            : `${fmtDate(selectedDate, isRtl)}`}
         </Typography>
       </Box>
 
@@ -580,7 +578,6 @@ export default function DailyReport({
           {
             label: t("ui_c.daily.orders"),
             value: isRtl ? toPersianDigits(orders.length) : orders.length,
-            icon: "🧾",
             bg: `${C.olive}0A`,
             border: `${C.olive}15`,
             color: C.olive,
@@ -588,7 +585,6 @@ export default function DailyReport({
           {
             label: t("ui_c.daily.sales"),
             value: isRtl ? toPersianDigits(fNum(dayTotal)) : fNum(dayTotal),
-            icon: "💰",
             bg: `${C.gold}0A`,
             border: `${C.gold}15`,
             color: C.gold,
@@ -596,7 +592,6 @@ export default function DailyReport({
           {
             label: t("ui_c.daily.avg"),
             value: isRtl ? toPersianDigits(fNum(avgOrder)) : fNum(avgOrder),
-            icon: "📊",
             bg: `${C.burgundy}0A`,
             border: `${C.burgundy}15`,
             color: C.burgundy,
@@ -621,7 +616,6 @@ export default function DailyReport({
                     (o.items || []).reduce((a, i) => a + (i.quantity || 0), 0),
                   0,
                 ),
-            icon: "🍽",
             bg: `color-mix(in srgb, var(--info) 5%, transparent)`,
             border: "color-mix(in srgb, var(--info) 8%, transparent)",
             color: "var(--info)",
@@ -639,7 +633,6 @@ export default function DailyReport({
               "&:hover": { transform: "translateY(-2px)" },
             }}
           >
-            <Typography sx={{ fontSize: 18, mb: 0.3 }}>{card.icon}</Typography>
             <Typography
               sx={{
                 fontSize: 11,
@@ -702,7 +695,6 @@ export default function DailyReport({
               value: isRtl
                 ? toPersianDigits(cancelledStats.count)
                 : cancelledStats.count,
-              icon: "❌",
               color: C.danger,
             },
             {
@@ -710,7 +702,6 @@ export default function DailyReport({
               value: isRtl
                 ? toPersianDigits(fNum(cancelledStats.lostRevenue))
                 : fNum(cancelledStats.lostRevenue),
-              icon: "📉",
               color: C.danger,
               unit: t("ui_c.daily.toman"),
             },
@@ -719,7 +710,6 @@ export default function DailyReport({
               value: isRtl
                 ? `${toPersianDigits(cancelledStats.rate)}٪`
                 : `${cancelledStats.rate}%`,
-              icon: "⚠️",
               color: C.danger,
             },
           ].map((card, i) => (
@@ -733,9 +723,6 @@ export default function DailyReport({
                 textAlign: "center",
               }}
             >
-              <Typography sx={{ fontSize: 16, mb: 0.3 }}>
-                {card.icon}
-              </Typography>
               <Typography
                 sx={{
                   fontSize: 11,
@@ -793,7 +780,6 @@ export default function DailyReport({
             border: `1px dashed ${C.glassBorder}`,
           }}
         >
-          <Typography sx={{ fontSize: 28, mb: 1 }}>📭</Typography>
           <Typography
             sx={{
               color: C.muted,
@@ -984,7 +970,7 @@ export default function DailyReport({
                 fontFamily: "'Vazirmatn', sans-serif",
               }}
             >
-              📈 {t("ui_c.daily.sales_analytics")}
+              {t("ui_c.daily.sales_analytics")}
             </Typography>
           </Box>
 
@@ -1013,7 +999,7 @@ export default function DailyReport({
                   color: C.text,
                 }}
               >
-                🏆{" "}
+                {" "}
                 {t("ui_c.daily.best_sellers_quantity")}
               </Typography>
               {analytics.topItems.length > 0 ? (
@@ -1107,7 +1093,7 @@ export default function DailyReport({
                   color: C.text,
                 }}
               >
-                💎 {t("ui_c.daily.top_revenue_items")}
+                {t("ui_c.daily.top_revenue_items")}
               </Typography>
               {revenueByItem.length > 0 ? (
                 <Box dir="ltr" sx={{ width: "100%" }}>
@@ -1210,7 +1196,7 @@ export default function DailyReport({
                   color: C.text,
                 }}
               >
-                💳 {t("ui_c.daily.payment_methods")}
+                {t("ui_c.daily.payment_methods")}
               </Typography>
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
@@ -1308,7 +1294,7 @@ export default function DailyReport({
                   color: C.text,
                 }}
               >
-                🏠 {t("ui_c.daily.hall_vs_takeout")}
+                {t("ui_c.daily.hall_vs_takeout")}
               </Typography>
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
@@ -1361,7 +1347,7 @@ export default function DailyReport({
                   color: C.text,
                 }}
               >
-                🗂️ {t("ui_c.daily.sales_by_category")}
+                {t("ui_c.daily.sales_by_category")}
               </Typography>
               {categoryBreakdown.length > 0 ? (
                 <ResponsiveContainer width="100%" height={220}>
@@ -1440,7 +1426,7 @@ export default function DailyReport({
                   color: C.text,
                 }}
               >
-                👥 {t("ui_c.daily.top_customers")}
+                {t("ui_c.daily.top_customers")}
               </Typography>
               <Table size="small">
                 <TableHead>

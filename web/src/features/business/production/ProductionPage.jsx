@@ -69,11 +69,10 @@ export default function ProductionPage() {
     <Box dir={isRtl ? "rtl" : "ltr"} sx={{ p: { xs: 1, sm: 2 }, maxWidth: 1200, mx: "auto" }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1.5, flexWrap: "wrap", mb: 2 }}>
         <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ color: C.text, fontWeight: 800, fontSize: { xs: 18, sm: 22 }, mb: 0.5 }}>
+          <Typography sx={{ color: C.text, fontWeight: 800, fontSize: { xs: 18, sm: 22 } }}>
             {t("ui_def.prod.title")}
           </Typography>
-          <Typography sx={{ color: C.sub, fontSize: 13 }}>{t("ui_def.prod.subtitle")}</Typography>
-        </Box>
+                  </Box>
         {canDefine && (
           <Button component={Link} to={definitionsPath} variant="outlined" sx={S.ghost}>
             {t("ui_def.prod.define_link")}
@@ -289,7 +288,6 @@ function OrdersTab(ctx) {
              />
           <TextField fullWidth size="small" type="number" label={t("ui_mrp.scrap_output")} value={scrapQty}
             onChange={(e) => setScrapQty(e.target.value)} sx={{ ...S.field, mt: 2 }}
-            helperText={t("ui_mrp.scrap_output_hint")}
             slotProps={{ htmlInput: { min: 0, step: "any", inputMode: "decimal" }, input: { endAdornment: <Typography sx={{ color: C.muted, fontSize: 12 }}>{action?.order.output_unit}</Typography> } }} />
           {actErr && <Alert severity="error" sx={{ mt: 2 }}>{actErr}</Alert>}
         </DialogContent>
@@ -401,7 +399,6 @@ function OrderCreateDialog({ ctx, onClose, onCreated }) {
                 <>
                   <ReadyBanner t={t} ready={previewShort === 0} count={previewShort} />
                   <RequirementsTable ctx={ctx} rows={previewRows} />
-                  <Typography sx={{ color: C.muted, fontSize: 12 }}>{t("ui_prod.preview_hint")}</Typography>
                 </>
               )}
             </Box>

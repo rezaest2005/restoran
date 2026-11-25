@@ -122,7 +122,7 @@ export default function TransferModal({ open, onClose, warehouses: warehousesPro
         quantity: qty,
         notes: form.notes,
       });
-      notify("✅ انتقال با موفقیت انجام شد", "success");
+      notify("انتقال با موفقیت انجام شد", "success");
       onSuccess && onSuccess();
       onClose();
     } catch (err) {
@@ -157,7 +157,7 @@ export default function TransferModal({ open, onClose, warehouses: warehousesPro
       slotProps={{ paper: { sx: dialogPaperSx } }}
     >
       <DialogTitle sx={{ fontSize: 15, fontWeight: 800, color: C.text }}>
-        🔄 انتقال کالا
+        انتقال کالا
       </DialogTitle>
       <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 1.5, pt: "12px !important" }}>
         {loading ? (
@@ -281,7 +281,7 @@ export default function TransferModal({ open, onClose, warehouses: warehousesPro
                 bgcolor: C.infoBg, border: `1px solid ${C.info}30`,
               }}>
                 <Typography sx={{ fontSize: 11, fontWeight: 700, color: C.info, mb: 0.5 }}>
-                  📋 خلاصه انتقال
+                  خلاصه انتقال
                 </Typography>
                 <Typography sx={{ fontSize: 11, color: C.sub }}>
                   {parseFloat(form.quantity).toLocaleString("fa-IR")} {selectedMaterial?.unit || ""}
@@ -311,7 +311,7 @@ export default function TransferModal({ open, onClose, warehouses: warehousesPro
             opacity: saving ? 0.6 : 1,
           }}
         >
-          {saving ? "..." : "✅ تأیید انتقال"}
+          {saving ? "..." : "تأیید انتقال"}
           {!saving && <KbdHint>Ctrl+D</KbdHint>}
         </Button>
       </DialogActions>

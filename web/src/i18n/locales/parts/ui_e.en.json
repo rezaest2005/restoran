@@ -9,7 +9,7 @@
     "common": {
       "cancel": "Cancel", "close": "Close", "save": "Save", "edit": "Edit", "delete": "Delete",
       "remove": "Remove",
-      "load_failed": "Failed to load data.", "save_failed": "The operation failed."
+      "load_failed": "Could not load.", "save_failed": "Not done."
     },
     "types": {
       "raw": "Raw material", "packaging": "Packaging", "semi_finished": "Semi-finished", "finished": "Finished product"
@@ -32,25 +32,25 @@
       "delete_hint": "If it is used by production orders, deactivate it instead."
     },
     "orders": {
-      "filter_status": "Status", "all": "All", "new": "New production order", "empty": "No production orders found.",
+      "filter_status": "Status", "all": "All", "new": "New production order", "empty": "No orders.",
       "col_number": "Number", "col_formula": "Formulation", "col_product": "Product", "col_planned": "Planned",
       "col_produced": "Produced", "col_status": "Status", "col_unit_cost": "Unit cost", "col_total_cost": "Total cost",
       "col_date": "Created", "col_created": "Created", "col_actions": "Actions",
       "details": "Details", "start": "Start", "complete": "Complete", "cancel": "Cancel order", "create": "Create order",
       "new_title": "New production order", "f_formula": "Formulation", "f_planned": "Planned quantity",
-      "f_notes": "Notes (optional)", "no_active_formulas": "No active formulations available.",
+      "f_notes": "Notes", "no_active_formulas": "No formulas.",
       "detail_title": "Production order",
       "required_title": "Required materials",
       "r_material": "Material", "r_required": "Required", "r_available": "Available", "r_missing": "Missing",
-      "shortage_warning": "{{count}} material(s) are short in stock. Starting may fail until they are replenished.",
-      "created": "Production order created.",
-      "done_start": "Production started.", "done_complete": "Production completed.", "done_cancel": "Order cancelled.",
+      "shortage_warning": "{{count}} materials short.",
+      "created": "Created.",
+      "done_start": "Started.", "done_complete": "Completed.", "done_cancel": "Cancelled.",
       "confirm_start_title": "Start production",
-      "confirm_start_text": "Start order {{number}}? The required materials will be consumed from stock.",
+      "confirm_start_text": "Start order {{number}}?",
       "confirm_complete_title": "Complete production",
-      "confirm_complete_text": "Enter the actual produced quantity for order {{number}}.",
+      "confirm_complete_text": "Quantity made for order {{number}}",
       "confirm_cancel_title": "Cancel order",
-      "confirm_cancel_text": "Cancel order {{number}}? This cannot be undone.",
+      "confirm_cancel_text": "Cancel order {{number}}?",
       "produced_qty": "Produced quantity",
       "qty_invalid": "Quantity must be greater than zero."
     }

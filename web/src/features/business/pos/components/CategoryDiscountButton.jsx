@@ -17,7 +17,7 @@ const kbdBtn = (fn) => ({
 const EXPIRY_PRESETS = [
   { id: "1h", labelFa: "۱ ساعت", labelEn: "1 hour", ms: 60 * 60 * 1000 },
   { id: "3h", labelFa: "۳ ساعت", labelEn: "3 hours", ms: 3 * 60 * 60 * 1000 },
-  { id: "today", labelFa: "تا پایان امروز", labelEn: "End of today", endOfDay: true },
+  { id: "today", labelFa: "تا شب", labelEn: "Tonight", endOfDay: true },
   { id: "tomorrow", labelFa: "تا فردا", labelEn: "Until tomorrow", ms: 24 * 60 * 60 * 1000 },
 ];
 
@@ -110,8 +110,8 @@ export default function CategoryDiscountButton({
   );
 
   const displayTitle = isAll
-    ? (isRtl ? "تخفیف روی همه‌ی محصولات" : "Discount on all products")
-    : (isRtl ? `تخفیف روی دسته «${categoryName}»` : `Discount on "${categoryName}"`);
+    ? (isRtl ? "تخفیف همه" : "Discount: all")
+    : (isRtl ? `تخفیف ${categoryName}` : `Discount: ${categoryName}`);
 
   return (
     <>
@@ -230,21 +230,12 @@ export default function CategoryDiscountButton({
             }}>
               {displayTitle}
             </Typography>
-            <Typography sx={{
-              fontSize: 13, color: C.sub, mt: 0.3, mb: 2.5,
-              fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
-              textAlign: "center", lineHeight: 1.8,
-              maxWidth: 280, mx: "auto",
-            }}>
-              {isAll
-                ? (isRtl ? "این مبلغ از قیمت همه‌ی محصولات کم می‌شود." : "This is deducted from every product's price.")
-                : (isRtl ? "این مبلغ از قیمت تک‌تک محصولات این دسته کم می‌شود." : "This amount is deducted from every product's price in this category.")}
-            </Typography>
+
 
             {/* ★ نوع تخفیف: مبلغ ثابت یا درصد */}
             <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
               {[
-                { id: "fixed", label: isRtl ? "مبلغ ثابت" : "Fixed amount", icon: Payments },
+                { id: "fixed", label: isRtl ? "مبلغ" : "Amount", icon: Payments },
                 { id: "percent", label: isRtl ? "درصدی" : "Percent", icon: Percent },
               ].map(({ id, label, icon: Icon }) => {
                 const selected = discountType === id;
@@ -278,8 +269,8 @@ export default function CategoryDiscountButton({
                 fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
               }}>
                 {discountType === "percent"
-                  ? (isRtl ? "درصد تخفیف" : "Discount percent")
-                  : (isRtl ? "مبلغ تخفیف (تومان)" : "Discount amount")}
+                  ? (isRtl ? "درصد" : "Percent")
+                  : (isRtl ? "مبلغ (تومان)" : "Amount")}
               </Typography>
               <TextField
                 autoFocus
@@ -288,8 +279,8 @@ export default function CategoryDiscountButton({
                 inputMode="numeric"
                 placeholder={
                   discountType === "percent"
-                    ? (isRtl ? "مثلاً ۱۰" : "e.g. 10")
-                    : (isRtl ? "لطفاً مبلغ را وارد کنید" : "Enter discount amount")
+                    ? "10"
+                    : "0"
                 }
                 value={
                   amount === 0
@@ -391,7 +382,7 @@ export default function CategoryDiscountButton({
                   fontSize: 13, fontWeight: 700, color: C.text,
                   fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
                 }}>
-                  {isRtl ? "تخفیف زمان‌دار باشد؟" : "Time-limited discount?"}
+                  {isRtl ? "زمان‌دار" : "Timed"}
                 </Typography>
                 <Switch
                   checked={expiryEnabled}
@@ -428,12 +419,7 @@ export default function CategoryDiscountButton({
                     })}
                   </Box>
 
-                  <Typography sx={{
-                    fontSize: 11, color: C.muted, mb: 0.6,
-                    fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif",
-                  }}>
-                    {isRtl ? "یا یک تاریخ/ساعت دقیق انتخاب کنید:" : "Or pick an exact date/time:"}
-                  </Typography>
+
                   <TextField
                     type="datetime-local"
                     fullWidth
@@ -474,7 +460,7 @@ export default function CategoryDiscountButton({
                   "&:active": { transform: "scale(0.985)" },
                 }}
               >
-                {isRtl ? "اعمال تخفیف" : "Apply discount"}
+                {isRtl ? "اعمال" : "Apply"}
               </Box>
               <Box
                 role="button" tabIndex={0}

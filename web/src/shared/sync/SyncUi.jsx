@@ -1,21 +1,10 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Alert, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Divider, List,
-  ListItem, ListItemText, Popover, Stack, Switch, Tooltip, Typography,
+  Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Popover, Stack, Switch, Tooltip, Typography,
 } from "@mui/material";
-import CloudDoneIcon from "@mui/icons-material/CloudDone";
-import CloudOffIcon from "@mui/icons-material/CloudOff";
-import CloudSyncIcon from "@mui/icons-material/CloudSync";
-import SyncProblemIcon from "@mui/icons-material/SyncProblem";
 import { useSync } from "./syncContext";
 import { localNumber } from "./localOrders";
-
-const fmtTime = (ms, lng) => {
-  if (!ms) return null;
-  try { return new Intl.DateTimeFormat(lng === "fa" ? "fa-IR" : "en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date(ms)); }
-  catch { return new Date(ms).toLocaleTimeString(); }
-};
 
 /** Small badge for one order: pending / synced / conflict / rejected. */
 export function SyncBadge({ state, size = "small" }) {
@@ -56,8 +45,6 @@ export function SyncConflictsDialog({ open, onClose }) {
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>{t("sync.conflict_title")}</DialogTitle>
       <DialogContent dividers>
-        <Typography variant="body2" sx={{ mb: 1.5 }}>{t("sync.conflict_help")}</Typography>
-        {rows.length === 0 && <Typography variant="body2" color="text.secondary">{t("sync.no_errors")}</Typography>}
         <Stack spacing={1.5}>
           {rows.map((r) => (
             <Box key={r.id} data-testid="sync-conflict" sx={{ border: 1, borderColor: "divider", borderRadius: 2, p: 1.5 }}>
@@ -83,10 +70,23 @@ export function SyncConflictsDialog({ open, onClose }) {
           ))}
         </Stack>
       </DialogContent>
-      <DialogActions><Button onClick={onClose}>OK</Button></DialogActions>
+      <DialogActions><Button onClick={onClose}>{t("sync.close")}</Button></DialogActions>
     </Dialog>
   );
 }
+
+/** Small relative time ("2 minutes ago"). */
+const ago = (ms, lng, now) => {
+  if (!ms) return null;
+  const sec = Math.round((ms - now) / 1000);
+  const rtf = new Intl.RelativeTimeFormat(lng === "fa" ? "fa" : "en", { numeric: "auto" });
+  if (Math.abs(sec) < 60) return rtf.format(0, "second");
+  if (Math.abs(sec) < 3600) return rtf.format(Math.round(sec / 60), "minute");
+  if (Math.abs(sec) < 86400) return rtf.format(Math.round(sec / 3600), "hour");
+  return rtf.format(Math.round(sec / 86400), "day");
+};
+
+const Dot = ({ c }) => <Box component="span" sx={{ width: 9, height: 9, borderRadius: "50%", bgcolor: c, ml: 1, mr: "-2px", flexShrink: 0 }} />;
 
 /** Online/offline + pending chip for the business header; click opens the details. */
 export function SyncStatus({ client, isOwner }) {
@@ -95,78 +95,60 @@ export function SyncStatus({ client, isOwner }) {
   const [anchor, setAnchor] = useState(null);
   const [conflictsOpen, setConflictsOpen] = useState(false);
   const [enabledBusy, setEnabledBusy] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!anchor) return undefined;
+    const id = setInterval(() => setNow(Date.now()), 15000);
+    return () => clearInterval(id);
+  }, [anchor]);
   if (!s.ready) return null;
 
   const offline = !s.online;
   const bad = s.conflicts > 0 || s.locked;
-  const Icon = !s.enabled ? CloudOffIcon : offline ? CloudOffIcon : bad ? SyncProblemIcon : s.syncing ? CloudSyncIcon : CloudDoneIcon;
-  const color = !s.enabled ? "default" : offline ? "warning" : bad ? "error" : "success";
-  const label = !s.enabled ? t("sync.title")
-    : s.syncing ? t("sync.syncing")
-      : s.pending > 0 ? t("sync.pending_n", { n: s.pending }) : offline ? t("sync.offline") : t("sync.online");
+  const dot = bad ? "error.main" : s.pending > 0 ? "warning.main" : offline || !s.enabled ? "text.disabled" : "success.main";
+  const word = s.syncing ? t("sync.syncing") : offline ? t("sync.offline") : t("sync.online");
+  const label = s.pending > 0 ? String(s.pending) : word;
 
   const toggle = async (v) => {
     setEnabledBusy(true);
     try { await client.post("/api/sync/settings/", { enabled: v }); await s.syncNow(); } catch { /* shown by the next status */ }
     setEnabledBusy(false);
   };
-  const last = fmtTime(s.lastSyncAt, i18n.language);
+  const last = ago(s.lastSyncAt, i18n.language, now);
 
   return (
     <>
-      <Tooltip title={t("sync.title")}>
-        <Chip data-testid="sync-status" size="small" color={color} variant={color === "default" ? "outlined" : "filled"}
-          icon={<Icon fontSize="small" />} label={label} onClick={(e) => setAnchor(e.currentTarget)}
-          sx={{ maxWidth: { xs: 130, sm: 220 }, "& .MuiChip-label": { overflow: "hidden", textOverflow: "ellipsis" } }} />
-      </Tooltip>
+      <Chip data-testid="sync-status" size="small" variant="outlined" icon={<Dot c={dot} />} label={label}
+        aria-label={word} onClick={(e) => { setNow(Date.now()); setAnchor(e.currentTarget); }} />
       <Popover open={!!anchor} anchorEl={anchor} onClose={() => setAnchor(null)} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
         transformOrigin={{ vertical: "top", horizontal: "center" }}>
-        <Box sx={{ p: 2, width: "min(340px, 92vw)" }} data-testid="sync-popover">
-          <Typography sx={{ fontWeight: 800, mb: 0.5 }}>{t("sync.title")}</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>{s.enabled ? t("sync.desc_on") : t("sync.desc_off")}</Typography>
-          {s.locked && <Alert severity="error" sx={{ mb: 1 }}>{s.lockReason === "subscription" ? t("sync.locked_subscription") : t("sync.locked_grace")}</Alert>}
-          {s.clockTampered && <Alert severity="warning" sx={{ mb: 1 }}>{t("sync.clock_back")}</Alert>}
-          <Stack spacing={0.5} sx={{ mb: 1 }}>
-            <Row k={t("sync.online") + " / " + t("sync.offline")} v={offline ? t("sync.offline") : t("sync.online")} />
-            <Row k={t("sync.pending")} v={String(s.pending)} />
-            <Row k={t("sync.last_sync")} v={last || t("sync.never")} />
+        <Stack spacing={1} sx={{ p: 1.5, width: "min(240px, 92vw)" }} data-testid="sync-popover">
+          <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+            <Typography sx={{ fontWeight: 700 }}>{word}</Typography>
+            {last && <Typography variant="caption" color="text.secondary">{last}</Typography>}
           </Stack>
-          <Stack direction="row" spacing={1} sx={{ mb: 1, flexWrap: "wrap", rowGap: 1 }}>
+          {s.pending > 0 && <Typography variant="body2">{t("sync.pending_n", { n: s.pending })}</Typography>}
+          {s.locked && <Typography variant="body2" color="error">{s.lockReason === "subscription" ? t("sync.locked_subscription") : t("sync.locked_grace")}</Typography>}
+          {s.clockTampered && <Typography variant="body2" color="warning.main">{t("sync.clock_back")}</Typography>}
+          {s.errors.slice(0, 3).map((e, i) => <Typography key={i} variant="body2" color="error">{e.message}</Typography>)}
+          <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
             <Button size="small" variant="contained" disabled={s.syncing || offline} onClick={() => s.syncNow()}>{t("sync.sync_now")}</Button>
             {s.conflicts > 0 && <Button size="small" color="error" variant="outlined" onClick={() => { setAnchor(null); setConflictsOpen(true); }}>{t("sync.conflicts")} ({s.conflicts})</Button>}
           </Stack>
-          <Typography variant="caption" color={s.persisted ? "success.main" : "text.secondary"}>
-            {s.persisted ? t("sync.storage_persisted") : t("sync.storage_not_persisted")}
-          </Typography>
-          <Divider sx={{ my: 1 }} />
-          <Typography sx={{ fontWeight: 700, fontSize: 13 }}>{t("sync.errors")}</Typography>
-          {s.errors.length === 0 ? <Typography variant="body2" color="text.secondary">{t("sync.no_errors")}</Typography> : (
-            <List dense disablePadding sx={{ maxHeight: 120, overflow: "auto" }}>
-              {s.errors.slice(0, 5).map((e, i) => <ListItem key={i} disableGutters><ListItemText primary={e.message} secondary={fmtTime(e.at, i18n.language)} /></ListItem>)}
-            </List>
-          )}
           {isOwner && (
-            <>
-              <Divider sx={{ my: 1 }} />
+            <Tooltip title={t("sync.local_mode_hint")}>
               <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", gap: 1 }}>
-                <Box><Typography sx={{ fontWeight: 700, fontSize: 13 }}>{t("sync.owner_switch")}</Typography>
-                  <Typography variant="caption" color="text.secondary">{t("sync.owner_switch_hint")}</Typography></Box>
-                <Switch data-testid="sync-owner-switch" checked={s.enabled} disabled={enabledBusy} onChange={(e) => toggle(e.target.checked)} />
+                <Typography variant="body2">{t("sync.local_mode")}</Typography>
+                <Switch size="small" data-testid="sync-owner-switch" checked={s.enabled} disabled={enabledBusy} onChange={(e) => toggle(e.target.checked)} />
               </Stack>
-            </>
+            </Tooltip>
           )}
-        </Box>
+        </Stack>
       </Popover>
       <SyncConflictsDialog open={conflictsOpen} onClose={() => setConflictsOpen(false)} />
     </>
   );
 }
-
-const Row = ({ k, v }) => (
-  <Stack direction="row" sx={{ fontSize: 13, justifyContent: "space-between", gap: 1 }}>
-    <span style={{ opacity: 0.7 }}>{k}</span><b>{v}</b>
-  </Stack>
-);
 
 /** Shown before signing out while orders have not reached the server. */
 export function LogoutGuardDialog({ open, unsynced, onCancel, onKeep, onDiscard }) {

@@ -349,14 +349,11 @@ export default function WarehouseTab({ C, isDark, showToast }) {
       >
         <Box>
           <Typography sx={{ fontSize: F(15), fontWeight: 800, color: C.text }}>
-            📦 انبارها
-          </Typography>
-          <Typography sx={{ fontSize: F(10), color: C.sub, mt: 0.2 }}>
-            موجودی + حواله انتقال | F2 = حواله | Ctrl+A / Ctrl+Z = انبار بعدی / قبلی
+            انبارها
           </Typography>
         </Box>
         <Button onClick={openTransfer} sx={transferBtnSx}>
-          🔄 حواله انتقال<KbdHint>F2</KbdHint>
+          حواله انتقال<KbdHint>F2</KbdHint>
         </Button>
       </Box>
 
@@ -462,7 +459,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
           >
             <Chip
               size="small"
-              label="📊 جمع کل سیستم"
+              label="جمع کل سیستم"
               sx={{
                 height: 24,
                 fontSize: F(10),
@@ -535,7 +532,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
           />
           <TextField
             size="small"
-            placeholder="🔍 جستجو..."
+            placeholder="جستجو..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             sx={{ ...inputSx, width: 180 }}
@@ -546,12 +543,8 @@ export default function WarehouseTab({ C, isDark, showToast }) {
       {/* ═══════════ جدول موجودی ═══════════ */}
       {stockItems.length === 0 ? (
         <Box sx={{ textAlign: "center", py: 5 }}>
-          <Typography sx={{ fontSize: 32, mb: 0.5 }}>📦</Typography>
           <Typography sx={{ fontSize: F(13), fontWeight: 700, color: C.text }}>
-            موجودی خالی است
-          </Typography>
-          <Typography sx={{ fontSize: F(10), color: C.sub, mt: 0.3 }}>
-            با فاکتور خرید، کالا وارد انبار میشود
+            خالی
           </Typography>
         </Box>
       ) : (
@@ -826,15 +819,15 @@ export default function WarehouseTab({ C, isDark, showToast }) {
 
           <Box sx={{ display: "flex", gap: 1.5, mt: 2, flexWrap: "wrap" }}>
             {[
-              { icon: "👤", label: getCurrentUser(), color: "var(--chart-4)" },
-              { icon: "📅", label: faDate(now()), color: "var(--success)" },
-              { icon: "🕐", label: faTime(now()), color: "var(--warning)" },
-              { icon: "📆", label: faDay(now()), color: "var(--info)" },
+              { label: getCurrentUser(), color: "var(--chart-4)" },
+              { label: faDate(now()), color: "var(--success)" },
+              { label: faTime(now()), color: "var(--warning)" },
+              { label: faDay(now()), color: "var(--info)" },
             ].map((info, i) => (
               <Chip
                 key={i}
                 size="small"
-                label={`${info.icon} ${info.label}`}
+                label={`${info.label}`}
                 sx={{
                   height: 34,
                   fontSize: 14,
@@ -870,7 +863,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                   fontWeight: 800,
                 }}
               >
-                📦 از انبار (مبدأ)
+                از انبار (مبدأ)
               </Typography>
               <Select
                 size="small"
@@ -943,7 +936,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                   fontWeight: 800,
                 }}
               >
-                📦 به انبار (مقصد)
+                به انبار (مقصد)
               </Typography>
               <Select
                 size="small"
@@ -1270,7 +1263,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
               <Typography
                 sx={{ fontSize: 13, color: C.sub, fontWeight: 700 }}
               >
-                💰 جمع کل
+                جمع کل
               </Typography>
               <Typography
                 sx={{
@@ -1297,7 +1290,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                   mb: 0.5,
                 }}
               >
-                📝 توضیحات
+                توضیحات
               </Typography>
               <TextField
                 size="small"
@@ -1458,7 +1451,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
               },
             }}
           >
-            {saving ? "..." : "💾 ثبت حواله (Ctrl+D)"}
+            {saving ? "..." : "ثبت حواله (Ctrl+D)"}
           </Button>
         </DialogActions>
       </ResponsiveDialog>

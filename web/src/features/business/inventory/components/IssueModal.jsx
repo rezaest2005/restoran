@@ -71,7 +71,7 @@ export default function IssueModal({ open, onClose, warehouse, C, isDark, onSucc
         quantity: qty,
         notes: form.notes.trim(),
       });
-      notify("✅ خروج کالا ثبت شد", "success");
+      notify("خروج کالا ثبت شد", "success");
       onSuccess && onSuccess();
       onClose();
     } catch (err) {
@@ -157,7 +157,7 @@ export default function IssueModal({ open, onClose, warehouse, C, isDark, onSucc
           borderRadius: "10px", fontSize: 12, fontWeight: 700, textTransform: "none",
           px: 2.5, color: "var(--on-primary)", background: C.btnGrad, opacity: saving ? 0.6 : 1,
         }}>
-          {saving ? "..." : "✅ ثبت خروج"}
+          {saving ? "..." : "ثبت خروج"}
           {!saving && <KbdHint>Ctrl+D</KbdHint>}
         </Button>
       </DialogActions>

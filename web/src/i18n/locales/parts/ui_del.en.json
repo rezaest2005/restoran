@@ -236,14 +236,14 @@
       "no_address": "No address saved — enter it on the trip"
     },
     "pos": {
-      "title": "Courier delivery details",
+      "title": "Courier",
       "address": "Delivery address",
       "courier": "Courier",
-      "courier_later": "Choose later (dispatch queue)",
-      "cod": "Cash on delivery (courier collects)",
-      "address_required": "Enter the delivery address for a courier order.",
+      "courier_later": "Later",
+      "cod": "Pay on delivery",
+      "address_required": "Enter the address.",
       "queued": "waiting in the dispatch queue",
-      "trip_made": "trip {{n}} created"
+      "trip_made": "Trip {{n}} created"
     },
     "ship": {
       "title": "Shipments & tracking",

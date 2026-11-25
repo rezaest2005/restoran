@@ -11,10 +11,10 @@ import { soft } from "@shared/ui/colorUtil";
 
 // ═══════════ ثابت‌ها ═══════════
 const PAYMENTS = {
-  cash:     { labelKey: "ui_c.reports.pay_cash",  color: "var(--success)", icon: "💵" },
-  credit:   { labelKey: "ui_c.reports.pay_credit",  color: "var(--warning)", icon: "📒" },
-  cheque:   { labelKey: "ui_c.reports.pay_cheque",    color: "var(--info)", icon: "📄" },
-  transfer: { labelKey: "ui_c.reports.pay_transfer", color: "var(--chart-4)", icon: "🔄" },
+  cash:     { labelKey: "ui_c.reports.pay_cash",  color: "var(--success)" },
+  credit:   { labelKey: "ui_c.reports.pay_credit",  color: "var(--warning)" },
+  cheque:   { labelKey: "ui_c.reports.pay_cheque",    color: "var(--info)" },
+  transfer: { labelKey: "ui_c.reports.pay_transfer", color: "var(--chart-4)" },
 };
 
 const PERIODS = [
@@ -41,7 +41,7 @@ const fmtMoney = (n) => (n || 0).toLocaleString("en-US");
 // ═══════════════════════════════════════════════════
 //   کامپوننت: کارت آمار بزرگ
 // ═══════════════════════════════════════════════════
-function BigStatCard({ icon, label, value, color, bgColor, sub }) {
+function BigStatCard({ label, value, color, bgColor, sub }) {
   return (
     <Box sx={{
       flex: "1 1 220px", p: 2.5, borderRadius: "16px",
@@ -49,13 +49,6 @@ function BigStatCard({ icon, label, value, color, bgColor, sub }) {
       border: `2px solid ${soft(color, "35")}`,
     }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-        <Box sx={{
-          width: 36, height: 36, borderRadius: "10px",
-          bgcolor: soft(color, "20"), display: "flex", alignItems: "center", justifyContent: "center",
-          fontSize: 18,
-        }}>
-          {icon}
-        </Box>
         <Typography sx={{ fontSize: 14, fontWeight: 700, color: "var(--on-primary)" }}>
           {label}
         </Typography>
@@ -189,16 +182,16 @@ function InvoiceCard({ invoice, productMap, index }) {
             />
             <Box>
               <Typography sx={{ fontSize: 16, fontWeight: 800, color: "var(--on-primary)" }}>
-                👤 {invoice.customer?.first_name} {invoice.customer?.last_name}
+                {invoice.customer?.first_name} {invoice.customer?.last_name}
               </Typography>
               <Typography sx={{ fontSize: 12, color: "var(--ink-muted)", mt: 0.2 }}>
-                📅 {fmtJalali(invoice.invoice_date || invoice.date || invoice.created_at)}
+                {fmtJalali(invoice.invoice_date || invoice.date || invoice.created_at)}
               </Typography>
             </Box>
           </Box>
 
           <Chip
-            label={`${pay.icon} ${t(pay.labelKey)}`}
+            label={`${t(pay.labelKey)}`}
             sx={{
               height: 28, fontSize: 12, fontWeight: 700, borderRadius: "8px",
               bgcolor: soft(pay.color, "20"), color: pay.color,
@@ -507,9 +500,6 @@ export default function ReportsTab({ C, isDark, showToast }) {
         <Typography sx={{ fontSize: 22, fontWeight: 900, color: "var(--on-primary)" }}>
           {t("ui_c.reports.title")}
         </Typography>
-        <Typography sx={{ fontSize: 14, color: "var(--ink-muted)", mt: 0.5 }}>
-          {t("ui_c.reports.subtitle")}
-        </Typography>
       </Box>
 
       {/* ═══════════ فیلترها ═══════════ */}
@@ -547,33 +537,28 @@ export default function ReportsTab({ C, isDark, showToast }) {
 
       {/* ═══════════ کارت‌های آمار ═══════════ */}
       <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
-        <BigStatCard
-          icon="💰" label={t("ui_c.reports.stat_sales")}
+        <BigStatCard label={t("ui_c.reports.stat_sales")}
           value={`${fmtMoney(totalSales)} ${t("ui_c.reports.toman")}`}
           color="var(--success)"
           sub={t("ui_c.reports.n_sales_invoices", { n: toFa(fSales.length) })}
         />
-        <BigStatCard
-          icon="🛒" label={t("ui_c.reports.stat_purchases")}
+        <BigStatCard label={t("ui_c.reports.stat_purchases")}
           value={`${fmtMoney(totalPurchases)} ${t("ui_c.reports.toman")}`}
           color="var(--info)"
           sub={t("ui_c.reports.n_purchase_invoices", { n: toFa(fPurchases.length) })}
         />
         <BigStatCard
-          icon={grossProfit >= 0 ? "✅" : "❌"}
           label={grossProfit >= 0 ? t("ui_c.reports.gross_profit") : t("ui_c.reports.gross_loss")}
           value={`${fmtMoney(Math.abs(grossProfit))} ${t("ui_c.reports.toman")}`}
           color={grossProfit >= 0 ? "var(--success)" : "var(--danger)"}
           sub={grossProfit >= 0 ? t("ui_c.reports.margin_of_sales", { n: toFa(profitPercent) }) : t("ui_c.reports.loss_pct", { n: toFa(Math.abs(profitPercent)) })}
         />
-        <BigStatCard
-          icon="⚠️" label={t("ui_c.reports.customer_debt")}
+        <BigStatCard label={t("ui_c.reports.customer_debt")}
           value={`${fmtMoney(salesDebt)} ${t("ui_c.reports.toman")}`}
           color="var(--warning)"
           sub={t("ui_c.reports.n_invoices", { n: toFa(fSales.length) })}
         />
-        <BigStatCard
-          icon="📋" label={t("ui_c.reports.supplier_debt")}
+        <BigStatCard label={t("ui_c.reports.supplier_debt")}
           value={`${fmtMoney(purchasesDebt)} ${t("ui_c.reports.toman")}`}
           color="var(--chart-4)"
           sub={t("ui_c.reports.n_invoices", { n: toFa(fPurchases.length) })}
@@ -648,16 +633,16 @@ export default function ReportsTab({ C, isDark, showToast }) {
           {/* ── جزئیات مالی ── */}
           <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
             {[
-              { label: t("ui_c.reports.customer_paid"), value: salesPaid, color: "var(--success)", icon: "📱" },
-              { label: t("ui_c.reports.customer_debt"), value: salesDebt, color: "var(--warning)", icon: "⚠️" },
-              { label: t("ui_c.reports.supplier_paid"), value: purchasesPaid, color: "var(--info)", icon: "🏭" },
-              { label: t("ui_c.reports.supplier_debt"), value: purchasesDebt, color: "var(--chart-4)", icon: "📋" },
+              { label: t("ui_c.reports.customer_paid"), value: salesPaid, color: "var(--success)" },
+              { label: t("ui_c.reports.customer_debt"), value: salesDebt, color: "var(--warning)" },
+              { label: t("ui_c.reports.supplier_paid"), value: purchasesPaid, color: "var(--info)" },
+              { label: t("ui_c.reports.supplier_debt"), value: purchasesDebt, color: "var(--chart-4)" },
             ].map((c, i) => (
               <Box key={i} sx={{
                 flex: "1 1 200px", p: 2, borderRadius: "14px",
                 bgcolor: soft(c.color, "12"), border: `2px solid ${soft(c.color, "30")}`,
               }}>
-                <Typography sx={{ fontSize: 13, color: "var(--ink-muted)", fontWeight: 600 }}>{c.icon} {c.label}</Typography>
+                <Typography sx={{ fontSize: 13, color: "var(--ink-muted)", fontWeight: 600 }}>{c.label}</Typography>
                 <Typography sx={{ fontSize: 20, fontWeight: 900, color: c.color, mt: 0.5 }}>
                   {fmtMoney(c.value)} <Typography component="span" sx={{ fontSize: 12, color: "var(--ink-muted)" }}>{t("ui_c.reports.toman")}</Typography>
                 </Typography>
@@ -693,7 +678,6 @@ export default function ReportsTab({ C, isDark, showToast }) {
 
             {filteredInvoices.length === 0 ? (
               <Box sx={{ textAlign: "center", py: 5 }}>
-                <Typography sx={{ fontSize: 36, mb: 1 }}>🎉</Typography>
                 <Typography sx={{ fontSize: 16, fontWeight: 700, color: "var(--success)" }}>
                   {invoiceFilter === "loss" ? t("ui_c.reports.no_loss_invoices") : t("ui_c.reports.no_data")}
                 </Typography>
@@ -708,16 +692,16 @@ export default function ReportsTab({ C, isDark, showToast }) {
           {/* ── آمار ── */}
           <Box sx={{ display: "flex", gap: 1.5, mt: 3, flexWrap: "wrap" }}>
             {[
-              { label: t("ui_c.reports.profitable_invoices"), value: profitableInvoices.length, color: "var(--success)", icon: "✅" },
-              { label: t("ui_c.reports.lossmaking_invoices"), value: lossInvoices.length, color: "var(--danger)", icon: "❌" },
-              { label: t("ui_c.reports.avg_sale"), value: fSales.length > 0 ? Math.round(totalSales / fSales.length) : 0, color: "var(--success)", icon: "📊" },
-              { label: t("ui_c.reports.avg_purchase"), value: fPurchases.length > 0 ? Math.round(totalPurchases / fPurchases.length) : 0, color: "var(--info)", icon: "📊" },
+              { label: t("ui_c.reports.profitable_invoices"), value: profitableInvoices.length, color: "var(--success)" },
+              { label: t("ui_c.reports.lossmaking_invoices"), value: lossInvoices.length, color: "var(--danger)" },
+              { label: t("ui_c.reports.avg_sale"), value: fSales.length > 0 ? Math.round(totalSales / fSales.length) : 0, color: "var(--success)" },
+              { label: t("ui_c.reports.avg_purchase"), value: fPurchases.length > 0 ? Math.round(totalPurchases / fPurchases.length) : 0, color: "var(--info)" },
             ].map((c, i) => (
               <Box key={i} sx={{
                 flex: "1 1 200px", p: 2, borderRadius: "14px",
                 bgcolor: soft(c.color, "10"), border: `2px solid ${soft(c.color, "25")}`,
               }}>
-                <Typography sx={{ fontSize: 12, color: "var(--ink-muted)", fontWeight: 600 }}>{c.icon} {c.label}</Typography>
+                <Typography sx={{ fontSize: 12, color: "var(--ink-muted)", fontWeight: 600 }}>{c.label}</Typography>
                 <Typography sx={{ fontSize: 20, fontWeight: 900, color: c.color, mt: 0.5 }}>
                   {typeof c.value === "number" && c.value > 1000 ? fmtMoney(c.value) : c.value}
                 </Typography>
@@ -734,7 +718,6 @@ export default function ReportsTab({ C, isDark, showToast }) {
         <Box>
           {searchFilter(fSales, ["invoice_number", "customer.first_name", "customer.last_name", "customer.mobile"]).length === 0 ? (
             <Box sx={{ textAlign: "center", py: 5 }}>
-              <Typography sx={{ fontSize: 36, mb: 1 }}>💰</Typography>
               <Typography sx={{ fontSize: 16, fontWeight: 700, color: "var(--on-primary)" }}>{t("ui_c.reports.no_data")}</Typography>
             </Box>
           ) : (
@@ -753,12 +736,12 @@ export default function ReportsTab({ C, isDark, showToast }) {
                         bgcolor: "color-mix(in srgb, var(--warning) 13%, transparent)", color: "var(--warning)", borderRadius: "8px",
                       }} />
                       <Typography sx={{ fontSize: 15, fontWeight: 700, color: "var(--on-primary)" }}>
-                        👤 {inv.customer?.first_name} {inv.customer?.last_name}
+                        {inv.customer?.first_name} {inv.customer?.last_name}
                       </Typography>
                       <Typography sx={{ fontSize: 12, color: "var(--ink-muted)" }}>
-                        📅 {fmtJalali(inv.invoice_date || inv.date || inv.created_at)}
+                        {fmtJalali(inv.invoice_date || inv.date || inv.created_at)}
                       </Typography>
-                      <Chip size="small" label={`${pay.icon} ${t(pay.labelKey)}`} sx={{
+                      <Chip size="small" label={`${t(pay.labelKey)}`} sx={{
                         height: 24, fontSize: 11, borderRadius: "8px",
                         bgcolor: soft(pay.color, "20"), color: pay.color,
                       }} />
@@ -792,7 +775,6 @@ export default function ReportsTab({ C, isDark, showToast }) {
         <Box>
           {fPurchases.length === 0 ? (
             <Box sx={{ textAlign: "center", py: 5 }}>
-              <Typography sx={{ fontSize: 36, mb: 1 }}>🛒</Typography>
               <Typography sx={{ fontSize: 16, fontWeight: 700, color: "var(--on-primary)" }}>{t("ui_c.reports.no_data")}</Typography>
             </Box>
           ) : (
@@ -809,10 +791,10 @@ export default function ReportsTab({ C, isDark, showToast }) {
                       bgcolor: "color-mix(in srgb, var(--info) 13%, transparent)", color: "var(--info)", borderRadius: "8px",
                     }} />
                     <Typography sx={{ fontSize: 15, fontWeight: 700, color: "var(--on-primary)" }}>
-                      🏭 {inv.supplier_name || "—"}
+                      {inv.supplier_name || "—"}
                     </Typography>
                     <Typography sx={{ fontSize: 12, color: "var(--ink-muted)" }}>
-                      📅 {fmtJalali(inv.invoice_date || inv.created_at)}
+                      {fmtJalali(inv.invoice_date || inv.created_at)}
                     </Typography>
                   </Box>
                   <Typography sx={{ fontSize: 18, fontWeight: 900, color: "var(--info)" }}>
@@ -864,7 +846,6 @@ export default function ReportsTab({ C, isDark, showToast }) {
           {/* لیست محصولات */}
           {productList.length === 0 ? (
             <Box sx={{ textAlign: "center", py: 5 }}>
-              <Typography sx={{ fontSize: 36, mb: 1 }}>📈</Typography>
               <Typography sx={{ fontSize: 16, fontWeight: 700, color: "var(--on-primary)" }}>{t("ui_c.reports.no_data")}</Typography>
             </Box>
           ) : (
@@ -976,7 +957,7 @@ export default function ReportsTab({ C, isDark, showToast }) {
                   bgcolor: soft(pay.color, "12"), border: `2px solid ${soft(pay.color, "30")}`,
                 }}>
                   <Typography sx={{ fontSize: 18, fontWeight: 900, color: pay.color, mb: 1 }}>
-                    {pay.icon} {t(pay.labelKey)}
+                    {t(pay.labelKey)}
                   </Typography>
                   <Typography sx={{ fontSize: 14, color: "var(--ink-muted)" }}>{t("ui_c.reports.n_invoices", { n: toFa(val.count) })}</Typography>
                   <Typography sx={{ fontSize: 22, fontWeight: 900, color: pay.color, mt: 0.5 }}>
@@ -1024,7 +1005,6 @@ export default function ReportsTab({ C, isDark, showToast }) {
         <Box>
           {fTransfers.length === 0 ? (
             <Box sx={{ textAlign: "center", py: 5 }}>
-              <Typography sx={{ fontSize: 36, mb: 1 }}>🔄</Typography>
               <Typography sx={{ fontSize: 16, fontWeight: 700, color: "var(--on-primary)" }}>{t("ui_c.reports.no_transfers")}</Typography>
             </Box>
           ) : (
@@ -1041,11 +1021,11 @@ export default function ReportsTab({ C, isDark, showToast }) {
                       bgcolor: "color-mix(in srgb, var(--chart-4) 13%, transparent)", color: "var(--chart-4)", borderRadius: "8px",
                     }} />
                     <Typography sx={{ fontSize: 15, fontWeight: 700, color: "var(--on-primary)" }}>
-                      📦 {getWhName(tr.from_warehouse)} → {getWhName(tr.to_warehouse)}
+                      {getWhName(tr.from_warehouse)} → {getWhName(tr.to_warehouse)}
                     </Typography>
                   </Box>
                   <Typography sx={{ fontSize: 13, color: "var(--ink-muted)" }}>
-                    👤 {tr.user || "—"} | 📅 {fmtJalali(tr.date || tr.created_at)}
+                    {tr.user || "—"} | {fmtJalali(tr.date || tr.created_at)}
                   </Typography>
                 </Box>
                 <Box sx={{ display: "flex", gap: 0.5, mt: 1, flexWrap: "wrap" }}>

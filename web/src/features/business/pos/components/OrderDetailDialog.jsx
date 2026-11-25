@@ -66,9 +66,9 @@ export default function OrderDetailDialog({
           p: 1.5, borderRadius: "12px", bgcolor: `${C.olive}06`, border: `1px solid ${C.glassBorder}`,
           direction: isRtl ? "rtl" : "ltr",
         }}>
-          {infoItem(isRtl ? "نام مشتری" : "Customer", order.customer_name || (isRtl ? "مشتری مهمان" : "Guest"))}
+          {infoItem(isRtl ? "نام مشتری" : "Customer", order.customer_name || (isRtl ? "مهمان" : "Guest"))}
           {infoItem(isRtl ? "تلفن" : "Phone", order.phone || "—")}
-          {infoItem(isRtl ? "تاریخ و ساعت" : "Date & Time", order.created_at)}
+          {infoItem(isRtl ? "زمان" : "Time", order.created_at)}
           <Box>
             <Typography sx={{ fontSize: 11, color: C.muted, fontWeight: 600, fontFamily: "'Vazirmatn', sans-serif" }}>
               {isRtl ? "وضعیت" : "Status"}
@@ -122,7 +122,7 @@ export default function OrderDetailDialog({
           direction: isRtl ? "rtl" : "ltr",
         }}>
           <Typography sx={{ fontWeight: 700, fontSize: 14, fontFamily: "'Vazirmatn', sans-serif", color: C.text }}>
-            {isRtl ? "نحوه پرداخت" : "Payment"}:{" "}
+            {isRtl ? "پرداخت" : "Payment"}:{" "}
             {order.payment_method === "cash" ? (isRtl ? "نقدی" : "Cash")
               : order.payment_method === "card" ? (isRtl ? "کارتی" : "Card")
               : (isRtl ? "آنلاین" : "Online")}

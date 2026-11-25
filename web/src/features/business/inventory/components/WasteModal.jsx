@@ -82,7 +82,7 @@ export default function WasteModal({ open, onClose, warehouse, C, isDark, onSucc
         waste_reason: form.waste_reason,
         notes: form.notes.trim(),
       });
-      notify("✅ ضایعات ثبت شد", "success");
+      notify("ضایعات ثبت شد", "success");
       onSuccess && onSuccess();
       onClose();
     } catch (err) {
@@ -109,7 +109,7 @@ export default function WasteModal({ open, onClose, warehouse, C, isDark, onSucc
   return (
     <ResponsiveDialog open={open} onClose={onClose} maxWidth="xs" fullWidth slotProps={{ paper: { sx: dialogPaperSx } }}>
       <DialogTitle sx={{ fontSize: 15, fontWeight: 800, color: C.text }}>
-        🗑 ثبت ضایعات — {warehouse?.name || ""}
+        ثبت ضایعات — {warehouse?.name || ""}
       </DialogTitle>
       <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 1.5, pt: "12px !important" }}>
         {loading ? (
@@ -178,7 +178,7 @@ export default function WasteModal({ open, onClose, warehouse, C, isDark, onSucc
           px: 2.5, color: C.danger, background: C.dangerBg, opacity: saving ? 0.6 : 1,
           border: `1px solid ${C.danger}40`,
         }}>
-          {saving ? "..." : "🗑 ثبت ضایعات"}
+          {saving ? "..." : "ثبت ضایعات"}
           {!saving && <KbdHint>Ctrl+D</KbdHint>}
         </Button>
       </DialogActions>

@@ -5,6 +5,7 @@ import {
   DialogTitle, DialogContent, DialogActions, Box, Typography, Button, TextField, Select, MenuItem, CircularProgress, IconButton,
 } from "@mui/material";
 import { createReceiving, fetchRawMaterials, fetchSuppliers } from "../api";
+import { DeleteOutline } from "@mui/icons-material";
 import { buildInputSx, buildDialogPaperSx, UNIT_LABELS, useRegisteredShortcuts, dialogBindings, KbdHint } from "../common";
 
 export default function ReceiveModal({ open, onClose, warehouse, C, isDark, onSuccess, showToast }) {
@@ -83,7 +84,7 @@ export default function ReceiveModal({ open, onClose, warehouse, C, isDark, onSu
           unit_price: parseFloat(i.unit_price) || 0,
         })),
       });
-      notify("✅ کالا با موفقیت وارد شد", "success");
+      notify("کالا با موفقیت وارد شد", "success");
       onSuccess && onSuccess();
       onClose();
     } catch (err) {
@@ -144,7 +145,7 @@ export default function ReceiveModal({ open, onClose, warehouse, C, isDark, onSu
 
             {/* لیست کالاها */}
             <Typography sx={{ fontSize: 12, fontWeight: 700, color: C.text, mt: 1 }}>
-              📦 کالاها
+              کالاها
             </Typography>
 
             {items.map((item, idx) => (
@@ -157,8 +158,8 @@ export default function ReceiveModal({ open, onClose, warehouse, C, isDark, onSu
                     کالای {idx + 1}
                   </Typography>
                   {items.length > 1 && (
-                    <IconButton size="small" onClick={() => removeItem(idx)} sx={{ color: C.danger, p: 0.5 }}>
-                      <Typography sx={{ fontSize: 14 }}>🗑</Typography>
+                    <IconButton size="small" onClick={() => removeItem(idx)} aria-label="حذف" title="حذف" sx={{ color: C.danger, p: 0.5 }}>
+                      <DeleteOutline fontSize="small" />
                     </IconButton>
                   )}
                 </Box>
@@ -228,7 +229,7 @@ export default function ReceiveModal({ open, onClose, warehouse, C, isDark, onSu
           borderRadius: "10px", fontSize: 12, fontWeight: 700, textTransform: "none",
           px: 2.5, color: "var(--on-primary)", background: C.btnGrad, opacity: saving ? 0.6 : 1,
         }}>
-          {saving ? "..." : "✅ ثبت ورود"}
+          {saving ? "..." : "ثبت ورود"}
           {!saving && <KbdHint>Ctrl+D</KbdHint>}
         </Button>
       </DialogActions>

@@ -70,14 +70,14 @@ export default function CheckoutDialog({
   const locked = !!pendingOrder && !isPaid;   // an unpaid order is being charged: the dialog cannot be dismissed by accident
 
   const allMethods = [
-    ...(cardEnabled ? [{ key: "terminal", icon: PointOfSale, labelFa: t("ui_card.checkout.action"), labelEn: t("ui_card.checkout.action"), hint: t("ui_card.checkout.hint") }] : []),
-    { key: "cash", icon: Payments, labelFa: "پرداخت نقدی", labelEn: "Cash" },
-    { key: "card", icon: CreditCard, labelFa: "کارت (ثبت دستی)", labelEn: "Card (recorded manually)" },
+    ...(cardEnabled ? [{ key: "terminal", icon: PointOfSale, labelFa: t("ui_card.checkout.action"), labelEn: t("ui_card.checkout.action") }] : []),
+    { key: "cash", icon: Payments, labelFa: "نقدی", labelEn: "Cash" },
+    { key: "card", icon: CreditCard, labelFa: "کارت", labelEn: "Card" },
     {
       key: "online",
       icon: Language,
-      labelFa: "آنلاین / انتقال (ثبت دستی)",
-      labelEn: "Online / transfer (recorded manually)",
+      labelFa: "آنلاین",
+      labelEn: "Online",
     },
   ];
   const paymentMethods = allMethods.filter((m) => canUseMethod(posAccess, m.key)); // only what this user may take
@@ -418,12 +418,12 @@ export default function CheckoutDialog({
             {isPaid ? (
               <>
                 <CheckCircle sx={{ fontSize: 20, color: C.olive }} />
-                {isRtl ? "پرداخت موفق" : "Payment Successful"}
+                {isRtl ? "پرداخت شد" : "Paid"}
               </>
             ) : (
               <>
                 <Payments sx={{ fontSize: 20, color: C.gold }} />
-                {isRtl ? "منتظر پرداخت" : "Awaiting Payment"}
+                {isRtl ? "پرداخت" : "Payment"}
               </>
             )}
           </Typography>
@@ -491,7 +491,7 @@ export default function CheckoutDialog({
                       fontFamily: "'Vazirmatn', sans-serif",
                     }}
                   >
-                    {isRtl ? "خلاصه سفارش" : "Order Summary"}
+                    {isRtl ? "سفارش" : "Order"}
                   </Typography>
                   <Box
                     sx={{
@@ -510,7 +510,7 @@ export default function CheckoutDialog({
                         fontFamily: "'Vazirmatn', sans-serif",
                       }}
                     >
-                      {(cart || []).length} {isRtl ? "آیتم" : "items"}
+                      {(cart || []).length}
                     </Typography>
                   </Box>
                 </Box>
@@ -538,7 +538,7 @@ export default function CheckoutDialog({
                       fontFamily: "'Vazirmatn', sans-serif",
                     }}
                   >
-                    {isRtl ? "جمع کل:" : "Total:"}
+                    {isRtl ? "جمع" : "Total"}
                   </Typography>
                   <Box sx={{ textAlign: isRtl ? "left" : "right" }}>
                     <Typography
@@ -590,22 +590,7 @@ export default function CheckoutDialog({
                 </Box>
               )}
 
-              <Typography
-                sx={{
-                  fontSize: 13,
-                  fontWeight: 800,
-                  color: C.text,
-                  mb: 1.5,
-                  fontFamily: "'Vazirmatn', sans-serif",
-                }}
-              >
-                {isRtl ? "روش پرداخت:" : "Payment Method:"}
-              </Typography>
-              <Typography
-                sx={{ fontSize: 11, color: C.sub, mb: 1, fontFamily: "'Vazirmatn', sans-serif" }}
-              >
-                {t("ui_pos2.checkout.manual_note")}
-              </Typography>
+
 
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                 {terminalOffline && (
@@ -692,7 +677,7 @@ export default function CheckoutDialog({
                         fontFamily: "'Vazirmatn', sans-serif",
                       }}
                     >
-                      {isRtl ? "رسید پرداخت" : "Receipt"}
+                      {isRtl ? "رسید" : "Receipt"}
                     </Typography>
                   </Box>
                   <Box
@@ -838,7 +823,7 @@ export default function CheckoutDialog({
                       fontFamily: "'Vazirmatn', sans-serif",
                     }}
                   >
-                    {isRtl ? "جمع کل:" : "Total:"}
+                    {isRtl ? "جمع" : "Total"}
                   </Typography>
                   <Box sx={{ textAlign: isRtl ? "left" : "right" }}>
                     <Typography
@@ -866,17 +851,7 @@ export default function CheckoutDialog({
                 </Box>
               </Box>
 
-              <Typography
-                sx={{
-                  textAlign: "center",
-                  fontSize: 12,
-                  color: C.muted,
-                  mb: 2,
-                  fontFamily: "'Vazirmatn', sans-serif",
-                }}
-              >
-                ✦ {isRtl ? "از خرید شما متشکریم" : "Thank you"} ✦
-              </Typography>
+
 
               <Button
                 onClick={handlePrint}
@@ -894,7 +869,7 @@ export default function CheckoutDialog({
                 }}
               >
                 <Print sx={{ fontSize: 20, mr: 1 }} />
-                {isRtl ? "چاپ رسید" : "Print Receipt"}
+                {isRtl ? "چاپ" : "Print"}
                 <KbdHint>Ctrl+D</KbdHint>
               </Button>
             </>
