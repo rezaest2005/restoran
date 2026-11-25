@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Popover, Stack, Switch, Tooltip, Typography,
+  Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Popover, Stack, Tooltip, Typography,
 } from "@mui/material";
 import { useSync } from "./syncContext";
 import { localNumber } from "./localOrders";
@@ -89,12 +89,11 @@ const ago = (ms, lng, now) => {
 const Dot = ({ c }) => <Box component="span" sx={{ width: 9, height: 9, borderRadius: "50%", bgcolor: c, ml: 1, mr: "-2px", flexShrink: 0 }} />;
 
 /** Online/offline + pending chip for the business header; click opens the details. */
-export function SyncStatus({ client, isOwner }) {
+export function SyncStatus() {
   const { t, i18n } = useTranslation();
   const s = useSync();
   const [anchor, setAnchor] = useState(null);
   const [conflictsOpen, setConflictsOpen] = useState(false);
-  const [enabledBusy, setEnabledBusy] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!anchor) return undefined;
@@ -105,15 +104,10 @@ export function SyncStatus({ client, isOwner }) {
 
   const offline = !s.online;
   const bad = s.conflicts > 0 || s.locked;
-  const dot = bad ? "error.main" : s.pending > 0 ? "warning.main" : offline || !s.enabled ? "text.disabled" : "success.main";
+  const dot = bad ? "error.main" : s.pending > 0 ? "warning.main" : offline ? "text.disabled" : "success.main";
   const word = s.syncing ? t("sync.syncing") : offline ? t("sync.offline") : t("sync.online");
   const label = s.pending > 0 ? String(s.pending) : word;
 
-  const toggle = async (v) => {
-    setEnabledBusy(true);
-    try { await client.post("/api/sync/settings/", { enabled: v }); await s.syncNow(); } catch { /* shown by the next status */ }
-    setEnabledBusy(false);
-  };
   const last = ago(s.lastSyncAt, i18n.language, now);
 
   // everything fine (online, nothing waiting, no problem): only a small dot; words and a number appear when needed
@@ -147,14 +141,6 @@ export function SyncStatus({ client, isOwner }) {
             <Button size="small" variant="contained" disabled={s.syncing || offline} onClick={() => s.syncNow()}>{t("sync.sync_now")}</Button>
             {s.conflicts > 0 && <Button size="small" color="error" variant="outlined" onClick={() => { setAnchor(null); setConflictsOpen(true); }}>{t("sync.conflicts")} ({s.conflicts})</Button>}
           </Stack>
-          {isOwner && (
-            <Tooltip title={t("sync.local_mode_hint")}>
-              <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", gap: 1 }}>
-                <Typography variant="body2">{t("sync.local_mode")}</Typography>
-                <Switch size="small" data-testid="sync-owner-switch" checked={s.enabled} disabled={enabledBusy} onChange={(e) => toggle(e.target.checked)} />
-              </Stack>
-            </Tooltip>
-          )}
         </Stack>
       </Popover>
       <SyncConflictsDialog open={conflictsOpen} onClose={() => setConflictsOpen(false)} />

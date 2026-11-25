@@ -10,8 +10,6 @@
     "locked_grace": "برای ادامه به اینترنت وصل شوید.",
     "locked_subscription": "اشتراک تمام شده است.",
     "clock_back": "ساعت دستگاه عقب است.",
-    "local_mode": "ذخیره روی این دستگاه",
-    "local_mode_hint": "اگر خاموش باشد، بدون اینترنت نمی‌شود فروخت.",
     "badge_pending": "ارسال نشده",
     "badge_synced": "ارسال شد",
     "badge_conflict": "نیاز به اصلاح",

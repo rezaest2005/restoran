@@ -53,7 +53,7 @@ class SyncReceipt(models.Model):
 
 
 class SyncSettings(models.Model):
-    """Per-business rollout switch (null = follow the LOCAL_FIRST_DEFAULT environment value)."""
+    """Unused since local mode became always-on (kept so no migration is needed)."""
 
     business = models.OneToOneField("bizsuite.Business", on_delete=models.CASCADE, related_name="+")
     enabled = models.BooleanField(null=True, blank=True)

@@ -9,7 +9,7 @@ from rest_framework.response import Response
 
 from ..views.common import StaffAuth, staff_business
 from . import changelog, config
-from .models import SyncChange, SyncCounter, SyncSettings
+from .models import SyncChange, SyncCounter
 from .push import apply_one
 from .registry import ENTITIES, ORDER, allowed_entities, base_queryset
 
@@ -17,10 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 def sync_enabled(business) -> bool:
-    row = SyncSettings.objects.filter(business=business).first()
-    if row is not None and row.enabled is not None:
-        return bool(row.enabled)
-    return config.default_enabled()
+    """Local mode is part of the product: it is on for every business (there is no switch any more)."""
+    return True
 
 
 def _limited(user, kind, limit):
@@ -187,19 +185,12 @@ def status(request):
     })
 
 
-@api_view(["GET", "POST"])
+@api_view(["GET"])
 @authentication_classes(StaffAuth)
 @permission_classes([IsAuthenticated])
 def settings_view(request):
-    """The owner (or a super admin) turns local-first on/off for this business (gradual rollout)."""
+    """Read-only: local mode is always on (kept so older clients that read it keep working)."""
     business = staff_business(request)
     if business is None:
         return _err(400, "no_business", "کسب‌وکاری برای این کاربر تعریف نشده است.")
-    if request.method == "POST":
-        if not (request.user.is_superuser or getattr(request.user, "role", "") == "owner"):
-            return _err(403, "permission_denied", "فقط مالک می‌تواند این تنظیم را تغییر دهد.")
-        val = request.data.get("enabled")
-        if val not in (True, False, None):
-            return _err(400, "invalid", "enabled must be true, false or null")
-        SyncSettings.objects.update_or_create(business=business, defaults={"enabled": val})
-    return Response({"success": True, "enabled": sync_enabled(business), "default": config.default_enabled()})
+    return Response({"success": True, "enabled": True})

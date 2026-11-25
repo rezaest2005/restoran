@@ -137,13 +137,6 @@ const ROLE_TABS_FALLBACK = {
   },
 };
 
-function isOwnerUser() {
-  try {
-    const u = JSON.parse(sessionStorage.getItem("user") || localStorage.getItem("user") || "null");
-    return !!u && (u.role === "owner" || u.is_superuser === true);
-  } catch { return false; }
-}
-
 // ═══════ ماژول‌های فعال کسب‌وکار (null = همه) ═══════
 function getUserModules() {
   try {
@@ -445,7 +438,7 @@ function BusinessLayoutInner() {
           </Box>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, md: 1 }, flexShrink: 0 }}>
-            <SyncStatus client={client} isOwner={isOwnerUser()} />
+            <SyncStatus />
             <IconButton onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "F1", bubbles: true, cancelable: true }))}
               size="small" title={`${t("shortcuts.title")} (F1)`} aria-label={t("shortcuts.title")}
               sx={{ color: C.text, border: `1px solid ${C.glassBorder}`, borderRadius: "10px", bgcolor: C.glass, width: { xs: 40, md: 34 }, height: { xs: 40, md: 34 }, "&:hover": { bgcolor: C.oliveSubtle, borderColor: C.olive } }}>

@@ -178,15 +178,6 @@ class ChangeLogTests(SyncBase):
 
 
 class GateTests(SyncBase):
-    def test_disabled_business_gets_403_and_status_says_so(self):
-        SyncSettings.objects.filter(business=self.biz).update(enabled=False)
-        c = self.api(self.owner)
-        self.assertEqual(c.get("/api/sync/pull/").status_code, 403)
-        self.assertEqual(c.post("/api/sync/push/", {"mutations": []}, format="json").status_code, 403)
-        r = c.get("/api/sync/status/")
-        self.assertEqual(r.status_code, 200)
-        self.assertFalse(r.json()["enabled"])
-
     def test_status_payload(self):
         r = self.api(self.owner).get("/api/sync/status/").json()
         self.assertTrue(r["enabled"])
@@ -194,11 +185,14 @@ class GateTests(SyncBase):
         self.assertIn("limits", r)
         self.assertIn("order", r["entities"])
 
-    def test_only_owner_toggles_the_switch(self):
-        self.assertEqual(self.give().post("/api/sync/settings/", {"enabled": False}, format="json").status_code, 403)
-        r = self.api(self.owner).post("/api/sync/settings/", {"enabled": False}, format="json")
+    def test_local_mode_is_always_on_and_has_no_switch(self):
+        c = self.api(self.owner)
+        r = c.get("/api/sync/settings/")
         self.assertEqual(r.status_code, 200)
-        self.assertFalse(r.json()["enabled"])
+        self.assertTrue(r.json()["enabled"])
+        self.assertEqual(c.post("/api/sync/settings/", {"enabled": False}, format="json").status_code, 405)
+        self.assertTrue(c.get("/api/sync/status/").json()["enabled"])
+        self.assertEqual(c.get("/api/sync/pull/").status_code, 200)
 
     def test_requires_login(self):
         from rest_framework.test import APIClient

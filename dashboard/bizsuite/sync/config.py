@@ -9,11 +9,6 @@ def _int(name, default):
         return default
 
 
-def default_enabled() -> bool:
-    """Local mode is on for every business unless LOCAL_FIRST_DEFAULT=false or the owner switched it off."""
-    return os.environ.get("LOCAL_FIRST_DEFAULT", "true").strip().lower() in ("1", "true", "yes", "on")
-
-
 MAX_PUSH_ITEMS = _int("SYNC_MAX_PUSH_ITEMS", 100)
 MAX_PUSH_BYTES = _int("SYNC_MAX_PUSH_BYTES", 512 * 1024)
 MAX_ITEM_LINES = _int("SYNC_MAX_ORDER_LINES", 200)

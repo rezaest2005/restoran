@@ -10,8 +10,6 @@
     "locked_grace": "Connect to the internet to continue.",
     "locked_subscription": "Subscription ended.",
     "clock_back": "Device clock is set back.",
-    "local_mode": "Save on this device",
-    "local_mode_hint": "If off, you cannot sell without internet.",
     "badge_pending": "Not sent",
     "badge_synced": "Sent",
     "badge_conflict": "Needs a fix",
