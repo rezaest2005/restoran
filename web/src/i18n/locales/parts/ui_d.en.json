@@ -2,7 +2,7 @@
   "ui_d": {
     "qr": {
       "currency": "Toman",
-      "title_fallback": "Menu",
+      "title_fallback": "Catalogue",
       "toggle_theme": "Theme",
       "toggle_lang": "Switch language",
       "search_placeholder": "Search",

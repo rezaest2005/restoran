@@ -2,7 +2,7 @@
   "ui_d": {
     "qr": {
       "currency": "تومان",
-      "title_fallback": "منو",
+      "title_fallback": "کاتالوگ",
       "toggle_theme": "تم",
       "toggle_lang": "تغییر زبان",
       "search_placeholder": "جستجو",
