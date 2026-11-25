@@ -5,7 +5,7 @@ import {
   DialogTitle, DialogContent, DialogActions, Box, Typography, Button, TextField, Select, MenuItem, CircularProgress, IconButton,
 } from "@mui/material";
 import { createReceiving, fetchRawMaterials, fetchSuppliers } from "../api";
-import { DeleteOutline } from "@mui/icons-material";
+import { Delete as DeleteOutline } from "@mui/icons-material";
 import { buildInputSx, buildDialogPaperSx, UNIT_LABELS, useRegisteredShortcuts, dialogBindings, KbdHint } from "../common";
 
 export default function ReceiveModal({ open, onClose, warehouse, C, isDark, onSuccess, showToast }) {
