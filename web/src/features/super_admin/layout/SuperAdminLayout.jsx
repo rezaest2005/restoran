@@ -22,6 +22,11 @@ import KbdHint from "@shared/common/KbdHint";
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
 import HintBar from "@shared/ui/HintBar";
 
+/** The super admin who signed in (written by the sign-in page). */
+const readSuperUser = () => {
+  try { return JSON.parse(sessionStorage.getItem("super_user") || "null"); } catch { return null; }
+};
+
 export default function SuperAdminLayout() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -124,7 +129,7 @@ export default function SuperAdminLayout() {
         isMobile={isMobile}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        currentUser={{ username: "Admin" }}
+        currentUser={{ username: (readSuperUser()?.first_name || readSuperUser()?.username || "—") }}
         onLogout={() => setLogoutOpen(true)}
         badges={{ support: supportWaiting }}
         C={C}

@@ -99,7 +99,6 @@ jobs:
             echo "DB_PASSWORD=$DBP"
             echo "DB_HOST=db"
             echo "DB_PORT=5432"
-            echo "BOOTSTRAP_ADMIN_PASSWORD=ci-$(openssl rand -hex 12)"
             echo "BOOTSTRAP_SUPER_PASSWORD=ci-$(openssl rand -hex 12)"
           } > ci.env
       - name: Build the two images

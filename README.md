@@ -73,7 +73,7 @@ Environment variables (see `.env.example` and `../deploy/restaurant/.env.example
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | PostgreSQL connection |
 | `COOKIE_SECURE`, `SECURE_SSL_REDIRECT` | Set to `True` behind HTTPS |
 | `APP_NAME`, `APP_NAME_FA` | Optional product display name overrides |
-| `BOOTSTRAP_ADMIN_PASSWORD`, `BOOTSTRAP_SUPER_USERNAME`, `BOOTSTRAP_SUPER_PASSWORD`, `BOOTSTRAP_SYNC_PASSWORDS` | Initial users created by the `migrate` service |
+| `BOOTSTRAP_SUPER_USERNAME`, `BOOTSTRAP_SUPER_PASSWORD`, `BOOTSTRAP_SYNC_PASSWORDS`, `BOOTSTRAP_DEFAULT_BUSINESS` | The first super admin created by the `migrate` service; it also owns a default business, so the same username and password sign in at the admin panel and at the dashboard |
 | `CARD_READER_IP`, `CARD_READER_PORT`, `CARD_READER_TIMEOUT` | Optional DEFAULTS for the per-business card terminal settings (see docs/CARD_READER.md); also `CARD_READER_ALLOW_LOOPBACK` |
 | `PUBLIC_PASSWORD_RESET_ENABLED` | Enable public password reset (only after OTP is connected) |
 
