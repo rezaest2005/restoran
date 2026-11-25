@@ -37,11 +37,8 @@ export default function InventorySection({ data }) {
     inbound: t("inv.inbound"),
     outbound: t("inv.outbound"),
     secInventory: t("inv.secInventory"),
-    secInventoryDesc: t("inv.secInventoryDesc"),
     secStock: t("inv.secStock"),
-    secStockDesc: t("inv.secStockDesc"),
     secWaste: t("inv.secWaste"),
-    secWasteDesc: t("inv.secWasteDesc"),
   };
 
   const C = useMemo(() => buildColors(isDark), [isDark]);
@@ -75,7 +72,7 @@ export default function InventorySection({ data }) {
     <Box sx={{ width: "100%", mb: 6, overflow: "hidden" }}>
       
       {/* === آمار انبار === */}
-      <SectionHeader icon="📦" title={L.secInventory} subtitle={L.secInventoryDesc} C={C} isRtl={isRtl} delay={0.05} />
+      <SectionHeader title={L.secInventory} C={C} isRtl={isRtl} delay={0.05} />
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 5, width: "100%" }}>
         {stats.map((stat, i) => (
           <Box key={i} sx={{ flexGrow: 1, flexBasis: { xs: "100%", sm: "calc(50% - 12px)", md: "calc(25% - 18px)" }, minWidth: "220px" }}>
@@ -96,11 +93,11 @@ export default function InventorySection({ data }) {
       </Box>
 
       {/* === سطح موجودی + جریان === */}
-      <SectionHeader icon="📊" title={L.secStock} subtitle={L.secStockDesc} C={C} isRtl={isRtl} delay={0.2} />
+      <SectionHeader title={L.secStock} C={C} isRtl={isRtl} delay={0.2} />
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "7fr 5fr" }, gap: 3, mb: 5, width: "100%" }}>
 
         <GlassCard C={C} sx={{ p: 3, width: "100%", height: 500, overflow: "visible" }}>
-          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>📊 {L.stockLevel}</Typography>
+          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>{L.stockLevel}</Typography>
           <Box sx={{ width: "100%", height: 420 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stockLevelData} layout="vertical" margin={{ top: 20, right: isRtl ? 180 : 30, left: isRtl ? 30 : 180, bottom: 10 }} barGap={8}>
@@ -117,7 +114,7 @@ export default function InventorySection({ data }) {
         </GlassCard>
 
         <GlassCard C={C} sx={{ p: 3, width: "100%", height: 500, overflow: "visible" }}>
-          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>📈 {L.stockFlow}</Typography>
+          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>{L.stockFlow}</Typography>
           <Box sx={{ width: "100%", height: 420 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={stockFlowData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
@@ -135,11 +132,11 @@ export default function InventorySection({ data }) {
       </Box>
 
       {/* === ضایعات + هشدارها === */}
-      <SectionHeader icon="🗑️" title={L.secWaste} subtitle={L.secWasteDesc} C={C} isRtl={isRtl} delay={0.4} />
+      <SectionHeader title={L.secWaste} C={C} isRtl={isRtl} delay={0.4} />
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "5fr 7fr" }, gap: 3, mb: 5, width: "100%" }}>
         
         <GlassCard C={C} sx={{ p: 3, width: "100%", height: 500, overflow: "visible" }}>
-          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>🥧 {L.wasteBreakdown}</Typography>
+          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>{L.wasteBreakdown}</Typography>
           <Box sx={{ width: "100%", height: 420 }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart margin={{ top: 20, right: 20, left: 20, bottom: 20 }}>
@@ -154,7 +151,7 @@ export default function InventorySection({ data }) {
         </GlassCard>
 
         <GlassCard C={C} sx={{ p: 3, width: "100%", height: 500, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3, flexShrink: 0 }}>⚠️ {L.stockAlerts}</Typography>
+          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3, flexShrink: 0 }}>{L.stockAlerts}</Typography>
           <Box sx={{ flex: 1, display: "flex", flexDirection: "column", gap: 2, width: "100%", overflowY: "auto" }}>
             {stockAlertsData.map((alert, i) => {
               const sev = SEVERITY[alert.level] || SEVERITY.ok;
@@ -209,7 +206,7 @@ export default function InventorySection({ data }) {
         </GlassCard>
 
         <GlassCard C={C} sx={{ p: 3, width: "100%", minHeight: 450, overflow: "hidden" }}>
-          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>📉 {L.slowMovers}</Typography>
+          <Typography sx={{ fontSize: 18, fontWeight: 800, color: C.text, mb: 3 }}>{L.slowMovers}</Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2, width: "100%" }}>
             {slowMoversData.map((item, i) => (
               <Box key={i} sx={{ p: 2, borderRadius: 2, background: isDark ? "var(--line)" : "color-mix(in srgb, var(--ink) 2%, transparent)", display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>

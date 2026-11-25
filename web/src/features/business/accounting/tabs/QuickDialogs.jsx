@@ -10,7 +10,6 @@ import LocalGasStation from "@mui/icons-material/LocalGasStation";
 import Build from "@mui/icons-material/Build";
 import MoreHoriz from "@mui/icons-material/MoreHoriz";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import { fetchCustomers, fetchSuppliers } from "@business/dictionary/api";
 import { CATEGORY_KEYS, todayISO, num } from "../common";
 import { createExpense, createPayment, createRecurring, saveOpening, errMsg } from "../api";
@@ -36,7 +35,7 @@ function Frame({ ctx, title, children, onClose, onSubmit, saving, error, submitL
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button variant="outlined" sx={S.ghost} onClick={onClose} disabled={saving}>{ctx.t("ui_acc.dialog.cancel")}</Button>
         <Button variant="contained" sx={S.btn} onClick={onSubmit} disabled={saving}>
-          {saving ? <CircularProgress size={18} color="inherit" /> : <>{submitLabel}<KbdHint>Ctrl+D</KbdHint></>}
+          {saving ? <CircularProgress size={18} color="inherit" /> : <>{submitLabel}</>}
         </Button>
       </DialogActions>
     </Dialog>
@@ -168,12 +167,11 @@ export function RecurringDialog({ ctx, salary = false, onClose, onSaved }) {
         onChange={(e) => setF((x) => ({ ...x, amount: e.target.value }))} sx={S.field} slotProps={{ htmlInput: { inputMode: "decimal", dir: "ltr" } }} />
       <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: "1fr 1fr" }}>
         <TextField size="small" label={t("ui_acc.fixed.day")} value={f.day_of_month} onChange={(e) => setF((x) => ({ ...x, day_of_month: e.target.value }))}
-          sx={S.field} helperText={t("ui_acc.fixed.day_hint")} slotProps={{ htmlInput: { inputMode: "numeric", dir: "ltr" } }} />
+          sx={S.field} slotProps={{ htmlInput: { inputMode: "numeric", dir: "ltr" } }} />
         <TextField size="small" type="date" label={t("ui_acc.fixed.start")} value={f.start_date} onChange={(e) => setF((x) => ({ ...x, start_date: e.target.value }))}
           sx={S.field} slotProps={{ inputLabel: { shrink: true } }} />
       </Box>
       <Box><Typography sx={{ fontSize: 12, mb: 0.5 }}>{t("ui_acc.dialog.paid_from")}</Typography><MethodToggle ctx={ctx} value={f.payment_method} onChange={(payment_method) => setF((x) => ({ ...x, payment_method }))} /></Box>
-      <Typography sx={{ fontSize: 12, color: ctx.C.sub }}>{t("ui_acc.fixed.auto_note")}</Typography>
     </Frame>
   );
 }
@@ -186,7 +184,6 @@ export function OpeningDialog({ ctx, current, onClose, onSaved }) {
   const submit = () => run(() => saveOpening({ cash: f.cash === "" ? 0 : num(f.cash), bank: f.bank === "" ? 0 : num(f.bank) }));
   return (
     <Frame ctx={ctx} title={t("ui_acc.opening.title")} onClose={onClose} onSubmit={submit} saving={saving} error={error} submitLabel={t("ui_acc.dialog.save")}>
-      <Typography sx={{ fontSize: 13, color: ctx.C.sub }}>{t("ui_acc.opening.hint")}</Typography>
       <TextField autoFocus size="small" label={t("ui_acc.opening.cash")} value={f.cash} onChange={(e) => setF((x) => ({ ...x, cash: e.target.value }))}
         sx={S.field} slotProps={{ htmlInput: { inputMode: "decimal", dir: "ltr" } }} />
       <TextField size="small" label={t("ui_acc.opening.bank")} value={f.bank} onChange={(e) => setF((x) => ({ ...x, bank: e.target.value }))}

@@ -73,7 +73,7 @@ export default function ReportsTab({ ctx }) {
           <Box sx={{ display: "grid", gap: 1.25, gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(3, 1fr)", lg: "repeat(6, 1fr)" } }}>
             <Tile C={C} label={t("dlv.reports.stops")} value={n(tot.stops)} hint={`${t("dlv.reports.open")}: ${n(tot.open)}`} />
             <Tile C={C} label={t("dlv.reports.success")} value={pct(tot.success_pct)} hint={`${n(tot.delivered)} / ${n(tot.failed)}`} color={C.success} />
-            <Tile C={C} label={t("dlv.reports.on_time")} value={pct(tot.on_time_pct)} hint={t("dlv.reports.on_time_hint")} />
+            <Tile C={C} label={t("dlv.reports.on_time")} value={pct(tot.on_time_pct)} />
             <Tile C={C} label={t("dlv.reports.avg_minutes")} value={tot.avg_minutes == null ? "—" : t("dlv.reports.minutes", { n: n(tot.avg_minutes) })} />
             <Tile C={C} label={t("dlv.reports.collected")} value={m(tot.collected)} hint={`${t("dlv.reports.cash")}: ${m(tot.cash_collected)}`} />
             <Tile C={C} label={t("dlv.reports.unsettled")} value={m(tot.unsettled_cash)} color={tot.unsettled_cash > 0 ? C.warning : C.text} />

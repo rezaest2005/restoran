@@ -4,7 +4,6 @@ import {
   Alert, CircularProgress, Pagination,
 } from "@mui/material";
 import { useRegisteredShortcuts, onEnter } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import {
   TableWrap, Money, SOURCE_TYPES, fmtDate, fmtInt, useRowCursor, cursorBindings, cursorProps,
 } from "../common";
@@ -71,7 +70,7 @@ export default function JournalTab(ctx) {
           <option value="draft">{t("acc2.entry.draft")}</option>
         </TextField>
         <Button variant="outlined" sx={S.ghost} onClick={openVatDocument}>{t("acc2.vat.new_doc")}</Button>
-        <Button sx={S.btn} onClick={openNewEntry}>{t("ui_i.entry.new")}<KbdHint>F2</KbdHint></Button>
+        <Button sx={S.btn} onClick={openNewEntry}>{t("ui_i.entry.new")}</Button>
       </Box>
 
       <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap", mb: 2 }}>

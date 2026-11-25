@@ -4,32 +4,28 @@
     "cat": { "bug": "Problem / error", "suggestion": "Suggestion", "complaint": "Complaint", "other": "Other" },
     "status": { "open": "Open", "in_progress": "In review", "resolved": "Resolved" },
     "pub": {
-      "title": "Send feedback or report a problem",
-      "subtitle": "Your message goes straight to the team. Thank you for taking the time.",
+      "title": "Feedback",
       "category": "Topic",
       "name": "Name (optional)",
-      "phone": "Phone (optional)",
+      "phone": "Phone",
       "message": "Your message",
       "send": "Send feedback",
-      "sending": "Sending…",
-      "ok_title": "Thank you, feedback received",
-      "ok_text": "Your message has been sent to the team.",
+      "ok_title": "Received",
       "again": "Send another",
-      "link": "Send feedback",
       "toggle_lang": "Switch language",
       "toggle_theme": "Switch theme",
-      "err_empty": "Please enter your message.",
-      "err_long": "The message must not exceed 2000 characters.",
-      "err_rate": "Too many submissions. Please try again in a few minutes.",
-      "err_notfound": "This page was not found. Check the address.",
-      "err_generic": "Could not send. Please try again."
+      "err_empty": "Enter your message",
+      "err_long": "Message over 2000 characters",
+      "err_rate": "Try again in a few minutes",
+      "err_notfound": "Page not found",
+      "err_generic": "Not sent; try again"
     },
     "mgr": {
       "all": "All",
       "filter_status": "Status",
       "filter_category": "Topic",
-      "empty": "No feedback yet.",
-      "open_row": "Open selected feedback",
+      "empty": "No feedback",
+      "open_row": "Open feedback",
       "detail": "Feedback details",
       "date": "Date",
       "from": "From",
@@ -37,11 +33,10 @@
       "message": "Message",
       "note": "Internal note",
       "save": "Save",
-      "saved": "Saved.",
       "close": "Close",
       "anonymous": "Anonymous",
       "refresh": "Refresh",
-      "err_generic": "The action failed. Please try again."
+      "err_generic": "Failed; try again"
     }
   }
 }

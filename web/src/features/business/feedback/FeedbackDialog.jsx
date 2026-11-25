@@ -3,7 +3,6 @@ import {
   Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import { fmtDate } from "../accounting/common";
 import { updateFeedback, errMsg } from "./api";
 
@@ -68,7 +67,7 @@ export default function FeedbackDialog({ ctx, item, onClose, onSaved }) {
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button variant="outlined" sx={S.ghost} onClick={onClose}>{t("ui_fb.mgr.close")}</Button>
-        <Button sx={S.btn} onClick={save} disabled={busy}>{t("ui_fb.mgr.save")}<KbdHint>Ctrl+D</KbdHint></Button>
+        <Button sx={S.btn} onClick={save} disabled={busy}>{t("ui_fb.mgr.save")}</Button>
       </DialogActions>
     </Dialog>
   );

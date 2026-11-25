@@ -111,8 +111,7 @@ export default function ClubPublicPage() {
                 {tab === "join" && <TextField label={t("ui_club.member.name")} value={name} onChange={(e) => setName(e.target.value)} sx={field} required />}
                 <TextField label={t("ui_club.member.phone")} value={phone} onChange={(e) => setPhone(e.target.value)} sx={field} required
                   slotProps={{ htmlInput: { dir: "ltr", inputMode: "tel", autoComplete: "tel" } }} />
-                {tab === "check" && <TextField label={t("ui_club2.md.code")} value={code} onChange={(e) => setCode(e.target.value)} sx={field} required
-                  helperText={t("ui_club2.pub.code_hint")} slotProps={{ htmlInput: { dir: "ltr", autoCapitalize: "characters" } }} />}
+                {tab === "check" && <TextField label={t("ui_club2.md.code")} value={code} onChange={(e) => setCode(e.target.value)} sx={field} required slotProps={{ htmlInput: { dir: "ltr", autoCapitalize: "characters" } }} />}
                 {tab === "join" && <TextField label={t("ui_club2.md.referral_code")} value={ref} onChange={(e) => setRef(e.target.value)} sx={field}
                   slotProps={{ htmlInput: { dir: "ltr" } }} />}
                 <input type="text" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)}

@@ -191,7 +191,7 @@ export default function TrackingPage() {
 
           {(data.packages > 1 || data.window_end || data.recipient_name) && (
             <Box sx={{ ...card, display: "grid", gap: 0.5 }}>
-              {data.packages > 1 && <Typography sx={{ color: C.text, fontSize: 14 }}>📦 {t("dlv.track.packages", { n: data.packages })}</Typography>}
+              {data.packages > 1 && <Typography sx={{ color: C.text, fontSize: 14 }}>{t("dlv.track.packages", { n: data.packages })}</Typography>}
               {data.window_end && !done && (
                 <Typography sx={{ color: C.text, fontSize: 14 }}>
                   {t("dlv.track.window")}: <b>{data.window_start ? `${fmtTime(data.window_start, lang)} – ` : ""}{fmtTime(data.window_end, lang)}</b>

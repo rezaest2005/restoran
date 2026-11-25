@@ -279,14 +279,14 @@ export default function DriverPage() {
               {s.packages > 1 && <Chip size="small" label={t("dlv.driver.packages", { n: fmtInt(s.packages, lang) })} sx={{ fontWeight: 700 }} />}
               {s.window_end && <Chip size="small" label={t("dlv.driver.window_by", { t: fmtTime(s.window_end, lang) })} sx={{ fontWeight: 700, color: C.warning, border: `1px solid ${C.warning}`, bgcolor: "transparent" }} />}
             </Box>
-            {s.cargo_description && <Typography sx={{ color: C.sub, fontSize: 14, mt: 1 }}>📦 {s.cargo_description}</Typography>}
-            {s.instructions && <Typography sx={{ color: C.text, fontSize: 14, mt: 1, bgcolor: C.infoBg, borderRadius: 2, p: 1 }}>📝 {s.instructions}</Typography>}
+            {s.cargo_description && <Typography sx={{ color: C.sub, fontSize: 14, mt: 1 }}>{s.cargo_description}</Typography>}
+            {s.instructions && <Typography sx={{ color: C.text, fontSize: 14, mt: 1, bgcolor: C.infoBg, borderRadius: 2, p: 1 }}>{s.instructions}</Typography>}
             {s.eta && <Typography sx={{ color: C.sub, fontSize: 12, mt: 0.5 }}>{t("ui_del.dispatch.eta")}: {fmtTime(s.eta, lang)}</Typography>}
             <Button
               component="a" href={routeUrl(s)} target="_blank" rel="noreferrer" variant="outlined"
               sx={{ mt: 1.5, minHeight: 52, width: "100%", fontSize: 16, fontWeight: 700, color: C.primary, borderColor: C.primary, borderRadius: 2, textTransform: "none" }}
             >
-              🧭 {t("ui_del.driver.open_route")}
+              {t("ui_del.driver.open_route")}
             </Button>
           </Box>
 
@@ -323,13 +323,13 @@ export default function DriverPage() {
             <Box sx={{ ...card, display: "grid", gap: 1.5 }}>
               {s.require_otp && (
                 <TextField fullWidth value={proof.otp} onChange={(e) => setProof((p) => ({ ...p, otp: e.target.value.replace(/\D/g, "").slice(0, 8) }))}
-                  label={t("dlv.driver.otp")} helperText={t("dlv.driver.otp_help")}
+                  label={t("dlv.driver.otp")}
                   inputProps={{ inputMode: "numeric", dir: "ltr", style: { fontSize: 24, letterSpacing: 8, textAlign: "center" } }}
                   sx={{ "& .MuiInputBase-root": { bgcolor: C.inputBg, color: C.text }, "& .MuiInputLabel-root, & .MuiFormHelperText-root": { color: C.sub } }} />
               )}
               {s.require_photo && (
                 <Button component="label" variant="outlined" sx={{ minHeight: 52, fontWeight: 700, borderRadius: 2, textTransform: "none", color: proof.photo ? C.success : C.primary, borderColor: proof.photo ? C.success : C.primary }}>
-                  📷 {proof.photo ? t("dlv.driver.photo_done") : t("dlv.driver.photo")}
+                  {proof.photo ? t("dlv.driver.photo_done") : t("dlv.driver.photo")}
                   <input hidden type="file" accept="image/*" capture="environment" onChange={(e) => {
                     const f = e.target.files?.[0];
                     e.target.value = "";

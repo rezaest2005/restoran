@@ -8,7 +8,6 @@ import {
   useRegisteredShortcuts, tabBindings, helpBinding, collectShortcuts,
 } from "@shared/common/shortcutKit";
 import ShortcutsHelpDialog from "@shared/common/ShortcutsHelpDialog";
-import KbdHint from "@shared/common/KbdHint";
 import { useStyles } from "@business/accounting/common";
 import { hasTab } from "@business/dashboard/access";
 import { vehiclesApi, carriersApi, driversApi, errMsg } from "./api";
@@ -21,7 +20,6 @@ import HistoryTab from "./HistoryTab";
 import ZonesTab from "./ZonesTab";
 import ReportsTab from "./ReportsTab";
 import TripDialog from "./TripDialog";
-import HintBar from "@shared/ui/HintBar";
 
 // each tab is its own sellable feature; only the ones this account may use are shown
 // zones and reports ride on the fleet / history features (no new licence keys)
@@ -112,12 +110,11 @@ export default function DispatchPage() {
           <Typography sx={{ color: C.text, fontWeight: 800, fontSize: { xs: 18, sm: 22 }, mb: 0.5 }}>
             {t("ui_del.page.title")}
           </Typography>
-          <Typography sx={{ color: C.sub, fontSize: 13 }}>{t("ui_del.page.subtitle")}</Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
         {canTrips && (
           <Button sx={S.btn} onClick={() => openNew(tab === "shipments" ? "shipment" : "trip")}>
-            + {tab === "shipments" ? t("ui_del.ship.new") : t("ui_del.trip.new")}<KbdHint>F2</KbdHint>
+            + {tab === "shipments" ? t("ui_del.ship.new") : t("ui_del.trip.new")}
           </Button>
         )}
         </Box>
@@ -180,7 +177,6 @@ export default function DispatchPage() {
           {toast.msg}
         </Alert>
       </Snackbar>
-      <HintBar items={[{ keys: "F2", label: t("ui_design.hint_new") }, { keys: "F3", label: t("ui_design.hint_add_line") }, { keys: "Ctrl+D", label: t("ui_design.hint_save") }, { keys: "Esc", label: t("ui_design.hint_close") }]} />
     </Box>
   );
 }

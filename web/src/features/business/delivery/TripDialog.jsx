@@ -4,7 +4,6 @@ import {
   MenuItem, IconButton, Alert, CircularProgress, Checkbox, FormControlLabel,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import { num, newKey, fmtMoney } from "@business/accounting/common";
 import { createTrip, quoteZone, errMsg } from "./api";
 import { PRIORITIES } from "./common";
@@ -211,7 +210,7 @@ export default function TripDialog({ ctx, drivers, vehicles, carriers, onClose, 
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button variant="outlined" sx={S.ghost} onClick={onClose} disabled={saving}>{t("ui_del.common.cancel")}</Button>
         <Button variant="contained" sx={S.btn} onClick={submit} disabled={saving}>
-          {saving ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_del.trip.submit")}<KbdHint>Ctrl+D</KbdHint></>}
+          {saving ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_del.trip.submit")}</>}
         </Button>
       </DialogActions>
     </Dialog>

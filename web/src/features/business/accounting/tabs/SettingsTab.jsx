@@ -69,7 +69,6 @@ export default function SettingsTab(ctx) {
 
       <Box sx={section}>
         <Typography sx={{ color: C.text, fontWeight: 800, mb: 0.5 }}>{t("acc2.fiscal.title")}</Typography>
-        <Typography sx={{ color: C.sub, fontSize: 13, mb: 1.5 }}>{t("acc2.fiscal.intro")}</Typography>
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center", mb: 2 }}>
           <TextField select size="small" value={newYear.mode} onChange={(e) => setNewYear({ ...newYear, mode: e.target.value })} sx={{ ...S.field, width: 170 }}>
             <MenuItem value="jalali">{t("acc2.fiscal.jalali")}</MenuItem>
@@ -118,12 +117,10 @@ export default function SettingsTab(ctx) {
             </Box>
           </Box>
         ))}
-        <Typography sx={{ color: C.muted, fontSize: 12, mt: 1 }}>{t("acc2.fiscal.lock_hint")}</Typography>
       </Box>
 
       <Box sx={section}>
         <Typography sx={{ color: C.text, fontWeight: 800, mb: 0.5 }}>{t("acc2.settings.chart_title")}</Typography>
-        <Typography sx={{ color: C.sub, fontSize: 13, mb: 1.5 }}>{t("acc2.settings.chart_intro")}</Typography>
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center" }}>
           <TextField select size="small" value={tpl} onChange={(e) => setTpl(e.target.value)} sx={{ ...S.field, minWidth: 220 }}>
             {(settings?.templates || []).map((x) => <MenuItem key={x.key} value={x.key}>{lang === "fa" ? x.fa : x.en}</MenuItem>)}

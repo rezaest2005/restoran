@@ -41,7 +41,6 @@ export default function FixedTab(ctx) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       {error && <Alert severity="error">{error}</Alert>}
-      <Alert severity="info" icon={false} sx={{ py: 0.5 }}>{t("ui_acc.fixed.intro")}</Alert>
 
       <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
         <ToggleButtonGroup exclusive size="small" value={filter} onChange={(_, v) => v && setFilter(v)} aria-label={t("ui_acc.fixed.filter")}>

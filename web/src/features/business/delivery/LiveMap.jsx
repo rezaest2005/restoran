@@ -1,4 +1,4 @@
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 
 const W = 320;
 const H = 240;
@@ -66,7 +66,6 @@ export default function LiveMap({ ctx, points = [], stops = [] }) {
           )}
         </svg>
       </Box>
-      <Typography sx={{ color: C.muted, fontSize: 11, mt: 0.75 }}>{t("ui_del.map.note")}</Typography>
     </Box>
   );
 }

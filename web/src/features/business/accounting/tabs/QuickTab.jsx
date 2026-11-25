@@ -35,9 +35,9 @@ export default function QuickTab(ctx) {
   };
 
   const big = [
-    { key: "expense", label: t("ui_acc.actions.expense"), hint: t("ui_acc.quick.hint_expense"), color: C.danger },
-    { key: "in", label: t("ui_acc.actions.receipt"), hint: t("ui_acc.quick.hint_in"), color: C.success },
-    { key: "out", label: t("ui_acc.actions.payout"), hint: t("ui_acc.quick.hint_out"), color: C.warning },
+    { key: "expense", label: t("ui_acc.actions.expense"), color: C.danger },
+    { key: "in", label: t("ui_acc.actions.receipt"), color: C.success },
+    { key: "out", label: t("ui_acc.actions.payout"), color: C.warning },
   ];
   const kindLabel = { expense: t("ui_acc.quick.kind_expense"), in: t("ui_acc.quick.kind_in"), out: t("ui_acc.quick.kind_out") };
   const kindColor = { expense: C.danger, in: C.success, out: C.warning };
@@ -48,9 +48,8 @@ export default function QuickTab(ctx) {
       <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: { xs: "1fr", md: "repeat(3, 1fr)" } }}>
         {big.map((b) => (
           <Button key={b.key} onClick={() => setDialog(b.key)} variant="outlined"
-            sx={{ ...S.ghost, flexDirection: "column", alignItems: "flex-start", textAlign: "start", p: 2, minHeight: 96, borderColor: b.color, gap: 0.5 }}>
+            sx={{ ...S.ghost, flexDirection: "column", alignItems: "flex-start", textAlign: "start", p: 2, minHeight: 64, borderColor: b.color }}>
             <Typography sx={{ fontWeight: 800, fontSize: 16, color: b.color }}>+ {b.label}</Typography>
-            <Typography sx={{ fontSize: 12, color: C.sub, fontWeight: 400, lineHeight: 1.7 }}>{b.hint}</Typography>
           </Button>
         ))}
       </Box>

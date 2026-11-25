@@ -3,7 +3,6 @@ import {
   Alert, Box, Button, Chip, CircularProgress, Divider, Stack, TextField, Typography,
 } from "@mui/material";
 import { useRegisteredShortcuts } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import { fmtInt } from "../accounting/common";
 import { lookupMember, quotePurchase, createPurchase, errMsg } from "./api";
 import TierBadge from "./TierBadge";
@@ -94,13 +93,12 @@ export default function CheckoutPanel({ ctx, onDone }) {
     <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "minmax(0, 3fr) minmax(0, 2fr)" }, gap: 2 }}>
       <Box sx={S.card}>
         <Typography sx={{ color: C.text, fontWeight: 800, mb: 0.5 }}>{t("ui_club2.co.title")}</Typography>
-        <Typography sx={{ color: C.muted, fontSize: 12, mb: 1.5 }}>{t("ui_club2.co.hint")}</Typography>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
           <TextField inputRef={whoRef} autoFocus size="small" label={t("ui_club2.co.who")} value={who} sx={{ ...S.field, flex: 1 }}
             onChange={(e) => { setWho(e.target.value); setMember(undefined); setQuote(null); }}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); find(); } }}
             slotProps={{ htmlInput: { dir: "ltr" } }} />
-          <Button variant="outlined" sx={S.ghost} onClick={find}>{t("ui_club2.co.find")}<KbdHint>F4</KbdHint></Button>
+          <Button variant="outlined" sx={S.ghost} onClick={find}>{t("ui_club2.co.find")}</Button>
         </Stack>
 
         {member === null && (
@@ -143,8 +141,7 @@ export default function CheckoutPanel({ ctx, onDone }) {
               slotProps={{ htmlInput: { dir: "ltr" } }} />
             {member && (
               <TextField size="small" label={t("ui_club2.co.redeem")} value={form.redeem_points} onChange={set("redeem_points")}
-                sx={S.field} slotProps={num}
-                helperText={cfg ? t("ui_club2.co.redeem_hint", { min: n(cfg.min_redeem_points), pct: n(cfg.redeem_max_percent) }) : ""} />
+                sx={S.field} slotProps={num} />
             )}
             {member && cfg?.wallet_enabled && (
               <TextField size="small" label={t("ui_club2.co.wallet")} value={form.wallet_amount} onChange={set("wallet_amount")}
@@ -159,7 +156,7 @@ export default function CheckoutPanel({ ctx, onDone }) {
 
       <Box sx={S.card}>
         <Typography sx={{ color: C.text, fontWeight: 800, mb: 1 }}>{t("ui_club2.co.summary")}</Typography>
-        {!quote ? <Typography sx={{ color: C.muted }}>{t("ui_club2.co.summary_empty")}</Typography> : (
+        {!quote ? null : (
           <Stack spacing={0.75}>
             {[["amount", quote.amount], ["coupon_discount", -quote.coupon_discount], ["points_discount", -quote.points_discount],
               ["wallet_used", -quote.wallet_used]].filter(([, v]) => v).map(([k, v]) => (
@@ -183,7 +180,7 @@ export default function CheckoutPanel({ ctx, onDone }) {
         )}
         <Box sx={{ display: "flex", gap: 1, mt: 2, flexWrap: "wrap" }}>
           <Button sx={S.btn} onClick={save} disabled={busy || !quote}>
-            {busy ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_club2.co.save")}<KbdHint>Ctrl+D</KbdHint></>}
+            {busy ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_club2.co.save")}</>}
           </Button>
           <Button variant="outlined" sx={S.ghost} onClick={reset}>{t("ui_club2.co.clear")}</Button>
         </Box>

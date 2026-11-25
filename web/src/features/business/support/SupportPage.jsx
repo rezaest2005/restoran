@@ -8,7 +8,6 @@ import { useThemeMode } from "@shared/contexts/ThemeContext";
 import { useLang } from "@shared/contexts/LangContext";
 import { buildColors } from "@shared/palette";
 import { useRegisteredShortcuts, onEnter } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import {
   useStyles, TableWrap, useRowCursor, cursorBindings, cursorProps, fmtInt,
 } from "../accounting/common";
@@ -54,9 +53,8 @@ export default function SupportPage() {
     <Box dir={isRtl ? "rtl" : "ltr"} sx={{ py: 1 }}>
       <Box sx={S.card}>
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center", mb: 1.5 }}>
-          <Typography sx={{ color: C.sub, fontSize: 13, flex: 1, minWidth: 200 }}>{t("ui_sup.biz.hint")}</Typography>
           <Button sx={S.ghost} variant="outlined" onClick={load}>{t("ui_sup.common.refresh")}</Button>
-          <Button sx={S.btn} onClick={() => setCreating(true)}>{t("ui_sup.biz.new")}<KbdHint>F2</KbdHint></Button>
+          <Button sx={S.btn} onClick={() => setCreating(true)}>{t("ui_sup.biz.new")}</Button>
         </Box>
 
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}

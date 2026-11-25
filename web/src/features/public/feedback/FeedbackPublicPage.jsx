@@ -86,8 +86,7 @@ export default function FeedbackPublicPage() {
           {done ? (
             <Box sx={{ textAlign: "center", py: 3 }}>
               <CheckCircleOutlineIcon sx={{ fontSize: 56, color: C.success }} />
-              <Typography sx={{ fontWeight: 800, fontSize: 20, mt: 1 }}>{t("ui_fb.pub.ok_title")}</Typography>
-              <Typography sx={{ color: C.sub, mt: 1, mb: 3 }}>{t("ui_fb.pub.ok_text")}</Typography>
+              <Typography sx={{ fontWeight: 800, fontSize: 20, mt: 1, mb: 3 }}>{t("ui_fb.pub.ok_title")}</Typography>
               <Button onClick={() => setDone(false)}
                 sx={{ background: C.btnGrad, color: C.onPrimary, fontWeight: 700, borderRadius: 2, textTransform: "none", minHeight: 44, px: 3 }}>
                 {t("ui_fb.pub.again")}
@@ -97,7 +96,6 @@ export default function FeedbackPublicPage() {
             <Box component="form" onSubmit={submit} noValidate sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
               <Box>
                 <Typography sx={{ fontWeight: 800, fontSize: 20 }}>{t("ui_fb.pub.title")}</Typography>
-                <Typography sx={{ color: C.sub, fontSize: 14, mt: 0.5 }}>{t("ui_fb.pub.subtitle")}</Typography>
               </Box>
               <TextField select fullWidth size="small" label={t("ui_fb.pub.category")} value={category}
                 onChange={(e) => setCategory(e.target.value)} sx={field}>

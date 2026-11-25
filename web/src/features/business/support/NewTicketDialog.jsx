@@ -3,7 +3,6 @@ import {
   Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle, MenuItem, Stack, TextField, Typography,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import { createTicket } from "./api";
 import { CATEGORIES, PRIORITIES, errMsg } from "./common";
 
@@ -44,7 +43,6 @@ export default function NewTicketDialog({ ctx, onClose, onCreated }) {
       <DialogTitle sx={{ fontWeight: 700 }}>{t("ui_sup.biz.new_title")}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
-          <Typography sx={{ color: C.sub, fontSize: 13 }}>{t("ui_sup.biz.hint")}</Typography>
           <TextField autoFocus size="small" label={t("ui_sup.common.subject")} value={subject} sx={S.field}
             onChange={(e) => setSubject(e.target.value)} slotProps={{ htmlInput: { maxLength: 200 } }} />
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
@@ -64,7 +62,7 @@ export default function NewTicketDialog({ ctx, onClose, onCreated }) {
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>
         <Button variant="outlined" sx={S.ghost} onClick={onClose}>{t("ui_sup.common.close")}</Button>
-        <Button sx={S.btn} onClick={submit} disabled={busy}>{t("ui_sup.biz.create")}<KbdHint>Ctrl+D</KbdHint></Button>
+        <Button sx={S.btn} onClick={submit} disabled={busy}>{t("ui_sup.biz.create")}</Button>
       </DialogActions>
     </Dialog>
   );

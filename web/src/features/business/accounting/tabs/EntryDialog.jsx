@@ -5,7 +5,6 @@ import {
   TableRow, TableCell,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import { AccountPicker, DetailPicker, TableWrap, Money, num, round2, newKey, todayISO } from "../common";
 import { createEntry, updateDraft, errMsg } from "../api";
 
@@ -185,10 +184,10 @@ export default function EntryDialog({ ctx, onClose, onSaved, draft = null }) {
 
           <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
             <Button variant="outlined" sx={S.ghost} onClick={addLine}>
-              + {t("ui_i.entry.add_line")}<KbdHint>F3</KbdHint>
+              + {t("ui_i.entry.add_line")}
             </Button>
             <Button variant="outlined" sx={S.ghost} onClick={balanceLast} disabled={info.diff === 0}>
-              {t("acc2.entry.balance_last")}<KbdHint>F4</KbdHint>
+              {t("acc2.entry.balance_last")}
             </Button>
           </Box>
 
@@ -222,10 +221,10 @@ export default function EntryDialog({ ctx, onClose, onSaved, draft = null }) {
       <DialogActions sx={{ px: 3, py: 2, flexWrap: "wrap", gap: 1 }}>
         <Button variant="outlined" sx={S.ghost} onClick={onClose} disabled={saving}>{t("ui_i.common.cancel")}</Button>
         <Button variant="outlined" sx={S.ghost} onClick={() => submit(true)} disabled={saving || !canDraft}>
-          {t("acc2.entry.save_draft")}<KbdHint>Ctrl+S</KbdHint>
+          {t("acc2.entry.save_draft")}
         </Button>
         <Button sx={S.btn} onClick={() => submit(false)} disabled={saving || !valid}>
-          {saving ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_i.entry.submit")}<KbdHint>Ctrl+D</KbdHint></>}
+          {saving ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_i.entry.submit")}</>}
         </Button>
       </DialogActions>
     </Dialog>

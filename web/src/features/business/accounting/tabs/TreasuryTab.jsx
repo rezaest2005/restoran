@@ -4,7 +4,6 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Alert, CircularProgress, Tabs, Tab,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import { TableWrap, Money, fmtDate, fmtInt, num, todayISO, parseCsv } from "../common";
 import {
   fetchMoneyAccounts, createMoneyAccount, updateMoneyAccount, fetchTransfers, createTransfer, cancelTransfer,
@@ -53,9 +52,8 @@ function AccountsList({ ctx, data, reload }) {
   const un = data.unassigned || {};
   return (
     <>
-      <Box sx={{ display: "flex", justifyContent: "space-between", gap: 1, flexWrap: "wrap", mb: 2 }}>
-        <Typography sx={{ color: C.sub, fontSize: 13, flex: 1, minWidth: 200 }}>{t("acc2.treasury.intro")}</Typography>
-        <Button sx={S.btn} onClick={() => setEdit({})}>{t("acc2.treasury.new")}<KbdHint>F2</KbdHint></Button>
+      <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1, flexWrap: "wrap", mb: 2 }}>
+        <Button sx={S.btn} onClick={() => setEdit({})}>{t("acc2.treasury.new")}</Button>
       </Box>
       <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" } }}>
         {data.accounts.map((m) => (
@@ -149,7 +147,7 @@ function MoneyAccountDialog({ ctx, item, onClose, onSaved }) {
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button variant="outlined" sx={S.ghost} onClick={onClose} disabled={busy}>{t("ui_i.common.cancel")}</Button>
         <Button sx={S.btn} onClick={save} disabled={busy || !f.name.trim()}>
-          {busy ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_i.common.save")}<KbdHint>Ctrl+D</KbdHint></>}
+          {busy ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_i.common.save")}</>}
         </Button>
       </DialogActions>
     </Dialog>
@@ -197,7 +195,7 @@ function Transfers({ ctx, accounts, reload }) {
         <TextField type="date" size="small" label={t("ui_i.common.date")} value={f.date} onChange={set("date")} sx={S.field} slotProps={{ inputLabel: { shrink: true } }} />
         <TextField size="small" label={t("acc2.entry.reference")} value={f.reference} onChange={set("reference")} sx={S.field} />
         <TextField size="small" label={t("ui_i.common.memo")} value={f.note} onChange={set("note")} sx={S.field} />
-        <Button sx={S.btn} onClick={save} disabled={!valid || busy}>{t("acc2.treasury.do_transfer")}<KbdHint>Ctrl+D</KbdHint></Button>
+        <Button sx={S.btn} onClick={save} disabled={!valid || busy}>{t("acc2.treasury.do_transfer")}</Button>
       </Box>
       <TableWrap C={C}>
         <Table size="small" sx={{ minWidth: 640 }}>
@@ -315,7 +313,6 @@ function Reconcile({ ctx, accounts }) {
       )}
       <Box sx={{ mb: 2 }}>
         <Typography sx={{ color: C.text, fontWeight: 700, mb: 0.5 }}>{t("acc2.treasury.import_title")}</Typography>
-        <Typography sx={{ color: C.muted, fontSize: 12, mb: 1 }}>{t("acc2.treasury.import_hint")}</Typography>
         <TextField multiline minRows={3} fullWidth value={paste} onChange={(e) => setPaste(e.target.value)} sx={S.field}
           placeholder="2026-04-01,1500000,واریز,123" slotProps={{ htmlInput: { dir: "ltr" } }} />
         <Box sx={{ display: "flex", gap: 1, mt: 1, flexWrap: "wrap" }}>

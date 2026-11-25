@@ -23,7 +23,7 @@ export default function StopExtras({ ctx, stop: s }) {
         {s.require_otp && s.otp_code && s.status !== "delivered" && <span dir="ltr">{t("dlv.stop.otp", { code: s.otp_code })}</span>}
         {s.attempts > 0 && <span style={{ color: C.danger }}>{t("dlv.stop.attempts", { n: fmtInt(s.attempts, lang) })}</span>}
       </Box>
-      {s.instructions && <Typography sx={{ color: C.sub, fontSize: 12 }}>📝 {s.instructions}</Typography>}
+      {s.instructions && <Typography sx={{ color: C.sub, fontSize: 12 }}>{s.instructions}</Typography>}
       {s.status === "failed" && s.failure_code && (
         <Typography sx={{ color: C.danger, fontSize: 12 }}>{t(`dlv.fail.${s.failure_code}`, { defaultValue: s.failure_code })}</Typography>
       )}

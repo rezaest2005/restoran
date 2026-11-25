@@ -4,7 +4,6 @@ import {
   Dialog, DialogTitle, DialogContent, DialogActions, Alert, CircularProgress, ToggleButton, ToggleButtonGroup,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings, onEnter } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import {
   TableWrap, Money, DetailPicker, CHEQUE_STATUSES, fmtDate, num, todayISO, useRowCursor, cursorBindings, cursorProps,
 } from "../common";
@@ -77,7 +76,7 @@ export default function ChequesTab(ctx) {
         </TextField>
         <TextField size="small" label={t("ui_i.common.search")} value={q} onChange={(e) => setQ(e.target.value)}
           sx={{ ...S.field, flex: 1, minWidth: { xs: "100%", sm: 200 } }} />
-        <Button sx={S.btn} onClick={() => setNewOpen(true)}>{t("acc2.cheques.new")}<KbdHint>F2</KbdHint></Button>
+        <Button sx={S.btn} onClick={() => setNewOpen(true)}>{t("acc2.cheques.new")}</Button>
       </Box>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {loading ? <Box sx={{ textAlign: "center", py: 4 }}><CircularProgress size={28} /></Box> : (
@@ -182,7 +181,7 @@ function NewChequeDialog({ ctx, direction, moneyAccounts, onClose, onSaved }) {
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button variant="outlined" sx={S.ghost} onClick={onClose} disabled={busy}>{t("ui_i.common.cancel")}</Button>
         <Button sx={S.btn} onClick={save} disabled={busy || !valid}>
-          {busy ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_i.common.save")}<KbdHint>Ctrl+D</KbdHint></>}
+          {busy ? <CircularProgress size={18} color="inherit" /> : <>{t("ui_i.common.save")}</>}
         </Button>
       </DialogActions>
     </Dialog>
@@ -256,7 +255,7 @@ function ChequeDialog({ ctx, id, moneyAccounts, onClose, onChanged }) {
                 )}
                 {to === "endorsed" && <DetailPicker ctx={ctx} value={endorsee} onChange={setEndorsee} label={t("acc2.cheques.endorse_to")} />}
                 <Button sx={S.btn} onClick={apply} disabled={busy || !to || (needsBank && !maId) || (to === "endorsed" && !endorsee)}>
-                  {t("acc2.cheques.apply")}<KbdHint>Ctrl+D</KbdHint>
+                  {t("acc2.cheques.apply")}
                 </Button>
               </Box>
             )}

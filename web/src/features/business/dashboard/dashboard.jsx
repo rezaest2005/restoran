@@ -16,7 +16,6 @@ import FeedbackPage from "@business/feedback/FeedbackPage";
 import { fetchFeedback } from "@business/feedback/api";
 import OverviewTab from "./OverviewTab";
 import { canUse, canSupport } from "./access";
-import HintBar from "@shared/ui/HintBar";
 
 /**
  * Dashboard hub: Overview + Accounting + Customer club + Feedback + Support in one page.
@@ -102,7 +101,6 @@ export default function Dashboard() {
       )}
 
       <ShortcutsHelpDialog open={helpItems !== null} onClose={() => setHelpItems(null)} items={helpItems || []} />
-      <HintBar items={[{ keys: "Alt+1…9", label: t("ui_design.hint_tabs") }, { keys: "F1", label: t("ui_design.hint_help") }]} />
     </Box>
   );
 }

@@ -19,7 +19,7 @@ export default function RewardsPanel({ ctx }) {
     { key: "points_cost", type: "number", label: "ui_club2.reward.points_cost" },
     { key: "kind", type: "select", label: "ui_club2.reward.kind",
       options: KIND_OPTS(["amount", "percent", "free_item", "gift"]) },
-    { key: "value", type: "number", label: "ui_club2.reward.value", hint: "ui_club2.reward.value_hint" },
+    { key: "value", type: "number", label: "ui_club2.reward.value" },
     { key: "max_discount", type: "number", label: "ui_club2.coupon.max_discount", when: (f) => f.kind === "percent" },
     { key: "stock", type: "number", label: "ui_club2.reward.stock", hint: "ui_club2.blank_unlimited" },
     { key: "min_tier_id", type: "select", label: "ui_club2.reward.min_tier",
@@ -29,7 +29,7 @@ export default function RewardsPanel({ ctx }) {
   ];
 
   const couponFields = [
-    { key: "code", type: "text", label: "ui_club2.coupon.code", hint: "ui_club2.coupon.code_hint", createOnly: true, ltr: true },
+    { key: "code", type: "text", label: "ui_club2.coupon.code", createOnly: true, ltr: true },
     { key: "title", type: "text", label: "ui_club2.coupon.title" },
     { key: "kind", type: "select", label: "ui_club2.coupon.kind", options: KIND_OPTS(["amount", "percent", "free_item"]) },
     { key: "value", type: "number", label: "ui_club2.coupon.value" },
@@ -45,7 +45,7 @@ export default function RewardsPanel({ ctx }) {
 
   return (
     <>
-      <CrudSection ctx={ctx} kind="rewards" title={t("ui_club2.reward.title")} hint={t("ui_club2.reward.hint")}
+      <CrudSection ctx={ctx} kind="rewards" title={t("ui_club2.reward.title")}
         fields={rewardFields} defaults={{ kind: "amount", valid_days: 30, is_active: true, min_tier_id: "" }}
         columns={[
           { label: t("ui_club2.reward.name"), render: (r) => r.name },
@@ -53,7 +53,7 @@ export default function RewardsPanel({ ctx }) {
           { label: t("ui_club2.reward.kind"), render: (r) => `${t(`ui_club2.kind.${r.kind}`)} ${r.value ? valueText(r) : ""}` },
           { label: t("ui_club2.reward.stock"), num: true, render: (r) => (r.stock == null ? "∞" : fmtInt(r.stock, lang)) },
         ]} />
-      <CrudSection ctx={ctx} kind="coupons" title={t("ui_club2.coupon.title_list")} hint={t("ui_club2.coupon.hint")}
+      <CrudSection ctx={ctx} kind="coupons" title={t("ui_club2.coupon.title_list")}
         fields={couponFields} defaults={{ kind: "amount", is_active: true, min_purchase: 0 }}
         columns={[
           { label: t("ui_club2.coupon.code"), render: (r) => <span dir="ltr" style={{ fontWeight: 700 }}>{r.code}</span> },

@@ -44,7 +44,6 @@ export default function ActivityPage() {
   return (
     <Box dir={isRtl ? "rtl" : "ltr"} sx={{ p: { xs: 1, sm: 2 }, maxWidth: 1100, mx: "auto" }}>
       <Typography sx={{ color: C.text, fontWeight: 800, fontSize: { xs: 18, sm: 22 } }}>{t("ui_act.title")}</Typography>
-      <Typography sx={{ color: C.sub, fontSize: 13, mb: 2 }}>{t("ui_act.subtitle")}</Typography>
 
       <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap", mb: 1.5 }}>
         <Chip label={t("ui_act.all")} onClick={() => setF((s) => ({ ...s, category: "" }))} color={f.category ? "default" : "primary"} />

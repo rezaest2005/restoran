@@ -4,7 +4,6 @@ import {
   Stack, Switch, Tab, Table, TableBody, TableCell, TableHead, TableRow, Tabs, TextField, Typography,
 } from "@mui/material";
 import { useRegisteredShortcuts, dialogBindings } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import { TableWrap, fmtInt, fmtDate } from "../accounting/common";
 import {
   fetchMember, adjustMember, updateMember, walletMember, redeemReward, voidPurchase, crud, errMsg,
@@ -143,14 +142,13 @@ export default function MemberDetailDialog({ ctx, id, onClose, onChanged }) {
                 <Box sx={{ ...S.card, p: 1.5 }}>
                   <Typography sx={{ color: C.text, fontWeight: 700, mb: 1 }}>{t("ui_club.adjust.title")}</Typography>
                   <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-                    <TextField size="small" label={t("ui_club.adjust.points")} value={points} sx={{ ...S.field, width: { sm: 160 } }}
-                      helperText={t("ui_club.adjust.hint")} onChange={(e) => setPoints(e.target.value)}
+                    <TextField size="small" label={t("ui_club.adjust.points")} value={points} sx={{ ...S.field, width: { sm: 160 } }} onChange={(e) => setPoints(e.target.value)}
                       slotProps={{ htmlInput: { dir: "ltr", inputMode: "numeric" } }} />
                     <TextField size="small" label={t("ui_club.adjust.note")} value={note} sx={{ ...S.field, flex: 1 }}
                       onChange={(e) => setNote(e.target.value)} />
                   </Stack>
                   <Button sx={{ ...S.btn, mt: 1.5 }} onClick={adjust} disabled={busy}>
-                    {t("ui_club.adjust.apply")}<KbdHint>Ctrl+D</KbdHint>
+                    {t("ui_club.adjust.apply")}
                   </Button>
                 </Box>
                 <Rows C={C} S={S} t={t} rows={m.transactions} empty="ui_club.history.empty" cols={[
@@ -203,13 +201,12 @@ export default function MemberDetailDialog({ ctx, id, onClose, onChanged }) {
               <>
                 <Box sx={{ ...S.card, p: 1.5 }}>
                   <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-                    <TextField size="small" label={t("ui_club2.md.wallet_amount")} value={wallet} sx={{ ...S.field, width: { sm: 180 } }}
-                      helperText={t("ui_club2.md.wallet_hint")} onChange={(e) => setWallet(e.target.value)}
+                    <TextField size="small" label={t("ui_club2.md.wallet_amount")} value={wallet} sx={{ ...S.field, width: { sm: 180 } }} onChange={(e) => setWallet(e.target.value)}
                       slotProps={{ htmlInput: { dir: "ltr", inputMode: "numeric" } }} />
                     <TextField size="small" label={t("ui_club.adjust.note")} value={note} sx={{ ...S.field, flex: 1 }}
                       onChange={(e) => setNote(e.target.value)} />
                   </Stack>
-                  <Button sx={{ ...S.btn, mt: 1.5 }} onClick={topup} disabled={busy}>{t("ui_club2.md.wallet_apply")}<KbdHint>Ctrl+D</KbdHint></Button>
+                  <Button sx={{ ...S.btn, mt: 1.5 }} onClick={topup} disabled={busy}>{t("ui_club2.md.wallet_apply")}</Button>
                 </Box>
                 <Rows C={C} S={S} t={t} rows={m.wallet} empty="ui_club2.none" cols={[
                   { k: "d", label: "ui_club.history.date", render: (x) => fmtDate(x.created_at, lang) },
@@ -236,19 +233,17 @@ export default function MemberDetailDialog({ ctx, id, onClose, onChanged }) {
                   slotProps={{ htmlInput: { dir: "ltr" } }} />
                 <TextField size="small" label={t("ui_club2.md.email")} value={profile.email} onChange={setP("email")} sx={S.field}
                   slotProps={{ htmlInput: { dir: "ltr" } }} />
-                <TextField size="small" label={t("ui_club2.md.tags")} value={profile.tags} onChange={setP("tags")} sx={S.field}
-                  helperText={t("ui_club2.md.tags_hint")} />
+                <TextField size="small" label={t("ui_club2.md.tags")} value={profile.tags} onChange={setP("tags")} sx={S.field} />
                 <TextField size="small" type="date" label={t("ui_club2.md.birth_date")} value={profile.birth_date}
                   onChange={setP("birth_date")} sx={S.field} slotProps={{ inputLabel: { shrink: true } }} />
                 <TextField size="small" type="date" label={t("ui_club2.md.anniversary_date")} value={profile.anniversary_date}
-                  onChange={setP("anniversary_date")} sx={S.field} slotProps={{ inputLabel: { shrink: true } }}
-                  helperText={t("ui_club2.md.anniversary_hint")} />
+                  onChange={setP("anniversary_date")} sx={S.field} slotProps={{ inputLabel: { shrink: true } }} />
                 <TextField size="small" label={t("ui_club.adjust.note")} value={profile.note} onChange={setP("note")} sx={{ ...S.field, gridColumn: { sm: "1 / -1" } }} multiline minRows={2} />
                 <FormControlLabel control={<Switch checked={!!profile.sms_opt_in} onChange={(e) => setProfile((p) => ({ ...p, sms_opt_in: e.target.checked }))} />}
                   label={<Typography sx={{ color: C.text }}>{t("ui_club2.md.sms_opt_in")}</Typography>} />
                 <FormControlLabel control={<Switch checked={!!profile.is_active} onChange={(e) => setProfile((p) => ({ ...p, is_active: e.target.checked }))} />}
                   label={<Typography sx={{ color: C.text }}>{t("ui_club2.active")}</Typography>} />
-                <Box><Button sx={S.btn} onClick={saveProfile} disabled={busy}>{t("ui_club2.save")}<KbdHint>Ctrl+D</KbdHint></Button></Box>
+                <Box><Button sx={S.btn} onClick={saveProfile} disabled={busy}>{t("ui_club2.save")}</Button></Box>
               </Box>
             )}
           </Stack>

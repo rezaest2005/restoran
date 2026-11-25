@@ -69,7 +69,6 @@ export default function PendingOrders({ ctx, refreshKey, onDispatch }) {
           {t("ui_del.queue.make_trip", { n: chosen.length })}
         </Button>
       </Box>
-      <Typography sx={{ color: C.sub, fontSize: 12, mb: 1 }}>{t("ui_del.queue.hint")}</Typography>
 
       {rows.map((r) => {
         const tag = tagStyle(r.tag);

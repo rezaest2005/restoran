@@ -47,9 +47,6 @@ function RouteView({ ctx, trip }) {
           })}
         </svg>
       </Box>
-      <Typography sx={{ color: C.muted, fontSize: 11, mt: 0.5 }}>
-        {t("ui_del.hist.route_note", { km: data.distance_km, n: data.total_points })}
-      </Typography>
     </Box>
   );
 }

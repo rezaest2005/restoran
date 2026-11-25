@@ -247,7 +247,7 @@ export default function DispatchTab({ ctx, drivers, vehicles, refreshKey, select
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
               {canRoute && (
                 <Button variant="outlined" sx={S.ghost} disabled={busy} onClick={() => setRouteOpen(true)}>
-                  🧭 {t("dlv.route.optimize")}
+                  {t("dlv.route.optimize")}
                 </Button>
               )}
               {NEXT_TRIP[detail.status].map((s) => (
@@ -274,7 +274,7 @@ export default function DispatchTab({ ctx, drivers, vehicles, refreshKey, select
         <Box sx={{ mt: 1.5, display: "flex", flexDirection: "column", gap: 0.5 }}>
           {points.map((p) => (
             <Typography key={`${p.type}${p.id}`} sx={{ color: C.sub, fontSize: 12 }}>
-              {p.type === "vehicle" ? "🚚" : "🚴"} {p.name}
+              {p.name}
               {p.trip_number ? ` · TR-${fmtInt(p.trip_number, lang)} · ${t("ui_del.map.remaining", { n: fmtInt(p.stops_remaining ?? 0, lang) })}` : ""}
               {` · ${fmtTime(p.last_seen, lang)}`}
             </Typography>

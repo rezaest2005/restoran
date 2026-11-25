@@ -4,7 +4,6 @@ import {
   TextField, Typography,
 } from "@mui/material";
 import { useRegisteredShortcuts, onEnter } from "@shared/common/shortcutKit";
-import KbdHint from "@shared/common/KbdHint";
 import { TableWrap, fmtInt, fmtDate, useRowCursor, cursorBindings, cursorProps, downloadCsv } from "../accounting/common";
 import { fetchMembers, crud, errMsg } from "./api";
 import TierBadge from "./TierBadge";
@@ -83,7 +82,7 @@ export default function MembersPanel({ ctx, segment, setSegment, active }) {
           sx={{ ...S.field, minWidth: 130, flex: { xs: 1, sm: "none" } }}>
           {SORTS.map((s) => <MenuItem key={s} value={s}>{t(`ui_club2.sort_${s}`)}</MenuItem>)}
         </TextField>
-        <Button sx={S.btn} onClick={() => setAdding(true)}>{t("ui_club.member.new")}<KbdHint>F2</KbdHint></Button>
+        <Button sx={S.btn} onClick={() => setAdding(true)}>{t("ui_club.member.new")}</Button>
         <Button variant="outlined" sx={S.ghost} onClick={exportCsv} disabled={!rows.length}>{t("ui_club2.export")}</Button>
       </Box>
       <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap", mb: 1.5 }}>

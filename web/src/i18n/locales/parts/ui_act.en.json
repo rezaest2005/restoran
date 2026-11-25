@@ -1,16 +1,15 @@
 {
   "ui_act": {
-    "title": "Activity history",
-    "subtitle": "Everything done in the system: who, when, what. This list cannot be edited or deleted.",
+    "title": "History",
     "all": "All",
-    "search": "Search text",
+    "search": "Search",
     "person": "User",
     "courier": "Courier",
     "from": "From",
     "to": "To",
-    "empty": "No events found.",
+    "empty": "No events",
     "more": "Show more",
     "system": "System",
-    "load_failed": "Could not load the history."
+    "load_failed": "Could not load"
   }
 }

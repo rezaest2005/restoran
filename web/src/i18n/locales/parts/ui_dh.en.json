@@ -117,7 +117,7 @@
       "who": "Details",
       "name": "Full name",
       "phone": "Mobile",
-      "service": "What do they carry?",
+      "service": "Carries",
       "services": {
         "both": { "title": "Both", "hint": "Customer orders and cargo / products." },
         "orders": { "title": "Order courier", "hint": "Brings orders to customers." },
@@ -142,8 +142,7 @@
       "number": "No. {{n}}",
       "no_record": "No driver details for this account yet; press \"Edit\".",
       "module_off": "The Delivery module is not enabled for your business.",
-      "fleet_title": "Drivers & couriers",
-      "fleet_hint": "Drivers and couriers are one kind of person: anyone who moves orders or cargo. The same people appear in Definitions → Users & access, with the same form in both places."
+      "fleet_title": "Drivers & couriers"
     }
   }
 }
