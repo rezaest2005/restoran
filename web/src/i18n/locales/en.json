@@ -289,9 +289,9 @@
     "minLabel": "Min Required",
     "inbound": "Inbound",
     "outbound": "Outbound",
-    "secInventory": "📦 Inventory — Warehouse",
-    "secStock": "📊 Stock Overview",
-    "secWaste": "🗑️ Waste & Alerts"
+    "secInventory": "Inventory",
+    "secStock": "Stock",
+    "secWaste": "Waste"
   },
   "dict": {
     "title": "Dictionary of Names",

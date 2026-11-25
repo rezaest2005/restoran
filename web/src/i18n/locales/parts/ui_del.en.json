@@ -260,7 +260,7 @@
       "none": "No shipments",
       "open": "Details",
       "copy_link": "Copy link",
-      "copied": "Copied ✓",
+      "copied": "Copied",
       "shipment_no": "Shipment {{n}}",
       "where_now": "Where is it now?",
       "route": "Stops"

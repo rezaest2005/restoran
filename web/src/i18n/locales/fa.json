@@ -289,9 +289,9 @@
     "minLabel": "حداقل نیاز",
     "inbound": "ورود",
     "outbound": "خروج",
-    "secInventory": "📦 انبار — موجودی",
-    "secStock": "📊 نمای موجودی",
-    "secWaste": "🗑️ ضایعات و هشدارها"
+    "secInventory": "انبار",
+    "secStock": "موجودی",
+    "secWaste": "ضایعات"
   },
   "dict": {
     "title": "بخش تعارف",
