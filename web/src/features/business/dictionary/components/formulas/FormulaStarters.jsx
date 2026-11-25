@@ -15,7 +15,6 @@ export function TemplateDialog({ ctx, onClose, onApply }) {
       slotProps={{ paper: { sx: S.dialogPaper }, transition: { onExit: blurFocused } }}>
       <DialogTitle sx={{ fontWeight: 800 }}>{t("ui_mrp.templates_title")}</DialogTitle>
       <DialogContent dividers sx={{ borderColor: C.divider }}>
-        <Typography sx={{ color: C.sub, fontSize: 13, mb: 2 }}>{t("ui_mrp.templates_hint")}</Typography>
         <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
           {TEMPLATES.map((tpl) => (
             <Box key={tpl.key} component="button" type="button" onClick={() => onApply(templateDraft(tpl, lang))}
@@ -24,14 +23,9 @@ export function TemplateDialog({ ctx, onClose, onApply }) {
                 bgcolor: "transparent", color: C.text, font: "inherit",
                 "&:hover, &:focus-visible": { borderColor: C.primary, outline: "none", bgcolor: C.infoBg },
               }}>
-              <Typography sx={{ fontWeight: 800, mb: 0.5 }}>
-                <span aria-hidden="true">{tpl.icon} </span>{t(`ui_mrp.tpl_${tpl.key}`)}
-              </Typography>
+              <Typography sx={{ fontWeight: 800, mb: 0.5 }}>{t(`ui_mrp.tpl_${tpl.key}`)}</Typography>
               <Typography sx={{ color: C.sub, fontSize: 12 }}>
                 {tpl.stages.map((s) => pick(s.name, lang)).join(" ← ")}
-              </Typography>
-              <Typography sx={{ color: C.muted, fontSize: 11, mt: 0.5 }}>
-                {t("ui_mrp.tpl_counts", { stages: tpl.stages.length, items: tpl.components.length })}
               </Typography>
             </Box>
           ))}
@@ -77,12 +71,8 @@ export function ProcessDialog({ ctx, onClose, onApply }) {
       slotProps={{ paper: { sx: S.dialogPaper }, transition: { onExit: blurFocused } }}>
       <DialogTitle sx={{ fontWeight: 800 }}>{t("ui_mrp.describe_title")}</DialogTitle>
       <DialogContent dividers sx={{ borderColor: C.divider }}>
-        <Typography sx={{ color: C.sub, fontSize: 13, mb: 1 }}>{t("ui_mrp.describe_hint")}</Typography>
-        <Box component="pre" dir="auto" sx={{ bgcolor: C.infoBg, borderRadius: 1.5, p: 1.25, fontSize: 12, color: C.sub, whiteSpace: "pre-wrap", m: 0, mb: 1.5, fontFamily: "inherit" }}>
-          {t("ui_mrp.describe_example")}
-        </Box>
         <TextField fullWidth multiline minRows={5} value={text} onChange={(e) => { setText(e.target.value); setDraft(null); }}
-          label={t("ui_mrp.describe_label")} sx={S.field} slotProps={{ htmlInput: { dir: "auto", maxLength: 6000 } }} autoFocus />
+          label={t("ui_mrp.describe_label")} placeholder={t("ui_mrp.describe_example")} sx={S.field} slotProps={{ htmlInput: { dir: "auto", maxLength: 6000 } }} autoFocus />
         {error && <Alert severity="error" sx={{ mt: 1.5 }}>{error}</Alert>}
         {draft && (
           <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 1 }}>

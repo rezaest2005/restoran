@@ -76,11 +76,11 @@ export default function WarehouseSection({ ctx }) {
 
   return (
     <Box>
-      <SectionHeader ctx={ctx} title={t("ui_def.warehouses.title")} subtitle={t("ui_def.warehouses.subtitle")}
+      <SectionHeader ctx={ctx} title={t("ui_def.warehouses.title")}
         onNew={() => open(null)} newLabel={t("ui_def.warehouses.new")} search={q} onSearch={setQ} />
       <LoadState ctx={ctx} loading={loading && rows.length === 0} error={error} onRetry={load}
         empty={!loading && shown.length === 0} emptyText={q ? t("ui_def.common.no_results") : t("ui_def.warehouses.empty")}
-        emptyAction={q ? null : { label: t("ui_def.warehouses.new"), onClick: () => open(null), icon: "📦", hint: t("ui_dh.empty_hint.warehouses") }}>
+        emptyAction={q ? null : { label: t("ui_def.warehouses.new"), onClick: () => open(null) }}>
         <TableWrap C={C}>
           <Table size="small" sx={{ minWidth: 700 }}>
             <TableHead>
@@ -97,7 +97,7 @@ export default function WarehouseSection({ ctx }) {
                   <TableCell sx={S.td}>{typeLabel(r.warehouse_type)}</TableCell>
                   <TableCell sx={S.td}>{t("ui_def.warehouses.stock_count", { count: fmtNum(r.stock_count) })}</TableCell>
                   <TableCell sx={S.td}>
-                    <Switch size="small" checked={!!r.is_sales_default} disabled={flagBusy === r.id} onChange={() => toggleSales(r)}
+                    <Switch size="small" title={t("ui_def.warehouses.sales_hint")} checked={!!r.is_sales_default} disabled={flagBusy === r.id} onChange={() => toggleSales(r)}
                       slotProps={{ input: { "aria-label": t("ui_def.warehouses.sales_default") } }} />
                   </TableCell>
                   <TableCell sx={S.td}><Typography noWrap sx={{ fontSize: 13, maxWidth: 220 }} title={r.description}>{r.description || "—"}</Typography></TableCell>
@@ -110,7 +110,6 @@ export default function WarehouseSection({ ctx }) {
             </TableBody>
           </Table>
         </TableWrap>
-        <Typography sx={{ color: C.muted, fontSize: 11, mt: 1 }}>{t("ui_def.warehouses.sales_hint")}</Typography>
       </LoadState>
 
       {editing && (

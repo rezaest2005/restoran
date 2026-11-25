@@ -26,9 +26,7 @@ export default function StagesEditor({ ctx, stages, setStages, lines, matName, b
 
   if (stages.length === 0) {
     return (
-      <Box sx={{ border: `1px dashed ${C.glassBorder}`, borderRadius: 2, p: 2, textAlign: "center" }}>
-        <Typography sx={{ color: C.sub, fontSize: 13, mb: 1 }}>{t("ui_mrp.stages_empty")}</Typography>
-      </Box>
+      <Typography sx={{ color: C.sub, fontSize: 13, textAlign: "center", py: 1 }}>{t("ui_mrp.stages_empty")}</Typography>
     );
   }
 
@@ -57,11 +55,10 @@ export default function StagesEditor({ ctx, stages, setStages, lines, matName, b
             <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: { xs: "1fr 1fr", sm: "repeat(3, 1fr)", md: "repeat(5, 1fr)" } }}>
               {numField(s, "setup_minutes", t("ui_mrp.setup_minutes"), t("ui_mrp.min"))}
               {numField(s, "run_minutes", t("ui_mrp.run_minutes"), t("ui_mrp.min"))}
-              {numField(s, "capacity", t("ui_mrp.capacity"))}
+              <Box title={t("ui_mrp.capacity_hint")}>{numField(s, "capacity", t("ui_mrp.capacity"))}</Box>
               {numField(s, "labour_rate", t("ui_mrp.labour_rate"))}
               {numField(s, "overhead_rate", t("ui_mrp.overhead_rate"))}
             </Box>
-            <Typography sx={{ color: C.muted, fontSize: 11, mt: 0.5 }}>{t("ui_mrp.capacity_hint")}</Typography>
             <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap", mt: 1 }}>
               <Typography sx={{ color: C.sub, fontSize: 12 }}>
                 {t("ui_mrp.stage_per_batch", { time: fmtMinutes(t, minutes), cost: fmt(cost) })}

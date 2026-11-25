@@ -18,7 +18,6 @@ import CustomerSection from "./components/CustomerSection";
 import WarehouseSection from "./components/WarehouseSection";
 import BarcodeSection from "./components/barcodes/BarcodeSection";
 import ManagersSection from "./components/ManagersSection";
-import HintBar from "@shared/ui/HintBar";
 import StartChecklist from "./StartChecklist";
 import { START_STEPS } from "./startSteps";
 
@@ -27,14 +26,14 @@ import { START_STEPS } from "./startSteps";
  * AND the user holds one of its permission tabs.
  */
 const ALL_TABS = [
-  { id: "warehouses", icon: "📦", mods: ["inventory"], perms: ["dictionary_warehouses"] },
-  { id: "items", icon: "🧱", mods: ["inventory", "production"], perms: ["dictionary_items"] },
-  { id: "suppliers", icon: "🏭", mods: ["inventory"], perms: ["dictionary_suppliers"] },
-  { id: "formulas", icon: "📖", mods: ["production"], perms: ["dictionary_recipe"] },
-  { id: "products", icon: "🏷️", mods: ["inventory", "production"], perms: ["dictionary_items"] },
-  { id: "barcodes", icon: "▮▯▮", mods: null, perms: ["dictionary_menu", "dictionary_items"], check: () => canBarcodeProducts() || canBarcodeItems() },
-  { id: "customers", icon: "👥", mods: ["pos", "inventory", "accounting"], perms: ["dictionary_customers"] },
-  { id: "users", icon: "🔐", mods: null, perms: ["dictionary_users"] },
+  { id: "warehouses", mods: ["inventory"], perms: ["dictionary_warehouses"] },
+  { id: "items", mods: ["inventory", "production"], perms: ["dictionary_items"] },
+  { id: "suppliers", mods: ["inventory"], perms: ["dictionary_suppliers"] },
+  { id: "formulas", mods: ["production"], perms: ["dictionary_recipe"] },
+  { id: "products", mods: ["inventory", "production"], perms: ["dictionary_items"] },
+  { id: "barcodes", mods: null, perms: ["dictionary_menu", "dictionary_items"], check: () => canBarcodeProducts() || canBarcodeItems() },
+  { id: "customers", mods: ["pos", "inventory", "accounting"], perms: ["dictionary_customers"] },
+  { id: "users", mods: null, perms: ["dictionary_users"] },
 ];
 
 /**
@@ -42,10 +41,10 @@ const ALL_TABS = [
  * places -> what you buy & stock -> what you make & sell -> people.
  */
 const GROUPS = [
-  { id: "places", icon: "📍", tabs: ["warehouses"] },
-  { id: "stock", icon: "🧱", tabs: ["items", "suppliers"] },
-  { id: "sell", icon: "🏷️", tabs: ["formulas", "products", "barcodes"] },
-  { id: "people", icon: "👥", tabs: ["customers", "users"] },
+  { id: "places", tabs: ["warehouses"] },
+  { id: "stock", tabs: ["items", "suppliers"] },
+  { id: "sell", tabs: ["formulas", "products", "barcodes"] },
+  { id: "people", tabs: ["customers", "users"] },
 ];
 
 const canBarcodeProducts = () => moduleEnabled("pos") && hasTab("dictionary_menu");
@@ -104,12 +103,9 @@ export default function Dictionary() {
 
   return (
     <Box dir={isRtl ? "rtl" : "ltr"} sx={{ fontFamily: "'Vazirmatn', 'Plus Jakarta Sans', sans-serif", width: "100%" }}>
-      <Box sx={{ mb: 2 }}>
-        <Typography sx={{ fontSize: { xs: 20, md: 24 }, fontWeight: 900, color: C.text, mb: 0.5 }}>
-          📚 {t("ui_dh.title")}
-        </Typography>
-        <Typography sx={{ fontSize: 13, color: C.sub }}>{t("ui_dh.subtitle")}</Typography>
-      </Box>
+      <Typography sx={{ fontSize: { xs: 20, md: 24 }, fontWeight: 900, color: C.text, mb: 2 }}>
+        {t("ui_dh.title")}
+      </Typography>
 
       {tabs.length === 0 ? (
         <Typography sx={{ color: C.muted, textAlign: "center", py: 6 }}>{t("ui_def.no_access")}</Typography>
@@ -128,19 +124,17 @@ export default function Dictionary() {
               "& .MuiTabScrollButton-root": { color: C.sub },
             }}>
             {groups.map((g) => (
-              <Tab key={g.id} value={g.id} iconPosition="start" icon={<span aria-hidden="true">{g.icon}</span>} label={t(`ui_dh.groups_hub.${g.id}`)} />
+              <Tab key={g.id} value={g.id} label={t(`ui_dh.groups_hub.${g.id}`)} />
             ))}
           </Tabs>
 
           {/* level 2: the sections inside that group */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap", mb: 2, px: 0.5 }} role="tablist" aria-label={t(`ui_dh.groups_hub.${activeGroup.id}`)}>
-            <Typography sx={{ fontSize: 12, color: C.sub, marginInlineEnd: 0.5, width: { xs: "100%", sm: "auto" } }}>{t(`ui_dh.groups_hint.${activeGroup.id}`)}</Typography>
             {activeGroup.tabs.length > 1 && activeGroup.tabs.map((tb) => {
               const on = tb.id === activeTab;
               const i = tabs.findIndex((x) => x.id === tb.id);
               return (
                 <Chip key={tb.id} role="tab" aria-selected={on} clickable onClick={() => selectTab(tb.id)}
-                  icon={<span aria-hidden="true" style={{ fontSize: 13 }}>{tb.icon}</span>}
                   label={<>{tabLabel(tb.id)}{i < 9 && <span className="ks-alt-hint ks-kbd" dir="ltr" style={{ marginInlineStart: 6 }}>Alt+{i + 1}</span>}</>}
                   sx={{
                     fontWeight: on ? 800 : 600, px: 0.5, color: on ? C.primary : C.text,
@@ -151,10 +145,6 @@ export default function Dictionary() {
           </Box>
 
           <Box sx={{ ...S.card, p: { xs: 1.5, md: 3 } }}>
-            <Box sx={{ display: "flex", gap: 1, alignItems: "flex-start", mb: 2, p: 1.25, borderRadius: 2, bgcolor: C.inputBg, border: `1px solid ${C.divider}` }}>
-              <span aria-hidden="true">💡</span>
-              <Typography sx={{ fontSize: 12.5, color: C.sub }}>{t(`ui_dh.help.${activeTab}`)}</Typography>
-            </Box>
             {activeTab === "items" && <ItemsSection key="items" ctx={ctx} />}
             {activeTab === "products" && <ItemsSection key="products" ctx={ctx} productsOnly />}
             {activeTab === "formulas" && <FormulasSection ctx={ctx} jump={formulaJump} />}
@@ -173,7 +163,6 @@ export default function Dictionary() {
 
       <ToastSnackbar toast={toast} onClose={closeToast} C={C} />
       <ShortcutsHelpDialog open={!!help} onClose={() => setHelp(null)} items={help || []} />
-      <HintBar items={[{ keys: "F2", label: t("ui_design.hint_new") }, { keys: "Ctrl+D", label: t("ui_design.hint_save") }, { keys: "Esc", label: t("ui_design.hint_close") }, { keys: "F1", label: t("ui_design.hint_help") }]} />
     </Box>
   );
 }

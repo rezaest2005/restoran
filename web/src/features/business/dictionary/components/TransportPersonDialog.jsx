@@ -94,7 +94,6 @@ export default function TransportPersonDialog({ ctx, mode = "users", person, veh
     <FormDialog ctx={ctx} maxWidth="sm" saving={saving} error={error} onClose={onClose} onSave={submit}
       title={isEdit ? t("ui_dh.transport.edit_title", { name: person.name }) : label("new_title")}
       saveLabel={isEdit ? t("ui_def.common.save") : label("create")}>
-      {heading("who")}
       <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
         <TextField label={label("name")} value={f.name} onChange={(e) => set("name", e.target.value)} size="small" sx={S.field}
           required autoFocus error={touched && errs.name} helperText={touched && errs.name ? t("ui_def.common.required") : ""} />
@@ -106,12 +105,10 @@ export default function TransportPersonDialog({ ctx, mode = "users", person, veh
       <Box role="radiogroup" aria-label={label("service")} sx={{ display: "grid", gap: 1, gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" } }}>
         {TRANSPORT_SERVICES.map((s) => (
           <OptionCard key={s} ctx={ctx} selected={f.service === s} onClick={() => set("service", s)}
-            icon={{ both: "🔁", orders: "🛵", cargo: "🚚" }[s]}
-            title={t(`ui_dh.transport.services.${s}.title`)} hint={t(`ui_dh.transport.services.${s}.hint`)} />
+            title={t(`ui_dh.transport.services.${s}.title`)} />
         ))}
       </Box>
 
-      {heading("vehicle")}
       <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: f.vehicle === NEW ? "1fr 1fr 1fr" : "1fr 1fr" } }}>
         <TextField select label={label("vehicle")} value={f.vehicle} onChange={(e) => set("vehicle", e.target.value)} size="small" sx={S.field}>
           <MenuItem value="">{label("vehicle_none")}</MenuItem>
@@ -128,13 +125,13 @@ export default function TransportPersonDialog({ ctx, mode = "users", person, veh
         )}
         {f.vehicle !== NEW && (
           <TextField label={label("pay")} value={f.pay} onChange={(e) => set("pay", e.target.value)} size="small" sx={S.field}
-            error={touched && errs.pay} helperText={touched && errs.pay ? t("ui_def.common.invalid_number") : label("pay_hint")}
+            error={touched && errs.pay} helperText={touched && errs.pay ? t("ui_def.common.invalid_number") : ""}
             slotProps={{ htmlInput: { dir: "ltr", inputMode: "decimal" } }} />
         )}
       </Box>
       {f.vehicle === NEW && (
         <TextField label={label("pay")} value={f.pay} onChange={(e) => set("pay", e.target.value)} size="small" sx={S.field}
-          error={touched && errs.pay} helperText={touched && errs.pay ? t("ui_def.common.invalid_number") : label("pay_hint")}
+          error={touched && errs.pay} helperText={touched && errs.pay ? t("ui_def.common.invalid_number") : ""}
           slotProps={{ htmlInput: { dir: "ltr", inputMode: "decimal" } }} />
       )}
       {mode === "fleet" && carriers.length > 0 && (
@@ -145,9 +142,6 @@ export default function TransportPersonDialog({ ctx, mode = "users", person, veh
       )}
 
       {heading("signin")}
-      <Typography sx={{ fontSize: 12, color: C.sub, mt: -1 }}>
-        {linked ? label("signin_linked") : mode === "fleet" ? label("signin_optional") : label("signin_hint")}
-      </Typography>
       <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
         <TextField label={t("ui_def.users.username")} value={f.username} disabled={linked} size="small" sx={S.field}
           required={needSignIn} onChange={(e) => set("username", e.target.value)} error={touched && errs.username}
@@ -155,7 +149,7 @@ export default function TransportPersonDialog({ ctx, mode = "users", person, veh
           slotProps={{ htmlInput: { dir: "ltr", autoComplete: "off" } }} />
         <TextField label={linked ? label("password_new") : t("ui_def.users.password")} type="password" value={f.password} size="small" sx={S.field}
           required={needSignIn} onChange={(e) => set("password", e.target.value)} error={touched && errs.password}
-          helperText={touched && errs.password ? t("ui_def.users.password_min") : linked ? label("password_keep") : ""}
+          helperText={touched && errs.password ? t("ui_def.users.password_min") : ""}
           slotProps={{ htmlInput: { autoComplete: "new-password" } }} />
       </Box>
 

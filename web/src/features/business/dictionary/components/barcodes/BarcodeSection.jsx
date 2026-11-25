@@ -14,7 +14,7 @@ const PREVIEW_LIMIT = 24;
 const LIST_LIMIT = 1000;
 const NO_LABELS = { rows: [], missing: [] };
 
-const card = (C, S) => ({ ...S.card, display: "flex", flexDirection: "column", gap: 1.5 });
+const card = (C) => ({ display: "flex", flexDirection: "column", gap: 1.5, pb: 2.5, borderBottom: `1px solid ${C.divider}`, "&:last-of-type": { borderBottom: 0 } });
 
 /** Barcodes & labels: bulk generate, reserve spare codes, pick products/items and print labels. */
 export default function BarcodeSection({ ctx, canProducts, canItems }) {
@@ -139,15 +139,11 @@ export default function BarcodeSection({ ctx, canProducts, canItems }) {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <Box>
-        <Typography sx={{ fontSize: { xs: 16, sm: 18 }, fontWeight: 800, color: C.text }}>{t("ui_def.barcodes.title")}</Typography>
-        <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.3 }}>{t("ui_def.barcodes.subtitle")}</Typography>
-      </Box>
+      <Typography sx={{ fontSize: { xs: 16, sm: 18 }, fontWeight: 800, color: C.text }}>{t("ui_def.barcodes.title")}</Typography>
 
       {/* (a) generate for all missing */}
-      <Box sx={card(C, S)}>
+      <Box sx={card(C)}>
         <Typography sx={{ color: C.text, fontWeight: 800 }}>{t("ui_def.barcodes.gen_title")}</Typography>
-        <Typography sx={{ color: C.sub, fontSize: 13 }}>{t("ui_def.barcodes.gen_text")}</Typography>
         {genErr && <Alert severity="error">{genErr}</Alert>}
         {genResult && (
           <Alert severity={genResult.count ? "success" : "info"} role="status">
@@ -171,9 +167,8 @@ export default function BarcodeSection({ ctx, canProducts, canItems }) {
       </Box>
 
       {/* (b) spare codes */}
-      <Box sx={card(C, S)}>
+      <Box sx={card(C)}>
         <Typography sx={{ color: C.text, fontWeight: 800 }}>{t("ui_def.barcodes.spare_title")}</Typography>
-        <Typography sx={{ color: C.sub, fontSize: 13 }}>{t("ui_def.barcodes.spare_text")}</Typography>
         {spareErr && <Alert severity="error">{spareErr}</Alert>}
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
           <TextField size="small" type="number" label={t("ui_def.barcodes.spare_count")} value={spareCount} sx={{ ...S.field, width: 140 }}
@@ -196,7 +191,7 @@ export default function BarcodeSection({ ctx, canProducts, canItems }) {
       </Box>
 
       {/* (c) labels */}
-      <Box sx={card(C, S)}>
+      <Box sx={card(C)}>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
           <Typography sx={{ color: C.text, fontWeight: 800 }}>{t("ui_def.barcodes.labels_title")}</Typography>
           {targets.length > 1 && (

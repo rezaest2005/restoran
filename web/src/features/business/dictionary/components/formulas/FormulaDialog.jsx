@@ -313,27 +313,18 @@ export default function FormulaDialog({ ctx, formula, materials, reloadMaterials
         <TextField label={t("ui_e.formulas.f_code")} value={code} onChange={(e) => { setCode(e.target.value); setDirty(true); }} size="small" sx={S.field} />
       </Box>
       <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "2fr 1fr" } }}>
-        <Box>
-          <ItemPicker ctx={ctx} options={outOptions} value={outId} label={t("ui_e.formulas.f_output")}
-            onChange={(id) => { setOutId(id); setDirty(true); }}
-            onCreate={(n) => setQuick({ name: n, kind: "finished", target: "out" })}
-            error={touched && !outId} />
-          <Typography sx={{ color: C.muted, fontSize: 11, mt: 0.5 }}>{t("ui_mrp.output_hint")}</Typography>
-        </Box>
-        <Box>
-          {numInput(outQty, (v) => { setOutQty(v); setDirty(true); }, { label: t("ui_e.formulas.f_batch_qty"), error: touched && !(num(outQty) > 0), end: adorn(unitLabel(unitOf(outId))) })}
-          <Typography sx={{ color: C.muted, fontSize: 11, mt: 0.5 }}>{t("ui_mrp.batch_hint")}</Typography>
-        </Box>
+        <ItemPicker ctx={ctx} options={outOptions} value={outId} label={t("ui_e.formulas.f_output")}
+          onChange={(id) => { setOutId(id); setDirty(true); }}
+          onCreate={(n) => setQuick({ name: n, kind: "finished", target: "out" })}
+          error={touched && !outId} />
+        {numInput(outQty, (v) => { setOutQty(v); setDirty(true); }, { label: t("ui_e.formulas.f_batch_qty"), error: touched && !(num(outQty) > 0), end: adorn(unitLabel(unitOf(outId))) })}
       </Box>
       <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
         <TextField select size="small" label={t("ui_mrp.industry")} value={industry} sx={S.field}
           onChange={(e) => { setIndustry(e.target.value); setDirty(true); }}>
           {INDUSTRIES.map((k) => <MenuItem key={k || "none"} value={k}>{k ? t(`ui_mrp.tpl_${k}`) : "—"}</MenuItem>)}
         </TextField>
-        <Box>
-          {numInput(overhead, (v) => { setOverhead(v); setDirty(true); }, { label: t("ui_mrp.overhead_percent"), error: touched && !(num(overhead || 0) >= 0), end: adorn("%") })}
-          <Typography sx={{ color: C.muted, fontSize: 11, mt: 0.5 }}>{t("ui_mrp.overhead_hint")}</Typography>
-        </Box>
+        {numInput(overhead, (v) => { setOverhead(v); setDirty(true); }, { label: t("ui_mrp.overhead_percent"), error: touched && !(num(overhead || 0) >= 0), end: adorn("%") })}
       </Box>
       <TextField label={t("ui_e.formulas.f_notes")} value={notes} onChange={(e) => { setNotes(e.target.value); setDirty(true); }}
         size="small" sx={S.field} multiline minRows={2} />
@@ -438,19 +429,16 @@ export default function FormulaDialog({ ctx, formula, materials, reloadMaterials
           </TableBody>
         </Table>
       </TableWrap>
-      {advanced && <Typography sx={{ color: C.muted, fontSize: 11 }}>{t("ui_mrp.advanced_hint")}</Typography>}
       {filled.length > 0 && (
         <ReadyBanner t={t} ready={shortCount === 0} count={shortCount}
           okText={t("ui_prod.formula_banner_ok")} shortText={t("ui_prod.formula_banner_short", { count: shortCount })} />
       )}
-      <Typography sx={{ color: C.muted, fontSize: 12 }}>{t("ui_mrp.multilevel_hint")}</Typography>
       <Box>
         <Button variant="outlined" sx={S.ghost} onClick={addLine}>+ {t("ui_e.formulas.add_line")}</Button>
       </Box>
 
       <Box sx={{ borderTop: `1px solid ${C.divider}`, pt: 2, display: "flex", flexDirection: "column", gap: 1.25 }}>
         <Typography sx={{ color: C.text, fontWeight: 700 }}>{t("ui_mrp.byproducts")}</Typography>
-        <Typography sx={{ color: C.muted, fontSize: 12 }}>{t("ui_mrp.byproducts_hint")}</Typography>
         {byps.map((b) => (
           <Box key={b.key} sx={{ display: "grid", gap: 1, gridTemplateColumns: { xs: "1fr 1fr", sm: "2fr 1fr 1fr auto" }, alignItems: "start" }}>
             <Box sx={{ gridColumn: { xs: "1 / -1", sm: "auto" } }}>
@@ -478,7 +466,6 @@ export default function FormulaDialog({ ctx, formula, materials, reloadMaterials
 
   const stagesStep = (
     <>
-      <Typography sx={{ color: C.sub, fontSize: 13 }}>{t("ui_mrp.stages_hint")}</Typography>
       <StagesEditor ctx={ctx} stages={stages} setStages={setStages} lines={lines} matName={matName} batch={outQty} touched={touched} />
       <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
         <Button variant="outlined" sx={S.ghost} onClick={() => setStages((s) => [...s, blankStage()])}>+ {t("ui_mrp.add_stage")}</Button>
