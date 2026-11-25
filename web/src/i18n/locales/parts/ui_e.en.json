@@ -1,31 +1,21 @@
 {
   "ui_e": {
     "nav_production": "Production Line",
-    "page": {
-      "title": "Production Line",
-      "subtitle": "Define formulations (bill of materials) and run production orders for your business."
-    },
-    "tabs": { "formulas": "Formulations", "orders": "Production Line" },
     "common": {
-      "cancel": "Cancel", "close": "Close", "save": "Save", "edit": "Edit", "delete": "Delete",
+      "cancel": "Cancel", "close": "Close",
       "remove": "Remove",
       "load_failed": "Could not load.", "save_failed": "Not done."
-    },
-    "types": {
-      "raw": "Raw material", "packaging": "Packaging", "semi_finished": "Semi-finished", "finished": "Finished product"
     },
     "status": {
       "planned": "Planned", "in_progress": "In progress", "completed": "Completed", "cancelled": "Cancelled"
     },
-    "formulas": {
-      "list_title": "Formulations", "new": "New formulation", "empty": "No formulations defined yet.",
+    "formulas": { "new": "New formulation", "empty": "No formulations defined yet.",
       "col_name": "Name", "col_code": "Code", "col_output": "Output product", "col_batch": "Batch size",
       "col_version": "Version", "col_active": "Active", "col_actions": "Actions",
       "new_title": "New formulation", "edit_title": "Edit formulation",
       "f_name": "Formulation name", "f_code": "Code (optional)", "f_output": "Output product",
-      "f_batch_qty": "Batch output quantity", "f_notes": "Notes",
-      "lines_title": "Components", "l_material": "Material", "l_quantity": "Quantity", "l_wastage": "Wastage %",
-      "add_line": "Add component", "est_cost": "Estimated batch cost", "per_unit": "per unit",
+      "f_batch_qty": "Batch output quantity", "f_notes": "Notes", "l_material": "Material",
+      "add_line": "Add component",
       "saved": "Formulation saved.", "deleted": "Formulation deleted.",
       "delete_title": "Delete formulation",
       "delete_text": "Are you sure you want to delete \"{{name}}\"?",

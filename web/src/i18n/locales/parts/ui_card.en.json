@@ -36,9 +36,7 @@
       "err_timeout": "15 to 300"
     },
     "checkout": {
-      "method": "Card terminal",
       "action": "Card terminal",
-      "creating": "Saving...",
       "waiting_title": "Waiting for the customer's card",
       "amount": "Amount",
       "countdown": "{{s}} s",
@@ -48,7 +46,6 @@
       "retry": "Try again",
       "other_way": "Other method",
       "cancel_order": "Cancel order",
-      "order_cancelled": "Order cancelled.",
       "failure": {
         "declined": "Card declined.",
         "cancelled": "Cancelled.",

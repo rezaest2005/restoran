@@ -36,9 +36,7 @@
       "err_timeout": "۱۵ تا ۳۰۰"
     },
     "checkout": {
-      "method": "کارتخوان",
       "action": "کارتخوان",
-      "creating": "در حال ثبت…",
       "waiting_title": "منتظر کارت مشتری",
       "amount": "مبلغ",
       "countdown": "{{s}} ثانیه",
@@ -48,7 +46,6 @@
       "retry": "تلاش دوباره",
       "other_way": "روش دیگر",
       "cancel_order": "لغو سفارش",
-      "order_cancelled": "سفارش لغو شد.",
       "failure": {
         "declined": "کارت رد شد.",
         "cancelled": "لغو شد.",

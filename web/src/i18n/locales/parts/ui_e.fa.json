@@ -1,31 +1,21 @@
 {
   "ui_e": {
     "nav_production": "خط تولید",
-    "page": {
-      "title": "خط تولید",
-      "subtitle": "فرمولاسیون (فهرست مواد) را تعریف کنید و سفارش‌های تولید کسب‌وکار خود را مدیریت کنید."
-    },
-    "tabs": { "formulas": "فرمولاسیون", "orders": "خط تولید" },
     "common": {
-      "cancel": "انصراف", "close": "بستن", "save": "ذخیره", "edit": "ویرایش", "delete": "حذف",
+      "cancel": "انصراف", "close": "بستن",
       "remove": "حذف ردیف",
       "load_failed": "بارگذاری نشد.", "save_failed": "انجام نشد."
-    },
-    "types": {
-      "raw": "ماده‌ی اولیه", "packaging": "بسته‌بندی", "semi_finished": "نیمه‌آماده", "finished": "محصول آماده"
     },
     "status": {
       "planned": "برنامه‌ریزی‌شده", "in_progress": "در حال تولید", "completed": "تکمیل‌شده", "cancelled": "لغو‌شده"
     },
-    "formulas": {
-      "list_title": "فرمولاسیون‌ها", "new": "فرمولاسیون جدید", "empty": "هنوز فرمولاسیونی تعریف نشده است.",
+    "formulas": { "new": "فرمولاسیون جدید", "empty": "هنوز فرمولاسیونی تعریف نشده است.",
       "col_name": "نام", "col_code": "کد", "col_output": "محصول خروجی", "col_batch": "اندازه‌ی بچ",
       "col_version": "نسخه", "col_active": "فعال", "col_actions": "عملیات",
       "new_title": "فرمولاسیون جدید", "edit_title": "ویرایش فرمولاسیون",
       "f_name": "نام فرمولاسیون", "f_code": "کد (اختیاری)", "f_output": "محصول خروجی",
-      "f_batch_qty": "مقدار خروجی هر بچ", "f_notes": "توضیحات",
-      "lines_title": "اجزای فرمول", "l_material": "ماده", "l_quantity": "مقدار", "l_wastage": "ضایعات ٪",
-      "add_line": "افزودن جزء", "est_cost": "هزینه‌ی تخمینی هر بچ", "per_unit": "برای هر واحد",
+      "f_batch_qty": "مقدار خروجی هر بچ", "f_notes": "توضیحات", "l_material": "ماده",
+      "add_line": "افزودن جزء",
       "saved": "فرمولاسیون ذخیره شد.", "deleted": "فرمولاسیون حذف شد.",
       "delete_title": "حذف فرمولاسیون",
       "delete_text": "آیا از حذف «{{name}}» مطمئن هستید؟",

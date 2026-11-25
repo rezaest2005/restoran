@@ -1,22 +1,21 @@
 {
   "ui_l": {
     "pos": {
-      "focus_cart": "Focus cart rows",
-      "cart_next_row": "Next cart row (inside the cart)",
-      "cart_prev_row": "Previous cart row (inside the cart)",
-      "cart_row_remove": "Remove focused cart row",
-      "cart_row_inc": "Increase focused row quantity",
-      "cart_row_dec": "Decrease focused row quantity",
-      "order_type_n": "Order type: {{name}}",
+      "focus_cart": "Cart",
+      "cart_next_row": "Next row",
+      "cart_prev_row": "Previous row",
+      "cart_row_remove": "Remove row",
+      "cart_row_inc": "Increase",
+      "cart_row_dec": "Decrease",
+      "order_type_n": "Type: {{name}}",
       "type_hall": "Dine-in",
       "type_takeout": "Takeout",
       "type_delivery": "Delivery",
-      "toggle_edit": "Toggle product edit mode",
-      "exit_edit": "Leave product edit mode",
+      "toggle_edit": "Edit",
+      "exit_edit": "Exit edit",
       "next_category": "Next category",
       "prev_category": "Previous category",
-      "discount_apply": "Apply category discount",
-      "discount_close": "Close category discount"
+      "discount_apply": "Apply"
     },
     "store": {
       "restore_title": "Restore this revision?",
