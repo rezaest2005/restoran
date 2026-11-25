@@ -404,11 +404,7 @@ function FoodCard({
               transform: hovered && !editMode ? "scale(1.08)" : "scale(1)",
             }}
           />
-        ) : (
-          <Typography sx={{ fontSize: { xs: 36, sm: 48 }, opacity: 0.25 }}>
-            🍽️
-          </Typography>
-        )}
+        ) : null}
         {editMode && (
           <Box
             sx={{
@@ -499,7 +495,7 @@ function FoodCard({
             {/* قیمت */}
             <Box>
               <Typography sx={labelSx}>
-                {isRtl ? "قیمت محصول" : "Price"}
+                {isRtl ? "قیمت" : "Price"}
               </Typography>
               <input
                 type="text"
@@ -509,8 +505,7 @@ function FoodCard({
                   const raw = e.target.value.replace(/,/g, "");
                   if (/^\d*$/.test(raw)) setPrice(raw === "" ? 0 : Number(raw));
                 }}
-                placeholder={isRtl ? "مبلغ رو وارد کنین" : "Enter price"}
-                style={inputSx}
+                                style={inputSx}
               />
             </Box>
 
@@ -563,15 +558,6 @@ function FoodCard({
                     );
                   }
                 }}
-                placeholder={
-                  discountMode === "percent"
-                    ? isRtl
-                      ? "مثلاً ۱۰"
-                      : "e.g. 10"
-                    : isRtl
-                      ? "مثلاً ۵,۰۰۰"
-                      : "e.g. 5,000"
-                }
                 style={inputSx}
               />
               {discount > 0 && (
@@ -585,8 +571,8 @@ function FoodCard({
                   }}
                 >
                   {isRtl
-                    ? `قیمت نهایی: ${formatNum(effectivePrice)} تومان`
-                    : `Final price: ${formatNum(effectivePrice)} Toman`}
+                    ? `${formatNum(effectivePrice)} تومان`
+                    : `${formatNum(effectivePrice)} Toman`}
                 </Typography>
               )}
               {hasServerDiscount && (
@@ -601,11 +587,11 @@ function FoodCard({
                 >
                   {isCleanPercent
                     ? isRtl
-                      ? `تخفیف فعلی: ${serverDiscountPercent}%`
-                      : `Current: ${serverDiscountPercent}%`
+                      ? `${serverDiscountPercent}%`
+                      : `${serverDiscountPercent}%`
                     : isRtl
-                      ? `تخفیف فعلی: ${formatNum(serverDiscount)} تومان`
-                      : `Current: ${formatNum(serverDiscount)} Toman`}
+                      ? `${formatNum(serverDiscount)} تومان`
+                      : `${formatNum(serverDiscount)} Toman`}
                 </Typography>
               )}
               {hasCatDiscount && (
@@ -620,11 +606,11 @@ function FoodCard({
                 >
                   {categoryDiscountType === "percent"
                     ? isRtl
-                      ? `تخفیف دسته: ${categoryDiscount}%`
-                      : `Category: ${categoryDiscount}%`
+                      ? `${categoryDiscount}%`
+                      : `${categoryDiscount}%`
                     : isRtl
-                      ? `تخفیف دسته: ${formatNum(catDiscountAmount)} تومان`
-                      : `Category: ${formatNum(catDiscountAmount)} Toman`}
+                      ? `${formatNum(catDiscountAmount)} تومان`
+                      : `${formatNum(catDiscountAmount)} Toman`}
                 </Typography>
               )}
             </Box>
@@ -641,8 +627,7 @@ function FoodCard({
                     if (/^\d*$/.test(raw))
                       setStock(raw === "" ? "" : Math.max(0, Number(raw)));
                   }}
-                  placeholder={isRtl ? "تعداد رو وارد کنین" : "Enter quantity"}
-                  disabled={!!food.linked}
+                                    disabled={!!food.linked}
                   style={{ ...inputSx, flex: 1, opacity: food.linked ? 0.5 : 1 }}
                 />
                 <Box
@@ -687,7 +672,7 @@ function FoodCard({
                     fontFamily: "'Vazirmatn', sans-serif",
                   }}
                 >
-                  {isRtl ? "⚠ ناموجود" : "⚠ Out of stock"}
+                  {isRtl ? "ناموجود" : "Out of stock"}
                 </Typography>
               )}
               {lowStock && Number(stock) > 0 && (
@@ -701,8 +686,8 @@ function FoodCard({
                   }}
                 >
                   {isRtl
-                    ? `⚠ رو به اتمام (${stock} عدد)`
-                    : `⚠ Low stock (${stock})`}
+                    ? `رو به اتمام (${stock})`
+                    : `Low stock (${stock})`}
                 </Typography>
               )}
             </Box>
@@ -734,11 +719,11 @@ function FoodCard({
             >
               {saving
                 ? isRtl
-                  ? "در حال ذخیره..."
-                  : "Saving..."
+                  ? "…"
+                  : "…"
                 : isRtl
-                  ? "ذخیره تغییرات"
-                  : "Save Changes"}
+                  ? "ذخیره"
+                  : "Save"}
             </Box>
           </Box>
         ) : (
@@ -774,8 +759,8 @@ function FoodCard({
               >
                 {avail == null
                   ? isRtl
-                    ? "موجودی: نامشخص"
-                    : "Stock: N/A"
+                    ? "—"
+                    : "—"
                   : outOfStock
                     ? isRtl
                       ? "ناموجود"

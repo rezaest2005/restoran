@@ -63,7 +63,7 @@ export default function PurchaseListTab({ C, isDark, showToast }) {
       }}>
         <Box>
           <Typography sx={{ fontSize: { xs: 16, sm: 18 }, fontWeight: 800, color: C.text }}>
-            🛒 لیست خرید
+            لیست خرید
           </Typography>
           <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.3 }}>
             {t("ui_j.purchase.summary", { count: items.length, cost: fmt(totalCost) })}
@@ -84,24 +84,17 @@ export default function PurchaseListTab({ C, isDark, showToast }) {
               "&:hover": { transform: "translateY(-1px)", boxShadow: `0 6px 28px ${C.olive}40` },
             }}
           >
-            🔄 {t("ui_j.purchase.refresh")}<KbdHint>F2</KbdHint>
+            {t("ui_j.purchase.refresh")}<KbdHint>F2</KbdHint>
           </Button>
         </Box>
       </Box>
 
-      <Typography sx={{ fontSize: 11, color: C.muted, mb: 1.5 }}>
-        {t("ui_j.purchase.hint")}
-      </Typography>
 
       {/* ── لیست ── */}
       {filtered.length === 0 ? (
         <Box sx={{ textAlign: "center", py: 8 }}>
-          <Typography sx={{ fontSize: 40, mb: 1 }}>🛒</Typography>
           <Typography sx={{ fontSize: 14, fontWeight: 700, color: C.text }}>
             {t("ui_j.purchase.empty_title")}
-          </Typography>
-          <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.5 }}>
-            {t("ui_j.purchase.empty_sub")}
           </Typography>
         </Box>
       ) : (

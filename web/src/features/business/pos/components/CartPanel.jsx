@@ -41,7 +41,7 @@ export default function CartPanel({
           fontFamily: "'Vazirmatn', sans-serif",
         }}>
           <ShoppingBag sx={{ color: C.olive }} />
-          {isRtl ? "سبد خرید" : "Cart"}
+          {isRtl ? "سبد" : "Cart"}
         </Typography>
         <Chip
           label={cartCount}
@@ -55,7 +55,7 @@ export default function CartPanel({
           <Box sx={{ textAlign: "center", py: 5, color: C.muted }}>
             <ShoppingBagOutlined sx={{ fontSize: 48, opacity: 0.3, mb: 1 }} />
             <Typography sx={{ fontFamily: "'Vazirmatn', sans-serif", fontSize: 13 }}>
-              {isRtl ? "سبد خالی است" : "Cart is empty"}
+              {isRtl ? "خالی" : "Empty"}
             </Typography>
           </Box>
         ) : (
@@ -111,7 +111,7 @@ export default function CartPanel({
             fontWeight: 600, color: C.sub,
             fontFamily: "'Vazirmatn', sans-serif", fontSize: 13,
           }}>
-            {isRtl ? "جمع کل:" : "Total:"}
+            {isRtl ? "جمع" : "Total"}
           </Typography>
           <Box sx={{ display: "flex", alignItems: "baseline", gap: 0.4 }}>
             <Typography sx={{
@@ -153,7 +153,7 @@ export default function CartPanel({
         >
           <CreditCard sx={{ mr: 1 }} />
           {submitting
-            ? (isRtl ? "در حال پرداخت..." : "Processing...")
+            ? "…"
             : (isRtl ? "پرداخت" : "Checkout")
           }
           {!submitting && <KbdHint>Ctrl+D</KbdHint>}

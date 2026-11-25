@@ -3,39 +3,39 @@
     "incoming": {
       "nav": "Incoming orders",
       "title": "Incoming orders",
-      "empty": "No pending orders right now.",
-      "connection_problem": "Connection problem, retrying...",
+      "empty": "No orders",
+      "connection_problem": "Connection lost...",
       "new_order_table": "New order — table {{n}}",
       "new_order": "New order",
       "table": "Table {{n}}",
       "source_qr": "QR",
       "source_online": "Online",
       "no_name": "Guest",
-      "note": "Customer note",
+      "note": "Notes",
       "total": "Total",
       "currency": "Toman",
       "accept": "Accept",
       "reject": "Reject",
-      "reject_title": "Reject this order?",
-      "reject_text": "The order will be cancelled and stock restored.",
+      "reject_title": "Reject?",
+      "reject_text": "Stock is returned.",
       "cancel": "Cancel",
-      "confirm_reject": "Yes, reject",
+      "confirm_reject": "Reject",
       "accepted_ok": "Order accepted",
       "rejected_ok": "Order rejected",
-      "action_failed": "Action failed",
+      "action_failed": "Not done",
       "mute": "Mute sound",
       "unmute": "Enable sound",
       "auto_print": "Auto print",
-      "accepted_section": "Accepted this session",
+      "accepted_section": "Accepted",
       "print_again": "Print again",
       "just_now": "just now",
       "min_ago": "{{n}} min ago",
       "hour_ago": "{{n}} h ago",
       "order_no": "Order #{{id}}",
-      "qr_codes": "Table / location QR codes"
+      "qr_codes": "Table QR codes"
     },
     "print": {
-      "failed": "Printing failed",
+      "failed": "Print failed",
       "production_title": "Production Line",
       "receipt_title": "Receipt",
       "table": "Table / location",
@@ -61,7 +61,7 @@
       "delivery": "Courier delivery",
       "tracking": "Track delivery",
       "currency": "Toman",
-      "thanks": "Thank you!"
+      "thanks": "Thank you"
     }
   }
 }

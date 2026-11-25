@@ -188,7 +188,7 @@ export default function FoodGrid({
             fontFamily: "'Vazirmatn', sans-serif",
           }}
         >
-          {isRtl ? "غذایی یافت نشد" : "No food found"}
+          {isRtl ? "موردی یافت نشد" : "Nothing found"}
         </Typography>
       </Box>
     );

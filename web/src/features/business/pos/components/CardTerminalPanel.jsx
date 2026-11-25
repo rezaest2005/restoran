@@ -55,11 +55,8 @@ export default function CardTerminalPanel({ order, terminal, onSettle, onCancelO
       <>
         {amount}
         <CircularProgress size={34} sx={{ color: C.gold, mb: 1 }} />
-        <Typography sx={{ fontWeight: 900, fontSize: 15, color: C.text, fontFamily: FONT }} data-testid="terminal-waiting">
+        <Typography sx={{ fontWeight: 900, fontSize: 15, color: C.text, fontFamily: FONT }} data-testid="terminal-waiting" role="status" aria-live="polite">
           {t("ui_card.checkout.waiting_title")}
-        </Typography>
-        <Typography sx={{ fontSize: 13, color: C.sub, my: 1, fontFamily: FONT }} role="status" aria-live="polite">
-          {t("ui_card.checkout.sent")}
         </Typography>
         <LinearProgress variant="determinate" value={pct} sx={{ height: 8, borderRadius: 4, my: 1 }} />
         <Typography sx={{ fontSize: 13, fontWeight: 800, color: secondsLeft <= 10 ? C.danger : C.text, fontFamily: FONT, mb: 1.5 }} data-testid="terminal-countdown">
@@ -136,7 +133,6 @@ export default function CardTerminalPanel({ order, terminal, onSettle, onCancelO
       {failure?.detail ? (
         <Typography sx={{ fontSize: 11, color: C.muted, mt: 0.5, fontFamily: FONT, overflowWrap: "anywhere" }}>{failure.detail}</Typography>
       ) : null}
-      <Typography sx={{ fontSize: 12, color: C.sub, my: 1.2, fontFamily: FONT }}>{t("ui_card.checkout.unpaid_note")}</Typography>
       {error && <Alert severity="error" sx={{ mb: 1, textAlign: "start" }}>{error}</Alert>}
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
         {code !== "order_not_payable" && code !== "disabled" && (
@@ -145,19 +141,19 @@ export default function CardTerminalPanel({ order, terminal, onSettle, onCancelO
             {t("ui_card.checkout.retry")}
           </Button>
         )}
-        <Typography sx={{ fontSize: 12, fontWeight: 800, color: C.sub, fontFamily: FONT, mt: 0.5 }}>{t("ui_card.checkout.other_way")}</Typography>
+        <Typography sx={{ fontSize: 12, fontWeight: 800, color: C.sub, fontFamily: FONT, mt: 1 }}>{t("ui_card.checkout.other_way")}</Typography>
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
           <Button variant="outlined" onClick={() => onSettle("cash")} disabled={disabled} startIcon={<Payments />}
             data-testid="settle-cash" sx={{ fontFamily: FONT, flex: "1 1 120px", minHeight: 44 }}>
-            {isRtl ? "پرداخت نقدی" : "Cash"}
+            {isRtl ? "نقدی" : "Cash"}
           </Button>
           <Button variant="outlined" onClick={() => onSettle("card")} disabled={disabled} startIcon={<CreditCard />}
             data-testid="settle-card" sx={{ fontFamily: FONT, flex: "1 1 120px", minHeight: 44 }}>
-            {isRtl ? "کارت (ثبت دستی)" : "Card (manual)"}
+            {isRtl ? "کارت" : "Card"}
           </Button>
           <Button variant="outlined" onClick={() => onSettle("online")} disabled={disabled} startIcon={<Language />}
             data-testid="settle-online" sx={{ fontFamily: FONT, flex: "1 1 120px", minHeight: 44 }}>
-            {isRtl ? "آنلاین / انتقال" : "Online"}
+            {isRtl ? "آنلاین" : "Online"}
           </Button>
         </Box>
         <Button color="error" onClick={onCancelOrder} disabled={disabled} data-testid="terminal-cancel-order" sx={{ fontFamily: FONT, minHeight: 44 }}>

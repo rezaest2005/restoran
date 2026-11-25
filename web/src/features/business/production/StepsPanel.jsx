@@ -56,7 +56,7 @@ export default function StepsPanel({ ctx, order, onChanged }) {
               </Typography>
             </Box>
             {s.instructions && <Typography sx={{ color: C.sub, fontSize: 12, mt: 0.5, whiteSpace: "pre-wrap" }}>{s.instructions}</Typography>}
-            {s.quality_check && <Typography sx={{ color: C.warning, fontSize: 12, mt: 0.25 }}>✓ {t("ui_mrp.quality_check")}: {s.quality_check}</Typography>}
+            {s.quality_check && <Typography sx={{ color: C.warning, fontSize: 12, mt: 0.25 }}>{t("ui_mrp.quality_check")}: {s.quality_check}</Typography>}
             {(s.good_quantity != null || s.scrap_quantity > 0 || s.quality_ok != null) && (
               <Typography sx={{ color: C.sub, fontSize: 12, mt: 0.25 }}>
                 {s.good_quantity != null && `${t("ui_mrp.good_qty")}: ${fmt(s.good_quantity)} · `}
@@ -103,7 +103,6 @@ export default function StepsPanel({ ctx, order, onChanged }) {
                     {busy === s.id ? <CircularProgress size={16} color="inherit" /> : t("ui_mrp.step_finish")}
                   </Button>
                 </Box>
-                <Typography sx={{ gridColumn: "1 / -1", color: C.muted, fontSize: 11 }}>{t("ui_mrp.actual_minutes_hint")}</Typography>
               </Box>
             )}
           </Box>

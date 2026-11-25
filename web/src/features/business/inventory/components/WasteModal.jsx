@@ -65,11 +65,11 @@ export default function WasteModal({ open, onClose, warehouse, C, isDark, onSucc
     }
     const qty = parseFloat(form.quantity);
     if (!qty || qty <= 0) {
-      notify("مقدار باید بیشتر از صفر باشد", "warning");
+      notify("مقدار را وارد کنید", "warning");
       return;
     }
     if (qty > availableQty) {
-      notify(`موجودی کافی نیست. موجودی فعلی: ${availableQty}`, "error");
+      notify(`موجودی کافی نیست (${availableQty})`, "error");
       return;
     }
 
@@ -82,11 +82,11 @@ export default function WasteModal({ open, onClose, warehouse, C, isDark, onSucc
         waste_reason: form.waste_reason,
         notes: form.notes.trim(),
       });
-      notify("✅ ضایعات ثبت شد", "success");
+      notify("ثبت شد", "success");
       onSuccess && onSuccess();
       onClose();
     } catch (err) {
-      notify(err.response?.data?.error || err.message || "خطا در ثبت ضایعات", "error");
+      notify(err.response?.data?.error || err.message || "انجام نشد", "error");
     } finally {
       setSaving(false);
     }
@@ -109,7 +109,7 @@ export default function WasteModal({ open, onClose, warehouse, C, isDark, onSucc
   return (
     <ResponsiveDialog open={open} onClose={onClose} maxWidth="xs" fullWidth slotProps={{ paper: { sx: dialogPaperSx } }}>
       <DialogTitle sx={{ fontSize: 15, fontWeight: 800, color: C.text }}>
-        🗑 ثبت ضایعات — {warehouse?.name || ""}
+        ثبت ضایعات — {warehouse?.name || ""}
       </DialogTitle>
       <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 1.5, pt: "12px !important" }}>
         {loading ? (
@@ -125,11 +125,11 @@ export default function WasteModal({ open, onClose, warehouse, C, isDark, onSucc
                 onChange={(e) => setForm({ ...form, raw_material_id: e.target.value })}
                 sx={{ ...inputSx, fontSize: 13 }} displayEmpty>
                 <MenuItem value="" disabled>
-                  <Typography sx={{ fontSize: 12, color: C.muted }}>انتخاب کالا...</Typography>
+                  <Typography sx={{ fontSize: 12, color: C.muted }}>کالا</Typography>
                 </MenuItem>
                 {stockItems.map(s => (
                   <MenuItem key={s.raw_material_id} value={s.raw_material_id}>
-                    {s.material_name} (موجودی: {s.quantity})
+                    {s.material_name} ({s.quantity})
                   </MenuItem>
                 ))}
               </Select>
@@ -138,7 +138,7 @@ export default function WasteModal({ open, onClose, warehouse, C, isDark, onSucc
             {/* موجودی فعلی */}
             {form.raw_material_id && (
               <Box sx={{ p: 1.5, borderRadius: "10px", bgcolor: C.dangerBg, border: `1px solid ${C.danger}30` }}>
-                <Typography sx={{ fontSize: 11, color: C.sub }}>موجودی فعلی:</Typography>
+                <Typography sx={{ fontSize: 11, color: C.sub }}>موجودی:</Typography>
                 <Typography sx={{ fontSize: 16, fontWeight: 800, color: C.danger }}>
                   {availableQty.toLocaleString("fa-IR")} {selectedMaterial?.unit ? UNIT_LABELS[selectedMaterial.unit] || selectedMaterial.unit : ""}
                 </Typography>
@@ -146,13 +146,13 @@ export default function WasteModal({ open, onClose, warehouse, C, isDark, onSucc
             )}
 
             {/* مقدار ضایعات */}
-            <TextField size="small" label="مقدار ضایعات" type="number" value={form.quantity}
+            <TextField size="small" label="مقدار" type="number" value={form.quantity}
               onChange={(e) => setForm({ ...form, quantity: e.target.value })}
               sx={inputSx} slotProps={{ htmlInput: { min: 0, step: 0.001 } }} />
 
             {/* دلیل ضایعات */}
             <Box>
-              <Typography sx={{ fontSize: 11, color: C.sub, mb: 0.5 }}>دلیل ضایعات</Typography>
+              <Typography sx={{ fontSize: 11, color: C.sub, mb: 0.5 }}>دلیل</Typography>
               <Select size="small" fullWidth value={form.waste_reason}
                 onChange={(e) => setForm({ ...form, waste_reason: e.target.value })}
                 sx={{ ...inputSx, fontSize: 13 }}>
@@ -178,7 +178,7 @@ export default function WasteModal({ open, onClose, warehouse, C, isDark, onSucc
           px: 2.5, color: C.danger, background: C.dangerBg, opacity: saving ? 0.6 : 1,
           border: `1px solid ${C.danger}40`,
         }}>
-          {saving ? "..." : "🗑 ثبت ضایعات"}
+          {saving ? "..." : "ثبت ضایعات"}
           {!saving && <KbdHint>Ctrl+D</KbdHint>}
         </Button>
       </DialogActions>

@@ -1,22 +1,21 @@
 {
   "ui_l": {
     "pos": {
-      "focus_cart": "رفتن به ردیف‌های سبد",
-      "cart_next_row": "ردیف بعدی سبد (داخل سبد)",
-      "cart_prev_row": "ردیف قبلی سبد (داخل سبد)",
-      "cart_row_remove": "حذف ردیف انتخاب‌شده‌ی سبد",
-      "cart_row_inc": "افزایش تعداد ردیف انتخاب‌شده",
-      "cart_row_dec": "کاهش تعداد ردیف انتخاب‌شده",
-      "order_type_n": "نوع سفارش: {{name}}",
+      "focus_cart": "سبد",
+      "cart_next_row": "ردیف بعدی",
+      "cart_prev_row": "ردیف قبلی",
+      "cart_row_remove": "حذف ردیف",
+      "cart_row_inc": "زیاد کردن",
+      "cart_row_dec": "کم کردن",
+      "order_type_n": "نوع: {{name}}",
       "type_hall": "سالن",
       "type_takeout": "بیرون‌بر",
       "type_delivery": "پیک",
-      "toggle_edit": "روشن/خاموش کردن حالت ویرایش محصولات",
-      "exit_edit": "خروج از حالت ویرایش محصولات",
-      "next_category": "دسته‌ی بعدی",
-      "prev_category": "دسته‌ی قبلی",
-      "discount_apply": "اعمال تخفیف دسته",
-      "discount_close": "بستن تخفیف دسته"
+      "toggle_edit": "ویرایش",
+      "exit_edit": "خروج از ویرایش",
+      "next_category": "دستهٔ بعدی",
+      "prev_category": "دستهٔ قبلی",
+      "discount_apply": "اعمال"
     },
     "store": {
       "restore_title": "این نسخه بازیابی شود؟",

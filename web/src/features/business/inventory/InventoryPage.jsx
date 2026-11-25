@@ -17,12 +17,12 @@ import HintBar from "@shared/ui/HintBar";
 import { hasTab } from "@business/dashboard/access";
 
 const TABS = [
-  { id: "invoice", icon: "🧾", label: "ثبت فاکتور خرید" },
-  { id: "sales", icon: "💰", label: "ثبت فاکتور فروش" },
-  { id: "warehouse", icon: "📦", label: "انبار" },
-  { id: "receiving", icon: "🚚", label: "تحویل بار" },
-  { id: "purchase_list", icon: "🛒", label: "لیست خرید" },
-  { id: "reports", icon: "📊", label: "گزارشات" },
+  { id: "invoice", label: "فاکتور خرید" },
+  { id: "sales", label: "فاکتور فروش" },
+  { id: "warehouse", label: "انبار" },
+  { id: "receiving", label: "تحویل بار" },
+  { id: "purchase_list", label: "لیست خرید" },
+  { id: "reports", label: "گزارش" },
 ];
 
 const TAB_FEATURE = {
@@ -64,13 +64,9 @@ export default function InventoryPage() {
             fontSize: { xs: 20, md: 24 },
             fontWeight: 900,
             color: C.text,
-            mb: 0.5,
           }}
         >
-          📦 انبارداری
-        </Typography>
-        <Typography sx={{ fontSize: 13, color: C.sub }}>
-          مدیریت موجودی، ورود و خروج کالا، انتقال و گزارشات
+          انبارداری
         </Typography>
       </Box>
 

@@ -1,21 +1,21 @@
 {
   "ui_g": {
     "pos": {
-      "new_order": "سفارش جدید (خالی کردن سبد)",
-      "checkout": "پرداخت / تسویه",
+      "new_order": "سفارش جدید",
+      "checkout": "پرداخت",
       "next_product": "محصول بعدی",
       "prev_product": "محصول قبلی",
-      "add_product": "افزودن محصول انتخاب‌شده به سبد",
-      "pay_selected": "پرداخت با روش انتخاب‌شده",
-      "next_method": "روش پرداخت بعدی",
-      "prev_method": "روش پرداخت قبلی",
+      "add_product": "افزودن محصول",
+      "pay_selected": "پرداخت",
+      "next_method": "روش بعدی",
+      "prev_method": "روش قبلی",
       "print_receipt": "چاپ رسید",
-      "accept_first": "پذیرش سفارش انتخاب‌شده / اولین سفارش در انتظار",
-      "next_order": "سفارش ورودی بعدی",
-      "prev_order": "سفارش ورودی قبلی",
-      "reject_focused": "رد سفارش انتخاب‌شده (با تأیید)",
-      "confirm_reject": "تأیید رد سفارش",
-      "focus_search": "رفتن به کادر جستجو"
+      "accept_first": "پذیرش سفارش",
+      "next_order": "سفارش بعدی",
+      "prev_order": "سفارش قبلی",
+      "reject_focused": "رد سفارش",
+      "confirm_reject": "تأیید رد",
+      "focus_search": "جستجو"
     },
     "layout": {
       "nav_n": "{{name}}"
@@ -32,7 +32,6 @@
       "new_formula": "فرمولاسیون جدید",
       "new_order": "سفارش تولید جدید",
       "new_line": "افزودن ردیف ماده",
-      "save": "ذخیره",
       "create": "ثبت سفارش",
       "confirm": "تأیید"
     },

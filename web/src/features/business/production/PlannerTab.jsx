@@ -50,8 +50,6 @@ export default function PlannerTab({ ctx, onOrdersCreated }) {
 
   return (
     <Box sx={S.card}>
-      <Typography sx={{ color: C.text, fontWeight: 800, mb: 0.5 }}>{t("ui_mrp.plan_title")}</Typography>
-      <Typography sx={{ color: C.sub, fontSize: 13, mb: 2 }}>{t("ui_mrp.plan_hint")}</Typography>
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {formulas.length === 0 && !error && <Alert severity="info" sx={{ mb: 2 }}>{t("ui_e.orders.no_active_formulas")}</Alert>}
 
@@ -180,7 +178,7 @@ function PlanResult({ ctx, plan, unit, onCreate, busy }) {
               {plan.materials.map((m) => (
                 <TableRow key={m.material_id} sx={m.shortage > 0 ? { bgcolor: C.dangerBg } : undefined}>
                   <TableCell sx={{ ...S.td, fontWeight: m.shortage > 0 ? 700 : 400, color: m.shortage > 0 ? C.danger : C.text }}>
-                    {m.shortage > 0 ? "✕ " : "✓ "}{m.material}
+                    {m.material}
                   </TableCell>
                   <TableCell sx={S.td}>{fmt(m.required)} {unit(m.unit)}</TableCell>
                   <TableCell sx={S.td}>{fmt(m.available)} {unit(m.unit)}</TableCell>
@@ -194,8 +192,7 @@ function PlanResult({ ctx, plan, unit, onCreate, busy }) {
       </Box>
 
       <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
-        <Typography sx={{ fontSize: 12, color: C.muted, flex: "1 1 240px" }}>{t("ui_mrp.create_orders_hint")}</Typography>
-        <Button sx={S.btn} onClick={onCreate} disabled={busy || plan.make_steps.length === 0}>{t("ui_mrp.create_orders")}</Button>
+        <Button sx={{ ...S.btn, marginInlineStart: "auto" }} onClick={onCreate} disabled={busy || plan.make_steps.length === 0}>{t("ui_mrp.create_orders")}</Button>
       </Box>
     </Box>
   );

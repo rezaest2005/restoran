@@ -3,7 +3,7 @@ import {
   Box, Typography, Switch, FormControlLabel, TextField, Button, Alert, CircularProgress,
   ToggleButton, ToggleButtonGroup, MenuItem,
 } from "@mui/material";
-import { CreditCard, NetworkCheck, Save } from "@mui/icons-material";
+import { NetworkCheck, Save } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
 import { saveCardSettings, testCardConnection, probeBridge } from "../services/cardTerminal";
 
@@ -40,7 +40,6 @@ export default function CardTerminalSettings({ settings, onSaved, C, glassCardSx
 
   const set = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setMsg(null); };
   const local = form.mode === "local_bridge";
-  const example = (form.amount_unit === "rial" ? 10000 : 1000).toLocaleString("en-US");
 
   const save = async () => {
     setSaving(true); setMsg(null); setFieldErr({});
@@ -82,13 +81,9 @@ export default function CardTerminalSettings({ settings, onSaved, C, glassCardSx
   return (
     <Box sx={{ flex: 1, overflowY: "auto", p: { xs: 1, sm: 2 } }}>
       <Box sx={{ ...glassCardSx, p: { xs: 1.5, sm: 2.5 }, maxWidth: 720, mx: "auto", display: "flex", flexDirection: "column", gap: 2 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <CreditCard sx={{ color: C.olive }} />
-          <Typography sx={{ fontWeight: 900, fontSize: 18, color: C.text, fontFamily: FONT }}>
-            {t("ui_card.settings.title")}
-          </Typography>
-        </Box>
-        <Typography sx={{ fontSize: 13, color: C.sub, fontFamily: FONT }}>{t("ui_card.settings.intro")}</Typography>
+        <Typography sx={{ fontWeight: 900, fontSize: 18, color: C.text, fontFamily: FONT }}>
+          {t("ui_card.settings.title")}
+        </Typography>
         {!canEdit && <Alert severity="info">{t("ui_card.settings.readonly")}</Alert>}
 
         <FormControlLabel
@@ -106,12 +101,9 @@ export default function CardTerminalSettings({ settings, onSaved, C, glassCardSx
             onChange={(_, v) => v && set("mode", v)}
             orientation="vertical" sx={{ "& .MuiToggleButton-root": { fontFamily: FONT, justifyContent: "flex-start", textAlign: "start" } }}
           >
-            <ToggleButton value="local_bridge" data-testid="mode-local">{t("ui_card.settings.mode_local")}</ToggleButton>
-            <ToggleButton value="server" data-testid="mode-server">{t("ui_card.settings.mode_server")}</ToggleButton>
+            <ToggleButton value="local_bridge" data-testid="mode-local" title={t("ui_card.settings.mode_local_hint")}>{t("ui_card.settings.mode_local")}</ToggleButton>
+            <ToggleButton value="server" data-testid="mode-server" title={t("ui_card.settings.mode_server_hint")}>{t("ui_card.settings.mode_server")}</ToggleButton>
           </ToggleButtonGroup>
-          <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.8, fontFamily: FONT }}>
-            {t(local ? "ui_card.settings.mode_local_hint" : "ui_card.settings.mode_server_hint")}
-          </Typography>
         </Box>
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5 }}>
@@ -140,9 +132,6 @@ export default function CardTerminalSettings({ settings, onSaved, C, glassCardSx
             <MenuItem value="toman">{t("ui_card.settings.unit_toman")}</MenuItem>
           </TextField>
         </Box>
-        <Typography sx={{ fontSize: 12, color: C.sub, fontFamily: FONT }}>
-          {t("ui_card.settings.unit_example", { n: example })}
-        </Typography>
 
         {msg && <Alert severity={msg.sev} data-testid="card-settings-msg">{msg.text}</Alert>}
 
@@ -152,14 +141,11 @@ export default function CardTerminalSettings({ settings, onSaved, C, glassCardSx
             {t("ui_card.settings.save")}
           </Button>
           <Button variant="outlined" startIcon={testing ? <CircularProgress size={16} /> : <NetworkCheck />}
-            onClick={test} disabled={testing || !canEdit || (!local && dirty)} data-testid="card-test">
+            onClick={test} disabled={testing || !canEdit || (!local && dirty)} data-testid="card-test"
+            title={!local && dirty ? t("ui_card.settings.save_first") : undefined}>
             {t(testing ? "ui_card.settings.testing" : "ui_card.settings.test")}
           </Button>
         </Box>
-        {!local && dirty && canEdit && (
-          <Typography sx={{ fontSize: 12, color: C.muted, fontFamily: FONT }}>{t("ui_card.settings.save_first")}</Typography>
-        )}
-        <Typography sx={{ fontSize: 11, color: C.muted, fontFamily: FONT }} dir="ltr">{t("ui_card.settings.docs")}</Typography>
       </Box>
     </Box>
   );

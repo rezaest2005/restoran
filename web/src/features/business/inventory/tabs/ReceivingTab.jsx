@@ -12,19 +12,19 @@ import { buildInputSx, buildDialogPaperSx, useRowCursor, cursorAttrs, cursorSx, 
 import { soft } from "@shared/ui/colorUtil";
 
 const TYPE_FILTERS = [
-  { value: "all", label: "همه", icon: "📋" },
-  { value: "receive", label: "ورود", icon: "📥" },
-  { value: "issue", label: "خروج", icon: "📤" },
-  { value: "waste", label: "ضایعات", icon: "🗑" },
-  { value: "transfer", label: "انتقال", icon: "🔄" },
+  { value: "all", label: "همه" },
+  { value: "receive", label: "ورود" },
+  { value: "issue", label: "خروج" },
+  { value: "waste", label: "ضایعات" },
+  { value: "transfer", label: "انتقال" },
 ];
 
 const TYPE_COLORS = {
-  receive: { bg: "oliveSubtle", color: "olive", label: "ورود", icon: "📥" },
-  issue: { bg: "warningBg", color: "warning", label: "خروج", icon: "📤" },
-  waste: { bg: "dangerBg", color: "danger", label: "ضایعات", icon: "🗑" },
-  transfer: { bg: "infoBg", color: "info", label: "انتقال", icon: "🔄" },
-  adjustment: { bg: "oliveSubtle", color: "olive", label: "اصلاح", icon: "✏️" },
+  receive: { bg: "oliveSubtle", color: "olive", label: "ورود" },
+  issue: { bg: "warningBg", color: "warning", label: "خروج" },
+  waste: { bg: "dangerBg", color: "danger", label: "ضایعات" },
+  transfer: { bg: "infoBg", color: "info", label: "انتقال" },
+  adjustment: { bg: "oliveSubtle", color: "olive", label: "اصلاح" },
 };
 
 const WASTE_REASONS = {
@@ -172,7 +172,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
       }}>
         <Box>
           <Typography sx={{ fontSize: { xs: 16, sm: 18 }, fontWeight: 800, color: C.text }}>
-            🚚 تحویل بار — تاریخچه حرکات
+            تحویل بار
           </Typography>
           <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.3 }}>
             {filtered.length} رکورد
@@ -189,7 +189,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
               "&:hover": { transform: "translateY(-1px)" },
             }}
           >
-            ➕ ورود کالا<KbdHint>F2</KbdHint>
+            ورود کالا<KbdHint>F2</KbdHint>
           </Button>
           <Button
             onClick={() => setIssueOpen(true)}
@@ -200,7 +200,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
               border: `1px solid ${soft(C.warning, "30")}`,
             }}
           >
-            ➖ خروج
+            خروج
           </Button>
           <Button
             onClick={() => setWasteOpen(true)}
@@ -211,7 +211,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
               border: `1px solid ${soft(C.danger, "30")}`,
             }}
           >
-            🗑 ضایعات
+            ضایعات
           </Button>
         </Box>
       </Box>
@@ -223,7 +223,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
           <Chip
             key={tf.value}
             clickable
-            label={`${tf.icon} ${tf.label}`}
+            label={`${tf.label}`}
             onClick={() => setTypeFilter(tf.value)}
             sx={{
               height: 26, fontSize: 11, fontWeight: 600, borderRadius: "8px",
@@ -264,12 +264,8 @@ export default function ReceivingTab({ C, isDark, showToast }) {
       {/* ── لیست حرکات ── */}
       {filtered.length === 0 ? (
         <Box sx={{ textAlign: "center", py: 8 }}>
-          <Typography sx={{ fontSize: 40, mb: 1 }}>🚚</Typography>
           <Typography sx={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-            هیچ رکوردی یافت نشد
-          </Typography>
-          <Typography sx={{ fontSize: 12, color: C.sub, mt: 0.5 }}>
-            با دکمه‌های بالا عملیات جدید ثبت کنید
+            رکوردی نیست
           </Typography>
         </Box>
       ) : (
@@ -313,7 +309,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
               >
                 {/* نوع */}
                 <Box sx={{ width: 50 }}>
-                  <Chip size="small" label={`${tc.icon} ${tc.label}`} sx={{
+                  <Chip size="small" label={`${tc.label}`} sx={{
                     height: 18, fontSize: 8, fontWeight: 700,
                     borderRadius: "5px", bgcolor: C[tc.bg], color: C[tc.color],
                   }} />
@@ -395,7 +391,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
         slotProps={{ paper: { sx: dialogPaperSx } }}
       >
         <DialogTitle sx={{ fontSize: 15, fontWeight: 800, color: C.text }}>
-          {TYPE_COLORS[detailOpen?.kind]?.icon || "📋"} جزئیات حرکت
+          جزئیات حرکت
         </DialogTitle>
         <DialogContent sx={{ pt: "12px !important" }}>
           {detailOpen && (

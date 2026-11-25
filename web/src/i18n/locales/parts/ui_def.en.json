@@ -326,8 +326,7 @@
     },
     "prod": {
       "title": "Production",
-      "subtitle": "Place and run production orders from the formulas you defined. Formulas are defined and edited in Definitions.",
-      "define_link": "Define formulas in Definitions"
+      "define_link": "Define formula"
     }
   }
 }

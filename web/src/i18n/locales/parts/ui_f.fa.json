@@ -3,39 +3,39 @@
     "incoming": {
       "nav": "سفارش‌های ورودی",
       "title": "سفارش‌های ورودی",
-      "empty": "در حال حاضر سفارش در انتظاری وجود ندارد.",
-      "connection_problem": "مشکل اتصال، در حال تلاش مجدد...",
+      "empty": "سفارشی نیست",
+      "connection_problem": "قطع اتصال…",
       "new_order_table": "سفارش جدید — میز {{n}}",
       "new_order": "سفارش جدید",
       "table": "میز {{n}}",
       "source_qr": "QR",
       "source_online": "آنلاین",
       "no_name": "مهمان",
-      "note": "توضیحات مشتری",
+      "note": "توضیحات",
       "total": "جمع کل",
       "currency": "تومان",
       "accept": "تأیید",
       "reject": "رد",
-      "reject_title": "این سفارش رد شود؟",
-      "reject_text": "سفارش لغو شده و موجودی انبار بازگردانده می‌شود.",
+      "reject_title": "رد شود؟",
+      "reject_text": "موجودی برمی‌گردد.",
       "cancel": "انصراف",
-      "confirm_reject": "بله، رد شود",
+      "confirm_reject": "رد شود",
       "accepted_ok": "سفارش تأیید شد",
       "rejected_ok": "سفارش رد شد",
-      "action_failed": "عملیات ناموفق بود",
+      "action_failed": "انجام نشد",
       "mute": "قطع صدا",
       "unmute": "فعال‌سازی صدا",
       "auto_print": "چاپ خودکار",
-      "accepted_section": "تأییدشده در این نشست",
+      "accepted_section": "تأییدشده",
       "print_again": "چاپ مجدد",
       "just_now": "هم‌اکنون",
       "min_ago": "{{n}} دقیقه پیش",
       "hour_ago": "{{n}} ساعت پیش",
       "order_no": "سفارش شماره {{id}}",
-      "qr_codes": "کدهای QR میز / محل"
+      "qr_codes": "کد QR میز"
     },
     "print": {
-      "failed": "چاپ ناموفق بود",
+      "failed": "چاپ نشد",
       "production_title": "خط تولید",
       "receipt_title": "رسید",
       "table": "میز / محل",
@@ -61,7 +61,7 @@
       "delivery": "ارسال با پیک",
       "tracking": "پیگیری مسیر",
       "currency": "تومان",
-      "thanks": "با تشکر از شما!"
+      "thanks": "سپاس"
     }
   }
 }

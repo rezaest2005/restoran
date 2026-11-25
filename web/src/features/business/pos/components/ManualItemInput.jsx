@@ -70,13 +70,13 @@ export default function ManualItemInput({ onAdd, C, isRtl }) {
         color: C.text,
         fontFamily: "'Vazirmatn', sans-serif",
       }}>
-        {isRtl ? "✏️ ورود دستی آیتم" : "✏️ Manual Item Entry"}
+        {isRtl ? "آیتم دستی" : "Manual item"}
       </Typography>
 
       <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "flex-end" }}>
         <TextField
           size="small"
-          label={isRtl ? "نام غذا" : "Food name"}
+          label={isRtl ? "نام" : "Name"}
           value={name}
           onChange={e => setName(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -94,7 +94,7 @@ export default function ManualItemInput({ onAdd, C, isRtl }) {
 
         <TextField
           size="small"
-          label={isRtl ? "قیمت (تومان)" : "Price"}
+          label={isRtl ? "قیمت" : "Price"}
           type="number"
           value={price}
           onChange={e => setPrice(e.target.value)}
