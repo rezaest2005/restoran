@@ -126,10 +126,10 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
     const mats = materialsRef.current;
     const valid = f.items.filter((it) => it.material_name && parseFloat(it.quantity) > 0);
 
-    if (!f.customer_first_name.trim()) { notify("نام مشتری را وارد کنید", "warning"); return; }
-    if (!f.customer_last_name.trim()) { notify("نام خانوادگی مشتری را وارد کنید", "warning"); return; }
-    if (!f.customer_mobile.trim()) { notify("شماره موبایل را وارد کنید", "warning"); return; }
-    if (valid.length === 0) { notify("حداقل یک قلم وارد کنید", "warning"); return; }
+    if (!f.customer_first_name.trim()) { notify("نام را وارد کنید", "warning"); return; }
+    if (!f.customer_last_name.trim()) { notify("نام خانوادگی را وارد کنید", "warning"); return; }
+    if (!f.customer_mobile.trim()) { notify("موبایل را وارد کنید", "warning"); return; }
+    if (valid.length === 0) { notify("یک قلم وارد کنید", "warning"); return; }
     if (!f.warehouse_id) { notify("انبار را انتخاب کنید", "warning"); return; }
 
     // بررسی موجودی
@@ -297,7 +297,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
       {/* ═══════════ هدر ═══════════ */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, flexWrap: "wrap", gap: 1 }}>
         <Box>
-          <Typography sx={{ fontSize: F(15), fontWeight: 800, color: C.text }}>فاکتورهای فروش</Typography>
+          <Typography sx={{ fontSize: F(15), fontWeight: 800, color: C.text }}>فروش</Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>
           <TextField size="small" placeholder="جستجو..."
@@ -318,8 +318,8 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
       <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}>
         {[
           { label: `${invoices.length} فاکتور`, color: C.olive, bg: C.oliveSubtle },
-          { label: `فروش کل: ${invoices.reduce((s, i) => s + (i.grand_total || 0), 0).toLocaleString("en-US")} تومان`, color: "var(--success)", bg: "color-mix(in srgb, var(--success) 10%, transparent)" },
-          { label: `بدهکاری: ${invoices.reduce((s, i) => s + (i.remaining || 0), 0).toLocaleString("en-US")} تومان`, color: "var(--danger)", bg: "color-mix(in srgb, var(--danger) 10%, transparent)" },
+          { label: `فروش ${invoices.reduce((s, i) => s + (i.grand_total || 0), 0).toLocaleString("en-US")} تومان`, color: "var(--success)", bg: "color-mix(in srgb, var(--success) 10%, transparent)" },
+          { label: `بدهی ${invoices.reduce((s, i) => s + (i.remaining || 0), 0).toLocaleString("en-US")} تومان`, color: "var(--danger)", bg: "color-mix(in srgb, var(--danger) 10%, transparent)" },
         ].map((c, i) => (
           <Chip key={i} size="small" label={c.label} sx={{
             height: 28, fontSize: F(10), fontWeight: 700, borderRadius: "8px",
@@ -331,7 +331,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
       {/* ═══════════ جدول فاکتورها ═══════════ */}
       {filteredInvoices.length === 0 ? (
         <Box sx={{ textAlign: "center", py: 5 }}>
-          <Typography sx={{ fontSize: F(13), fontWeight: 700, color: C.text }}>فاکتوری ثبت نشده</Typography>
+          <Typography sx={{ fontSize: F(13), fontWeight: 700, color: C.text }}>فاکتوری نیست</Typography>
         </Box>
       ) : (
         <Box>
@@ -427,7 +427,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
                 <Receipt sx={{ fontSize: 30, color: C.olive }} />
               </Box>
               <Box>
-                <Typography sx={{ fontSize: 20, fontWeight: 900, color: C.text }}>فاکتور فروش جدید</Typography>
+                <Typography sx={{ fontSize: 20, fontWeight: 900, color: C.text }}>فاکتور جدید</Typography>
                 <Chip size="small"
                   label={`شماره: SI-${String(readJSON("local_sales_invoices", []).length + 1).padStart(3, "0")}`}
                   sx={{ height: 26, fontSize: 13, fontWeight: 800, borderRadius: "8px", bgcolor: C.olive, color: "var(--on-primary)", px: 1, mt: 0.5 }}
@@ -459,7 +459,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
 
         <DialogContent sx={{ px: 3, py: 2.5 }}>
           {/* ── اطلاعات مشتری ── */}
-          <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.olive, mb: 1 }}>اطلاعات مشتری</Typography>
+          <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.olive, mb: 1 }}>مشتری</Typography>
           <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1.5, mb: 2 }}>
             <TextField size="small" label="نام"
               value={form.customer_first_name}
@@ -469,7 +469,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
               value={form.customer_last_name}
               onChange={(e) => setForm((f) => ({ ...f, customer_last_name: e.target.value }))}
               sx={inputSx} />
-            <TextField size="small" label="شماره موبایل"
+            <TextField size="small" label="موبایل"
               value={form.customer_mobile}
               onChange={(e) => setForm((f) => ({ ...f, customer_mobile: e.target.value }))}
               sx={inputSx} />
@@ -480,7 +480,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
             fullWidth sx={{ ...inputSx, mb: 2 }} />
 
           {/* ── انبار ── */}
-          <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.olive, mb: 1 }}>انبار فروش</Typography>
+          <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.olive, mb: 1 }}>انبار</Typography>
           <Select size="small" fullWidth value={form.warehouse_id}
             onChange={(e) => setForm((f) => ({ ...f, warehouse_id: e.target.value }))}
             sx={{ ...inputSx, mb: 2, "& .MuiSelect-select": { fontSize: F(12), py: 0.8 } }}
@@ -494,7 +494,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
           <Divider sx={{ mb: 2, borderColor: soft(C.olive, "25") }} />
 
           {/* ── اقلام ── */}
-          <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.olive, mb: 1 }}>اقلام فروش</Typography>
+          <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.olive, mb: 1 }}>اقلام</Typography>
 
           <Box sx={{
             display: "grid", gridTemplateColumns: "36px 1.5fr 80px 100px 110px 44px",
@@ -595,13 +595,13 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
             fontWeight: 800, fontSize: 14, textTransform: "none", py: 1,
             "&:hover": { bgcolor: C.oliveSubtle, border: `2px solid ${C.olive}` },
           }}>
-            افزودن قلم (Enter / F3)
+            قلم جدید
           </Button>
 
           <Divider sx={{ mb: 2, borderColor: soft(C.olive, "25") }} />
 
           {/* ── پرداخت ── */}
-          <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.olive, mb: 1 }}>روش پرداخت</Typography>
+          <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.olive, mb: 1 }}>پرداخت</Typography>
           <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
             {Object.entries(PAYMENTS).map(([key, val]) => (
               <Chip key={key} clickable
@@ -624,7 +624,7 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
                 value={form.check_number}
                 onChange={(e) => setForm((f) => ({ ...f, check_number: e.target.value }))}
                 sx={inputSx} />
-              <TextField size="small" label="سررسید چک"
+              <TextField size="small" label="سررسید"
                 value={form.check_due_date}
                 onChange={(e) => setForm((f) => ({ ...f, check_due_date: e.target.value }))}
                 sx={inputSx} />
@@ -636,11 +636,11 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
             display: "grid", gridTemplateColumns: { xs: "1fr 1fr", sm: "1fr 1fr 1fr 1fr" },
             gap: 1.5, mb: 2,
           }}>
-            <TextField size="small" label="تخفیف (تومان)" type="number"
+            <TextField size="small" label="تخفیف" type="number"
               value={form.discount}
               onChange={(e) => setForm((f) => ({ ...f, discount: e.target.value }))}
               sx={inputSx} />
-            <TextField size="small" label="مبلغ پرداختی" type="number"
+            <TextField size="small" label="پرداختی" type="number"
               value={form.paid_amount}
               onChange={(e) => setForm((f) => ({ ...f, paid_amount: e.target.value }))}
               sx={inputSx} />
@@ -701,13 +701,13 @@ export default function SalesInvoiceTab({ C, isDark, showToast }) {
             borderRadius: "10px", fontSize: 14, fontWeight: 700, textTransform: "none",
             color: C.danger, bgcolor: C.dangerBg, border: `2px solid ${soft(C.danger, "30")}`, px: 3,
             "&:hover": { bgcolor: C.danger, color: "var(--on-status)" },
-          }}>✖ انصراف (Esc)</Button>
+          }}>انصراف</Button>
           <Button onClick={handleSave} disabled={validItems.length === 0} size="large" sx={{
             borderRadius: "10px", fontSize: 14, fontWeight: 800, textTransform: "none",
             color: "var(--on-primary)", background: C.btnGrad, boxShadow: `0 4px 20px ${soft(C.olive, "40")}`, px: 4,
             "&:hover": { transform: "translateY(-2px)" },
             "&.Mui-disabled": { bgcolor: C.muted, color: "var(--on-primary)", opacity: 0.4 },
-          }}>ثبت فاکتور (Ctrl+D)</Button>
+          }}>ثبت</Button>
         </DialogActions>
       </ResponsiveDialog>
 

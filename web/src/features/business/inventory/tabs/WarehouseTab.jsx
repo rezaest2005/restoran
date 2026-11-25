@@ -194,15 +194,15 @@ export default function WarehouseTab({ C, isDark, showToast }) {
     );
 
     if (valid.length === 0) {
-      notify("حداقل یک قلم وارد کنید", "warning");
+      notify("یک قلم وارد کنید", "warning");
       return;
     }
     if (!f.from_warehouse || !f.to_warehouse) {
-      notify("انبار مبدأ و مقصد را انتخاب کنید", "warning");
+      notify("مبدأ و مقصد را انتخاب کنید", "warning");
       return;
     }
     if (String(f.from_warehouse) === String(f.to_warehouse)) {
-      notify("انبار مبدأ و مقصد نمیتوانند یکی باشند", "warning");
+      notify("مبدأ و مقصد یکی است", "warning");
       return;
     }
 
@@ -428,7 +428,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
         })}
       </Box>
 
-      {/* ═══════════ خلاصه جمع کل سیستم ═══════════ */}
+      {/* ═══════════ خلاصه جمع کل ═══════════ */}
       {(() => {
         const allStock = {};
         for (const w of warehouses) {
@@ -459,7 +459,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
           >
             <Chip
               size="small"
-              label="جمع کل سیستم"
+              label="جمع کل"
               sx={{
                 height: 24,
                 fontSize: F(10),
@@ -863,7 +863,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                   fontWeight: 800,
                 }}
               >
-                از انبار (مبدأ)
+                مبدأ
               </Typography>
               <Select
                 size="small"
@@ -936,7 +936,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
                   fontWeight: 800,
                 }}
               >
-                به انبار (مقصد)
+                مقصد
               </Typography>
               <Select
                 size="small"
@@ -1240,7 +1240,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
               },
             }}
           >
-            افزودن قلم جدید (Enter / F3)
+            قلم جدید
           </Button>
 
           {/* جمع + توضیح */}
@@ -1422,7 +1422,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
               "&:hover": { bgcolor: C.danger, color: "var(--on-status)" },
             }}
           >
-            ✖ انصراف (Esc)
+            انصراف (Esc)
           </Button>
           <Button
             onClick={handleSaveTransfer}
@@ -1451,7 +1451,7 @@ export default function WarehouseTab({ C, isDark, showToast }) {
               },
             }}
           >
-            {saving ? "..." : "ثبت حواله (Ctrl+D)"}
+            {saving ? "..." : "ثبت"}
           </Button>
         </DialogActions>
       </ResponsiveDialog>

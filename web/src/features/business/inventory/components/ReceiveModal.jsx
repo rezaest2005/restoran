@@ -67,7 +67,7 @@ export default function ReceiveModal({ open, onClose, warehouse, C, isDark, onSu
   const handleSubmit = async () => {
     const validItems = items.filter(i => i.raw_material_id && parseFloat(i.quantity) > 0);
     if (validItems.length === 0) {
-      notify("حداقل یک کالا با مقدار وارد کنید", "warning");
+      notify("یک کالا با مقدار وارد کنید", "warning");
       return;
     }
 
@@ -84,11 +84,11 @@ export default function ReceiveModal({ open, onClose, warehouse, C, isDark, onSu
           unit_price: parseFloat(i.unit_price) || 0,
         })),
       });
-      notify("کالا با موفقیت وارد شد", "success");
+      notify("ثبت شد", "success");
       onSuccess && onSuccess();
       onClose();
     } catch (err) {
-      notify(err.response?.data?.error || err.message || "خطا در ورود کالا", "error");
+      notify(err.response?.data?.error || err.message || "انجام نشد", "error");
     } finally {
       setSaving(false);
     }
@@ -110,7 +110,7 @@ export default function ReceiveModal({ open, onClose, warehouse, C, isDark, onSu
   return (
     <ResponsiveDialog open={open} onClose={onClose} maxWidth="sm" fullWidth slotProps={{ paper: { sx: dialogPaperSx } }}>
       <DialogTitle sx={{ fontSize: 15, fontWeight: 800, color: C.text }}>
-        ➕ ورود کالا — {warehouse?.name || ""}
+        ورود کالا — {warehouse?.name || ""}
       </DialogTitle>
       <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 1.5, pt: "12px !important" }}>
         {loading ? (
@@ -170,7 +170,7 @@ export default function ReceiveModal({ open, onClose, warehouse, C, isDark, onSu
                     onChange={(e) => updateItem(idx, "raw_material_id", e.target.value)}
                     sx={{ ...inputSx, fontSize: 13 }} displayEmpty>
                     <MenuItem value="" disabled>
-                      <Typography sx={{ fontSize: 12, color: C.muted }}>انتخاب کالا...</Typography>
+                      <Typography sx={{ fontSize: 12, color: C.muted }}>کالا</Typography>
                     </MenuItem>
                     {materials.map(m => (
                       <MenuItem key={m.id} value={m.id}>
@@ -186,7 +186,7 @@ export default function ReceiveModal({ open, onClose, warehouse, C, isDark, onSu
                       onChange={(e) => updateItem(idx, "quantity", e.target.value)}
                       sx={{ ...inputSx, flex: 1 }} slotProps={{ htmlInput: { min: 0, step: 0.001 } }} />
                     {/* قیمت واحد */}
-                    <TextField size="small" type="number" placeholder="قیمت واحد (تومان)"
+                    <TextField size="small" type="number" placeholder="قیمت"
                       value={item.unit_price}
                       onChange={(e) => updateItem(idx, "unit_price", e.target.value)}
                       sx={{ ...inputSx, flex: 1 }} slotProps={{ htmlInput: { min: 0 } }} />
@@ -201,13 +201,13 @@ export default function ReceiveModal({ open, onClose, warehouse, C, isDark, onSu
               textTransform: "none", color: C.olive,
               border: `1px dashed ${C.olive}40`, py: 0.8,
             }}>
-              ➕ افزودن کالای دیگر
+              کالای دیگر
             </Button>
 
             {/* جمع کل */}
             {totalAmount > 0 && (
               <Box sx={{ p: 1.5, borderRadius: "10px", bgcolor: C.infoBg, border: `1px solid ${C.info}30` }}>
-                <Typography sx={{ fontSize: 11, color: C.sub }}>جمع کل:</Typography>
+                <Typography sx={{ fontSize: 11, color: C.sub }}>جمع</Typography>
                 <Typography sx={{ fontSize: 16, fontWeight: 800, color: C.info }}>
                   {totalAmount.toLocaleString("fa-IR")} تومان
                 </Typography>

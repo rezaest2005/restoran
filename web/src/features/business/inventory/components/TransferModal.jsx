@@ -96,20 +96,20 @@ export default function TransferModal({ open, onClose, warehouses: warehousesPro
 
   const handleSubmit = async () => {
     if (!form.source_warehouse_id || !form.destination_warehouse_id || !form.raw_material_id) {
-      notify("انبار مبدأ، مقصد و کالا الزامی است", "warning");
+      notify("مبدأ، مقصد و کالا را انتخاب کنید", "warning");
       return;
     }
     if (form.source_warehouse_id === form.destination_warehouse_id) {
-      notify("انبار مبدأ و مقصد نمی‌توانند یکسان باشند", "warning");
+      notify("مبدأ و مقصد یکی است", "warning");
       return;
     }
     const qty = parseFloat(form.quantity);
     if (!qty || qty <= 0) {
-      notify("مقدار باید بیشتر از صفر باشد", "warning");
+      notify("مقدار را وارد کنید", "warning");
       return;
     }
     if (qty > sourceStock) {
-      notify(`موجودی کافی نیست. موجودی فعلی: ${sourceStock}`, "error");
+      notify(`موجودی کافی نیست (${sourceStock})`, "error");
       return;
     }
 
@@ -122,7 +122,7 @@ export default function TransferModal({ open, onClose, warehouses: warehousesPro
         quantity: qty,
         notes: form.notes,
       });
-      notify("انتقال با موفقیت انجام شد", "success");
+      notify("منتقل شد", "success");
       onSuccess && onSuccess();
       onClose();
     } catch (err) {
@@ -200,7 +200,7 @@ export default function TransferModal({ open, onClose, warehouses: warehousesPro
               >
                 <MenuItem value="" disabled>
                   <Typography sx={{ fontSize: 12, color: C.muted }}>
-                    انتخاب انبار مقصد...
+                    انتخاب...
                   </Typography>
                 </MenuItem>
                 {destList
@@ -246,7 +246,7 @@ export default function TransferModal({ open, onClose, warehouses: warehousesPro
                 border: `1px solid ${C.olive}20`,
               }}>
                 <Typography sx={{ fontSize: 11, color: C.sub }}>
-                  موجودی فعلی مبدأ:
+                  موجودی:
                 </Typography>
                 <Typography sx={{ fontSize: 16, fontWeight: 800, color: C.olive }}>
                   {sourceStock.toLocaleString("fa-IR")} {selectedMaterial?.unit || ""}
@@ -257,7 +257,7 @@ export default function TransferModal({ open, onClose, warehouses: warehousesPro
             {/* مقدار انتقال */}
             <TextField
               size="small"
-              label="مقدار انتقال"
+              label="مقدار"
               type="number"
               value={form.quantity}
               onChange={(e) => setForm({ ...form, quantity: e.target.value })}
@@ -266,7 +266,7 @@ export default function TransferModal({ open, onClose, warehouses: warehousesPro
             {/* توضیحات */}
             <TextField
               size="small"
-              label="توضیحات (اختیاری)"
+              label="توضیحات"
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
               multiline
@@ -281,7 +281,7 @@ export default function TransferModal({ open, onClose, warehouses: warehousesPro
                 bgcolor: C.infoBg, border: `1px solid ${C.info}30`,
               }}>
                 <Typography sx={{ fontSize: 11, fontWeight: 700, color: C.info, mb: 0.5 }}>
-                  خلاصه انتقال
+                  انتقال
                 </Typography>
                 <Typography sx={{ fontSize: 11, color: C.sub }}>
                   {parseFloat(form.quantity).toLocaleString("fa-IR")} {selectedMaterial?.unit || ""}
@@ -311,7 +311,7 @@ export default function TransferModal({ open, onClose, warehouses: warehousesPro
             opacity: saving ? 0.6 : 1,
           }}
         >
-          {saving ? "..." : "تأیید انتقال"}
+          {saving ? "..." : "انتقال"}
           {!saving && <KbdHint>Ctrl+D</KbdHint>}
         </Button>
       </DialogActions>

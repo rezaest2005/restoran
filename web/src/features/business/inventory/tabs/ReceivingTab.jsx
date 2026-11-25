@@ -189,7 +189,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
               "&:hover": { transform: "translateY(-1px)" },
             }}
           >
-            ➕ ورود کالا<KbdHint>F2</KbdHint>
+            ورود کالا<KbdHint>F2</KbdHint>
           </Button>
           <Button
             onClick={() => setIssueOpen(true)}
@@ -200,7 +200,7 @@ export default function ReceivingTab({ C, isDark, showToast }) {
               border: `1px solid ${soft(C.warning, "30")}`,
             }}
           >
-            ➖ خروج
+            خروج
           </Button>
           <Button
             onClick={() => setWasteOpen(true)}
