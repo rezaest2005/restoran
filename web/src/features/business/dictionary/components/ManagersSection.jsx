@@ -23,12 +23,12 @@ import {
 /** Cashier ACTIONS (server: features.POS_ACTION_KEYS): shown as their own row inside the POS section. */
 const POS_ACTIONS = ["pos_discount", "pos_price_edit", "pos_cancel_order", "pos_pay_cash", "pos_pay_card", "pos_past_days", "pos_close_day"];
 const GROUPS = [
-  { id: "general", icon: "🏠", mods: null, tone: "primary", keys: ["home"] },
-  { id: "pos", icon: "💰", mods: ["pos"], tone: "success", keys: ["pos", "pos_report", "pos_settings", "orders", ...POS_ACTIONS] },
-  { id: "inventory", icon: "📦", mods: ["inventory"], tone: "info", keys: ["inventory_invoice", "inventory_sales", "inventory_warehouse", "inventory_receiving", "inventory_purchase_list", "inventory_reports"] },
-  { id: "production", icon: "🏭", mods: ["production"], tone: "warning", keys: ["kitchen", "recipes", "dictionary_recipe"] },
+  { id: "general", mods: null, tone: "primary", keys: ["home"] },
+  { id: "pos", mods: ["pos"], tone: "success", keys: ["pos", "pos_report", "pos_settings", "orders", ...POS_ACTIONS] },
+  { id: "inventory", mods: ["inventory"], tone: "info", keys: ["inventory_invoice", "inventory_sales", "inventory_warehouse", "inventory_receiving", "inventory_purchase_list", "inventory_reports"] },
+  { id: "production", mods: ["production"], tone: "warning", keys: ["kitchen", "recipes", "dictionary_recipe"] },
   {
-    id: "definitions", icon: "📚", mods: null, tone: "accent",
+    id: "definitions", mods: null, tone: "accent",
     keys: [
       { key: "dictionary_menu", mods: ["pos"] },
       { key: "dictionary_items", mods: ["inventory", "production"] },
@@ -39,8 +39,8 @@ const GROUPS = [
     ],
   },
   // office staff who RUN transport (drivers / couriers themselves are "Transport" people, not these ticks)
-  { id: "transport", icon: "🚚", mods: ["delivery"], tone: "gold", keys: ["delivery_dispatch", "delivery_shipments", "delivery_fleet", "delivery_cash", "delivery_history"] },
-  { id: "more", icon: "🧩", mods: null, tone: "gold", keys: [
+  { id: "transport", mods: ["delivery"], tone: "gold", keys: ["delivery_dispatch", "delivery_shipments", "delivery_fleet", "delivery_cash", "delivery_history"] },
+  { id: "more", mods: null, tone: "gold", keys: [
     { key: "club", mods: ["club"] }, { key: "accounting", mods: ["accounting"] }, { key: "feedback", mods: ["feedback"] },
   ] },
 ];
@@ -62,7 +62,6 @@ const TRANSPORT_ROLES = ["transport", "driver", "courier"];
 const personType = (role) => (TRANSPORT_ROLES.includes(role) ? "transport" : "staff");
 
 const EMPTY_FORM = { username: "", password: "", phone_number: "", first_name: "", last_name: "", role: "other", title: "" };
-const TYPE_ICON = { staff: "🧑‍💼", transport: "🚚" };
 
 export default function ManagersSection({ ctx }) {
   const { t, C, S, notify } = ctx;
@@ -298,7 +297,6 @@ export default function ManagersSection({ ctx }) {
         ...cursorSx(C, cursor.isActive(i)), display: "flex", alignItems: "center", flexWrap: "wrap", gap: 1.5, p: 1.5,
         borderRadius: 2, bgcolor: C.glass, border: `1px solid ${u.is_active ? C.glassBorder : C.danger}`, opacity: u.is_active ? 1 : 0.75,
       }}>
-        <Typography aria-hidden="true" sx={{ fontSize: 22 }}>{TYPE_ICON[type]}</Typography>
         <Box sx={{ flex: 1, minWidth: 200 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
             <Typography sx={{ fontSize: 14, fontWeight: 800, color: C.text }}>{`${u.first_name || ""} ${u.last_name || ""}`.trim() || u.username}</Typography>
@@ -329,7 +327,7 @@ export default function ManagersSection({ ctx }) {
 
   return (
     <Box>
-      <SectionHeader ctx={ctx} title={t("ui_dh.people.title")} subtitle={t("ui_dh.people.subtitle")}
+      <SectionHeader ctx={ctx} title={t("ui_dh.people.title")}
         onNew={() => setPicker(true)} newLabel={t("ui_dh.people.new")} search={q} onSearch={setQ}>
         <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }} role="group" aria-label={t("ui_dh.people.filter")}>
           {["all", "staff", "transport"].map((k) => (
@@ -345,9 +343,8 @@ export default function ManagersSection({ ctx }) {
       <LoadState ctx={ctx} loading={loading && users.length === 0} error={error} onRetry={load}
         empty={!loading && shown.length === 0} emptyText={q || filter !== "all" ? t("ui_def.common.no_results") : t("ui_def.users.empty")}
         emptyAction={q ? null : {
-          label: filter === "transport" ? t("ui_dh.people.types.transport.title") : t("ui_dh.people.new"),
+          label: filter === "transport" ? t("ui_dh.people.types.transport") : t("ui_dh.people.new"),
           onClick: () => (filter === "transport" ? pickType("transport") : setPicker(true)),
-          icon: filter === "transport" ? "🚚" : "👥", hint: t("ui_dh.empty_hint.users"),
         }}>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
           {shown.map(personRow)}
@@ -357,14 +354,13 @@ export default function ManagersSection({ ctx }) {
       {/* step 1 — who are you adding? */}
       {picker && (
         <FormDialog ctx={ctx} maxWidth="sm" title={t("ui_dh.people.type_title")} onClose={() => setPicker(false)}
-          onSave={() => pickType("staff")} saveLabel={t("ui_dh.people.types.staff.title")}>
-          <Typography sx={{ fontSize: 13, color: C.sub }}>{t("ui_dh.people.type_hint")}</Typography>
+          onSave={() => pickType("staff")} saveLabel={t("ui_dh.people.types.staff")}>
           <Box role="radiogroup" aria-label={t("ui_dh.people.type_title")} sx={{ display: "grid", gap: 1.25 }}>
             {["staff", "transport"].map((type) => (
-              <OptionCard key={type} ctx={ctx} icon={TYPE_ICON[type]} selected={false} onClick={() => pickType(type)}
+              <OptionCard key={type} ctx={ctx} selected={false} onClick={() => pickType(type)}
                 disabled={type === "transport" && !deliveryModule}
-                title={t(`ui_dh.people.types.${type}.title`)}
-                hint={type === "transport" && !deliveryModule ? t("ui_dh.transport.module_off") : t(`ui_dh.people.types.${type}.hint`)} />
+                title={t(`ui_dh.people.types.${type}`)}
+                hint={type === "transport" && !deliveryModule ? t("ui_dh.transport.module_off") : undefined} />
             ))}
           </Box>
         </FormDialog>
@@ -379,7 +375,6 @@ export default function ManagersSection({ ctx }) {
         <FormDialog ctx={ctx} maxWidth="md" saving={saving} error={formErr} onClose={() => setDialog(null)} onSave={submit}
           title={dialog.user ? t("ui_def.users.edit_title", { name: dialog.user.username }) : t(`ui_dh.people.new_${dialog.type}`)}
           saveLabel={dialog.user ? t("ui_def.common.save") : t("ui_def.users.create")}>
-          <Typography sx={{ fontSize: 12, fontWeight: 800, color: C.primary }}>{t("ui_def.users.section_info")}</Typography>
           <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
             <TextField label={t("ui_def.users.first_name")} value={form.first_name} size="small" sx={S.field} disabled={!!dialog.user} autoFocus={!dialog.user}
               onChange={(e) => setForm({ ...form, first_name: e.target.value })} />
@@ -398,7 +393,7 @@ export default function ManagersSection({ ctx }) {
           </Box>
 
           <TextField label={t("ui_dh.people.job_title")} value={form.title} size="small" sx={S.field}
-            onChange={(e) => setForm({ ...form, title: e.target.value })} helperText={t("ui_dh.people.job_title_hint")}
+            onChange={(e) => setForm({ ...form, title: e.target.value })} 
             slotProps={{ htmlInput: { maxLength: 60 } }} />
 
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mt: 1 }}>
@@ -412,7 +407,7 @@ export default function ManagersSection({ ctx }) {
               <Button size="small" variant="outlined" onClick={() => setAllTicks(false)} sx={{ textTransform: "none" }}>{t("ui_dh.people.select_none")}</Button>
             </Box>
           </Box>
-          <Typography sx={{ fontSize: 12, color: C.sub, mt: -1 }}>{isManagerRole ? t("ui_def.users.role_manager_hint") : t("ui_dh.people.access_hint")}</Typography>
+          {isManagerRole && <Typography sx={{ fontSize: 12, color: C.sub, mt: -1 }}>{t("ui_def.users.role_manager_hint")}</Typography>}
           {groups.map((g) => {
             const color = tone(g.tone);
             const on = g.keys.filter((k) => tabs[k]).length;
@@ -431,14 +426,11 @@ export default function ManagersSection({ ctx }) {
               <Box key={g.id} sx={{ border: `1px solid ${all ? color : C.glassBorder}`, borderRadius: 2, overflow: "hidden" }}>
                 <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", px: 1.5, py: 0.75, bgcolor: C.inputBg }}>
                   <Typography sx={{ fontSize: 13, fontWeight: 800, color: C.text }}>
-                    <span aria-hidden="true">{g.icon}</span> {groupLabel(g.id)}
+                    {groupLabel(g.id)}
                     <Typography component="span" sx={{ fontSize: 11, color: C.muted, marginInlineStart: 1 }}>{on}/{g.keys.length}</Typography>
                   </Typography>
                   <Switch size="small" checked={all} onChange={() => toggleGroup(g)} slotProps={{ input: { "aria-label": groupLabel(g.id) } }} />
                 </Box>
-                {g.id === "transport" && (
-                  <Typography sx={{ fontSize: 11, color: C.sub, px: 1.5, pt: 0.75 }}>{t("ui_dh.people.transport_group_hint")}</Typography>
-                )}
                 <Box sx={{ px: 1.5, py: 1, display: "flex", flexWrap: "wrap", gap: 0.75 }}>{tabKeys.map(chip)}</Box>
                 {actionKeys.length > 0 && (
                   <Box sx={{ px: 1.5, pb: 1 }}>

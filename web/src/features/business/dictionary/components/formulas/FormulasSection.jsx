@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Box, Typography, Button, Table, TableHead, TableBody, TableRow, TableCell, Switch, Alert } from "@mui/material";
+import { Box, Button, Table, TableHead, TableBody, TableRow, TableCell, Switch } from "@mui/material";
 import { fmt, TypeBadge } from "@business/production/common";
 import {
   SectionHeader, LoadState, TableWrap, ConfirmDialog, useRegisteredShortcuts, useRowCursor, cursorAttrs, cursorSx,
@@ -53,12 +53,12 @@ export default function FormulasSection({ ctx, jump }) {
 
   return (
     <Box>
-      <SectionHeader ctx={ctx} title={t("ui_def.formulas.title")} subtitle={t("ui_def.formulas.subtitle")}
+      <SectionHeader ctx={ctx} title={t("ui_def.formulas.title")}
         onNew={openNew} newLabel={t("ui_e.formulas.new")} search={q} onSearch={setQ} />
-      <Alert severity="info" sx={{ mb: 2 }}>{t("ui_def.formulas.production_hint")}</Alert>
 
       <LoadState ctx={ctx} loading={loading && rows.length === 0} error={error} onRetry={load}
-        empty={!loading && shown.length === 0} emptyText={q ? t("ui_def.common.no_results") : t("ui_e.formulas.empty")}>
+        empty={!loading && shown.length === 0} emptyText={q ? t("ui_def.common.no_results") : t("ui_e.formulas.empty")}
+        emptyAction={q ? null : { label: t("ui_e.formulas.new"), onClick: openNew }}>
         <TableWrap C={C}>
           <Table size="small" sx={{ minWidth: 720 }}>
             <TableHead>
@@ -95,7 +95,6 @@ export default function FormulasSection({ ctx, jump }) {
             </TableBody>
           </Table>
         </TableWrap>
-        <Typography sx={{ color: C.muted, fontSize: 11, mt: 1 }}>{t("ui_def.formulas.multilevel_hint")}</Typography>
       </LoadState>
 
       {editing && (

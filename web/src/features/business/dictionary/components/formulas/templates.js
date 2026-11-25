@@ -7,7 +7,6 @@ const P = (fa, en, quantity, unit, type = "raw", stage = null) => ({ name: { fa,
 export const TEMPLATES = [
   {
     key: "restaurant",
-    icon: "🍔",
     batch: 1,
     stages: [
       S("آماده‌سازی", "Prep", { workstation: { fa: "میز کار", en: "Prep table" }, setup_minutes: 5, run_minutes: 3, capacity: 4 }),
@@ -26,7 +25,6 @@ export const TEMPLATES = [
   },
   {
     key: "bakery",
-    icon: "🥖",
     batch: 20,
     stages: [
       S("توزین", "Weigh", { setup_minutes: 5, run_minutes: 10 }),
@@ -47,7 +45,6 @@ export const TEMPLATES = [
   },
   {
     key: "detergent",
-    icon: "🧴",
     batch: 1000,
     stages: [
       S("توزین مواد", "Weigh", { workstation: { fa: "باسکول", en: "Scale" }, setup_minutes: 15, run_minutes: 20, capacity: 1000 }),
@@ -72,7 +69,6 @@ export const TEMPLATES = [
   },
   {
     key: "cosmetics",
-    icon: "🧴",
     batch: 1000,
     stages: [
       S("گرم کردن فاز روغنی", "Heat oil phase", { workstation: { fa: "بن‌ماری", en: "Water bath" }, run_minutes: 20, capacity: 1000 }),
@@ -94,7 +90,6 @@ export const TEMPLATES = [
   },
   {
     key: "assembly",
-    icon: "🔧",
     batch: 1,
     stages: [
       S("آماده‌سازی قطعات", "Kitting", { run_minutes: 3, capacity: 1 }),

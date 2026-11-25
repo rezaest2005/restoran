@@ -56,7 +56,6 @@ export default function ItemsSection({ ctx, productsOnly = false }) {
   return (
     <Box>
       <SectionHeader ctx={ctx} title={productsOnly ? t("ui_dh.products.title") : t("ui_def.items.title")}
-        subtitle={productsOnly ? t("ui_dh.products.subtitle") : t("ui_def.items.subtitle")}
         onNew={openNew} newLabel={productsOnly ? t("ui_dh.products.new") : t("ui_def.items.new")} search={q} onSearch={setQ}>
         {!productsOnly && <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }} role="group" aria-label={t("ui_def.items.f_kind")}>
           {["", ...KINDS].map((k) => (
@@ -76,7 +75,6 @@ export default function ItemsSection({ ctx, productsOnly = false }) {
         emptyText={dq || (kind && !productsOnly) ? t("ui_def.common.no_results") : productsOnly ? t("ui_dh.products.empty") : t("ui_def.items.empty")}
         emptyAction={dq || (kind && !productsOnly) ? null : {
           label: productsOnly ? t("ui_dh.products.new") : t("ui_def.items.new"), onClick: openNew,
-          icon: productsOnly ? "🏷️" : "🧱", hint: t(productsOnly ? "ui_dh.empty_hint.products" : "ui_dh.empty_hint.items"),
         }}>
         <TableWrap C={C}>
           <Table size="small" sx={{ minWidth: 980, opacity: loading ? 0.6 : 1 }}>
@@ -126,9 +124,6 @@ export default function ItemsSection({ ctx, productsOnly = false }) {
         </TableWrap>
         <TablePagination component="div" count={total} page={page} rowsPerPage={PAGE} rowsPerPageOptions={[PAGE]}
           onPageChange={(_, p) => setPage(p)} sx={{ color: C.sub, "& .MuiTablePagination-selectIcon": { color: C.sub } }} />
-        <Typography sx={{ color: C.muted, fontSize: 11 }}>
-          {t("ui_def.common.cursor_hint")}
-        </Typography>
       </LoadState>
 
       {editing && (

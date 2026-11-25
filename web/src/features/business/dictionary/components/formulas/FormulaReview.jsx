@@ -59,7 +59,7 @@ export default function FormulaReview({ ctx, est, formulaId, dirty, outputName, 
           sub={est.bottleneck ? fmtMinutes(t, est.bottleneck.minutes) : t("ui_mrp.no_stages")} />
       </Box>
 
-      <Box sx={{ border: `1px solid ${C.glassBorder}`, borderRadius: 2, p: 1.5, display: "flex", flexDirection: "column", gap: 0.75 }}>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
         <Typography sx={{ fontWeight: 700, color: C.text, mb: 0.5 }}>{t("ui_mrp.cost_breakdown")}</Typography>
         {[
           ["materials", est.material], ["operations", est.operation], ["overhead", est.overhead],
@@ -72,7 +72,7 @@ export default function FormulaReview({ ctx, est, formulaId, dirty, outputName, 
       </Box>
 
       {est.materials.length > 0 && (
-        <Box sx={{ border: `1px solid ${C.glassBorder}`, borderRadius: 2, p: 1.5, display: "flex", flexDirection: "column", gap: 0.75 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
           <Typography sx={{ fontWeight: 700, color: C.text, mb: 0.5 }}>{t("ui_mrp.material_share")}</Typography>
           {est.materials.slice(0, 8).map((m) => (
             <ShareRow key={m.key} C={C} label={m.name} value={m.cost} pct={est.material > 0 ? (m.cost / est.material) * 100 : 0} />
@@ -81,7 +81,7 @@ export default function FormulaReview({ ctx, est, formulaId, dirty, outputName, 
       )}
 
       {est.stages.length > 0 && (
-        <Box sx={{ border: `1px solid ${C.glassBorder}`, borderRadius: 2, p: 1.5 }}>
+        <Box>
           <Typography sx={{ fontWeight: 700, color: C.text, mb: 1 }}>{t("ui_mrp.line_title")}</Typography>
           <Box component="ol" sx={{ m: 0, paddingInlineStart: 2.5, display: "flex", flexDirection: "column", gap: 0.5 }}>
             {est.stages.map((s) => (
@@ -96,9 +96,7 @@ export default function FormulaReview({ ctx, est, formulaId, dirty, outputName, 
         </Box>
       )}
 
-      {!formulaId ? (
-        <Alert severity="info">{t("ui_mrp.save_for_analysis")}</Alert>
-      ) : (
+      {formulaId && (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
           <Typography sx={{ fontWeight: 700, color: C.text }}>{t("ui_mrp.saved_analysis")}</Typography>
           {dirty && <Alert severity="warning">{t("ui_mrp.dirty_hint")}</Alert>}
@@ -134,7 +132,7 @@ export default function FormulaReview({ ctx, est, formulaId, dirty, outputName, 
 
 /** Finished items are sold through a POS / catalogue product linked to the item. */
 function SellPanel({ ctx, analysis, outputName, outputId, onDone }) {
-  const { t, C, S } = ctx;
+  const { t, S } = ctx;
   const [open, setOpen] = useState(false);
   const [cats, setCats] = useState(null);
   const [cat, setCat] = useState("");
@@ -180,8 +178,7 @@ function SellPanel({ ctx, analysis, outputName, outputId, onDone }) {
   };
 
   return (
-    <Box sx={{ border: `1px dashed ${C.glassBorder}`, borderRadius: 2, p: 1.5 }}>
-      <Typography sx={{ fontSize: 13, color: C.sub, mb: open ? 1.5 : 0.75 }}>{t("ui_mrp.not_sold")}</Typography>
+    <Box>
       {!open ? (
         <Button variant="outlined" sx={S.ghost} onClick={() => setOpen(true)}>{t("ui_mrp.sell_it")}</Button>
       ) : (

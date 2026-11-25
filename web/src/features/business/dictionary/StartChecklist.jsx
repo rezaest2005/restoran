@@ -45,53 +45,38 @@ export default function StartChecklist({ ctx, steps, refreshKey, onGo }) {
   return (
     <Box component="section" aria-label={t("ui_dh.start.title")} sx={{ ...S.card, mb: 2, p: { xs: 1.5, md: 2 } }}>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-        <Box sx={{ flex: 1, minWidth: 200 }}>
-          <Typography sx={{ fontSize: 15, fontWeight: 900, color: C.text }}>
-            <span aria-hidden="true">🧭 </span>{next ? t("ui_dh.start.title") : t("ui_dh.start.done_all")}
-          </Typography>
-          <Typography sx={{ fontSize: 12, color: C.sub }}>
-            {t("ui_dh.start.progress", { done: done.length, total: steps.length })}
-            {next && collapsed ? ` · ${t("ui_dh.start.next")}: ${t(`ui_dh.start.steps.${next}.title`)}` : ""}
-          </Typography>
-        </Box>
+        <Typography sx={{ flex: 1, minWidth: 140, fontSize: 15, fontWeight: 900, color: C.text }}>
+          {next ? t("ui_dh.start.title") : t("ui_dh.start.done_all")}
+          <Typography component="span" sx={{ fontSize: 12, color: C.sub, fontWeight: 600, marginInlineStart: 1 }}>{done.length}/{steps.length}</Typography>
+        </Typography>
         {next && collapsed && (
-          <Button size="small" sx={S.btn} onClick={() => onGo(next)}>{t("ui_dh.start.go")}</Button>
+          <Button size="small" sx={S.btn} onClick={() => onGo(next)}>{t(`ui_dh.start.steps.${next}`)}</Button>
         )}
         <Button size="small" sx={{ color: C.sub, textTransform: "none" }} onClick={toggle} aria-expanded={!collapsed}>
           {collapsed ? t("ui_dh.start.show") : t("ui_dh.start.hide")}
         </Button>
       </Box>
-      <LinearProgress variant="determinate" value={pct} aria-label={t("ui_dh.start.progress", { done: done.length, total: steps.length })}
-        sx={{ mt: 1, height: 6, borderRadius: 3, bgcolor: C.divider, "& .MuiLinearProgress-bar": { bgcolor: C.success } }} />
+      <LinearProgress variant="determinate" value={pct} aria-label={`${done.length}/${steps.length}`}
+        sx={{ mt: 1, height: 4, borderRadius: 2, bgcolor: C.divider, "& .MuiLinearProgress-bar": { bgcolor: C.success } }} />
 
       {!collapsed && (
-        <Box component="ol" sx={{ listStyle: "none", p: 0, m: 0, mt: 1.5, display: "grid", gap: 1, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: `repeat(${steps.length}, 1fr)` } }}>
+        <Box component="ol" sx={{ listStyle: "none", p: 0, m: 0, mt: 1.5, display: "flex", gap: 1, flexWrap: "wrap" }}>
           {steps.map((id, i) => {
             const isDone = counts[id] > 0;
             const isNext = id === next;
             return (
-              <Box component="li" key={id} sx={{
-                p: 1.25, borderRadius: 2, display: "flex", flexDirection: "column", gap: 0.5,
-                border: `1px solid ${isNext ? C.primary : isDone ? C.success : C.glassBorder}`,
-                bgcolor: isNext ? C.primarySubtle : "transparent",
-              }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Box component="li" key={id}>
+                <Button onClick={() => onGo(id)} aria-current={isNext ? "step" : undefined}
+                  sx={{
+                    textTransform: "none", gap: 1, px: 1.5, py: 0.5, borderRadius: 2, color: C.text, fontWeight: isNext ? 800 : 600,
+                    border: `1px solid ${isNext ? C.primary : isDone ? C.success : C.glassBorder}`, bgcolor: isNext ? C.primarySubtle : "transparent",
+                  }}>
                   <Box aria-hidden="true" sx={{
-                    width: 22, height: 22, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800,
+                    width: 20, height: 20, borderRadius: "50%", flexShrink: 0, display: "grid", placeItems: "center", fontSize: 11, fontWeight: 800,
                     bgcolor: isDone ? C.success : isNext ? C.primary : C.divider, color: isDone || isNext ? C.onPrimary : C.sub,
                   }}>{isDone ? "✓" : i + 1}</Box>
-                  <Typography sx={{ fontSize: 13, fontWeight: 800, color: C.text }}>{t(`ui_dh.start.steps.${id}.title`)}</Typography>
-                </Box>
-                <Typography sx={{ fontSize: 11.5, color: C.sub, flex: 1 }}>{t(`ui_dh.start.steps.${id}.hint`)}</Typography>
-                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
-                  <Typography sx={{ fontSize: 11, color: isDone ? C.success : C.muted, fontWeight: 700 }}>
-                    {counts[id] == null ? "…" : isDone ? t("ui_dh.start.count", { n: counts[id] }) : t("ui_dh.start.todo")}
-                  </Typography>
-                  <Button size="small" onClick={() => onGo(id)}
-                    sx={isNext ? { ...S.btn, py: 0.25, px: 1.5, fontSize: 12 } : { color: C.primary, textTransform: "none", fontSize: 12 }}>
-                    {isDone ? t("ui_dh.start.open") : t("ui_dh.start.go")}
-                  </Button>
-                </Box>
+                  {t(`ui_dh.start.steps.${id}`)}
+                </Button>
               </Box>
             );
           })}
