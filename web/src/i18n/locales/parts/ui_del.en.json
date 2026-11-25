@@ -201,7 +201,7 @@
       "shift_start": "Start shift",
       "shift_end": "End shift",
       "updated": "Saved.",
-      "geo_denied": "Location access is off, so your position is not shared. Enable it in the browser settings.",
+      "geo_denied": "Location is blocked; enable it in browser settings",
       "geo_unsupported": "This device does not support location.",
       "geo_waiting": "Waiting for location…",
       "uncollected": "Unsettled cash",
